@@ -32,6 +32,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -90,6 +91,11 @@ public class MigrationManagerImplTest {
 	DBONode nodeTwo;
 	DBORevision revTwo;
 	
+	BackupAliasType backupAlias;
+	BackupTypeRequest request;
+	Long batchSize;
+	List<Long> backupIds;
+	List<MigratableDatabaseObject<?, ?>> allObjects;
 	
 	@Before
 	public void before() throws IOException{
@@ -130,6 +136,24 @@ public class MigrationManagerImplTest {
 		revTwo = new DBORevision();
 		revTwo.setOwner(nodeTwo.getId());
 		revTwo.setRevisionNumber(0L);
+		
+		backupAlias = BackupAliasType.MIGRATION_TYPE_NAME;
+		request = new BackupTypeRequest();
+		request.setAliasType(backupAlias);
+		request.setMigrationType(MigrationType.NODE);
+		batchSize = 2L;
+		request.setBatchSize(batchSize);
+		backupIds = Lists.newArrayList(123L,456L);
+		request.setRowIdsToBackup(backupIds);
+		
+		List<MigratableDatabaseObject<?, ?>> nodeStream = Lists.newArrayList(nodeOne, nodeTwo);
+		List<MigratableDatabaseObject<?, ?>> revisionStream = Lists.newArrayList(revOne, revTwo);
+		when(mockDao.streamDatabaseObjects(MigrationType.NODE, backupIds, batchSize)).thenReturn(nodeStream);
+		when(mockDao.streamDatabaseObjects(MigrationType.NODE_REVISION, backupIds, batchSize)).thenReturn(revisionStream);
+		
+		allObjects = new LinkedList<>();
+		allObjects.addAll(nodeStream);
+		allObjects.addAll(revisionStream);
 	}
 	
 	@Test
@@ -464,34 +488,69 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testBackupRequest() throws IOException {
-		BackupAliasType backupAlias = BackupAliasType.MIGRATION_TYPE_NAME;
-		BackupTypeRequest request = new BackupTypeRequest();
-		request.setAliasType(backupAlias);
-		request.setBackupType(MigrationType.NODE);
-		Long batchSize = 2L;
-		request.setBatchSize(batchSize);
-		List<Long> backupIds = Lists.newArrayList(123L,456L);
-		request.setRowIdsToBackup(backupIds);
-		
-		List<MigratableDatabaseObject<?, ?>> nodeStream = Lists.newArrayList(nodeOne, nodeTwo);
-		List<MigratableDatabaseObject<?, ?>> revisionStream = Lists.newArrayList(revOne, revTwo);
-		List<MigratableDatabaseObject<?, ?>> allResults = new LinkedList<>();
-		allResults.addAll(nodeStream);
-		allResults.addAll(revisionStream);
-		when(mockDao.streamDatabaseObjects(MigrationType.NODE, backupIds, batchSize)).thenReturn(nodeStream);
-		when(mockDao.streamDatabaseObjects(MigrationType.NODE_REVISION, backupIds, batchSize)).thenReturn(revisionStream);
-		
-		List<MigratableDatabaseObject<?, ?>> allObjects = new LinkedList<>();
-		allObjects.addAll(nodeStream);
-		allObjects.addAll(revisionStream);
- 		
+ 		// call under test
 		manager.backupRequest(mockUser, request);
 		verify(mockBackupFileStream).writeBackupFile(eq(mockOutputStream), iterableCator.capture(), eq(backupAlias), eq(batchSize));
 		List<MigratableDatabaseObject<?, ?>> results = new LinkedList<>();
 		for(MigratableDatabaseObject<?, ?> object: iterableCator.getValue()) {
 			results.add(object);
 		}
-		assertEquals(allResults,results);
+		assertEquals(allObjects,results);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testBackupRequestNonAdmin() throws IOException {
+		when(mockUser.isAdmin()).thenReturn(false);
+ 		// call under test
+		manager.backupRequest(mockUser, request);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testBackupRequestNullUser() throws IOException {
+		mockUser = null;
+ 		// call under test
+		manager.backupRequest(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBackupRequestNullRequset() throws IOException {
+		request  = null;
+ 		// call under test
+		manager.backupRequest(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBackupRequestNullAliasType() throws IOException {
+		request.setAliasType(null);
+ 		// call under test
+		manager.backupRequest(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBackupRequestNullMigrationType() throws IOException {
+		request.setMigrationType(null);
+ 		// call under test
+		manager.backupRequest(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBackupRequestNullBatchSize() throws IOException {
+		request.setBatchSize(null);
+ 		// call under test
+		manager.backupRequest(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBackupRequestNullRowIds() throws IOException {
+		request.setRowIdsToBackup(null);
+ 		// call under test
+		manager.backupRequest(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBackupRequestEmptyRowIds() throws IOException {
+		request.setRowIdsToBackup(new LinkedList<>());
+ 		// call under test
+		manager.backupRequest(mockUser, request);
+	}
 }

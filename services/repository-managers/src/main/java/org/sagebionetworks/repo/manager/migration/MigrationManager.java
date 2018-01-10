@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
@@ -19,6 +20,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
+import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
@@ -201,6 +204,16 @@ public interface MigrationManager {
 	 * @throws IOException 
 	 */
 	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest req) throws IOException;
+
+	/**
+	 * Restore the data from the provided migration backup file.
+	 * 
+	 * @param user
+	 * @param req
+	 * @return
+	 * @throws IOException 
+	 */
+	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest req) throws IOException;
 	
 	
 }

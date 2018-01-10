@@ -1,0 +1,14 @@
+{
+	"description": "Results for a backup type job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
+        }
+    ],
+	"properties": {
+         "restoredRowCount":{
+         	"description": "The number of rows restored with this request.",
+        	"type":"integer"
+         }
+	}
+}

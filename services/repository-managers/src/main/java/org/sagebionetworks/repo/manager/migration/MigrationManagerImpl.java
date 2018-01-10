@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +40,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
+import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
+import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -47,6 +50,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Iterables;
 
 
@@ -574,19 +578,24 @@ public class MigrationManagerImpl implements MigrationManager {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(request, "Request");
 		ValidateArgument.required(request.getAliasType(), "request.aliasType");
-		ValidateArgument.required(request.getBackupType(), "request.backupType");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
 		ValidateArgument.required(request.getBatchSize(), "requset.batchSize");
 		ValidateArgument.required(request.getRowIdsToBackup(), "request.rowIdsToBackup");
+		if(request.getRowIdsToBackup().isEmpty()) {
+			throw new IllegalArgumentException("Request.rowIdsToBackup cannot be empty.");
+		}
 		validateUser(user);
 		// Start the stream for the primary
-		Iterable<MigratableDatabaseObject<?, ?>> dataStream = this.migratableTableDao.streamDatabaseObjects(request.getBackupType(), request.getRowIdsToBackup(), request.getBatchSize());
+		Iterable<MigratableDatabaseObject<?, ?>> dataStream = this.migratableTableDao
+				.streamDatabaseObjects(request.getMigrationType(), request.getRowIdsToBackup(), request.getBatchSize());
 		// Concatenate all secondary data streams to the main stream.
-		for(MigrationType secondaryType: getSecondaryTypes(request.getBackupType())) {
-			Iterable<MigratableDatabaseObject<?, ?>> secondaryStream = this.migratableTableDao.streamDatabaseObjects(secondaryType, request.getRowIdsToBackup(), request.getBatchSize());
+		for (MigrationType secondaryType : getSecondaryTypes(request.getMigrationType())) {
+			Iterable<MigratableDatabaseObject<?, ?>> secondaryStream = this.migratableTableDao
+					.streamDatabaseObjects(secondaryType, request.getRowIdsToBackup(), request.getBatchSize());
 			dataStream = Iterables.concat(dataStream, secondaryStream);
 		}
 		// Create the backup and upload it to S3.
-		return backupStreamToS3(request.getBackupType(), dataStream, request.getAliasType(), request.getBatchSize());
+		return backupStreamToS3(request.getMigrationType(), dataStream, request.getAliasType(), request.getBatchSize());
 	}
 	
 	/**
@@ -599,10 +608,10 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @throws IOException 
 	 */
 	public BackupTypeResponse backupStreamToS3(MigrationType type, Iterable<MigratableDatabaseObject<?, ?>> dataStream, BackupAliasType aliasType, long batchSize) throws IOException {
+		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationBackup", ".zip");
 		FileOutputStream fos = null;
 		try {
-			// stream all of the data to the temp file
 			fos = fileProvider.createFileOutputStream(temp);
 			backupFileStream.writeBackupFile(fos, dataStream, aliasType, batchSize);
 			fos.flush();
@@ -614,9 +623,9 @@ public class MigrationManagerImpl implements MigrationManager {
 			response.setBackupFileKey(key);
 			return response;
 		}finally {
-			// close the stream
+			// Unconditionally close the stream
 			IOUtils.closeQuietly(fos);
-			// delete the temp file.
+			// Delete the temporary file if it exists.
 			if(temp != null) {
 				temp.delete();
 			}
@@ -631,5 +640,52 @@ public class MigrationManagerImpl implements MigrationManager {
 	 */
 	public static String createNewBackupKey(String stack, String instance, MigrationType type) {
 		return String.format(BACKUP_KEY_TEMPLATE, stack, instance, type, UUID.randomUUID().toString());
+	}
+
+	@Override
+	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest request) throws IOException {
+		ValidateArgument.required(user, "User");
+		ValidateArgument.required(request, "Request");
+		ValidateArgument.required(request.getAliasType(), "request.aliasType");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		ValidateArgument.required(request.getBatchSize(), "requset.batchSize");
+		ValidateArgument.required(request.getBackupFileKey(), "request.backupFileKey");
+		validateUser(user);
+		// Stream all of the data to a local temporary file.
+		File temp = fileProvider.createTempFile("MigrationRestore", ".zip");
+		FileInputStream fis = null;
+		try {
+			// download the file from S3
+			GetObjectRequest getObjectRequest = new GetObjectRequest(backupBucket, request.getBackupFileKey());
+			s3Client.getObject(getObjectRequest, temp);
+			fis = fileProvider.createFileInputStream(temp);
+			// Stream over the resulting file.
+			RestoreTypeResponse response = restoreStream(fis, request.getMigrationType(), request.getAliasType(), request.getBatchSize());
+			// delete the file from S3
+			s3Client.deleteObject(backupBucket, request.getBackupFileKey());
+			return response;
+		}finally {
+			// Unconditionally close the stream
+			IOUtils.closeQuietly(fis);
+			// Delete the temporary file if it exists.
+			if(temp != null) {
+				temp.delete();
+			}
+		}
+	}
+
+	/**
+	 * Restore all of the data from the provided stream.
+	 * 
+	 * @param fis
+	 * @param migrationType
+	 * @param aliasType
+	 * @return
+	 */
+	public RestoreTypeResponse restoreStream(InputStream input, MigrationType migrationType,
+			BackupAliasType backupAliasType, long batchSize) {
+		// Start reading the stream.
+		Iterable<MigratableDatabaseObject<?,?>> iterable = this.backupFileStream.readBackupFile(input, backupAliasType);
+		return null;
 	}
 }

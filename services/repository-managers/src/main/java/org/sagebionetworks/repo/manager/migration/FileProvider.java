@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,4 +28,12 @@ public interface FileProvider {
 	 * @throws FileNotFoundException 
 	 */
 	FileOutputStream createFileOutputStream(File file) throws FileNotFoundException;
+
+	/**
+	 * Create a FileInputStream for the given file.
+	 * @param file
+	 * @return
+	 * @throws FileNotFoundException 
+	 */
+	FileInputStream createFileInputStream(File file) throws FileNotFoundException;
 }
