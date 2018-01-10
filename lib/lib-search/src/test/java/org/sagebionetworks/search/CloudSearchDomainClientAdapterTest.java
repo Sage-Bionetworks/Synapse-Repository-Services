@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.search.Document;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CloudSearchDomainClientAdapterTest {
@@ -48,20 +50,6 @@ public class CloudSearchDomainClientAdapterTest {
 		searchRequest = new SearchRequest().withQuery("aQuery");
 	}
 
-//	/**
-//	 * setEndpoint() Tests
-//	 */
-//
-//	@Test(expected = IllegalArgumentException.class)
-//	public void testSetEndpointNullEndpoint(){
-//		cloudSearchDomainClientAdapter.setEndpoint(null);
-//	}
-//
-//	@Test(expected = IllegalArgumentException.class)
-//	public void testSetEndpointEmptyStringEndpoint(){
-//		cloudSearchDomainClientAdapter.setEndpoint("");
-//	}
-
 	/**
 	 * search() Tests
 	 */
@@ -69,11 +57,6 @@ public class CloudSearchDomainClientAdapterTest {
 	@Test(expected = IllegalArgumentException.class)
 	public void testSearchNullRequest() throws CloudSearchClientException{
 		cloudSearchDomainClientAdapter.rawSearch(null);
-	}
-
-	@Test(expected = IllegalStateException.class)
-	public void testSearchBeforeEndpointSet() throws CloudSearchClientException{
-		cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 	}
 
 
@@ -144,6 +127,7 @@ public class CloudSearchDomainClientAdapterTest {
 	@Test
 	public void testSendDocument() throws IOException {
 		Document document = new Document();
+		document.setId("syn123");
 		ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor = ArgumentCaptor.forClass(UploadDocumentsRequest.class);
 //		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 		cloudSearchDomainClientAdapter.sendDocument(document);
@@ -151,8 +135,10 @@ public class CloudSearchDomainClientAdapterTest {
 		UploadDocumentsRequest capturedRequest = uploadRequestCaptor.getValue();
 
 
-		byte[] documentBytes = document.toString().getBytes();
+		byte[] documentBytes = SearchUtil.convertSearchDocumentsToJSON(Collections.singletonList(document)).getBytes();
 		assertEquals("application/json", capturedRequest.getContentType());
+
+		//TODO: this assertTrue intermittently fails (about 1/10 times)
 		assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(documentBytes), capturedRequest.getDocuments()));
 		assertEquals(new Long(documentBytes.length), capturedRequest.getContentLength());
 	}

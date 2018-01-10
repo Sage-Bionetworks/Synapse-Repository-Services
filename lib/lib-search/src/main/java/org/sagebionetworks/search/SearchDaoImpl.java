@@ -16,6 +16,7 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.util.Strings;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
@@ -32,7 +33,7 @@ public class SearchDaoImpl implements SearchDao {
 
 	private static final String QUERY_BY_ID_AND_ETAG = "(and "+FIELD_ID+":'%1$s' "+FIELD_ETAG+":'%2$s')";
 
-	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = FIELD_ID+":'*'";
+	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "(prefix '')";
 
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 
@@ -48,6 +49,12 @@ public class SearchDaoImpl implements SearchDao {
 
 	@Override
 	public void deleteDocuments(Set<String> docIdsToDelete) { //TODO: check if autowire test exists
+		ValidateArgument.required(docIdsToDelete,"docIdsToDelete");
+
+		if(docIdsToDelete.isEmpty()){ //no work needs to be done
+			return;
+		}
+
 		DateTime now = DateTime.now();
 		// Note that we cannot use a JSONEntity here because the format is
 		// just a JSON array
@@ -56,7 +63,6 @@ public class SearchDaoImpl implements SearchDao {
 			Document document = new Document();
 			document.setType(DocumentTypeNames.delete);
 			document.setId(entityId);
-			document.setVersion(now.getMillis() / 1000); //TODO: is this still necessary? integration test?
 			documentBatch.add(document);
 		}
 		// Delete the batch.
@@ -76,20 +82,29 @@ public class SearchDaoImpl implements SearchDao {
 
 	@Override
 	public SearchResult executeSearch(SearchRequest search) throws CloudSearchClientException {
-		CloudsSearchDomainClientAdapter searchClient = cloudSearchClientProvider.getCloudSearchClient();
-		return searchClient.rawSearch(search);
+		return cloudSearchClientProvider.getCloudSearchClient().rawSearch(search);
 	}
 
 	@Override
 	public boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException {
+ 		ValidateArgument.required(id, "id");
+ 		ValidateArgument.required(etag, "etag");
+
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
 		SearchResult results = executeSearch(new SearchRequest().withQuery(query).withQueryParser(QueryParser.Structured));
 		return results.getHits().getFound() > 0;
 	}
 
-	@Override //TODO: make package scope?
-	public SearchResult listSearchDocuments(long limit, long offset) throws CloudSearchClientException {
+	/**
+	 * List all documents in the search index.
+	 *
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws CloudSearchClientException
+	 */
+	SearchResult listSearchDocuments(long limit, long offset) throws CloudSearchClientException {
 		return executeSearch(new SearchRequest().withQuery(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE)
 				.withQueryParser(QueryParser.Structured)
 				.withSize(limit).withStart(offset));

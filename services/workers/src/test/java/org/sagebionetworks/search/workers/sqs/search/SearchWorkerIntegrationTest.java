@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +103,9 @@ public class SearchWorkerIntegrationTest {
 			public boolean apply(Void input) {
 				try {
 					return searchProvider.getCloudSearchClient() != null;
+				} catch (IllegalStateException e) {
+					//not ready yet so ignore...
+					return false;
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -154,6 +158,10 @@ public class SearchWorkerIntegrationTest {
 	
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
+		if(rootKey != null){
+			wikiPageDao.delete(rootKey);
+		}
+
 		if(markdownOne != null) {
 			// Clean up S3 File and S3FileHandle
 			String markdownHandleId = markdownOne.getId();
@@ -165,9 +173,9 @@ public class SearchWorkerIntegrationTest {
 		if (project != null){
 			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
-		if(rootKey != null){
-			wikiPageDao.delete(rootKey);
-		}
+
+
+
 
 	}	
 	

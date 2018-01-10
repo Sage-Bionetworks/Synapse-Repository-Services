@@ -26,8 +26,7 @@ public interface SearchManager {
 	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException
 	 */
-	SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws UnsupportedEncodingException,
-			ClientProtocolException, IOException, ServiceUnavailableException, CloudSearchClientException;
+	SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws CloudSearchClientException;
 
 	SearchResult rawSearch (SearchRequest searchRequest) throws CloudSearchClientException;
 

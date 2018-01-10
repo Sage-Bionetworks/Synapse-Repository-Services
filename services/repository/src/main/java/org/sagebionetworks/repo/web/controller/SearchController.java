@@ -46,19 +46,13 @@ public class SearchController extends BaseController {
 	 * @param searchQuery
 	 * @param request
 	 * @return search results from CloudSearch
-	 * @throws ClientProtocolException
-	 * @throws IOException
 	 * @throws CloudSearchClientException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws ServiceUnavailableException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { "/search" }, method = RequestMethod.POST)
 	public @ResponseBody
 	SearchResults proxySearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody SearchQuery searchQuery,
-			HttpServletRequest request) throws ClientProtocolException, IOException, CloudSearchClientException, DatastoreException,
-			NotFoundException, ServiceUnavailableException {
+			HttpServletRequest request) throws CloudSearchClientException {
 		return serviceProvider.getSearchService().proxySearch(userId, searchQuery);
 	}
 }

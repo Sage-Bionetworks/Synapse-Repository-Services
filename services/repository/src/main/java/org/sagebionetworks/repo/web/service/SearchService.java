@@ -16,17 +16,12 @@ public interface SearchService {
 	/**
 	 * @param userId
 	 * @param searchQuery
-	 * @param request
 	 * @return search results from CloudSearch
-	 * @throws ClientProtocolException
-	 * @throws IOException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws ServiceUnavailableException
-	 * @throws CloudSearchClientException 
+	 * @throws CloudSearchClientException
 	 */
 	public @ResponseBody
-	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException, IOException,
-			DatastoreException, NotFoundException, ServiceUnavailableException, CloudSearchClientException;
+	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws CloudSearchClientException;
 
 }

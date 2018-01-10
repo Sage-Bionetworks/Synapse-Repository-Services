@@ -23,6 +23,7 @@ import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchDaoImpl;
 import org.sagebionetworks.search.SearchUtil;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
@@ -54,26 +55,30 @@ public class SearchManagerImpl implements SearchManager{
 	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException
 	 */
-	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws UnsupportedEncodingException,
-			ClientProtocolException, IOException, ServiceUnavailableException, CloudSearchClientException {
-
+	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws CloudSearchClientException {
+		//TODO: move FIELD_PATH as a cloudsearch index instead of always looking up in dao
 		boolean includePath = false;
-		if(searchQuery.getReturnFields() != null && searchQuery.getReturnFields().contains(SearchConstants.FIELD_PATH)){
-			includePath = true;
-			// We do not want to pass path along to the search index as it is not there.
-			searchQuery.getReturnFields().remove(SearchConstants.FIELD_PATH);
+		if(searchQuery.getReturnFields() != null){
+			// We do not want to pass FIELD_PATH along to the search index as it is not there.
+			//List<T>.remove() returns a boolean indicating whether the return fields previously contained FIELD_PATH
+			includePath = searchQuery.getReturnFields().remove(SearchConstants.FIELD_PATH);
 		}
 		// Create the query string
 		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery);
-		if (!userInfo.isAdmin()){
-			searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userInfo));
-		}
+		filterSearchForAuthorization(userInfo, searchRequest);
 		SearchResults results = SearchUtil.convertToSynapseSearchResult(searchDao.executeSearch(searchRequest));
 		// Add any extra return results to the hits
 		if(results != null && results.getHits() != null){
 			addReturnDataToHits(results.getHits(), includePath);
 		}
 		return results;
+	}
+
+	static void filterSearchForAuthorization(UserInfo userInfo, SearchRequest searchRequest) {
+		if (!userInfo.isAdmin()){
+			ValidateArgument.requirement(searchRequest.getFilterQuery() == null, "searchRequest's fitler query should be null");
+			searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userInfo));
+		}
 	}
 
 	@Override
@@ -86,29 +91,26 @@ public class SearchManagerImpl implements SearchManager{
 	 * @param hits
 	 * @param includePath
 	 */
-	public void addReturnDataToHits(List<Hit> hits, boolean includePath) { //TODO: move in as field of path.
-		List<Hit> toRemove = new LinkedList<Hit>();
-		if(hits != null){
+	public void addReturnDataToHits(List<Hit> hits, boolean includePath) { //TODO: remove once FIELD_PATH is indexed in CloudSearch
+		if(hits != null && includePath){
 			// For each hit we need to add the path
+			List<Hit> toRemove = new LinkedList<>();
 			for(Hit hit: hits){
-				if(includePath){
-					try {
-						EntityPath path = searchDocumentDriver.getEntityPath(hit.getId());
-						hit.setPath(path);
-					} catch (NotFoundException e) {
-						// Add a warning and remove it from the hits
-						log.warn("Found a search document that did not exist in the reposiroty: "+hit, e);
-						// We need to remove this from the hits
-						toRemove.add(hit);
-					}
+				try {
+					EntityPath path = searchDocumentDriver.getEntityPath(hit.getId());
+					hit.setPath(path);
+				} catch (NotFoundException e) {
+					// Add a warning and remove it from the hits
+					log.warn("Found a search document that did not exist in the repository: "+hit, e);
+					// We need to remove this from the hits
+					toRemove.add(hit);
 				}
 			}
-		}
-		if(!toRemove.isEmpty()){
 			hits.removeAll(toRemove);
 		}
 	}
 
+	//TODO: maybe move these functions from dao into manager
 	@Override
 	public void deleteAllDocuments() throws InterruptedException, CloudSearchClientException {
 		searchDao.deleteAllDocuments();
@@ -185,8 +187,8 @@ public class SearchManagerImpl implements SearchManager{
 			// old message.
 			if (changeMessage.getObjectEtag() == null
 					|| searchDocumentDriver.doesNodeExist(
-					changeMessage.getObjectId(),
-					changeMessage.getObjectEtag())) {
+						changeMessage.getObjectId(),
+						changeMessage.getObjectEtag())) {
 				try {
 					return searchDocumentDriver
 							.formulateSearchDocument(changeMessage

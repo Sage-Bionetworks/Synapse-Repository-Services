@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.search.SearchConstants;
@@ -39,36 +40,36 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class SearchControllerTest extends AbstractAutowiredControllerTestBase {	
 	private Long adminUserId;
-	
-	private ServiceProvider provider;
+
+	@Autowired
+	private EntityService entityService;
+
+	@Autowired
 	private SearchDocumentDriver documentProvider;
+
+	@Autowired
 	private CloudSearchClientProvider cloudSearchClientProvider;
-	private Project project;
 
 	@Autowired
 	private SearchManager searchManager;
+
+	private Project project;
+
+
 	
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
-		StackConfiguration config = new StackConfiguration();
 		// Only run this test if search is enabled.
-		Assume.assumeTrue(config.getSearchEnabled());
-		
-		provider = dispatchServlet.getWebApplicationContext().getBean(ServiceProvider.class);
-		assertNotNull(provider);
-		documentProvider = dispatchServlet.getWebApplicationContext().getBean(SearchDocumentDriver.class);
-		assertNotNull(documentProvider);
-		cloudSearchClientProvider = dispatchServlet.getWebApplicationContext().getBean(CloudSearchClientProvider.class);
-		assertNotNull(cloudSearchClientProvider);
+		Assume.assumeTrue(cloudSearchClientProvider.isSearchEnabled());
 
 		// wait for search initialization
 		assertTrue(TimeUtils.waitFor(600000, 1000, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
 				try {
-					return cloudSearchClientProvider.isSearchEnabled() && cloudSearchClientProvider.getCloudSearchClient() != null;
+					return cloudSearchClientProvider.getCloudSearchClient() != null;
 				} catch (IllegalStateException e) {
 					//not ready yet so ignore...
 					return false;
@@ -81,7 +82,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest");
-		project = provider.getEntityService().createEntity(adminUserId, project, null, new MockHttpServletRequest());
+		project = entityService.createEntity(adminUserId, project, null, new MockHttpServletRequest());
 		// Push this to the serach index
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchManager.createOrUpdateSearchDocument(doc);
@@ -101,8 +102,8 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@After
 	public void after()  throws Exception{
-		if(provider != null && project != null){
-			provider.getEntityService().deleteEntity(adminUserId, project.getId());
+		if(project != null){
+			entityService.deleteEntity(adminUserId, project.getId());
 			searchManager.deleteAllDocuments();
 		}
 	}

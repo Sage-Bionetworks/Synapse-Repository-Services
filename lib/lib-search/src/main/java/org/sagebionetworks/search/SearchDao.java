@@ -66,16 +66,7 @@ public interface SearchDao {
 	 * @throws CloudSearchClientException 
 	 */
 	boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException;
-	 
-	 /**
-	 * List all documents in the search index.
-	 * 
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws CloudSearchClientException 
-	 */
-	SearchResult listSearchDocuments(long limit, long offset) throws CloudSearchClientException;
+
 	 
 	 /**
 	 * Clear all data in the search index.

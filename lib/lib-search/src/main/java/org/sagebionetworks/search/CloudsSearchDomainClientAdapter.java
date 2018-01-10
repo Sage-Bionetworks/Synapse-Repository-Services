@@ -49,6 +49,7 @@ public class CloudsSearchDomainClientAdapter {
 	}
 
 	SearchResult rawSearch(SearchRequest request) throws CloudSearchClientException{ //TODO: rename cloudsearch client exception?
+		//TODO: rename method?
 		ValidateArgument.required(request, "request");
 
 		try{
