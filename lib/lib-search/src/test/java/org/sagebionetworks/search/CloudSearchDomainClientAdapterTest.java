@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.search.Document;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -135,7 +134,7 @@ public class CloudSearchDomainClientAdapterTest {
 		UploadDocumentsRequest capturedRequest = uploadRequestCaptor.getValue();
 
 
-		byte[] documentBytes = SearchUtil.convertSearchDocumentsToJSON(Collections.singletonList(document)).getBytes();
+		byte[] documentBytes = SearchUtil.convertSearchDocumentsToJSONString(Collections.singletonList(document)).getBytes();
 		assertEquals("application/json", capturedRequest.getContentType());
 
 		//TODO: this assertTrue intermittently fails (about 1/10 times)

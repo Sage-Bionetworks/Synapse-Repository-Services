@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.util.TimeUtils;
@@ -55,7 +56,7 @@ import com.google.common.base.Predicate;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchWorkerIntegrationTest {
 	
-	public static final long MAX_WAIT = 60*1000; // one minute
+	private static final long MAX_WAIT = 60*1000; // one minute
 	
 	@Autowired
 	private EntityManager entityManager;
@@ -86,11 +87,10 @@ public class SearchWorkerIntegrationTest {
 	
 	private UserInfo adminUserInfo;
 	private Project project;
-	private V2WikiPage rootPage;
 	private WikiPageKey rootKey;
 	
 	private S3FileHandle markdownOne;
-	String uuid;
+	private String uuid;
 	
 	@Before
 	public void before() throws Exception {
@@ -103,7 +103,7 @@ public class SearchWorkerIntegrationTest {
 			public boolean apply(Void input) {
 				try {
 					return searchProvider.getCloudSearchClient() != null;
-				} catch (IllegalStateException e) {
+				} catch (TemporarilyUnavailableException e) {
 					//not ready yet so ignore...
 					return false;
 				} catch (Exception e) {
@@ -173,20 +173,15 @@ public class SearchWorkerIntegrationTest {
 		if (project != null){
 			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
-
-
-
-
 	}	
 	
-//	@Ignore
 	@Test
 	public void testRoundTrip() throws Exception {
 		// Wait for the project to appear.
 		waitForPojectToAppearInSearch();
 				
 		// Now add a wikpage
-		rootPage = createWikiPage(adminUserInfo);
+		V2WikiPage rootPage = createWikiPage(adminUserInfo);
 		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		rootKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.

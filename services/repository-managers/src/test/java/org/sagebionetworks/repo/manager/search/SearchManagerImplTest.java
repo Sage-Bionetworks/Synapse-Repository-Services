@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.manager.search;
 
+import com.amazonaws.services.cloudsearchdomain.model.Hit;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -8,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -17,6 +21,7 @@ import org.sagebionetworks.search.SearchUtil;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -41,7 +46,6 @@ public class SearchManagerImplTest {
 	private SearchDocumentDriver mockSearchDocumentDriver;
 
 	private UserInfo nonAdminUserInfo;
-	private String searchQuery;
 	private SearchRequest searchRequest;
 
 	private SearchManagerImpl searchManager;
@@ -55,8 +59,7 @@ public class SearchManagerImplTest {
 
 
 		nonAdminUserInfo = new UserInfo(false, 990L);
-		searchQuery = "q.parser=structured&q=(and 'RIP' 'Harambe')&return=id,freeze,mage,fun&interactive=deck";
-		Set<Long> userGroups = new HashSet<Long>();
+		Set<Long> userGroups = new HashSet<>();
 		userGroups.add(123L);
 		userGroups.add(8008135L);
 		nonAdminUserInfo.setGroups(userGroups);
@@ -66,34 +69,30 @@ public class SearchManagerImplTest {
 	@Test
 	public void testProxySearchPath() throws Exception {
 		// Prepare mock results
-		SearchResults sample = new SearchResults();
-		sample.setHits(new LinkedList<Hit>());
-		Hit hit = new Hit();
-		hit.setId("syn123");
-		sample.getHits().add(hit);
+		SearchResult sample = new SearchResult().withHits(new Hits());
+		Hit hit = new Hit().withFields(ImmutableMap.of("id", Collections.singletonList("syn123")));
+		sample.getHits().withHit(hit);
 		when(mockSearchDao.executeSearch(any(SearchRequest.class))).thenReturn(sample);
 		// make sure the path is returned from the document driver
 		when(mockSearchDocumentDriver.getEntityPath("syn123")).thenReturn(new EntityPath());
 
 		SearchQuery query = new SearchQuery();
-		query.setBooleanQuery(new LinkedList<KeyValue>());
+		query.setBooleanQuery(new LinkedList<>());
 		KeyValue kv = new KeyValue();
 		kv.setKey(FIELD_ID);
 		kv.setValue("syn123");
 		query.getBooleanQuery().add(kv);
 
 		// Path should not get passed along to the search index as it is not there anymore.
-		query.setReturnFields(new LinkedList<String>());
-		query.getReturnFields().add(FIELD_PATH);
+		query.setReturnFields(Lists.newArrayList(FIELD_PATH));
 
 		// Make the call
 		SearchResults results = searchManager.proxySearch(nonAdminUserInfo, query);
 		assertNotNull(results);
 		assertNotNull(results.getHits());
 		assertEquals(1, results.getHits().size());
-		Hit returnedHit = results.getHits().get(0);
 		// Path should get filled in since we asked for it.
-		assertNotNull(returnedHit.getPath());
+		assertNotNull(results.getHits().get(0).getPath());
 		// Validate that path was not passed along to the search index as it is not there.
 		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
 	}
@@ -101,15 +100,13 @@ public class SearchManagerImplTest {
 	@Test
 	public void testProxySearchNoPath() throws Exception {
 		// Prepare mock results
-		SearchResults sample = new SearchResults();
-		sample.setHits(new LinkedList<Hit>());
-		Hit hit = new Hit();
-		hit.setId("syn123");
-		sample.getHits().add(hit);
+		SearchResult sample = new SearchResult().withHits(new Hits());
+		Hit hit = new Hit().withFields(ImmutableMap.of("id", Collections.singletonList("syn123")));
+		sample.getHits().withHit(hit);
 		when(mockSearchDao.executeSearch(any(SearchRequest.class))).thenReturn(sample);
 
 		SearchQuery query = new SearchQuery();
-		query.setBooleanQuery(new LinkedList<KeyValue>());
+		query.setBooleanQuery(new LinkedList<>());
 		KeyValue kv = new KeyValue();
 		kv.setKey(FIELD_ID);
 		kv.setValue("syn123");
@@ -120,9 +117,8 @@ public class SearchManagerImplTest {
 		assertNotNull(results);
 		assertNotNull(results.getHits());
 		assertEquals(1, results.getHits().size());
-		Hit returnedHit = results.getHits().get(0);
 		// The path should not be returned unless requested.
-		assertNull(returnedHit.getPath());
+		assertNull(results.getHits().get(0).getPath());
 		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
 	}
 

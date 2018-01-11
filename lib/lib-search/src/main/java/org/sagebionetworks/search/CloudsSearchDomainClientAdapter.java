@@ -39,7 +39,8 @@ public class CloudsSearchDomainClientAdapter {
 		ValidateArgument.required(batch, "batch");
 		ValidateArgument.requirement(!batch.isEmpty(), "List<Document> batch cannot be empty");
 
-		String documents = SearchUtil.convertSearchDocumentsToJSON(batch);
+
+		String documents = SearchUtil.convertSearchDocumentsToJSONString(batch);
 		byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
 										.withContentType("application/json")

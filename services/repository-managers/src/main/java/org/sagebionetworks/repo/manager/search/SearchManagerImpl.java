@@ -59,7 +59,8 @@ public class SearchManagerImpl implements SearchManager{
 		//TODO: move FIELD_PATH as a cloudsearch index instead of always looking up in dao
 		boolean includePath = false;
 		if(searchQuery.getReturnFields() != null){
-			// We do not want to pass FIELD_PATH along to the search index as it is not there.
+			// We do not want to pass FIELD_PATH along to the search index as it is not there. So we remove that field
+			// and use includePath to indicate that the FIELD_PATH was requested.
 			//List<T>.remove() returns a boolean indicating whether the return fields previously contained FIELD_PATH
 			includePath = searchQuery.getReturnFields().remove(SearchConstants.FIELD_PATH);
 		}
@@ -68,8 +69,9 @@ public class SearchManagerImpl implements SearchManager{
 		filterSearchForAuthorization(userInfo, searchRequest);
 		SearchResults results = SearchUtil.convertToSynapseSearchResult(searchDao.executeSearch(searchRequest));
 		// Add any extra return results to the hits
-		if(results != null && results.getHits() != null){
-			addReturnDataToHits(results.getHits(), includePath);
+		if(includePath && results != null && results.getHits() != null){
+			//FIELD_PATH is resolved here after search results are retrieved from cloudwatch
+			addReturnDataToHits(results.getHits());
 		}
 		return results;
 	}
@@ -89,10 +91,10 @@ public class SearchManagerImpl implements SearchManager{
 	/**
 	 * Add extra return results to the hit list.
 	 * @param hits
-	 * @param includePath
 	 */
-	public void addReturnDataToHits(List<Hit> hits, boolean includePath) { //TODO: remove once FIELD_PATH is indexed in CloudSearch
-		if(hits != null && includePath){
+	public void addReturnDataToHits(List<Hit> hits) {
+		//NOTE: We actually do parentIds of each entity in FIELD_ANCESTORS but we are still missing
+		if(hits != null){
 			// For each hit we need to add the path
 			List<Hit> toRemove = new LinkedList<>();
 			for(Hit hit: hits){

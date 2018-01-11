@@ -176,12 +176,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		document.setFields(fields);
 
 		document.setType(DocumentTypeNames.add);
-		document.setLang("en"); // TODO this should have been set via "default"
 		// in the schema for this
 
 		// Node fields
 		document.setId(node.getId());
-		document.setVersion(now.getMillis() / 1000);
 		fields.setId(node.getId()); // this is redundant because document id
 		// is returned in search results, but its cleaner to have this also show
 		// up in the "data" section of AwesomeSearch results

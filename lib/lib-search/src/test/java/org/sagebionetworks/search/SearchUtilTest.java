@@ -12,6 +12,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentFields;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
@@ -28,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -501,6 +504,37 @@ public class SearchUtilTest {
 		SearchUtil.prepareDocument(doc);
 		assertNotNull(doc.getFields());
 		assertEquals("The document ID must be set in the fields when ",doc.getId(), doc.getFields().getId());
-		assertNotNull("A version was not set.",doc.getVersion());
 	}
+
+	////////////////////////////////////////
+	// convertSearchDocumentsToJSONString() test
+	////////////////////////////////////////
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertSearchDocumentsToJSONNullDocuments(){
+		SearchUtil.convertSearchDocumentsToJSONString(null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertSearchDocumentsToJSONEmptyDocuments(){
+		SearchUtil.convertSearchDocumentsToJSONString(new LinkedList<>());
+	}
+
+	@Test
+	public void testConvertSearchDocumentsToJSON(){
+		Document deleteDoc = new Document();
+		deleteDoc.setId("syn123");
+		deleteDoc.setType(DocumentTypeNames.delete);
+
+		Document addDoc = new Document();
+		addDoc.setId("syn456");
+		addDoc.setType(DocumentTypeNames.add);
+		DocumentFields fields = new DocumentFields();
+		fields.setName("Fake Entity");
+		addDoc.setFields(fields);
+
+		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(deleteDoc,addDoc));
+		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\",\"id\":\"syn456\"}}]", jsonString);
+	}
+
 }

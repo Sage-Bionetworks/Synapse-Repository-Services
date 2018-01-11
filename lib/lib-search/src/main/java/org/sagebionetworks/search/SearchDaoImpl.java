@@ -33,7 +33,7 @@ public class SearchDaoImpl implements SearchDao {
 
 	private static final String QUERY_BY_ID_AND_ETAG = "(and "+FIELD_ID+":'%1$s' "+FIELD_ETAG+":'%2$s')";
 
-	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "(prefix '')";
+	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "matchall";
 
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 

@@ -277,7 +277,6 @@ public class SearchUtil{
 		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, FIELD_DESCRIPTION));
 		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, FIELD_DISEASE_R));
 		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, FIELD_ETAG));
-		synapseHit.setId(getFirstListValueFromMap(fieldsMap, FIELD_ID));
 		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_BY_R));
 		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_ON)));
 		synapseHit.setName(getFirstListValueFromMap(fieldsMap, FIELD_NAME));
@@ -285,6 +284,7 @@ public class SearchUtil{
 		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
 		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE_R));
 		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+		synapseHit.setId(synapseHit.getId());
 		return synapseHit;
 	}
 
@@ -375,13 +375,19 @@ public class SearchUtil{
 	 * @param document
 	 * @return JSON String of cleaned document
 	 */
-	static String convertSearchDocumentsToJSON(List<Document> documents) { //TODO: Test
+	static String convertSearchDocumentsToJSONString(List<Document> documents) {
+		ValidateArgument.required(documents, "documents");
+		//CloudSearch will not accept an empty document batch
+		ValidateArgument.requirement(!documents.isEmpty(), "documents can not be empty");
+
 		try {
 			StringBuilder builder = new StringBuilder();
 			builder.append("["); //TOD: use JSONArray instead??
 			int count = 0;
-			for(Document document: documents){
-				prepareDocument(document);
+			for(Document document: documents) {
+				if (DocumentTypeNames.add == document.getType()){
+					prepareDocument(document);
+				}
 				String serializedDocument = EntityFactory.createJSONStringForEntity(document);
 				// AwesomeSearch pukes on control characters. Some descriptions have
 				// control characters in them for some reason, in any case, just get rid
@@ -410,10 +416,7 @@ public class SearchUtil{
 	 */
 	public static void prepareDocument(Document document) {
 		// the version is always the current time.
-		DateTime now = DateTime.now();
-		document.setVersion(now.getMillis() / 1000);
 		document.setType(DocumentTypeNames.add);
-		document.setLang("en");
 		if(document.getFields() == null){
 			document.setFields(new DocumentFields());
 		}

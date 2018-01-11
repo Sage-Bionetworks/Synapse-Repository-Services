@@ -3,6 +3,7 @@ package org.sagebionetworks.search;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Random;
@@ -34,7 +35,8 @@ public class CloudSearchClientProvider {
 				awsCloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
 				setupCompleted = true;
 			} else{
-				throw new IllegalStateException("Search has not yet been initialized. Please try again later!"); //TODO: different exception? to map to 503 HTTP error?
+				log.warn("CloudSearch is not finished initializing");
+				throw new TemporarilyUnavailableException("Search has not yet been initialized. Please try again later!");
 			}
 		}
 		return new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient); //TODO: maybe make this as a singleton?

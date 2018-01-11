@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedList;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -21,8 +22,10 @@ import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.util.TimeUtils;
@@ -70,7 +73,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 			public boolean apply(Void input) {
 				try {
 					return cloudSearchClientProvider.getCloudSearchClient() != null;
-				} catch (IllegalStateException e) {
+				} catch (TemporarilyUnavailableException e) {
 					//not ready yet so ignore...
 					return false;
 				} catch (Exception e) {
@@ -81,7 +84,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 
 		// Create an project
 		project = new Project();
-		project.setName("SearchControllerTest");
+		project.setName("SearchControllerTest" + UUID.randomUUID());
 		project = entityService.createEntity(adminUserId, project, null, new MockHttpServletRequest());
 		// Push this to the serach index
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
@@ -125,6 +128,11 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		Hit hit = results.getHits().get(0);
 		assertNotNull(hit);
 		assertEquals(project.getId(), hit.getId());
+	}
+
+	@Test
+	public void testDel() throws CloudSearchClientException, InterruptedException {
+		searchManager.deleteAllDocuments();
 	}
 
 }

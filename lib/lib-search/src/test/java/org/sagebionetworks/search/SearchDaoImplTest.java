@@ -204,7 +204,7 @@ public class SearchDaoImplTest {
 		assertEquals(searchResult, result);
 		SearchRequest capturedRequest = requestArgumentCaptor.getValue();
 		verify(dao, times(1)).executeSearch(capturedRequest);
-		assertEquals("(prefix '')", capturedRequest.getQuery());
+		assertEquals("matchall", capturedRequest.getQuery());
 		assertEquals((Long) limit, capturedRequest.getSize());
 		assertEquals((Long) offset, capturedRequest.getStart());
 	}
