@@ -128,11 +128,12 @@ public class CloudSearchDomainClientAdapterTest {
 		Document document = new Document();
 		document.setId("syn123");
 		ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor = ArgumentCaptor.forClass(UploadDocumentsRequest.class);
-//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
+
+		//method under test
 		cloudSearchDomainClientAdapter.sendDocument(document);
+
 		verify(mockCloudSearchDomainClient).uploadDocuments(uploadRequestCaptor.capture());
 		UploadDocumentsRequest capturedRequest = uploadRequestCaptor.getValue();
-
 
 		byte[] documentBytes = SearchUtil.convertSearchDocumentsToJSONString(Collections.singletonList(document)).getBytes();
 		assertEquals("application/json", capturedRequest.getContentType());

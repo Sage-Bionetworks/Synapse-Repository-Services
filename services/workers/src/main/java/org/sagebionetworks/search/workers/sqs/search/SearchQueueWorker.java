@@ -45,7 +45,7 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback, ChangeMessage change)
-			throws RecoverableMessageException, Exception {
+			throws RecoverableMessageException{
 		//TODO: log/throw error is thrown about search disable?
 		try {
 			searchManager.documentChangeMessage(change);

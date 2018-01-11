@@ -30,7 +30,7 @@ public class CloudsSearchDomainClientAdapter {
 		this.client = client;
 	}
 
-	public void sendDocument(Document document){//TODO: test
+	public void sendDocument(Document document){
 		ValidateArgument.required(document, "document");
 		sendDocuments(Collections.singletonList(document));
 	}

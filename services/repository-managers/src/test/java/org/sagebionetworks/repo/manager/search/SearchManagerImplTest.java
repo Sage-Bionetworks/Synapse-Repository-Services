@@ -125,19 +125,19 @@ public class SearchManagerImplTest {
 	@Test
 	public void testFilterSearchForAuthorizationUserIsAdmin(){
 		UserInfo adminUser = new UserInfo(true, 420L);
-		SearchManagerImpl.filterSearchForAuthorization(adminUser, searchRequest); //TODO: move to test for SearchManager
+		SearchManagerImpl.filterSearchForAuthorization(adminUser, searchRequest);
 		assertEquals(null, searchRequest.getFilterQuery());
 	}
 
 	@Test
 	public void testFilterSearchForAuthorizationUserIsNotAdmin(){
 		SearchManagerImpl.filterSearchForAuthorization(nonAdminUserInfo, searchRequest);
-		assertEquals(SearchUtil.formulateAuthorizationFilter(nonAdminUserInfo), searchRequest.getFilterQuery()); //TODO: move to test for SearchManager
+		assertEquals(SearchUtil.formulateAuthorizationFilter(nonAdminUserInfo), searchRequest.getFilterQuery());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testFilterSearchForAuthorizationUserIsNotAdminFilterQueryAlreadyExists(){
 		searchRequest.setFilterQuery("(or memes:'dank')");
-		SearchManagerImpl.filterSearchForAuthorization(nonAdminUserInfo, searchRequest); //TODO: move to test for SearchManager
+		SearchManagerImpl.filterSearchForAuthorization(nonAdminUserInfo, searchRequest);
 	}
 }

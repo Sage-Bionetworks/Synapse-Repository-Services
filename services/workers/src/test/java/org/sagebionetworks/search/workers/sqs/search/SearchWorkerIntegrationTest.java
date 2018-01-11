@@ -167,7 +167,7 @@ public class SearchWorkerIntegrationTest {
 			String markdownHandleId = markdownOne.getId();
 			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-			fileMetadataDao.delete(markdownHandleId); //TODO: this line is causing exception
+			fileMetadataDao.delete(markdownHandleId);
 		}
 		
 		if (project != null){

@@ -56,7 +56,6 @@ public class SearchManagerImpl implements SearchManager{
 	 * @throws CloudSearchClientException
 	 */
 	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws CloudSearchClientException {
-		//TODO: move FIELD_PATH as a cloudsearch index instead of always looking up in dao
 		boolean includePath = false;
 		if(searchQuery.getReturnFields() != null){
 			// We do not want to pass FIELD_PATH along to the search index as it is not there. So we remove that field
