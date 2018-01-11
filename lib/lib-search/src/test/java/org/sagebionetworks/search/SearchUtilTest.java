@@ -495,7 +495,6 @@ public class SearchUtilTest {
 	///////////////////////////
 	// prepareDocument tests
 	///////////////////////////
-	//TODO: add more tests?
 	@Test
 	public void testPrepareDocument(){
 		Document doc = new Document();

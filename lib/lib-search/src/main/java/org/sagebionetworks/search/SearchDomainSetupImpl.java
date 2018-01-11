@@ -51,7 +51,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	}
 
 	@Override
-	public boolean postInitialize(){//TODO: refactor this logic
+	public boolean postInitialize(){
 		String domainName = getSearchDomainName();
 		if (domainIsProcessing(domainName)) {
 			return false;
@@ -59,8 +59,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 		// Create the domain it it does not already exist.
 		createDomainIfNeeded(domainName);
-		// Set the policy.
-//		setPolicyIfNeeded(domainName); //TODO: make sure that if we don't set the policy, then access is only granted to the user that set up the domain.
 
 		// Define the schema
 		defineAndValidateSchema(domainName);
@@ -106,7 +104,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	 * @param domainName
 	 * @throws InterruptedException
 	 */
-	public void createDomainIfNeeded(String domainName) { //TODO: used to throw InterruptedException? investigate if this still occurs
+	public void createDomainIfNeeded(String domainName) {
 		DescribeDomainsResult result = awsSearchClient
 				.describeDomains(new DescribeDomainsRequest()
 						.withDomainNames(domainName));
@@ -247,8 +245,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	 * @throws InterruptedException
 	 */
 	private boolean domainIsProcessing(String domainName) {
-
-		//TODO: refactor all this return true/false logic
 		DomainStatus status = getDomainStatus(domainName);
 		if (status == null) {
 			// The domain does not exist, so isn't processing
@@ -260,9 +256,8 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			return false;
 		}
 
-		boolean isProcessing = status.isProcessing();
-		log.debug("Domain still processing:" + isProcessing);
-		return isProcessing;
+		log.debug("Domain still processing:" + status.isProcessing());
+		return status.isProcessing();
 	}
 
 	/**

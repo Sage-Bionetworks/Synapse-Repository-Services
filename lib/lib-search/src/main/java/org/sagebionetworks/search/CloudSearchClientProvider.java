@@ -25,7 +25,6 @@ public class CloudSearchClientProvider {
 
 	private boolean setupCompleted = false;
 
-	//TODO: Bean initlaizlation similart to old SearchDAO
 	public CloudsSearchDomainClientAdapter getCloudSearchClient(){
 		if(!isSearchEnabled()){
 			throw new SearchDisabledException(); //TODO: what HTTP code does this map to?

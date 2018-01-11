@@ -127,7 +127,7 @@ public class SearchDaoImplTest {
 	}
 
 	@Test
-	public void testCreateOrUpdateSearchDocumentSingleDocument(){ //TODO: is this test necessary?
+	public void testCreateOrUpdateSearchDocumentSingleDocument(){
 		Document doc = new Document();
 		dao.createOrUpdateSearchDocument(doc);
 		verify(dao, times(1)).createOrUpdateSearchDocument(Collections.singletonList(doc));
