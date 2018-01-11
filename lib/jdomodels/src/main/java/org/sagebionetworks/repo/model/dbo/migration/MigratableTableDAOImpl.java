@@ -465,7 +465,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return createOrUpdateIds;
 	}
 
-	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping<T> mapping) {
+	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
 		}
@@ -660,6 +660,31 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		Map<String, Object> parameters = new HashMap<>(3);
 		parameters.put(DMLUtils.BIND_VAR_ID_lIST, rowIds);
 		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
+	}
+
+	@Override
+	public List<Long> createOrUpdate(List<DatabaseObject<?>> batch) {
+//		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
+//		if(batch.size() <1) return new LinkedList<Long>();
+//		List<Long> createOrUpdateIds = new LinkedList<Long>();
+//		// nothing to do with an empty batch
+//		if(batch.size() < 1) return createOrUpdateIds;
+//
+//		MigrationType type = getTypeForClass(batch.get(0).getClass());
+//		FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
+//		String sql = getInsertOrUpdateSql(type);
+//		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+//		for(int i=0; i<batch.size(); i++){
+//			namedParameters[i] = getSqlParameterSource(batch.get(i), batch.get(i).getTableMapping());
+//			Object obj = namedParameters[i].getValue(backukpIdColumn.getFieldName());
+//			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
+//			Long id = (Long) obj;
+//			createOrUpdateIds.add(id);
+//		}
+//		// execute the batch
+//		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+//		namedTemplate.batchUpdate(sql, namedParameters);
+//		return createOrUpdateIds;
 	}
 	
 }

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -171,6 +172,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		});
 	}
 
+	@Deprecated
 	@WriteTransaction
 	@Override
 	public int deleteObjectsById(final UserInfo user, final MigrationType type, final List<Long> idList) throws Exception {
@@ -642,6 +644,10 @@ public class MigrationManagerImpl implements MigrationManager {
 		return String.format(BACKUP_KEY_TEMPLATE, stack, instance, type, UUID.randomUUID().toString());
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#restoreRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.RestoreTypeRequest)
+	 */
 	@Override
 	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest request) throws IOException {
 		ValidateArgument.required(user, "User");
@@ -682,10 +688,53 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param aliasType
 	 * @return
 	 */
-	public RestoreTypeResponse restoreStream(InputStream input, MigrationType migrationType,
+	public RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
 			BackupAliasType backupAliasType, long batchSize) {
+		RestoreTypeResponse response = new RestoreTypeResponse();
+		if(!this.migratableTableDao.isMigrationTypeRegistered(primaryType)) {
+			// ignore types that are not registered.
+			response.setRestoredRowCount(0L);
+			return response;
+		}
+		long rowCount = 0;
+		List<MigrationType> secondaryTypes = getSecondaryTypes(primaryType);
 		// Start reading the stream.
 		Iterable<MigratableDatabaseObject<?,?>> iterable = this.backupFileStream.readBackupFile(input, backupAliasType);
-		return null;
+		MigrationType currentType = primaryType;
+		List<DatabaseObject<?>> currentBatch = new LinkedList<>();
+		for(MigratableDatabaseObject<?,?> rowToRestore: iterable) {
+			MigrationType rowType = rowToRestore.getMigratableTableType();
+			if(!this.migratableTableDao.isMigrationTypeRegistered(rowType)) {
+				// ignore types that are not registered.
+				continue;
+			}
+			
+			// If over the batch size or a type switch push the current batch.
+			if(currentBatch.size() >= batchSize || !rowType.equals(currentType)) {
+				restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
+				currentBatch.clear();
+			}
+			currentType = rowType;
+			currentBatch.add(rowToRestore);
+			rowCount++;
+		}
+		// push the remaining rows
+		restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
+		// prepare the response.
+		response.setRestoredRowCount(rowCount);
+		return response;
+	}
+
+	/**
+	 * Restore a single batch of rows for the given type.
+	 * @param currentType
+	 * @param secondaryTypes
+	 * @param currentBatch
+	 */
+	public <D extends DatabaseObject<D>> void restoreBatch(MigrationType currentType, MigrationType primaryType, List<MigrationType> secondaryTypes,
+			List<DatabaseObject<D>> currentBatch) {
+		// push the data to the database
+		this.migratableTableDao.createOrUpdateBatch((List<D>) currentBatch);
+		
 	}
 }

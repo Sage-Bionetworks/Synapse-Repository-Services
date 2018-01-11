@@ -165,5 +165,12 @@ public interface MigratableTableDAO {
 	 */
 	Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups();
 
+	/**
+	 * Create or update a batch of database objects
+	 * @param batch
+	 * @return
+	 */
+	public List<Long> createOrUpdate(List<DatabaseObject<?>> batch);
+
 
 }
