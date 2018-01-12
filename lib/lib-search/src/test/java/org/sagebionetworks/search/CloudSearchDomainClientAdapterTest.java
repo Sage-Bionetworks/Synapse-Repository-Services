@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -127,6 +128,7 @@ public class CloudSearchDomainClientAdapterTest {
 	public void testSendDocument() throws IOException {
 		Document document = new Document();
 		document.setId("syn123");
+		document.setType(DocumentTypeNames.add);
 		ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor = ArgumentCaptor.forClass(UploadDocumentsRequest.class);
 
 		//method under test

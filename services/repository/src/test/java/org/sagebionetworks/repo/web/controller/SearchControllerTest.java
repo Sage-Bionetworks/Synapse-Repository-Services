@@ -129,10 +129,4 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		assertNotNull(hit);
 		assertEquals(project.getId(), hit.getId());
 	}
-
-	@Test
-	public void testDel() throws CloudSearchClientException, InterruptedException {
-		searchManager.deleteAllDocuments();
-	}
-
 }

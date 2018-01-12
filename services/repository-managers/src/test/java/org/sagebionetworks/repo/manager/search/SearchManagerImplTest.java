@@ -30,6 +30,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,7 +72,7 @@ public class SearchManagerImplTest {
 	public void testProxySearchPath() throws Exception {
 		// Prepare mock results
 		SearchResult sample = new SearchResult().withHits(new Hits());
-		Hit hit = new Hit().withFields(ImmutableMap.of("id", Collections.singletonList("syn123")));
+		Hit hit = new Hit().withId("syn123");
 		sample.getHits().withHit(hit);
 		when(mockSearchDao.executeSearch(any(SearchRequest.class))).thenReturn(sample);
 		// make sure the path is returned from the document driver
@@ -95,13 +97,14 @@ public class SearchManagerImplTest {
 		assertNotNull(results.getHits().get(0).getPath());
 		// Validate that path was not passed along to the search index as it is not there.
 		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
+		verify(mockSearchDocumentDriver,times(1)).getEntityPath("syn123");
 	}
 
 	@Test
 	public void testProxySearchNoPath() throws Exception {
 		// Prepare mock results
 		SearchResult sample = new SearchResult().withHits(new Hits());
-		Hit hit = new Hit().withFields(ImmutableMap.of("id", Collections.singletonList("syn123")));
+		Hit hit = new Hit().withId("syn123");
 		sample.getHits().withHit(hit);
 		when(mockSearchDao.executeSearch(any(SearchRequest.class))).thenReturn(sample);
 
@@ -120,6 +123,7 @@ public class SearchManagerImplTest {
 		// The path should not be returned unless requested.
 		assertNull(results.getHits().get(0).getPath());
 		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
+		verify(mockSearchDocumentDriver,never()).getEntityPath(anyString());
 	}
 
 	@Test
@@ -140,4 +144,8 @@ public class SearchManagerImplTest {
 		searchRequest.setFilterQuery("(or memes:'dank')");
 		SearchManagerImpl.filterSearchForAuthorization(nonAdminUserInfo, searchRequest);
 	}
+
+
+	@Test
+	public void documentChangeMessage(){}
 }
