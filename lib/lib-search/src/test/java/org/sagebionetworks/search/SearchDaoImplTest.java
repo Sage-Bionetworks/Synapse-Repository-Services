@@ -162,11 +162,6 @@ public class SearchDaoImplTest {
 		dao.doesDocumentExist(null, "etag");
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testDoesDocumentExistNullEtag() throws CloudSearchClientException {
-		dao.doesDocumentExist("id", null);
-	}
-
 	@Test
 	public void testDoesDocumentExistReturnsTrue() throws CloudSearchClientException {
 		searchResult.withHits(new Hits().withFound(1L));

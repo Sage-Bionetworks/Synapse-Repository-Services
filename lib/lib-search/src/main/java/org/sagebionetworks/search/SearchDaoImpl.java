@@ -88,7 +88,6 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException {
  		ValidateArgument.required(id, "id");
- 		ValidateArgument.required(etag, "etag");
 
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);

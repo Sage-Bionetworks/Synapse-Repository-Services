@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchDisabledException;
@@ -51,7 +52,7 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 			searchManager.documentChangeMessage(change);
 		} catch (SearchDisabledException e){
 			// If the feature is disabled then we simply swallow all messages
-		} catch (Throwable e) {
+		} catch (TemporarilyUnavailableException | CloudSearchClientException | IOException e) {
 			workerLogger.logWorkerFailure(SearchQueueWorker.class, change, e,true);
 			throw new RecoverableMessageException();
 		}
