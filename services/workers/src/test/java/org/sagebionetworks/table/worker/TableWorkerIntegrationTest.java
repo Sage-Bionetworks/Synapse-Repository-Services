@@ -2018,7 +2018,7 @@ public class TableWorkerIntegrationTest {
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		
 		// delete the table schema
-		tableEntityManager.deleteTable(tableId);
+		tableEntityManager.setTableAsDeleted(tableId);
 		String localTableId = tableId;
 		// Get the table status
 		TableStatus status = waitForTableProcessing(localTableId);
