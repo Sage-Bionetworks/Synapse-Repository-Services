@@ -49,8 +49,7 @@ public class CloudsSearchDomainClientAdapter {
 		UploadDocumentsResult result = client.uploadDocuments(request);
 	}
 
-	SearchResult rawSearch(SearchRequest request) throws CloudSearchClientException{ //TODO: rename cloudsearch client exception?
-		//TODO: rename method?
+	SearchResult rawSearch(SearchRequest request) throws CloudSearchClientException{
 		ValidateArgument.required(request, "request");
 
 		try{
@@ -66,7 +65,7 @@ public class CloudsSearchDomainClientAdapter {
 				throw e;
 			}else {
 				logger.error("search(): Failed for unexpected reasons (request=" + request + ") with status: " + e.getStatusCode());
-				throw e; //TODO: make sure conversion from Exception to HTTP code is correct.
+				throw e;
 			}
 		}
 	}

@@ -23,22 +23,25 @@ public class CloudSearchClientProvider {
 
 	private boolean isSearchEnabled;
 
-	private boolean setupCompleted = false;
+	private static CloudsSearchDomainClientAdapter singletonWrapper;
 
 	public CloudsSearchDomainClientAdapter getCloudSearchClient(){
 		if(!isSearchEnabled()){
-			throw new SearchDisabledException(); //TODO: what HTTP code does this map to?
+			throw new SearchDisabledException();
 		}
-		if(!setupCompleted){
+
+		if (singletonWrapper != null){
+			return singletonWrapper;
+		}else{
 			if(searchDomainSetup.postInitialize()) {
 				awsCloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
-				setupCompleted = true;
+				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient);
+				return singletonWrapper;
 			} else{
 				log.warn("CloudSearch is not finished initializing");
 				throw new TemporarilyUnavailableException("Search has not yet been initialized. Please try again later!");
 			}
 		}
-		return new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient); //TODO: maybe make this as a singleton?
 	}
 
 	/**
@@ -59,29 +62,28 @@ public class CloudSearchClientProvider {
 	 * of the application.  Therefore, this initialization worker is executed on a separate
 	 * thread.
 	 */
-	public void initialize(){
+	public void initialize() {
 		try {
-			if(isSearchEnabled()) {
-				/*
-				 * Since each machine in the cluster will call this method and we only
-				 * want one machine to initialize the search index, we randomly stagger
-				 * the start for each machine.
-				 */
-				Random random = new Random();
-				// random sleep time from zero to 1 sec.
-				long randomSleepMS = random.nextInt(1000);
-				log.info("Random wait to start search index: " + randomSleepMS + " MS");
-				Thread.sleep(randomSleepMS);
-				// wait for postInitialize() to finish
-				if (!searchDomainSetup.postInitialize()) {
-					log.info("Search index not finished initializing...");
-				} else {
-					awsCloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
-					log.info("Search index initialized.");
-				}
-			}
-		} catch(Exception e) {
+			/*
+			 * Since each machine in the cluster will call this method and we only
+			 * want one machine to initialize the search index, we randomly stagger
+			 * the start for each machine.
+			 */
+			Random random = new Random();
+			// random sleep time from zero to 1 sec.
+			long randomSleepMS = random.nextInt(1000);
+			log.info("Random wait to start search index: " + randomSleepMS + " MS");
+			Thread.sleep(randomSleepMS);
+			// wait for postInitialize() to finish
+			getCloudSearchClient();
+			log.info("Search index initialized.");
+		} catch (TemporarilyUnavailableException e) {
+			log.info("Search index not finished initializing...");
+		} catch (SearchDisabledException e) {
+			log.info("Search is disabled..");
+		} catch (Exception e) {
 			log.error("Unexpected exception while starting the search index", e);
 		}
+
 	}
 }
