@@ -313,6 +313,32 @@ public class DBOActivityDAOImplAutowiredTest {
 		assertEquals(3, results.getTotalNumberOfResults());				
 	}
 	
+	@Test
+	public void testDeleteActivityGeneratingEntity() throws Exception { // PLFM-4751
+		// create  activity
+		Activity act1 = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());		
+		activityDao.create(act1);
+		toDelete.add(act1.getId().toString());
+ 
+		Node node1 = NodeTestUtils.createNew("generated1", creatorUserGroupId, creatorUserGroupId);
+		node1.setActivityId(act1.getId());
+		String node1Id = nodeDao.createNew(node1);		
+		nodesToDelete.add(node1Id);
+		node1 = nodeDao.getNode(node1Id);
+		node1.setVersionLabel("v2");
+		node1.setVersionNumber(2L);
+		node1.setActivityId(act1.getId());
+		nodeDao.createNewVersion(node1);
+		
+		// try to delete the activity, should fail
+		try {
+			activityDao.delete(act1.getId().toString());
+			fail("IllegalArgumentException expected.");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+	
 	/*
 	 * Private Methods
 	 */

@@ -364,6 +364,24 @@ public class TableManagerSupportTest {
 		assertFalse(workRequired);
 	}
 	
+	@Test
+	public void testDoesTableExistTrue() {
+		Long id = 123L;
+		String synId = KeyFactory.keyToString(id);
+		when(mockNodeDao.doesNodeExist(id)).thenReturn(true);
+		// call under test
+		assertTrue(manager.doesTableExist(synId));
+	}
+	
+	@Test
+	public void testDoesTableExistFalse() {
+		Long id = 123L;
+		String synId = KeyFactory.keyToString(id);
+		when(mockNodeDao.doesNodeExist(id)).thenReturn(false);
+		// call under test
+		assertFalse(manager.doesTableExist(synId));
+	}
+	
 	/**
 	 * The node is missing, the table status is available and the index is synchronized.
 	 */
@@ -838,4 +856,5 @@ public class TableManagerSupportTest {
 		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
+	
 }

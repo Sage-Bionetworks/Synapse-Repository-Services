@@ -314,7 +314,7 @@ public class MembershipInvitationManagerImplTest {
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		MessageToUserAndBody result = membershipInvitationManagerImpl.
-			createInvitationToUser(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+				createInvitationMessageToUser(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		assertEquals("You Have Been Invited to Join a Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
 		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
@@ -354,8 +354,7 @@ public class MembershipInvitationManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
-		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-	    membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+	    membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint);
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();

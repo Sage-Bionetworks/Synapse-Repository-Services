@@ -41,22 +41,26 @@ public class MembershipInvitationController extends BaseController {
 	ServiceProvider serviceProvider;
 	
 	/**
-	 * Create a membership invitation. The team must be specified. Also, either an inviteeId or an inviteeEmail must be
-	 * specified. If an inviteeId is specified, the invitee is notified of the invitation through a notification.
-	 * If an inviteeEmail is specified instead, an email containing an invitation link is sent to the invitee. The link
-	 * will contain a serialized MembershipInvtnSignedToken.
-	 * Optionally, the creator may include an invitation message and/or expiration date for the invitation.
-	 * If no expiration date is specified then the invitation never expires.
-	 * Note:  The client must be an administrator of the specified Team to make this request.
+	 * <p>Create a membership invitation and send an email notification to the invitee. The team must be specified.
+	 * Also, either an inviteeId or an inviteeEmail must be specified. Optionally, the creator may include an
+	 * invitation message and/or expiration date for the invitation. If no expiration date is specified then the
+	 * invitation never expires.</p>
+	 *
+	 * <p>Note: The client must be an administrator of the specified Team to make this request.</p>
+	 *
 	 * @param userId
 	 * @param invitation
-	 * @param acceptInvitationEndpoint the portal end-point for one-click acceptance of the membership
-	 * invitation.  A signed, serialized token is appended to create the complete URL:
-	 * <ahref="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
-	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.  
-	 * A signed, serialized token is appended to create the complete URL: 
-	 * <ahref="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>
-
+	 * @param acceptInvitationEndpoint The portal endpoint prefix for one-click acceptance of the membership invitation.
+	 * A signed, serialized token is appended to create the complete URL:
+	 * <a href="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
+	 * if an inviteeId is specified, or
+	 * <a href="${org.sagebionetworks.repo.model.MembershipInvtnSignedToken}">MembershipInvtnSignedToken</a>
+	 * if an inviteeEmail is specified.
+	 * In normal operation, this parameter should be omitted.
+	 * @param notificationUnsubscribeEndpoint The portal endpoint prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete URL:
+	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
+	 * In normal operation, this parameter should be omitted.
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -66,7 +70,7 @@ public class MembershipInvitationController extends BaseController {
 	MembershipInvitation createInvitation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, required = false) String acceptInvitationEndpoint,
-			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, defaultValue = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipInvitation invitation
 			) throws NotFoundException {
 		return serviceProvider.

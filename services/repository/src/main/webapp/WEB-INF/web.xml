@@ -39,6 +39,16 @@
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 
+	<!-- This filter ensures all requests are within the size limit.
+	See PLFM-4761  -->
+	<filter>
+		<filter-name>requestSizeThrottleFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.RequestSizeThrottleFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>requestSizeThrottleFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
 
 	<!-- This listener will load other application context file in addition 
 		to springweb-servlet.xml -->

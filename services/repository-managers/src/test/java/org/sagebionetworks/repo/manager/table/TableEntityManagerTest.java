@@ -1425,6 +1425,30 @@ public class TableEntityManagerTest {
 		assertTrue("Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes",calcuatedSize > sizePerRow);
 	}
 	
+	@Test
+	public void testTeleteTableIfDoesNotExistShouldNotDelete() {
+		// the table exists
+		when(mockTableManagerSupport.doesTableExist(tableId)).thenReturn(true);
+		//call under test
+		manager.deleteTableIfDoesNotExist(tableId);
+		// since the table exist do not delete anything
+		verify(mockColumModelManager, never()).unbindAllColumnsAndOwnerFromObject(anyString());
+		verify(mockTruthDao, never()).deleteAllRowDataForTable(anyString());
+		verify(mockTableManagerSupport, never()).setTableDeleted(anyString(), any(ObjectType.class));
+	}
+	
+	@Test
+	public void testTeleteTableIfDoesNotExistShouldDelete() {
+		// the table does not exist
+		when(mockTableManagerSupport.doesTableExist(tableId)).thenReturn(false);
+		//call under test
+		manager.deleteTableIfDoesNotExist(tableId);
+		// since the table does not exist, delete all of the table's data.
+		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
+		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
+		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
+	}
+	
 	/**
 	 * Calculate the current used memory.
 	 * 
