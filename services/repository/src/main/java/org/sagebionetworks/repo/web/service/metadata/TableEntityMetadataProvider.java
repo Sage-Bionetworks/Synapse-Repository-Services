@@ -25,7 +25,7 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 
 	@Override
 	public void entityDeleted(String deletedId) {
-		tableEntityManager.deleteTable(deletedId);
+		tableEntityManager.setTableAsDeleted(deletedId);
 	}
 
 	@Override

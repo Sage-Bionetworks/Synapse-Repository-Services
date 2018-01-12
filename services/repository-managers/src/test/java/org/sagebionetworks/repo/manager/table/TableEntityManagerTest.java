@@ -890,6 +890,12 @@ public class TableEntityManagerTest {
 		manager.deleteTable(tableId);
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
+	}
+	
+	@Test
+	public void testSetTableDeleted(){
+		// call under test
+		manager.setTableAsDeleted(tableId);
 		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
 	}
 	
@@ -1446,7 +1452,6 @@ public class TableEntityManagerTest {
 		// since the table does not exist, delete all of the table's data.
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
-		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
 	}
 	
 	/**

@@ -549,15 +549,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		}
 	}
 
-	@WriteTransactionReadCommitted
-	@Override
-	public void deleteTable(String deletedId) {
-		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
-		deleteAllRows(deletedId);
-		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
-	}
-
-
 	@Override
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
 		if(change instanceof TableSchemaChangeRequest){
@@ -791,6 +782,19 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			// The table no longer exists so delete it.
 			this.deleteTable(tableId);
 		}
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void setTableAsDeleted(String deletedId) {
+		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteTable(String deletedId) {
+		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
+		deleteAllRows(deletedId);
 	}
 
 }
