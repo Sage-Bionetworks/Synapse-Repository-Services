@@ -62,7 +62,6 @@
 			<url>https://repository.apache.org/content/repositories/releases/
 			</url>
 		</repository>
-
 		<repository>
 			<id>central</id>
 			<name>Atlassian Public Repository</name>
