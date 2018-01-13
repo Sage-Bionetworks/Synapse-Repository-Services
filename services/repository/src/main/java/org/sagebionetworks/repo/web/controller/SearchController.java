@@ -46,13 +46,12 @@ public class SearchController extends BaseController {
 	 * @param searchQuery
 	 * @param request
 	 * @return search results from CloudSearch
-	 * @throws CloudSearchClientException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { "/search" }, method = RequestMethod.POST)
 	public @ResponseBody
 	SearchResults proxySearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody SearchQuery searchQuery,
-			HttpServletRequest request) throws CloudSearchClientException {
+			HttpServletRequest request) {
 		return serviceProvider.getSearchService().proxySearch(userId, searchQuery);
 	}
 }

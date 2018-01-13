@@ -16,25 +16,16 @@ import java.io.UnsupportedEncodingException;
 
 public interface SearchManager {
 	//TODO: documentation
-	/**
-	 * @param userInfo
-	 * @param searchQuery
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 * @throws ServiceUnavailableException
-	 * @throws CloudSearchClientException
-	 */
-	SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws CloudSearchClientException;
 
-	SearchResult rawSearch (SearchRequest searchRequest) throws CloudSearchClientException;
+	SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) ;
 
-	void deleteAllDocuments() throws InterruptedException, CloudSearchClientException;
+	SearchResult rawSearch (SearchRequest searchRequest) ;
 
-	boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException;
+	void deleteAllDocuments() throws InterruptedException;
+
+	boolean doesDocumentExist(String id, String etag) ;
 
 	void createOrUpdateSearchDocument(Document document);
 
-	void documentChangeMessage(ChangeMessage change) throws IOException, CloudSearchClientException;
+	void documentChangeMessage(ChangeMessage change) throws IOException;
 }

@@ -81,12 +81,12 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public SearchResult executeSearch(SearchRequest search) throws CloudSearchClientException {
+	public SearchResult executeSearch(SearchRequest search){
 		return cloudSearchClientProvider.getCloudSearchClient().rawSearch(search);
 	}
 
 	@Override
-	public boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException {
+	public boolean doesDocumentExist(String id, String etag){
  		ValidateArgument.required(id, "id");
 
 		// Search for the document
@@ -101,16 +101,15 @@ public class SearchDaoImpl implements SearchDao {
 	 * @param limit
 	 * @param offset
 	 * @return
-	 * @throws CloudSearchClientException
 	 */
-	SearchResult listSearchDocuments(long limit, long offset) throws CloudSearchClientException {
+	SearchResult listSearchDocuments(long limit, long offset){
 		return executeSearch(new SearchRequest().withQuery(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE)
 				.withQueryParser(QueryParser.Structured)
 				.withSize(limit).withStart(offset));
 	}
 
 	@Override
-	public void deleteAllDocuments() throws CloudSearchClientException, InterruptedException {
+	public void deleteAllDocuments() throws InterruptedException {
 		// Keep deleting as long as there are documents
 		SearchResult sr = null;
 		do{

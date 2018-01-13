@@ -34,7 +34,7 @@ public class SearchServiceImpl implements SearchService {
 	 */
 	@Override
 	public @ResponseBody
-	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws CloudSearchClientException {
+	SearchResults proxySearch(Long userId, SearchQuery searchQuery) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return searchManager.proxySearch(userInfo, searchQuery);
 	}

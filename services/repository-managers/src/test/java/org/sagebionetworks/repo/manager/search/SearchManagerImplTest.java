@@ -4,24 +4,29 @@ import com.amazonaws.services.cloudsearchdomain.model.Hit;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchUtil;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Collections;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -30,6 +35,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -52,6 +59,10 @@ public class SearchManagerImplTest {
 
 	private SearchManagerImpl searchManager;
 
+
+	private ChangeMessage message;
+	private ChangeMessage message2;
+
 	@Before
 	public void before(){
 		searchManager = new SearchManagerImpl();
@@ -66,6 +77,20 @@ public class SearchManagerImplTest {
 		userGroups.add(8008135L);
 		nonAdminUserInfo.setGroups(userGroups);
 		searchRequest = new SearchRequest();
+
+
+		//documentChangeMessage() test setup
+		message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectEtag("etag1");
+		message.setObjectId("one");
+		message.setObjectType(ObjectType.ENTITY);
+
+		message2 = new ChangeMessage();
+		message2.setChangeType(ChangeType.CREATE);
+		message2.setObjectEtag("etag2");
+		message2.setObjectId("two");
+		message2.setObjectType(ObjectType.ENTITY);
 	}
 
 	@Test
@@ -146,6 +171,86 @@ public class SearchManagerImplTest {
 	}
 
 
+
 	@Test
-	public void documentChangeMessage(){}
+	public void testdocumentChangeMessageChangeTypeDelete() throws Exception{
+		// create a few delete messages.
+		message.setChangeType(ChangeType.DELETE);
+		// call under test
+		searchManager.documentChangeMessage( message);
+		// Delete should be called
+		verify(mockSearchDao, times(1)).deleteDocument("one");
+		// create should not be called
+		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
+	}
+
+	@Test
+	public void testdocumentChangeMessageChangeTypeCreate() throws Exception{
+		Document docOne = new Document();
+		docOne.setId("one");
+		when(mockSearchDocumentDriver.formulateSearchDocument("one")).thenReturn(docOne);
+		Document docTwo = new Document();
+		docTwo.setId("two");
+		when(mockSearchDocumentDriver.formulateSearchDocument("two")).thenReturn(docTwo);
+
+		// Create only occurs if the document exists in the repository
+		when(mockSearchDocumentDriver.doesNodeExist("one", "etag1")).thenReturn(true);
+		when(mockSearchDocumentDriver.doesNodeExist("two", "etag2")).thenReturn(true);
+
+		// Create only occurs if it is not already in the search index
+		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
+		when(mockSearchDao.doesDocumentExist("two", "etag2")).thenReturn(false);
+
+		// call under test
+		searchManager.documentChangeMessage( message);
+		searchManager.documentChangeMessage( message2);
+
+		// Delete should be called
+		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
+		// create should be called once
+		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(docOne);
+		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(docTwo);
+	}
+
+	/**
+	 * When the document already exits in the search index with the same etag, we can ignore it.
+	 */
+	@Test
+	public void testDocumentChangeMessageChangeTypeCreateAlreadyInSearchIndex() throws IOException {
+		// Create only occurs if the document exists in the repository
+		when(mockSearchDocumentDriver.doesNodeExist("one", "etag1")).thenReturn(true);
+		// Create only occurs if it is not already in the search index
+		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(true);
+
+		// call under test
+		searchManager.documentChangeMessage(message);
+
+		// Delete should be called
+		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
+		// create should not be called
+		verify(mockSearchDao, never()).createOrUpdateSearchDocument(any(Document.class));
+		// We should not call doesNodeExist() on the repository when it already exists in the search index.
+		verify(mockSearchDocumentDriver, never()).doesNodeExist("one", "etag1");
+	}
+
+	/**
+	 * When the document already exits in the search index with the same etag, we can ignore it.
+	 */
+	@Test
+	public void testDocumentChangeMessageChangeTypeCreateDoesNotExistInRepository() throws IOException {
+		// Create only occurs if the document exists in the repository
+		when(mockSearchDocumentDriver.doesNodeExist("one", "etag1")).thenReturn(false);
+		// Create only occurs if it is not already in the search index
+		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
+
+		// call under test
+		searchManager.documentChangeMessage( message);
+
+		// Delete should be called
+		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
+		// create should not be called
+		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
+		// We should not call doesNodeExist() one time.
+		verify(mockSearchDocumentDriver, times(1)).doesNodeExist("one", "etag1");
+	}
 }

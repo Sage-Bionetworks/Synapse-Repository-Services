@@ -1,6 +1,8 @@
 package org.sagebionetworks.search;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
+import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
+import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
@@ -46,27 +48,35 @@ public class CloudsSearchDomainClientAdapter {
 										.withContentType("application/json")
 										.withDocuments(new ByteArrayInputStream(documentBytes))
 										.withContentLength((long) documentBytes.length);
-		UploadDocumentsResult result = client.uploadDocuments(request);
+		try {
+			UploadDocumentsResult result = client.uploadDocuments(request);
+		} catch (DocumentServiceException e){
+			throw handleCloudSearchExceptions(e);
+		}
 	}
 
-	SearchResult rawSearch(SearchRequest request) throws CloudSearchClientException{
+	SearchResult rawSearch(SearchRequest request) {
 		ValidateArgument.required(request, "request");
 
 		try{
 			return client.search(request);
 		}catch (SearchException e){
-			int statusCode = e.getStatusCode();
-			if(statusCode / 100 == 4){ //4xx status codes
-				logger.error("search(): Exception rethrown (request="+request+") with status: " + e.getStatusCode());
-				throw new CloudSearchClientException(statusCode, e.getMessage());
-			} else if (statusCode / 100 == 5){ // 5xx status codes
-				//The AWS API already has retry logic for 5xx status codes so getting one here means retries failed
-				logger.error("search(): Failed after retries (request="+request+") with status: " + e.getStatusCode());
-				throw e;
-			}else {
-				logger.error("search(): Failed for unexpected reasons (request=" + request + ") with status: " + e.getStatusCode());
-				throw e;
-			}
+			throw handleCloudSearchExceptions(e);
+		}
+	}
+
+	RuntimeException handleCloudSearchExceptions(AmazonCloudSearchDomainException e){
+		int statusCode = e.getStatusCode();
+		if(statusCode / 100 == 4){ //4xx status codes
+			logger.error("Client side failure with status: " + e.getStatusCode() + " message:" + e.getMessage());
+			return new CloudSearchClientException(statusCode, e.getMessage());
+		} else if (statusCode / 100 == 5){ // 5xx status codes
+			//The AWS API already has retry logic for 5xx status codes so getting one here means retries failed
+			logger.error("Server side failure with status: " + e.getStatusCode() + " message:" + e.getMessage());
+			return new CloudSearchServerException(statusCode, e.getMessage());
+		}else {
+			logger.error("Failed for unexpected reasons with status: " + e.getStatusCode());
+			throw e;
 		}
 	}
 

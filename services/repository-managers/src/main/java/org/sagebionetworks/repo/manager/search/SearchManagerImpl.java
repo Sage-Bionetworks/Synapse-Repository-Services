@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchDaoImpl;
@@ -53,9 +52,8 @@ public class SearchManagerImpl implements SearchManager{
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws ServiceUnavailableException
-	 * @throws CloudSearchClientException
 	 */
-	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws CloudSearchClientException {
+	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) {
 		boolean includePath = false;
 		if(searchQuery.getReturnFields() != null){
 			// We do not want to pass FIELD_PATH along to the search index as it is not there. So we remove that field
@@ -83,7 +81,7 @@ public class SearchManagerImpl implements SearchManager{
 	}
 
 	@Override
-	public SearchResult rawSearch(SearchRequest searchRequest) throws CloudSearchClientException {
+	public SearchResult rawSearch(SearchRequest searchRequest) {
 		return searchDao.executeSearch(searchRequest);
 	}
 
@@ -114,12 +112,12 @@ public class SearchManagerImpl implements SearchManager{
 
 	//TODO: maybe move these functions from dao into manager
 	@Override
-	public void deleteAllDocuments() throws InterruptedException, CloudSearchClientException {
+	public void deleteAllDocuments() throws InterruptedException{
 		searchDao.deleteAllDocuments();
 	}
 
 	@Override
-	public boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException {
+	public boolean doesDocumentExist(String id, String etag) {
 		return searchDao.doesDocumentExist(id, etag);
 	}
 
@@ -133,7 +131,7 @@ public class SearchManagerImpl implements SearchManager{
 	 */
 
 	@Override
-	public void documentChangeMessage(ChangeMessage change) throws IOException, CloudSearchClientException { //TODO: document
+	public void documentChangeMessage(ChangeMessage change) throws IOException{ //TODO: document
 		// We only care about entity messages as this time
 		if (ObjectType.ENTITY == change.getObjectType()) {
 			// Is this a create or update
@@ -172,14 +170,14 @@ public class SearchManagerImpl implements SearchManager{
 		}
 	}
 
-	private void processCreateUpdate(ChangeMessage change) throws IOException, CloudSearchClientException {
+	private void processCreateUpdate(ChangeMessage change) throws IOException{
 		Document newDoc = getDocFromMessage(change);
 		if (newDoc != null) {
 			searchDao.createOrUpdateSearchDocument(newDoc);
 		}
 	}
 
-	private Document getDocFromMessage(ChangeMessage changeMessage) throws CloudSearchClientException, IOException {
+	private Document getDocFromMessage(ChangeMessage changeMessage) throws IOException {
 		// We want to ignore this message if a document with this ID and Etag
 		// already exists in the search index.
 		if (!searchDao.doesDocumentExist(changeMessage.getObjectId(),

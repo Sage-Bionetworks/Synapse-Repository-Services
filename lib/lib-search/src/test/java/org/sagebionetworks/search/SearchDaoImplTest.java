@@ -72,7 +72,7 @@ public class SearchDaoImplTest {
 	private ArgumentCaptor<SearchRequest> requestArgumentCaptor;
 
 	@Before
-	public void setUp() throws CloudSearchClientException {
+	public void setUp(){
 		ReflectionTestUtils.setField(dao, "cloudSearchClientProvider", mockCloudSearchClientProvider);
 		when(mockCloudSearchClientProvider.getCloudSearchClient()).thenReturn(mockCloudSearchDomainClient);
 
@@ -146,7 +146,7 @@ public class SearchDaoImplTest {
 	/////////////////////////
 
 	@Test
-	public void testExecuteSearch() throws CloudSearchClientException {
+	public void testExecuteSearch()  {
 		SearchRequest searchRequest = new SearchRequest();
 		SearchResult result = dao.executeSearch(searchRequest);
 		assertEquals(result, searchResult);
@@ -158,12 +158,12 @@ public class SearchDaoImplTest {
 	// doesDocumentExist()
 	///////////////////////
 	@Test(expected = IllegalArgumentException.class)
-	public void testDoesDocumentExistNullId() throws CloudSearchClientException {
+	public void testDoesDocumentExistNullId()  {
 		dao.doesDocumentExist(null, "etag");
 	}
 
 	@Test
-	public void testDoesDocumentExistReturnsTrue() throws CloudSearchClientException {
+	public void testDoesDocumentExistReturnsTrue()  {
 		searchResult.withHits(new Hits().withFound(1L));
 
 		boolean result = dao.doesDocumentExist("syn123", "etagerino");
@@ -175,7 +175,7 @@ public class SearchDaoImplTest {
 	}
 
 	@Test
-	public void testDoesDocumentExistReturnsFalse() throws CloudSearchClientException { //TODO: combine tests? basically only changing 1 thing
+	public void testDoesDocumentExistReturnsFalse()  { //TODO: combine tests? basically only changing 1 thing
 		searchResult.withHits(new Hits().withFound(0L));
 
 		boolean result = dao.doesDocumentExist("syn123", "etagerino");
@@ -191,7 +191,7 @@ public class SearchDaoImplTest {
 	//////////////////////////////
 
 	@Test
-	public void testListSearchDocuments() throws CloudSearchClientException {
+	public void testListSearchDocuments()  {
 		long limit = 42;
 		long offset = 420;
 		SearchResult result = dao.listSearchDocuments(limit, offset);
@@ -209,7 +209,7 @@ public class SearchDaoImplTest {
 	////////////////////////////
 
 	@Test
-	public void testDeleteAllDocuments() throws InterruptedException, CloudSearchClientException {
+	public void testDeleteAllDocuments() throws InterruptedException {
 		String hitId1 = "syn123";
 		String hitId2 = "syn456";
 

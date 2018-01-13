@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
+import org.sagebionetworks.search.CloudSearchServerException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchDisabledException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -47,14 +48,16 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 	@Override
 	public void run(ProgressCallback progressCallback, ChangeMessage change)
 			throws RecoverableMessageException{
-		//TODO: log/throw error is thrown about search disable?
 		try {
 			searchManager.documentChangeMessage(change);
 		} catch (SearchDisabledException e){
 			// If the feature is disabled then we simply swallow all messages
-		} catch (TemporarilyUnavailableException | CloudSearchClientException | IOException e) {
+		} catch (TemporarilyUnavailableException | CloudSearchServerException | IOException e) {
 			workerLogger.logWorkerFailure(SearchQueueWorker.class, change, e,true);
 			throw new RecoverableMessageException();
+		} catch (Exception e){
+			workerLogger.logWorkerFailure(SearchQueueWorker.class, change, e,false);
+			throw e;
 		}
 	}
 

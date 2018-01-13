@@ -54,7 +54,7 @@ public interface SearchDao {
 	 * @return
 	 * @throws CloudSearchClientException 
 	 */
-	SearchResult executeSearch(SearchRequest search) throws CloudSearchClientException;
+	SearchResult executeSearch(SearchRequest search);
 
 
 	/**
@@ -65,7 +65,7 @@ public interface SearchDao {
 	 * @return
 	 * @throws CloudSearchClientException 
 	 */
-	boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException;
+	boolean doesDocumentExist(String id, String etag);
 
 	 
 	 /**
@@ -74,6 +74,6 @@ public interface SearchDao {
 	 * @throws InterruptedException
 	 * @throws CloudSearchClientException
 	 */
-	void deleteAllDocuments() throws InterruptedException, CloudSearchClientException;
+	void deleteAllDocuments() throws InterruptedException;
 
 }

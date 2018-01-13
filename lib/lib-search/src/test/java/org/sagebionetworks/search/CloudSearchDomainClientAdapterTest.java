@@ -55,7 +55,7 @@ public class CloudSearchDomainClientAdapterTest {
 	 */
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testSearchNullRequest() throws CloudSearchClientException{
+	public void testSearchNullRequest(){
 		cloudSearchDomainClientAdapter.rawSearch(null);
 	}
 
@@ -76,15 +76,17 @@ public class CloudSearchDomainClientAdapterTest {
 	@Test
 	public void testSearchOnErrorCode5xx() throws Exception {
 //		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
+		String exceptionMessage = "Some message";
 
 		when(mockedSearchException.getStatusCode()).thenReturn(504);
+		when(mockedSearchException.getMessage()).thenReturn(exceptionMessage);
 		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
 
 		//method under test
 		try {
 			SearchResult result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
-		} catch (SearchException e){
-			assertEquals(mockedSearchException, e);
+		} catch (CloudSearchServerException e){
+			assertEquals(exceptionMessage, e.getMessage());
 		}
 		verify(mockCloudSearchDomainClient).search(searchRequest);
 //		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);

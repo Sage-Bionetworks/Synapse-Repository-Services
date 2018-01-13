@@ -22,6 +22,6 @@ public interface SearchService {
 	 * @throws CloudSearchClientException
 	 */
 	public @ResponseBody
-	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws CloudSearchClientException;
+	SearchResults proxySearch(Long userId, SearchQuery searchQuery);
 
 }
