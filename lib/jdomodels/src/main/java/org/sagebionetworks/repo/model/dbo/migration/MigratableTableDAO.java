@@ -169,8 +169,17 @@ public interface MigratableTableDAO {
 	 * Create or update a batch of database objects
 	 * @param batch
 	 * @return
+	 * @throws Exception 
 	 */
-	public List<Long> createOrUpdate(List<DatabaseObject<?>> batch);
+	public List<Long> createOrUpdate(MigrationType type, List<DatabaseObject<?>> batch);
+
+	/**
+	 * Delete all rows for a given type with the given backup ids.
+	 * @param type
+	 * @param idList
+	 * @return
+	 */
+	int deleteById(MigrationType type, List<Long> idList);
 
 
 }

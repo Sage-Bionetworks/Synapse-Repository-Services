@@ -330,6 +330,20 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 	
 	/**
+	 * Fire a create or update event for a given migration type.
+	 * @param type
+	 * @param databaseList - The Database objects that were created or updated.
+	 */
+	private void fireCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> databaseList){
+		if(this.migrationListeners != null){
+			// Let each listener handle the event
+			for(MigrationTypeListener listener: this.migrationListeners){
+				listener.afterCreateOrUpdate(type, databaseList);
+			}
+		}
+	}
+	
+	/**
 	 * Fire a delete event for a given migration type.
 	 * @param type
 	 * @param toDelete
@@ -731,10 +745,19 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param secondaryTypes
 	 * @param currentBatch
 	 */
-	public <D extends DatabaseObject<D>> void restoreBatch(MigrationType currentType, MigrationType primaryType, List<MigrationType> secondaryTypes,
-			List<DatabaseObject<D>> currentBatch) {
+	public void restoreBatch(MigrationType currentType, MigrationType primaryType, List<MigrationType> secondaryTypes,
+			List<DatabaseObject<?>> currentBatch) {
 		// push the data to the database
-		this.migratableTableDao.createOrUpdateBatch((List<D>) currentBatch);
-		
+		List<Long> createdOrUpdatedIds = this.migratableTableDao.createOrUpdate(currentType, currentBatch);
+		// Let listeners know about the change
+		fireCreateOrUpdateEvent(currentType, currentBatch);
+		if(currentType.equals(primaryType)) {
+			// delete all secondary data for this type
+			for(MigrationType secondaryType: secondaryTypes) {
+				// Fire the event before deleting the objects
+				fireDeleteBatchEvent(secondaryType, createdOrUpdatedIds);
+				this.migratableTableDao.deleteById(secondaryType, createdOrUpdatedIds);
+			}
+		}
 	}
 }

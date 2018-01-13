@@ -27,7 +27,9 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -41,6 +43,8 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -206,6 +210,7 @@ public class MigratableTableDAOImplAutowireTest {
 		assertNotNull(results);
 		assertEquals(idsToBackup1, results);
 	}
+	
 	
 	@Test
 	public void testPLFM_1978_listDeltaRowMetadata(){
@@ -654,5 +659,33 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(one.getId(), results.get(0).getId().toString());
 		assertEquals(two.getId(), results.get(1).getId().toString());
 		assertEquals(three.getId(), results.get(2).getId().toString());
+	}
+	
+	@Test
+	public void testCreateOrUpdate() {
+		// Note: Principal does not need to exists since foreign keys will be off.
+		DBOCredential one = new DBOCredential();
+		one.setPassHash("hash1");
+		one.setPrincipalId(111L);
+		one.setSecretKey("secrete1");
+		
+		DBOCredential two = new DBOCredential();
+		two.setPassHash("hash2");
+		two.setPrincipalId(222L);
+		two.setSecretKey("secrete2");
+		
+		List<DatabaseObject<?>> batch = Lists.newArrayList(two, one);
+		MigrationType type = MigrationType.CREDENTIAL;
+		List<Long> ids = migratableTableDAO.createOrUpdate(type, batch);
+		assertNotNull(ids);
+		assertEquals(batch.size(), ids.size());
+		assertEquals(two.getPrincipalId(), ids.get(0));
+		assertEquals(one.getPrincipalId(), ids.get(1));
+		
+		// Update the values and call it again.
+		one.setPassHash("updatedHash1");
+		two.setPassHash("updatedHash2");
+		ids = migratableTableDAO.createOrUpdate(type, batch);
+		assertNotNull(ids);
 	}
 }

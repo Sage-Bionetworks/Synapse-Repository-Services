@@ -212,6 +212,7 @@ public interface MigrationManager {
 	 * @param req
 	 * @return
 	 * @throws IOException 
+	 * @throws Exception 
 	 */
 	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest req) throws IOException;
 	
