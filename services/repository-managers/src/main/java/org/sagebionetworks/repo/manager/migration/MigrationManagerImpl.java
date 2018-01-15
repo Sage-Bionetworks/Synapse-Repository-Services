@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +17,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.pdfbox.io.IOUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,12 +47,14 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -83,6 +85,15 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * The list of migration listeners
 	 */
 	List<MigrationTypeListener> migrationListeners;
+	
+	/**
+	 * Migration types for principals.
+	 */
+	static final Set<MigrationType> PRINCIPAL_TYPES = Sets.newHashSet(
+			MigrationType.PRINCIPAL, 
+			MigrationType.CREDENTIAL,
+			MigrationType.GROUP_MEMBERS
+	);
 
 	/**
 	 * The maximum size of a backup batch.
@@ -148,6 +159,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		return result;
 	}
 
+	@Deprecated
 	@WriteTransaction
 	@SuppressWarnings("unchecked")
 	@Override
@@ -160,6 +172,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		writeBackupBatch(mdo, rowIds, writer, backupAliasType);
 	}
 
+	@Deprecated
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<Long> createOrUpdateBatch(UserInfo user, final MigrationType type, final InputStream in, BackupAliasType backupAliasType) throws Exception {
@@ -231,6 +244,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param rowIds
 	 * @param backupAliasType
 	 */
+	@Deprecated
 	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(
 			MigratableDatabaseObject<D, B> mdo, List<Long> rowIds, Writer writer, BackupAliasType backupAliasType) {
 		// Get all of the data from the DAO batched.
@@ -252,6 +266,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param rowIds
 	 * @return
 	 */
+	@Deprecated
 	protected <D extends DatabaseObject<D>> List<D> getBackupDataBatched(Class<? extends D> clazz, List<Long> rowIds) {
 		List<Long> batch = new LinkedList<Long>();
 		List<D> results = new LinkedList<D>();
@@ -697,6 +712,10 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * Restore all of the data from the provided stream.
 	 * 
+	 * Note: Since this method is used to restore entire tables in a single call
+	 * it should not be annotated with a transaction.  Instead, each batch added to the table
+	 * will is done so in a separate transaction.
+	 * 
 	 * @param fis
 	 * @param migrationType
 	 * @param aliasType
@@ -759,5 +778,65 @@ public class MigrationManagerImpl implements MigrationManager {
 				this.migratableTableDao.deleteById(secondaryType, createdOrUpdatedIds);
 			}
 		}
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public int deleteById(UserInfo user, MigrationType type, List<Long> idList) {
+		ValidateArgument.required(user, "User");
+		ValidateArgument.required(type, "MigrationType");
+		ValidateArgument.required(idList, "Ids");
+		validateUser(user);
+		if(idList.isEmpty()) {
+			return 0;
+		}
+		int deleteCount = 0;
+		// delete secondary rows first
+		List<MigrationType> secondaryTypes = getSecondaryTypes(type);
+		for(MigrationType secondary: secondaryTypes) {
+			deleteCount += deleteByIdAndFireEvent(secondary, idList);
+		}
+		// delete the primary data.
+		deleteCount += deleteByIdAndFireEvent(type, idList);
+		return deleteCount;
+	}
+
+	/**
+	 * Filter the bootstrap principals IDs from the provided ID list.
+	 * 
+	 * @param type
+	 * @param idList
+	 * @return
+	 */
+	static List<Long> filterBootstrapPrincipals(MigrationType type, List<Long> idList){
+		if(PRINCIPAL_TYPES.contains(type)) {
+			List<Long> filtered = new LinkedList<>();
+			for(Long id: idList) {
+				// skip bootstrap principal ids.
+				if(!AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(id)) {
+					filtered.add(id);
+				}
+			}
+			return filtered;
+		}else {
+			// nothing to filter
+			return idList;
+		}
+	}
+	
+	/**
+	 * Delete rows for the given type with the given ids and then notify 
+	 * migration listeners.
+	 * 
+	 * @param type
+	 * @param idList
+	 * @return
+	 */
+	protected int deleteByIdAndFireEvent(MigrationType type, List<Long> idList) {
+		// filter the bootstrap principals as needed.
+		idList = filterBootstrapPrincipals(type, idList);
+		int deleteCount = this.migratableTableDao.deleteById(type, idList);
+		this.fireDeleteBatchEvent(type, idList);
+		return deleteCount;
 	}
 }

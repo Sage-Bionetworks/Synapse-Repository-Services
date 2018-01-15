@@ -88,6 +88,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	/**
 	 * Injected via Spring
 	 */
+	@Deprecated
 	private List<Long> userGroupIdsExemptFromDeletion;
 	
 	/**
@@ -392,6 +393,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 
+
+	@Deprecated
 	@WriteTransaction
 	@Override
 	public int deleteObjectsById(MigrationType type, List<Long> idList) {
@@ -702,31 +705,14 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public int deleteById(final MigrationType type, final List<Long> idList) {
+		ValidateArgument.required(type,"MigrationType");
+		ValidateArgument.required(idList,"idList");
+		if(idList.isEmpty()) {
+			return 0;
+		}
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithForeignKeyIgnored(() -> {
-			if (type == null) {
-				throw new IllegalArgumentException("type cannot be null");
-			}
-			if (idList == null) {
-				throw new IllegalArgumentException("idList cannot be null");
-			}
-			
-			// Migration should not delete the user handling the migration
-			if (type == MigrationType.PRINCIPAL 
-					|| type == MigrationType.CREDENTIAL
-					|| type == MigrationType.GROUP_MEMBERS) {
-				idList.removeAll(userGroupIdsExemptFromDeletion);
-			}
-			
-			if (idList.size() < 1) {
-				return 0;
-			}
-			
 			String deleteSQL = this.deleteSqlMap.get(type);
-			if (deleteSQL == null) {
-				throw new IllegalArgumentException(
-						"Cannot find batch delete SQL for " + type);
-			}
 			SqlParameterSource params = new MapSqlParameterSource(
 					DMLUtils.BIND_VAR_ID_lIST, idList);
 			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);

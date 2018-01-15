@@ -95,6 +95,7 @@ public interface MigratableTableDAO {
 	 * @param rowIds
 	 * @return
 	 */
+	@Deprecated
 	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds);
 	
 	/**
@@ -117,6 +118,7 @@ public interface MigratableTableDAO {
 	 * @param type
 	 * @param idList
 	 */
+	@Deprecated
 	public int deleteObjectsById(MigrationType type, List<Long> idList);
 	
 	/**

@@ -687,5 +687,10 @@ public class MigratableTableDAOImplAutowireTest {
 		two.setPassHash("updatedHash2");
 		ids = migratableTableDAO.createOrUpdate(type, batch);
 		assertNotNull(ids);
+		
+		int deletedCount = migratableTableDAO.deleteById(type, ids);
+		assertEquals(ids.size(), deletedCount);
+		deletedCount = migratableTableDAO.deleteById(type, ids);
+		assertEquals(0, deletedCount);
 	}
 }

@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -96,6 +98,7 @@ public class MigrationManagerImplTest {
 	Long batchSize;
 	List<Long> backupIds;
 	List<MigratableDatabaseObject<?, ?>> allObjects;
+	List<Long> bootstrapPrincipalIds;
 	
 	@Before
 	public void before() throws IOException{
@@ -154,6 +157,12 @@ public class MigrationManagerImplTest {
 		allObjects = new LinkedList<>();
 		allObjects.addAll(nodeStream);
 		allObjects.addAll(revisionStream);
+		
+		LinkedList<Long> ids =  new LinkedList<>();
+		for(AuthorizationConstants.BOOTSTRAP_PRINCIPAL bootPrincpal: AuthorizationConstants.BOOTSTRAP_PRINCIPAL.values()) {
+			ids.add(bootPrincpal.getPrincipalId());
+		}
+		this.bootstrapPrincipalIds = Collections.unmodifiableList(ids);
 	}
 	
 	@Test
@@ -552,5 +561,33 @@ public class MigrationManagerImplTest {
 		request.setRowIdsToBackup(new LinkedList<>());
  		// call under test
 		manager.backupRequest(mockUser, request);
+	}
+	
+	
+	@Test
+	public void testFilterBootstrapPrincipalsPrincipalType() {
+		MigrationType type = MigrationType.PRINCIPAL;
+		List<Long> toTest = new LinkedList<>(bootstrapPrincipalIds);
+		// this should not be filtered.
+		toTest.add(1234L);
+		// call under test
+		List<Long> filtered = MigrationManagerImpl.filterBootstrapPrincipals(type, toTest);
+		assertNotNull(filtered);
+		// all prinpals should be removed.
+		assertEquals(Lists.newArrayList(1234L), filtered);
+	}
+	
+	@Test
+	public void testFilterBootstrapPrincipalsNonPrincipalType() {
+		MigrationType type = MigrationType.NODE;
+		List<Long> toTest = new LinkedList<>(bootstrapPrincipalIds);
+		// non-principal ID.
+		toTest.add(1234L);
+		int startSize = toTest.size();
+		// call under test
+		List<Long> filtered = MigrationManagerImpl.filterBootstrapPrincipals(type, toTest);
+		assertNotNull(filtered);
+		assertEquals(startSize, filtered.size());
+		assertEquals(toTest, filtered);
 	}
 }

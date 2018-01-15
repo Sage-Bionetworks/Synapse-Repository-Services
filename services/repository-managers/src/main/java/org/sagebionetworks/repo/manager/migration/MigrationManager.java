@@ -73,15 +73,8 @@ public interface MigrationManager {
 	 * @param backupAliasType
 	 * @return
 	 */
+	@Deprecated
 	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer out, BackupAliasType backupAliasType);
-
-	/**
-	 * Create or update a batch.
-	 * @param batch - batch of objects to create or update.
-	 * @param backupAliasType
-	 * @throws Exception
-	 */
-	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in, BackupAliasType backupAliasType) throws Exception;
 	
 	/**
 	 * Delete objects by their IDs
@@ -89,6 +82,7 @@ public interface MigrationManager {
 	 * @param idList
 	 * @throws Exception 
 	 */
+	@Deprecated
 	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) throws Exception;
 	
 	/**
@@ -194,6 +188,14 @@ public interface MigrationManager {
 	 * name is included in the set.
 	 */
 	public void validateForeignKeys();
+	
+	/**
+	 * Create or update a batch.
+	 * @param batch - batch of objects to create or update.
+	 * @param backupAliasType
+	 * @throws Exception
+	 */
+	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in, BackupAliasType backupAliasType) throws Exception;
 
 	/**
 	 * Create a backup file for the given type and list of row IDs.
@@ -215,6 +217,16 @@ public interface MigrationManager {
 	 * @throws Exception 
 	 */
 	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest req) throws IOException;
+	
+	
+	/**
+	 * Delete both primary and secondary data associated with the given type and IDs.
+	 * @param user
+	 * @param type
+	 * @param idList
+	 * @return
+	 */
+	public int deleteById(UserInfo user, MigrationType type, List<Long> idList);
 	
 	
 }
