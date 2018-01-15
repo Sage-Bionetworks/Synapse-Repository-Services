@@ -163,23 +163,20 @@ public class SearchDaoImplTest {
 	}
 
 	@Test
-	public void testDoesDocumentExistReturnsTrue()  {
-		searchResult.withHits(new Hits().withFound(1L));
-
-		boolean result = dao.doesDocumentExist("syn123", "etagerino");
-		assertTrue(result);
-
-		SearchRequest capturedRequest = requestArgumentCaptor.getValue();
-		verify(dao,times(1)).executeSearch(capturedRequest);
-		assertEquals("(and id:'syn123' etag:'etagerino')", capturedRequest.getQuery());
+	public void testDoesDocumentExistReturnsTrue(){
+		helperTestDoesDocumentExist(1L, true);
 	}
 
 	@Test
-	public void testDoesDocumentExistReturnsFalse()  { //TODO: combine tests? basically only changing 1 thing
-		searchResult.withHits(new Hits().withFound(0L));
+	public void testDoesDocumentExistReturnsFalse(){
+		helperTestDoesDocumentExist(0L, false);
+	}
+
+	private void helperTestDoesDocumentExist(long numFoundHits, boolean expectedBooleanResult){
+		searchResult.withHits(new Hits().withFound(numFoundHits));
 
 		boolean result = dao.doesDocumentExist("syn123", "etagerino");
-		assertFalse(result);
+		assertEquals(expectedBooleanResult, result);
 
 		SearchRequest capturedRequest = requestArgumentCaptor.getValue();
 		verify(dao,times(1)).executeSearch(capturedRequest);

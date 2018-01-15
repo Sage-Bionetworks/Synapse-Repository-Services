@@ -28,7 +28,7 @@ public class CloudsSearchDomainClientAdapter {
 	private AmazonCloudSearchDomainClient client;
 
 
-	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomainClient client){//TODO: maybe need to change constructor?
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomainClient client){
 		this.client = client;
 	}
 

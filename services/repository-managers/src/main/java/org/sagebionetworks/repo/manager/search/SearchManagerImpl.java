@@ -41,7 +41,7 @@ public class SearchManagerImpl implements SearchManager{
 	SearchDao searchDao;
 
 	@Autowired
-	V2WikiPageDao wikiPageDao; //TODO: searchDocumentDriver also autowires this. look to combine????
+	V2WikiPageDao wikiPageDao;
 
 	@Override
 	/**

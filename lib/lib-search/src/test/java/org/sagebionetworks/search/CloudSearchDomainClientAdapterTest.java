@@ -1,11 +1,5 @@
 package org.sagebionetworks.search;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
@@ -26,6 +20,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 @RunWith(MockitoJUnitRunner.class)
 public class CloudSearchDomainClientAdapterTest {
 
@@ -38,11 +37,12 @@ public class CloudSearchDomainClientAdapterTest {
 	SearchResult mockResponse;
 
 	@Mock
-	SearchException mockedSearchException; //no idea how to change the .getStatusCode() without mocking
+	SearchException mockedSearchException;
 
 	SearchRequest searchRequest;
 
-	String endpoint = "http://www.ImALittleEmdpoint.com";
+	String endpoint = "http://www.ImALittleEndpoint.com";
+
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
@@ -53,7 +53,6 @@ public class CloudSearchDomainClientAdapterTest {
 	/**
 	 * search() Tests
 	 */
-
 	@Test(expected = IllegalArgumentException.class)
 	public void testSearchNullRequest(){
 		cloudSearchDomainClientAdapter.rawSearch(null);
@@ -62,7 +61,6 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Test
 	public void testSearchNoError() throws Exception {
-//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 		when(mockCloudSearchDomainClient.search(searchRequest)).thenReturn(mockResponse);
 
 		//method under test
@@ -70,12 +68,10 @@ public class CloudSearchDomainClientAdapterTest {
 
 		assertEquals(mockResponse, result);
 		verify(mockCloudSearchDomainClient).search(searchRequest);
-//		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
 	}
 
 	@Test
 	public void testSearchOnErrorCode5xx() throws Exception {
-//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 		String exceptionMessage = "Some message";
 
 		when(mockedSearchException.getStatusCode()).thenReturn(504);
@@ -89,12 +85,10 @@ public class CloudSearchDomainClientAdapterTest {
 			assertEquals(exceptionMessage, e.getMessage());
 		}
 		verify(mockCloudSearchDomainClient).search(searchRequest);
-//		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
 	}
 
 	@Test
 	public void testSearchOnErrorCode4xx() throws Exception {
-//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 
 		String exceptionMessage = "Some message";
 		when(mockedSearchException.getStatusCode()).thenReturn(400);
@@ -109,7 +103,6 @@ public class CloudSearchDomainClientAdapterTest {
 		}
 
 		verify(mockCloudSearchDomainClient).search(searchRequest);
-//		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
 	}
 
 	/**
@@ -120,11 +113,6 @@ public class CloudSearchDomainClientAdapterTest {
 	public void testSendNullDocument(){
 		cloudSearchDomainClientAdapter.sendDocument(null);
 	}
-
-//	@Test(expected = IllegalStateException.class)
-//	public void testSendDocumentBeforeEndpointSet() throws CloudSearchClientException{
-//		cloudSearchDomainClientAdapter.sendDocument("omae wa mou shindeiru");
-//	}
 
 	@Test
 	public void testSendDocument() throws IOException {
@@ -142,7 +130,6 @@ public class CloudSearchDomainClientAdapterTest {
 		byte[] documentBytes = SearchUtil.convertSearchDocumentsToJSONString(Collections.singletonList(document)).getBytes();
 		assertEquals("application/json", capturedRequest.getContentType());
 
-		//TODO: this assertTrue intermittently fails (about 1/10 times)
 		assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(documentBytes), capturedRequest.getDocuments()));
 		assertEquals(new Long(documentBytes.length), capturedRequest.getContentLength());
 	}
