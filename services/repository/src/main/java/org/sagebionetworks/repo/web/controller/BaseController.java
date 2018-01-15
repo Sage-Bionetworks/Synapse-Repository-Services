@@ -727,7 +727,7 @@ public abstract class BaseController {
 	}
 
 	@ExceptionHandler(CloudSearchServerException.class)
-	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public @ResponseBody
 	ErrorResponse handleCloudSearchServiceException(CloudSearchServerException ex, HttpServletRequest request) {
 		return handleException(ex, request, true);

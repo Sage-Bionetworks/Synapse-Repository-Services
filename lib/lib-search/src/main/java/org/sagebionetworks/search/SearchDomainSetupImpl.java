@@ -27,7 +27,6 @@ import com.amazonaws.services.cloudsearchv2.model.IndexField;
 import com.amazonaws.services.cloudsearchv2.model.IndexFieldStatus;
 import com.amazonaws.services.cloudsearchv2.model.UpdateServiceAccessPoliciesRequest;
 
-//TODO: add missing tests
 public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
 
 	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":\"%1$s\"}}}]}";

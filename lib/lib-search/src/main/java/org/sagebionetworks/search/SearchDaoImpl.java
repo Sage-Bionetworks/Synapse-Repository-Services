@@ -48,7 +48,7 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void deleteDocuments(Set<String> docIdsToDelete) { //TODO: check if autowire test exists
+	public void deleteDocuments(Set<String> docIdsToDelete) {
 		ValidateArgument.required(docIdsToDelete,"docIdsToDelete");
 
 		if(docIdsToDelete.isEmpty()){ //no work needs to be done
