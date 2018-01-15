@@ -15,17 +15,47 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 public interface SearchManager {
-	//TODO: documentation
 
-	SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) ;
+	/**
+	 * Perform the search defined in the SearchQuery on behalf of the user
+	 * @param userInfo user performing the search
+	 * @param searchQuery defines the search
+	 * @return the results of the search
+	 */
+	SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery);
 
-	SearchResult rawSearch (SearchRequest searchRequest) ;
+	/**
+	 * Performs a raw search using AWS's SearchRequest. Used in tests
+	 * @param searchRequest
+	 * @return AWS search Result
+	 */
+	SearchResult rawSearch (SearchRequest searchRequest);
 
+	/**
+	 * Deletes all documents in the CloudSearch Domain
+	 * @throws InterruptedException
+	 */
 	void deleteAllDocuments() throws InterruptedException;
 
-	boolean doesDocumentExist(String id, String etag) ;
+	/**
+	 * Returns whether a document exists for a given Synapse id and etag
+	 * @param id id of the Synapse entity
+	 * @param etag optional value representing etag of the Synapse entity(can be null)
+	 * @return true if a document exists, false otherwise.
+	 */
+	boolean doesDocumentExist(String id, String etag);
 
+	/**
+	 * Creates a search document. If another document with the same ID exists, the existing document will be overwritten with
+	 * the new document
+	 * @param document the document to create
+	 */
 	void createOrUpdateSearchDocument(Document document);
 
+	/**
+	 * Creates a document based on an Entity or Wiki change that occurred in Synapse. Used by SearchQueueWorker.
+	 * @param change a ChangeMessage representing a change in Synapse
+	 * @throws IOException
+	 */
 	void documentChangeMessage(ChangeMessage change) throws IOException;
 }

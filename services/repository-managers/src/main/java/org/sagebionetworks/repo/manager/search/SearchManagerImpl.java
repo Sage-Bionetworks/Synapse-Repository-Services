@@ -44,15 +44,6 @@ public class SearchManagerImpl implements SearchManager{
 	V2WikiPageDao wikiPageDao;
 
 	@Override
-	/**
-	 * @param userInfo
-	 * @param searchQuery
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 * @throws ServiceUnavailableException
-	 */
 	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) {
 		boolean includePath = false;
 		if(searchQuery.getReturnFields() != null){
