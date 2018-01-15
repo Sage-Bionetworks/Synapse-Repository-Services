@@ -122,7 +122,7 @@ public class SearchManagerImpl implements SearchManager{
 	 */
 
 	@Override
-	public void documentChangeMessage(ChangeMessage change) throws IOException{ //TODO: document
+	public void documentChangeMessage(ChangeMessage change) throws IOException{
 		// We only care about entity messages as this time
 		if (ObjectType.ENTITY == change.getObjectType()) {
 			// Is this a create or update

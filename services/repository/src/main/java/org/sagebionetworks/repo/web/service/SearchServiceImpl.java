@@ -20,7 +20,6 @@ import java.io.IOException;
  * @author deflaux
  * 
  */
-//TODO: more class documentation?
 public class SearchServiceImpl implements SearchService {
 	@Autowired
 	SearchManager searchManager;
