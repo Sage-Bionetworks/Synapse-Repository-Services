@@ -52,7 +52,6 @@ public interface SearchDao {
 	 * 
 	 * @param search
 	 * @return
-	 * @throws CloudSearchClientException 
 	 */
 	SearchResult executeSearch(SearchRequest search);
 
@@ -63,7 +62,6 @@ public interface SearchDao {
 	 * @param id
 	 * @param etag
 	 * @return
-	 * @throws CloudSearchClientException 
 	 */
 	boolean doesDocumentExist(String id, String etag);
 
@@ -72,7 +70,6 @@ public interface SearchDao {
 	 * Clear all data in the search index.
 	 *
 	 * @throws InterruptedException
-	 * @throws CloudSearchClientException
 	 */
 	void deleteAllDocuments() throws InterruptedException;
 

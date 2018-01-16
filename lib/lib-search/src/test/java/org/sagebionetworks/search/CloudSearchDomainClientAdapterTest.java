@@ -1,7 +1,7 @@
 package org.sagebionetworks.search;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
-import com.amazonaws.services.cloudsearchdomain.model.SearchException;
+import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
@@ -20,7 +20,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,17 +31,17 @@ import static org.mockito.Mockito.when;
 public class CloudSearchDomainClientAdapterTest {
 
 	@Mock
-	AmazonCloudSearchDomainClient mockCloudSearchDomainClient;
-
-	CloudsSearchDomainClientAdapter cloudSearchDomainClientAdapter;
+	private AmazonCloudSearchDomainClient mockCloudSearchDomainClient;
 
 	@Mock
-	SearchResult mockResponse;
+	private SearchResult mockResponse;
 
 	@Mock
-	SearchException mockedSearchException;
+	private AmazonCloudSearchDomainException mockedSearchException;
 
-	SearchRequest searchRequest;
+	private CloudsSearchDomainClientAdapter cloudSearchDomainClientAdapter;
+
+	private SearchRequest searchRequest;
 
 	String endpoint = "http://www.ImALittleEndpoint.com";
 
@@ -54,7 +56,7 @@ public class CloudSearchDomainClientAdapterTest {
 	 * search() Tests
 	 */
 	@Test(expected = IllegalArgumentException.class)
-	public void testSearchNullRequest(){
+	public void testSearchNullRequest() {
 		cloudSearchDomainClientAdapter.rawSearch(null);
 	}
 
@@ -71,38 +73,24 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test
-	public void testSearchOnErrorCode5xx() throws Exception {
-		String exceptionMessage = "Some message";
-
+	public void testHandleCloudSearchExceptionsErrorCode5xx() throws Exception {
 		when(mockedSearchException.getStatusCode()).thenReturn(504);
-		when(mockedSearchException.getMessage()).thenReturn(exceptionMessage);
 		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
 
 		//method under test
-		try {
-			SearchResult result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
-		} catch (CloudSearchServerException e){
-			assertEquals(exceptionMessage, e.getMessage());
-		}
-		verify(mockCloudSearchDomainClient).search(searchRequest);
+		RuntimeException resultException = cloudSearchDomainClientAdapter.handleCloudSearchExceptions(mockedSearchException);
+		assertEquals(mockedSearchException, resultException);
 	}
 
 	@Test
-	public void testSearchOnErrorCode4xx() throws Exception {
-
-		String exceptionMessage = "Some message";
+	public void testHandleCloudSearchExceptionsErrorCode4xx() throws Exception {
 		when(mockedSearchException.getStatusCode()).thenReturn(400);
-		when(mockedSearchException.getMessage()).thenReturn(exceptionMessage);
-		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
 
 		//method under test
-		try {
-			SearchResult result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
-		} catch (CloudSearchClientException e){
-			assertEquals(exceptionMessage, e.getMessage());
-		}
+		RuntimeException resultException = cloudSearchDomainClientAdapter.handleCloudSearchExceptions(mockedSearchException);
 
-		verify(mockCloudSearchDomainClient).search(searchRequest);
+		assertThat(resultException, instanceOf(IllegalArgumentException.class));
+		assertEquals(mockedSearchException, resultException.getCause());
 	}
 
 	/**
@@ -110,7 +98,7 @@ public class CloudSearchDomainClientAdapterTest {
 	 */
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testSendNullDocument(){
+	public void testSendNullDocument() {
 		cloudSearchDomainClientAdapter.sendDocument(null);
 	}
 

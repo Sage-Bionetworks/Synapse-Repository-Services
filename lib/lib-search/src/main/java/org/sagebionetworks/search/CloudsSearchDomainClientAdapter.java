@@ -68,15 +68,15 @@ public class CloudsSearchDomainClientAdapter {
 	RuntimeException handleCloudSearchExceptions(AmazonCloudSearchDomainException e){
 		int statusCode = e.getStatusCode();
 		if(statusCode / 100 == 4){ //4xx status codes
-			logger.error("Client side failure with status: " + e.getStatusCode() + " message:" + e.getMessage());
-			return new CloudSearchClientException(statusCode, e.getMessage());
+			return new IllegalArgumentException(e);
 		} else if (statusCode / 100 == 5){ // 5xx status codes
-			//The AWS API already has retry logic for 5xx status codes so getting one here means retries failed
-			logger.error("Server side failure with status: " + e.getStatusCode() + " message:" + e.getMessage());
-			return new CloudSearchServerException(statusCode, e.getMessage());
+			// The AWS API already has retry logic for 5xx status codes so getting one here means retries failed
+			// AmazonCloudSearchDomainException is a subclass of AmazonServiceException,
+			// which is already handled by BaseController and mapped to a 502 HTTP error
+			return e;
 		}else {
-			logger.error("Failed for unexpected reasons with status: " + e.getStatusCode());
-			throw e;
+			logger.warn("Failed for unexpected reasons with status: " + e.getStatusCode());
+			return e;
 		}
 	}
 

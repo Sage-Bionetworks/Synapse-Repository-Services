@@ -40,18 +40,21 @@ public class CloudSearchClientProviderTest {
 		ReflectionTestUtils.setField(CloudSearchClientProvider.class, "singletonWrapper", null);
 	}
 
-	@Test (expected = SearchDisabledException.class)
+	@Test (expected = IllegalStateException.class)
 	public void testGetCloudSearchClientSearchDisabled(){
 		provider.setSearchEnabled(false);
 		provider.getCloudSearchClient();
 	}
 
-	@Test (expected = TemporarilyUnavailableException.class)
+	@Test
 	public void testGetCloudSearchClientIncompleteSetup(){
 		when(mockSearchDomainSetup.postInitialize()).thenReturn(false);
-		provider.getCloudSearchClient();
-		verify(mockSearchDomainSetup, times(1)).postInitialize();
-		verify(mockAwsCloudSearchClient, never()).setEndpoint(anyString());
+		try{
+			provider.getCloudSearchClient();
+		}catch (TemporarilyUnavailableException e) {
+			verify(mockSearchDomainSetup, times(1)).postInitialize();
+			verify(mockAwsCloudSearchClient, never()).setEndpoint(anyString());
+		}
 	}
 
 	@Test

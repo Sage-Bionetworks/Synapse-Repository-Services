@@ -14,7 +14,7 @@
                 },
                 {
                     "name": "delete",
-                    "description": "Delete the document from cloudsearch"
+                    "description": "Delete the document from CloudSearch"
                 }
             ]
         },

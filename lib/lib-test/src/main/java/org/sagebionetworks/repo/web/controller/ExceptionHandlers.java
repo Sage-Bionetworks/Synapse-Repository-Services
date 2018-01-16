@@ -69,7 +69,6 @@ public class ExceptionHandlers {
 				new ExceptionType("org.sagebionetworks.schema.adapter.JSONObjectAdapterException", false),
 				new ExceptionType(EOFException.class.getName(), false),
 				new ExceptionType("org.sagebionetworks.repo.queryparser.ParseException", false),
-				new ExceptionType("org.sagebionetworks.search.CloudSearchClientException", false),
 				new ExceptionType("org.springframework.transaction.UnexpectedRollbackException", true)),
 		new TestEntry(406,
 				new ExceptionType("org.springframework.web.HttpMediaTypeNotAcceptableException", false)),
@@ -91,9 +90,8 @@ public class ExceptionHandlers {
 		new TestEntry(503,
 				new ExceptionType("org.sagebionetworks.repo.web.TemporarilyUnavailableException", false)),
 		new TestEntry(502,
-				new ExceptionType("com.amazonaws.AmazonServiceException", false),
-				new ExceptionType("org.sagebionetworks.search.CloudSearchServerException", true)),
+				new ExceptionType("com.amazonaws.AmazonServiceException", false)),
 		new TestEntry(413,
-				new ExceptionType("org.sagebionetworks.repo.web.filter.ByteLimitExceededException", false)),	
+				new ExceptionType("org.sagebionetworks.repo.web.filter.ByteLimitExceededException", false))
 	};
 }

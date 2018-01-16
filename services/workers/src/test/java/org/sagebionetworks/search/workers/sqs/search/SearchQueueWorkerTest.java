@@ -3,40 +3,27 @@ package org.sagebionetworks.search.workers.sqs.search;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
-import org.apache.http.client.ClientProtocolException;
+import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.manager.search.SearchManager;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.search.CloudSearchClientException;
-import org.sagebionetworks.search.CloudSearchServerException;
-import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
-import software.amazon.ion.IonException;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SearchQueueWorkerTest {
@@ -75,7 +62,7 @@ public class SearchQueueWorkerTest {
 
 	@Test
 	public void testCloudSearchServerExceptionThrown() throws IOException, RecoverableMessageException {
-		exceptionThrowTestHelper(CloudSearchServerException.class);
+		exceptionThrowTestHelper(AmazonCloudSearchDomainException.class);
 	}
 
 	@Test

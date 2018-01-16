@@ -6,8 +6,8 @@ import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.base.CharMatcher;
 import org.apache.commons.lang.math.NumberUtils;
-import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Document;
@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
@@ -38,7 +39,6 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
@@ -242,7 +242,7 @@ public class SearchUtil{
 		return synapseSearchResults;
 	}
 
-	private static Facet convertToSynapseSearchFacet(String facetName, BucketInfo bucketInfo) {
+	static Facet convertToSynapseSearchFacet(String facetName, BucketInfo bucketInfo) {
 		FacetTypeNames facetType = FACET_TYPES.get(facetName);
 		if (facetType == null) {
 			throw new IllegalArgumentException(
@@ -268,7 +268,7 @@ public class SearchUtil{
 		return synapseFacet;
 	}
 
-	private static org.sagebionetworks.repo.model.search.Hit convertToSynapseHit(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit){
+	static org.sagebionetworks.repo.model.search.Hit convertToSynapseHit(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit){
 		Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
 
 		org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
@@ -289,7 +289,7 @@ public class SearchUtil{
 	}
 
 
-	private static String getFirstListValueFromMap(Map<String, List<String>> map, String key){
+	static String getFirstListValueFromMap(Map<String, List<String>> map, String key){
 		List<String> list = map.get(key);
 		return (list == null || list.isEmpty()) ? null : list.get(0);
 	}
@@ -350,11 +350,7 @@ public class SearchUtil{
 		ValidateArgument.required(userInfo, "userInfo");
 		Set<Long> userGroups = userInfo.getGroups();
 		ValidateArgument.required(userGroups, "userInfo.getGroups()");
-
-		if (userGroups.isEmpty()) {
-			// being extra paranoid here, this is unlikely
-			throw new DatastoreException("no groups for user " + userInfo);
-		}
+		ValidateArgument.requirement(!userGroups.isEmpty(), "no groups for user " + userInfo);
 
 		// Make our boolean query
 		StringBuilder authorizationFilterBuilder = new StringBuilder("(or ");
@@ -372,51 +368,36 @@ public class SearchUtil{
 
 	/**
 	 * Remove any character that is not compatible with cloud search.
-	 * @param document
+	 * @param documents
 	 * @return JSON String of cleaned document
 	 */
 	static String convertSearchDocumentsToJSONString(List<Document> documents) {
 		ValidateArgument.required(documents, "documents");
-		//CloudSearch will not accept an empty document batch
+		// CloudSearch will not accept an empty document batch
 		ValidateArgument.requirement(!documents.isEmpty(), "documents can not be empty");
 
-		try {
-			StringBuilder builder = new StringBuilder();
-			builder.append("["); //TOD: use JSONArray instead??
-			int count = 0;
-			for(Document document: documents) {
-				if (DocumentTypeNames.add == document.getType()){
-					prepareDocument(document);
-				}
-				String serializedDocument = EntityFactory.createJSONStringForEntity(document);
-				// AwesomeSearch pukes on control characters. Some descriptions have
-				// control characters in them for some reason, in any case, just get rid
-				// of all control characters in the search document
-				String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
+		StringJoiner stringJoiner = new StringJoiner(", ", "[", "]");
 
-				// Get rid of escaped control characters too
-				cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]","");
-				if(count > 0){
-					builder.append(", ");
-				}
-				builder.append(cleanedDocument);
-				count++;
+		for (Document document : documents) {
+			if (DocumentTypeNames.add == document.getType()) {
+				prepareDocument(document);
 			}
-			builder.append("]");
-			return builder.toString();
-		} catch (JSONObjectAdapterException e) {
-			// Convert to runtime
-			throw new RuntimeException(e);
+			try {
+				stringJoiner.add(EntityFactory.createJSONStringForEntity(document));
+			} catch (JSONObjectAdapterException e) {
+				throw new RuntimeException(e);
+			}
 		}
+		// Some descriptions have control characters in them for some reason, in any case, just get rid
+		// of all control characters in the search document
+		return CharMatcher.JAVA_ISO_CONTROL.removeFrom(stringJoiner.toString());
 	}
 
 	/**
 	 * Prepare the document to be sent.
 	 * @param document
 	 */
-	public static void prepareDocument(Document document) {
-		// the version is always the current time.
-		document.setType(DocumentTypeNames.add);
+	static void prepareDocument(Document document) {
 		if(document.getFields() == null){
 			document.setFields(new DocumentFields());
 		}

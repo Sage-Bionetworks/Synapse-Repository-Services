@@ -9,7 +9,6 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
@@ -323,9 +322,33 @@ public class SearchUtilTest {
 	}
 
 	@Test
-	public void testHitTransaltionAllFields() {
-		long found = 1;
-		long start = 0;
+	public void testGetFistValueFromMapNullList(){
+		assertEquals(null, SearchUtil.getFirstListValueFromMap(Collections.emptyMap(), "someKey"));
+	}
+
+	@Test
+	public void testGetFistValueFromMapEmptyList(){
+		assertEquals(null, SearchUtil.getFirstListValueFromMap(Collections.singletonMap("someKey",Collections.emptyList()), "someKey"));
+	}
+
+	@Test
+	public void testGetFistValueFromMapSingleValueList(){
+		String retrievedValue = SearchUtil.getFirstListValueFromMap(
+				Collections.singletonMap("someKey",Collections.singletonList("someValue")),
+				"someKey");
+		assertEquals("someValue", retrievedValue);
+	}
+
+	@Test
+	public void testGetFistValueFromMapMultipleValueList(){
+		String retrievedValue = SearchUtil.getFirstListValueFromMap(
+				Collections.singletonMap("someKey",Arrays.asList("firstValue", "secondValue")),
+				"someKey");
+		assertEquals("firstValue", retrievedValue);
+	}
+
+	@Test
+	public void testConvertToSynapseHitAllFieldsWithValue() {
 		//Lots of setup
 		String createdBy = "1213324";
 		String createdOn = "1234567890";
@@ -356,17 +379,10 @@ public class SearchUtilTest {
 				put(FIELD_TISSUE_R, Collections.singletonList(tissue));
 			}
 		};
-
-		searchResult.withHits(new Hits().withFound(found).withStart(start).withHit(new com.amazonaws.services.cloudsearchdomain.model.Hit().withFields(hitFields).withId(id)));
 		//end of setup
 
-		SearchResults convertedResults = SearchUtil.convertToSynapseSearchResult(searchResult);
+		org.sagebionetworks.repo.model.search.Hit hit = SearchUtil.convertToSynapseHit(new com.amazonaws.services.cloudsearchdomain.model.Hit().withFields(hitFields).withId(id));
 
-		assertEquals(found, convertedResults.getHits().size());
-		assertEquals((Long) start, convertedResults.getStart());
-		assertEquals((Long) found, convertedResults.getFound());
-
-		org.sagebionetworks.repo.model.search.Hit hit = convertedResults.getHits().get(0);
 		assertEquals(id, hit.getId());
 		assertEquals(name, hit.getName());
 		assertEquals(description, hit.getDescription());
@@ -477,7 +493,7 @@ public class SearchUtilTest {
 		SearchUtil.formulateAuthorizationFilter(userInfo);
 	}
 
-	@Test (expected = DatastoreException.class)
+	@Test (expected = IllegalArgumentException.class)
 	public void testFormulateAuthorizationFilterEmptyUserGroups(){
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setGroups(new HashSet<>());
@@ -510,17 +526,17 @@ public class SearchUtilTest {
 	////////////////////////////////////////
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONNullDocuments(){
+	public void testConvertSearchDocumentsToJSONStringNullDocuments(){
 		SearchUtil.convertSearchDocumentsToJSONString(null);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONEmptyDocuments(){
+	public void testConvertSearchDocumentsToJSONStringEmptyDocuments(){
 		SearchUtil.convertSearchDocumentsToJSONString(new LinkedList<>());
 	}
 
 	@Test
-	public void testConvertSearchDocumentsToJSON(){
+	public void testConvertSearchDocumentsToJSONString(){
 		Document deleteDoc = new Document();
 		deleteDoc.setId("syn123");
 		deleteDoc.setType(DocumentTypeNames.delete);

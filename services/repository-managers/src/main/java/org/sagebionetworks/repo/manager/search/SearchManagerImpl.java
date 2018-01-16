@@ -81,7 +81,6 @@ public class SearchManagerImpl implements SearchManager{
 	 * @param hits
 	 */
 	public void addReturnDataToHits(List<Hit> hits) {
-		System.out.println(hits);
 		//NOTE: We actually do parentIds of each entity in FIELD_ANCESTORS but we are still missing
 		if(hits != null){
 			// For each hit we need to add the path
@@ -92,7 +91,7 @@ public class SearchManagerImpl implements SearchManager{
 					hit.setPath(path);
 				} catch (NotFoundException e) {
 					// Add a warning and remove it from the hits
-					log.warn("Found a search document that did not exist in the repository: "+hit, e);
+					log.warn("Found a search document that did not exist in the repository: "+hit);
 					// We need to remove this from the hits
 					toRemove.add(hit);
 				}

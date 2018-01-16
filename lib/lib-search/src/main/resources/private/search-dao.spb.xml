@@ -28,7 +28,6 @@
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="cloudSearchClientProvider"
 		  class="org.sagebionetworks.search.CloudSearchClientProvider"
-		  init-method="initialize"
 		  scope="singleton">
 		<property name="searchEnabled" ref="stackConfiguration.searchEnabled"/>
 	</bean>

@@ -1,20 +1,13 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
-import org.sagebionetworks.search.CloudSearchClientException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -44,14 +37,12 @@ public class SearchController extends BaseController {
 	/**
 	 * @param userId
 	 * @param searchQuery
-	 * @param request
 	 * @return search results from CloudSearch
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { "/search" }, method = RequestMethod.POST)
 	public @ResponseBody
-	SearchResults proxySearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody SearchQuery searchQuery,
-			HttpServletRequest request) {
+	SearchResults proxySearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody SearchQuery searchQuery) {
 		return serviceProvider.getSearchService().proxySearch(userId, searchQuery);
 	}
 }

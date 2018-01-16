@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -33,9 +32,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
