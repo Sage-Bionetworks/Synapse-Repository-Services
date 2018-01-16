@@ -11,8 +11,10 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -29,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -52,10 +55,14 @@ import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
+import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -82,9 +89,17 @@ public class MigrationManagerImplTest {
 	@Mock
 	FileOutputStream mockOutputStream;
 	@Mock
+	InputStream mockInputStream;
+	@Mock
+	FileInputStream mockFileInputStream;
+	@Mock
 	UserInfo mockUser;
 	@Captor
 	ArgumentCaptor<Iterable<MigratableDatabaseObject<?, ?>>> iterableCator;
+	@Mock
+	MigrationTypeListener mockMigrationListener;
+	@Captor
+	ArgumentCaptor<GetObjectRequest> getObjectRequestCaptor;
 	
 	MigrationManagerImpl manager;
 	
@@ -99,6 +114,9 @@ public class MigrationManagerImplTest {
 	List<Long> backupIds;
 	List<MigratableDatabaseObject<?, ?>> allObjects;
 	List<Long> bootstrapPrincipalIds;
+	List<MigratableDatabaseObject<?, ?>> nodeStream;
+	List<MigratableDatabaseObject<?, ?>> revisionStream;
+	RestoreTypeRequest restoreTypeRequest;
 	
 	@Before
 	public void before() throws IOException{
@@ -109,6 +127,7 @@ public class MigrationManagerImplTest {
 		ReflectionTestUtils.setField(manager, "backupFileStream", mockBackupFileStream);
 		ReflectionTestUtils.setField(manager, "s3Client", mockS3Client);
 		ReflectionTestUtils.setField(manager, "fileProvider", mockFileProvider);
+		ReflectionTestUtils.setField(manager, "migrationListeners", Lists.newArrayList(mockMigrationListener));
 		
 		ForeignKeyInfo info = new ForeignKeyInfo();
 		info.setTableName("foo");
@@ -123,6 +142,7 @@ public class MigrationManagerImplTest {
 		
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		when(mockFileProvider.createFileOutputStream(any(File.class))).thenReturn(mockOutputStream);
+		when(mockFileProvider.createFileInputStream(any(File.class))).thenReturn(mockFileInputStream);
 		// default to admin
 		when(mockUser.isAdmin()).thenReturn(true);
 		
@@ -149,8 +169,8 @@ public class MigrationManagerImplTest {
 		backupIds = Lists.newArrayList(123L,456L);
 		request.setRowIdsToBackup(backupIds);
 		
-		List<MigratableDatabaseObject<?, ?>> nodeStream = Lists.newArrayList(nodeOne, nodeTwo);
-		List<MigratableDatabaseObject<?, ?>> revisionStream = Lists.newArrayList(revOne, revTwo);
+		nodeStream = Lists.newArrayList(nodeOne, nodeTwo);
+		revisionStream = Lists.newArrayList(revOne, revTwo);
 		when(mockDao.streamDatabaseObjects(MigrationType.NODE, backupIds, batchSize)).thenReturn(nodeStream);
 		when(mockDao.streamDatabaseObjects(MigrationType.NODE_REVISION, backupIds, batchSize)).thenReturn(revisionStream);
 		
@@ -163,6 +183,18 @@ public class MigrationManagerImplTest {
 			ids.add(bootPrincpal.getPrincipalId());
 		}
 		this.bootstrapPrincipalIds = Collections.unmodifiableList(ids);
+		
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		
+		// setup read of all objects.
+		when(mockBackupFileStream.readBackupFile(any(InputStream.class), any(BackupAliasType.class))).thenReturn(allObjects);
+		
+		restoreTypeRequest = new RestoreTypeRequest();
+		restoreTypeRequest.setAliasType(backupAlias);
+		restoreTypeRequest.setBackupFileKey("backupFileKey");
+		restoreTypeRequest.setBatchSize(batchSize);
+		restoreTypeRequest.setMigrationType(MigrationType.NODE);
 	}
 	
 	@Test
@@ -589,5 +621,303 @@ public class MigrationManagerImplTest {
 		assertNotNull(filtered);
 		assertEquals(startSize, filtered.size());
 		assertEquals(toTest, filtered);
+	}
+	
+	@Test
+	public void testDeleteByIdAndFireEvent() {
+		MigrationType type = MigrationType.NODE;
+		List<Long> toDelete = Lists.newArrayList(123L,345L);
+		int count = 1;
+		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(count);
+		int result = this.manager.deleteByIdAndFireEvent(type, toDelete);
+		assertEquals(count, result);
+		verify(mockDao).deleteById(type, toDelete);
+		verify(mockMigrationListener).beforeDeleteBatch(type, toDelete);
+	}
+	
+	@Test
+	public void testDeleteByIdAndFireEventFiltered() {
+		MigrationType type = MigrationType.PRINCIPAL;
+		// include a bootstrap princpal
+		List<Long> toDelete = Lists.newArrayList(
+				123L,
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()
+		);
+		// call under test
+		this.manager.deleteByIdAndFireEvent(type, toDelete);
+		List<Long> expectedId = Lists.newArrayList(123L);
+		verify(mockDao).deleteById(type, expectedId);
+		verify(mockMigrationListener).beforeDeleteBatch(type, expectedId);
+	}
+	
+	@Test
+	public void testPrincipalTypes() {
+		assertEquals(3, MigrationManagerImpl.PRINCIPAL_TYPES.size());
+		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.PRINCIPAL));
+		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.CREDENTIAL));
+		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.GROUP_MEMBERS));
+	}
+	
+	@Test
+	public void testDeleteByIdAuthorized() {
+		when(mockUser.isAdmin()).thenReturn(true);
+		MigrationType type = MigrationType.NODE;
+		List<Long> toDelete = Lists.newArrayList(123L,345L);
+		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(1,2,3);
+		// call under test
+		int count = manager.deleteById(mockUser, type, toDelete);
+		assertEquals(3, count);
+		// should delete secondary types
+		verify(mockDao).deleteById(MigrationType.NODE_REVISION, toDelete);
+		verify(mockDao).deleteById(MigrationType.NODE, toDelete);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testDeleteByIdUnAuthorized() {
+		when(mockUser.isAdmin()).thenReturn(false);
+		MigrationType type = MigrationType.NODE;
+		List<Long> toDelete = Lists.newArrayList(123L,345L);
+		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(1,2,3);
+		// call under test
+		manager.deleteById(mockUser, type, toDelete);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteByIdNullUser() {
+		mockUser = null;
+		MigrationType type = MigrationType.NODE;
+		List<Long> toDelete = Lists.newArrayList(123L,345L);
+		// call under test
+		manager.deleteById(mockUser, type, toDelete);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteByIdNullType() {
+		MigrationType type = null;
+		List<Long> toDelete = Lists.newArrayList(123L,345L);
+		// call under test
+		manager.deleteById(mockUser, type, toDelete);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteByIdNullIds() {
+		MigrationType type = MigrationType.NODE;
+		List<Long> toDelete = null;
+		// call under test
+		manager.deleteById(mockUser, type, toDelete);
+	}
+	
+	@Test
+	public void testDeleteByIdEmptyList() {
+		MigrationType type = MigrationType.NODE;
+		List<Long> toDelete = new LinkedList<>();
+		// call under test
+		int count = manager.deleteById(mockUser, type, toDelete);
+		assertEquals(0, count);
+		verify(mockDao, never()).deleteById(any(MigrationType.class), anyListOf(Long.class));
+	}
+	
+	@Test
+	public void testRestoreBatchPrimary() {
+		MigrationType currentType = MigrationType.NODE;
+		MigrationType primaryType = MigrationType.NODE;
+		List<MigrationType> secondaryTypes = Lists.newArrayList(MigrationType.NODE_REVISION);
+		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(nodeOne);
+		List<Long> idList = Lists.newArrayList(nodeOne.getId());
+		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		// call under test
+		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
+		verify(mockMigrationListener).afterCreateOrUpdate(currentType, currentBatch);
+		// secondary data should be deleted.
+		verify(mockMigrationListener).beforeDeleteBatch(MigrationType.NODE_REVISION, idList);
+	}
+	
+	@Test
+	public void testRestoreBatchSecondary() {
+		// current is a secondary.
+		MigrationType currentType = MigrationType.NODE_REVISION;
+		// node is the primary
+		MigrationType primaryType = MigrationType.NODE;
+		// secondary passed in
+		List<MigrationType> secondaryTypes = Lists.newArrayList(MigrationType.NODE_REVISION);
+		// batch of revisions.
+		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(revOne);
+		List<Long> idList = Lists.newArrayList(revOne.getOwner());
+		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		// call under test
+		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
+		verify(mockMigrationListener).afterCreateOrUpdate(MigrationType.NODE_REVISION, currentBatch);
+		// no secondary deletes.
+		verify(mockMigrationListener, never()).beforeDeleteBatch(any(MigrationType.class), anyListOf(Long.class));
+	}
+	
+	@Test
+	public void testRestoreBatchEmpty() {
+		// current is a secondary.
+		MigrationType currentType = MigrationType.NODE_REVISION;
+		// node is the primary
+		MigrationType primaryType = MigrationType.NODE;
+		// secondary passed in
+		List<MigrationType> secondaryTypes = Lists.newArrayList(MigrationType.NODE_REVISION);
+		// Empty batch
+		List<DatabaseObject<?>> currentBatch = new LinkedList<>();
+		// call under test
+		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
+		verify(mockMigrationListener, never()).afterCreateOrUpdate(any(MigrationType.class), anyList());
+		verify(mockMigrationListener, never()).beforeDeleteBatch(any(MigrationType.class), anyList());
+	}
+	
+	/**
+	 * Batch by type when the batch size is larger than the type batches.
+	 */
+	@Test
+	public void testRestoreStreamBatchByType() {
+		MigrationType primaryType = MigrationType.NODE;
+		batchSize = 1000L;
+		// call under test
+		RestoreTypeResponse response = manager.restoreStream(mockInputStream, primaryType, backupAlias, batchSize);
+		assertNotNull(response);
+		// count should match 
+		assertEquals(new Long(allObjects.size()), response.getRestoredRowCount());
+		verify(mockDao, times(2)).createOrUpdate(any(MigrationType.class), anyList());
+		// first batch is nodes
+		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
+		// second batch is revisions.
+		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne, revTwo)));
+	}
+	
+	/**
+	 * Batch by size when the batch size is smaller than the type batches.
+	 */
+	@Test
+	public void testRestoreStreamBatchBySize() {
+		MigrationType primaryType = MigrationType.NODE;
+		batchSize = 1L;
+		// call under test
+		RestoreTypeResponse response = manager.restoreStream(mockInputStream, primaryType, backupAlias, batchSize);
+		assertNotNull(response);
+		// count should match 
+		assertEquals(new Long(allObjects.size()), response.getRestoredRowCount());
+		verify(mockDao, times(4)).createOrUpdate(any(MigrationType.class), anyList());
+		// each row should be its own batch
+		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne));
+		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeTwo));
+		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne)));
+		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revTwo)));
+	}
+	
+	@Test
+	public void testRestoreStreamPrimaryNotRegistered() {
+		MigrationType primaryType = MigrationType.NODE;
+		// primary not registered
+		when(mockDao.isMigrationTypeRegistered(primaryType)).thenReturn(false);
+		// call under test
+		RestoreTypeResponse response = manager.restoreStream(mockInputStream, primaryType, backupAlias, batchSize);
+		assertNotNull(response);
+		// count should match 
+		assertEquals(new Long(0), response.getRestoredRowCount());
+		verify(mockDao, never()).createOrUpdate(any(MigrationType.class), anyList());
+	}
+	
+	@Test
+	public void testRestoreStreamSecondaryNotRegistered() {
+		MigrationType primaryType = MigrationType.NODE;
+		// secondary not registered.
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(false);
+		// call under test
+		RestoreTypeResponse response = manager.restoreStream(mockInputStream, primaryType, backupAlias, batchSize);
+		assertNotNull(response);
+		// count should match 
+		assertEquals(new Long(nodeStream.size()), response.getRestoredRowCount());
+		verify(mockDao, times(1)).createOrUpdate(any(MigrationType.class), anyList());
+		// primary should be added but not secondary.
+		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
+	}
+	
+	@Test
+	public void testRestoreRequest() throws IOException {
+		// call under test
+		RestoreTypeResponse response = manager.restoreRequest(mockUser, restoreTypeRequest);
+		assertNotNull(response);
+		// the file should be fetched from S3
+		verify(mockS3Client).getObject(getObjectRequestCaptor.capture(), eq(mockFile));
+		GetObjectRequest gor = getObjectRequestCaptor.getValue();
+		assertNotNull(gor);
+		assertEquals(MigrationManagerImpl.backupBucket, gor.getBucketName());
+		assertEquals(restoreTypeRequest.getBackupFileKey(), gor.getKey());
+		// the file should be deleted
+		verify(mockS3Client).deleteObject(MigrationManagerImpl.backupBucket, restoreTypeRequest.getBackupFileKey());
+		verify(mockFileInputStream).close();
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testRestoreRequestCleanup() throws IOException {
+		// setup failure
+		AmazonServiceException exception = new AmazonServiceException("failed");
+		doThrow(exception).when(mockS3Client).deleteObject(anyString(), anyString());
+		try {
+			// call under test
+			manager.restoreRequest(mockUser, restoreTypeRequest);
+			fail();
+		} catch (Exception e) {
+			// expected
+			assertEquals(exception.getMessage(), e.getMessage());
+		}
+		// stream should be closed
+		verify(mockFileInputStream).close();
+		// temp should be deleted.
+		verify(mockFile).delete();
+	}
+	
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testRestoreRequestUnauthorized() throws IOException {
+		// must be an admin
+		when(mockUser.isAdmin()).thenReturn(false);
+		// call under test
+		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRestoreRequestNullUser() throws IOException {
+		mockUser = null;
+		// call under test
+		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRestoreRequestNullRequest() throws IOException {
+		restoreTypeRequest = null;
+		// call under test
+		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRestoreRequestNullBackupAlias() throws IOException {
+		restoreTypeRequest.setAliasType(null);
+		// call under test
+		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRestoreRequestNullKey() throws IOException {
+		restoreTypeRequest.setBackupFileKey(null);
+		// call under test
+		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRestoreRequestNullMigrationType() throws IOException {
+		restoreTypeRequest.setMigrationType(null);
+		// call under test
+		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRestoreRequestNullBatchSize() throws IOException {
+		restoreTypeRequest.setBatchSize(null);
+		// call under test
+		manager.restoreRequest(mockUser, restoreTypeRequest);
 	}
 }

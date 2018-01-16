@@ -335,6 +335,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param type
 	 * @param databaseList - The Database objects that were created or updated.
 	 */
+	@Deprecated
 	private <D extends DatabaseObject<D>> void fireCreateOrUpdateBatchEvent(MigrationType type, List<D> databaseList){
 		if(this.migrationListeners != null){
 			// Let each listener handle the event
@@ -692,6 +693,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		try {
 			// download the file from S3
 			GetObjectRequest getObjectRequest = new GetObjectRequest(backupBucket, request.getBackupFileKey());
+			// the client will write the file data to the temp file.
 			s3Client.getObject(getObjectRequest, temp);
 			fis = fileProvider.createFileInputStream(temp);
 			// Stream over the resulting file.
@@ -745,7 +747,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			// If over the batch size or a type switch push the current batch.
 			if(currentBatch.size() >= batchSize || !rowType.equals(currentType)) {
 				restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
-				currentBatch.clear();
+				currentBatch = new LinkedList<>();
 			}
 			currentType = rowType;
 			currentBatch.add(rowToRestore);
@@ -766,16 +768,16 @@ public class MigrationManagerImpl implements MigrationManager {
 	 */
 	public void restoreBatch(MigrationType currentType, MigrationType primaryType, List<MigrationType> secondaryTypes,
 			List<DatabaseObject<?>> currentBatch) {
-		// push the data to the database
-		List<Long> createdOrUpdatedIds = this.migratableTableDao.createOrUpdate(currentType, currentBatch);
-		// Let listeners know about the change
-		fireCreateOrUpdateEvent(currentType, currentBatch);
-		if(currentType.equals(primaryType)) {
-			// delete all secondary data for this type
-			for(MigrationType secondaryType: secondaryTypes) {
-				// Fire the event before deleting the objects
-				fireDeleteBatchEvent(secondaryType, createdOrUpdatedIds);
-				this.migratableTableDao.deleteById(secondaryType, createdOrUpdatedIds);
+		if(!currentBatch.isEmpty()) {
+			// push the data to the database
+			List<Long> createdOrUpdatedIds = this.migratableTableDao.createOrUpdate(currentType, currentBatch);
+			// Let listeners know about the change
+			fireCreateOrUpdateEvent(currentType, currentBatch);
+			if(currentType.equals(primaryType)) {
+				// delete all secondary data for this type
+				for(MigrationType secondaryType: secondaryTypes) {
+					this.deleteByIdAndFireEvent(secondaryType, createdOrUpdatedIds);
+				}
 			}
 		}
 	}
@@ -835,8 +837,8 @@ public class MigrationManagerImpl implements MigrationManager {
 	protected int deleteByIdAndFireEvent(MigrationType type, List<Long> idList) {
 		// filter the bootstrap principals as needed.
 		idList = filterBootstrapPrincipals(type, idList);
-		int deleteCount = this.migratableTableDao.deleteById(type, idList);
 		this.fireDeleteBatchEvent(type, idList);
+		int deleteCount = this.migratableTableDao.deleteById(type, idList);
 		return deleteCount;
 	}
 }
