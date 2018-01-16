@@ -1,8 +1,12 @@
-package org.sagebionetworks.repo.manager.migration;
+package org.sagebionetworks.repo.model.dbo.migration;
 
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
+/**
+ * Abstraction to lookup MigratableDatabaseObjects given MigrationType.
+ *
+ */
 public interface MigrationTypeProvider {
 
 	/**

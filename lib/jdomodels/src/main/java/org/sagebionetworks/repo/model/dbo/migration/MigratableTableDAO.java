@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,7 +20,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
  * @author John
  *
  */
-public interface MigratableTableDAO {
+public interface MigratableTableDAO extends MigrationTypeProvider {
 	
 	/**
 	 * The total number of rows in the table.

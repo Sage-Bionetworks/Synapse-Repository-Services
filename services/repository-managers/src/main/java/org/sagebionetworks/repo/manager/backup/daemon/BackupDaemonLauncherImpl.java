@@ -24,6 +24,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
  * @author John
  *
  */
+@Deprecated
 public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	
 	private static String backupBucket = StackConfiguration.getSharedS3BackupBucket();
