@@ -67,7 +67,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
 	public static String backupBucket = StackConfiguration.getSharedS3BackupBucket();
-	public static String stack = StackConfiguration.getStack();
+	public static String stack = StackConfiguration.singleton().getStack();
 	public static String instance = StackConfiguration.getStackInstance();
 	
 	@Autowired
