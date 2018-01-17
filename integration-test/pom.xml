@@ -102,7 +102,7 @@
 				</executions>
 			</plugin>
 
-			<!-- *** Cargo plugin: start/stop application server and deploy the ear
+			<!-- *** Cargo plugin: start/stop application server and deploy the war
 				file before/after integration tests *** -->
 			<plugin>
 				<groupId>org.codehaus.cargo</groupId>
@@ -131,6 +131,7 @@
 							<org.sagebionetworks.id.generator.database.connection.url>${org.sagebionetworks.id.generator.database.connection.url}</org.sagebionetworks.id.generator.database.connection.url>
 							<org.sagebionetworks.table.cluster.endpoint.0>${org.sagebionetworks.table.cluster.endpoint.0}</org.sagebionetworks.table.cluster.endpoint.0>
 							<org.sagebionetworks.table.cluster.schema.0>${org.sagebionetworks.table.cluster.schema.0}</org.sagebionetworks.table.cluster.schema.0>
+							<org.sagebionetworks.search.enabled>${org.sagebionetworks.search.enabled}</org.sagebionetworks.search.enabled>
 						</systemProperties>
 					</container>
 					<configuration>
