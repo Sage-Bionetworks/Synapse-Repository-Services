@@ -674,12 +674,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
+		ValidateArgument.required(batch, "batch");
+		if(batch.isEmpty()) {
+			return new LinkedList<>();
+		}
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithForeignKeyIgnored(() -> {
-			ValidateArgument.required(batch, "batch");
-			if(batch.isEmpty()) {
-				return new LinkedList<>();
-			}
 			List<Long> createOrUpdateIds = new LinkedList<>();
 			FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
 			String sql = getInsertOrUpdateSql(type);
