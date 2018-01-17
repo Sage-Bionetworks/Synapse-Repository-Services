@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -86,6 +88,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	/**
 	 * Injected via Spring
 	 */
+	@Deprecated
 	private List<Long> userGroupIdsExemptFromDeletion;
 	
 	/**
@@ -390,6 +393,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 
+
+	@Deprecated
 	@WriteTransaction
 	@Override
 	public int deleteObjectsById(MigrationType type, List<Long> idList) {
@@ -465,7 +470,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return createOrUpdateIds;
 	}
 
-	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping<T> mapping) {
+	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
 		}
@@ -556,11 +561,15 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#runWithForeignKeyIgnored(java.util.concurrent.Callable)
 	 */
 	@Override
-	public <T> T runWithForeignKeyIgnored(Callable<T> call) throws Exception{
+	public <T> T runWithForeignKeyIgnored(Callable<T> call) {
 		try{
 			// unconditionally turn off foreign key checks.
 			setForeignKeyChecks(false);
-			return call.call();
+			try {
+				return call.call();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		}finally{
 			// unconditionally turn on foreign key checks.
 			setForeignKeyChecks(true);
@@ -649,6 +658,66 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				info.setReferencedTableName(rs.getString(REFERENCED_TABLE_NAME));
 				return info;
 			}}, schema);
+	}
+
+	@Override
+	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds,
+			long batchSize) {
+		String sql = getBatchBackupSql(type);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MigratableDatabaseObject object = getMigratableObject(type);
+		Map<String, Object> parameters = new HashMap<>(3);
+		parameters.put(DMLUtils.BIND_VAR_ID_lIST, rowIds);
+		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
+		ValidateArgument.required(batch, "batch");
+		if(batch.isEmpty()) {
+			return new LinkedList<>();
+		}
+		// Foreign Keys must be ignored for this operation.
+		return this.runWithForeignKeyIgnored(() -> {
+			List<Long> createOrUpdateIds = new LinkedList<>();
+			FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
+			String sql = getInsertOrUpdateSql(type);
+			SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+			int index = 0;
+			for(DatabaseObject<?> databaseObject: batch){
+				namedParameters[index] = getSqlParameterSource(databaseObject, databaseObject.getTableMapping());
+				Object obj = namedParameters[index].getValue(backukpIdColumn.getFieldName());
+				if(!(obj instanceof Long)) {
+					throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
+				}
+				Long id = (Long) obj;
+				createOrUpdateIds.add(id);
+				index++;
+			}
+			// execute the batch
+			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+			namedTemplate.batchUpdate(sql, namedParameters);
+			return createOrUpdateIds;
+		});
+	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public int deleteById(final MigrationType type, final List<Long> idList) {
+		ValidateArgument.required(type,"MigrationType");
+		ValidateArgument.required(idList,"idList");
+		if(idList.isEmpty()) {
+			return 0;
+		}
+		// Foreign Keys must be ignored for this operation.
+		return this.runWithForeignKeyIgnored(() -> {
+			String deleteSQL = this.deleteSqlMap.get(type);
+			SqlParameterSource params = new MapSqlParameterSource(
+					DMLUtils.BIND_VAR_ID_lIST, idList);
+			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+			return namedTemplate.update(deleteSQL, params);
+		});
 	}
 	
 }
