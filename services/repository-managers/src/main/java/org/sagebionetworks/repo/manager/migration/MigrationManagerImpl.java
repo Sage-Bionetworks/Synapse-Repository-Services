@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
@@ -606,7 +607,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#backupRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.BackupTypeRequest)
 	 */
 	@Override
-	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest request) throws IOException {
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeListRequest request) throws IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(request, "Request");
 		ValidateArgument.required(request.getAliasType(), "request.aliasType");

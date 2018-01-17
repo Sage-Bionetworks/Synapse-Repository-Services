@@ -171,7 +171,7 @@ public class MigrationWorkerTest {
 	@Test
 	public void testProcessRequestBackup() throws Exception {
 		String jobId = "123";
-		BackupTypeRequest request = new BackupTypeRequest();
+		BackupTypeListRequest request = new BackupTypeListRequest();
 		// call under test
 		migrationWorker.processRequest(user, request, jobId);
 		verify(mockMigrationManager).backupRequest(user, request);

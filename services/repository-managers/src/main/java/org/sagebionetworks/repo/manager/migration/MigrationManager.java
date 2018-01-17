@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -205,7 +206,7 @@ public interface MigrationManager {
 	 * @return
 	 * @throws IOException 
 	 */
-	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest req) throws IOException;
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeListRequest req) throws IOException;
 
 	/**
 	 * Restore the data from the provided migration backup file.

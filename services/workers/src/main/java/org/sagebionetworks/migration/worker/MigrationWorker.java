@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -86,7 +87,7 @@ public class MigrationWorker implements MessageDrivenRunner {
 		} else if (req instanceof AsyncMigrationRowMetadataRequest) {
 			return migrationManager.processAsyncMigrationRowMetadataRequest(user, (AsyncMigrationRowMetadataRequest)req);
 		} else if (req instanceof BackupTypeRequest) {
-			return migrationManager.backupRequest(user, (BackupTypeRequest)req);
+			return migrationManager.backupRequest(user, (BackupTypeListRequest)req);
 		}  else if (req instanceof RestoreTypeRequest) {
 			return migrationManager.restoreRequest(user, (RestoreTypeRequest)req);
 		} else {

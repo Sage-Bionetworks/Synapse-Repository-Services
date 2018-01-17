@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -109,7 +110,7 @@ public class MigrationManagerImplTest {
 	DBORevision revTwo;
 	
 	BackupAliasType backupAlias;
-	BackupTypeRequest request;
+	BackupTypeListRequest request;
 	Long batchSize;
 	List<Long> backupIds;
 	List<MigratableDatabaseObject<?, ?>> allObjects;
@@ -161,7 +162,7 @@ public class MigrationManagerImplTest {
 		revTwo.setRevisionNumber(0L);
 		
 		backupAlias = BackupAliasType.MIGRATION_TYPE_NAME;
-		request = new BackupTypeRequest();
+		request = new BackupTypeListRequest();
 		request.setAliasType(backupAlias);
 		request.setMigrationType(MigrationType.NODE);
 		batchSize = 2L;
