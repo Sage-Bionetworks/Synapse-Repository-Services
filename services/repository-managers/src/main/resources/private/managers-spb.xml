@@ -18,6 +18,7 @@
 	<aop:aspectj-autoproxy />
 
 	<import resource="classpath:upload-dao.spb.xml" />
+	<import resource="classpath:search-import.xml" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
@@ -447,6 +448,11 @@
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
 		scope="singleton" />
+
+	<!-- Used to perform search and upload search documents-->
+	<bean id="searchManager"
+		  class="org.sagebionetworks.repo.manager.search.SearchManagerImpl"
+		  scope="singleton" />
 
 	<!-- Used to interface to the Jira server -->
 	<bean id="jiraClient"

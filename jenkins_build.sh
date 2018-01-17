@@ -4,6 +4,7 @@
 # org_sagebionetworks_stack_iam_id - the id of the developer's AWS secret key
 # org_sagebionetworks_stack_iam_key - the developer's AWS secret key
 # org_sagebionetworks_stackEncryptionKey - the stack encryption key, common to all dev builds
+# org_sagebionetworks_search_enabled - when set to "true", will enable search feature and its tests
 # rds_password - the password for the build database, common to all dev builds
 
 # On Jenkins HOME is /var/lib/jenkins

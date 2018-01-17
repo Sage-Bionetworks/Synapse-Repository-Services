@@ -2,221 +2,99 @@ package org.sagebionetworks.search.workers.sqs.search;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anySetOf;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
-import org.apache.http.client.ClientProtocolException;
+import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
-import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.model.Message;
-
+@RunWith(MockitoJUnitRunner.class)
 public class SearchQueueWorkerTest {
-	
+
+	@Mock
 	private ProgressCallback mockCallback;
-	private SearchDao mockSearchDao;
-	private SearchDocumentDriver mockDocumentProvider;
-	private V2WikiPageDao mockWikiPageDao;
+	@Mock
+	private SearchManager mockSearchManager;
+	@Mock
 	private WorkerLogger mockWorkerLogger;
+
 	private SearchQueueWorker worker;
 	private ChangeMessage message;
-	private ChangeMessage message2;
-	
+
 	@Before
 	public void before(){
-		mockCallback = Mockito.mock(ProgressCallback.class);
-		mockSearchDao = Mockito.mock(SearchDao.class);
-		mockDocumentProvider = Mockito.mock(SearchDocumentDriver.class);
-		mockWikiPageDao = Mockito.mock(V2WikiPageDao.class);
-		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
-		when(mockSearchDao.isSearchEnabled()).thenReturn(true);
+
 		worker = new SearchQueueWorker();
-		ReflectionTestUtils.setField(worker, "searchDao", mockSearchDao);
-		ReflectionTestUtils.setField(worker, "searchDocumentDriver", mockDocumentProvider);
-		ReflectionTestUtils.setField(worker, "wikPageDao", mockWikiPageDao);
+		ReflectionTestUtils.setField(worker, "searchManager", mockSearchManager);
 		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
-		
+
 		message = new ChangeMessage();
-		message.setChangeType(ChangeType.CREATE);
-		message.setObjectEtag("etag1");
-		message.setObjectId("one");
-		message.setObjectType(ObjectType.ENTITY);
-		
-		message2 = new ChangeMessage();
-		message2.setChangeType(ChangeType.CREATE);
-		message2.setObjectEtag("etag2");
-		message2.setObjectId("two");
-		message2.setObjectType(ObjectType.ENTITY);
 	}
-	
-	@Test
-	public void testDelete() throws Exception{
-		// create a few delete messages.
-		message.setChangeType(ChangeType.DELETE);
-		// call under test
-		worker.run(mockCallback, message);
-		// Delete should be called
-		verify(mockSearchDao, times(1)).deleteDocument("one");
-		// create should not be called
-		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
-	}
-	
-	@Test
-	public void testCreate() throws Exception{
-		Document docOne = new Document();
-		docOne.setId("one");
-		when(mockDocumentProvider.formulateSearchDocument("one")).thenReturn(docOne);
-		Document docTwo = new Document();
-		docTwo.setId("two");
-		when(mockDocumentProvider.formulateSearchDocument("two")).thenReturn(docTwo);
-		
-		// Create only occurs if the document exists in the repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
-		when(mockDocumentProvider.doesDocumentExist("two", "etag2")).thenReturn(true);
-		
-		// Create only occurs if it is not already in the search index
-		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
-		when(mockSearchDao.doesDocumentExist("two", "etag2")).thenReturn(false);
-		
-		// call under test
-		worker.run(mockCallback, message);
-		worker.run(mockCallback, message2);
-	
-		// Delete should be called
-		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
-		// create should be called once
-		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(docOne);
-		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(docTwo);
-	}
-	
-	/**
-	 * When the document already exits in the search index with the same etag, we can ignore it.
-	 * @throws Exception
-	 */
-	@Test
-	public void testCreateAlreadyInSearchIndex() throws Exception{
-		// Create only occurs if the document exists in the repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
-		// Create only occurs if it is not already in the search index
-		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(true);
 
-		// call under test
-		worker.run(mockCallback, message);
-		
-		// Delete should be called
-		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
-		// create should not be called
-		verify(mockSearchDao, never()).createOrUpdateSearchDocument(any(Document.class));
-		// We should not call doesDocumentExist() on the repository when it already exists in the search index.
-		verify(mockDocumentProvider, never()).doesDocumentExist("one", "etag1");
-	}
-	
-	/**
-	 * When the document already exits in the search index with the same etag, we can ignore it.
-	 * @throws Exception
-	 */
 	@Test
-	public void testCreateDoesNotExistInReposiroty() throws Exception{
-		// Create only occurs if the document exists in the repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(false);
-		// Create only occurs if it is not already in the search index
-		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
+	public void testNoFailure() throws IOException, RecoverableMessageException {
+		worker.run(mockCallback, message);
+		verify(mockSearchManager, times(1)).documentChangeMessage(message);
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(SearchQueueWorker.class), any(ChangeMessage.class), any(Throwable.class), anyBoolean());
+	}
 
-		// call under test
-		worker.run(mockCallback, message);
-		
-		// Delete should be called
-		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
-		// create should not be called
-		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
-		// We should not call doesDocumentExist() one time.
-		verify(mockDocumentProvider, times(1)).doesDocumentExist("one", "etag1");
-	}
-	
-	/**
-	 * When we get an exception from SearchDao delete, log it using the workerLogger
-	 * @throws Exception 
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
 	@Test
-	public void testLogDeleteException() throws Exception {
-		message.setChangeType(ChangeType.DELETE);
-		message2.setChangeType(ChangeType.DELETE);
-		// Expected exception in for batch and retry
-		Exception eBatch = new RuntimeException("Batch exception");
-		Exception eRetry = new RuntimeException("Retry exception");
-		// Generate an exception when calling the searchDao
-		Mockito.doThrow(eRetry).when(mockSearchDao).deleteDocument("one");
-		
-		// call under test
+	public void testIOExceptionThrown() throws IOException, RecoverableMessageException {
+		exceptionThrowTestHelper(IOException.class);
+	}
+
+	@Test
+	public void testCloudSearchServerExceptionThrown() throws IOException, RecoverableMessageException {
+		exceptionThrowTestHelper(AmazonCloudSearchDomainException.class);
+	}
+
+	@Test
+	public void testTemporarilyUnavailableExceptionThrown() throws IOException, RecoverableMessageException {
+		exceptionThrowTestHelper(TemporarilyUnavailableException.class);
+	}
+
+	@Test
+	public void testExceptionThrownUnexpected() throws IOException, RecoverableMessageException {
+		doThrow(IllegalArgumentException.class).when(mockSearchManager).documentChangeMessage(message);
 		try {
 			worker.run(mockCallback, message);
-			fail();
-		} catch (RecoverableMessageException e) {
-			// expected
+			fail("Excepted Exception to be thrown");
+		}catch (IllegalArgumentException e){
+			//expected behavior
 		}
-		worker.run(mockCallback, message2);
-		
-		// Verify that error logged for "one" and "two" went through
-		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, message, eRetry, true);
-		verify(mockSearchDao, times(1)).deleteDocument("two");
-	}
-	
-	/**
-	 * When we get an exception from SearchDao create/update, log it using the workerLogger
-	 */
-	@Test
-	public void testLogCreateUpdateException() throws Exception {
-		// These docs should exist in repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
-		when(mockDocumentProvider.doesDocumentExist("two", "etag2")).thenReturn(true);
-		// These docs should not already exist in CloudSearch
-		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
-		when(mockSearchDao.doesDocumentExist("two", "etag2")).thenReturn(false);
-		// Expected search documents
-		Document docOne = new Document();
-		docOne.setId("one");
-		Document docTwo = new Document();
-		docTwo.setId("two");
-		when(mockDocumentProvider.formulateSearchDocument("one")).thenReturn(docOne);
-		when(mockDocumentProvider.formulateSearchDocument("two")).thenReturn(docTwo);
+		verify(mockSearchManager, times(1)).documentChangeMessage(message);
+		verify(mockWorkerLogger, times(1)).logWorkerFailure(eq(SearchQueueWorker.class), eq(message), any(IllegalArgumentException.class), eq(false));
 
-		
-		// Generate an exception when calling the searchDao
-		Exception eRetry = new RuntimeException("Retry exception");
-		Mockito.doThrow(eRetry).when(mockSearchDao).createOrUpdateSearchDocument(docOne);
-		
-		// call under test
+	}
+
+	private void exceptionThrowTestHelper(Class<? extends Throwable> clazz) throws IOException, RecoverableMessageException {
+		doThrow(clazz).when(mockSearchManager).documentChangeMessage(message);
 		try {
 			worker.run(mockCallback, message);
-			fail();
-		} catch (RecoverableMessageException e) {
-			// expected
+			fail("Excepted RecoverableMessageException to be thrown");
+		}catch (RecoverableMessageException e){
+			//expected behavior
 		}
-		worker.run(mockCallback, message2);
-		
-		// Verify that error logged for "one" and "two" went through
-		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, message, eRetry, true);
-		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(docTwo);
+		verify(mockSearchManager, times(1)).documentChangeMessage(message);
+		verify(mockWorkerLogger, times(1)).logWorkerFailure(eq(SearchQueueWorker.class), eq(message), any(clazz), eq(true));
+
 	}
+
 }
