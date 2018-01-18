@@ -256,6 +256,10 @@
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
+	
+	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>
+	
+	<bean id="fileProvider" class="org.sagebionetworks.repo.manager.migration.FileProviderImpl" scope="singleton"/>
 
 	<bean
 		id="migrationManager"

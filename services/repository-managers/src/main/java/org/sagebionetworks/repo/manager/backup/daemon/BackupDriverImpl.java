@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  * 
  */
+@Deprecated
 public class BackupDriverImpl implements BackupDriver {
 
 	static private Log log = LogFactory.getLog(BackupDriverImpl.class);

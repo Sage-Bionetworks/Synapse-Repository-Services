@@ -1,0 +1,18 @@
+{
+	"description": "Request to create a migration backup for a given MigrationType using a range of Ids.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.BackupTypeRequest"
+		}
+	],
+	"properties": {
+		"minimumId": {
+			"type": "integer",
+			"description": "The first ID in the range of IDs (inclusive)"
+		},
+		"maximumId": {
+			"type": "integer",
+			"description": "The last ID in the range of IDs (exclusive)"
+		}
+	}
+}

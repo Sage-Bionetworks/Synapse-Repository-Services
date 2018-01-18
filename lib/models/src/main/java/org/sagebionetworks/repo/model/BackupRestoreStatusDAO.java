@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author John
  *
  */
+@Deprecated
 public interface BackupRestoreStatusDAO {
 	
 	/**

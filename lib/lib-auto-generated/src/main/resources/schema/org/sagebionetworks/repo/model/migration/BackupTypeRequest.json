@@ -1,0 +1,21 @@
+{
+	"description": "Abstract Request to create a migration backup.",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		}
+	],
+	"properties": {
+		"migrationType": {
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+		},
+		"aliasType": {
+			"$ref": "org.sagebionetworks.repo.model.daemon.BackupAliasType"
+		},
+		"batchSize": {
+			"description": "The batch size determines the maxiumum number of rows that will be loaded into memory at one time.",
+			"type": "integer"
+		}
+	}
+}
