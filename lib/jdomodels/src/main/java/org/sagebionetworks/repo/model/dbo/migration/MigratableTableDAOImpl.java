@@ -114,6 +114,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> listByRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> backupSqlRangeMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
@@ -246,6 +247,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Backup batch SQL
 		String batchBackup = DMLUtils.getBackupBatch(mapping);
 		backupSqlMap.put(type, batchBackup);
+		
+		String backupRangeSql = DMLUtils.getBackupRangeBatch(mapping);
+		this.backupSqlRangeMap.put(type, backupRangeSql);
 
 		// map the class to the object
 		this.classToMapping.put(mapping.getDBOClass(), type);
@@ -534,6 +538,14 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return sql;
 	}
 	
+	private String getBatchBackupRangeSql(MigrationType type) {
+		String sql = this.backupSqlRangeMap.get(type);
+		if(sql == null) {
+			throw new IllegalArgumentException("Cannot find the batch backup SQL for type: "+type);
+		}
+		return sql;
+	}
+	
 	private String getInsertOrUpdateSql(MigrationType type){
 		String sql = this.insertOrUpdateSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the insert/update backup SQL for type: "+type);
@@ -668,6 +680,18 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		MigratableDatabaseObject object = getMigratableObject(type);
 		Map<String, Object> parameters = new HashMap<>(3);
 		parameters.put(DMLUtils.BIND_VAR_ID_lIST, rowIds);
+		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
+	}
+	
+	@Override
+	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, Long minimumId,
+			Long maximumId, Long batchSize) {
+		String sql = getBatchBackupRangeSql(type);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MigratableDatabaseObject object = getMigratableObject(type);
+		Map<String, Object> parameters = new HashMap<>(4);
+		parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
+		parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
 		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
 	}
 

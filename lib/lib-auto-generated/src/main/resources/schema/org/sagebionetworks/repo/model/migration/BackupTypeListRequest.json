@@ -1,8 +1,10 @@
 {
 	"description": "Request to create a migration backup for a given MigrationType and list of row IDs.",
-	"extends": {
-		"$ref":"org.sagebionetworks.repo.model.migration.BackupTypeRequest"
-	},
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.BackupTypeRequest"
+		}
+	],
 	"properties": {
 		"rowIdsToBackup": {
 			"type": "array",

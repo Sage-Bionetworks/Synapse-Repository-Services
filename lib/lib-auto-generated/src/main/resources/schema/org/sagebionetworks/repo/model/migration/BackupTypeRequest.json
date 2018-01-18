@@ -1,5 +1,6 @@
 {
 	"description": "Abstract Request to create a migration backup.",
+	"type": "interface",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"

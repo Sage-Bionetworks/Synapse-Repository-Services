@@ -105,6 +105,19 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @return
 	 */
 	public Iterable<MigratableDatabaseObject<?,?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds, long batchSize);
+	
+	/**
+	 * Stream over all of the database object for the given within the provided ID range.
+	 * 
+	 * @param migrationType
+	 * @param minimumId Smallest ID in the range (inclusive).
+	 * @param maximumId Largest ID in range (exclusive).
+	 * @param batchSize
+	 * @return
+	 */
+	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType migrationType, Long minimumId,
+			Long maximumId, Long batchSize);
+
 
 	/**
 	 * Create or update a batch.
@@ -181,6 +194,5 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @return
 	 */
 	int deleteById(MigrationType type, List<Long> idList);
-
 
 }

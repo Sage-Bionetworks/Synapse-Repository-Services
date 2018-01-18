@@ -169,9 +169,18 @@ public class MigrationWorkerTest {
 	}
 	
 	@Test
-	public void testProcessRequestBackup() throws Exception {
+	public void testProcessRequestBackupList() throws Exception {
 		String jobId = "123";
 		BackupTypeListRequest request = new BackupTypeListRequest();
+		// call under test
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).backupRequest(user, request);
+	}
+	
+	@Test
+	public void testProcessRequestBackupRange() throws Exception {
+		String jobId = "123";
+		BackupTypeRangeRequest request = new BackupTypeRangeRequest();
 		// call under test
 		migrationWorker.processRequest(user, request, jobId);
 		verify(mockMigrationManager).backupRequest(user, request);

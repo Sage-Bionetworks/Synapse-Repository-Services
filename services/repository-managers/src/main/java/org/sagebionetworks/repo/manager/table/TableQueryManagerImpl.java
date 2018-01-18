@@ -444,7 +444,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	
 	/**
 	 * Set the default value for a Query
-	 * @param request
+	 * @param listRequest
 	 * @return
 	 */
 	public static void setDefaultsValues(Query query){
