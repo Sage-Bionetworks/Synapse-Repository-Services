@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Arrays;
@@ -50,11 +51,16 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
+import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -134,6 +140,8 @@ public class MigrationManagerImplAutowireTest {
 	private long startCount;
 	private String tableId;
 	private String[] projectIds = new String[3];
+	List<Project> projects;
+	List<Long> projectIdsLong;
 	StackConfiguration stackConfig;
 	ProgressCallback mockProgressCallback;
 	ProgressCallback mockProgressCallbackVoid;
@@ -174,10 +182,15 @@ public class MigrationManagerImplAutowireTest {
 		// The etag should have changed
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 
+		projectIdsLong = new LinkedList<>();
+		projects = new LinkedList<>();
 		for (int i = 0; i < projectIds.length; i++) {
 			Project project = new Project();
 			project.setName(UUID.randomUUID().toString());
-			projectIds[i] = entityManager.createEntity(adminUser, project, null);
+			String id = entityManager.createEntity(adminUser, project, null);
+			projectIds[i] = id;
+			projects.add(entityManager.getEntity(adminUser, id, Project.class));
+			projectIdsLong.add(KeyFactory.stringToKey(id));
 		}
 
 		// Do this only if table enabled
@@ -548,7 +561,8 @@ public class MigrationManagerImplAutowireTest {
 		
 		// file handles do not have secondary so null
 		result = migrationManager.getSecondaryTypes(MigrationType.FILE_HANDLE);
-		assertEquals(null, result);
+		assertNotNull(result);
+		assertTrue(result.isEmpty());
 	}
 	
 	@Test
@@ -572,6 +586,81 @@ public class MigrationManagerImplAutowireTest {
 						0L, migrationManager.getCount(adminUser, type));
 			}
 		}
+	}
+	
+	@Test
+	public void testBackupAndRestoreByRange() throws IOException {
+		MigrationType type =  MigrationType.NODE;
+		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
+		long batchSize = 2;
+		long minId = projectIdsLong.get(0);
+		long maxId = projectIdsLong.get(projectIdsLong.size()-1);
+		
+		BackupTypeRangeRequest request = new BackupTypeRangeRequest();
+		request.setMigrationType(type);
+		request.setAliasType(backupType);
+		request.setBatchSize(batchSize);
+		request.setMinimumId(minId);
+		// +1 since maxId is exclusive.
+		request.setMaximumId(maxId+1);
+		// call under test
+		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
+		assertNotNull(backupResponse);
+		// call under test
+		migrationManager.deleteById(adminUser, type, projectIdsLong);
+		// restore the data from the backup
+		RestoreTypeRequest restoreRequest = new RestoreTypeRequest();
+		restoreRequest.setMigrationType(type);
+		restoreRequest.setAliasType(backupType);
+		restoreRequest.setBatchSize(batchSize);
+		restoreRequest.setBackupFileKey(backupResponse.getBackupFileKey());
+		// call under test
+		RestoreTypeResponse restoreReponse = migrationManager.restoreRequest(adminUser, restoreRequest);
+		assertNotNull(restoreReponse);
+		// each node and revision should be restored.
+		assertEquals(new Long(projects.size()*2), restoreReponse.getRestoredRowCount());
+		// validate all of the data was restored.
+		validateProjectsRestored();
+	}
+	
+	/**
+	 * Validate all of the projects match what is in memory
+	 */
+	private void validateProjectsRestored() {
+		for(Project project: projects) {
+			Project projectClone = entityManager.getEntity(adminUser, project.getId(), Project.class);
+			assertEquals(project, projectClone);
+		}
+	}
+
+	@Test
+	public void testBackupAndRestoreByList() throws IOException {
+		MigrationType type =  MigrationType.NODE;
+		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
+		long batchSize = 1;
+		BackupTypeListRequest request = new BackupTypeListRequest();
+		request.setMigrationType(type);
+		request.setAliasType(backupType);
+		request.setBatchSize(batchSize);
+		request.setRowIdsToBackup(projectIdsLong);
+		// call under test
+		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
+		assertNotNull(backupResponse);
+		// call under test
+		migrationManager.deleteById(adminUser, type, projectIdsLong);
+		// restore the data from the backup
+		RestoreTypeRequest restoreRequest = new RestoreTypeRequest();
+		restoreRequest.setMigrationType(type);
+		restoreRequest.setAliasType(backupType);
+		restoreRequest.setBatchSize(batchSize);
+		restoreRequest.setBackupFileKey(backupResponse.getBackupFileKey());
+		// call under test
+		RestoreTypeResponse restoreReponse = migrationManager.restoreRequest(adminUser, restoreRequest);
+		assertNotNull(restoreReponse);
+		// each node and revision should be restored.
+		assertEquals(new Long(projects.size()*2), restoreReponse.getRestoredRowCount());
+		// validate all of the data was restored.
+		validateProjectsRestored();
 	}
 
 }

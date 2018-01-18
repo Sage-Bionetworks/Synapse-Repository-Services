@@ -20,6 +20,8 @@ public class DMLUtils {
 	 * The SQL bind variable for a list of IDs;
 	 */
 	public static final String BIND_VAR_ID_lIST = "BVIDLIST";
+	public static final String BIND_MIN_ID = "BMINID";
+	public static final String BIND_MAX_ID = "BMAXID";
 	public static final String BIND_VAR_OFFSET = "BVOFFSET";
 	public static final String BIND_VAR_LIMIT = "BCLIMIT";
 
@@ -348,6 +350,25 @@ public class DMLUtils {
 		builder.append(" IN ( :"+BIND_VAR_ID_lIST+" )");
 	}
 	
+	
+	/**
+	 * 'ID' >= :BIND_MIN_ID AND 'ID' < BIND_MAX_ID
+	 * @param builder
+	 * @param mapping
+	 */
+	private static void addBackupRange(StringBuilder builder, TableMapping mapping) {
+		builder.append("`");
+		builder.append(getBackupIdColumnName(mapping).getColumnName());
+		builder.append("`");
+		builder.append(" >= :");
+		builder.append(BIND_MIN_ID);
+		builder.append(" AND `");
+		builder.append(getBackupIdColumnName(mapping).getColumnName());
+		builder.append("`");
+		builder.append(" < :");
+		builder.append(BIND_MAX_ID);
+	}
+	
 	/**
 	 * Find the backup column
 	 * @param mapping
@@ -474,10 +495,26 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		builder.append(" WHERE ");
 		addBackupIdInList(builder, mapping);
-		buildBackupOrderBy(mapping, builder, true);
 		return builder.toString();
 	}
 	
+
+	/**
+	 * SQL to list all of the data for a range of IDs.
+	 * 
+	 * @param mapping
+	 * @return
+	 */
+	public static String getBackupRangeBatch(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT * FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" WHERE ");
+		addBackupRange(builder, mapping);
+		return builder.toString();
+	}
+
 	/**
 	 * This query will list all unique indices on the column
 	 * marked as 'BackupId'.  If there is not at least one

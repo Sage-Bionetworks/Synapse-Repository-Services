@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumReques
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -86,9 +87,11 @@ public class MigrationWorker implements MessageDrivenRunner {
 			return migrationManager.processAsyncMigrationRangeChecksumRequest(user, (AsyncMigrationRangeChecksumRequest)req);
 		} else if (req instanceof AsyncMigrationRowMetadataRequest) {
 			return migrationManager.processAsyncMigrationRowMetadataRequest(user, (AsyncMigrationRowMetadataRequest)req);
-		} else if (req instanceof BackupTypeRequest) {
+		} else if (req instanceof BackupTypeListRequest) {
 			return migrationManager.backupRequest(user, (BackupTypeListRequest)req);
-		}  else if (req instanceof RestoreTypeRequest) {
+		} else if (req instanceof BackupTypeRangeRequest) {
+			return migrationManager.backupRequest(user, (BackupTypeRangeRequest)req);
+		} else if (req instanceof RestoreTypeRequest) {
 			return migrationManager.restoreRequest(user, (RestoreTypeRequest)req);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");

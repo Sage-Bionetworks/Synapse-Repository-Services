@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumReques
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -202,12 +203,22 @@ public interface MigrationManager {
 	 * Create a backup file for the given type and list of row IDs.
 	 * 
 	 * @param user
-	 * @param req
+	 * @param request
 	 * @return
 	 * @throws IOException 
 	 */
-	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeListRequest req) throws IOException;
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeListRequest request) throws IOException;
 
+	
+	/**
+	 * 
+	 * @param user
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 */
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRangeRequest request) throws IOException;
+	
 	/**
 	 * Restore the data from the provided migration backup file.
 	 * 

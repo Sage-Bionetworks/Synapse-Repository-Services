@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumReques
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
@@ -413,15 +414,14 @@ public class MigrationManagerImpl implements MigrationManager {
 	public List<MigrationType> getSecondaryTypes(MigrationType type) {
 		// Get the primary type.
 		MigratableDatabaseObject primary = migratableTableDao.getObjectForType(type);
+		List<MigrationType> list = new LinkedList<MigrationType>();
 		List<MigratableDatabaseObject> secondary = primary.getSecondaryTypes();
 		if(secondary != null){
-			List<MigrationType> list = new LinkedList<MigrationType>();
 			for(MigratableDatabaseObject mdo: secondary){
 				list.add(mdo.getMigratableTableType());
 			}
-			return list;
 		}
-		return null;
+		return list;
 	}
 
 	@WriteTransaction
@@ -625,6 +625,33 @@ public class MigrationManagerImpl implements MigrationManager {
 		for (MigrationType secondaryType : getSecondaryTypes(request.getMigrationType())) {
 			Iterable<MigratableDatabaseObject<?, ?>> secondaryStream = this.migratableTableDao
 					.streamDatabaseObjects(secondaryType, request.getRowIdsToBackup(), request.getBatchSize());
+			dataStream = Iterables.concat(dataStream, secondaryStream);
+		}
+		// Create the backup and upload it to S3.
+		return backupStreamToS3(request.getMigrationType(), dataStream, request.getAliasType(), request.getBatchSize());
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#backupRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest)
+	 */
+	@Override
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRangeRequest request) throws IOException {
+		ValidateArgument.required(user, "User");
+		ValidateArgument.required(request, "Request");
+		ValidateArgument.required(request.getAliasType(), "request.aliasType");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		ValidateArgument.required(request.getBatchSize(), "requset.batchSize");
+		ValidateArgument.required(request.getMinimumId(), "request.minimumId");
+		ValidateArgument.required(request.getMaximumId(), "request.maximumId");
+		validateUser(user);
+		// Start the stream for the primary
+		Iterable<MigratableDatabaseObject<?, ?>> dataStream = this.migratableTableDao
+				.streamDatabaseObjects(request.getMigrationType(), request.getMinimumId(), request.getMaximumId(), request.getBatchSize());
+		// Concatenate all secondary data streams to the main stream.
+		for (MigrationType secondaryType : getSecondaryTypes(request.getMigrationType())) {
+			Iterable<MigratableDatabaseObject<?, ?>> secondaryStream = this.migratableTableDao
+					.streamDatabaseObjects(secondaryType, request.getMinimumId(), request.getMaximumId(), request.getBatchSize());
 			dataStream = Iterables.concat(dataStream, secondaryStream);
 		}
 		// Create the backup and upload it to S3.
@@ -842,4 +869,5 @@ public class MigrationManagerImpl implements MigrationManager {
 		int deleteCount = this.migratableTableDao.deleteById(type, idList);
 		return deleteCount;
 	}
+
 }

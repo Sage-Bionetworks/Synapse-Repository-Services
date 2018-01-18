@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
-import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -627,7 +626,7 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testStreamDatabaseObjects() {
+	public void testStreamDatabaseObjectsById() {
 		List<Long> ids = new LinkedList<>();
 		ColumnModel one = new ColumnModel();
 		one.setColumnType(ColumnType.INTEGER);
@@ -659,6 +658,43 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(one.getId(), results.get(0).getId().toString());
 		assertEquals(two.getId(), results.get(1).getId().toString());
 		assertEquals(three.getId(), results.get(2).getId().toString());
+	}
+	
+	@Test
+	public void testStreamDatabaseObjectsByRange() {
+		List<Long> ids = new LinkedList<>();
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one  = columnModelDao.createColumnModel(one);
+		ids.add(Long.parseLong(one.getId()));
+		
+		ColumnModel two = new ColumnModel();
+		two.setColumnType(ColumnType.INTEGER);
+		two.setName("two");
+		two = columnModelDao.createColumnModel(two);
+		ids.add(Long.parseLong(two.getId()));
+		
+		ColumnModel three = new ColumnModel();
+		three.setColumnType(ColumnType.INTEGER);
+		three.setName("three");
+		three = columnModelDao.createColumnModel(three);
+		ids.add(Long.parseLong(three.getId()));
+		
+		// Stream over the results
+		long minId = ids.get(0);
+		long maxId = ids.get(2);
+		long batchSize  = 1;
+		Iterable<MigratableDatabaseObject<?,?>> it = migratableTableDAO.streamDatabaseObjects(MigrationType.COLUMN_MODEL, minId, maxId, batchSize);
+		List<DBOColumnModel> results = new LinkedList<>();
+		for(DatabaseObject data: it) {
+			assertTrue(data instanceof DBOColumnModel);
+			results.add((DBOColumnModel) data);
+		}
+		// the maxID is exclusive so the last value should be excluded.
+		assertEquals(2, results.size());
+		assertEquals(one.getId(), results.get(0).getId().toString());
+		assertEquals(two.getId(), results.get(1).getId().toString());
 	}
 	
 	@Test
