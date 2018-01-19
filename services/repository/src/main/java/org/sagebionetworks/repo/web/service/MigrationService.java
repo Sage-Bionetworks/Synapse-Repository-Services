@@ -82,6 +82,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated
 	BackupRestoreStatus startBackup(Long userId, MigrationType type, List<Long> list, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException;
 
 	/**
@@ -94,6 +95,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated
 	BackupRestoreStatus startRestore(Long userId, MigrationType type, String fileName, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException;
 
 	/**

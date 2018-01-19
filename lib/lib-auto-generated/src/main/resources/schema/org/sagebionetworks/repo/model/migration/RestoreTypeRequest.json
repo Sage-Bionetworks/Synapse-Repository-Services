@@ -1,0 +1,24 @@
+{
+	"description": "Request to restore a migration backup file for a given MigrationType.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		}
+	],
+	"properties": {
+		"migrationType": {
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+		},
+		"aliasType": {
+			"$ref": "org.sagebionetworks.repo.model.daemon.BackupAliasType"
+		},
+		"backupFileKey": {
+			"description": "S3 key of the backup file to restore.",
+			"type": "string"
+		},
+		"batchSize": {
+			"description": "The batch size determines the maxiumum number of rows that will be loaded into memory at one time.",
+			"type": "integer"
+		}
+	}
+}

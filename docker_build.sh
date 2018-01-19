@@ -6,6 +6,7 @@
 # org_sagebionetworks_stack_iam_id - the id of the developer's AWS secret key
 # org_sagebionetworks_stack_iam_key - the developer's AWS secret key
 # org_sagebionetworks_stackEncryptionKey - the stack encryption key, common to all dev builds
+# org_sagebionetworks_search_enabled - when set to "true", will enable search feature and its tests
 # rds_password - the password for the build database, common to all dev builds
 # JOB_NAME - a unique string differentiating concurrent builds.  if omitted is the stack + user
 
@@ -94,6 +95,7 @@ bash -c "mvn clean install \
 -Dorg.sagebionetworks.table.enabled=true \
 -Dorg.sagebionetworks.table.cluster.endpoint.0=${rds_container_name} \
 -Dorg.sagebionetworks.table.cluster.schema.0=${tables_schema_name} \
+-Dorg.sagebionetworks.search.enabled=${org_sagebionetworks_search_enabled} \
 -Duser.home=/root"
 
 clean_up_container ${build_container_name}

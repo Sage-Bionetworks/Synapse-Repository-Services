@@ -52,10 +52,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	/**
-	 * The index field holding the access control list info
-	 */
-	public static final String ACL_INDEX_FIELD = "acl";
-	/**
 	 * No more than 100 values in a field value array
 	 */
 	public static final int FIELD_VALUE_SIZE_LIMIT = 100;
@@ -180,12 +176,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		document.setFields(fields);
 
 		document.setType(DocumentTypeNames.add);
-		document.setLang("en"); // TODO this should have been set via "default"
 		// in the schema for this
 
 		// Node fields
 		document.setId(node.getId());
-		document.setVersion(now.getMillis() / 1000);
 		fields.setId(node.getId()); // this is redundant because document id
 		// is returned in search results, but its cleaner to have this also show
 		// up in the "data" section of AwesomeSearch results
@@ -378,7 +372,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	}
 
 	@Override
-	public boolean doesDocumentExist(String nodeId, String etag) {
+	public boolean doesNodeExist(String nodeId, String etag) {
 		if (nodeId == null)
 			throw new IllegalAccessError("NodeId cannot be null");
 		if (etag == null)

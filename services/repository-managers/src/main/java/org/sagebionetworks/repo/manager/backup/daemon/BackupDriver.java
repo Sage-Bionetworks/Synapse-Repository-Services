@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author jmhill
  *
  */
+@Deprecated
 public interface BackupDriver {
 
 	/**

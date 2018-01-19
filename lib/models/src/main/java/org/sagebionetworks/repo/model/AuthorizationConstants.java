@@ -26,6 +26,20 @@ public class AuthorizationConstants {
 		private BOOTSTRAP_PRINCIPAL(long principalId) {
 			this.principalId = principalId;
 		}
+		
+		/**
+		 * Is the given ID a bootstrap principal ID?
+		 * @param id
+		 * @return
+		 */
+		public static boolean isBootstrapPrincipalId(long id) {
+			for(BOOTSTRAP_PRINCIPAL principal: BOOTSTRAP_PRINCIPAL.values()) {
+				if(principal.getPrincipalId().equals(id)) {
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 	
 	/**

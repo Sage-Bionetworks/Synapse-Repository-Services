@@ -261,7 +261,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` ASC", batchDelete);
+		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
 	}
 
 	@Test
@@ -269,7 +269,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` ASC", batchDelete);
+		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
 	}
 	
 	@Test
@@ -321,6 +321,13 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.createGetMinMaxCountByKeyStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
 		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
+	
+	@Test
+	public void testGetBackupRangeBatch() {
+		String expectedSql = "SELECT * FROM SOME_TABLE WHERE `ID` >= :BMINID AND `ID` < :BMAXID";
+		String sql = DMLUtils.getBackupRangeBatch(mapping);
 		assertEquals(expectedSql, sql);
 	}
 }
