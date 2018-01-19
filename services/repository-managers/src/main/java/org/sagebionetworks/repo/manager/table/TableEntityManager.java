@@ -188,7 +188,14 @@ public interface TableEntityManager {
 			String id);
 
 	/**
-	 * Delete the table.
+	 * Mark a table as deleted.  This occurs when a table is moved to the trash.
+	 * The actual data for the table will only be deleted if the table no longer exists.
+	 * @param deletedId
+	 */
+	public void setTableAsDeleted(String deletedId);
+	
+	/**
+	 * 
 	 * @param deletedId
 	 */
 	public void deleteTable(String deletedId);

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -21,9 +22,11 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.migration.*;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MigrationWorkerTest {
@@ -163,5 +166,23 @@ public class MigrationWorkerTest {
 	
 		migrationWorker.processRequest(userInfo, mri, jobId);
 		
+	}
+	
+	@Test
+	public void testProcessRequestBackupList() throws Exception {
+		String jobId = "123";
+		BackupTypeListRequest request = new BackupTypeListRequest();
+		// call under test
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).backupRequest(user, request);
+	}
+	
+	@Test
+	public void testProcessRequestBackupRange() throws Exception {
+		String jobId = "123";
+		BackupTypeRangeRequest request = new BackupTypeRangeRequest();
+		// call under test
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).backupRequest(user, request);
 	}
 }

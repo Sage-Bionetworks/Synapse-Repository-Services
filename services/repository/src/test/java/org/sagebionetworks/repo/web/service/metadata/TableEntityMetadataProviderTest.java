@@ -51,7 +51,7 @@ public class TableEntityMetadataProviderTest  {
 	public void testDeleteEntity(){
 		// call under test
 		provider.entityDeleted(entityId);
-		verify(tableEntityManager).deleteTable(entityId);
+		verify(tableEntityManager).setTableAsDeleted(entityId);
 	}
 	
 	@Test

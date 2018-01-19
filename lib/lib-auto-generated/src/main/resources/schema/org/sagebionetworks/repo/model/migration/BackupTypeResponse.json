@@ -1,0 +1,14 @@
+{
+	"description": "Results for a backup type job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
+        }
+    ],
+	"properties": {
+         "backupFileKey":{
+         	"description": "The key of the resulting backup file.",
+        	"type":"string"
+         }
+	}
+}

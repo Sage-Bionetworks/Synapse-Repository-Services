@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
  * @author John
  *
  */
-public interface MigratableTableDAO {
+public interface MigratableTableDAO extends MigrationTypeProvider {
 	
 	/**
 	 * The total number of rows in the table.
@@ -94,7 +94,30 @@ public interface MigratableTableDAO {
 	 * @param rowIds
 	 * @return
 	 */
+	@Deprecated
 	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds);
+	
+	/**
+	 * Stream over all DatabaseObject with backupIds matching the given IDs.
+	 * @param clazz
+	 * @param rowIds
+	 * @param batchSize the maximum number of objects that should be loaded at a time.
+	 * @return
+	 */
+	public Iterable<MigratableDatabaseObject<?,?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds, long batchSize);
+	
+	/**
+	 * Stream over all of the database object for the given within the provided ID range.
+	 * 
+	 * @param migrationType
+	 * @param minimumId Smallest ID in the range (inclusive).
+	 * @param maximumId Largest ID in range (exclusive).
+	 * @param batchSize
+	 * @return
+	 */
+	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType migrationType, Long minimumId,
+			Long maximumId, Long batchSize);
+
 
 	/**
 	 * Create or update a batch.
@@ -107,6 +130,7 @@ public interface MigratableTableDAO {
 	 * @param type
 	 * @param idList
 	 */
+	@Deprecated
 	public int deleteObjectsById(MigrationType type, List<Long> idList);
 	
 	/**
@@ -155,5 +179,20 @@ public interface MigratableTableDAO {
 	 */
 	Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups();
 
+	/**
+	 * Create or update a batch of database objects
+	 * @param batch
+	 * @return
+	 * @throws Exception 
+	 */
+	public List<Long> createOrUpdate(MigrationType type, List<DatabaseObject<?>> batch);
+
+	/**
+	 * Delete all rows for a given type with the given backup ids.
+	 * @param type
+	 * @param idList
+	 * @return
+	 */
+	int deleteById(MigrationType type, List<Long> idList);
 
 }

@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.filter.ByteLimitExceededException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.search.CloudSearchClientException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -55,7 +54,6 @@ import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMeth
 import org.springframework.web.util.NestedServletException;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 
 /**
  * This abstract class attempts to encapsulate exception handling for exceptions
@@ -714,22 +712,6 @@ public abstract class BaseController {
 			throw new RuntimeException(e);
 		}
 		return baos.toString();
-	}
-
-	@ExceptionHandler(CloudSearchClientException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public @ResponseBody
-	ErrorResponse handleCloudSearchClientException(CloudSearchClientException ex, HttpServletRequest request) {
-		// Convert to a IllegalArgumentException
-		String message = "Unknown";
-		if (ex.getMessage() != null) {
-			int index = ex.getMessage().indexOf("\"message\":");
-			if (index > 0) {
-				message = ex.getMessage().substring(index, ex.getMessage().length());
-			}
-		}
-		IllegalArgumentException ds = new IllegalArgumentException("Invalid request: "+message);
-		return handleException(ds, request, true);
 	}
 
 	/**

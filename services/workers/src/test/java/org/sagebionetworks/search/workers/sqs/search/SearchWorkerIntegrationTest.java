@@ -6,17 +6,18 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.Ignore;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -31,8 +32,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -52,7 +53,7 @@ import com.google.common.base.Predicate;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchWorkerIntegrationTest {
 	
-	public static final long MAX_WAIT = 60*1000; // one minute
+	private static final long MAX_WAIT = 60*1000; // one minute
 	
 	@Autowired
 	private EntityManager entityManager;
@@ -61,7 +62,7 @@ public class SearchWorkerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private SearchDao searchDao;
+	private CloudSearchClientProvider searchProvider;
 	
 	@Autowired
 	private V2WikiPageDao wikiPageDao;
@@ -77,26 +78,31 @@ public class SearchWorkerIntegrationTest {
 	
 	@Autowired
 	private AmazonS3Client s3Client;
+
+	@Autowired
+	private SearchManager searchManager;
 	
 	private UserInfo adminUserInfo;
 	private Project project;
-	private V2WikiPage rootPage;
 	private WikiPageKey rootKey;
 	
 	private S3FileHandle markdownOne;
-	String uuid;
+	private String uuid;
 	
 	@Before
 	public void before() throws Exception {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Only run this test if search is enabled
-		Assume.assumeTrue(searchDao.isSearchEnabled());
+		Assume.assumeTrue(searchProvider.isSearchEnabled());
 		
 		assertTrue(TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
 				try {
-					return searchDao.postInitialize();
+					return searchProvider.getCloudSearchClient() != null;
+				} catch (TemporarilyUnavailableException e) {
+					//not ready yet so ignore...
+					return false;
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -111,10 +117,8 @@ public class SearchWorkerIntegrationTest {
 			@Override
 			public boolean apply(Void input) {
 				try {
-					searchDao.deleteAllDocuments();
+					searchManager.deleteAllDocuments();
 					return true;
-				} catch (ServiceUnavailableException e) {
-					return false;
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -124,7 +128,7 @@ public class SearchWorkerIntegrationTest {
 		// Create a project
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		project = new Project();
-		project.setName("SearchIntegrationTest.Project");
+		project.setName("SearchIntegrationTest.Project" + UUID.randomUUID());
 		// this should trigger create messaage.
 		String id = entityManager.createEntity(adminUserInfo, project, null);
 		project = entityManager.getEntity(adminUserInfo, id, Project.class);
@@ -151,6 +155,10 @@ public class SearchWorkerIntegrationTest {
 	
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
+		if(rootKey != null){
+			wikiPageDao.delete(rootKey);
+		}
+
 		if(markdownOne != null) {
 			// Clean up S3 File and S3FileHandle
 			String markdownHandleId = markdownOne.getId();
@@ -162,30 +170,26 @@ public class SearchWorkerIntegrationTest {
 		if (project != null){
 			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
-		if(rootKey != null){
-			wikiPageDao.delete(rootKey);
-		}
-
 	}	
 	
-	@Ignore
 	@Test
 	public void testRoundTrip() throws Exception {
 		// Wait for the project to appear.
 		waitForPojectToAppearInSearch();
 				
 		// Now add a wikpage
-		rootPage = createWikiPage(adminUserInfo);
+		V2WikiPage rootPage = createWikiPage(adminUserInfo);
 		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		rootKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.
 		Thread.sleep(1000);
-		waitForQuery("q="+uuid);
+		waitForQuery(new SearchRequest().withQuery(uuid));
+		System.out.println("done");
 	}
 
 	public void waitForPojectToAppearInSearch() throws Exception {
 		long start = System.currentTimeMillis();
-		while(!searchDao.doesDocumentExist(project.getId(), project.getEtag())){
+		while(!searchManager.doesDocumentExist(project.getId(), project.getEtag())){
 			System.out.println("Waiting for entity "+project.getId()+" to appear in the search index...");
 			Thread.sleep(5000);		
 			long elapse = System.currentTimeMillis() - start;
@@ -193,10 +197,10 @@ public class SearchWorkerIntegrationTest {
 		}
 	}
 	
-	public void waitForQuery(String query) throws Exception {
+	public void waitForQuery(SearchRequest request) throws Exception {
 		long start = System.currentTimeMillis();
-		while (searchDao.executeSearch(query).getHits().size() < 1) {
-			System.out.println("Waiting for search query: "+query);
+		while (searchManager.rawSearch(request).getHits().getFound() < 1) {
+			System.out.println("Waiting for search query: "+request);
 			Thread.sleep(5000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue(	"Failed to a new Entity in the search index within the timeout period.",elapse < MAX_WAIT);

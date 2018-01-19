@@ -1,21 +1,29 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
+import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
@@ -67,15 +75,8 @@ public interface MigrationManager {
 	 * @param backupAliasType
 	 * @return
 	 */
+	@Deprecated
 	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer out, BackupAliasType backupAliasType);
-
-	/**
-	 * Create or update a batch.
-	 * @param batch - batch of objects to create or update.
-	 * @param backupAliasType
-	 * @throws Exception
-	 */
-	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in, BackupAliasType backupAliasType) throws Exception;
 	
 	/**
 	 * Delete objects by their IDs
@@ -83,6 +84,7 @@ public interface MigrationManager {
 	 * @param idList
 	 * @throws Exception 
 	 */
+	@Deprecated
 	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) throws Exception;
 	
 	/**
@@ -188,6 +190,55 @@ public interface MigrationManager {
 	 * name is included in the set.
 	 */
 	public void validateForeignKeys();
+	
+	/**
+	 * Create or update a batch.
+	 * @param batch - batch of objects to create or update.
+	 * @param backupAliasType
+	 * @throws Exception
+	 */
+	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in, BackupAliasType backupAliasType) throws Exception;
+
+	/**
+	 * Create a backup file for the given type and list of row IDs.
+	 * 
+	 * @param user
+	 * @param request
+	 * @return
+	 * @throws IOException 
+	 */
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeListRequest request) throws IOException;
+
+	
+	/**
+	 * 
+	 * @param user
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 */
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRangeRequest request) throws IOException;
+	
+	/**
+	 * Restore the data from the provided migration backup file.
+	 * 
+	 * @param user
+	 * @param req
+	 * @return
+	 * @throws IOException 
+	 * @throws Exception 
+	 */
+	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest req) throws IOException;
+	
+	
+	/**
+	 * Delete both primary and secondary data associated with the given type and IDs.
+	 * @param user
+	 * @param type
+	 * @param idList
+	 * @return
+	 */
+	public int deleteById(UserInfo user, MigrationType type, List<Long> idList);
 	
 	
 }

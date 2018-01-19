@@ -239,9 +239,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
 				named, acl, fakeEntityPath, wikiPageText);
 		assertEquals(DocumentTypeNames.add, document.getType());
-		assertEquals("en", document.getLang());
 		assertEquals(node.getId(), document.getId());
-		assertTrue(0 < document.getVersion());
 
 		DocumentFields fields = document.getFields();
 
