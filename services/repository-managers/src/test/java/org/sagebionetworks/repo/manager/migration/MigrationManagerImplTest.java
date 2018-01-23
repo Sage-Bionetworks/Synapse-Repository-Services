@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
@@ -156,6 +157,7 @@ public class MigrationManagerImplTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		
 		when(mockDao.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
+		when(mockDao.getObjectForType(MigrationType.PRINCIPAL)).thenReturn(new DBOUserGroup());
 		
 		nodeOne = new DBONode();
 		nodeOne.setId(123L);;
@@ -216,6 +218,8 @@ public class MigrationManagerImplTest {
 		restoreTypeRequest.setBackupFileKey("backupFileKey");
 		restoreTypeRequest.setBatchSize(batchSize);
 		restoreTypeRequest.setMigrationType(MigrationType.NODE);
+		
+		manager.initialize();
 	}
 	
 	@Test
@@ -433,16 +437,16 @@ public class MigrationManagerImplTest {
 	public void testValidateForeignKeysRefrenceWithinPrimaryGroup() {		
 		// Call under test
 		manager.validateForeignKeys();
-		verify(mockDao).listNonRestrictedForeignKeys();
-		verify(mockDao).mapSecondaryTablesToPrimaryGroups();
+		verify(mockDao, times(2)).listNonRestrictedForeignKeys();
+		verify(mockDao, times(2)).mapSecondaryTablesToPrimaryGroups();
 	}
 	
 	@Test
 	public void testInitialize() {
 		manager.initialize();
 		// should trigger foreign key validation
-		verify(mockDao).listNonRestrictedForeignKeys();
-		verify(mockDao).mapSecondaryTablesToPrimaryGroups();
+		verify(mockDao, times(2)).listNonRestrictedForeignKeys();
+		verify(mockDao, times(2)).mapSecondaryTablesToPrimaryGroups();
 	}
 	
 	/**
@@ -740,10 +744,14 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testPrincipalTypes() {
-		assertEquals(3, MigrationManagerImpl.PRINCIPAL_TYPES.size());
+		DBOUserGroup dbo = new DBOUserGroup();
+		List<MigratableDatabaseObject<?, ?>> secondaries = dbo.getSecondaryTypes();
+		// includes principal plus principal's secondaries
+		assertEquals(secondaries.size()+1, MigrationManagerImpl.PRINCIPAL_TYPES.size());
 		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.PRINCIPAL));
-		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.CREDENTIAL));
-		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.GROUP_MEMBERS));
+		for(MigratableDatabaseObject<?, ?> secondary: secondaries) {
+			assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(secondary.getMigratableTableType()));
+		}
 	}
 	
 	@Test
