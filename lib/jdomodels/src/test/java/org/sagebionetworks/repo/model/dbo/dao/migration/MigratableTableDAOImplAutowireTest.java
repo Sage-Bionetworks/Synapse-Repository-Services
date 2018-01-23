@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -60,6 +61,10 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Autowired
 	ColumnModelDAO columnModelDao;
+	
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+	
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -268,7 +273,7 @@ public class MigratableTableDAOImplAutowireTest {
 			// expected
 		}
 		// While the check is off we can violate foreign keys.
-		Boolean result = migratableTableDAO.runWithForeignKeyIgnored(new Callable<Boolean>(){
+		Boolean result = migratableTableDAO.runWithKeyChecksIgnored(new Callable<Boolean>(){
 			@Override
 			public Boolean call() throws Exception {
 				// We should be able to do this now that foreign keys are disabled.
@@ -290,6 +295,33 @@ public class MigratableTableDAOImplAutowireTest {
 		}catch(Exception e){
 			// expected
 		}
+	}
+	
+	@Test
+	public void testRunWithUniquenessIgnored() throws Exception{
+		jdbcTemplate.execute("DROP TABLE IF EXISTS `KEY_TEST`");
+		// setup a simple table.
+		jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `KEY_TEST` (" + 
+				"  `ID` bigint(20) NOT NULL," + 
+				"  `ETAG` char(36) NOT NULL," + 
+				"  PRIMARY KEY (`ID`)," + 
+				"  UNIQUE KEY `ETAG` (`ETAG`)" + 
+				")");
+		// While the check is off we can violate foreign keys.
+		Boolean result = migratableTableDAO.runWithKeyChecksIgnored(new Callable<Boolean>(){
+			@Override
+			public Boolean call() throws Exception {
+				// first row with an etag
+				jdbcTemplate.execute("INSERT INTO KEY_TEST VALUES ('1','E1')");
+				
+				jdbcTemplate.execute("SET unique_checks=0");
+				// new row with duplicate etag
+				jdbcTemplate.execute("INSERT INTO KEY_TEST VALUES ('2','E1')");
+				return true;
+			}});
+		assertTrue(result);
+		assertEquals(new Long(2), jdbcTemplate.queryForObject("SELECT COUNT(*) FROM KEY_TEST", Long.class));
+		jdbcTemplate.execute("DROP TABLE `KEY_TEST`");
 	}
 	
 

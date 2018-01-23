@@ -180,7 +180,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	public List<Long> createOrUpdateBatch(UserInfo user, final MigrationType type, final InputStream in, BackupAliasType backupAliasType) throws Exception {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		return migratableTableDao.runWithForeignKeyIgnored((Callable<List<Long>>) () -> {
+		return migratableTableDao.runWithKeyChecksIgnored((Callable<List<Long>>) () -> {
 			// Get the database object from the dao
 			MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
 			return createOrUpdateBatch(mdo, in, backupAliasType);
@@ -193,7 +193,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	public int deleteObjectsById(final UserInfo user, final MigrationType type, final List<Long> idList) throws Exception {
 		validateUser(user);
 		// Do deletes with the foreign key checks off.
-		return migratableTableDao.runWithForeignKeyIgnored(() -> {
+		return migratableTableDao.runWithKeyChecksIgnored(() -> {
 			// If this type has secondary types then delete them first
 			List<MigratableDatabaseObject> secondary = migratableTableDao.getObjectForType(type).getSecondaryTypes();
 			if(secondary != null){
