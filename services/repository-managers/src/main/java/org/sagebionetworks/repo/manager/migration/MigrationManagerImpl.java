@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,11 +92,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * Migration types for principals.
 	 */
-	static final Set<MigrationType> PRINCIPAL_TYPES = Sets.newHashSet(
-			MigrationType.PRINCIPAL, 
-			MigrationType.CREDENTIAL,
-			MigrationType.GROUP_MEMBERS
-	);
+	static Set<MigrationType> PRINCIPAL_TYPES;
 
 	/**
 	 * The maximum size of a backup batch.
@@ -600,6 +597,10 @@ public class MigrationManagerImpl implements MigrationManager {
 	public void initialize() {
 		// validate all of the foreign keys.
 		validateForeignKeys();
+		
+		PRINCIPAL_TYPES = new HashSet<>();
+		PRINCIPAL_TYPES.add(MigrationType.PRINCIPAL);
+		PRINCIPAL_TYPES.addAll(getSecondaryTypes(MigrationType.PRINCIPAL));
 	}
 
 	/*
