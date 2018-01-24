@@ -94,7 +94,7 @@ public class SearchUtil{
 
 		// unstructured query terms into structured query terms
 		if (q != null && q.size() > 0)
-			queryTermsStringBuilder.append("(and " + joinQueries(q, " ") + ")");
+			queryTermsStringBuilder.append(joinQueryTerms(q));
 
 		// boolean query into structured query terms
 		if (bq != null && bq.size() > 0) {
@@ -171,17 +171,12 @@ public class SearchUtil{
 
 		// facets
 		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
-			StringBuilder facetStringBuilder = new StringBuilder('{');
-			int initialStrBuilderLen = facetStringBuilder.length();
+			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
 			for(String facetFieldName : searchQuery.getFacet()){
-				if (facetStringBuilder.length() > initialStrBuilderLen){
-					facetStringBuilder.append(',');
-				}
 				//no options inside {} since none are used by the webclient
-				facetStringBuilder.append("\""+ facetFieldName + "\":{}");
+				facetStringJoiner.add("\""+ facetFieldName + "\":{}");
 			}
-			facetStringBuilder.append('}');
-			searchRequest.setFacet(facetStringBuilder.toString());
+			searchRequest.setFacet(facetStringJoiner.toString());
 		}
 
 		//switch to size parameter in facet
@@ -311,23 +306,16 @@ public class SearchUtil{
 		return "(prefix" + (fieldName==null ? "" : " field=" + fieldName) + " '" + prefixStringWithAsterisk.substring(0, asteriskIndex) + "')";
 	}
 	
-	private static String joinQueries(List<String> list, String delimiter){
-		StringBuilder sb = new StringBuilder();
+	public static String joinQueryTerms(List<String> list){
+		StringJoiner sb = new StringJoiner(" ", "(and ", ")");
 		for (String item : list) {
 			if(item.contains("*")){
-				sb.append(createPrefixQuery(item, null));
+				sb.add(createPrefixQuery(item, null));
 			}else{
-				sb.append('\''); //appends ' character
-				sb.append(item);
-				sb.append('\'');
+				sb.add('\'' + item + '\''); //wraps item with single quotes (e.g. 'item')
 			}
-			sb.append(delimiter);
 		}
-		String str = sb.toString();
-		if (str.length() > 0) {
-			str = str.substring(0, str.length()-1);
-		}
-		return str;
+		return sb.toString();
 	}
 
 	private static String escapeQuotedValue(String value) {
@@ -353,17 +341,11 @@ public class SearchUtil{
 		ValidateArgument.requirement(!userGroups.isEmpty(), "no groups for user " + userInfo);
 
 		// Make our boolean query
-		StringBuilder authorizationFilterBuilder = new StringBuilder("(or ");
-		int initialLen = authorizationFilterBuilder.length();
+		StringJoiner authorizationFilterJoiner = new StringJoiner(" ","(or ", ")");
 		for (Long group : userGroups) {
-			if (authorizationFilterBuilder.length() > initialLen) {
-				authorizationFilterBuilder.append(" ");
-			}
-			authorizationFilterBuilder.append(FIELD_ACL).append(":'").append(group).append("'");
+			authorizationFilterJoiner.add(FIELD_ACL + ":'" + group + "'");
 		}
-		authorizationFilterBuilder.append(")");
-
-		return authorizationFilterBuilder.toString();
+		return authorizationFilterJoiner.toString();
 	}
 
 	/**
