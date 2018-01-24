@@ -57,6 +57,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			+ " DELETE_RULE != 'RESTRICT' AND UNIQUE_CONSTRAINT_SCHEMA = ?";
 
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
+	private static final String SET_UNIQUE_KEY_CHECKS = "SET UNIQUE_CHECKS = ?";
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
@@ -573,10 +574,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#runWithForeignKeyIgnored(java.util.concurrent.Callable)
 	 */
 	@Override
-	public <T> T runWithForeignKeyIgnored(Callable<T> call) {
+	public <T> T runWithKeyChecksIgnored(Callable<T> call) {
 		try{
 			// unconditionally turn off foreign key checks.
-			setForeignKeyChecks(false);
+			setGlobalKeyChecks(false);
 			try {
 				return call.call();
 			} catch (Exception e) {
@@ -584,7 +585,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			}
 		}finally{
 			// unconditionally turn on foreign key checks.
-			setForeignKeyChecks(true);
+			setGlobalKeyChecks(true);
 		}
 	}
 	
@@ -592,7 +593,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * Helper to enable/disable foreign keys.
 	 * @param enabled
 	 */
-	private void setForeignKeyChecks(boolean enabled) {
+	private void setGlobalKeyChecks(boolean enabled) {
 		int value;
 		if(enabled){
 			// trun it on.
@@ -602,6 +603,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			value = 0;
 		}
 		jdbcTemplate.update(SET_FOREIGN_KEY_CHECKS, value);
+		jdbcTemplate.update(SET_UNIQUE_KEY_CHECKS, value);
 	}
 
 
@@ -703,7 +705,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			return new LinkedList<>();
 		}
 		// Foreign Keys must be ignored for this operation.
-		return this.runWithForeignKeyIgnored(() -> {
+		return this.runWithKeyChecksIgnored(() -> {
 			List<Long> createOrUpdateIds = new LinkedList<>();
 			FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
 			String sql = getInsertOrUpdateSql(type);
@@ -735,7 +737,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			return 0;
 		}
 		// Foreign Keys must be ignored for this operation.
-		return this.runWithForeignKeyIgnored(() -> {
+		return this.runWithKeyChecksIgnored(() -> {
 			String deleteSQL = this.deleteSqlMap.get(type);
 			SqlParameterSource params = new MapSqlParameterSource(
 					DMLUtils.BIND_VAR_ID_lIST, idList);

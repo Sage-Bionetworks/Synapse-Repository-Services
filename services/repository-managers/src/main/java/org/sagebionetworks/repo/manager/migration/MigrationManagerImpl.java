@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,11 +92,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * Migration types for principals.
 	 */
-	static final Set<MigrationType> PRINCIPAL_TYPES = Sets.newHashSet(
-			MigrationType.PRINCIPAL, 
-			MigrationType.CREDENTIAL,
-			MigrationType.GROUP_MEMBERS
-	);
+	static Set<MigrationType> PRINCIPAL_TYPES;
 
 	/**
 	 * The maximum size of a backup batch.
@@ -180,7 +177,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	public List<Long> createOrUpdateBatch(UserInfo user, final MigrationType type, final InputStream in, BackupAliasType backupAliasType) throws Exception {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		return migratableTableDao.runWithForeignKeyIgnored((Callable<List<Long>>) () -> {
+		return migratableTableDao.runWithKeyChecksIgnored((Callable<List<Long>>) () -> {
 			// Get the database object from the dao
 			MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
 			return createOrUpdateBatch(mdo, in, backupAliasType);
@@ -193,7 +190,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	public int deleteObjectsById(final UserInfo user, final MigrationType type, final List<Long> idList) throws Exception {
 		validateUser(user);
 		// Do deletes with the foreign key checks off.
-		return migratableTableDao.runWithForeignKeyIgnored(() -> {
+		return migratableTableDao.runWithKeyChecksIgnored(() -> {
 			// If this type has secondary types then delete them first
 			List<MigratableDatabaseObject> secondary = migratableTableDao.getObjectForType(type).getSecondaryTypes();
 			if(secondary != null){
@@ -600,6 +597,10 @@ public class MigrationManagerImpl implements MigrationManager {
 	public void initialize() {
 		// validate all of the foreign keys.
 		validateForeignKeys();
+		
+		PRINCIPAL_TYPES = new HashSet<>();
+		PRINCIPAL_TYPES.add(MigrationType.PRINCIPAL);
+		PRINCIPAL_TYPES.addAll(getSecondaryTypes(MigrationType.PRINCIPAL));
 	}
 
 	/*

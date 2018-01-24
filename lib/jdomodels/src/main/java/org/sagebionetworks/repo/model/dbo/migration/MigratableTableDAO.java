@@ -148,15 +148,14 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	public List<MigrationType> getPrimaryMigrationTypes();
 	
 	/**
-	 * Run a method with foreign key constraints off.
-	 * The global state of the database will be set to not check foreign key constraints
-	 * while the passed callable is running.
-	 * The foreign key constraint checking will unconditionally be re-enabled after the callable finishes.
+	 * Run a method with foreign key and uniqueness constraints checks off.
+	 * The global state of the database changed to disable checks  while the passed callable is running.
+	 * The key checking will unconditionally be re-enabled after the callable finishes.
 	 * @param call
 	 * @return
 	 * @throws Exception
 	 */
-	public <T> T runWithForeignKeyIgnored(Callable<T> call) throws Exception;
+	public <T> T runWithKeyChecksIgnored(Callable<T> call) throws Exception;
 	
 	/**
 	 * Checks if the migration type has been registered
