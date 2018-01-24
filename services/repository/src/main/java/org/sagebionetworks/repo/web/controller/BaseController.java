@@ -664,13 +664,6 @@ public abstract class BaseController {
 		String message = ex.getMessage();
 		if (message == null) {
 			message = ex.getClass().getName();
-		} else {
-			// Some HTTPClient exceptions include the host to which it was trying to
-			// connect, just unilaterally find and replace any references to
-			// cloudsearch in error messages PLFM-977
-			if (0 <= message.toLowerCase().indexOf("cloudsearch")) {
-				message = "search failed, try again";
-			}
 		}
 		return handleException(ex, request, message, fullTrace);
 	}
