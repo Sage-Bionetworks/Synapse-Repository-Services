@@ -35,8 +35,9 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
-import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.DeleteListRequest;
+import org.sagebionetworks.repo.model.migration.DeleteListResponse;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -57,7 +58,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 
 /**
@@ -869,6 +869,20 @@ public class MigrationManagerImpl implements MigrationManager {
 		this.fireDeleteBatchEvent(type, idList);
 		int deleteCount = this.migratableTableDao.deleteById(type, idList);
 		return deleteCount;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#deleteById(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.DeleteListRequest)
+	 */
+	@WriteTransactionReadCommitted
+	@Override
+	public DeleteListResponse deleteById(UserInfo user, DeleteListRequest request) {
+		ValidateArgument.required(request, "request");
+		int deleteCount = deleteById(user, request.getMigrationType(), request.getIdsToDelete());
+		DeleteListResponse response = new DeleteListResponse();
+		response.setDeleteCount(new Long(deleteCount));
+		return response;
 	}
 
 }

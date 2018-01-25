@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
@@ -15,8 +14,9 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
-import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.DeleteListRequest;
+import org.sagebionetworks.repo.model.migration.DeleteListResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -239,6 +239,14 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public int deleteById(UserInfo user, MigrationType type, List<Long> idList);
+	
+	/**
+	 * Request to delete a list of objects for a given type.
+	 * @param user
+	 * @param request
+	 * @return
+	 */
+	public DeleteListResponse deleteById(UserInfo user, DeleteListRequest request);
 	
 	
 }
