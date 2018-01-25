@@ -672,4 +672,42 @@ public class MigrationManagerImplAutowireTest {
 		int count = migrationManager.deleteById(adminUser, MigrationType.PRINCIPAL, idList);
 		assertEquals(0, count);
 	}
+	
+	/**
+	 * PLFM_4829 - Backup and restore a range with no data.
+	 * @throws IOException 
+	 */
+	@Test
+	public void testPLFM_4829() throws IOException {
+		MigrationType type =  MigrationType.NODE;
+		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
+		long batchSize = 100;
+		long minId = Long.MAX_VALUE-100;
+		long maxId = Long.MAX_VALUE;
+		
+		BackupTypeRangeRequest request = new BackupTypeRangeRequest();
+		request.setMigrationType(type);
+		request.setAliasType(backupType);
+		request.setBatchSize(batchSize);
+		request.setMinimumId(minId);
+		// +1 since maxId is exclusive.
+		request.setMaximumId(maxId);
+		// call under test
+		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
+		assertNotNull(backupResponse);
+
+		// restore the data from the backup
+		RestoreTypeRequest restoreRequest = new RestoreTypeRequest();
+		restoreRequest.setMigrationType(type);
+		restoreRequest.setAliasType(backupType);
+		restoreRequest.setBatchSize(batchSize);
+		restoreRequest.setBackupFileKey(backupResponse.getBackupFileKey());
+		// call under test
+		RestoreTypeResponse restoreReponse = migrationManager.restoreRequest(adminUser, restoreRequest);
+		assertNotNull(restoreReponse);
+		// each node and revision should be restored.
+		assertEquals(new Long(0), restoreReponse.getRestoredRowCount());
+		// validate all of the data was restored.
+		validateProjectsRestored();
+	}
 }
