@@ -425,4 +425,26 @@ public class BackupFileStreamImplTest {
 		}
 	}
 	
+	/**
+	 * PLFM-4829 occurs when there are no rows in the stream.
+	 * 
+	 * @throws IOException
+	 */
+	@Test
+	public void testPLFM_4829() throws IOException {
+		// setup an empty stream
+		currentBatch = new LinkedList<>();
+		// call under test
+		backupFileStream.writeBackupFile(byteArrayOutputStream, currentBatch, backupAliasType, maximumRowsPerFile);
+		IOUtils.closeQuietly(zipOutputStream);
+		ByteArrayInputStream input = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+		// call under test
+		Iterable<MigratableDatabaseObject<?, ?>> resultIterator = backupFileStream.readBackupFile(input, backupAliasType);
+		List<MigratableDatabaseObject<?, ?>> allResults = new LinkedList<>();
+		for(MigratableDatabaseObject<?, ?> row: resultIterator) {
+			allResults.add(row);
+		}
+		assertTrue(allResults.isEmpty());
+	}
+	
 }
