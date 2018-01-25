@@ -443,7 +443,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			for(RowMetadata row: list){
 				toDelete.add(row.getId());
 			}
-			deleteObjectsById(user, type, toDelete);
+			deleteById(user, type, toDelete);
 		}
 	}
 	
