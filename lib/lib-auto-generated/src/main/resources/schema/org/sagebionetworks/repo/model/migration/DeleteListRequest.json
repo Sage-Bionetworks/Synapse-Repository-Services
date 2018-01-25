@@ -1,0 +1,21 @@
+{
+	"description": "Request to delete the list objects Ids for migration types",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		}
+	],
+	"properties": {
+		"idsToDelete": {
+			"description": "List of object IDs to delete",
+			"type": "array",
+			"items": {
+				"type": "integer"
+			}
+		},
+		"migrationType": {
+			"description": "The type of objects to delete",
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+		}
+	}
+}
