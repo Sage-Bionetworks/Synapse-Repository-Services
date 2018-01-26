@@ -683,6 +683,10 @@ public class TeamManagerImpl implements TeamManager {
 			try {
 				get(team.getId());
 			} catch(NotFoundException e) {
+				long teamIdLong = Long.parseLong(team.getId());
+				if(!AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(teamIdLong)) {
+					throw new IllegalArgumentException("Not a bootstrap principal: "+teamIdLong);
+				}
 				Team newTeam = new Team();
 				newTeam.setId(team.getId());
 				newTeam.setName(team.getName());

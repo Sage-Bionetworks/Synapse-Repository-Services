@@ -577,9 +577,14 @@ public class MigrationManagerImplAutowireTest {
 		for (MigrationType type : MigrationType.values()) {
 			if (type == MigrationType.PRINCIPAL) {
 				assertEquals("All non-essential " + type + " should have been deleted", 
-						4L, migrationManager.getCount(adminUser, type));
-			} else if (type == MigrationType.CREDENTIAL
-					|| type == MigrationType.GROUP_MEMBERS) {
+						AuthorizationConstants.BOOTSTRAP_PRINCIPAL.values().length, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.CREDENTIAL) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						2L, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.GROUP_MEMBERS) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						1L, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.TERMS_OF_USE_AGREEMENT) {
 				assertEquals("All non-essential " + type + " should have been deleted", 
 						1L, migrationManager.getCount(adminUser, type));
 			} else if (migrationManager.isMigrationTypeUsed(adminUser, type)) {
