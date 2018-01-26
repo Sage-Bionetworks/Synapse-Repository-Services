@@ -331,6 +331,14 @@ public class TeamManagerImplTest {
 		return team;
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBootstrapTeamsNonboostrap() throws Exception {
+		List<BootstrapTeam> toBootstrap = Lists.newArrayList();
+		toBootstrap.add(createBootstrapTeam("32","Bootstrap Team 1"));
+		teamManagerImpl.setTeamsToBootstrap(toBootstrap);
+		teamManagerImpl.bootstrapTeams();
+	}
+	
 	@Test
 	public void testBootstrapTeamsThatDontExist() throws Exception {
 		when(mockTeamDAO.get(any(String.class))).thenThrow(new NotFoundException());
@@ -343,8 +351,10 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.create(any(Team.class))).thenReturn(mockTeam);
 		
 		List<BootstrapTeam> toBootstrap = Lists.newArrayList();
-		toBootstrap.add(createBootstrapTeam("32","Bootstrap Team 1"));
-		toBootstrap.add(createBootstrapTeam("42","Bootstrap Team 2"));
+		toBootstrap.add(createBootstrapTeam(
+				""+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId(),"Bootstrap Team 1"));
+		toBootstrap.add(createBootstrapTeam(
+				""+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),"Bootstrap Team 2"));
 		teamManagerImpl.setTeamsToBootstrap(toBootstrap);
 		teamManagerImpl.bootstrapTeams();
 		

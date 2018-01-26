@@ -62,6 +62,8 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.DeleteListRequest;
+import org.sagebionetworks.repo.model.migration.DeleteListResponse;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
@@ -811,6 +813,29 @@ public class MigrationManagerImplTest {
 		int count = manager.deleteById(mockUser, type, toDelete);
 		assertEquals(0, count);
 		verify(mockDao, never()).deleteById(any(MigrationType.class), anyListOf(Long.class));
+	}
+	
+	@Test
+	public void testDeleteByIdRequest() {
+		MigrationType type = MigrationType.NODE;
+		DeleteListRequest request = new DeleteListRequest();
+		request.setIdsToDelete(Lists.newArrayList(123L));
+		request.setMigrationType(type);
+		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(1,2);
+		// call under test
+		DeleteListResponse reponse = manager.deleteById(mockUser, request);
+		assertNotNull(reponse);
+		assertEquals(new Long(3), reponse.getDeleteCount());
+		verify(mockDao).deleteById(type, request.getIdsToDelete());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteByIdRequestNullRequest() {
+		MigrationType type = MigrationType.NODE;
+		DeleteListRequest request = null;
+		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(1,2);
+		// call under test
+		manager.deleteById(mockUser, request);
 	}
 	
 	@Test

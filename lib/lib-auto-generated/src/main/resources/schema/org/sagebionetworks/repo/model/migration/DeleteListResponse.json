@@ -1,0 +1,14 @@
+{
+	"description": "Results for a delete object job.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminResponse"
+		}
+	],
+	"properties": {
+		"deleteCount": {
+			"description": "The number of rows deleted.",
+			"type": "integer"
+		}
+	}
+}
