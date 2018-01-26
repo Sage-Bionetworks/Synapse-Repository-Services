@@ -105,7 +105,7 @@ public class MigrationServiceImpl implements MigrationService {
 	public MigrationTypeCount delete(Long userId, MigrationType type, List<Long> list) throws Exception {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		long count = migrationManager.deleteObjectsById(user, type, list);
+		long count = migrationManager.deleteById(user, type, list);
 		MigrationTypeCount tc = new MigrationTypeCount();
 		tc.setCount(count);
 		tc.setType(type);

@@ -577,9 +577,14 @@ public class MigrationManagerImplAutowireTest {
 		for (MigrationType type : MigrationType.values()) {
 			if (type == MigrationType.PRINCIPAL) {
 				assertEquals("All non-essential " + type + " should have been deleted", 
-						4L, migrationManager.getCount(adminUser, type));
-			} else if (type == MigrationType.CREDENTIAL
-					|| type == MigrationType.GROUP_MEMBERS) {
+						AuthorizationConstants.BOOTSTRAP_PRINCIPAL.values().length, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.CREDENTIAL) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						2L, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.GROUP_MEMBERS) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						1L, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.TERMS_OF_USE_AGREEMENT) {
 				assertEquals("All non-essential " + type + " should have been deleted", 
 						1L, migrationManager.getCount(adminUser, type));
 			} else if (migrationManager.isMigrationTypeUsed(adminUser, type)) {
@@ -671,5 +676,43 @@ public class MigrationManagerImplAutowireTest {
 		// attempt to delete the admin users should not work.
 		int count = migrationManager.deleteById(adminUser, MigrationType.PRINCIPAL, idList);
 		assertEquals(0, count);
+	}
+	
+	/**
+	 * PLFM_4829 - Backup and restore a range with no data.
+	 * @throws IOException 
+	 */
+	@Test
+	public void testPLFM_4829() throws IOException {
+		MigrationType type =  MigrationType.NODE;
+		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
+		long batchSize = 100;
+		long minId = Long.MAX_VALUE-100;
+		long maxId = Long.MAX_VALUE;
+		
+		BackupTypeRangeRequest request = new BackupTypeRangeRequest();
+		request.setMigrationType(type);
+		request.setAliasType(backupType);
+		request.setBatchSize(batchSize);
+		request.setMinimumId(minId);
+		// +1 since maxId is exclusive.
+		request.setMaximumId(maxId);
+		// call under test
+		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
+		assertNotNull(backupResponse);
+
+		// restore the data from the backup
+		RestoreTypeRequest restoreRequest = new RestoreTypeRequest();
+		restoreRequest.setMigrationType(type);
+		restoreRequest.setAliasType(backupType);
+		restoreRequest.setBatchSize(batchSize);
+		restoreRequest.setBackupFileKey(backupResponse.getBackupFileKey());
+		// call under test
+		RestoreTypeResponse restoreReponse = migrationManager.restoreRequest(adminUser, restoreRequest);
+		assertNotNull(restoreReponse);
+		// each node and revision should be restored.
+		assertEquals(new Long(0), restoreReponse.getRestoredRowCount());
+		// validate all of the data was restored.
+		validateProjectsRestored();
 	}
 }

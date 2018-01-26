@@ -205,27 +205,29 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 */
 	public<D extends DatabaseObject<D>, B> void writeBatchToZip(ZipOutputStream zos, List<MigratableDatabaseObject<?,?>> currentBatch, int index, MigrationType currentType,
 			BackupAliasType backupAliasType) throws IOException {
-		// Write the current batch as a sub-file to the zip
-		String fileName = createFileName(currentType, index);
-		ZipEntry entry = new ZipEntry(fileName);
-		zos.putNextEntry(entry);
-		Writer zipWriter = new OutputStreamWriter(zos, UTF_8);
+		if(currentType != null && currentBatch != null && !currentBatch.isEmpty()) {
+			// Write the current batch as a sub-file to the zip
+			String fileName = createFileName(currentType, index);
+			ZipEntry entry = new ZipEntry(fileName);
+			zos.putNextEntry(entry);
+			Writer zipWriter = new OutputStreamWriter(zos, UTF_8);
 
-		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(currentType);
-		String alias = getAlias(mdo, backupAliasType);
-		MigratableTableTranslation<D,B> translator = mdo.getTranslator();
-		
-		// translate to the backup objects
-		List<B> backupObjects = new LinkedList<>();
-		for(MigratableDatabaseObject<?,?> migrationOjbect: currentBatch) {
-			B backupObject = translator.createBackupFromDatabaseObject((D) migrationOjbect);
-			backupObjects.add(backupObject);
+			MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(currentType);
+			String alias = getAlias(mdo, backupAliasType);
+			MigratableTableTranslation<D,B> translator = mdo.getTranslator();
+			
+			// translate to the backup objects
+			List<B> backupObjects = new LinkedList<>();
+			for(MigratableDatabaseObject<?,?> migrationOjbect: currentBatch) {
+				B backupObject = translator.createBackupFromDatabaseObject((D) migrationOjbect);
+				backupObjects.add(backupObject);
+			}
+
+			XStream xstream = new XStream();
+			xstream.alias(alias, mdo.getBackupClass());
+			xstream.toXML(backupObjects, zipWriter);
+			zipWriter.flush();
 		}
-
-		XStream xstream = new XStream();
-		xstream.alias(alias, mdo.getBackupClass());
-		xstream.toXML(backupObjects, zipWriter);
-		zipWriter.flush();
 	}
 
 	/**
