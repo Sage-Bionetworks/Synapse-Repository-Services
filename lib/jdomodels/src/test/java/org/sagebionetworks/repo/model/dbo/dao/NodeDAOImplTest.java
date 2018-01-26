@@ -2573,7 +2573,7 @@ public class NodeDAOImplTest {
 		final Long projectId = KeyFactory.stringToKey(project.getId());
 		toDelete.add(project.getId());
 		// to delete the parent without deleting the child:
-		migratableTableDao.runWithForeignKeyIgnored(new Callable<Void>() {
+		migratableTableDao.runWithKeyChecksIgnored(new Callable<Void>() {
 
 			@Override
 			public Void call() throws Exception {
@@ -2606,7 +2606,7 @@ public class NodeDAOImplTest {
 		toDelete.add(child.getId());
 
 		// to delete the parent without deleting the child:
-		migratableTableDao.runWithForeignKeyIgnored(new Callable<Void>() {
+		migratableTableDao.runWithKeyChecksIgnored(new Callable<Void>() {
 
 			@Override
 			public Void call() throws Exception {

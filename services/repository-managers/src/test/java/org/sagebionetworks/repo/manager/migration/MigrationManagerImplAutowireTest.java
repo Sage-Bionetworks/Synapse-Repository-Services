@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -663,4 +664,12 @@ public class MigrationManagerImplAutowireTest {
 		validateProjectsRestored();
 	}
 
+	
+	@Test
+	public void testPLFM_4821() {
+		List<Long> idList = Lists.newArrayList(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		// attempt to delete the admin users should not work.
+		int count = migrationManager.deleteById(adminUser, MigrationType.PRINCIPAL, idList);
+		assertEquals(0, count);
+	}
 }
