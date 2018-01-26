@@ -971,14 +971,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
 
 			// Special cases for the not-deleted migration admin
-			if (afterDelete.getType() == MigrationType.PRINCIPAL) {
-				assertEquals("There should be 4 UserGroups remaining after the delete: " + BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER + ", "
-						+ "Administrators" + ", " + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP + ", and "
-						+ BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP, new Long(4), afterDelete.getCount());
-			} else if (afterDelete.getType() == MigrationType.GROUP_MEMBERS || afterDelete.getType() == MigrationType.CREDENTIAL) {
-				assertEquals("Counts do not match for: " + afterDelete.getType().name(), new Long(1), afterDelete.getCount());
-
-			} else {
+			if (!migrationManager.isBootstrapType(afterDelete.getType())) {
 				assertEquals("Counts are non-zero for: " + afterDelete.getType().name(), new Long(0), afterDelete.getCount());
 			}
 		}

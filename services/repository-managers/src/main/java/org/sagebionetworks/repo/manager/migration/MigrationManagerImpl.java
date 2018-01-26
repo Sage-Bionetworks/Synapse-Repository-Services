@@ -885,4 +885,9 @@ public class MigrationManagerImpl implements MigrationManager {
 		return response;
 	}
 
+	@Override
+	public boolean isBootstrapType(MigrationType type) {
+		return PRINCIPAL_TYPES.contains(type);
+	}
+
 }

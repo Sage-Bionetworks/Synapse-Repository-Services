@@ -248,5 +248,12 @@ public interface MigrationManager {
 	 */
 	public DeleteListResponse deleteById(UserInfo user, DeleteListRequest request);
 	
+	/**
+	 * Is the given type a bootstrap type?
+	 * @param type
+	 * @return
+	 */
+	public boolean isBootstrapType(MigrationType type);
+	
 	
 }
