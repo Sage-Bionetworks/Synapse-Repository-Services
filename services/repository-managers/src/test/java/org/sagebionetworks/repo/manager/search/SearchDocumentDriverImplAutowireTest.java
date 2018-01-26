@@ -298,40 +298,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		fakeEntityPath.setPath(fakePath);
 		return fakeEntityPath;
 	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testCleanOutControlCharacters() throws Exception {
-		// Cloud Search cannot handle control characters, strip them out of the
-		// search document
-		Node node = new Node();
-		node.setId("5678");
-		node.setParentId("1234");
-		node.setETag("0");
-		node.setNodeType(EntityType.folder);
-		Long nonexistantPrincipalId = 42L;
-		node.setCreatedByPrincipalId(nonexistantPrincipalId);
-		node.setCreatedOn(new Date());
-		node.setModifiedByPrincipalId(nonexistantPrincipalId);
-		node.setModifiedOn(new Date());
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("stringKey", "a");
-		primaryAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		additionalAnnos.addAnnotation("stringKey", "a");
-		additionalAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		AccessControlList acl = new AccessControlList();
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		acl.setResourceAccess(resourceAccess);
-		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, new EntityPath(), null);
-		byte[] cloudSearchDocument = SearchDocumentDriverImpl
-				.cleanSearchDocument(document);
-		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
-	}
 	
 	@Test
 	public void testGetAllWikiPageText() throws DatastoreException, IOException, NotFoundException{

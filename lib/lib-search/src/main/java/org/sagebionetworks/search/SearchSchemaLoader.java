@@ -3,6 +3,8 @@ package org.sagebionetworks.search;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ANCESTORS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_BOOST;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
@@ -26,6 +28,7 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_UPDATE_ACL;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -56,7 +59,18 @@ public class SearchSchemaLoader {
 	 * 
 	 * @return
 	 */
-	public static List<IndexField> loadSearchDomainSchema() {
+	public static final List<IndexField> SEARCH_SCHEMA_FIELDS;
+	static {
+
+		//can search values, faceting enabled for this index. index values not be returned in search results.
+		LiteralOptions literalOptionsSearchEnabledFacetEnableReturnDisabled = new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
+		LiteralArrayOptions literalArrayOptionsSearchEnabledFacetEnableReturnDisabled = new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
+
+		//can not search values. no faceting for this index. index values are returned in search results
+		LiteralOptions literalOptionsSearchDisabledFacetDisabledReturnEnabled = new LiteralOptions().withReturnEnabled(true).withSearchEnabled(false).withFacetEnabled(false);
+		LiteralArrayOptions literalArrayOptionsSearchDisabledFacetDisabledReturnEnabled = new LiteralArrayOptions().withReturnEnabled(true).withSearchEnabled(false).withFacetEnabled(false);
+
+
 		List<IndexField> list = new LinkedList<IndexField>();
 		// Literal fields to be returned in Search Results
 		list.add(new IndexField().withIndexFieldName(FIELD_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(false)));
@@ -71,25 +85,33 @@ public class SearchSchemaLoader {
 		list.add(new IndexField().withIndexFieldName(FIELD_NUM_SAMPLES).withIndexFieldType(IndexFieldType.IntArray));
 		list.add(new IndexField().withIndexFieldName(FIELD_ANCESTORS).withIndexFieldType(IndexFieldType.IntArray));
 		// Literal text field facets
-		list.add(new IndexField().withIndexFieldName(FIELD_PARENT_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_UPDATE_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_PLATFORM).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_SPECIES).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false)));
-		// All annotations are stored ad literals in this field.
-//		list.add(new IndexField().withIndexFieldName(FIELD_ANNOTATIONS).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(false).withResultEnabled(false)));
+		list.add(new IndexField().withIndexFieldName(FIELD_PARENT_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_UPDATE_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_PLATFORM).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_SPECIES).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
+
 		//  Literal text fields to be returned in Search Results whose source is a facet
-		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_CREATED_BY).withSearchEnabled(false).withFacetEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_MODIFIED_BY).withSearchEnabled(false).withFacetEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_NODE_TYPE).withSearchEnabled(false).withFacetEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE_R).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withReturnEnabled(true).withSourceFields(FIELD_DISEASE).withSearchEnabled(false).withFacetEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE_R).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(new LiteralArrayOptions().withReturnEnabled(true).withSourceFields(FIELD_TISSUE).withSearchEnabled(false).withFacetEnabled(false)));
-		return list;
+		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_CREATED_BY)));
+		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_MODIFIED_BY)));
+		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_NODE_TYPE)));
+		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE_R).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceFields(FIELD_DISEASE)));
+		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE_R).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceFields(FIELD_TISSUE)));
+
+		list.add(new IndexField().withIndexFieldName(FIELD_CONSORTIUM).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_CONSORTIUM_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_CONSORTIUM)));
+
+		SEARCH_SCHEMA_FIELDS = Collections.unmodifiableList(list);
+	}
+
+
+	public static List<IndexField> loadSearchDomainSchema() {
+		return SEARCH_SCHEMA_FIELDS;
 	}
 }

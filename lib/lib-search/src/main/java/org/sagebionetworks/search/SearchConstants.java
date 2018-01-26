@@ -36,4 +36,6 @@ public class SearchConstants {
 	public static final String FIELD_MODIFIED_ON 	= "modified_on";
 	public static final String FIELD_BOOST 			= "boost";
 	public static final String FIELD_DESCRIPTION 	= "description";
+	public static final String FIELD_CONSORTIUM     = "consortium";
+	public static final String FIELD_CONSORTIUM_R   = "consortium_r";
 }
