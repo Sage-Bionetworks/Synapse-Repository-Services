@@ -36,19 +36,18 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtilTest {
 	private SearchQuery query;
@@ -365,18 +364,18 @@ public class SearchUtilTest {
 
 		Map<String, List<String>> hitFields = new HashMap<String, List<String>>() {
 			{
-				put(FIELD_CREATED_BY_R, Collections.singletonList(createdBy));
+				put(FIELD_CREATED_BY, Collections.singletonList(createdBy));
 				put(FIELD_CREATED_ON, Collections.singletonList(createdOn));
 				put(FIELD_DESCRIPTION, Collections.singletonList(description));
-				put(FIELD_DISEASE_R, Collections.singletonList(disease));
+				put(FIELD_DISEASE, Collections.singletonList(disease));
 				put(FIELD_ETAG, Collections.singletonList(etag));
 				put(FIELD_ID, Collections.singletonList(id));
-				put(FIELD_MODIFIED_BY_R, Collections.singletonList(modifiedBy));
+				put(FIELD_MODIFIED_BY, Collections.singletonList(modifiedBy));
 				put(FIELD_MODIFIED_ON, Collections.singletonList(modifiedOn));
 				put(FIELD_NAME, Collections.singletonList(name));
-				put(FIELD_NODE_TYPE_R, Collections.singletonList(nodeType));
+				put(FIELD_NODE_TYPE, Collections.singletonList(nodeType));
 				put(FIELD_NUM_SAMPLES, Collections.singletonList(numSamples));
-				put(FIELD_TISSUE_R, Collections.singletonList(tissue));
+				put(FIELD_TISSUE, Collections.singletonList(tissue));
 			}
 		};
 		//end of setup

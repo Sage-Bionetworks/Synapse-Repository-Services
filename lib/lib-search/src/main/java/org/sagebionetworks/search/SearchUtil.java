@@ -33,24 +33,19 @@ import java.util.StringJoiner;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_SPECIES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE_R;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
@@ -267,17 +262,17 @@ public class SearchUtil{
 		Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
 
 		org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
-		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_BY_R));
+		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_BY));
 		synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_ON)));
 		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, FIELD_DESCRIPTION));
-		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, FIELD_DISEASE_R));
+		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, FIELD_DISEASE));
 		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, FIELD_ETAG));
-		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_BY_R));
+		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_BY));
 		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_ON)));
 		synapseHit.setName(getFirstListValueFromMap(fieldsMap, FIELD_NAME));
-		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, FIELD_NODE_TYPE_R));
+		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, FIELD_NODE_TYPE));
 		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
-		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE_R));
+		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE));
 		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
 		synapseHit.setId(cloudSearchHit.getId());
 		return synapseHit;

@@ -4,28 +4,22 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ANCESTORS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_BOOST;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PARENT_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_SPECIES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_UPDATE_ACL;
 
 import java.util.Collections;
@@ -96,16 +90,7 @@ public class SearchSchemaLoader {
 		list.add(new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
 		list.add(new IndexField().withIndexFieldName(FIELD_SPECIES).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
 		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
-
-		//  Literal text fields to be returned in Search Results whose source is a facet
-		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_CREATED_BY)));
-		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_MODIFIED_BY)));
-		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_NODE_TYPE)));
-		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE_R).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceFields(FIELD_DISEASE)));
-		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE_R).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceFields(FIELD_TISSUE)));
-
 		list.add(new IndexField().withIndexFieldName(FIELD_CONSORTIUM).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_CONSORTIUM_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchDisabledFacetDisabledReturnEnabled.clone().withSourceField(FIELD_CONSORTIUM)));
 
 		SEARCH_SCHEMA_FIELDS = Collections.unmodifiableList(list);
 	}
