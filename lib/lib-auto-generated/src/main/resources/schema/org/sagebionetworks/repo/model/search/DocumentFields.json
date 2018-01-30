@@ -98,19 +98,10 @@
 			"description": "The disease associated with this entity",
 			"title": "Disease"
 		},
-		"tissue": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
-			"description": "Type of tissue for the samples in this entity. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/ontology#6501"
-				}
-			],
-			"title": "Tissue Type"
+		"consortium": {
+			"type": "string",
+			"description": "TODO: CONSORTIUM DESCRIPTION",
+			"title": "TODO: CONSORTIUM TITLE"
 		},
 		"platform": {
 			"type": "array",

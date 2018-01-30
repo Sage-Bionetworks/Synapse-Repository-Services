@@ -36,6 +36,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
@@ -360,7 +361,7 @@ public class SearchUtilTest {
 		String name = "my name Jeff";
 		String nodeType = "dataset";
 		String numSamples = "42";
-		String tissue = "Kleenex";
+		String consortium = "consortium";
 
 		Map<String, List<String>> hitFields = new HashMap<String, List<String>>() {
 			{
@@ -375,7 +376,7 @@ public class SearchUtilTest {
 				put(FIELD_NAME, Collections.singletonList(name));
 				put(FIELD_NODE_TYPE, Collections.singletonList(nodeType));
 				put(FIELD_NUM_SAMPLES, Collections.singletonList(numSamples));
-				put(FIELD_TISSUE, Collections.singletonList(tissue));
+				put(FIELD_CONSORTIUM, Collections.singletonList(consortium));
 			}
 		};
 		//end of setup
@@ -393,7 +394,7 @@ public class SearchUtilTest {
 		assertEquals(modifiedBy, hit.getModified_by());
 		assertEquals(nodeType, hit.getNode_type());
 		assertEquals(disease, hit.getDisease());
-		assertEquals(tissue, hit.getTissue());
+		assertEquals(consortium, hit.getConsortium());
 	}
 
 

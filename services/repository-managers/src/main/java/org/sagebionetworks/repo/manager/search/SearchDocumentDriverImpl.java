@@ -39,6 +39,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
@@ -75,15 +76,14 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	V2WikiPageDao wikiPageDao;
 
 	static {
+		//TODO: use case insensitive map instead?
 		// These are both node primary annotations and additional annotation
 		// names
 		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
 		searchableNodeAnnotations.put("disease", FIELD_DISEASE);
 		searchableNodeAnnotations.put("Disease", FIELD_DISEASE);
-		searchableNodeAnnotations.put("Tissue_Tumor", FIELD_TISSUE);
-		searchableNodeAnnotations.put("sampleSource", FIELD_TISSUE);
-		searchableNodeAnnotations.put("SampleSource", FIELD_TISSUE);
-		searchableNodeAnnotations.put("tissueType", FIELD_TISSUE);
+		searchableNodeAnnotations.put("Consortium", FIELD_CONSORTIUM);
+		searchableNodeAnnotations.put("consortium", FIELD_CONSORTIUM);
 		searchableNodeAnnotations.put("species", FIELD_SPECIES);
 		searchableNodeAnnotations.put("Species", FIELD_SPECIES);
 		searchableNodeAnnotations.put("platform", FIELD_PLATFORM);
@@ -208,7 +208,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// Annotations
 		fields.setDisease(new ArrayList<String>());
 		fields.setSpecies(new ArrayList<String>());
-		fields.setTissue(new ArrayList<String>());
 		fields.setPlatform(new ArrayList<String>());
 		fields.setNum_samples(new ArrayList<Long>());
 		addAnnotationsToSearchDocument(fields, annos.getPrimaryAnnotations());
@@ -309,9 +308,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			if (FIELD_DISEASE.equals(key)
 					&& FIELD_VALUE_SIZE_LIMIT > fields.getDisease().size()) {
 				fields.getDisease().add(stringValue);
-			} else if (FIELD_TISSUE.equals(key)
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getTissue().size()) {
-				fields.getTissue().add(stringValue);
+			} else if (FIELD_CONSORTIUM.equals(key)) {
+				fields.setConsortium(stringValue);
 			} else if (FIELD_SPECIES.equals(key)
 					&& FIELD_VALUE_SIZE_LIMIT > fields.getSpecies().size()) {
 				fields.getSpecies().add(stringValue);

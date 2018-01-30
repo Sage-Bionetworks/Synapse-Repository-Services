@@ -198,7 +198,7 @@ public class SearchDocumentDriverImplAutowireTest {
 						"a multi-word annotation gets underscores so we can exact-match find it");
 		additionalAnnos.addAnnotation("longKey", 10L);
 		additionalAnnos.addAnnotation("number_of_samples", "42");
-		additionalAnnos.addAnnotation("Tissue_Tumor", "ear lobe");
+		additionalAnnos.addAnnotation("consortium", "C O N S O R T I U M");
 		additionalAnnos.addAnnotation("platform", "synapse");
 		// PLFM-4438
 		additionalAnnos.addAnnotation("disease", 1L);
@@ -271,7 +271,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(2, fields.getSpecies().size());
 		assertEquals("Dragon", fields.getSpecies().get(0));
 		assertEquals("Unicorn", fields.getSpecies().get(1));
-		assertEquals("ear lobe", fields.getTissue().get(0));
+		assertEquals("C O N S O R T I U M", fields.getConsortium());
 		assertEquals("synapse", fields.getPlatform().get(0));
 
 		// Check ACL fields

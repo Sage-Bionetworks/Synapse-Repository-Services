@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
@@ -54,7 +55,7 @@ public class SearchUtil{
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
 		facetTypes.put(FIELD_NODE_TYPE, FacetTypeNames.LITERAL);
 		facetTypes.put(FIELD_DISEASE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_TISSUE, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_CONSORTIUM, FacetTypeNames.LITERAL);
 		facetTypes.put(FIELD_SPECIES, FacetTypeNames.LITERAL);
 		facetTypes.put(FIELD_PLATFORM, FacetTypeNames.LITERAL);
 		facetTypes.put(FIELD_CREATED_BY, FacetTypeNames.LITERAL);
@@ -272,7 +273,7 @@ public class SearchUtil{
 		synapseHit.setName(getFirstListValueFromMap(fieldsMap, FIELD_NAME));
 		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, FIELD_NODE_TYPE));
 		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
-		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE));
+		synapseHit.setConsortium(getFirstListValueFromMap(fieldsMap, FIELD_CONSORTIUM));
 		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
 		synapseHit.setId(cloudSearchHit.getId());
 		return synapseHit;

@@ -57,18 +57,21 @@ public class SearchSchemaLoader {
 	static {
 
 		//can search values, faceting enabled for this index. index values not be returned in search results.
-		LiteralOptions literalOptionsSearchEnabledFacetEnableReturnDisabled = new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
-		LiteralArrayOptions literalArrayOptionsSearchEnabledFacetEnableReturnDisabled = new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
+		LiteralOptions literalOptionsReturnDisabled = new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
+		LiteralArrayOptions literalArrayOptionsReturnDisabled = new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
 
-		//can not search values. no faceting for this index. index values are returned in search results
-		LiteralOptions literalOptionsSearchDisabledFacetDisabledReturnEnabled = new LiteralOptions().withReturnEnabled(true).withSearchEnabled(false).withFacetEnabled(false);
-		LiteralArrayOptions literalArrayOptionsSearchDisabledFacetDisabledReturnEnabled = new LiteralArrayOptions().withReturnEnabled(true).withSearchEnabled(false).withFacetEnabled(false);
+		//search, facet, and return all enabled
+		LiteralOptions literalOptionsReturnEnabled = new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(true);
+		LiteralArrayOptions literalArrayOptionsReturnEnabled = new LiteralArrayOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(true);
+
+		// faceting is disabled because all values are unique
+		LiteralOptions literalOptionsFacetDisabled = new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(false);
 
 
 		List<IndexField> list = new LinkedList<IndexField>();
 		// Literal fields to be returned in Search Results
-		list.add(new IndexField().withIndexFieldName(FIELD_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(false)));
-		list.add(new IndexField().withIndexFieldName(FIELD_ETAG).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(false)));
+		list.add(new IndexField().withIndexFieldName(FIELD_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsFacetDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_ETAG).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsFacetDisabled));
 		// Free text fields to be returned in Search Results
 		list.add(new IndexField().withIndexFieldName(FIELD_NAME).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withReturnEnabled(true).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
 		list.add(new IndexField().withIndexFieldName(FIELD_DESCRIPTION).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withReturnEnabled(true).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
@@ -78,19 +81,20 @@ public class SearchSchemaLoader {
 		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_ON).withIndexFieldType(IndexFieldType.Int));
 		list.add(new IndexField().withIndexFieldName(FIELD_NUM_SAMPLES).withIndexFieldType(IndexFieldType.IntArray));
 		list.add(new IndexField().withIndexFieldName(FIELD_ANCESTORS).withIndexFieldType(IndexFieldType.IntArray));
-		// Literal text field facets
-		list.add(new IndexField().withIndexFieldName(FIELD_PARENT_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_UPDATE_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_PLATFORM).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_SPECIES).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsSearchEnabledFacetEnableReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_CONSORTIUM).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsSearchEnabledFacetEnableReturnDisabled));
+		// Literal text field facets with return disabled
+		list.add(new IndexField().withIndexFieldName(FIELD_PARENT_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_UPDATE_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_PLATFORM).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnDisabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_SPECIES).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsReturnDisabled));
+
+		//Literal text field facets with return enabled
+		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsReturnEnabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
+		list.add(new IndexField().withIndexFieldName(FIELD_CONSORTIUM).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
 
 		SEARCH_SCHEMA_FIELDS = Collections.unmodifiableList(list);
 	}
