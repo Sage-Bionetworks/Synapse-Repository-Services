@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,8 +34,6 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
@@ -44,7 +41,6 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_SPECIES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 /**
  * This class writes out search documents in batch.
@@ -158,13 +154,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 		// Node fields
 		document.setId(node.getId());
-		fields.setId(node.getId()); // this is redundant because document id
-		// is returned in search results, but its cleaner to have this also show
-		// up in the "data" section of AwesomeSearch results
 		fields.setEtag(node.getETag());
 		fields.setParent_id(node.getParentId());
 		fields.setName(node.getName());
 
+		//TODO: maybe consider removing "ancestors" index field
 		// Add each ancestor from the path
 		List<Long> ancestors = new LinkedList<Long>();
 		if (entityPath != null && entityPath.getPath() != null) {
@@ -206,10 +200,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		boost.add(node.getId());
 
 		// Annotations
-		fields.setDisease(new ArrayList<String>());
-		fields.setSpecies(new ArrayList<String>());
-		fields.setPlatform(new ArrayList<String>());
-		fields.setNum_samples(new ArrayList<Long>());
 		addAnnotationsToSearchDocument(fields, annos.getPrimaryAnnotations());
 		addAnnotationsToSearchDocument(fields, annos.getAdditionalAnnotations());
 
@@ -275,66 +265,61 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			Annotations annots) {
 
 		for (String key : annots.keySet()) {
-			Collection values = annots.getAllValues(key);
-
-			if (values.isEmpty()) {
-				// no values so nothing to do here
+			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
+			if (null == searchFieldName) {
 				continue;
 			}
 
-			Object objs[] = values.toArray();
-
-			if (objs[0] instanceof byte[]) {
+			List values = annots.getAllValues(key);
+			if (values.isEmpty() || values.get(0) instanceof byte[]) {
+				// no values so nothing to do here
 				// don't add blob annotations to the search index
 				continue;
 			}
 
-			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
-			for (Object obj : objs) {
-				if (null == obj)
-					continue;
-
-				if (null != searchFieldName) {
+			for (Object obj : values) {
+				if (obj != null) {
 					addAnnotationToSearchDocument(fields, searchFieldName, obj);
+					//once a non-null value is found and set, stop iterating
+					break;
 				}
 			}
 		}
 	}
 
-	static void addAnnotationToSearchDocument(DocumentFields fields,
-			String key, Object value) {
-		if (value != null) {
-			String stringValue = value.toString();
-			if (FIELD_DISEASE.equals(key)
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getDisease().size()) {
-				fields.getDisease().add(stringValue);
-			} else if (FIELD_CONSORTIUM.equals(key)) {
+	static void addAnnotationToSearchDocument(DocumentFields fields, String key, Object value) {
+		String stringValue = value.toString();
+		//TODO: should we check for get___() != null before set___()? do we prioritize the Primary Annotations or the Additional annotations?
+		switch (key){
+			case FIELD_DISEASE:
+				fields.setDisease(stringValue);
+				break;
+			case FIELD_CONSORTIUM:
 				fields.setConsortium(stringValue);
-			} else if (FIELD_SPECIES.equals(key)
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getSpecies().size()) {
-				fields.getSpecies().add(stringValue);
-			} else if (FIELD_PLATFORM.equals(key)
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getPlatform().size()) {
-				fields.getPlatform().add(stringValue);
-			} else if (FIELD_NUM_SAMPLES.equals(key)
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getNum_samples().size()) {
+				break;
+			case FIELD_SPECIES:
+				fields.setSpecies(stringValue);
+				break;
+			case FIELD_PLATFORM:
+				fields.setPlatform(stringValue);
+				break;
+			case FIELD_NUM_SAMPLES:
 				if (value instanceof Long) {
-					fields.getNum_samples().add((Long) value);
+					fields.setNum_samples((Long) value);
 				} else if (value instanceof String) {
 					try {
-						fields.getNum_samples().add(
-								Long.valueOf((stringValue).trim()));
+						fields.setNum_samples(Long.valueOf((stringValue).trim()));
 					} catch (NumberFormatException e) {
 						// swallow this exception, this is just a best-effort
 						// attempt to push more annotations into search
 					}
 				}
-			} else {
+				break;
+			default:
 				throw new IllegalArgumentException(
 						"Annotation "
 								+ key
 								+ " added to searchable annotations map but not added to addAnnotationToSearchDocument");
-			}
 		}
 	}
 

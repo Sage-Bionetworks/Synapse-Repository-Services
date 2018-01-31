@@ -42,13 +42,11 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtilTest {
 	private SearchQuery query;
@@ -370,7 +368,6 @@ public class SearchUtilTest {
 				put(FIELD_DESCRIPTION, Collections.singletonList(description));
 				put(FIELD_DISEASE, Collections.singletonList(disease));
 				put(FIELD_ETAG, Collections.singletonList(etag));
-				put(FIELD_ID, Collections.singletonList(id));
 				put(FIELD_MODIFIED_BY, Collections.singletonList(modifiedBy));
 				put(FIELD_MODIFIED_ON, Collections.singletonList(modifiedOn));
 				put(FIELD_NAME, Collections.singletonList(name));
@@ -518,7 +515,6 @@ public class SearchUtilTest {
 		// This should prepare the document to be sent
 		SearchUtil.prepareDocument(doc);
 		assertNotNull(doc.getFields());
-		assertEquals("The document ID must be set in the fields when ",doc.getId(), doc.getFields().getId());
 	}
 
 	////////////////////////////////////////

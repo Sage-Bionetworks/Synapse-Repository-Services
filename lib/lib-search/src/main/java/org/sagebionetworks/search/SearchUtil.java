@@ -46,7 +46,6 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_SPECIES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
@@ -379,7 +378,5 @@ public class SearchUtil{
 		if(document.getFields() == null){
 			document.setFields(new DocumentFields());
 		}
-		// The id field must match the document's id.
-		document.getFields().setId(document.getId());
 	}
 }

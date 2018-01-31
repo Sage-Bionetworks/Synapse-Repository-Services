@@ -212,8 +212,8 @@ public class Annotations implements JSONEntity, Serializable {
 	 * @param key
 	 * @return
 	 */
-	public Collection getAllValues(String key) {
-		Collection result = null;
+	public List getAllValues(String key) {
+		List result = null;
 		result = this.stringAnnotations.get(key);
 		if (result != null)
 			return result;

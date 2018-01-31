@@ -244,7 +244,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		DocumentFields fields = document.getFields();
 
 		// Check entity property fields
-		assertEquals(node.getId(), fields.getId());
 		assertEquals(node.getETag(), fields.getEtag());
 		assertEquals(node.getParentId(), fields.getParent_id());
 		assertEquals(node.getName(), fields.getName());
@@ -265,14 +264,10 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(fields.getBoost().contains(node.getName()));
 
 		// Check the faceted fields
-		assertEquals(2, fields.getNum_samples().size());
-		assertTrue(fields.getNum_samples().contains(new Long(42)));
-		assertTrue(fields.getNum_samples().contains(new Long(999L)));
-		assertEquals(2, fields.getSpecies().size());
-		assertEquals("Dragon", fields.getSpecies().get(0));
-		assertEquals("Unicorn", fields.getSpecies().get(1));
+		assertEquals((Long) 42L, fields.getNum_samples());
+		assertEquals("Dragon", fields.getSpecies());
 		assertEquals("C O N S O R T I U M", fields.getConsortium());
-		assertEquals("synapse", fields.getPlatform().get(0));
+		assertEquals("synapse", fields.getPlatform());
 
 		// Check ACL fields
 		assertEquals(2, fields.getAcl().size());
@@ -323,15 +318,12 @@ public class SearchDocumentDriverImplAutowireTest {
 
 	// http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
 	private static String readFile(File file) throws IOException {
-		FileInputStream stream = new FileInputStream(file);
-		try {
+		try (FileInputStream stream = new FileInputStream(file)) {
 			FileChannel fc = stream.getChannel();
 			MappedByteBuffer bb = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc
 					.size());
 			/* Instead of using default, pass in a decoder. */
 			return Charset.forName("UTF-8").decode(bb).toString();
-		} finally {
-			stream.close();
 		}
 	}
 
