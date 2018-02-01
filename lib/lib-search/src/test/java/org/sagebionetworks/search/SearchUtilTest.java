@@ -47,6 +47,7 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtilTest {
 	private SearchQuery query;
@@ -374,6 +375,7 @@ public class SearchUtilTest {
 				put(FIELD_NAME, Collections.singletonList(name));
 				put(FIELD_NODE_TYPE, Collections.singletonList(nodeType));
 				put(FIELD_NUM_SAMPLES, Collections.singletonList(numSamples));
+				put(FIELD_TISSUE, Collections.singletonList(tissue));
 				put(FIELD_CONSORTIUM, Collections.singletonList(consortium));
 			}
 		};
@@ -547,7 +549,7 @@ public class SearchUtilTest {
 		addDoc.setFields(fields);
 
 		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(deleteDoc,addDoc));
-		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\",\"id\":\"syn456\"}}]", jsonString);
+		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
 	}
 
 }
