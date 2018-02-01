@@ -201,6 +201,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		boost.add(node.getId());
 
 		// Annotations
+		addAnnotationsToSearchDocument(fields, annos.getPrimaryAnnotations());
 		addAnnotationsToSearchDocument(fields, annos.getAdditionalAnnotations());
 
 		// References, just put the node id to which the reference refers. Not
@@ -266,7 +267,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 		for (String key : annots.keySet()) {
 			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
-			if (null == searchFieldName) {
+			if (searchFieldName == null) {
 				continue;
 			}
 
