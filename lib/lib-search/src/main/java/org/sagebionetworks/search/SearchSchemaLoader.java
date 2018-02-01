@@ -1,7 +1,6 @@
 package org.sagebionetworks.search;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ANCESTORS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_BOOST;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
@@ -77,7 +76,6 @@ public class SearchSchemaLoader {
 		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_ON).withIndexFieldType(IndexFieldType.Int));
 		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_ON).withIndexFieldType(IndexFieldType.Int));
 		list.add(new IndexField().withIndexFieldName(FIELD_NUM_SAMPLES).withIndexFieldType(IndexFieldType.Int));
-		list.add(new IndexField().withIndexFieldName(FIELD_ANCESTORS).withIndexFieldType(IndexFieldType.IntArray));
 		// Literal text field facets with return disabled
 		list.add(new IndexField().withIndexFieldName(FIELD_PARENT_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnDisabled));
 		list.add(new IndexField().withIndexFieldName(FIELD_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsReturnDisabled));

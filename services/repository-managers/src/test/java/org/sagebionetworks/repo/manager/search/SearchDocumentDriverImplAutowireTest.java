@@ -236,7 +236,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		fakeEntityPath.writeToJSONObject(adapter);		
 		String fakeEntityPathJSONString = adapter.toJSONString();
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, fakeEntityPath, wikiPageText);
+				named, acl, wikiPageText);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals(node.getId(), document.getId());
 

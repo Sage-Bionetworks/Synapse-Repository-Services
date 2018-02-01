@@ -43,13 +43,6 @@
 			"description": "The user that last modified this entity.",
 			"title": "Modified By"
 		},
-		"ancestors": {
-			"type": "array",
-			"items": {
-				"type": "integer"
-			},
-			"description": "The entity's list of ancestor ids used to look up all children of an en entity recursivily."
-		},
 		"boost": {
 			"type": "array",
 			"items": {

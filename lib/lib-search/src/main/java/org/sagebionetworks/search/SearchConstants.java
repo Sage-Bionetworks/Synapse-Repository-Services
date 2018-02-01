@@ -13,7 +13,6 @@ public class SearchConstants {
 	public static final String FIELD_NAME		 	= "name";
 	public static final String FIELD_ETAG			= "etag";
 	public static final String FIELD_PATH		 	= "path";
-	public static final String FIELD_ANCESTORS		= "ancestors";
 	public static final String FIELD_TISSUE			= "tissue";
 	public static final String FIELD_REFERENCE 		= "reference";
 	public static final String FIELD_PLATFORM 		= "platform";

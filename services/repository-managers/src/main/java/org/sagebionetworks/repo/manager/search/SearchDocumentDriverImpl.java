@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -117,13 +116,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Long revId = node.getVersionNumber();
 		NamedAnnotations annos = nodeDao.getAnnotationsForVersion(node.getId(),
 				revId);
-		// get the path
-		EntityPath entityPath = getEntityPath(node.getId());
-
 		// Get the wikipage text
 		String wikiPagesText = getAllWikiPageText(node.getId());
 
-		return formulateSearchDocument(node, annos, benefactorACL, entityPath, wikiPagesText);
+		return formulateSearchDocument(node, annos, benefactorACL, wikiPagesText);
 	}
 
 	/**
@@ -143,7 +139,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Override
 	public Document formulateSearchDocument(Node node, NamedAnnotations annos,
-			AccessControlList acl, EntityPath entityPath, String wikiPagesText)
+											AccessControlList acl, String wikiPagesText)
 			throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
 		Document document = new Document();
@@ -158,20 +154,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		fields.setEtag(node.getETag());
 		fields.setParent_id(node.getParentId());
 		fields.setName(node.getName());
-
-		//TODO: maybe consider removing "ancestors" index field
-		// Add each ancestor from the path
-		List<Long> ancestors = new LinkedList<Long>();
-		if (entityPath != null && entityPath.getPath() != null) {
-			for (EntityHeader eh : entityPath.getPath()) {
-				if (eh.getId() != null && node.getId().equals(eh.getId())) {
-					ancestors.add(org.sagebionetworks.repo.model.jdo.KeyFactory
-							.stringToKey(eh.getId()));
-				}
-			}
-			// Add the fields.
-			fields.setAncestors(ancestors);
-		}
 
 		fields.setNode_type(node.getNodeType().name());
 
