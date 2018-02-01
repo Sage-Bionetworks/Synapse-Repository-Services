@@ -78,20 +78,21 @@
 			},
 			"description": "All group names with UPDATE access to this entity"
 		},
-		"species": {
-			"type": "string",
-			"description": "The species associated with this entity",
-			"title": "Species"
-		},
 		"disease": {
 			"type": "string",
 			"description": "The disease associated with this entity",
 			"title": "Disease"
 		},
-		"consortium": {
+		"tissue": {
 			"type": "string",
-			"description": "TODO: CONSORTIUM DESCRIPTION",
-			"title": "TODO: CONSORTIUM TITLE"
+			"description": "Type of tissue for the samples in this entity. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/ontology#6501"
+				}
+			],
+			"title": "Tissue Type"
 		},
 		"platform": {
 			"type": "string",
@@ -108,6 +109,11 @@
 			"type": "integer",
 			"description": "Approximate number of samples in this entity",
 			"title": "Number of Samples"
+		},
+		"consortium": {
+			"type": "string",
+			"description": "TODO: CONSORTIUM DESCRIPTION",
+			"title": "TODO: CONSORTIUM TITLE"
 		}
 	}
 }

@@ -189,17 +189,16 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setVersionLabel("versionLabel");
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("species", "Dragon");
 		primaryAnnos.addAnnotation("numSamples", 999L);
 		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		additionalAnnos.addAnnotation("Species", "Unicorn");
 		additionalAnnos
 				.addAnnotation("stringKey",
 						"a multi-word annotation gets underscores so we can exact-match find it");
 		additionalAnnos.addAnnotation("longKey", 10L);
 		additionalAnnos.addAnnotation("number_of_samples", "42");
-		additionalAnnos.addAnnotation("consortium", "C O N S O R T I U M");
+		additionalAnnos.addAnnotation("Tissue_Tumor", "ear lobe");
 		additionalAnnos.addAnnotation("platform", "synapse");
+		additionalAnnos.addAnnotation("consortium", "C O N S O R T I U M");
 		// PLFM-4438
 		additionalAnnos.addAnnotation("disease", 1L);
 		Date dateValue = new Date();
@@ -265,9 +264,9 @@ public class SearchDocumentDriverImplAutowireTest {
 
 		// Check the faceted fields
 		assertEquals((Long) 42L, fields.getNum_samples());
-		assertEquals("Dragon", fields.getSpecies());
-		assertEquals("C O N S O R T I U M", fields.getConsortium());
+		assertEquals("ear lobe", fields.getTissue());
 		assertEquals("synapse", fields.getPlatform());
+		assertEquals("C O N S O R T I U M", fields.getConsortium());
 
 		// Check ACL fields
 		assertEquals(2, fields.getAcl().size());

@@ -359,6 +359,7 @@ public class SearchUtilTest {
 		String name = "my name Jeff";
 		String nodeType = "dataset";
 		String numSamples = "42";
+		String tissue = "Kleenex";
 		String consortium = "consortium";
 
 		Map<String, List<String>> hitFields = new HashMap<String, List<String>>() {
@@ -391,6 +392,7 @@ public class SearchUtilTest {
 		assertEquals(modifiedBy, hit.getModified_by());
 		assertEquals(nodeType, hit.getNode_type());
 		assertEquals(disease, hit.getDisease());
+		assertEquals(tissue, hit.getTissue());
 		assertEquals(consortium, hit.getConsortium());
 	}
 

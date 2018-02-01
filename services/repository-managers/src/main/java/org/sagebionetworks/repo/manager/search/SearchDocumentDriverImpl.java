@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.search;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -40,7 +39,7 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_SPECIES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 /**
  * This class writes out search documents in batch.
@@ -78,10 +77,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
 		searchableNodeAnnotations.put("disease", FIELD_DISEASE);
 		searchableNodeAnnotations.put("Disease", FIELD_DISEASE);
-		searchableNodeAnnotations.put("Consortium", FIELD_CONSORTIUM);
-		searchableNodeAnnotations.put("consortium", FIELD_CONSORTIUM);
-		searchableNodeAnnotations.put("species", FIELD_SPECIES);
-		searchableNodeAnnotations.put("Species", FIELD_SPECIES);
+		searchableNodeAnnotations.put("Tissue_Tumor", FIELD_TISSUE);
+		searchableNodeAnnotations.put("sampleSource", FIELD_TISSUE);
+		searchableNodeAnnotations.put("SampleSource", FIELD_TISSUE);
+		searchableNodeAnnotations.put("tissueType", FIELD_TISSUE);
 		searchableNodeAnnotations.put("platform", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("Platform", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("platformDesc", FIELD_PLATFORM);
@@ -90,6 +89,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		searchableNodeAnnotations.put("Number_of_Samples", FIELD_NUM_SAMPLES);
 		searchableNodeAnnotations.put("Number_of_samples", FIELD_NUM_SAMPLES);
 		searchableNodeAnnotations.put("numSamples", FIELD_NUM_SAMPLES);
+		searchableNodeAnnotations.put("Consortium", FIELD_CONSORTIUM);
+		searchableNodeAnnotations.put("consortium", FIELD_CONSORTIUM);
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
 	}
@@ -200,7 +201,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		boost.add(node.getId());
 
 		// Annotations
-		addAnnotationsToSearchDocument(fields, annos.getPrimaryAnnotations());
 		addAnnotationsToSearchDocument(fields, annos.getAdditionalAnnotations());
 
 		// References, just put the node id to which the reference refers. Not
@@ -289,7 +289,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	static void addAnnotationToSearchDocument(DocumentFields fields, String key, Object value) {
 		String stringValue = value.toString();
-		//TODO: should we check for get___() != null before set___()? do we prioritize the Primary Annotations or the Additional annotations?
 		switch (key){
 			case FIELD_DISEASE:
 				fields.setDisease(stringValue);
@@ -297,8 +296,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			case FIELD_CONSORTIUM:
 				fields.setConsortium(stringValue);
 				break;
-			case FIELD_SPECIES:
-				fields.setSpecies(stringValue);
+			case FIELD_TISSUE:
+				fields.setTissue(stringValue);
 				break;
 			case FIELD_PLATFORM:
 				fields.setPlatform(stringValue);
