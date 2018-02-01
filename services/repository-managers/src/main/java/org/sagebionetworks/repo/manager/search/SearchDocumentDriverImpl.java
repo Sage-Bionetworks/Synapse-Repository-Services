@@ -1,13 +1,19 @@
 package org.sagebionetworks.repo.manager.search;
 
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -33,12 +39,6 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 /**
  * This class writes out search documents in batch.
@@ -70,25 +70,18 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	V2WikiPageDao wikiPageDao;
 
 	static {
-		//TODO: use case insensitive map instead?
 		// These are both node primary annotations and additional annotation
 		// names
-		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
+		Map<String, String> searchableNodeAnnotations = new CaseInsensitiveMap<>();
 		searchableNodeAnnotations.put("disease", FIELD_DISEASE);
-		searchableNodeAnnotations.put("Disease", FIELD_DISEASE);
 		searchableNodeAnnotations.put("Tissue_Tumor", FIELD_TISSUE);
 		searchableNodeAnnotations.put("sampleSource", FIELD_TISSUE);
-		searchableNodeAnnotations.put("SampleSource", FIELD_TISSUE);
 		searchableNodeAnnotations.put("tissueType", FIELD_TISSUE);
 		searchableNodeAnnotations.put("platform", FIELD_PLATFORM);
-		searchableNodeAnnotations.put("Platform", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("platformDesc", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("platformVendor", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("number_of_samples", FIELD_NUM_SAMPLES);
-		searchableNodeAnnotations.put("Number_of_Samples", FIELD_NUM_SAMPLES);
-		searchableNodeAnnotations.put("Number_of_samples", FIELD_NUM_SAMPLES);
 		searchableNodeAnnotations.put("numSamples", FIELD_NUM_SAMPLES);
-		searchableNodeAnnotations.put("Consortium", FIELD_CONSORTIUM);
 		searchableNodeAnnotations.put("consortium", FIELD_CONSORTIUM);
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
