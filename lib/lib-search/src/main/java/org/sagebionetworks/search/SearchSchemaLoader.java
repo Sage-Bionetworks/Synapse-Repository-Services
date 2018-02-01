@@ -19,8 +19,8 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_UPDATE_ACL;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
@@ -65,7 +65,7 @@ public class SearchSchemaLoader {
 		LiteralOptions literalOptionsFacetDisabled = new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(false);
 
 
-		List<IndexField> list = new LinkedList<IndexField>();
+		List<IndexField> list = new ArrayList<>();
 		// Literal fields to be returned in Search Results
 		list.add(new IndexField().withIndexFieldName(FIELD_ETAG).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsFacetDisabled));
 		// Free text fields to be returned in Search Results
