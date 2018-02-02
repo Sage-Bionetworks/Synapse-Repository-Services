@@ -59,8 +59,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
-	private static final String PATH_DELIMITER = "/";
-	private static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
+	static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -69,7 +68,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	@Autowired
 	V2WikiPageDao wikiPageDao;
 
-	static {
+	static { // initialize SEARCHABLE_NODE_ANNOTATIONS
 		// These are both node primary annotations and additional annotation
 		// names
 		Map<String, String> searchableNodeAnnotations = new CaseInsensitiveMap<>();
@@ -237,53 +236,67 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	}
 
 
-	static void addAnnotationsToSearchDocument(DocumentFields fields,
-			Annotations annots) {
+	void addAnnotationsToSearchDocument(DocumentFields fields, Annotations annots) {
 
 		for (String key : annots.keySet()) {
 			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
 			if (searchFieldName == null) {
 				continue;
 			}
-
 			List values = annots.getAllValues(key);
-			if (values.isEmpty() || values.get(0) instanceof byte[]) {
-				// no values so nothing to do here
+			if (values.get(0) instanceof byte[]) {
 				// don't add blob annotations to the search index
 				continue;
 			}
 
 			for (Object obj : values) {
 				if (obj != null) {
-					addAnnotationToSearchDocument(fields, searchFieldName, obj);
-					//once a non-null value is found and set, stop iterating
+					// Annotations should only have 1 value. The List is for legacy support
+					// of Entities with annotations containing multiple values
+					// the search index is configured to only care about 1 value anyways.
+					addAnnotationToDocumentField(fields, searchFieldName, obj);
+					//once a non-null value is found, stop iterating
 					break;
 				}
 			}
 		}
 	}
 
-	static void addAnnotationToSearchDocument(DocumentFields fields, String key, Object value) {
+	/**
+	 * Checks the key and value of
+	 * @param fields DocumentField to which the annotation is added
+	 * @param key Annotation key
+	 * @param value Annotation value
+	 */
+	void addAnnotationToDocumentField(DocumentFields fields, String key, Object value) {
+		//this method could be static but is easier to test when not static
 		String stringValue = value.toString();
 		switch (key){
 			case FIELD_DISEASE:
-				fields.setDisease(stringValue);
+				if(fields.getDisease() == null) {
+					fields.setDisease(stringValue);
+				}
 				break;
 			case FIELD_CONSORTIUM:
-				fields.setConsortium(stringValue);
+				if(fields.getConsortium() == null) {
+					fields.setConsortium(stringValue);
+				}
 				break;
 			case FIELD_TISSUE:
-				fields.setTissue(stringValue);
+				if(fields.getTissue() == null) {
+					fields.setTissue(stringValue);
+				}
 				break;
 			case FIELD_PLATFORM:
-				fields.setPlatform(stringValue);
+				if(fields.getPlatform() == null) {
+					fields.setPlatform(stringValue);
+				}
 				break;
 			case FIELD_NUM_SAMPLES:
-				if (value instanceof Long) {
-					fields.setNum_samples((Long) value);
-				} else if (value instanceof String) {
-					try {
-						fields.setNum_samples(Long.valueOf((stringValue).trim()));
+				if(fields.getNum_samples() == null) {
+					try{
+						Long longValue = (value instanceof Long) ? (Long) value : Long.valueOf((stringValue).trim());
+						fields.setNum_samples(longValue);
 					} catch (NumberFormatException e) {
 						// swallow this exception, this is just a best-effort
 						// attempt to push more annotations into search
@@ -294,7 +307,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				throw new IllegalArgumentException(
 						"Annotation "
 								+ key
-								+ " added to searchable annotations map but not added to addAnnotationToSearchDocument");
+								+ " added to searchable annotations map but not added to addAnnotationToDocumentField");
 		}
 	}
 

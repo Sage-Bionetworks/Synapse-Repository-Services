@@ -263,7 +263,10 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(fields.getBoost().contains(node.getName()));
 
 		// Check the faceted fields
-		assertEquals((Long) 42L, fields.getNum_samples());
+
+		//primary annotations are read first so it gets priority over the value set in additional annotations
+		assertEquals((Long) 999L, fields.getNum_samples());
+
 		assertEquals("ear lobe", fields.getTissue());
 		assertEquals("synapse", fields.getPlatform());
 		assertEquals("C O N S O R T I U M", fields.getConsortium());

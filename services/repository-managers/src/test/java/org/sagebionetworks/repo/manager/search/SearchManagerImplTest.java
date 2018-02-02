@@ -65,7 +65,7 @@ public class SearchManagerImplTest {
 	public void before(){
 		searchManager = new SearchManagerImpl();
 		ReflectionTestUtils.setField(searchManager, "searchDao", mockSearchDao);
-		ReflectionTestUtils.setField(searchManager, "searchDocumentDriver", mockSearchDocumentDriver);
+		ReflectionTestUtils.setField(searchManager, "spySearchDocumentDriver", mockSearchDocumentDriver);
 
 
 
