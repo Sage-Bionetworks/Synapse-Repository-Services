@@ -76,11 +76,13 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		searchableNodeAnnotations.put("Tissue_Tumor", FIELD_TISSUE);
 		searchableNodeAnnotations.put("sampleSource", FIELD_TISSUE);
 		searchableNodeAnnotations.put("tissueType", FIELD_TISSUE);
+		searchableNodeAnnotations.put("tissue", FIELD_TISSUE);
 		searchableNodeAnnotations.put("platform", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("platformDesc", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("platformVendor", FIELD_PLATFORM);
 		searchableNodeAnnotations.put("number_of_samples", FIELD_NUM_SAMPLES);
 		searchableNodeAnnotations.put("numSamples", FIELD_NUM_SAMPLES);
+		searchableNodeAnnotations.put("num_samples", FIELD_NUM_SAMPLES);
 		searchableNodeAnnotations.put("consortium", FIELD_CONSORTIUM);
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
