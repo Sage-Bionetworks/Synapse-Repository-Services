@@ -18,7 +18,7 @@ public class SearchSchemaLoaderTest {
 		List<IndexField> list = SearchSchemaLoader.loadSearchDomainSchema();
 		assertNotNull(list);
 		// We currently have 19 index fields
-		assertEquals(19, list.size());
+		assertEquals(18, list.size());
 	}
 
 }
