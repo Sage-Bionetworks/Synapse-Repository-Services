@@ -95,7 +95,7 @@ public class IT510SynapseJavaClientSearchTest {
 		SearchQuery searchQuery = new SearchQuery();
 		searchQuery.setBooleanQuery(new LinkedList<KeyValue>());
 		KeyValue kv = new KeyValue();
-		kv.setKey("id");
+		kv.setKey("_id");
 		kv.setValue(id);
 		searchQuery.getBooleanQuery().add(kv);
 		long start = System.currentTimeMillis();
