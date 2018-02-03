@@ -707,6 +707,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#restoreRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.RestoreTypeRequest)
 	 */
+	@WriteTransactionReadCommitted // required see PLFM-4832
 	@Override
 	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest request) throws IOException {
 		ValidateArgument.required(user, "User");
@@ -752,7 +753,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param aliasType
 	 * @return
 	 */
-	public RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
+	RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
 			BackupAliasType backupAliasType, long batchSize) {
 		RestoreTypeResponse response = new RestoreTypeResponse();
 		if(!this.migratableTableDao.isMigrationTypeRegistered(primaryType)) {
@@ -795,7 +796,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param secondaryTypes
 	 * @param currentBatch
 	 */
-	public void restoreBatch(MigrationType currentType, MigrationType primaryType, List<MigrationType> secondaryTypes,
+	void restoreBatch(MigrationType currentType, MigrationType primaryType, List<MigrationType> secondaryTypes,
 			List<DatabaseObject<?>> currentBatch) {
 		if(!currentBatch.isEmpty()) {
 			// push the data to the database

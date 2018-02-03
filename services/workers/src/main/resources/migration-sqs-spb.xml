@@ -29,7 +29,7 @@
 									<bean class="org.sagebionetworks.migration.worker.MigrationWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="migration2" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreMaxLockCount" value="20" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
 								<property name="queueName" ref="stackConfiguration.asyncQueueName[MIGRATION]"/>
 								<property name="useProgressHeartbeat" value="true"/>
