@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.migration.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Lists;
+
 public class MigrationWorkerTest {
 	
 	@Mock
@@ -184,5 +186,15 @@ public class MigrationWorkerTest {
 		// call under test
 		migrationWorker.processRequest(user, request, jobId);
 		verify(mockMigrationManager).backupRequest(user, request);
+	}
+	
+	@Test
+	public void testProcessRequestDelete() throws Exception {
+		String jobId = "123";
+		DeleteListRequest request = new DeleteListRequest();
+		request.setIdsToDelete(Lists.newArrayList(211L));
+		// call under test
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).deleteById(user, request);
 	}
 }
