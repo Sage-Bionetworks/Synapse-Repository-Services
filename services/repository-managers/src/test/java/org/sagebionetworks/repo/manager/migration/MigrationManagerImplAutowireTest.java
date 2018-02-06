@@ -570,24 +570,8 @@ public class MigrationManagerImplAutowireTest {
 	public void testDeleteAll() throws Exception{
 		// Delete all data
 		migrationManager.deleteAllData(adminUser);
-		
-		// The counts for all tables should be zero 
-		// Except for 3 special cases, which are the minimal required rows to successfully
-		//   call userManager.getUserInfo(AuthorizationConstants.MIGRATION_USER_NAME);
 		for (MigrationType type : MigrationType.values()) {
-			if (type == MigrationType.PRINCIPAL) {
-				assertEquals("All non-essential " + type + " should have been deleted", 
-						AuthorizationConstants.BOOTSTRAP_PRINCIPAL.values().length, migrationManager.getCount(adminUser, type));
-			} else if (type == MigrationType.CREDENTIAL) {
-				assertEquals("All non-essential " + type + " should have been deleted", 
-						2L, migrationManager.getCount(adminUser, type));
-			} else if (type == MigrationType.GROUP_MEMBERS) {
-				assertEquals("All non-essential " + type + " should have been deleted", 
-						1L, migrationManager.getCount(adminUser, type));
-			} else if (type == MigrationType.TERMS_OF_USE_AGREEMENT) {
-				assertEquals("All non-essential " + type + " should have been deleted", 
-						1L, migrationManager.getCount(adminUser, type));
-			} else if (migrationManager.isMigrationTypeUsed(adminUser, type)) {
+			if(!migrationManager.isBootstrapType(type)) {
 				assertEquals("All data of type " + type + " should have been deleted", 
 						0L, migrationManager.getCount(adminUser, type));
 			}
