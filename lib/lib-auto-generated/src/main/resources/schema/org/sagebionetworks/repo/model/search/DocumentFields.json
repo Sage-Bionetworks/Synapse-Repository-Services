@@ -78,24 +78,12 @@
 		},
 		"tissue": {
 			"type": "string",
-			"description": "Type of tissue for the samples in this entity. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/ontology#6501"
-				}
-			],
+			"description": "Type of tissue for the samples in this entity.",
 			"title": "Tissue Type"
 		},
 		"platform": {
 			"type": "string",
 			"description": "Chip platform for the samples in this entity",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/ontology#6501"
-				}
-			],
 			"title": "Platform"
 		},
 		"num_samples": {
@@ -105,8 +93,8 @@
 		},
 		"consortium": {
 			"type": "string",
-			"description": "TODO: CONSORTIUM DESCRIPTION",
-			"title": "TODO: CONSORTIUM TITLE"
+			"description": "The name of the consortium",
+			"title": "Consortium"
 		}
 	}
 }
