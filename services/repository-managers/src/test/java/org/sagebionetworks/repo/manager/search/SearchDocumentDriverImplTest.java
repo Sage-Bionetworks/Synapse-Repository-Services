@@ -62,5 +62,7 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	//TODO: tests
-
+	@Test
+	public void TODOTest(){
+	}
 }
