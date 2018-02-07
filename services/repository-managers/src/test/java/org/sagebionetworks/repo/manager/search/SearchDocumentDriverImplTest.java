@@ -1,27 +1,28 @@
 package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.anyMapOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.junit.Assert.assertEquals;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -46,9 +48,16 @@ public class SearchDocumentDriverImplTest {
 
 	@Mock
 	private Annotations mockAnnotations;
+	@Mock
+	private NamedAnnotations mockNamedAnnotations;
+
 
 	private final String annoKey1 = "annoKey1";
 	private final String annoKey2 = "annoKey2";
+
+	private final String existingIndexField = FIELD_TISSUE;
+	private final String existingAnnotationKey = "tissue";
+	private final String existingAnnotationKey2 = "tissue_tumor";
 
 
 	private final String annoValue1 = "The early bird gets the worm";
@@ -63,6 +72,11 @@ public class SearchDocumentDriverImplTest {
 		spySearchDocumentDriver = Mockito.spy(new SearchDocumentDriverImpl());
 
 		annoValuesMap = new HashMap<>();
+
+		// since SEARCHABLE_NODE_ANNOTATIONS is final and unmodifiable, we need to check that values we assume exist
+		// actually do exist in this map
+		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(existingIndexField));
+		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.get(existingIndexField).containsAll(Arrays.asList(existingAnnotationKey, existingAnnotationKey2)));
 	}
 
 	@Test
@@ -109,8 +123,77 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
-	public void getSearchIndexFieldValue__annoValues(){
+	public void getFirsAnnotationValues(){
+		Annotations mockPrimaryAnnotations = mockAnnotations;
+		Annotations mockAdditionaAnnotations = mock(Annotations.class);
+		when(mockNamedAnnotations.getPrimaryAnnotations()).thenReturn(mockPrimaryAnnotations);
+		when(mockNamedAnnotations.getAdditionalAnnotations()).thenReturn(mockAdditionaAnnotations);
+		doNothing().when(spySearchDocumentDriver).addFirstAnnotationValuesToMap(any(Annotations.class), anyMapOf(String.class, String.class));
+
+		Map<String, String> result = spySearchDocumentDriver.getFirsAnnotationValues(mockNamedAnnotations);
+
+		assertNotNull(result);
+		verify(mockNamedAnnotations, times(1)).getPrimaryAnnotations();
+		verify(mockNamedAnnotations, times(1)).getAdditionalAnnotations();
+		verify(spySearchDocumentDriver, times(1)).addFirstAnnotationValuesToMap(mockPrimaryAnnotations, result);
+		verify(spySearchDocumentDriver, times(1)).addFirstAnnotationValuesToMap(mockAdditionaAnnotations, result);
 
 	}
+
+	@Test
+	public void getSearchIndexFieldValue__returnFirstAnnoValues(){
+		annoValuesMap.put(existingAnnotationKey, annoValue1);
+		annoValuesMap.put(existingAnnotationKey2, annoValue2);
+
+		String result = spySearchDocumentDriver.getSearchIndexFieldValue(annoValuesMap, existingIndexField);
+		assertEquals(annoValue1, result);
+	}
+
+	@Test
+	public void getSearchIndexFieldValue__returnNoValues(){
+		assertTrue(annoValuesMap.isEmpty());
+		String result = spySearchDocumentDriver.getSearchIndexFieldValue(annoValuesMap, existingIndexField);
+		assertNull(result);
+	}
+
+	@Test
+	public void addAnnotationsToSearchDocument_numberFormatExceptionOnNumSamples(){
+		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
+		doReturn(annoValue1).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
+
+		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, mockNamedAnnotations);
+
+		assertNull(documentFields.getNum_samples());
+		assertEquals(annoValue1, documentFields.getDisease());
+		assertEquals(annoValue1, documentFields.getConsortium());
+		assertEquals(annoValue1, documentFields.getTissue());
+		assertEquals(annoValue1, documentFields.getPlatform());
+		assertEquals(annoValue1, documentFields.getDisease());
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_DISEASE);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_NUM_SAMPLES);
+	}
+
+	@Test
+	public void addAnnotationsToSearchDocument_numberCorrectlyParsed(){
+		String numberString = "5";
+		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
+		doReturn(numberString).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
+
+		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, mockNamedAnnotations);
+
+		assertEquals((Long) Long.parseLong(numberString), documentFields.getNum_samples());
+		assertEquals(numberString, documentFields.getDisease());
+		assertEquals(numberString, documentFields.getConsortium());
+		assertEquals(numberString, documentFields.getTissue());
+		assertEquals(numberString, documentFields.getPlatform());
+		assertEquals(numberString, documentFields.getDisease());
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_DISEASE);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_NUM_SAMPLES);
+	}
+
 
 }

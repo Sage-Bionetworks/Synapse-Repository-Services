@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
-import org.junit.Ignore;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
@@ -101,7 +100,6 @@ public class AnnotationsTest {
 		Map<String, List<String>> map = anno.getStringAnnotations();
 		assertNull(map.get("key1"));
 		assertNull(anno.getAllValues("key1"));
-		return;
 	}
 	
 	@Test
@@ -117,7 +115,6 @@ public class AnnotationsTest {
 		Map<String, List<Long>> map = anno.getLongAnnotations();
 		assertNull(map.get("key2"));
 		assertNull(anno.getAllValues("key2"));
-		return;
 	}
 	
 	@Test
@@ -133,7 +130,6 @@ public class AnnotationsTest {
 		Map<String, List<Double>> map = anno.getDoubleAnnotations();
 		assertNull(map.get("key2"));
 		assertNull(anno.getAllValues("key2"));
-		return;
 	}
 	
 	@Test
@@ -149,12 +145,10 @@ public class AnnotationsTest {
 		Map<String, List<Date>> map = anno.getDateAnnotations();
 		assertNull(map.get("key2"));
 		assertNull(anno.getAllValues("key2"));
-		return;
 	}
 	
 	@Test
-	@Ignore
-	public void testGetStringSingle() {
+	public void testGetSingleValue__results_returned() {
 		Annotations anno = new Annotations();
 		anno.addAnnotation("key1", "value1");
 		anno.addAnnotation("key1", "value2");
@@ -162,8 +156,15 @@ public class AnnotationsTest {
 		String result = (String)anno.getSingleValue("key1");
 		assertNotNull(result);
 		assertEquals("value1", result);
-		return;
 	}
+
+	@Test
+	public void testGetSingleValue__no_result() {
+		Annotations anno = new Annotations();
+		String result = (String)anno.getSingleValue("key1");
+		assertNull(result);
+	}
+
 	@Test
 	public void testGetStringArray() {
 		Annotations anno = new Annotations();
@@ -174,7 +175,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals("value1", result.iterator().next());
-		return;
 	}
 	
 	@Test
@@ -187,7 +187,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals(new Long(1), result.iterator().next());
-		return;
 	}
 	
 	@Test
@@ -200,7 +199,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals(new Double(1), result.iterator().next());
-		return;
 	}
 	
 	@Test
@@ -214,7 +212,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals(v, result.iterator().next());
-		return;
 	}
 
 	@Test
@@ -234,10 +231,8 @@ public class AnnotationsTest {
 		anno.getStringAnnotations().put("emptyList", new ArrayList<String>());
 		
 		String json = EntityFactory.createJSONStringForEntity(anno);
-		System.out.println(json);
 		assertNotNull(json);
 		Annotations clone = EntityFactory.createEntityFromJSONString(json, Annotations.class);
-		System.out.println(EntityFactory.createJSONStringForEntity(clone));
 		assertEquals(anno, clone);
 		
 	}
