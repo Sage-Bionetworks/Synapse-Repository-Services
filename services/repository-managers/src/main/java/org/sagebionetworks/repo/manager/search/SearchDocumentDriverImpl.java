@@ -10,10 +10,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -59,7 +59,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
-	static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
+	static final Map<String, List<String>> SEARCHABLE_NODE_ANNOTATIONS;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -69,21 +69,16 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	V2WikiPageDao wikiPageDao;
 
 	static { // initialize SEARCHABLE_NODE_ANNOTATIONS
-		// These are both node primary annotations and additional annotation
-		// names
-		Map<String, String> searchableNodeAnnotations = new CaseInsensitiveMap<>();
-		searchableNodeAnnotations.put("disease", FIELD_DISEASE);
-		searchableNodeAnnotations.put("Tissue_Tumor", FIELD_TISSUE);
-		searchableNodeAnnotations.put("sampleSource", FIELD_TISSUE);
-		searchableNodeAnnotations.put("tissueType", FIELD_TISSUE);
-		searchableNodeAnnotations.put("tissue", FIELD_TISSUE);
-		searchableNodeAnnotations.put("platform", FIELD_PLATFORM);
-		searchableNodeAnnotations.put("platformDesc", FIELD_PLATFORM);
-		searchableNodeAnnotations.put("platformVendor", FIELD_PLATFORM);
-		searchableNodeAnnotations.put("number_of_samples", FIELD_NUM_SAMPLES);
-		searchableNodeAnnotations.put("numSamples", FIELD_NUM_SAMPLES);
-		searchableNodeAnnotations.put("num_samples", FIELD_NUM_SAMPLES);
-		searchableNodeAnnotations.put("consortium", FIELD_CONSORTIUM);
+		// These are both node primary annotations and additional annotation names
+		// NOTE: when adding values to this map, make sure it is in LOWER CASE
+		// NOTE: ORDER MATTERS. Earlier annotation key names will be preferred over later ones if both keys are present.
+		Map<String, List<String>> searchableNodeAnnotations = new HashMap<>();
+		searchableNodeAnnotations.put(FIELD_DISEASE, Collections.unmodifiableList(Arrays.asList("disease")));
+		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue", "tissue_tumor", "samplesource", "tissuetype")));
+		searchableNodeAnnotations.put(FIELD_PLATFORM, Collections.unmodifiableList(Arrays.asList("platform", "platformdesc", "platformvendor")));
+		searchableNodeAnnotations.put(FIELD_NUM_SAMPLES, Collections.unmodifiableList(Arrays.asList("numsamples", "num_samples", "number_of_samples")));
+		searchableNodeAnnotations.put(FIELD_CONSORTIUM, Collections.unmodifiableList(Arrays.asList("consortium")));
+
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
 	}
@@ -177,8 +172,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		boost.add(node.getId());
 
 		// Annotations
-		addAnnotationsToSearchDocument(fields, annos.getPrimaryAnnotations());
-		addAnnotationsToSearchDocument(fields, annos.getAdditionalAnnotations());
+		addAnnotationsToSearchDocument(fields, annos);
 
 		// References, just put the node id to which the reference refers. Not
 		// currently adding the version or the type of the reference (e.g.,
@@ -236,82 +230,66 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		}
 		return document;
 	}
+	void addAnnotationsToSearchDocument(DocumentFields fields, NamedAnnotations annotations){
+		// process a map of annotation keys to values
+		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
 
+		//set the values for the document fields
+		fields.setDisease(getSearchIndexFieldValue(firstAnnotationValues, FIELD_DISEASE));
+		fields.setConsortium(getSearchIndexFieldValue(firstAnnotationValues, FIELD_CONSORTIUM));
+		fields.setTissue(getSearchIndexFieldValue(firstAnnotationValues, FIELD_TISSUE));
+		fields.setPlatform(getSearchIndexFieldValue(firstAnnotationValues, FIELD_PLATFORM));
+		try {
+			fields.setNum_samples(Long.parseLong(getSearchIndexFieldValue(firstAnnotationValues, FIELD_NUM_SAMPLES).trim()));
+		}catch (NumberFormatException e){
+			// swallow this exception, this is just a best-effort
+			// attempt to push more annotations into search
+		}
 
-	void addAnnotationsToSearchDocument(DocumentFields fields, Annotations annots) {
+	}
 
-		for (String key : annots.keySet()) {
-			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
-			if (searchFieldName == null) {
-				continue;
-			}
-			List values = annots.getAllValues(key);
-			if (values.get(0) instanceof byte[]) {
-				// don't add blob annotations to the search index
-				continue;
-			}
+	/**
+	 * Returns a Map from the keys of the NamedAnnotations to the first value (as a String) for that key.
+	 * @param annotations
+	 * @return
+	 */
+	Map<String, String> getFirsAnnotationValues(NamedAnnotations annotations){
+		Map<String, String> firstAnnotationValues = new HashMap<>();
+		addFirstAnnotationValuesToMap(annotations.getPrimaryAnnotations(), firstAnnotationValues);
+		addFirstAnnotationValuesToMap(annotations.getAdditionalAnnotations(), firstAnnotationValues);
+		return firstAnnotationValues;
+	}
 
-			for (Object obj : values) {
-				if (obj != null) {
-					// Annotations should only have 1 value. The List is for legacy support
-					// of Entities with annotations containing multiple values
-					// the search index is configured to only care about 1 value anyways.
-					addAnnotationToDocumentField(fields, searchFieldName, obj);
-					//once a non-null value is found, stop iterating
-					break;
-				}
+	/**
+	 * For each key in the Annotations's key set, add the first matching value as a String to the map.
+	 * @param anno
+	 * @param annoValuesMap
+	 */
+	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
+		for(String key: anno.keySet()){
+			Object value = anno.getSingleValue(key);
+			if(!(value instanceof byte[])) {
+				annoValuesMap.putIfAbsent(key.toLowerCase(), value.toString());
 			}
 		}
 	}
 
 	/**
-	 * Checks the key and value of
-	 * @param fields DocumentField to which the annotation is added
-	 * @param key Annotation key
-	 * @param value Annotation value
+	 * Given the index field name, retrieve
+	 * @param firsAnnotationValues
+	 * @param indexFieldKey
+	 * @return
 	 */
-	void addAnnotationToDocumentField(DocumentFields fields, String key, Object value) {
-		//this method could be static but is easier to test when not static
-		String stringValue = value.toString();
-		switch (key){
-			case FIELD_DISEASE:
-				if(fields.getDisease() == null) {
-					fields.setDisease(stringValue);
-				}
-				break;
-			case FIELD_CONSORTIUM:
-				if(fields.getConsortium() == null) {
-					fields.setConsortium(stringValue);
-				}
-				break;
-			case FIELD_TISSUE:
-				if(fields.getTissue() == null) {
-					fields.setTissue(stringValue);
-				}
-				break;
-			case FIELD_PLATFORM:
-				if(fields.getPlatform() == null) {
-					fields.setPlatform(stringValue);
-				}
-				break;
-			case FIELD_NUM_SAMPLES:
-				if(fields.getNum_samples() == null) {
-					try{
-						Long longValue = (value instanceof Long) ? (Long) value : Long.valueOf((stringValue).trim());
-						fields.setNum_samples(longValue);
-					} catch (NumberFormatException e) {
-						// swallow this exception, this is just a best-effort
-						// attempt to push more annotations into search
-					}
-				}
-				break;
-			default:
-				throw new IllegalArgumentException(
-						"Annotation "
-								+ key
-								+ " added to searchable annotations map but not added to addAnnotationToDocumentField");
+	String getSearchIndexFieldValue(Map<String, String> firsAnnotationValues, String indexFieldKey){
+		for(String possibleAnnotationName: SEARCHABLE_NODE_ANNOTATIONS.get(indexFieldKey)){
+			String value = firsAnnotationValues.get(possibleAnnotationName);
+			if(value != null){
+				return value;
+			}
 		}
+		return null;
 	}
+
 
 	@Override
 	public Document formulateSearchDocument(String nodeId)

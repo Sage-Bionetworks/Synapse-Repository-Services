@@ -50,140 +50,17 @@ public class SearchDocumentDriverImplTest {
 
 	private final String indexableAnnotationKey1 = "disease";
 	private final String indexableAnnotationKey2 = "platform";
+
 	@Before
 	public void setUp(){
 
 		documentFields = new DocumentFields();
 		spySearchDocumentDriver = Mockito.spy(new SearchDocumentDriverImpl());
-		doNothing().when(spySearchDocumentDriver).addAnnotationToDocumentField(eq(disableAddAnnotationToDocumentField), anyString(), anyObject());
 
 		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(indexableAnnotationKey1));
 		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(indexableAnnotationKey2));
 	}
 
+	//TODO: tests
 
-
-	////////////////////////////////////////
-	// addAnnotationToDocumentField() tests
-	////////////////////////////////////////
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testAddAnnotationToDocumentField_UnknownKey(){
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, "SOME_OTHER_KEY", annoValue);
-	}
-
-	@Test
-	public void testAddAnnotationToDocumentField_KeyIsDisease(){
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_DISEASE, annoValue);
-		assertEquals(annoValue, documentFields.getDisease());
-
-		//assert value is not overwritten when a second value comes in
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_DISEASE, annoAdditionalValue);
-		assertEquals(annoValue, documentFields.getDisease());
-	}
-
-	@Test
-	public void testAddAnnotationToDocumentField_KeyIsConsortium(){
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_CONSORTIUM, annoValue);
-		assertEquals(annoValue, documentFields.getConsortium());
-
-		//assert value is not overwritten when a second value comes in
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_CONSORTIUM, annoAdditionalValue);
-		assertEquals(annoValue, documentFields.getConsortium());
-	}
-
-	@Test
-	public void testAddAnnotationToDocumentField_KeyIsTissue(){
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_TISSUE, annoValue);
-		assertEquals(annoValue, documentFields.getTissue());
-
-		//assert value is not overwritten when a second value comes in
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_TISSUE, annoAdditionalValue);
-		assertEquals(annoValue, documentFields.getTissue());
-	}
-
-	@Test
-	public void testAddAnnotationToDocumentField_KeyIsPlatform(){
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_PLATFORM, annoValue);
-		assertEquals(annoValue, documentFields.getPlatform());
-
-		//assert value is not overwritten when a second value comes in
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_PLATFORM, annoAdditionalValue);
-		assertEquals(annoValue, documentFields.getPlatform());
-	}
-
-	@Test
-	public void testAddAnnotationToDocumentField_KeyIsNumSamples(){
-		Long longValue = 64L;
-		Long otherLongValue = 99999L;
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_NUM_SAMPLES, longValue);
-		assertEquals(longValue, documentFields.getNum_samples());
-
-		//assert value is not overwritten when a second value comes in
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_NUM_SAMPLES, otherLongValue);
-		assertEquals(longValue, documentFields.getNum_samples());
-	}
-
-	@Test
-	public void testAddAnnotationToDocumentField_KeyIsNumSamplesValueIsString(){
-		String goodString = "64";
-		String badString = "I'm not a long.";
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_NUM_SAMPLES, badString);
-		assertEquals(null, documentFields.getNum_samples());
-
-		spySearchDocumentDriver.addAnnotationToDocumentField(documentFields, FIELD_NUM_SAMPLES, goodString);
-		assertEquals((Long) 64L, documentFields.getNum_samples());
-	}
-
-	//////////////////////////////////////////
-	// addAnnotationsToSearchDocument() tests
-	//////////////////////////////////////////
-	@Test
-	public void testAddAnnotationsToSearchDocument_SkipUnrecognizedAnnoKeys(){
-		String nonExistentKey = "not actualy search index key";
-		assertFalse(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(nonExistentKey));
-
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(nonExistentKey));
-
-		spySearchDocumentDriver.addAnnotationsToSearchDocument(disableAddAnnotationToDocumentField, mockAnnotations);
-
-		verify(spySearchDocumentDriver,never()).addAnnotationToDocumentField(any(DocumentFields.class),anyString(), anyObject());
-	}
-
-	@Test
-	public void testAddAnnotationsToSearchDocument_SkipByteArray(){
-
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(indexableAnnotationKey1));
-		when(mockAnnotations.getAllValues(indexableAnnotationKey1)).thenReturn(Collections.singletonList( new byte[]{} )); //list containing a byte array
-
-		spySearchDocumentDriver.addAnnotationsToSearchDocument(disableAddAnnotationToDocumentField, mockAnnotations);
-
-		verify(mockAnnotations, times(1)).getAllValues(indexableAnnotationKey1);
-		verify(spySearchDocumentDriver,never()).addAnnotationToDocumentField(any(DocumentFields.class),anyString(), anyObject());
-	}
-
-	@Test
-	public void testAddAnnotationsToSearchDocument_SingleAnnotationKeyWithMultipleAnnotationValues(){
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(indexableAnnotationKey1));
-		when(mockAnnotations.getAllValues(indexableAnnotationKey1)).thenReturn(Arrays.asList(null, annoValue, annoAdditionalValue));
-
-		spySearchDocumentDriver.addAnnotationsToSearchDocument(disableAddAnnotationToDocumentField, mockAnnotations);
-
-		verify(mockAnnotations, times(1)).getAllValues(indexableAnnotationKey1);
-		verify(spySearchDocumentDriver,times(1)).addAnnotationToDocumentField(disableAddAnnotationToDocumentField, indexableAnnotationKey1, annoValue);
-	}
-
-	@Test
-	public void testAddAnnotationsToSearchDocument_MultipleAnnotationKeys(){
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(indexableAnnotationKey1, indexableAnnotationKey2));
-		when(mockAnnotations.getAllValues(indexableAnnotationKey1)).thenReturn(Collections.singletonList(annoValue));
-		when(mockAnnotations.getAllValues(indexableAnnotationKey2)).thenReturn(Collections.singletonList(annoAdditionalValue));
-
-		spySearchDocumentDriver.addAnnotationsToSearchDocument(disableAddAnnotationToDocumentField, mockAnnotations);
-
-		verify(mockAnnotations, times(1)).getAllValues(indexableAnnotationKey1);
-		verify(mockAnnotations, times(1)).getAllValues(indexableAnnotationKey2);
-		verify(spySearchDocumentDriver,times(1)).addAnnotationToDocumentField(disableAddAnnotationToDocumentField, indexableAnnotationKey1, annoValue);
-		verify(spySearchDocumentDriver,times(1)).addAnnotationToDocumentField(disableAddAnnotationToDocumentField, indexableAnnotationKey2, annoAdditionalValue);
-	}
 }

@@ -195,7 +195,6 @@ public class SearchDocumentDriverImplAutowireTest {
 				.addAnnotation("stringKey",
 						"a multi-word annotation gets underscores so we can exact-match find it");
 		additionalAnnos.addAnnotation("longKey", 10L);
-		additionalAnnos.addAnnotation("number_of_samples", "42");
 		additionalAnnos.addAnnotation("Tissue_Tumor", "ear lobe");
 		additionalAnnos.addAnnotation("platform", "synapse");
 		additionalAnnos.addAnnotation("consortium", "C O N S O R T I U M");
@@ -263,10 +262,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(fields.getBoost().contains(node.getName()));
 
 		// Check the faceted fields
-
-		//primary annotations are read first so it gets priority over the value set in additional annotations
 		assertEquals((Long) 999L, fields.getNum_samples());
-
 		assertEquals("ear lobe", fields.getTissue());
 		assertEquals("synapse", fields.getPlatform());
 		assertEquals("C O N S O R T I U M", fields.getConsortium());
