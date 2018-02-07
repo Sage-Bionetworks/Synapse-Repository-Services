@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import org.sagebionetworks.repo.model.dbo.migration.ChecksumTableResult;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.RowMapper;
 
 /**
@@ -210,6 +211,22 @@ public class DMLUtils {
 		main.append(mapping.getTableName());
 		main.append(" WHERE ");
 		appendPrimaryKey(mapping, main);
+		return main.toString();
+	}
+	
+	/**
+	 * Delete rows with a range of backup IDs.
+	 * @param mapping
+	 * @return
+	 */
+	public static String createDeleteByBackupIdRange(TableMapping mapping) {
+		ValidateArgument.required(mapping, "Mapping cannot be null");
+		ValidateArgument.required(mapping.getFieldColumns(), "TableMapping.getFieldColumns() cannot be null");
+		StringBuilder main = new StringBuilder();
+		main.append("DELETE FROM ");
+		main.append(mapping.getTableName());
+		main.append(" WHERE ");
+		addBackupRange(main, mapping);
 		return main.toString();
 	}
 	
@@ -678,5 +695,7 @@ public class DMLUtils {
 			}
 		};
 	}
+
+
 	
 }

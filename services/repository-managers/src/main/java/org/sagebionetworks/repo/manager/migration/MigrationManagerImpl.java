@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
@@ -717,6 +718,11 @@ public class MigrationManagerImpl implements MigrationManager {
 		ValidateArgument.required(request.getBatchSize(), "requset.batchSize");
 		ValidateArgument.required(request.getBackupFileKey(), "request.backupFileKey");
 		validateUser(user);
+		// If given a range then delete all data for that range.
+		if(request.getMinimumRowId() != null && request.getMaximumRowId() != null) {
+			deleteByRange(request.getMigrationType(), request.getMinimumRowId(), request.getMaximumRowId());
+		}
+		
 		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationRestore", ".zip");
 		FileInputStream fis = null;
@@ -889,6 +895,22 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Override
 	public boolean isBootstrapType(MigrationType type) {
 		return PRINCIPAL_TYPES.contains(type);
+	}
+	
+	/**
+	 * Delete all primary and secondary data for the given ID range.
+	 * @param type
+	 * @param minimumId minimum ID (inclusive).
+	 * @param maximumId maximum ID (exclusive).
+	 */
+	void deleteByRange(MigrationType type, long minimumId, long maximumId) {
+		if(this.migratableTableDao.isMigrationTypeRegistered(type)) {
+			List<MigrationType> secondaryTypes = getSecondaryTypes(type);
+			for(MigrationType secondaryType: secondaryTypes) {
+				this.migratableTableDao.deleteByRange(secondaryType, minimumId, maximumId);
+			}
+			this.migratableTableDao.deleteByRange(type, minimumId, maximumId);
+		}
 	}
 
 }

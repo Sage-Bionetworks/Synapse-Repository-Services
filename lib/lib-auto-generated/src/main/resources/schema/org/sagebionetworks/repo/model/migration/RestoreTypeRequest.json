@@ -17,7 +17,15 @@
 			"type": "string"
 		},
 		"batchSize": {
-			"description": "The batch size determines the maxiumum number of rows that will be loaded into memory at one time.",
+			"description": "The batch size determines the maximum number of rows that will be loaded into memory at one time.",
+			"type": "integer"
+		},
+		"minimumRowId": {
+			"description": "The minimum row ID (inclusive) for the rows contained in this backup.  All rows between the min and max will be deleted before restoring the rows in this request.",
+			"type": "integer"
+		},
+		"maximumRowId": {
+			"description": "The maximum row ID (exclusive) for the rows contained in this backup.  All rows between the min and max will be deleted before restoring the rows in this request.",
 			"type": "integer"
 		}
 	}
