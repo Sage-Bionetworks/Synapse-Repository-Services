@@ -189,17 +189,15 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setVersionLabel("versionLabel");
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("species", "Dragon");
 		primaryAnnos.addAnnotation("numSamples", 999L);
 		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		additionalAnnos.addAnnotation("Species", "Unicorn");
 		additionalAnnos
 				.addAnnotation("stringKey",
 						"a multi-word annotation gets underscores so we can exact-match find it");
 		additionalAnnos.addAnnotation("longKey", 10L);
-		additionalAnnos.addAnnotation("number_of_samples", "42");
 		additionalAnnos.addAnnotation("Tissue_Tumor", "ear lobe");
 		additionalAnnos.addAnnotation("platform", "synapse");
+		additionalAnnos.addAnnotation("consortium", "C O N S O R T I U M");
 		// PLFM-4438
 		additionalAnnos.addAnnotation("disease", 1L);
 		Date dateValue = new Date();
@@ -237,14 +235,13 @@ public class SearchDocumentDriverImplAutowireTest {
 		fakeEntityPath.writeToJSONObject(adapter);		
 		String fakeEntityPathJSONString = adapter.toJSONString();
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, fakeEntityPath, wikiPageText);
+				named, acl, wikiPageText);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals(node.getId(), document.getId());
 
 		DocumentFields fields = document.getFields();
 
 		// Check entity property fields
-		assertEquals(node.getId(), fields.getId());
 		assertEquals(node.getETag(), fields.getEtag());
 		assertEquals(node.getParentId(), fields.getParent_id());
 		assertEquals(node.getName(), fields.getName());
@@ -265,14 +262,10 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(fields.getBoost().contains(node.getName()));
 
 		// Check the faceted fields
-		assertEquals(2, fields.getNum_samples().size());
-		assertTrue(fields.getNum_samples().contains(new Long(42)));
-		assertTrue(fields.getNum_samples().contains(new Long(999L)));
-		assertEquals(2, fields.getSpecies().size());
-		assertEquals("Dragon", fields.getSpecies().get(0));
-		assertEquals("Unicorn", fields.getSpecies().get(1));
-		assertEquals("ear lobe", fields.getTissue().get(0));
-		assertEquals("synapse", fields.getPlatform().get(0));
+		assertEquals((Long) 999L, fields.getNum_samples());
+		assertEquals("ear lobe", fields.getTissue());
+		assertEquals("synapse", fields.getPlatform());
+		assertEquals("C O N S O R T I U M", fields.getConsortium());
 
 		// Check ACL fields
 		assertEquals(2, fields.getAcl().size());
@@ -297,40 +290,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		EntityPath fakeEntityPath = new EntityPath();
 		fakeEntityPath.setPath(fakePath);
 		return fakeEntityPath;
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testCleanOutControlCharacters() throws Exception {
-		// Cloud Search cannot handle control characters, strip them out of the
-		// search document
-		Node node = new Node();
-		node.setId("5678");
-		node.setParentId("1234");
-		node.setETag("0");
-		node.setNodeType(EntityType.folder);
-		Long nonexistantPrincipalId = 42L;
-		node.setCreatedByPrincipalId(nonexistantPrincipalId);
-		node.setCreatedOn(new Date());
-		node.setModifiedByPrincipalId(nonexistantPrincipalId);
-		node.setModifiedOn(new Date());
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("stringKey", "a");
-		primaryAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		additionalAnnos.addAnnotation("stringKey", "a");
-		additionalAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		AccessControlList acl = new AccessControlList();
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		acl.setResourceAccess(resourceAccess);
-		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, new EntityPath(), null);
-		byte[] cloudSearchDocument = SearchDocumentDriverImpl
-				.cleanSearchDocument(document);
-		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
 	}
 	
 	@Test
@@ -357,15 +316,12 @@ public class SearchDocumentDriverImplAutowireTest {
 
 	// http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
 	private static String readFile(File file) throws IOException {
-		FileInputStream stream = new FileInputStream(file);
-		try {
+		try (FileInputStream stream = new FileInputStream(file)) {
 			FileChannel fc = stream.getChannel();
 			MappedByteBuffer bb = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc
 					.size());
 			/* Instead of using default, pass in a decoder. */
 			return Charset.forName("UTF-8").decode(bb).toString();
-		} finally {
-			stream.close();
 		}
 	}
 

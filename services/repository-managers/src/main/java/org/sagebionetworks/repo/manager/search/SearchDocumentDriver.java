@@ -35,16 +35,17 @@ public interface SearchDocumentDriver {
 	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException, IOException;
 	/**
 	 * Create a search document and return it.
-	 * 
+	 *
 	 * @param node
-	 * @param rev
+	 * @param annos
 	 * @param acl
+	 * @param wikiPagesText
 	 * @return the search document for the node
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	public Document formulateSearchDocument(Node node, NamedAnnotations annos,
-			AccessControlList acl, EntityPath entityPath, String wikiPagesText) throws DatastoreException, NotFoundException;
+											AccessControlList acl, String wikiPagesText) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 

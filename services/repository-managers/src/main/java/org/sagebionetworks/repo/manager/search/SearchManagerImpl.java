@@ -81,7 +81,6 @@ public class SearchManagerImpl implements SearchManager{
 	 * @param hits
 	 */
 	public void addReturnDataToHits(List<Hit> hits) {
-		//NOTE: We actually do parentIds of each entity in FIELD_ANCESTORS but we are still missing
 		if(hits != null){
 			// For each hit we need to add the path
 			List<Hit> toRemove = new LinkedList<>();
