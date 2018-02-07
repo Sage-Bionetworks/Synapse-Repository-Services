@@ -71,6 +71,9 @@ public class SearchDocumentDriverImplTest {
 		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(new byte[]{});
 
 		spySearchDocumentDriver.addFirstAnnotationValuesToMap(mockAnnotations, annoValuesMap);
+
+		verify(mockAnnotations, times(1)).keySet();
+		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
 		assertTrue(annoValuesMap.isEmpty());
 	}
 
@@ -82,7 +85,32 @@ public class SearchDocumentDriverImplTest {
 		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(annoValue1);
 
 		spySearchDocumentDriver.addFirstAnnotationValuesToMap(mockAnnotations, annoValuesMap);
+
+		verify(mockAnnotations, times(1)).keySet();
+		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
 		assertEquals(1, annoValuesMap.size());
 		assertEquals("asdf", annoValuesMap.get(annoKey1.toLowerCase()));
 	}
+
+	@Test
+	public void addFirstAnnotationValuesToMap__multipleValues(){
+		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1, annoKey2));
+		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(annoValue1);
+		when(mockAnnotations.getSingleValue(annoKey2)).thenReturn(annoValue2);
+
+		spySearchDocumentDriver.addFirstAnnotationValuesToMap(mockAnnotations, annoValuesMap);
+
+		verify(mockAnnotations, times(1)).keySet();
+		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
+		verify(mockAnnotations, times(1)).getSingleValue(annoKey2);
+		assertEquals(2, annoValuesMap.size());
+		assertEquals(annoValue1, annoValuesMap.get(annoKey1.toLowerCase()));
+		assertEquals(annoValue2, annoValuesMap.get(annoKey2.toLowerCase()));
+	}
+
+	@Test
+	public void getSearchIndexFieldValue__annoValues(){
+
+	}
+
 }

@@ -241,7 +241,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		fields.setTissue(getSearchIndexFieldValue(firstAnnotationValues, FIELD_TISSUE));
 		fields.setPlatform(getSearchIndexFieldValue(firstAnnotationValues, FIELD_PLATFORM));
 		try {
-			fields.setNum_samples(NumberUtils.createLong(getSearchIndexFieldValue(firstAnnotationValues, FIELD_NUM_SAMPLES).trim()));
+			fields.setNum_samples(NumberUtils.createLong(getSearchIndexFieldValue(firstAnnotationValues, FIELD_NUM_SAMPLES)));
 		}catch (NumberFormatException e){
 			// swallow this exception, this is just a best-effort
 			// attempt to push more annotations into search
