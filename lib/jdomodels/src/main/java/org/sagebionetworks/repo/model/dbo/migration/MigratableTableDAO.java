@@ -194,4 +194,12 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 */
 	int deleteById(MigrationType type, List<Long> idList);
 
+	/**
+	 * Delete all rows of the given type and row ID range.
+	 * @param type
+	 * @param minimumId inclusive
+	 * @param maximumId exclusive
+	 */
+	public int deleteByRange(MigrationType type, long minimumId, long maximumId);
+
 }

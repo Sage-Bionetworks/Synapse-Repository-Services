@@ -739,6 +739,38 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
+	public void testDeleteByRange() {
+		List<Long> ids = new LinkedList<>();
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one  = columnModelDao.createColumnModel(one);
+		ids.add(Long.parseLong(one.getId()));
+		
+		ColumnModel two = new ColumnModel();
+		two.setColumnType(ColumnType.INTEGER);
+		two.setName("two");
+		two = columnModelDao.createColumnModel(two);
+		ids.add(Long.parseLong(two.getId()));
+		
+		ColumnModel three = new ColumnModel();
+		three.setColumnType(ColumnType.INTEGER);
+		three.setName("three");
+		three = columnModelDao.createColumnModel(three);
+		ids.add(Long.parseLong(three.getId()));
+		
+		// Stream over the results
+		long minId = ids.get(0);
+		long maxId = ids.get(2);
+		// should exclude last row since max is exclusive
+		int count = migratableTableDAO.deleteByRange(MigrationType.COLUMN_MODEL, minId, maxId);
+		assertEquals(2, count);
+		// add one to the max to delete the last.
+		count = migratableTableDAO.deleteByRange(MigrationType.COLUMN_MODEL, minId, maxId+1);
+		assertEquals(1, count);
+	}
+	
+	@Test
 	public void testCreateOrUpdate() {
 		// Note: Principal does not need to exists since foreign keys will be off.
 		DBOCredential one = new DBOCredential();
