@@ -22,6 +22,8 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.google.common.collect.Sets;
 import org.junit.Before;
@@ -45,11 +47,14 @@ public class SearchDocumentDriverImplTest {
 	@Mock
 	private Annotations mockAnnotations;
 
-	private final String annoValue = "The early bird gets the worm";
-	private final String annoAdditionalValue = "This bird woke up at 2pm";
+	private final String annoKey1 = "annoKey1";
+	private final String annoKey2 = "annoKey2";
 
-	private final String indexableAnnotationKey1 = "disease";
-	private final String indexableAnnotationKey2 = "platform";
+
+	private final String annoValue1 = "The early bird gets the worm";
+	private final String annoValue2= "This bird woke up at 2pm";
+
+	private Map<String, String> annoValuesMap;
 
 	@Before
 	public void setUp(){
@@ -57,12 +62,27 @@ public class SearchDocumentDriverImplTest {
 		documentFields = new DocumentFields();
 		spySearchDocumentDriver = Mockito.spy(new SearchDocumentDriverImpl());
 
-		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(indexableAnnotationKey1));
-		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(indexableAnnotationKey2));
+		annoValuesMap = new HashMap<>();
 	}
 
-	//TODO: tests
 	@Test
-	public void TODOTest(){
+	public void addFirstAnnotationValuesToMap__skipByteArray(){
+		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1));
+		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(new byte[]{});
+
+		spySearchDocumentDriver.addFirstAnnotationValuesToMap(mockAnnotations, annoValuesMap);
+		assertTrue(annoValuesMap.isEmpty());
+	}
+
+	@Test
+	public void addFirstAnnotationValuesToMap__skipExistingValue(){
+		annoValuesMap.put(annoKey1.toLowerCase(), "asdf");
+
+		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1));
+		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(annoValue1);
+
+		spySearchDocumentDriver.addFirstAnnotationValuesToMap(mockAnnotations, annoValuesMap);
+		assertEquals(1, annoValuesMap.size());
+		assertEquals("asdf", annoValuesMap.get(annoKey1.toLowerCase()));
 	}
 }
