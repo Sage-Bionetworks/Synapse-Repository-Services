@@ -133,11 +133,8 @@ public class SearchDocumentDriverImplTest {
 		Map<String, String> result = spySearchDocumentDriver.getFirsAnnotationValues(mockNamedAnnotations);
 
 		assertNotNull(result);
-		verify(mockNamedAnnotations, times(1)).getPrimaryAnnotations();
 		verify(mockNamedAnnotations, times(1)).getAdditionalAnnotations();
-		verify(spySearchDocumentDriver, times(1)).addFirstAnnotationValuesToMap(mockPrimaryAnnotations, result);
 		verify(spySearchDocumentDriver, times(1)).addFirstAnnotationValuesToMap(mockAdditionaAnnotations, result);
-
 	}
 
 	@Test
@@ -157,7 +154,36 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
-	public void addAnnotationsToSearchDocument_numberFormatExceptionOnNumSamples(){
+	public void getSearchIndexFieldValue__testCaseInsensitive(){
+		annoValuesMap.put("platformdesc", annoValue1);
+		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(FIELD_PLATFORM));
+		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.get(FIELD_PLATFORM).contains("platformDesc"));//camel cased
+		String result = spySearchDocumentDriver.getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM);
+		assertEquals(annoValue1, result);
+	}
+
+	@Test
+	public void addAnnotationsToSearchDocument_AnnotationValueIsNull(){
+		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
+		doReturn(null).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
+
+		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, mockNamedAnnotations);
+
+		assertNull(documentFields.getNum_samples());
+		assertNull(documentFields.getDisease());
+		assertNull(documentFields.getConsortium());
+		assertNull(documentFields.getTissue());
+		assertNull(documentFields.getPlatform());
+		assertNull(documentFields.getDisease());
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_DISEASE);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_TISSUE);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_NUM_SAMPLES);
+	}
+
+	@Test
+	public void addAnnotationsToSearchDocument_AnnotationValueIsNotNumericString(){
 		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
 		doReturn(annoValue1).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
 
@@ -171,12 +197,13 @@ public class SearchDocumentDriverImplTest {
 		assertEquals(annoValue1, documentFields.getDisease());
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_DISEASE);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_TISSUE);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_NUM_SAMPLES);
 	}
 
 	@Test
-	public void addAnnotationsToSearchDocument_numberCorrectlyParsed(){
+	public void addAnnotationsToSearchDocument_AnnotationValueIsNumericString(){
 		String numberString = "5";
 		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
 		doReturn(numberString).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
@@ -191,6 +218,7 @@ public class SearchDocumentDriverImplTest {
 		assertEquals(numberString, documentFields.getDisease());
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_DISEASE);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_TISSUE);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_NUM_SAMPLES);
 	}

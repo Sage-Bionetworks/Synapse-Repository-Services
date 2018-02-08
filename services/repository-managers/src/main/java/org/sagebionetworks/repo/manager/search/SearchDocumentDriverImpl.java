@@ -70,14 +70,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	V2WikiPageDao wikiPageDao;
 
 	static { // initialize SEARCHABLE_NODE_ANNOTATIONS
-		// These are both node primary annotations and additional annotation names
-		// NOTE: when adding values to this map, make sure it is in LOWER CASE
 		// NOTE: ORDER MATTERS. Earlier annotation key names will be preferred over later ones if both keys are present.
 		Map<String, List<String>> searchableNodeAnnotations = new HashMap<>();
 		searchableNodeAnnotations.put(FIELD_DISEASE, Collections.unmodifiableList(Arrays.asList("disease")));
-		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue", "tissue_tumor", "samplesource", "tissuetype")));
-		searchableNodeAnnotations.put(FIELD_PLATFORM, Collections.unmodifiableList(Arrays.asList("platform", "platformdesc", "platformvendor")));
-		searchableNodeAnnotations.put(FIELD_NUM_SAMPLES, Collections.unmodifiableList(Arrays.asList("numsamples", "num_samples", "number_of_samples")));
+		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue", "tissue_tumor", "sampleSource", "tissueType")));
+		searchableNodeAnnotations.put(FIELD_PLATFORM, Collections.unmodifiableList(Arrays.asList("platform", "platformDesc", "platformVendor")));
+		searchableNodeAnnotations.put(FIELD_NUM_SAMPLES, Collections.unmodifiableList(Arrays.asList("numSamples", "num_samples", "number_of_samples")));
 		searchableNodeAnnotations.put(FIELD_CONSORTIUM, Collections.unmodifiableList(Arrays.asList("consortium")));
 
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
@@ -231,6 +229,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		}
 		return document;
 	}
+
 	void addAnnotationsToSearchDocument(DocumentFields fields, NamedAnnotations annotations){
 		// process a map of annotation keys to values
 		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
@@ -243,8 +242,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		try {
 			fields.setNum_samples(NumberUtils.createLong(getSearchIndexFieldValue(firstAnnotationValues, FIELD_NUM_SAMPLES)));
 		}catch (NumberFormatException e){
-			// swallow this exception, this is just a best-effort
-			// attempt to push more annotations into search
+			/* If the user did not provide a numeric value for FIELD_NUM_SAMPLES
+			   then that value will not be added to the search index. This is not considered an error.
+			 */
 		}
 
 	}
@@ -256,15 +256,15 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 */
 	Map<String, String> getFirsAnnotationValues(NamedAnnotations annotations){
 		Map<String, String> firstAnnotationValues = new HashMap<>();
-		addFirstAnnotationValuesToMap(annotations.getPrimaryAnnotations(), firstAnnotationValues);
 		addFirstAnnotationValuesToMap(annotations.getAdditionalAnnotations(), firstAnnotationValues);
 		return firstAnnotationValues;
 	}
 
 	/**
 	 * For each key in the Annotations's key set, add the first matching value as a String to the map.
-	 * @param anno
-	 * @param annoValuesMap
+	 * @param anno Annotation source from which the keys and values are retrieved.
+	 * @param annoValuesMap map to which the Annotation values will be added.
+	 *                      Annotation keys will be converted to lower case before they are added to this map
 	 */
 	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
 		for(String key: anno.keySet()){
@@ -277,13 +277,13 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	/**
 	 * Given the index field name, retrieve
-	 * @param firsAnnotationValues
-	 * @param indexFieldKey
+	 * @param firsAnnotationValues map of annotation keys to values. Assumes that all key Strings are in lower case.
+	 * @param indexFieldKey field value from @see org.sagebionetworks.search.SearchConstants
 	 * @return
 	 */
 	String getSearchIndexFieldValue(Map<String, String> firsAnnotationValues, String indexFieldKey){
 		for(String possibleAnnotationName: SEARCHABLE_NODE_ANNOTATIONS.get(indexFieldKey)){
-			String value = firsAnnotationValues.get(possibleAnnotationName);
+			String value = firsAnnotationValues.get(possibleAnnotationName.toLowerCase());
 			if(value != null){
 				return value;
 			}
