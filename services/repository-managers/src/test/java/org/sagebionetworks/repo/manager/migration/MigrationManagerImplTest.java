@@ -956,7 +956,9 @@ public class MigrationManagerImplTest {
 	}
 	
 	@Test
-	public void testRestoreRequest() throws IOException {
+	public void testRestoreRequestNoRange() throws IOException {
+		restoreTypeRequest.setMaximumRowId(null);
+		restoreTypeRequest.setMinimumRowId(null);
 		// call under test
 		RestoreTypeResponse response = manager.restoreRequest(mockUser, restoreTypeRequest);
 		assertNotNull(response);
@@ -970,7 +972,38 @@ public class MigrationManagerImplTest {
 		verify(mockS3Client).deleteObject(MigrationManagerImpl.backupBucket, restoreTypeRequest.getBackupFileKey());
 		verify(mockFileInputStream).close();
 		verify(mockFile).delete();
+		
+		// delete by range should not occur when the range is missing.
+		verify(mockDao, never()).deleteByRange(any(MigrationType.class), anyLong(), anyLong());
 	}
+	
+	
+	@Test
+	public void testRestoreRequestWithRange() throws IOException {
+		long max = 99L;
+		long min = 3L;
+		restoreTypeRequest.setMaximumRowId(max);
+		restoreTypeRequest.setMinimumRowId(min);
+		// call under test
+		RestoreTypeResponse response = manager.restoreRequest(mockUser, restoreTypeRequest);
+		assertNotNull(response);
+		// the file should be fetched from S3
+		verify(mockS3Client).getObject(getObjectRequestCaptor.capture(), eq(mockFile));
+		GetObjectRequest gor = getObjectRequestCaptor.getValue();
+		assertNotNull(gor);
+		assertEquals(MigrationManagerImpl.backupBucket, gor.getBucketName());
+		assertEquals(restoreTypeRequest.getBackupFileKey(), gor.getKey());
+		// the file should be deleted
+		verify(mockS3Client).deleteObject(MigrationManagerImpl.backupBucket, restoreTypeRequest.getBackupFileKey());
+		verify(mockFileInputStream).close();
+		verify(mockFile).delete();
+		
+		// should delete the primary
+		verify(mockDao).deleteByRange(MigrationType.NODE, min, max);
+		// should delete the secondary
+		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, min, max);
+	}
+	
 	
 	@Test
 	public void testRestoreRequestCleanup() throws IOException {
@@ -1040,5 +1073,30 @@ public class MigrationManagerImplTest {
 		restoreTypeRequest.setBatchSize(null);
 		// call under test
 		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test
+	public void testDeleteByRange() {
+		MigrationType type = MigrationType.NODE;
+		long minimumId = 3L;
+		long maximumId = 45L;
+		// call under test
+		manager.deleteByRange(type, minimumId, maximumId);
+		// should delete the primary
+		verify(mockDao).deleteByRange(type, minimumId, maximumId);
+		// should delete the secondary
+		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, minimumId, maximumId);
+	}
+	
+	@Test
+	public void testDeleteByRangeNotRegistered() {
+		MigrationType type = MigrationType.NODE;
+		when(mockDao.isMigrationTypeRegistered(type)).thenReturn(false);
+		long minimumId = 3L;
+		long maximumId = 45L;
+		// call under test
+		manager.deleteByRange(type, minimumId, maximumId);
+		// deletes should not occur
+		verify(mockDao, never()).deleteByRange(any(MigrationType.class), anyLong(), anyLong());
 	}
 }

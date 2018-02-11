@@ -257,6 +257,14 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateDeleteByBackupIdRange(){
+		String sql = DMLUtils.createDeleteByBackupIdRange(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` >= :BMINID AND `ID` < :BMAXID", sql);
+	}
+	
+	@Test
 	public void testGetBatchWithSelfForeignKey(){
 		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);

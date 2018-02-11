@@ -4,12 +4,12 @@
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
 		}
 	],
 	"properties": {
-		"migrationType": {
-			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
-		},
 		"aliasType": {
 			"$ref": "org.sagebionetworks.repo.model.daemon.BackupAliasType"
 		},
