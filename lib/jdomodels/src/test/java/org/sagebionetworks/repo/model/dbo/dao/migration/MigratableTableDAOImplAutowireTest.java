@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -801,5 +802,55 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(ids.size(), deletedCount);
 		deletedCount = migratableTableDAO.deleteById(type, ids);
 		assertEquals(0, deletedCount);
+	}
+	
+	@Test
+	public void testGetPrimaryCardinalitySql() {
+		String expected = 
+				"SELECT P.ID, 1  + COUNT(S0.OWNER_NODE_ID) AS cardinality"
+				+ " FROM JDONODE AS P"
+				+ " LEFT JOIN JDOREVISION AS S0 ON (P.ID =  S0.OWNER_NODE_ID)"
+				+ " WHERE P.ID >= ? AND P.ID < ? GROUP BY P.ID";
+		String sql = migratableTableDAO.getPrimaryCardinalitySql(MigrationType.NODE);
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testCalculateRangesForType() {
+		List<Long> ids = new LinkedList<>();
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one  = columnModelDao.createColumnModel(one);
+		ids.add(Long.parseLong(one.getId()));
+		
+		ColumnModel two = new ColumnModel();
+		two.setColumnType(ColumnType.INTEGER);
+		two.setName("two");
+		two = columnModelDao.createColumnModel(two);
+		ids.add(Long.parseLong(two.getId()));
+		
+		ColumnModel three = new ColumnModel();
+		three.setColumnType(ColumnType.INTEGER);
+		three.setName("three");
+		three = columnModelDao.createColumnModel(three);
+		ids.add(Long.parseLong(three.getId()));
+		
+		MigrationType migrationType = MigrationType.COLUMN_MODEL;
+		long minimumId = ids.get(0);
+		long maximumId = ids.get(2)+1;
+		long optimalNumberOfRows = 2;
+		// call under test
+		List<IdRange> range = migratableTableDAO.calculateRangesForType(migrationType, minimumId, maximumId, optimalNumberOfRows);
+		// one should include the first two rows
+		IdRange expectedOne = new IdRange();
+		expectedOne.setMinimumId(ids.get(0));
+		expectedOne.setMaximumId(ids.get(1)+1);
+		// two should include the third row.
+		IdRange expectedTwo = new IdRange();
+		expectedTwo.setMinimumId(ids.get(2));
+		expectedTwo.setMaximumId(ids.get(2)+1);
+		List<IdRange> expected = Lists.newArrayList(expectedOne, expectedTwo);
+		assertEquals(expected, range);
 	}
 }

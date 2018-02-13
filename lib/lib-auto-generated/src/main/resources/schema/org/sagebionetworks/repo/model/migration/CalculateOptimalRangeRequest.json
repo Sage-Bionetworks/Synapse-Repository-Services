@@ -1,5 +1,5 @@
 {
-	"description": "Calculate the optimized ranges of ID to use to backup a given type such that the total number of rows (primary + secondary) within the range are less than the given batchSize.",
+	"description": "Request to calculate the ID ranges with the optimal number of rows.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
@@ -17,8 +17,8 @@
 			"type": "integer",
 			"description": "The last ID in the range of IDs (exclusive)"
 		},
-		"numberRowsPerRange": {
-			"description": "The number of rows that should contained in within each resulting ID range.",
+		"optimalRowsPerRange": {
+			"description": "The optimal number of rows per range.",
 			"type": "integer"
 		}
 	}

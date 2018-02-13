@@ -925,11 +925,11 @@ public class MigrationManagerImpl implements MigrationManager {
 		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
 		ValidateArgument.required(request.getMinimumId(), "request.minimumId");
 		ValidateArgument.required(request.getMaximumId(), "request.maximumId");
-		ValidateArgument.required(request.getNumberRowsPerRange(), "request.numberRowsPerRange");
+		ValidateArgument.required(request.getOptimalRowsPerRange(), "request.optimalRowsPerRange");
 		ValidateArgument.required(user, "User");
 		validateUser(user);
 		List<IdRange> ranges = migratableTableDao.calculateRangesForType(request.getMigrationType(),
-				request.getMinimumId(), request.getMaximumId(), request.getNumberRowsPerRange());
+				request.getMinimumId(), request.getMaximumId(), request.getOptimalRowsPerRange());
 		CalculateOptimalRangeResponse response = new CalculateOptimalRangeResponse();
 		response.setRanges(ranges);
 		response.setMigrationType(request.getMigrationType());

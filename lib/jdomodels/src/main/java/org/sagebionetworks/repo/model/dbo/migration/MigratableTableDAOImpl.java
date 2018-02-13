@@ -771,19 +771,39 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Override
 	public List<IdRange> calculateRangesForType(MigrationType migrationType, long minimumId, long maximumId,
-			long batchSize) {
-		final RangeBuilder builder = new RangeBuilder(batchSize);
-		// stream over the row counts
-		this.streamingJdbcTemplate.query("", new RowCallbackHandler() {
+			long optimalNumberOfRows) {
+		// Build the ranges by scanning each primary ID and its secondary cardinality.
+		final IdRangeBuilder builder = new IdRangeBuilder(optimalNumberOfRows);
+		String sql = getPrimaryCardinalitySql(migrationType);
+		// Stream over each primary row ID and its associated secondary cardinality.
+		this.streamingJdbcTemplate.query(sql, new RowCallbackHandler() {
 
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				// pass each row to the builder
-				long rowId = rs.getLong(1);
-				long count = rs.getLong(2);
-				builder.addRow(rowId, count);
-			}});
+				long primaryRowId = rs.getLong(1);
+				long cardinality = rs.getLong(2);
+				builder.addRow(primaryRowId, cardinality);
+			}}, minimumId, maximumId);
 		// The build collates the results
 		return builder.collateResults();
+	}
+
+	/**
+	 * Get the SQL for a primary cardinality.
+	 * @param primaryType
+	 * @return
+	 */
+	public String getPrimaryCardinalitySql(MigrationType primaryType) {
+		MigratableDatabaseObject primaryObject = getMigratableObject(primaryType);
+		TableMapping primaryMapping = primaryObject.getTableMapping();
+		List<TableMapping> secondaryMapping = new LinkedList<>();
+		List<MigratableDatabaseObject> secondaryTypes = primaryObject.getSecondaryTypes();
+		if(secondaryTypes != null) {
+			for(MigratableDatabaseObject secondary: secondaryTypes) {
+				secondaryMapping.add(secondary.getTableMapping());
+			}
+		}
+		return DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMapping);
 	}
 }

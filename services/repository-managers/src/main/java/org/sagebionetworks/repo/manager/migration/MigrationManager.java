@@ -287,7 +287,7 @@ public interface MigrationManager {
 	 * The total amount of time required to backup and restore all data is directly
 	 * proportional to the number of rows contained in the backup. For example,
 	 * reducing the number of rows by half can double the amount of time required to
-	 * restore all data. On the other hand, of there are too many rows in a file,
+	 * restore all data. On the other hand, if there are too many rows in a file,
 	 * then the restore transaction will timeout while attempting to gather all of
 	 * the required row locks (see: PLFM-4847).
 	 * 
@@ -299,7 +299,7 @@ public interface MigrationManager {
 	 * match the provided ID range. However, for types where there are large gaps in
 	 * the ID (cases where a shared ID generator was used), a large ID range might
 	 * only contain a few rows. For types, with many rows of secondary data, a small
-	 * ID range might include large numbers of rows.
+	 * ID range might include a large numbers of rows.
 	 * 
 	 * This method is used to calculate a set of ranges, each of which will contain
 	 * the optimal number of rows regardless of cardinality or ID gaps. 

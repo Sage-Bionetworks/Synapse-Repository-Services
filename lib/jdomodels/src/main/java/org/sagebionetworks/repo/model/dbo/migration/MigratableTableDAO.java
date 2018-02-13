@@ -205,13 +205,20 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	public int deleteByRange(MigrationType type, long minimumId, long maximumId);
 
 	/**
-	 * Calcualte the 
+	 * Calculate the ID ranges with the optimal number of rows for the given type.
 	 * @param migrationType
 	 * @param minimumId
 	 * @param maximumId
-	 * @param numberRowsPerRange
+	 * @param optimalNumberOfRows
 	 * @return
 	 */
-	public List<IdRange> calculateRangesForType(MigrationType migrationType, long minimumId, long maximumId, long numberRowsPerRange);
+	public List<IdRange> calculateRangesForType(MigrationType migrationType, long minimumId, long maximumId, long optimalNumberOfRows);
+
+	/**
+	 * Get the SQL used for primary cardinality.
+	 * @param node
+	 * @return
+	 */
+	public String getPrimaryCardinalitySql(MigrationType node);
 
 }

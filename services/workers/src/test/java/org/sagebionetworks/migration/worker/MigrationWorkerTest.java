@@ -197,4 +197,13 @@ public class MigrationWorkerTest {
 		migrationWorker.processRequest(user, request, jobId);
 		verify(mockMigrationManager).deleteById(user, request);
 	}
+	
+	@Test
+	public void testProcessRequestCalculateOptimalRanges() throws Exception {
+		String jobId = "123";
+		CalculateOptimalRangeRequest request = new CalculateOptimalRangeRequest();
+		// call under test
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).calculateOptimalRanges(user, request);
+	}
 }

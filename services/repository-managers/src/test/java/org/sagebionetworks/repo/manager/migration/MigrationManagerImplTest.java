@@ -62,8 +62,11 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.DeleteListRequest;
 import org.sagebionetworks.repo.model.migration.DeleteListResponse;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
@@ -129,6 +132,8 @@ public class MigrationManagerImplTest {
 	List<MigratableDatabaseObject<?, ?>> nodeStream;
 	List<MigratableDatabaseObject<?, ?>> revisionStream;
 	RestoreTypeRequest restoreTypeRequest;
+	CalculateOptimalRangeRequest optimalRangeRequest;
+	List<IdRange> ranges;
 	
 	@Before
 	public void before() throws IOException{
@@ -220,6 +225,19 @@ public class MigrationManagerImplTest {
 		restoreTypeRequest.setBackupFileKey("backupFileKey");
 		restoreTypeRequest.setBatchSize(batchSize);
 		restoreTypeRequest.setMigrationType(MigrationType.NODE);
+		
+		optimalRangeRequest = new CalculateOptimalRangeRequest();
+		optimalRangeRequest.setMigrationType(MigrationType.NODE);
+		optimalRangeRequest.setMinimumId(1L);
+		optimalRangeRequest.setMaximumId(99L);
+		optimalRangeRequest.setOptimalRowsPerRange(11L);
+		
+		IdRange range = new IdRange();
+		range.setMinimumId(1L);
+		range.setMaximumId(100L);
+		ranges = Lists.newArrayList(range);
+		
+		when(mockDao.calculateRangesForType(any(MigrationType.class), anyLong(),  anyLong(),  anyLong())).thenReturn(ranges);
 		
 		manager.initialize();
 	}
@@ -1098,5 +1116,61 @@ public class MigrationManagerImplTest {
 		manager.deleteByRange(type, minimumId, maximumId);
 		// deletes should not occur
 		verify(mockDao, never()).deleteByRange(any(MigrationType.class), anyLong(), anyLong());
+	}
+	
+	@Test
+	public void testCalculateOptimalRanges() {
+		// call under test
+		CalculateOptimalRangeResponse response = manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		assertNotNull(response);
+		assertEquals(optimalRangeRequest.getMigrationType(), response.getMigrationType());
+		assertEquals(ranges, response.getRanges());
+		verify(mockDao).calculateRangesForType(
+				optimalRangeRequest.getMigrationType(),
+				optimalRangeRequest.getMinimumId(),
+				optimalRangeRequest.getMaximumId(),
+				optimalRangeRequest.getOptimalRowsPerRange());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCalculateOptimalRangesUnauthorized() {
+		when(mockUser.isAdmin()).thenReturn(false);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullRequest() {
+		optimalRangeRequest = null;
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullType() {
+		optimalRangeRequest.setMigrationType(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullMin() {
+		optimalRangeRequest.setMinimumId(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullMax() {
+		optimalRangeRequest.setMaximumId(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullOptimalSize() {
+		optimalRangeRequest.setOptimalRowsPerRange(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
 	}
 }
