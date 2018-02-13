@@ -36,8 +36,11 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.DeleteListRequest;
 import org.sagebionetworks.repo.model.migration.DeleteListResponse;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -50,7 +53,6 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
@@ -911,6 +913,27 @@ public class MigrationManagerImpl implements MigrationManager {
 			}
 			this.migratableTableDao.deleteByRange(type, minimumId, maximumId);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#calculateRanges(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.CalculateBackupRangeRequest)
+	 */
+	@Override
+	public CalculateOptimalRangeResponse calculateOptimalRanges(UserInfo user, CalculateOptimalRangeRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		ValidateArgument.required(request.getMinimumId(), "request.minimumId");
+		ValidateArgument.required(request.getMaximumId(), "request.maximumId");
+		ValidateArgument.required(request.getNumberRowsPerRange(), "request.numberRowsPerRange");
+		ValidateArgument.required(user, "User");
+		validateUser(user);
+		List<IdRange> ranges = migratableTableDao.calculateRangesForType(request.getMigrationType(),
+				request.getMinimumId(), request.getMaximumId(), request.getNumberRowsPerRange());
+		CalculateOptimalRangeResponse response = new CalculateOptimalRangeResponse();
+		response.setRanges(ranges);
+		response.setMigrationType(request.getMigrationType());
+		return response;
 	}
 
 }

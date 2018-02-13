@@ -1,0 +1,25 @@
+{
+	"description": "Calculate the optimized ranges of ID to use to backup a given type such that the total number of rows (primary + secondary) within the range are less than the given batchSize.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
+		}
+	],
+	"properties": {
+		"minimumId": {
+			"type": "integer",
+			"description": "The first ID in the range of IDs (inclusive)"
+		},
+		"maximumId": {
+			"type": "integer",
+			"description": "The last ID in the range of IDs (exclusive)"
+		},
+		"numberRowsPerRange": {
+			"description": "The number of rows that should contained in within each resulting ID range.",
+			"type": "integer"
+		}
+	}
+}

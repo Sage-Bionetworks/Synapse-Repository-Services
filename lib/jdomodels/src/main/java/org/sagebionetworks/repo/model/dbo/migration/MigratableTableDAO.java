@@ -7,10 +7,12 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.util.Callback;
 
 /**
  * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
@@ -201,5 +203,15 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @param maximumId exclusive
 	 */
 	public int deleteByRange(MigrationType type, long minimumId, long maximumId);
+
+	/**
+	 * Calcualte the 
+	 * @param migrationType
+	 * @param minimumId
+	 * @param maximumId
+	 * @param numberRowsPerRange
+	 * @return
+	 */
+	public List<IdRange> calculateRangesForType(MigrationType migrationType, long minimumId, long maximumId, long numberRowsPerRange);
 
 }

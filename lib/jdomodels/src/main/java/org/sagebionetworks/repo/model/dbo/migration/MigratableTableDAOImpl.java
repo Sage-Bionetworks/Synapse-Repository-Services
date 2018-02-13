@@ -14,6 +14,7 @@ import java.util.concurrent.Callable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.database.StreamingJdbcTemplate;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -30,6 +32,7 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -63,6 +66,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private StreamingJdbcTemplate streamingJdbcTemplate;
 	@Autowired
 	private StackConfiguration stackConfiguration;
 	
@@ -763,5 +768,22 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			return namedTemplate.update(deleteSQL, parameters);
 		});
 	}
-	
+
+	@Override
+	public List<IdRange> calculateRangesForType(MigrationType migrationType, long minimumId, long maximumId,
+			long batchSize) {
+		final RangeBuilder builder = new RangeBuilder(batchSize);
+		// stream over the row counts
+		this.streamingJdbcTemplate.query("", new RowCallbackHandler() {
+
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				// pass each row to the builder
+				long rowId = rs.getLong(1);
+				long count = rs.getLong(2);
+				builder.addRow(rowId, count);
+			}});
+		// The build collates the results
+		return builder.collateResults();
+	}
 }

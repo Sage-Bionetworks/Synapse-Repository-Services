@@ -125,7 +125,7 @@
 		a fetch size less than one. Therefore, we use an overloaded version of JdbcTempalte 
 		that allows a fetch size of of Integer.MIN_VALUE. -->
 	<bean id="streamingJdbcTemplate"
-		class="org.sagebionetworks.spring.transaction.StreamingJdbcTemplate">
+		class="org.sagebionetworks.database.StreamingJdbcTemplate">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
 	</bean>
 	

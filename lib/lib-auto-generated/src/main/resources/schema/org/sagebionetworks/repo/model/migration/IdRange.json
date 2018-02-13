@@ -1,0 +1,13 @@
+{
+	"description": "A range of IDs",
+	"properties": {
+		"minimumId": {
+			"type": "integer",
+			"description": "The first ID in the range of IDs (inclusive)"
+		},
+		"maximumId": {
+			"type": "integer",
+			"description": "The last ID in the range of IDs (exclusive)"
+		}
+	}
+}
