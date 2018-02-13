@@ -34,12 +34,6 @@ public interface SearchDomainSetup {
 	 * @return
 	 */
 	List<IndexFieldStatus> getIndexFieldStatus();
-	
-	/**
-	 * The JSON of the current access policy.
-	 * @return
-	 */
-	 AccessPoliciesStatus getAccessPoliciesStatus();
 
 	/**
 	 * Get the CloudSearch domain endpoint for search service.

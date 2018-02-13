@@ -212,8 +212,8 @@ public class Annotations implements JSONEntity, Serializable {
 	 * @param key
 	 * @return
 	 */
-	public Collection getAllValues(String key) {
-		Collection result = null;
+	public List getAllValues(String key) {
+		List result = null;
 		result = this.stringAnnotations.get(key);
 		if (result != null)
 			return result;
@@ -241,45 +241,40 @@ public class Annotations implements JSONEntity, Serializable {
 	}
 
 	/**
-	 * Get a value from the annoations.
+	 * Get a the first value from the annoations.
 	 * @param key
 	 * @return
 	 */
 	public Object getSingleValue(String key){
 		// Look in each set
 		if(this.stringAnnotations != null){
-			Collection<String> result = this.stringAnnotations.get(key);
-			if(result != null){
-				if(result.size() == 1) return result.iterator().next();
-				return result;
+			List<String> result = this.stringAnnotations.get(key);
+			if(result != null && !result.isEmpty()){
+				return result.get(0);
 			}
 		}
 		if(this.dateAnnotations != null){
-			Collection<Date> result = this.dateAnnotations.get(key);
-			if(result != null){
-				if(result.size() == 1) return result.iterator().next();
-				return result;
+			List<Date> result = this.dateAnnotations.get(key);
+			if(result != null && !result.isEmpty()){
+				return result.get(0);
 			}
 		}
 		if(this.longAnnotations != null){
-			Collection<Long> result = this.longAnnotations.get(key);
-			if(result != null){
-				if(result.size() == 1) return result.iterator().next();
-				return result;
+			List<Long> result = this.longAnnotations.get(key);
+			if(result != null && !result.isEmpty()){
+				return result.get(0);
 			}
 		}
 		if(this.doubleAnnotations != null){
-			Collection<Double> result = this.doubleAnnotations.get(key);
-			if(result != null){
-				if(result.size() == 1) return result.iterator().next();
-				return result;
+			List<Double> result = this.doubleAnnotations.get(key);
+			if(result != null && !result.isEmpty()){
+				return result.get(0);
 			}
 		}
 		if(this.blobAnnotations != null){
-			Collection<byte[]> result = this.blobAnnotations.get(key);
-			if(result != null){
-				if(result.size() == 1) return result.iterator().next();
-				return result;
+			List<byte[]> result = this.blobAnnotations.get(key);
+			if(result != null && !result.isEmpty()){
+				return result.get(0);
 			}
 		}
 		// did not find it.

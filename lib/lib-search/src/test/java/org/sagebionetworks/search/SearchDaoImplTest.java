@@ -180,7 +180,7 @@ public class SearchDaoImplTest {
 
 		SearchRequest capturedRequest = requestArgumentCaptor.getValue();
 		verify(dao,times(1)).executeSearch(capturedRequest);
-		assertEquals("(and id:'syn123' etag:'etagerino')", capturedRequest.getQuery());
+		assertEquals("(and _id:'syn123' etag:'etagerino')", capturedRequest.getQuery());
 	}
 
 	//////////////////////////////

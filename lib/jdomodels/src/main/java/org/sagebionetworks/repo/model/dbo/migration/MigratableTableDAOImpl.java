@@ -108,6 +108,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	// SQL
 	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> deleteByRangeMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> minSqlMap = new HashMap<MigrationType, String>();
@@ -217,6 +218,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Build up the SQL cache.
 		String delete = DMLUtils.createBatchDelete(mapping);
 		deleteSqlMap.put(type, delete);
+		String deleteByRange = DMLUtils.createDeleteByBackupIdRange(mapping);
+		deleteByRangeMap.put(type, deleteByRange);
 		String count = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 		countSqlMap.put(type, count);
 		String mx = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
@@ -743,6 +746,21 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 					DMLUtils.BIND_VAR_ID_lIST, idList);
 			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 			return namedTemplate.update(deleteSQL, params);
+		});
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public int deleteByRange(final MigrationType type, final long minimumId, final long maximumId) {
+		ValidateArgument.required(type,"MigrationType");
+		// Foreign Keys must be ignored for this operation.
+		return this.runWithKeyChecksIgnored(() -> {
+			String deleteSQL = this.deleteByRangeMap.get(type);
+			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+			Map<String, Object> parameters = new HashMap<>(2);
+			parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
+			parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
+			return namedTemplate.update(deleteSQL, parameters);
 		});
 	}
 	

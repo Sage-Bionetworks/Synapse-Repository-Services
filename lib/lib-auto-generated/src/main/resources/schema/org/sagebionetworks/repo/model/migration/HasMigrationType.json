@@ -1,0 +1,9 @@
+{
+	"description": "Abstraction for Admin request",
+	"type": "interface",
+	"properties": {
+		"migrationType": {
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+		}
+	}
+}

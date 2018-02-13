@@ -3,6 +3,9 @@
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
 		}
 	],
 	"properties": {
@@ -12,10 +15,6 @@
 			"items": {
 				"type": "integer"
 			}
-		},
-		"migrationType": {
-			"description": "The type of objects to delete",
-			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
 		}
 	}
 }

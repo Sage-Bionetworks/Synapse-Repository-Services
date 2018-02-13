@@ -1,16 +1,20 @@
 package org.sagebionetworks.repo.manager.search;
 
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -35,8 +39,6 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -58,15 +60,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
-	private static final String PATH_DELIMITER = "/";
-	private static final String DISEASE_FIELD = "disease";
-	private static final String TISSUE_FIELD = "tissue";
-	private static final String SPECIES_FIELD = "species";
-	private static final String PLATFORM_FIELD = "platform";
-	private static final String NUM_SAMPLES_FIELD = "num_samples";
-	// private static final String INVESTIGATOR = "investigator";
-	// private static final String INSTITUTION = "institution";
-	private static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
+	static final Map<String, List<String>> SEARCHABLE_NODE_ANNOTATIONS;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -75,28 +69,15 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	@Autowired
 	V2WikiPageDao wikiPageDao;
 
-	static {
-		// These are both node primary annotations and additional annotation
-		// names
-		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
-		searchableNodeAnnotations.put("disease", DISEASE_FIELD);
-		searchableNodeAnnotations.put("Disease", DISEASE_FIELD);
-		searchableNodeAnnotations.put("Tissue_Tumor", TISSUE_FIELD);
-		searchableNodeAnnotations.put("sampleSource", TISSUE_FIELD);
-		searchableNodeAnnotations.put("SampleSource", TISSUE_FIELD);
-		searchableNodeAnnotations.put("tissueType", TISSUE_FIELD);
-		searchableNodeAnnotations.put("species", SPECIES_FIELD);
-		searchableNodeAnnotations.put("Species", SPECIES_FIELD);
-		searchableNodeAnnotations.put("platform", PLATFORM_FIELD);
-		searchableNodeAnnotations.put("Platform", PLATFORM_FIELD);
-		searchableNodeAnnotations.put("platformDesc", PLATFORM_FIELD);
-		searchableNodeAnnotations.put("platformVendor", PLATFORM_FIELD);
-		searchableNodeAnnotations.put("number_of_samples", NUM_SAMPLES_FIELD);
-		searchableNodeAnnotations.put("Number_of_Samples", NUM_SAMPLES_FIELD);
-		searchableNodeAnnotations.put("Number_of_samples", NUM_SAMPLES_FIELD);
-		searchableNodeAnnotations.put("numSamples", NUM_SAMPLES_FIELD);
-		// searchableNodeAnnotations.put("Investigator", INVESTIGATOR);
-		// searchableNodeAnnotations.put("Institution", INSTITUTION);
+	static { // initialize SEARCHABLE_NODE_ANNOTATIONS
+		// NOTE: ORDER MATTERS. Earlier annotation key names will be preferred over later ones if both keys are present.
+		Map<String, List<String>> searchableNodeAnnotations = new HashMap<>();
+		searchableNodeAnnotations.put(FIELD_DISEASE, Collections.unmodifiableList(Arrays.asList("disease")));
+		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue", "tissue_tumor", "sampleSource", "tissueType")));
+		searchableNodeAnnotations.put(FIELD_PLATFORM, Collections.unmodifiableList(Arrays.asList("platform", "platformDesc", "platformVendor")));
+		searchableNodeAnnotations.put(FIELD_NUM_SAMPLES, Collections.unmodifiableList(Arrays.asList("numSamples", "num_samples", "number_of_samples")));
+		searchableNodeAnnotations.put(FIELD_CONSORTIUM, Collections.unmodifiableList(Arrays.asList("consortium")));
+
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
 	}
@@ -108,7 +89,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	}
 
 	/**
-	 * @param backup
+	 * @param node
 	 * @return
 	 * @throws NotFoundException
 	 * @throws IOException 
@@ -123,15 +104,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Long revId = node.getVersionNumber();
 		NamedAnnotations annos = nodeDao.getAnnotationsForVersion(node.getId(),
 				revId);
-		// get the path
-		EntityPath entityPath = getEntityPath(node.getId());
-
 		// Get the wikipage text
 		String wikiPagesText = getAllWikiPageText(node.getId());
 
-		Document document = formulateSearchDocument(node, annos, benefactorACL,
-				entityPath, wikiPagesText);
-		return document;
+		return formulateSearchDocument(node, annos, benefactorACL, wikiPagesText);
 	}
 
 	/**
@@ -148,27 +124,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return entityPath;
 	}
 
-	static byte[] cleanSearchDocument(Document document)
-			throws UnsupportedEncodingException, JSONObjectAdapterException {
-		String serializedDocument = EntityFactory
-				.createJSONStringForEntity(document);
-
-		// AwesomeSearch pukes on control characters. Some descriptions have
-		// control characters in them for some reason, in any case, just get rid
-		// of all control characters in the search document
-		String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
-
-		// Get rid of escaped control characters too
-		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]",
-				"");
-
-		// AwesomeSearch expects UTF-8
-		return cleanedDocument.getBytes("UTF-8");
-	}
 
 	@Override
 	public Document formulateSearchDocument(Node node, NamedAnnotations annos,
-			AccessControlList acl, EntityPath entityPath, String wikiPagesText)
+											AccessControlList acl, String wikiPagesText)
 			throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
 		Document document = new Document();
@@ -180,25 +139,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 		// Node fields
 		document.setId(node.getId());
-		fields.setId(node.getId()); // this is redundant because document id
-		// is returned in search results, but its cleaner to have this also show
-		// up in the "data" section of AwesomeSearch results
 		fields.setEtag(node.getETag());
 		fields.setParent_id(node.getParentId());
 		fields.setName(node.getName());
-
-		// Add each ancestor from the path
-		List<Long> ancestors = new LinkedList<Long>();
-		if (entityPath != null && entityPath.getPath() != null) {
-			for (EntityHeader eh : entityPath.getPath()) {
-				if (eh.getId() != null && node.getId().equals(eh.getId())) {
-					ancestors.add(org.sagebionetworks.repo.model.jdo.KeyFactory
-							.stringToKey(eh.getId()));
-				}
-			}
-			// Add the fields.
-			fields.setAncestors(ancestors);
-		}
 
 		fields.setNode_type(node.getNodeType().name());
 
@@ -228,13 +171,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		boost.add(node.getId());
 
 		// Annotations
-		fields.setDisease(new ArrayList<String>());
-		fields.setSpecies(new ArrayList<String>());
-		fields.setTissue(new ArrayList<String>());
-		fields.setPlatform(new ArrayList<String>());
-		fields.setNum_samples(new ArrayList<Long>());
-		addAnnotationsToSearchDocument(fields, annos.getPrimaryAnnotations());
-		addAnnotationsToSearchDocument(fields, annos.getAdditionalAnnotations());
+		addAnnotationsToSearchDocument(fields, annos);
 
 		// References, just put the node id to which the reference refers. Not
 		// currently adding the version or the type of the reference (e.g.,
@@ -293,74 +230,67 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return document;
 	}
 
+	void addAnnotationsToSearchDocument(DocumentFields fields, NamedAnnotations annotations){
+		// process a map of annotation keys to values
+		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
 
-	static void addAnnotationsToSearchDocument(DocumentFields fields,
-			Annotations annots) {
+		//set the values for the document fields
+		fields.setDisease(getSearchIndexFieldValue(firstAnnotationValues, FIELD_DISEASE));
+		fields.setConsortium(getSearchIndexFieldValue(firstAnnotationValues, FIELD_CONSORTIUM));
+		fields.setTissue(getSearchIndexFieldValue(firstAnnotationValues, FIELD_TISSUE));
+		fields.setPlatform(getSearchIndexFieldValue(firstAnnotationValues, FIELD_PLATFORM));
+		try {
+			fields.setNum_samples(NumberUtils.createLong(getSearchIndexFieldValue(firstAnnotationValues, FIELD_NUM_SAMPLES)));
+		}catch (NumberFormatException e){
+			/* If the user did not provide a numeric value for FIELD_NUM_SAMPLES
+			   then that value will not be added to the search index. This is not considered an error.
+			 */
+		}
 
-		for (String key : annots.keySet()) {
-			Collection values = annots.getAllValues(key);
+	}
 
-			if (1 > values.size()) {
-				// no values so nothing to do here
-				continue;
-			}
+	/**
+	 * Returns a Map from the keys of the NamedAnnotations to the first value (as a String) for that key.
+	 * @param annotations
+	 * @return
+	 */
+	Map<String, String> getFirsAnnotationValues(NamedAnnotations annotations){
+		Map<String, String> firstAnnotationValues = new HashMap<>();
+		addFirstAnnotationValuesToMap(annotations.getAdditionalAnnotations(), firstAnnotationValues);
+		return firstAnnotationValues;
+	}
 
-			Object objs[] = values.toArray();
-
-			if (objs[0] instanceof byte[]) {
-				// don't add blob annotations to the search index
-				continue;
-			}
-
-			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
-			for (int i = 0; i < objs.length; i++) {
-				if (null == objs[i])
-					continue;
-
-				if (null != searchFieldName) {
-					addAnnotationToSearchDocument(fields, searchFieldName, objs[i]);
-				}
+	/**
+	 * For each key in the Annotations's key set, add the first matching value as a String to the map.
+	 * @param anno Annotation source from which the keys and values are retrieved.
+	 * @param annoValuesMap map to which the Annotation values will be added.
+	 *                      Annotation keys will be converted to lower case before they are added to this map
+	 */
+	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
+		for(String key: anno.keySet()){
+			Object value = anno.getSingleValue(key);
+			if(!(value instanceof byte[])) {
+				annoValuesMap.putIfAbsent(key.toLowerCase(), value.toString());
 			}
 		}
 	}
 
-	static void addAnnotationToSearchDocument(DocumentFields fields,
-			String key, Object value) {
-		if (value != null) {
-			String stringValue = value.toString();
-			if (DISEASE_FIELD == key
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getDisease().size()) {
-				fields.getDisease().add(stringValue);
-			} else if (TISSUE_FIELD == key
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getTissue().size()) {
-				fields.getTissue().add(stringValue);
-			} else if (SPECIES_FIELD == key
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getSpecies().size()) {
-				fields.getSpecies().add(stringValue);
-			} else if (PLATFORM_FIELD == key
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getPlatform().size()) {
-				fields.getPlatform().add(stringValue);
-			} else if (NUM_SAMPLES_FIELD == key
-					&& FIELD_VALUE_SIZE_LIMIT > fields.getNum_samples().size()) {
-				if (value instanceof Long) {
-					fields.getNum_samples().add((Long) value);
-				} else if (value instanceof String) {
-					try {
-						fields.getNum_samples().add(
-								Long.valueOf((stringValue).trim()));
-					} catch (NumberFormatException e) {
-						// swallow this exception, this is just a best-effort
-						// attempt to push more annotations into search
-					}
-				}
-			} else {
-				throw new IllegalArgumentException(
-						"Annotation "
-								+ key
-								+ " added to searchable annotations map but not added to addAnnotationToSearchDocument");
+	/**
+	 * Given the index field name, retrieve
+	 * @param firsAnnotationValues map of annotation keys to values. Assumes that all key Strings are in lower case.
+	 * @param indexFieldKey field value from @see org.sagebionetworks.search.SearchConstants
+	 * @return
+	 */
+	String getSearchIndexFieldValue(Map<String, String> firsAnnotationValues, String indexFieldKey){
+		for(String possibleAnnotationName: SEARCHABLE_NODE_ANNOTATIONS.get(indexFieldKey)){
+			String value = firsAnnotationValues.get(possibleAnnotationName.toLowerCase());
+			if(value != null){
+				return value;
 			}
 		}
+		return null;
 	}
+
 
 	@Override
 	public Document formulateSearchDocument(String nodeId)
@@ -380,9 +310,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		try {
 			String current = nodeDao.peekCurrentEtag(nodeId);
 			return etag.equals(current);
-		} catch (DatastoreException e) {
-			return false;
-		} catch (NotFoundException e) {
+		} catch (DatastoreException | NotFoundException e) {
 			return false;
 		}
 	}
