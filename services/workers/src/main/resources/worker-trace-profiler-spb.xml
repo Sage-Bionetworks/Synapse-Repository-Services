@@ -12,10 +12,10 @@
     <aop:aspectj-autoproxy />
 
     <!-- A profiler that logs performance data for all bean method calls. -->
-    <bean id="profiler2" class="org.sagebionetworks.profiler.Profiler" scope="singleton">
+    <bean id="profiler" class="org.sagebionetworks.profiler.Profiler" scope="singleton">
         <property name="handlers">
             <list>
-                <bean name="loggingProfiler2" class="org.sagebionetworks.profiler.LoggingProfiler" />
+                <bean name="loggingProfiler" class="org.sagebionetworks.profiler.LoggingProfiler" />
             </list>
         </property>
         <property name="shouldLogPerformance">
