@@ -347,7 +347,7 @@ public class MigrationManagerImplAutowireTest {
 		asyncMigrationRangeChecksumRequest.setMaxId(max);
 		asyncMigrationRangeChecksumRequest.setMinId(0L);
 		asyncMigrationRangeChecksumRequest.setSalt("salt");
-		asyncMigrationRangeChecksumRequest.setType(MigrationType.FILE_HANDLE.name());
+		asyncMigrationRangeChecksumRequest.setMigrationType(MigrationType.FILE_HANDLE);
 		
 		MigrationRangeChecksum acrcRes = migrationManager.processAsyncMigrationRangeChecksumRequest(adminUser, asyncMigrationRangeChecksumRequest);
 
@@ -381,7 +381,7 @@ public class MigrationManagerImplAutowireTest {
 			MigrationTypeChecksum expectedMtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
 			MigrationTypeChecksum expectedAsyncMtcRes = new MigrationTypeChecksum();
 			AsyncMigrationTypeChecksumRequest amtcReq = new AsyncMigrationTypeChecksumRequest();
-			amtcReq.setType(MigrationType.FILE_HANDLE.name());
+			amtcReq.setMigrationType(MigrationType.FILE_HANDLE);
 			
 			MigrationTypeChecksum amtcRes = migrationManager.processAsyncMigrationTypeChecksumRequest(adminUser, amtcReq);
 			

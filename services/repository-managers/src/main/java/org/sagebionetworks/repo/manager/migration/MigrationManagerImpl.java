@@ -539,21 +539,21 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	@Override
 	public MigrationTypeChecksum processAsyncMigrationTypeChecksumRequest(
-			final UserInfo user, final AsyncMigrationTypeChecksumRequest mReq) {
-		String t = mReq.getType();
-		MigrationType mt = MigrationType.valueOf(t);
-		return getChecksumForType(user, mt);
+			final UserInfo user, final AsyncMigrationTypeChecksumRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		return getChecksumForType(user, request.getMigrationType());
 	}
 
 	@Override
 	public MigrationRangeChecksum processAsyncMigrationRangeChecksumRequest(
-			final UserInfo user, final AsyncMigrationRangeChecksumRequest mReq) {
-		String t = mReq.getType();
-		MigrationType mt = MigrationType.valueOf(t);
-		String salt = mReq.getSalt();
-		long minId = mReq.getMinId();
-		long maxId = mReq.getMaxId();
-		return getChecksumForIdRange(user, mt, salt, minId, maxId);
+			final UserInfo user, final AsyncMigrationRangeChecksumRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		ValidateArgument.required(request.getSalt(), "request.salt");
+		ValidateArgument.required(request.getMinId(), "request.minId");
+		ValidateArgument.required(request.getMaxId(), "request.maxId");
+		return getChecksumForIdRange(user, request.getMigrationType(), request.getSalt(), request.getMinId(), request.getMaxId());
 	}
 
 	@Override
