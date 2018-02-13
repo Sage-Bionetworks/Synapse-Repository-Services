@@ -119,7 +119,7 @@ public class Profiler {
 		}
 
 		Signature signature = pjp.getSignature();
-		Class<?> declaring = signature.getDeclaringType();
+		Class<?> declaring = pjp.getTarget().getClass();
 
 		// Do nothing if we don't know where we came from
 		if (declaring == null) {

@@ -10,6 +10,10 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
+	<import resource="classpath:worker-trace-profiler-spb.xml" />
+
+	<bean id="tableQueryWorkerr" class="org.sagebionetworks.table.worker.TableQueryWorker" />
+
 
 	<bean id="tableQueryQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
@@ -25,9 +29,7 @@
 						<constructor-arg index="3">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableQueryWorker" />
-								</property>
+								<property name="runner" ref="tableQueryWorkerr"/>
 								<property name="semaphoreLockKey" value="tableQueryWorker" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
