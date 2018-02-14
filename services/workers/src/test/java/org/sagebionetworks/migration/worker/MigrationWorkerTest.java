@@ -142,8 +142,7 @@ public class MigrationWorkerTest {
 	@Test
 	public void testProcessAsyncMigrationRangeCountRequest() throws Throwable {
 		AsyncMigrationRangeChecksumRequest mReq = new AsyncMigrationRangeChecksumRequest();
-		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
-		
+		mReq.setMigrationType(MigrationType.ACCESS_APPROVAL);
 		migrationWorker.processRequest(user, mReq, "JOBID");
 		
 		verify(mockMigrationManager).processAsyncMigrationRangeChecksumRequest(user, mReq);
