@@ -118,17 +118,6 @@
 		<constructor-arg ref="jdbcTemplate"></constructor-arg>
 	</bean>
 	
-	<!-- By default the MySQL JDBC template will load all ResultsSets into memory 
-		which can cause out-of-memory errors for queries that stream over large results 
-		sets. In order to change this behavior a fetch size of Integer.MIN_VALUE 
-		must be used. However, the default version of JdbcTempalte will not allow 
-		a fetch size less than one. Therefore, we use an overloaded version of JdbcTempalte 
-		that allows a fetch size of of Integer.MIN_VALUE. -->
-	<bean id="streamingJdbcTemplate"
-		class="org.sagebionetworks.spring.transaction.StreamingJdbcTemplate">
-		<constructor-arg ref="dataSourcePool"></constructor-arg>
-	</bean>
-	
 	<bean id="readCommitedTransactionTemplate"
 		class="org.springframework.transaction.support.TransactionTemplate">
 		<constructor-arg index="0" ref="txManager" />
