@@ -76,7 +76,7 @@ public class MigrationWorkerAutowiredTest {
 		req.setMinId(0L);
 		req.setMaxId(Long.MAX_VALUE);
 		req.setSalt("salt");
-		req.setType(MigrationType.NODE.name());
+		req.setMigrationType(MigrationType.NODE);
 		AsyncMigrationRequest request = new AsyncMigrationRequest();
 		request.setAdminRequest(req);		
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);

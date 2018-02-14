@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.migration.ChecksumTableResult;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -696,6 +697,49 @@ public class DMLUtils {
 		};
 	}
 
+	/**
+	 * Create the SQL to list primary IDs with all associated secondary cardinality.
+	 * @param primaryMapping
+	 * @param secondaryMappings
+	 * @return
+	 */
+	public static String createPrimaryCardinalitySql(TableMapping primaryMapping, List<TableMapping> secondaryMappings) {
+		StringBuilder builder = new StringBuilder();
+		// Select
+		builder.append("SELECT P.");
+		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		builder.append(", 1 ");
+		int index = 0;
+		for(TableMapping secondary: secondaryMappings) {
+			builder.append(" + COUNT(S").append(index).append(".");
+			builder.append(getBackupIdColumnName(secondary).getColumnName());
+			builder.append(")");
+			index++;
+		}
+		builder.append(" AS cardinality");
+		// from
+		builder.append(" FROM ").append(primaryMapping.getTableName()).append(" AS P");
+		// Joins
+		index = 0;
+		for(TableMapping secondary: secondaryMappings) {
+			builder.append(" LEFT JOIN ").append(secondary.getTableName()).append(" AS S").append(index);
+			builder.append(" ON (");
+			builder.append("P.").append(getBackupIdColumnName(primaryMapping).getColumnName());
+			builder.append(" = ");
+			builder.append(" S").append(index).append(".").append(getBackupIdColumnName(secondary).getColumnName());
+			builder.append(")");
+			index++;
+		}
+		// where
+		builder.append(" WHERE");
+		builder.append(" P.");
+		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		builder.append(" >= ? AND P.");
+		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		builder.append(" < ?");
+		builder.append(" GROUP BY P.");
+		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		return builder.toString();
+	}
 
-	
 }
