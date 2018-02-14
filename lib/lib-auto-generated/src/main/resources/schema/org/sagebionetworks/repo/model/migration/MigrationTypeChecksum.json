@@ -1,16 +1,20 @@
 {
 	"description": "Table checksum (CHECKSUM TABLE) for migration type 'type'",
-	"implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
-        }
-    ],
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminResponse"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
+		}
+	],
 	"properties": {
 		"type": {
+			"description": "Deprecated.  Use: 'migrationType'",
 			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
 		},
-         "checksum":{
-        	"type":"string"
-         }
+		"checksum": {
+			"type": "string"
+		}
 	}
 }

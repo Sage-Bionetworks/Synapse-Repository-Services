@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.DeleteListRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -94,8 +95,10 @@ public class MigrationWorker implements MessageDrivenRunner {
 			return migrationManager.backupRequest(user, (BackupTypeRangeRequest)req);
 		} else if (req instanceof RestoreTypeRequest) {
 			return migrationManager.restoreRequest(user, (RestoreTypeRequest)req);
-		}  else if (req instanceof DeleteListRequest) {
+		} else if (req instanceof DeleteListRequest) {
 			return migrationManager.deleteById(user, (DeleteListRequest)req);
+		} else if (req instanceof CalculateOptimalRangeRequest) {
+			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}

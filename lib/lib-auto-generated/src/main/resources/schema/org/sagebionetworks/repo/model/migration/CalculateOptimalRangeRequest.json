@@ -1,0 +1,25 @@
+{
+	"description": "Request to calculate the ID ranges with the optimal number of rows.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
+		}
+	],
+	"properties": {
+		"minimumId": {
+			"type": "integer",
+			"description": "The first ID in the range of IDs (inclusive)"
+		},
+		"maximumId": {
+			"type": "integer",
+			"description": "The last ID in the range of IDs (exclusive)"
+		},
+		"optimalRowsPerRange": {
+			"description": "The optimal number of rows per range.",
+			"type": "integer"
+		}
+	}
+}
