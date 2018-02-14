@@ -2,6 +2,7 @@ package org.sagebionetworks.profiler;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 
@@ -17,25 +18,12 @@ import org.junit.Test;
  */
 public class FrameTest {
 	
-	Frame root = null;
+	Frame frame;
 	
 	@Before
 	public void before(){
 		// Create a frame that is a few levels deep
-		root = new Frame(0, "root");
-		root.setEnd(12);
-		// Add some children
-		for(int i=0; i<4; i++){
-			Frame child = new Frame(i, "child"+1);
-			child.setEnd(i+1);
-			root.addChild(child);
-			// Add one more level
-			for(int j=0; j<2; j++){
-				Frame grand = new Frame(i, "grand"+j);
-				grand.setEnd(i);
-				child.addChild(grand);
-			}
-		}
+		frame = new Frame("frame");
 	}
 
 	/**
@@ -46,14 +34,35 @@ public class FrameTest {
 	 * 
 	 */
 	@Test
-	public void testJSONRoundTrip() throws JSONException {
+	public void testJSONRoundTrip() throws JSONException { //TODO: fix
 		// Write it to json
-		String json = Frame.writeFrameJSON(root);
+		String json = Frame.writeFrameJSON(frame);
 		assertNotNull(json);
 		System.out.println(json);
 		// Now convert back to Frames
 		Frame cloneRoot = Frame.readFrameFromJSON(json);
 		assertNotNull(cloneRoot);
-		assertEquals(root, cloneRoot);
+		assertEquals(frame, cloneRoot);
+	}
+
+
+	@Test
+	public void testAddFrameIfAbsent_frameIsAbsent(){
+		Frame child = frame.addFrameIfAbsent("childFrame");
+		assertSame(child, frame.getChild("frame"));
+	}
+
+	@Test
+	public void testAddFrameIfAbsent_frameAlreadyExists(){
+		Frame existingChild = new Frame("childFrame");
+		frame.addChild(existingChild);
+
+		Frame child = frame.addFrameIfAbsent("childFrame");
+		assertSame(existingChild, child);
+	}
+
+	@Test
+	public void testAddElapsedTime(){
+
 	}
 }

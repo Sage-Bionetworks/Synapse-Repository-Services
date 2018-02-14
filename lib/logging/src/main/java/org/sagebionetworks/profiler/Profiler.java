@@ -112,7 +112,7 @@ public class Profiler {
 	@Around("execution(* org.sagebionetworks..*.*(..)) && !within(org.sagebionetworks.profiler.*)")
 	public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
 
-		// Do nothing if loggin is not on
+		// Do nothing if logging is not on
 		if (!shouldCaptureData(pjp.getArgs())) {
 			// Just proceed if logging is off.
 			return pjp.proceed();
@@ -122,7 +122,7 @@ public class Profiler {
 		Class<?> declaring = pjp.getTarget().getClass();
 
 		// Do nothing if we don't know where we came from
-		if (declaring == null) {
+		if (signature.getDeclaringType() == null) { //TODO: do we still need this??
 			return pjp.proceed();
 		}
 
@@ -133,9 +133,11 @@ public class Profiler {
 		// Set a new frame as the current frame.
 		long startTime = System.nanoTime();
 		String methodName = declaring.getName() + "." + signature.getName();
-		Frame currentFrame = new Frame(startTime, methodName);
+		Frame currentFrame;
 		if (parentFrame != null) {
-			parentFrame.addChild(currentFrame);
+			currentFrame = parentFrame.addFrameIfAbsent(methodName);
+		} else{
+			currentFrame = new Frame(methodName);
 		}
 
 		profileData.currentFrame = currentFrame;
@@ -145,7 +147,7 @@ public class Profiler {
 			return pjp.proceed();
 		} finally {
 			long endTime = System.nanoTime();
-			currentFrame.setEnd(endTime);
+			currentFrame.addElapsedTime((endTime - startTime) / 1000);
 			// set current frame back to parent
 			profileData.currentFrame = parentFrame;
 
@@ -160,7 +162,6 @@ public class Profiler {
 
 			// Is there a previous frame?
 			if (parentFrame == null) {
-				// This should get replace with a logger.
 				doFireProfile(currentFrame);
 				if (shouldLogPerformance) {
 					collectMethodCallCounts(profileData.methodCalls, methodCount.totalTime);

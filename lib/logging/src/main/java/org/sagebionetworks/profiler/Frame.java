@@ -2,35 +2,46 @@ package org.sagebionetworks.profiler;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.util.IntervalStatistics;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class Frame {
 
 	/**
 	 * JSON name constants
 	 */
-	private static final String START_TIME 	= "startTime";
-	private static final String ELAPSE 		= "elapse";
 	private static final String NAME 		= "name";
 	private static final String CHILDREN 	= "children";
-	
-	private long startTime = -1;
-	private String name = null;
-	private long elapse = -1;
-	private List<Frame> children = null;
+
+	private String name;
+	private IntervalStatistics elapsedTimeStatistics;
+	private LinkedHashMap<String,Frame> children;
 
 	public Frame() {
 	}
 
-	public Frame(long startTime, String name) {
-		this.startTime = startTime;
+	public Frame(String name) {
 		this.name = name;
+		this.elapsedTimeStatistics = new IntervalStatistics();
+		this.children = new LinkedHashMap<>();
+	}
+
+	public Frame addFrameIfAbsent(String methodName){
+		Frame childFrame = children.get(methodName);
+		if (childFrame == null){
+			childFrame = new Frame(methodName);
+			children.put(methodName, childFrame);
+		}
+		return childFrame;
 	}
 
 	public String toString() {
@@ -38,7 +49,7 @@ public class Frame {
 		long id = Thread.currentThread().getId();
 		StringBuilder buffer = new StringBuilder();
 		buffer.append(String.format(
-				"%n[%3$d] ELAPSE: %1$tM:%1$tS:%1$tL METHOD: %2$s", elapse,
+				"%n[%3$d] ELAPSE: Total: %1$tH:%1$tM:%1$tS:%1$tL METHOD: %2$s", elapsedTimeStatistics, //TODO: figure out print
 				name, id));
 		if (children == null) {
 			return buffer.toString();
@@ -51,70 +62,61 @@ public class Frame {
 
 	public void printChildren(StringBuilder buffer, long id, String level,
 			long time) {
-		if (children != null) {
-			for (int i = 0; i < children.size(); i++) {
-				Frame child = children.get(i);
-				buffer.append(String
-						.format("%n[%5$d] ELAPSE: %2$s%1$tM:%1$tS:%1$tL METHOD: %3$s",
-								child.elapse, level, child.name, time, id));
-				if (child.children != null) {
-					child.printChildren(buffer, id, level + "----", time);
-				}
-			}
+		for (Frame child: children.values()) {
+			buffer.append(String
+					.format("%n[%5$d] ELAPSE: %2$s%1$tM:%1$tS:%1$tL METHOD: %3$s",
+							child.elapsedTimeStatistics, level, child.name, time, id));
+			child.printChildren(buffer, id, level + "----", time);
 		}
-	}
-
-	public void setEnd(long end) {
-		this.elapse = (end - startTime)/1000000;
 	}
 
 	public void addChild(Frame child) {
-		if (children == null) {
-			children = new ArrayList<Frame>();
-		}
-		children.add(child);
+		ValidateArgument.requirement(!children.containsKey(child.name), "Child with name " + child.name + " already exists.");
+		children.put(child.name, child);
 	}
 
-	public long getStartTime() {
-		return startTime;
-	}
 
 	public String getName() {
 		return name;
 	}
 
-	public long getElapse() {
-		return elapse;
+	public Frame getChild(String methodName){
+		return children.get(methodName);
 	}
 
-	public List<Frame> getChildren() {
-		return children;
+	public IntervalStatistics getElapsedTimeStatistics() {
+		return elapsedTimeStatistics;
 	}
 
-	public void setStartTime(long startTime) {
-		this.startTime = startTime;
+	public List<Frame> getChildren() { //TODO: don't need?
+		return new ArrayList<>(children.values());
 	}
 
 	public void setName(String name) {
 		this.name = name;
 	}
 
-	public void setElapse(long elapse) {
-		this.elapse = elapse;
+	public void addElapsedTime(long elapsedMilliseconds){ //TODO conversion of long to double?
+		this.elapsedTimeStatistics.addValue(elapsedMilliseconds);
 	}
 
-	public void setChildren(List<Frame> children) {
-		this.children = children;
+	public long getAverageTimeMilis(){
+		return Math.round(this.elapsedTimeStatistics.getValueCount() == 0 ? 0 : this.elapsedTimeStatistics.getValueSum() / this.elapsedTimeStatistics.getValueCount());
 	}
-	
+
+	public long getMinTimeMilis(){
+		return Math.round(this.elapsedTimeStatistics.getMinimumValue());
+	}
+
+	public long getMaxTimeMilis(){
+		return Math.round(this.elapsedTimeStatistics.getMaximumValue());
+	}
+
 	/**
 	 * Write a given frame to JSON
-	 * 
+	 *
 	 * @param frame
 	 * @return
-	 * @throws JsonGenerationException
-	 * @throws JsonMappingException
-	 * @throws IOException
 	 * @throws JSONException
 	 */
 	public static String writeFrameJSON(Frame frame) throws JSONException {
@@ -123,9 +125,10 @@ public class Frame {
 		return root.toString();
 	}
 
+	//TODO:fix json stuff
 	/**
 	 * Recursive method to create the JSON objects for a tree of frames.
-	 * 
+	 *
 	 * @param frame
 	 * @return
 	 * @throws JSONException
@@ -133,10 +136,7 @@ public class Frame {
 	public static JSONObject writeToJSONObject(Frame frame)
 			throws JSONException {
 		JSONObject object = new JSONObject();
-		;
-		object.put(START_TIME, frame.getStartTime());
 		object.put(NAME, frame.getName());
-		object.put(ELAPSE, frame.getElapse());
 		if (frame.getChildren() != null) {
 			for (Frame child : frame.getChildren()) {
 				object.accumulate(CHILDREN, writeToJSONObject(child));
@@ -147,7 +147,7 @@ public class Frame {
 
 	/**
 	 * Read a Frame from a JSON String
-	 * 
+	 *
 	 * @param jsonString
 	 * @return
 	 * @throws JSONException
@@ -160,7 +160,7 @@ public class Frame {
 
 	/**
 	 * Recursive method to build up a Frame from a JSON object.
-	 * 
+	 *
 	 * @param object
 	 * @return
 	 * @throws JSONException
@@ -168,8 +168,6 @@ public class Frame {
 	public static Frame writeToJSONObject(JSONObject object)
 			throws JSONException {
 		Frame frame = new Frame();
-		frame.setStartTime(object.getLong(START_TIME));
-		frame.setElapse(object.getLong(ELAPSE));
 		frame.setName(object.getString(NAME));
 		if (object.has(CHILDREN)) {
 			JSONArray children = object.getJSONArray(CHILDREN);
@@ -183,41 +181,18 @@ public class Frame {
 	}
 
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((children == null) ? 0 : children.hashCode());
-		result = prime * result + (int) (elapse ^ (elapse >>> 32));
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + (int) (startTime ^ (startTime >>> 32));
-		return result;
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		Frame frame = (Frame) o;
+		return Objects.equals(name, frame.name) &&
+				Objects.equals(elapsedTimeStatistics, frame.elapsedTimeStatistics) &&
+				Objects.equals(children, frame.children);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Frame other = (Frame) obj;
-		if (children == null) {
-			if (other.children != null)
-				return false;
-		} else if (!children.equals(other.children))
-			return false;
-		if (elapse != other.elapse)
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (startTime != other.startTime)
-			return false;
-		return true;
+	public int hashCode() {
+
+		return Objects.hash(name, elapsedTimeStatistics, children);
 	}
-	
 }
