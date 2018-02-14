@@ -67,8 +67,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
-	private StreamingJdbcTemplate streamingJdbcTemplate;
-	@Autowired
 	private StackConfiguration stackConfiguration;
 	
 	/**
@@ -775,8 +773,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Build the ranges by scanning each primary ID and its secondary cardinality.
 		final IdRangeBuilder builder = new IdRangeBuilder(optimalNumberOfRows);
 		String sql = getPrimaryCardinalitySql(migrationType);
+		// need to use a streaming template for this case.
+		StreamingJdbcTemplate streamingTemplate  = new StreamingJdbcTemplate(jdbcTemplate.getDataSource());
 		// Stream over each primary row ID and its associated secondary cardinality.
-		this.streamingJdbcTemplate.query(sql, new RowCallbackHandler() {
+		streamingTemplate.query(sql, new RowCallbackHandler() {
 
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
