@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import java.math.BigInteger;
-
 public class ChecksumTableResult {
 	
 	private String tableName;

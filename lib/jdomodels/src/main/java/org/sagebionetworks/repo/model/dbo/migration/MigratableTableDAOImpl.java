@@ -14,6 +14,7 @@ import java.util.concurrent.Callable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.database.StreamingJdbcTemplate;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -30,6 +32,7 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -763,5 +766,44 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			return namedTemplate.update(deleteSQL, parameters);
 		});
 	}
-	
+
+	@Override
+	public List<IdRange> calculateRangesForType(MigrationType migrationType, long minimumId, long maximumId,
+			long optimalNumberOfRows) {
+		// Build the ranges by scanning each primary ID and its secondary cardinality.
+		final IdRangeBuilder builder = new IdRangeBuilder(optimalNumberOfRows);
+		String sql = getPrimaryCardinalitySql(migrationType);
+		// need to use a streaming template for this case.
+		StreamingJdbcTemplate streamingTemplate  = new StreamingJdbcTemplate(jdbcTemplate.getDataSource());
+		// Stream over each primary row ID and its associated secondary cardinality.
+		streamingTemplate.query(sql, new RowCallbackHandler() {
+
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				// pass each row to the builder
+				long primaryRowId = rs.getLong(1);
+				long cardinality = rs.getLong(2);
+				builder.addRow(primaryRowId, cardinality);
+			}}, minimumId, maximumId);
+		// The build collates the results
+		return builder.collateResults();
+	}
+
+	/**
+	 * Get the SQL for a primary cardinality.
+	 * @param primaryType
+	 * @return
+	 */
+	public String getPrimaryCardinalitySql(MigrationType primaryType) {
+		MigratableDatabaseObject primaryObject = getMigratableObject(primaryType);
+		TableMapping primaryMapping = primaryObject.getTableMapping();
+		List<TableMapping> secondaryMapping = new LinkedList<>();
+		List<MigratableDatabaseObject> secondaryTypes = primaryObject.getSecondaryTypes();
+		if(secondaryTypes != null) {
+			for(MigratableDatabaseObject secondary: secondaryTypes) {
+				secondaryMapping.add(secondary.getTableMapping());
+			}
+		}
+		return DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMapping);
+	}
 }
