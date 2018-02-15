@@ -1,17 +1,12 @@
 package org.sagebionetworks.profiler;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.sagebionetworks.util.IntervalStatistics;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -21,6 +16,7 @@ public class Frame {
 	private LinkedHashMap<String,Frame> children;
 
 	private static final String INDENT_STRING = "----";
+	private static final String DURATION_FORMAT_STRING = "HH:mm:ss.S";
 
 	public Frame(String name) {
 		this.name = name;
@@ -41,8 +37,7 @@ public class Frame {
 		// Output a single line if there are no children.
 		long id = Thread.currentThread().getId();
 		StringBuilder buffer = new StringBuilder();
-		buffer.append(String.format(
-				"%n[%1$d] ELAPSE: Total: ", id));
+		buffer.append(String.format("%n[%d] ELAPSE: ", id));
 		appendStatisticsToStringBuilder(buffer, this);
 		if (children != null) {
 			printChildren(buffer, id, 1);
@@ -53,17 +48,20 @@ public class Frame {
 	public void printChildren(StringBuilder buffer, long id, int level) {
 		String indentString = StringUtils.repeat(INDENT_STRING, level);
 		for (Frame child: children.values()) {
-			buffer.append(String.format("%n[%d] ELAPSE: %s", id, indentString));
+			buffer.append(String.format("%n[%d] ELAPSE: %s ", id, indentString));
 			appendStatisticsToStringBuilder(buffer, child);
 			child.printChildren(buffer, id, level + 1);
 		}
 	}
 
 	private static void appendStatisticsToStringBuilder(StringBuilder buffer, Frame frame){
-		buffer.append( String.format("%1$tH:%1$tM:%1$tS:%1$tL METHOD: %2$s", frame.getTotalTimeMilis(), frame.getName()));
+		buffer.append( String.format("%s METHOD: %s", DurationFormatUtils.formatDuration(frame.getTotalTimeMilis(), DURATION_FORMAT_STRING), frame.getName()));
 		if (frame.getCallsCount() > 1){
-			buffer.append(String.format(" Count: %1$d (Average: %2$tH:%2$tM:%2$tS:%2$tL, Min: %3$tH:%3$tM:%3$tS:%3$tL, Max: %4$tH:%4$tM:%4$tS:%4$tL )",
-										frame.getCallsCount(), frame.getAverageTimeMilis(), frame.getMinTimeMilis(), frame.getMaxTimeMilis()));
+			buffer.append(String.format(" (Count: %d Average: %s, Min: %s, Max: %s)",
+										frame.getCallsCount(),
+										DurationFormatUtils.formatDuration(frame.getAverageTimeMilis(), DURATION_FORMAT_STRING),
+										DurationFormatUtils.formatDuration(frame.getMinTimeMilis(), DURATION_FORMAT_STRING),
+										DurationFormatUtils.formatDuration(frame.getMaxTimeMilis(), DURATION_FORMAT_STRING)));
 		}
 	}
 

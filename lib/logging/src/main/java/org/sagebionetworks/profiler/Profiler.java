@@ -3,8 +3,6 @@ package org.sagebionetworks.profiler;
 import java.util.List;
 import java.util.Stack;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;

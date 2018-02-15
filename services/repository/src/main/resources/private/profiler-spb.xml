@@ -18,9 +18,6 @@
 				<bean name="loggingProfiler" class="org.sagebionetworks.profiler.LoggingProfiler" />
 			</list>
 		</property>
-		<property name="shouldLogPerformance">
-			<ref bean="stackConfiguration.callPerformanceOnOff"/>
-		</property>
 	</bean>
 
 </beans>
