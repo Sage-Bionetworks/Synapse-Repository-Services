@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.web.service;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -73,32 +71,6 @@ public interface MigrationService {
 	RowMetadataResult getRowMetadataDeltaForType(Long userId,	MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Start the backup of the provided list of Migration type IDs.
-	 * @param userId
-	 * @param type
-	 * @param list
-	 * @param backupAliasType
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	@Deprecated
-	BackupRestoreStatus startBackup(Long userId, MigrationType type, List<Long> list, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Start the restore of the provided file.
-	 * @param userId
-	 * @param type
-	 * @param fileName
-	 * @param backupAliasType
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	@Deprecated
-	BackupRestoreStatus startRestore(Long userId, MigrationType type, String fileName, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException;
-
-	/**
 	 * Delete the migration objects identified in tha passed list.
 	 * @param userId
 	 * @param valueOf
@@ -108,16 +80,6 @@ public interface MigrationService {
 	 * @throws Exception 
 	 */
 	MigrationTypeCount delete(Long userId, MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException, Exception;
-
-	/**
-	 * Get the status of either a restore or backup deamon
-	 * @param userId
-	 * @param daemonId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	BackupRestoreStatus getStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.

@@ -1,9 +1,0 @@
-{
-    "description":"Submission for a restore daemon",
-    "properties":{
-        "fileName":{
-            "type":"string",
-            "description":"The file name of the backup file to restore."            
-        }        
-    }    
-}

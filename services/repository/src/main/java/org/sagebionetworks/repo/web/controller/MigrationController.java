@@ -8,9 +8,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -156,69 +153,6 @@ public class MigrationController extends BaseController {
 		return serviceProvider.getMigrationService().getRowMetadataDeltaForType(userId,	MigrationType.valueOf(type), request.getList());
 	}
 
-	/**
-	 * Start a backup daemon. Monitor the status of the daemon with the
-	 * getStatus method.
-	 * 
-	 * @param userId
-	 * @param type
-	 * @param backupAliasType Possible values:
-	 * <a href="#org.sagebionetworks.repo.model.daemon.BackupAliasType">BackupAliasType</a>. Defaults to TABLE_NAME.
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.MIGRATION_BACKUP }, method = RequestMethod.POST)
-	public @ResponseBody
-	BackupRestoreStatus startBackup(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = true) String type,
-			@RequestParam(required = false) BackupAliasType backupAliasType,
-			@RequestBody IdList request) throws DatastoreException, NotFoundException {
-		if (request == null)
-			throw new IllegalArgumentException("Request cannot be null");
-		if (backupAliasType == null)
-			backupAliasType = BackupAliasType.TABLE_NAME;
-		return serviceProvider.getMigrationService().startBackup(userId, MigrationType.valueOf(type), request.getList(), backupAliasType);
-	}
-	
-	/**
-	 * Start a system restore daemon using the passed file name.  The file must be in the 
-	 * the bucket belonging to this stack.
-	 * 
-	 * @param userId
-	 * @param type
-	 * @param backupAliasType Possible values:
-	 * <a href="#org.sagebionetworks.repo.model.daemon.BackupAliasType">BackupAliasType</a>. Defaults to TABLE_NAME.
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.MIGRATION_RESTORE }, method = RequestMethod.POST)
-	public @ResponseBody
-	BackupRestoreStatus startRestore(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = true) String type,
-			@RequestParam(required = false) BackupAliasType backupAliasType,
-			@RequestBody RestoreSubmission request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		if (backupAliasType == null)
-			backupAliasType = BackupAliasType.TABLE_NAME;
-		return serviceProvider.getMigrationService().startRestore(userId, MigrationType.valueOf(type), request.getFileName(), backupAliasType);
-	}
 	
 	/**
 	 * Delete a migratable object
@@ -238,29 +172,6 @@ public class MigrationController extends BaseController {
 		if (request == null)
 			throw new IllegalArgumentException("Request cannot be null");
 		return serviceProvider.getMigrationService().delete(userId,  MigrationType.valueOf(type), request.getList());
-	}
-	
-	/**
-	 * Get the status of a running daemon (either a backup or restore)
-	 * @param daemonId
-	 * @param userId
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.MIGRATION_STATUS }, method = RequestMethod.GET)
-	public @ResponseBody
-	BackupRestoreStatus getStatus(
-			@RequestParam(required = true) String daemonId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		return serviceProvider.getMigrationService().getStatus(userId, daemonId);
 	}
 	
 	/**

@@ -4,12 +4,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -27,9 +24,6 @@ public class MigrationServiceImpl implements MigrationService {
 	UserManager userManager;
 	@Autowired
 	MigrationManager migrationManager;
-	@Autowired
-	BackupDaemonLauncher backupDaemonLauncher;	
-
 	/**
 	 * Get the counts for each migration type in use.
 	 */
@@ -88,20 +82,6 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public BackupRestoreStatus startBackup(Long userId, MigrationType type, List<Long> list, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException {
-		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
-		UserInfo user = userManager.getUserInfo(userId);
-		return backupDaemonLauncher.startBackup(user, type, list, backupAliasType);
-	}
-
-	@Override
-	public BackupRestoreStatus startRestore(Long userId, MigrationType type, String fileName, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException {
-		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
-		UserInfo user = userManager.getUserInfo(userId);
-		return backupDaemonLauncher.startRestore(user, fileName, type, backupAliasType);
-	}
-
-	@Override
 	public MigrationTypeCount delete(Long userId, MigrationType type, List<Long> list) throws Exception {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
@@ -110,13 +90,6 @@ public class MigrationServiceImpl implements MigrationService {
 		tc.setCount(count);
 		tc.setType(type);
 		return tc;
-	}
-
-	@Override
-	public BackupRestoreStatus getStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException {
-		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
-		UserInfo user = userManager.getUserInfo(userId);
-		return backupDaemonLauncher.getStatus(user, daemonId);
 	}
 
 	@Override
