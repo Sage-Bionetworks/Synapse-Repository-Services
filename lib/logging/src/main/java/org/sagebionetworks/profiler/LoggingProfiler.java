@@ -21,7 +21,7 @@ public class LoggingProfiler implements ProfileHandler {
 
 	@Override
 	public void fireProfile(Frame data) {
-		if (data.getElapse() < 2000) {
+		if (data.getTotalTimeMilis() < 2000) {
 			if (log.isTraceEnabled())
 				log.trace(data.toString());
 		} else {

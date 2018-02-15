@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONArray;
@@ -15,19 +16,11 @@ import org.sagebionetworks.util.IntervalStatistics;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class Frame {
-
-	/**
-	 * JSON name constants
-	 */
-	private static final String NAME 		= "name";
-	private static final String CHILDREN 	= "children";
-
 	private String name;
 	private IntervalStatistics elapsedTimeStatistics;
 	private LinkedHashMap<String,Frame> children;
 
-	public Frame() {
-	}
+	private static final String INDENT_STRING = "----";
 
 	public Frame(String name) {
 		this.name = name;
@@ -35,7 +28,7 @@ public class Frame {
 		this.children = new LinkedHashMap<>();
 	}
 
-	public Frame addFrameIfAbsent(String methodName){
+	public Frame addChildFrameIfAbsent(String methodName){
 		Frame childFrame = children.get(methodName);
 		if (childFrame == null){
 			childFrame = new Frame(methodName);
@@ -49,24 +42,28 @@ public class Frame {
 		long id = Thread.currentThread().getId();
 		StringBuilder buffer = new StringBuilder();
 		buffer.append(String.format(
-				"%n[%3$d] ELAPSE: Total: %1$tH:%1$tM:%1$tS:%1$tL METHOD: %2$s", elapsedTimeStatistics, //TODO: figure out print
-				name, id));
-		if (children == null) {
-			return buffer.toString();
-		} else {
-			printChildren(buffer, id, "----", System.currentTimeMillis());
-			// Now print the children
-			return buffer.toString();
+				"%n[%1$d] ELAPSE: Total: ", id));
+		appendStatisticsToStringBuilder(buffer, this);
+		if (children != null) {
+			printChildren(buffer, id, 1);
+		}
+		return buffer.toString();
+	}
+
+	public void printChildren(StringBuilder buffer, long id, int level) {
+		String indentString = StringUtils.repeat(INDENT_STRING, level);
+		for (Frame child: children.values()) {
+			buffer.append(String.format("%n[%d] ELAPSE: %s", id, indentString));
+			appendStatisticsToStringBuilder(buffer, child);
+			child.printChildren(buffer, id, level + 1);
 		}
 	}
 
-	public void printChildren(StringBuilder buffer, long id, String level,
-			long time) {
-		for (Frame child: children.values()) {
-			buffer.append(String
-					.format("%n[%5$d] ELAPSE: %2$s%1$tM:%1$tS:%1$tL METHOD: %3$s",
-							child.elapsedTimeStatistics, level, child.name, time, id));
-			child.printChildren(buffer, id, level + "----", time);
+	private static void appendStatisticsToStringBuilder(StringBuilder buffer, Frame frame){
+		buffer.append( String.format("%1$tH:%1$tM:%1$tS:%1$tL METHOD: %2$s", frame.getTotalTimeMilis(), frame.getName()));
+		if (frame.getCallsCount() > 1){
+			buffer.append(String.format(" Count: %1$d (Average: %2$tH:%2$tM:%2$tS:%2$tL, Min: %3$tH:%3$tM:%3$tS:%3$tL, Max: %4$tH:%4$tM:%4$tS:%4$tL )",
+										frame.getCallsCount(), frame.getAverageTimeMilis(), frame.getMinTimeMilis(), frame.getMaxTimeMilis()));
 		}
 	}
 
@@ -84,20 +81,20 @@ public class Frame {
 		return children.get(methodName);
 	}
 
-	public IntervalStatistics getElapsedTimeStatistics() {
-		return elapsedTimeStatistics;
-	}
-
 	public List<Frame> getChildren() { //TODO: don't need?
 		return new ArrayList<>(children.values());
 	}
 
-	public void setName(String name) {
-		this.name = name;
+	public void addElapsedTime(long elapsedMilliseconds){
+		this.elapsedTimeStatistics.addValue(elapsedMilliseconds);
 	}
 
-	public void addElapsedTime(long elapsedMilliseconds){ //TODO conversion of long to double?
-		this.elapsedTimeStatistics.addValue(elapsedMilliseconds);
+	public long getTotalTimeMilis(){
+		return Math.round(this.elapsedTimeStatistics.getValueSum());
+	}
+
+	public long getCallsCount(){
+		return this.elapsedTimeStatistics.getValueCount();
 	}
 
 	public long getAverageTimeMilis(){
@@ -112,74 +109,6 @@ public class Frame {
 		return Math.round(this.elapsedTimeStatistics.getMaximumValue());
 	}
 
-	/**
-	 * Write a given frame to JSON
-	 *
-	 * @param frame
-	 * @return
-	 * @throws JSONException
-	 */
-	public static String writeFrameJSON(Frame frame) throws JSONException {
-		// Create root
-		JSONObject root = writeToJSONObject(frame);
-		return root.toString();
-	}
-
-	//TODO:fix json stuff
-	/**
-	 * Recursive method to create the JSON objects for a tree of frames.
-	 *
-	 * @param frame
-	 * @return
-	 * @throws JSONException
-	 */
-	public static JSONObject writeToJSONObject(Frame frame)
-			throws JSONException {
-		JSONObject object = new JSONObject();
-		object.put(NAME, frame.getName());
-		if (frame.getChildren() != null) {
-			for (Frame child : frame.getChildren()) {
-				object.accumulate(CHILDREN, writeToJSONObject(child));
-			}
-		}
-		return object;
-	}
-
-	/**
-	 * Read a Frame from a JSON String
-	 *
-	 * @param jsonString
-	 * @return
-	 * @throws JSONException
-	 */
-	public static Frame readFrameFromJSON(String jsonString)
-			throws JSONException {
-		JSONObject object = new JSONObject(jsonString);
-		return writeToJSONObject(object);
-	}
-
-	/**
-	 * Recursive method to build up a Frame from a JSON object.
-	 *
-	 * @param object
-	 * @return
-	 * @throws JSONException
-	 */
-	public static Frame writeToJSONObject(JSONObject object)
-			throws JSONException {
-		Frame frame = new Frame();
-		frame.setName(object.getString(NAME));
-		if (object.has(CHILDREN)) {
-			JSONArray children = object.getJSONArray(CHILDREN);
-			for (int i = 0; i < children.length(); i++) {
-				JSONObject child = children.getJSONObject(i);
-				Frame childFrame = writeToJSONObject(child);
-				frame.addChild(childFrame);
-			}
-		}
-		return frame;
-	}
-
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
@@ -192,7 +121,6 @@ public class Frame {
 
 	@Override
 	public int hashCode() {
-
 		return Objects.hash(name, elapsedTimeStatistics, children);
 	}
 }

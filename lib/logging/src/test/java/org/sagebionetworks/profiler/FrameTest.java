@@ -3,12 +3,8 @@ package org.sagebionetworks.profiler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
-import java.io.IOException;
-
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,30 +22,11 @@ public class FrameTest {
 		frame = new Frame("frame");
 	}
 
-	/**
-	 * @throws JSONException 
-	 * @throws IOException 
-	 * @throws JsonMappingException 
-	 * @throws JsonGenerationException 
-	 * 
-	 */
-	@Test
-	public void testJSONRoundTrip() throws JSONException { //TODO: fix
-		// Write it to json
-		String json = Frame.writeFrameJSON(frame);
-		assertNotNull(json);
-		System.out.println(json);
-		// Now convert back to Frames
-		Frame cloneRoot = Frame.readFrameFromJSON(json);
-		assertNotNull(cloneRoot);
-		assertEquals(frame, cloneRoot);
-	}
-
 
 	@Test
 	public void testAddFrameIfAbsent_frameIsAbsent(){
-		Frame child = frame.addFrameIfAbsent("childFrame");
-		assertSame(child, frame.getChild("frame"));
+		Frame child = frame.addChildFrameIfAbsent("childFrame");
+		assertSame(child, frame.getChild(child.getName()));
 	}
 
 	@Test
@@ -57,12 +34,26 @@ public class FrameTest {
 		Frame existingChild = new Frame("childFrame");
 		frame.addChild(existingChild);
 
-		Frame child = frame.addFrameIfAbsent("childFrame");
+		Frame child = frame.addChildFrameIfAbsent("childFrame");
 		assertSame(existingChild, child);
 	}
 
 	@Test
-	public void testAddElapsedTime(){
-
+	public void testAddChild_newChild(){
+		Frame child = new Frame("myFrame");
+		frame.addChild(child);
+		assertSame(child, frame.getChild(child.getName()));
 	}
+
+	@Test
+	public void testAddChild_alreadyExist(){
+		frame.addChild(new Frame("sameName"));
+		try{
+			frame.addChild(new Frame("sameName"));
+			fail();
+		}catch (IllegalArgumentException e){
+			//expected
+		}
+	}
+
 }
