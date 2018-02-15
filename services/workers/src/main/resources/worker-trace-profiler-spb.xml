@@ -15,7 +15,9 @@
     <bean id="profiler" class="org.sagebionetworks.profiler.Profiler" scope="singleton">
         <property name="handlers">
             <list>
-                <bean name="loggingProfiler" class="org.sagebionetworks.profiler.LoggingProfiler" />
+                <bean name="loggingProfiler" class="org.sagebionetworks.profiler.LoggingProfiler" >
+                    <constructor-arg value="2500"/>
+                </bean>
             </list>
         </property>
     </bean>

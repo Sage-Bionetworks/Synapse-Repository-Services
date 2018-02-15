@@ -81,7 +81,7 @@ public class Profiler {
 			return pjp.proceed();
 		} finally {
 			long endTime = System.nanoTime();
-			currentFrame.addElapsedTime((endTime - startTime) / 1000);
+			currentFrame.addElapsedTime((endTime - startTime) / 1000000);
 
 			// now that the method finished pop the current frame off the stack
 			parentFramesStack.pop();
