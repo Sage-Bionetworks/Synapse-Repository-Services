@@ -17,8 +17,6 @@ import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
-import org.sagebionetworks.repo.model.migration.DeleteListRequest;
-import org.sagebionetworks.repo.model.migration.DeleteListResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -74,28 +72,6 @@ public interface MigrationManager {
 	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<Long> idList);
 
 	/**
-	 * Get a batch of objects to backup.
-	 * 
-	 * @param clazz
-	 * @param rowIds
-	 * @param backupAliasType
-	 * @return
-	 */
-	@Deprecated
-	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer out,
-			BackupAliasType backupAliasType);
-
-	/**
-	 * Delete objects by their IDs
-	 * 
-	 * @param type
-	 * @param idList
-	 * @throws Exception
-	 */
-	@Deprecated
-	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) throws Exception;
-
-	/**
 	 * The list of primary migration types represents types that either stand-alone
 	 * or are the owner's of other types. Migration is driven off this list as
 	 * secondary types are migrated with their primary owners.
@@ -139,13 +115,6 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public List<MigrationType> getSecondaryTypes(MigrationType type);
-
-	/**
-	 * This will clear all data in the database.
-	 * 
-	 * @throws Exception
-	 */
-	public void deleteAllData(UserInfo user) throws Exception;
 
 	/**
 	 * Returns true if mt is a primary or secondary migration type, false otherwise
@@ -210,17 +179,6 @@ public interface MigrationManager {
 	public void validateForeignKeys();
 
 	/**
-	 * Create or update a batch.
-	 * 
-	 * @param batch
-	 *            - batch of objects to create or update.
-	 * @param backupAliasType
-	 * @throws Exception
-	 */
-	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in,
-			BackupAliasType backupAliasType) throws Exception;
-
-	/**
 	 * Create a backup file for the given type and list of row IDs.
 	 * 
 	 * @param user
@@ -249,26 +207,6 @@ public interface MigrationManager {
 	 * @throws Exception
 	 */
 	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest req) throws IOException;
-
-	/**
-	 * Delete both primary and secondary data associated with the given type and
-	 * IDs.
-	 * 
-	 * @param user
-	 * @param type
-	 * @param idList
-	 * @return
-	 */
-	public int deleteById(UserInfo user, MigrationType type, List<Long> idList);
-
-	/**
-	 * Request to delete a list of objects for a given type.
-	 * 
-	 * @param user
-	 * @param request
-	 * @return
-	 */
-	public DeleteListResponse deleteById(UserInfo user, DeleteListRequest request);
 
 	/**
 	 * Is the given type a bootstrap type?

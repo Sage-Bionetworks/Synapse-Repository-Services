@@ -160,75 +160,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		result.setList(list);
 		return result;
 	}
-
-	@Deprecated
-	@WriteTransaction
-	@SuppressWarnings("unchecked")
-	@Override
-	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer writer, BackupAliasType backupAliasType) {
-		validateUser(user);
-		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		// Get the database object from the dao
-		MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
-		// Forward to the generic method
-		writeBackupBatch(mdo, rowIds, writer, backupAliasType);
-	}
-
-	@Deprecated
-	@SuppressWarnings("unchecked")
-	@Override
-	public List<Long> createOrUpdateBatch(UserInfo user, final MigrationType type, final InputStream in, BackupAliasType backupAliasType) throws Exception {
-		validateUser(user);
-		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		return migratableTableDao.runWithKeyChecksIgnored((Callable<List<Long>>) () -> {
-			// Get the database object from the dao
-			MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
-			return createOrUpdateBatch(mdo, in, backupAliasType);
-		});
-	}
-
-	@Deprecated
-	@WriteTransaction
-	@Override
-	public int deleteObjectsById(final UserInfo user, final MigrationType type, final List<Long> idList) throws Exception {
-		validateUser(user);
-		// Do deletes with the foreign key checks off.
-		return migratableTableDao.runWithKeyChecksIgnored(() -> {
-			// If this type has secondary types then delete them first
-			List<MigratableDatabaseObject> secondary = migratableTableDao.getObjectForType(type).getSecondaryTypes();
-			if(secondary != null){
-				for(int i=secondary.size()-1; i >= 0; i--){
-					MigrationType secondaryType = secondary.get(i).getMigratableTableType();
-					// Fire the event before deleting the objects
-					fireDeleteBatchEvent(secondaryType, idList);
-					deleteObjectsById(user, secondaryType, idList);
-				}
-			}
-
-			if(type == null) throw new IllegalArgumentException("Type cannot be null");
-			// Delete must be done in reverse dependency order, so we must get the row metadata for
-			// the input list
-			int count = 0;
-			List<RowMetadata> list =  migratableTableDao.listDeltaRowMetadata(type, idList);
-			if(list.size() > 0){
-				// Bucket all data by the level in the tree
-				ListBucketProvider provider = new ListBucketProvider();
-				MigrationUtils.bucketByTreeLevel(list.iterator(), provider);
-				// Now delete the buckets in reverse order
-				// This will ensure children are deleted before their parents
-				List<List<Long>> buckets = provider.getListOfBuckets();
-				if(buckets.size() > 0){
-					for(int i=buckets.size()-1; i>=0; i--){
-						List<Long> bucket = buckets.get(i);
-						// Fire the event before deleting the objects
-						fireDeleteBatchEvent(type, bucket);
-						count += migratableTableDao.deleteObjectsById(type, bucket);
-					}
-				}
-			}
-			return count;
-		});
-	}
 	
 	/**
 	 * Validate that the user is an administrator.
@@ -239,82 +170,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 	}
-	
-	/**
-	 * The Generics version of the write to backup.
-	 * @param mdo
-	 * @param rowIds
-	 * @param backupAliasType
-	 */
-	@Deprecated
-	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(
-			MigratableDatabaseObject<D, B> mdo, List<Long> rowIds, Writer writer, BackupAliasType backupAliasType) {
-		// Get all of the data from the DAO batched.
-		List<D> databaseList = getBackupDataBatched(mdo.getDatabaseObjectClass(), rowIds);
-		// Translate to the backup objects
-		MigratableTableTranslation<D, B> translator = mdo.getTranslator();
-		List<B> backupList = new LinkedList<B>();
-		for(D dbo: databaseList){
-			backupList.add(translator.createBackupFromDatabaseObject(dbo));
-		}
-		String alias = getAlias(mdo, backupAliasType);
-		// Now write the backup list to the stream
-		BackupMarshalingUtils.writeBackupToWriter(backupList, alias, writer);
-	}
 
-	/**
-	 * Get all of the backup data for a list of IDs using batching.
-	 * @param clazz
-	 * @param rowIds
-	 * @return
-	 */
-	@Deprecated
-	protected <D extends DatabaseObject<D>> List<D> getBackupDataBatched(Class<? extends D> clazz, List<Long> rowIds) {
-		List<Long> batch = new LinkedList<Long>();
-		List<D> results = new LinkedList<D>();
-		Iterator<Long> it = rowIds.iterator();
-		while(it.hasNext()){
-			Long id = it.next();
-			batch.add(id);
-			if(batch.size() >= backupBatchMax){
-				results.addAll(migratableTableDao.getBackupBatch(clazz, batch));
-				batch.clear();
-			}
-		}
-		if(batch.size() > 0){
-			results.addAll(migratableTableDao.getBackupBatch(clazz, batch));
-			batch.clear();
-		}
-		return results;
-	}
-	
-	/**
-	 * The Generics version of the create/update batch.
-	 * @param mdo
-	 * @param in
-	 * @param backupAliasType
-	 */
-	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(
-			MigratableDatabaseObject<D, B> mdo, InputStream in, BackupAliasType backupAliasType) {
-		// Read the list from the buffer
-		String alias = getAlias(mdo, backupAliasType);
-		List<? extends B> backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), alias, in);
-		if(backupList != null && !backupList.isEmpty()){
-			// Now translate from the backup objects to the database objects.
-			MigratableTableTranslation<D, B> translator = mdo.getTranslator();
-			List<D> databaseList = new LinkedList<>();
-			for(B backup: backupList){
-				databaseList.add(translator.createDatabaseObjectFromBackup(backup));
-			}
-			// Now write the batch to the database
-			List<Long> results = migratableTableDao.createOrUpdateBatch(databaseList);
-			// Let listeners know about the change
-			fireCreateOrUpdateBatchEvent(mdo.getMigratableTableType(), databaseList);
-			return results;
-		}else{
-			return new LinkedList<>();
-		}
-	}
 
 	/**
 	 * Returns the right alias to use in the XML backup file.
@@ -331,21 +187,6 @@ public class MigrationManagerImpl implements MigrationManager {
 			throw new IllegalStateException("This should never happen. Invalid BackupAliasType: " + backupAliasType);
 		}
 	}
-
-	/**
-	 * Fire a create or update event for a given migration type.
-	 * @param type
-	 * @param databaseList - The Database objects that were created or updated.
-	 */
-	@Deprecated
-	private <D extends DatabaseObject<D>> void fireCreateOrUpdateBatchEvent(MigrationType type, List<D> databaseList){
-		if(this.migrationListeners != null){
-			// Let each listener handle the event
-			for(MigrationTypeListener listener: this.migrationListeners){
-				listener.afterCreateOrUpdate(type, databaseList);
-			}
-		}
-	}
 	
 	/**
 	 * Fire a create or update event for a given migration type.
@@ -360,20 +201,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			}
 		}
 	}
-	
-	/**
-	 * Fire a delete event for a given migration type.
-	 * @param type
-	 * @param toDelete
-	 */
-	private void fireDeleteBatchEvent(MigrationType type, List<Long> toDelete){
-		if(this.migrationListeners != null){
-			// Let each listener handle the event
-			for(MigrationTypeListener listener: this.migrationListeners){
-				listener.beforeDeleteBatch(type, toDelete);
-			}
-		}
-	}
+
 
 	@Override
 	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user) {
@@ -436,19 +264,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		}
 	}
 
-	private void deleteAllForType(UserInfo user, MigrationType type) throws Exception {
-		// First get all data for this type.
-		RowMetadataResult result =  migratableTableDao.listRowMetadata(type, Long.MAX_VALUE, 0);
-		List<RowMetadata> list = result.getList();
-		if (list.size() > 0) {
-			// Create the list of IDs to delete
-			List<Long> toDelete = new LinkedList<Long>();
-			for(RowMetadata row: list){
-				toDelete.add(row.getId());
-			}
-			deleteById(user, type, toDelete);
-		}
-	}
 	
 	/**
 	 * 
@@ -808,37 +623,10 @@ public class MigrationManagerImpl implements MigrationManager {
 			List<DatabaseObject<?>> currentBatch) {
 		if(!currentBatch.isEmpty()) {
 			// push the data to the database
-			List<Long> createdOrUpdatedIds = this.migratableTableDao.createOrUpdate(currentType, currentBatch);
+			this.migratableTableDao.createOrUpdate(currentType, currentBatch);
 			// Let listeners know about the change
 			fireCreateOrUpdateEvent(currentType, currentBatch);
-			if(currentType.equals(primaryType)) {
-				// delete all secondary data for this type
-				for(MigrationType secondaryType: secondaryTypes) {
-					this.deleteByIdAndFireEvent(secondaryType, createdOrUpdatedIds);
-				}
-			}
 		}
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public int deleteById(UserInfo user, MigrationType type, List<Long> idList) {
-		ValidateArgument.required(user, "User");
-		ValidateArgument.required(type, "MigrationType");
-		ValidateArgument.required(idList, "Ids");
-		validateUser(user);
-		if(idList.isEmpty()) {
-			return 0;
-		}
-		int deleteCount = 0;
-		// delete secondary rows first
-		List<MigrationType> secondaryTypes = getSecondaryTypes(type);
-		for(MigrationType secondary: secondaryTypes) {
-			deleteCount += deleteByIdAndFireEvent(secondary, idList);
-		}
-		// delete the primary data.
-		deleteCount += deleteByIdAndFireEvent(type, idList);
-		return deleteCount;
 	}
 
 	/**
@@ -862,36 +650,6 @@ public class MigrationManagerImpl implements MigrationManager {
 			// nothing to filter
 			return idList;
 		}
-	}
-	
-	/**
-	 * Delete rows for the given type with the given ids and then notify 
-	 * migration listeners.
-	 * 
-	 * @param type
-	 * @param idList
-	 * @return
-	 */
-	protected int deleteByIdAndFireEvent(MigrationType type, List<Long> idList) {
-		// filter the bootstrap principals as needed.
-		idList = filterBootstrapPrincipals(type, idList);
-		this.fireDeleteBatchEvent(type, idList);
-		int deleteCount = this.migratableTableDao.deleteById(type, idList);
-		return deleteCount;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#deleteById(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.DeleteListRequest)
-	 */
-	@WriteTransactionReadCommitted
-	@Override
-	public DeleteListResponse deleteById(UserInfo user, DeleteListRequest request) {
-		ValidateArgument.required(request, "request");
-		int deleteCount = deleteById(user, request.getMigrationType(), request.getIdsToDelete());
-		DeleteListResponse response = new DeleteListResponse();
-		response.setDeleteCount(new Long(deleteCount));
-		return response;
 	}
 
 	@Override

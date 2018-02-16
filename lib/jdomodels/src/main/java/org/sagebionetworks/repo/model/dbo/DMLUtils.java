@@ -271,21 +271,6 @@ public class DMLUtils {
 			}
 		}
 	}
-	
-	/**
-	 * Build a batch Delete SQL statment for the given mapping.
-	 * @param mapping
-	 * @return
-	 */
-	public static String createBatchDelete(TableMapping mapping){
-		validateMigratableTableMapping(mapping);
-		StringBuilder builder = new StringBuilder();
-		builder.append("DELETE FROM ");
-		builder.append(mapping.getTableName());
-		builder.append(" WHERE ");
-		addBackupIdInList(builder, mapping);
-		return builder.toString();
-	}
 
 	/**
 	 *	Build a 'select sum(crc32(concat(id, '@', 'NA'))), bit_xor(crc32(concat(id, '@', ifnull(etag, 'NULL')))) statement for given mapping
@@ -481,39 +466,6 @@ public class DMLUtils {
 			builder.append(selfKey.getColumnName());
 			builder.append("`");
 		}
-	}
-	
-	/**
-	 * List all of the row data.
-	 * @param mapping
-	 * @return
-	 */
-	public static String deltaListRowMetadata(TableMapping mapping) {
-		validateMigratableTableMapping(mapping);
-		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT ");
-		buildSelectIdAndEtag(mapping, builder);
-		builder.append(" FROM ");
-		builder.append(mapping.getTableName());
-		builder.append(" WHERE ");
-		addBackupIdInList(builder, mapping);
-		buildBackupOrderBy(mapping, builder, true);
-		return builder.toString();
-	}
-	
-	/**
-	 * List all of the row data.
-	 * @param mapping
-	 * @return
-	 */
-	public static String getBackupBatch(TableMapping mapping) {
-		validateMigratableTableMapping(mapping);
-		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT * FROM ");
-		builder.append(mapping.getTableName());
-		builder.append(" WHERE ");
-		addBackupIdInList(builder, mapping);
-		return builder.toString();
 	}
 	
 

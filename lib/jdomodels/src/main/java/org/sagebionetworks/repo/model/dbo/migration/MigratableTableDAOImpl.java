@@ -110,15 +110,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 	// SQL
-	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> deleteByRangeMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> minSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> listByRangeSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlRangeMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
@@ -219,8 +216,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 		if(type == null) throw new IllegalArgumentException("MigrationType was null for class: "+dbo.getClass().getName());
 		// Build up the SQL cache.
-		String delete = DMLUtils.createBatchDelete(mapping);
-		deleteSqlMap.put(type, delete);
 		String deleteByRange = DMLUtils.createDeleteByBackupIdRange(mapping);
 		deleteByRangeMap.put(type, deleteByRange);
 		String count = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
@@ -239,8 +234,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		listSqlMap.put(type, listRowMetadataSQL);
 		String listRowMetaDataByIdSQL = DMLUtils.listRowMetadataByRange(mapping);
 		listByRangeSqlMap.put(type, listRowMetaDataByIdSQL);
-		String deltalistRowMetadataSQL = DMLUtils.deltaListRowMetadata(mapping);
-		deltaListSqlMap.put(type, deltalistRowMetadataSQL);
 		// Does this type have an etag?
 		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
 		if(etag != null){
@@ -251,9 +244,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		this.backupIdColumns.put(type, backupId);
 		RowMapper<RowMetadata> rowMetadataMapper = DMLUtils.getRowMetadataRowMapper(mapping);
 		rowMetadataMappers.put(type, rowMetadataMapper);
-		// Backup batch SQL
-		String batchBackup = DMLUtils.getBackupBatch(mapping);
-		backupSqlMap.put(type, batchBackup);
 		
 		String backupRangeSql = DMLUtils.getBackupRangeBatch(mapping);
 		this.backupSqlRangeMap.put(type, backupRangeSql);
@@ -388,98 +378,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		result.setTotalCount(count);
 		return result;
 	}
-	
-	@Override
-	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<Long> idList) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		// Fix for PLFM-1978
-		if(idList.size() < 1) return new LinkedList<RowMetadata>();
-		String sql = this.getDeltaListSql(type);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(DMLUtils.BIND_VAR_ID_lIST, idList);
-		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		final List<RowMetadata> result = namedTemplate.query(sql, params, mapper);
-		return result;
-	}
-
-
-
-	@Deprecated
-	@WriteTransaction
-	@Override
-	public int deleteObjectsById(MigrationType type, List<Long> idList) {
-		if (type == null) {
-			throw new IllegalArgumentException("type cannot be null");
-		}
-		if (idList == null) {
-			throw new IllegalArgumentException("idList cannot be null");
-		}
-		
-		// Migration should not delete the user handling the migration
-		if (type == MigrationType.PRINCIPAL 
-				|| type == MigrationType.CREDENTIAL
-				|| type == MigrationType.GROUP_MEMBERS) {
-			idList.removeAll(userGroupIdsExemptFromDeletion);
-		}
-		
-		if (idList.size() < 1) {
-			return 0;
-		}
-		
-		String deleteSQL = this.deleteSqlMap.get(type);
-		if (deleteSQL == null) {
-			throw new IllegalArgumentException(
-					"Cannot find batch delete SQL for " + type);
-		}
-		SqlParameterSource params = new MapSqlParameterSource(
-				DMLUtils.BIND_VAR_ID_lIST, idList);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		return namedTemplate.update(deleteSQL, params);
-	}
-	
-
-	@Override
-	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds) {
-		if(clazz == null) throw new IllegalArgumentException("clazz cannot be null");
-		if(rowIds == null) throw new IllegalArgumentException("idList cannot be null");
-		if(rowIds.size() < 1) return new LinkedList<D>();
-		MigrationType type = getTypeForClass(clazz);
-		String sql = getBatchBackupSql(type);
-		
-		@SuppressWarnings("unchecked")
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
-		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, rowIds);
-		List<D> page = namedTemplate.query(sql, params, object.getTableMapping());
-		return page;
-	}
-
-	@WriteTransaction
-	@Override
-	public <D extends DatabaseObject<D>> List<Long> createOrUpdateBatch(List<D> batch) {
-		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
-		if(batch.size() <1) return new LinkedList<Long>();
-		List<Long> createOrUpdateIds = new LinkedList<Long>();
-		// nothing to do with an empty batch
-		if(batch.size() < 1) return createOrUpdateIds;
-
-		MigrationType type = getTypeForClass(batch.get(0).getClass());
-		FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
-		String sql = getInsertOrUpdateSql(type);
-		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
-		for(int i=0; i<batch.size(); i++){
-			namedParameters[i] = getSqlParameterSource(batch.get(i), batch.get(i).getTableMapping());
-			Object obj = namedParameters[i].getValue(backukpIdColumn.getFieldName());
-			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
-			Long id = (Long) obj;
-			createOrUpdateIds.add(id);
-		}
-		// execute the batch
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		namedTemplate.batchUpdate(sql, namedParameters);
-		return createOrUpdateIds;
-	}
 
 	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
 		if (mapping instanceof AutoTableMapping) {
@@ -506,17 +404,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 	
 	/**
-	 * The the list sql for this type.
-	 * @param type
-	 * @return
-	 */
-	private String getDeltaListSql(MigrationType type){
-		String sql = this.deltaListSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find delta list SQL for type: "+type);
-		return sql;
-	}
-	
-	/**
 	 * The  RowMapper<RowMetadata> for this type.
 	 * @param type
 	 * @return
@@ -537,12 +424,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		MigrationType type = this.classToMapping.get(clazz);
 		if(type == null) throw new IllegalArgumentException("Cannot find the Type for Class: "+clazz.getName());
 		return type;
-	}
-
-	private String getBatchBackupSql(MigrationType type){
-		String sql = this.backupSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find the batch backup SQL for type: "+type);
-		return sql;
 	}
 	
 	private String getBatchBackupRangeSql(MigrationType type) {
@@ -679,17 +560,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				return info;
 			}}, schema);
 	}
-
-	@Override
-	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds,
-			long batchSize) {
-		String sql = getBatchBackupSql(type);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		MigratableDatabaseObject object = getMigratableObject(type);
-		Map<String, Object> parameters = new HashMap<>(3);
-		parameters.put(DMLUtils.BIND_VAR_ID_lIST, rowIds);
-		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
-	}
 	
 	@Override
 	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, Long minimumId,
@@ -731,24 +601,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 			namedTemplate.batchUpdate(sql, namedParameters);
 			return createOrUpdateIds;
-		});
-	}
-	
-	@WriteTransactionReadCommitted
-	@Override
-	public int deleteById(final MigrationType type, final List<Long> idList) {
-		ValidateArgument.required(type,"MigrationType");
-		ValidateArgument.required(idList,"idList");
-		if(idList.isEmpty()) {
-			return 0;
-		}
-		// Foreign Keys must be ignored for this operation.
-		return this.runWithKeyChecksIgnored(() -> {
-			String deleteSQL = this.deleteSqlMap.get(type);
-			SqlParameterSource params = new MapSqlParameterSource(
-					DMLUtils.BIND_VAR_ID_lIST, idList);
-			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-			return namedTemplate.update(deleteSQL, params);
 		});
 	}
 
