@@ -705,40 +705,79 @@ public class DMLUtils {
 	 */
 	public static String createPrimaryCardinalitySql(TableMapping primaryMapping, List<TableMapping> secondaryMappings) {
 		StringBuilder builder = new StringBuilder();
+		String primaryBackupColumnName = getBackupIdColumnName(primaryMapping).getColumnName();
 		// Select
-		builder.append("SELECT P.");
-		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		builder.append("SELECT P0.");
+		builder.append(primaryBackupColumnName);
 		builder.append(", 1 ");
 		int index = 0;
 		for(TableMapping secondary: secondaryMappings) {
-			builder.append(" + COUNT(S").append(index).append(".");
-			builder.append(getBackupIdColumnName(secondary).getColumnName());
-			builder.append(")");
+			builder.append(" + T").append(index).append(".");
+			builder.append("CARD");
 			index++;
 		}
-		builder.append(" AS cardinality");
+		builder.append(" AS CARD");
 		// from
-		builder.append(" FROM ").append(primaryMapping.getTableName()).append(" AS P");
-		// Joins
+		builder.append(" FROM ").append(primaryMapping.getTableName()).append(" AS P0");
+		// Join sub-query for each secondary type
 		index = 0;
 		for(TableMapping secondary: secondaryMappings) {
-			builder.append(" LEFT JOIN ").append(secondary.getTableName()).append(" AS S").append(index);
-			builder.append(" ON (");
-			builder.append("P.").append(getBackupIdColumnName(primaryMapping).getColumnName());
+			builder.append(" JOIN (");
+			builder.append(createCardinalitySubQueryForSecondary(primaryMapping, secondary));
+			builder.append(") T").append(index);
+			builder.append(" ON (P0.").append(primaryBackupColumnName);
 			builder.append(" = ");
-			builder.append(" S").append(index).append(".").append(getBackupIdColumnName(secondary).getColumnName());
+			builder.append("T").append(index).append(".").append(primaryBackupColumnName);
 			builder.append(")");
 			index++;
 		}
 		// where
 		builder.append(" WHERE");
+		builder.append(" P0.");
+		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		builder.append(" >= :").append(BIND_MIN_ID).append(" AND P0.");
+		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		builder.append(" < :").append(BIND_MAX_ID);
+		builder.append(" ORDER BY P0.").append(primaryBackupColumnName).append(" ASC");
+		return builder.toString();
+	}
+	
+	/**
+	 * Create a cardinality sub-query for a secondary type.
+	 * @param primaryMapping
+	 * @param secondaryMapping
+	 * @return
+	 */
+	public static String createCardinalitySubQueryForSecondary(TableMapping primaryMapping, TableMapping secondaryMapping) {
+		StringBuilder builder = new StringBuilder();
+		String primaryBackupIdColumnName = getBackupIdColumnName(primaryMapping).getColumnName();
+		String secondaryBackupIdColumnName = getBackupIdColumnName(secondaryMapping).getColumnName();
+		// Select
+		builder.append("SELECT P.");
+		builder.append(primaryBackupIdColumnName);
+		builder.append(",");
+		builder.append(" + COUNT(S.");
+		builder.append(secondaryBackupIdColumnName);
+		builder.append(")");
+		builder.append(" AS CARD");
+		// from
+		builder.append(" FROM ").append(primaryMapping.getTableName()).append(" AS P");
+		// Join
+		builder.append(" LEFT JOIN ").append(secondaryMapping.getTableName()).append(" AS S");
+		builder.append(" ON (");
+		builder.append("P.").append(primaryBackupIdColumnName);
+		builder.append(" = ");
+		builder.append(" S.").append(secondaryBackupIdColumnName);
+		builder.append(")");
+		// where
+		builder.append(" WHERE");
 		builder.append(" P.");
-		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
-		builder.append(" >= ? AND P.");
-		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
-		builder.append(" < ?");
+		builder.append(primaryBackupIdColumnName);
+		builder.append(" >= :").append(BIND_MIN_ID).append(" AND P.");
+		builder.append(primaryBackupIdColumnName);
+		builder.append(" < :").append(BIND_MAX_ID);
 		builder.append(" GROUP BY P.");
-		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
+		builder.append(primaryBackupIdColumnName);
 		return builder.toString();
 	}
 
