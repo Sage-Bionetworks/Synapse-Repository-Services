@@ -807,11 +807,40 @@ public class MigratableTableDAOImplAutowireTest {
 	@Test
 	public void testGetPrimaryCardinalitySql() {
 		String expected = 
-				"SELECT P.ID, 1  + COUNT(S0.OWNER_NODE_ID) AS cardinality"
+				"SELECT P0.ID, 1  + T0.CARD AS CARD"
+				+ " FROM JDONODE AS P0"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.OWNER_NODE_ID) AS CARD"
 				+ " FROM JDONODE AS P"
-				+ " LEFT JOIN JDOREVISION AS S0 ON (P.ID =  S0.OWNER_NODE_ID)"
-				+ " WHERE P.ID >= ? AND P.ID < ? GROUP BY P.ID";
+				+ " LEFT JOIN JDOREVISION AS S ON (P.ID =  S.OWNER_NODE_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " ON (P0.ID = T0.ID)"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " ORDER BY P0.ID ASC";
 		String sql = migratableTableDAO.getPrimaryCardinalitySql(MigrationType.NODE);
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetPrimaryCardinalitySqlPLFM_4857() {
+		String expected = 
+				"SELECT P0.ID, 1  + T0.CARD + T1.CARD AS CARD"
+				+ " FROM V2_WIKI_PAGE AS P0"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.WIKI_ID) AS CARD FROM V2_WIKI_PAGE AS P"
+				+ " LEFT JOIN V2_WIKI_ATTACHMENT_RESERVATION AS S"
+				+ " ON (P.ID =  S.WIKI_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " ON (P0.ID = T0.ID)"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.WIKI_ID) AS CARD FROM V2_WIKI_PAGE AS P"
+				+ " LEFT JOIN V2_WIKI_MARKDOWN AS S"
+				+ " ON (P.ID =  S.WIKI_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T1"
+				+ " ON (P0.ID = T1.ID)"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " ORDER BY P0.ID ASC";
+		String sql = migratableTableDAO.getPrimaryCardinalitySql(MigrationType.V2_WIKI_PAGE);
 		assertEquals(expected, sql);
 	}
 	
