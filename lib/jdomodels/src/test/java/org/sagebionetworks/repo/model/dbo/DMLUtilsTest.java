@@ -361,15 +361,41 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.getBackupRangeBatch(mapping);
 		assertEquals(expectedSql, sql);
 	}
+	
+	
+	@Test
+	public void testCreateCardinalitySubQueryForSecondary() {
+		String expectedSql = 
+				"SELECT P.ID, + COUNT(S.OWNER_ID) AS CARD"
+				+ " FROM SOME_TABLE AS P"
+				+ " LEFT JOIN SECONDARY_ONE AS S ON (P.ID =  S.OWNER_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID";
+		TableMapping primaryMapping = mapping;
+		String sql = DMLUtils.createCardinalitySubQueryForSecondary(primaryMapping, secondaryOne);
+		assertEquals(expectedSql, sql);
+	}
 
 	@Test
 	public void testPrimaryCardinality() {
 		String expectedSql = 
-				"SELECT P.ID, 1  + COUNT(S0.OWNER_ID) + COUNT(S1.ROOT_ID) AS cardinality"
+				"SELECT P0.ID, 1  + T0.CARD + T1.CARD AS CARD"
+				+ " FROM SOME_TABLE AS P0"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.OWNER_ID) AS CARD"
 				+ " FROM SOME_TABLE AS P"
-				+ " LEFT JOIN SECONDARY_ONE AS S0 ON (P.ID =  S0.OWNER_ID)"
-				+ " LEFT JOIN SECONDARY_TWO AS S1 ON (P.ID =  S1.ROOT_ID)"
-				+ " WHERE P.ID >= ? AND P.ID < ? GROUP BY P.ID";
+				+ " LEFT JOIN SECONDARY_ONE AS S"
+				+ " ON (P.ID =  S.OWNER_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " ON (P0.ID = T0.ID)"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.ROOT_ID) AS CARD"
+				+ " FROM SOME_TABLE AS P"
+				+ " LEFT JOIN SECONDARY_TWO AS S"
+				+ " ON (P.ID =  S.ROOT_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T1"
+				+ " ON (P0.ID = T1.ID)"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " ORDER BY P0.ID ASC";
 		TableMapping primaryMapping = mapping;
 		List<TableMapping> secondaryMappings = Lists.newArrayList(secondaryOne, secondaryTwo);
 		String sql = DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMappings);
@@ -379,7 +405,10 @@ public class DMLUtilsTest {
 	@Test
 	public void testPrimaryCardinalityNoSecondary() {
 		String expectedSql = 
-				"SELECT P.ID, 1  AS cardinality FROM SOME_TABLE AS P WHERE P.ID >= ? AND P.ID < ? GROUP BY P.ID";
+				"SELECT P0.ID, 1  AS CARD"
+				+ " FROM SOME_TABLE AS P0"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " ORDER BY P0.ID ASC";
 		TableMapping primaryMapping = mapping;
 		List<TableMapping> secondaryMappings = new LinkedList<>();
 		String sql = DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMappings);

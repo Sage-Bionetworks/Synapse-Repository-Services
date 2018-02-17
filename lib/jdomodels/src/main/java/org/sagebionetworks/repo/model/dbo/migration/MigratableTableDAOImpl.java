@@ -774,9 +774,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		final IdRangeBuilder builder = new IdRangeBuilder(optimalNumberOfRows);
 		String sql = getPrimaryCardinalitySql(migrationType);
 		// need to use a streaming template for this case.
-		StreamingJdbcTemplate streamingTemplate  = new StreamingJdbcTemplate(jdbcTemplate.getDataSource());
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(new StreamingJdbcTemplate(jdbcTemplate.getDataSource()));
+		Map<String, Object> parameters = new HashMap<>(2);
+		parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
+		parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
 		// Stream over each primary row ID and its associated secondary cardinality.
-		streamingTemplate.query(sql, new RowCallbackHandler() {
+		namedTemplate.query(sql, parameters, new RowCallbackHandler() {
 
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
@@ -784,7 +787,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				long primaryRowId = rs.getLong(1);
 				long cardinality = rs.getLong(2);
 				builder.addRow(primaryRowId, cardinality);
-			}}, minimumId, maximumId);
+			}});
 		// The build collates the results
 		return builder.collateResults();
 	}
