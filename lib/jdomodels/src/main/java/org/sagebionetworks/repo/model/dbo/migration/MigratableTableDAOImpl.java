@@ -25,9 +25,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +33,6 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -114,8 +110,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> minSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> listByRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlRangeMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
@@ -124,7 +118,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
-	private Map<MigrationType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigrationType, RowMapper<RowMetadata>>();
 	
 	private List<MigrationType> rootTypes = new LinkedList<MigrationType>();
 	
@@ -230,10 +223,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		checksumRangeSqlMap.put(type, sumCrc);
 		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
 		checksumTableSqlMap.put(type, checksumTable);
-		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
-		listSqlMap.put(type, listRowMetadataSQL);
-		String listRowMetaDataByIdSQL = DMLUtils.listRowMetadataByRange(mapping);
-		listByRangeSqlMap.put(type, listRowMetaDataByIdSQL);
 		// Does this type have an etag?
 		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
 		if(etag != null){
@@ -242,8 +231,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 		FieldColumn backupId = DMLUtils.getBackupIdColumnName(mapping);
 		this.backupIdColumns.put(type, backupId);
-		RowMapper<RowMetadata> rowMetadataMapper = DMLUtils.getRowMetadataRowMapper(mapping);
-		rowMetadataMappers.put(type, rowMetadataMapper);
 		
 		String backupRangeSql = DMLUtils.getBackupRangeBatch(mapping);
 		this.backupSqlRangeMap.put(type, backupRangeSql);
@@ -353,65 +340,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 	}
 
-	@Override
-	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		String sql = this.getListSql(type);
-		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		List<RowMetadata> page = jdbcTemplate.query(sql, mapper, limit, offset);
-		long count = this.getCount(type);
-		RowMetadataResult result = new RowMetadataResult();
-		result.setList(page);
-		result.setTotalCount(count);
-		return result;
-	}
-	
-	@Override
-	public RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		String sql = this.getListSqlByRange(type);
-		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		List<RowMetadata> page = jdbcTemplate.query(sql, mapper, minId, maxId, limit, offset);
-		long count = this.getCount(type);
-		RowMetadataResult result = new RowMetadataResult();
-		result.setList(page);
-		result.setTotalCount(count);
-		return result;
-	}
-
 	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
 		}
 		return new BeanPropertySqlParameterSource(toCreate);
-	}
-
-	/**
-	 * The the list sql for this type.
-	 * @param type
-	 * @return
-	 */
-	private String getListSql(MigrationType type){
-		String sql = this.listSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find list SQL for type: "+type);
-		return sql;
-	}
-	
-	private String getListSqlByRange(MigrationType type) {
-		String sql = this.listByRangeSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find listByRange SQL for type: "+type);
-		return sql;
-	}
-	
-	/**
-	 * The  RowMapper<RowMetadata> for this type.
-	 * @param type
-	 * @return
-	 */
-	private RowMapper<RowMetadata> getRowMetadataRowMapper(MigrationType type){
-		RowMapper<RowMetadata> mapper = this.rowMetadataMappers.get(type);
-		if(mapper == null) throw new IllegalArgumentException("Cannot find RowMetadataRowMapper for type: "+type);
-		return mapper;
 	}
 	
 	/**

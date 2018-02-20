@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -265,107 +264,6 @@ public class MigratableTableDAOImplAutowireTest {
 		assertNull(mtc.getMinid());
 		assertNotNull(mtc.getType());
 		assertEquals(MigrationType.VERIFICATION_SUBMISSION, mtc.getType());
-	}
-	
-	@Test
-	public void testGetListRowMetadataByRangeOneBatch() throws Exception {
-		long startId = fileHandleDao.getMaxId() + 1;
-		long startCount = fileHandleDao.getCount();
-		RowMetadataResult l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, startId+1, 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(0, l.getList().size());
-		// Add a file handle
-		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handle1.setFileName("handle1");
-		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
-		filesToDelete.add(handle1.getId());
-		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())-1, 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(0, l.getList().size());
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId()), 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(1, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())+1, 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(1, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		// Add a preview
-		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		previewHandle1.setFileName("preview1");
-		previewHandle1 = (PreviewFileHandle) fileHandleDao.createFile(previewHandle1);
-		filesToDelete.add(previewHandle1.getId());
-		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()), 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+2, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(2, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		assertEquals(previewHandle1.getId(), l.getList().get(1).getId().toString());
-		// Delete preview
-		fileHandleDao.delete(previewHandle1.getId());
-		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()), 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(1, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		
-	}
-	
-	@Test
-	public void testGetListRowMetadataByRangeMultipleBatches() {
-		long minId = fileHandleDao.getMaxId()+1;
-		long startCount = fileHandleDao.getCount();
-		List<Long> ids = new LinkedList<Long>();
-		// Create 5 file handles
-		for (int i = 1; i < 6; i++) {
-			S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-			handle.setFileName("handle"+i);
-			handle = (S3FileHandle) fileHandleDao.createFile(handle);
-			filesToDelete.add(handle.getId());
-			ids.add(Long.parseLong(handle.getId()));
-		}
-		// First batch
-		RowMetadataResult b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 0);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(2, b.getList().size());
-		assertEquals(ids.get(0), b.getList().get(0).getId());
-		assertEquals(ids.get(1), b.getList().get(1).getId());
-		// Second batch
-		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 2);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(2, b.getList().size());
-		assertEquals(ids.get(2), b.getList().get(0).getId());
-		assertEquals(ids.get(3), b.getList().get(1).getId());
-		// Last batch
-		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 4);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(1, b.getList().size());
-		assertEquals(ids.get(4), b.getList().get(0).getId());
-		// Beyond
-		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 5);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(0, b.getList().size());
 	}
 	
 	@Test

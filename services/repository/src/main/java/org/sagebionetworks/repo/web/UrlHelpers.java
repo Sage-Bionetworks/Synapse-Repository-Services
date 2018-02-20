@@ -605,10 +605,7 @@ public class UrlHelpers {
 	public static final String MIGRATION = "/migration";
 	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
 	public static final String MIGRATION_COUNT = MIGRATION+"/count";
-	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
-	public static final String MIGRATION_ROWS_BY_RANGE = MIGRATION+"/rowsbyrange";
 	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
-	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
 	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
 	public static final String MIGRATION_PRIMARY_NAMES = MIGRATION_PRIMARY + "/names";
 	public static final String MIGRATION_TYPES = MIGRATION+"/types";

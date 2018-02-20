@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -620,70 +619,6 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), MigrationTypeCount.class);
-	}
-
-	/**
-	 * Get the RowMetadata for a given Migration type. This is used to get all
-	 * metadata from a source stack during migation.
-	 */
-	public RowMetadataResult getRowMetadata(Long userId,
-			MigrationType type, long limit, long offset) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/rows", userId, null);
-		request.setParameter("type", type.name());
-		request.setParameter("limit", "" + limit);
-		request.setParameter("offset", "" + offset);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-	
-	/**
-	 * Get the RowMetadata for a given type and id range
-	 * 
-	 * @param userId
-	 * @param type
-	 * @param minId
-	 * @param maxId
-	 * @return
-	 * @throws Exception
-	 */
-	public RowMetadataResult getRowMetadataByRange(Long userId,
-			MigrationType type, long minId, long maxId, long limit, long offset) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.MIGRATION_ROWS_BY_RANGE, userId, null);
-		request.setParameter("type", type.name());
-		request.setParameter("minId", "" + minId);
-		request.setParameter("maxId", "" + maxId);
-		request.setParameter("limit", "" + limit);
-		request.setParameter("offset", "" + offset);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-	
-
-	/**
-	 * Get the RowMetadata for a given Migration type. This is used to get all
-	 * metadata from a source stack during migation.
-	 */
-	public RowMetadataResult getRowMetadataDelta(Long userId,
-			MigrationType type, IdList list) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/delta", userId, list);
-		request.setParameter("type", type.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
 	}
 
 	/**

@@ -2,7 +2,6 @@ package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -18,7 +17,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -37,27 +35,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException;
-	
-	/**
-	 * Get one page of metatdata for the given MigrationType
-	 * 
-	 * @param migrationType
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws SynapseException
-	 */
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException;
-	
-	/**
-	 * 
-	 * @param type
-	 * @param minId
-	 * @param maxId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId, Long limit, Long offset) throws SynapseException;
 	
 	/**
 	 * Get the counts for all types
@@ -103,16 +80,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	public MigrationTypeNames getMigrationTypeNames() throws SynapseException;
-
-	/**
-	 * Delete a list of IDs
-	 * 
-	 * @param migrationType
-	 * @param ids
-	 * @return
-	 * @throws SynapseException
-	 */
-	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws SynapseException;
 		
 	/**
 	 * Get checksum for migration type and range of ids

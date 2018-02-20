@@ -210,95 +210,11 @@ public class DMLUtilsTest {
 	}
 
 	@Test
-	public void testCreateBatchDelete() {
-		String batchDelete = DMLUtils.createBatchDelete(mapping);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
-	}
-
-	@Test
-	public void testCreateBatchDeleteSelfForeign() {
-		String batchDelete = DMLUtils.createBatchDelete(migrateableMappingSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
-	}
-
-	@Test
-	public void testListWithSelfForeignKey() {
-		String sql = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
-		assertNotNull(sql);
-		System.out.println(sql);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT ? OFFSET ?", sql);
-	}
-
-	@Test
-	public void testListWithNoEtagNoSelfForeignKey() {
-		String sql = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
-		assertNotNull(sql);
-		System.out.println(sql);
-		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT ? OFFSET ?", sql);
-	}
-
-	@Test
-	public void testListByRangeWithSelfForeignKey() {
-		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingSelfForeignKey);
-		assertNotNull(sql);
-		System.out.println(sql);
-		assertEquals(
-				"SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ? ORDER BY `ID` ASC LIMIT ? OFFSET ?",
-				sql);
-	}
-
-	@Test
-	public void testListByRangeWithNoEtagNoSelfForeignKey() {
-		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingNoEtagNotSelfForeignKey);
-		assertNotNull(sql);
-		System.out.println(sql);
-		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ? ORDER BY `ID` ASC LIMIT ? OFFSET ?",
-				sql);
-	}
-
-	@Test
-	public void testDeltaListWithSelfForeignKey() {
-		String batchDelete = DMLUtils.deltaListRowMetadata(migrateableMappingSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` ASC",
-				batchDelete);
-	}
-
-	@Test
-	public void testDeltaListWithNoEtagNoSelfForeignKey() {
-		String batchDelete = DMLUtils.deltaListRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` ASC", batchDelete);
-	}
-
-	@Test
 	public void testCreateDeleteByBackupIdRange() {
 		String sql = DMLUtils.createDeleteByBackupIdRange(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
 		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` >= :BMINID AND `ID` < :BMAXID", sql);
-	}
-
-	@Test
-	public void testGetBatchWithSelfForeignKey() {
-		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
-	}
-
-	@Test
-	public void testGetBatchNoEtagNoSelfForeignKey() {
-		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingNoEtagNotSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
 	}
 
 	@Test

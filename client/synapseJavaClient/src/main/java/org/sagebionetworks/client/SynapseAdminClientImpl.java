@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.util.ValidateArgument;
@@ -48,9 +47,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
 	private static final String MIGRATION_COUNT = MIGRATION + "/count";
-	private static final String MIGRATION_ROWS = MIGRATION + "/rows";
-	private static final String MIGRATION_ROWS_BY_RANGE = MIGRATION + "/rowsbyrange";
-	private static final String MIGRATION_DELTA = MIGRATION + "/delta";
 	private static final String MIGRATION_DELETE = MIGRATION + "/delete";
 	private static final String MIGRATION_STATUS = MIGRATION + "/status";
 	private static final String MIGRATION_PRIMARY = MIGRATION + "/primarytypes";
@@ -136,21 +132,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException {
 		String uri = MIGRATION_COUNT + "?type=" + type.name() ;
 		return getJSONEntity(getRepoEndpoint(), uri, MigrationTypeCount.class);
-	}
-	
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException {
-		String uri = MIGRATION_ROWS + "?type=" + migrationType.name() + "&limit=" + limit + "&offset=" + offset;
-		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
-	}
-	
-	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId, Long limit, Long offset) throws SynapseException {
-		String uri = MIGRATION_ROWS_BY_RANGE + "?type=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId + "&limit=" + limit + "&offset=" + offset;
-		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
-	}
-	
-	public RowMetadataResult getRowMetadataDelta(MigrationType migrationType, IdList ids) throws SynapseException {
-		String uri = MIGRATION_DELTA + "?type=" + migrationType.name();
-		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
 	}
 	
 	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws SynapseException {

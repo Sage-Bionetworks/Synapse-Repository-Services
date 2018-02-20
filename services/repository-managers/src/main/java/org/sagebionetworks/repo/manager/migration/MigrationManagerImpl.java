@@ -5,16 +5,13 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Writer;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.apache.pdfbox.io.IOUtils;
 import org.sagebionetworks.StackConfiguration;
@@ -27,33 +24,23 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
-import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
-import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
-import org.sagebionetworks.repo.model.migration.DeleteListRequest;
-import org.sagebionetworks.repo.model.migration.DeleteListResponse;
 import org.sagebionetworks.repo.model.migration.IdRange;
-import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,33 +120,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateUser(user);
 		return migratableTableDao.getMinId(type);
 	}
-
-	@Override
-	public RowMetadataResult getRowMetadaForType(UserInfo user,  MigrationType type, long limit, long offset) {
-		validateUser(user);
-		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		// pass this to the dao.
-		return migratableTableDao.listRowMetadata(type, limit, offset);
-	}
-	
-	@Override
-	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId, long limit, long offset) {
-		validateUser(user);
-		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		// pass this to the dao.
-		return migratableTableDao.listRowMetadataByRange(type, minId, maxId, limit, offset);
-	}
-
-	@Override
-	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<Long> idList) {
-		validateUser(user);
-		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		// Get the list from the DAO and convert to a result
-		List<RowMetadata> list = migratableTableDao.listDeltaRowMetadata(type, idList);
-		RowMetadataResult result = new RowMetadataResult();
-		result.setList(list);
-		return result;
-	}
 	
 	/**
 	 * Validate that the user is an administrator.
@@ -171,22 +131,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 	}
 
-
-	/**
-	 * Returns the right alias to use in the XML backup file.
-	 * @param mdo
-	 * @param backupAliasType
-	 * @return
-	 */
-	private String getAlias(MigratableDatabaseObject mdo, BackupAliasType backupAliasType) {
-		if (backupAliasType == BackupAliasType.TABLE_NAME) {
-			return mdo.getTableMapping().getTableName();
-		} else if (backupAliasType == BackupAliasType.MIGRATION_TYPE_NAME) {
-			return mdo.getMigratableTableType().name();
-		} else {
-			throw new IllegalStateException("This should never happen. Invalid BackupAliasType: " + backupAliasType);
-		}
-	}
 	
 	/**
 	 * Fire a create or update event for a given migration type.
@@ -250,18 +194,6 @@ public class MigrationManagerImpl implements MigrationManager {
 			}
 		}
 		return list;
-	}
-
-	@WriteTransaction
-	@Override
-	public void deleteAllData(UserInfo user) throws Exception {
-		validateUser(user);
-		// Delete all types in their reverse order
-		for(int i=MigrationType.values().length-1; i>=0; i--){
-			if (this.isMigrationTypeUsed(user, MigrationType.values()[i])) {
-				deleteAllForType(user, MigrationType.values()[i]);
-			}
-		}
 	}
 
 	
@@ -372,18 +304,6 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 
 	@Override
-	public RowMetadataResult processAsyncMigrationRowMetadataRequest(
-			final UserInfo user, final AsyncMigrationRowMetadataRequest mReq) {
-		String t = mReq.getType();
-		MigrationType mt = MigrationType.valueOf(t);
-		Long minId = mReq.getMinId();
-		Long maxId = mReq.getMaxId();
-		Long limit = mReq.getLimit();
-		Long offset = mReq.getOffset();
-		return getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
-	}
-
-	@Override
 	public void validateForeignKeys() {
 		// lookup the all restricted foreign keys.
 		List<ForeignKeyInfo> nonRestrictedForeignKeys = this.migratableTableDao.listNonRestrictedForeignKeys();
@@ -419,35 +339,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		PRINCIPAL_TYPES = new HashSet<>();
 		PRINCIPAL_TYPES.add(MigrationType.PRINCIPAL);
 		PRINCIPAL_TYPES.addAll(getSecondaryTypes(MigrationType.PRINCIPAL));
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#backupRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.BackupTypeRequest)
-	 */
-	@Override
-	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeListRequest request) throws IOException {
-		ValidateArgument.required(user, "User");
-		ValidateArgument.required(request, "Request");
-		ValidateArgument.required(request.getAliasType(), "request.aliasType");
-		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
-		ValidateArgument.required(request.getBatchSize(), "requset.batchSize");
-		ValidateArgument.required(request.getRowIdsToBackup(), "request.rowIdsToBackup");
-		if(request.getRowIdsToBackup().isEmpty()) {
-			throw new IllegalArgumentException("Request.rowIdsToBackup cannot be empty.");
-		}
-		validateUser(user);
-		// Start the stream for the primary
-		Iterable<MigratableDatabaseObject<?, ?>> dataStream = this.migratableTableDao
-				.streamDatabaseObjects(request.getMigrationType(), request.getRowIdsToBackup(), request.getBatchSize());
-		// Concatenate all secondary data streams to the main stream.
-		for (MigrationType secondaryType : getSecondaryTypes(request.getMigrationType())) {
-			Iterable<MigratableDatabaseObject<?, ?>> secondaryStream = this.migratableTableDao
-					.streamDatabaseObjects(secondaryType, request.getRowIdsToBackup(), request.getBatchSize());
-			dataStream = Iterables.concat(dataStream, secondaryStream);
-		}
-		// Create the backup and upload it to S3.
-		return backupStreamToS3(request.getMigrationType(), dataStream, request.getAliasType(), request.getBatchSize());
 	}
 	
 	/*

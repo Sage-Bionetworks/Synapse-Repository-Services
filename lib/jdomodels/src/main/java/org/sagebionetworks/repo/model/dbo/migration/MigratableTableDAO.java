@@ -10,8 +10,6 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
  * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
@@ -53,32 +51,7 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * A table checksum (CHECKSUM TABLE statement)
 	 */
 	public String getChecksumForType(MigrationType type);
-	
-	/**
-	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
-	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
-	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
-	 *    
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset);
-	
-	/**
-	 * List row metadata in a paginated format for a given id range. All rows will be migrated in the order listed by this method.
-	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
-	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
-	 *    
-	 * @param minId
-	 * @param maxId
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset);
-	
-	
+		
 	/**
 	 * Stream over all of the database object for the given within the provided ID range.
 	 * 

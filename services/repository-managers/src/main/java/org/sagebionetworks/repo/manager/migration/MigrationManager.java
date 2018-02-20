@@ -1,18 +1,13 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
-import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
@@ -24,7 +19,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
  * Abstraction for the V2 migration manager.
@@ -47,29 +41,6 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public long getMaxId(UserInfo user, MigrationType type);
-
-	/**
-	 * List all row metadata in a paginated format. All rows will be migrated in the
-	 * order listed by this method. This means metadata must be listed in dependency
-	 * order. For example, if row 'b' depends on row 'a' then row 'a' must be listed
-	 * before row 'b'. For this example, row 'a' would be migrated before row 'b'.
-	 * 
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public RowMetadataResult getRowMetadaForType(UserInfo user, MigrationType type, long limit, long offset);
-
-	/**
-	 * Given a list of ID return the RowMetadata for each row that exist in the
-	 * table. This method is used to detect changes between multiple stacks. Only
-	 * return values for IDs that exist in table. Any missing RowMetadata in the
-	 * result will be interpreted as a row that does not exist in table.
-	 * 
-	 * @param idList
-	 * @return
-	 */
-	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<Long> idList);
 
 	/**
 	 * The list of primary migration types represents types that either stand-alone
@@ -132,9 +103,6 @@ public interface MigrationManager {
 
 	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type);
 
-	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId,
-			long limit, long offset);
-
 	public MigrationTypeCount getMigrationTypeCount(UserInfo user, MigrationType type);
 
 	public MigrationTypeCount processAsyncMigrationTypeCountRequest(final UserInfo user,
@@ -148,10 +116,7 @@ public interface MigrationManager {
 
 	public MigrationRangeChecksum processAsyncMigrationRangeChecksumRequest(final UserInfo user,
 			final AsyncMigrationRangeChecksumRequest mReq);
-
-	public RowMetadataResult processAsyncMigrationRowMetadataRequest(final UserInfo user,
-			final AsyncMigrationRowMetadataRequest mReq);
-
+	
 	/**
 	 * <p>
 	 * See: PLFM-4729
@@ -177,16 +142,6 @@ public interface MigrationManager {
 	 *            table name is included in the set.
 	 */
 	public void validateForeignKeys();
-
-	/**
-	 * Create a backup file for the given type and list of row IDs.
-	 * 
-	 * @param user
-	 * @param request
-	 * @return
-	 * @throws IOException
-	 */
-	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeListRequest request) throws IOException;
 
 	/**
 	 * 
