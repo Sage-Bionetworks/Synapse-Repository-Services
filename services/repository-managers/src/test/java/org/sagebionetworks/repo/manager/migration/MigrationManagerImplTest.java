@@ -474,8 +474,6 @@ public class MigrationManagerImplTest {
 		// call under test
 		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
 		verify(mockMigrationListener).afterCreateOrUpdate(currentType, currentBatch);
-		// secondary data should be deleted.
-		verify(mockMigrationListener).beforeDeleteBatch(MigrationType.NODE_REVISION, idList);
 	}
 	
 	@Test
@@ -493,8 +491,6 @@ public class MigrationManagerImplTest {
 		// call under test
 		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
 		verify(mockMigrationListener).afterCreateOrUpdate(MigrationType.NODE_REVISION, currentBatch);
-		// no secondary deletes.
-		verify(mockMigrationListener, never()).beforeDeleteBatch(any(MigrationType.class), anyListOf(Long.class));
 	}
 	
 	@Test
@@ -510,7 +506,6 @@ public class MigrationManagerImplTest {
 		// call under test
 		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
 		verify(mockMigrationListener, never()).afterCreateOrUpdate(any(MigrationType.class), anyList());
-		verify(mockMigrationListener, never()).beforeDeleteBatch(any(MigrationType.class), anyList());
 	}
 	
 	/**
