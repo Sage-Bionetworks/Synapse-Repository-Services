@@ -800,10 +800,10 @@ public class IT100TableControllerTest {
 		assertNotNull(page);
 		assertNotNull(page.getResults());
 		assertNull(page.getNextPageToken());
-		assertEquals(4, page.getResults().size());
+		assertEquals(3, page.getResults().size());
 		// make another call with a next page token.
 		long limit = 1;
-		long offset = 2;
+		long offset = 1;
 		nextPageToken = new NextPageToken(limit, offset).toToken();
 		page = waitForColumnModelPage(scope, nextPageToken, 1);
 		assertNotNull(page);
