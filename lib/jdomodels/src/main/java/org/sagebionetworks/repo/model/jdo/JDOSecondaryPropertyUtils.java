@@ -268,8 +268,6 @@ public class JDOSecondaryPropertyUtils {
 		if(annos != null){
 			// add additional
 			addAnnotations(entityId, maxAnnotationChars, map, annos.getAdditionalAnnotations());
-			// add primary
-			addAnnotations(entityId, maxAnnotationChars, map, annos.getPrimaryAnnotations());
 		}
 		// build the results from the map
 		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();
