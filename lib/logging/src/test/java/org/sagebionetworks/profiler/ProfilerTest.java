@@ -128,7 +128,7 @@ public class ProfilerTest {
 		Stack<Frame> frameStack = new Stack<>();
 		String methodName = "asdf";
 
-		Frame currentFrame = spyProfiler.getCurrentFrame(methodName, frameStack);
+		Frame currentFrame = spyProfiler.getCurrentFrame(methodName);
 
 		assertEquals(methodName, currentFrame.getName());
 	}
@@ -143,7 +143,7 @@ public class ProfilerTest {
 
 		when(mockFrame.addChildFrameIfAbsent(methodName)).thenReturn(new Frame(methodName));
 
-		Frame currentFrame = spyProfiler.getCurrentFrame(methodName, frameStack);
+		Frame currentFrame = spyProfiler.getCurrentFrame(methodName);
 
 		assertEquals(methodName, currentFrame.getName());
 		verify(mockFrame).addChildFrameIfAbsent(methodName);
@@ -173,7 +173,7 @@ public class ProfilerTest {
 		String expectedMethodName = target.getClass().getName() + "." + signatureName;
 		when(mockProceedingJoinPoint.getTarget()).thenReturn(target);
 		when(mockProceedingJoinPoint.getSignature()).thenReturn(mockSignature);
-		doReturn(mockFrame).when(spyProfiler).getCurrentFrame(expectedMethodName, mockFrameStack);
+		doReturn(mockFrame).when(spyProfiler).getCurrentFrame(expectedMethodName);
 
 
 		spyProfiler.doBasicProfiling(mockProceedingJoinPoint);
@@ -185,7 +185,7 @@ public class ProfilerTest {
 		verify(mockProceedingJoinPoint).getTarget();
 		verify(mockSignature).getName();
 		verify(mockThreadLocalStack).get();
-		verify(spyProfiler).getCurrentFrame(expectedMethodName, mockFrameStack);
+		verify(spyProfiler).getCurrentFrame(expectedMethodName);
 		verify(mockFrameStack).push(mockFrame);
 		verify(mockProceedingJoinPoint).proceed();
 		verify(mockFrame).addElapsedTime(anyLong());

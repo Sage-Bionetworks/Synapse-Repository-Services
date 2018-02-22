@@ -70,7 +70,7 @@ public class Profiler {
 
 		Stack<Frame> parentFramesStack = threadFrameStack.get();
 
-		Frame currentFrame = getCurrentFrame(methodName, parentFramesStack);
+		Frame currentFrame = getCurrentFrame(methodName);
 
 		//add the current frame to the stack before proceeding
 		parentFramesStack.push(currentFrame);
@@ -93,7 +93,8 @@ public class Profiler {
 		}
 	}
 
-	Frame getCurrentFrame(String methodName, Stack<Frame> parentFramesStack) {
+	static Frame getCurrentFrame(String methodName) {
+		Stack<Frame> parentFramesStack = threadFrameStack.get();
 		Frame currentFrame;
 		if (parentFramesStack.isEmpty()) {
 			// There are no parent frames, so create a new frame

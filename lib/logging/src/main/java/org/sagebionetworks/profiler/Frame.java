@@ -1,6 +1,8 @@
 package org.sagebionetworks.profiler;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -8,7 +10,6 @@ import java.util.Objects;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.sagebionetworks.util.IntervalStatistics;
-import org.sagebionetworks.util.ValidateArgument;
 
 public class Frame {
 	private String name;
@@ -16,7 +17,6 @@ public class Frame {
 	private LinkedHashMap<String,Frame> children;
 
 	private static final String INDENT_STRING = "----";
-	private static final String DURATION_FORMAT_STRING = "HH:mm:ss.S";
 
 	public Frame(String name) {
 		this.name = name;
@@ -37,39 +37,33 @@ public class Frame {
 		// Output a single line if there are no children.
 		long id = Thread.currentThread().getId();
 		StringBuilder buffer = new StringBuilder();
-		buffer.append(String.format("%n[%d] ELAPSE: ", id));
-		appendStatisticsToStringBuilder(buffer, this);
-		if (children != null) {
-			printChildren(buffer, id, 1);
-		}
+		addFramesToBuffer(Collections.singletonList(this), buffer, id, 0);
 		return buffer.toString();
 	}
 
-	public void printChildren(StringBuilder buffer, long id, int level) {
+	static void addFramesToBuffer(Collection<Frame> toPrint, StringBuilder buffer, long id, int level) {
 		String indentString = StringUtils.repeat(INDENT_STRING, level);
-		for (Frame child: children.values()) {
-			buffer.append(String.format("%n[%d] ELAPSE: %s ", id, indentString));
+		for (Frame child: toPrint) {
+			buffer.append(String.format("%n[%d] ELAPSE:%s", id, indentString));
 			appendStatisticsToStringBuilder(buffer, child);
-			child.printChildren(buffer, id, level + 1);
+			addFramesToBuffer(child.children.values(), buffer, id, level + 1);
 		}
 	}
 
 	private static void appendStatisticsToStringBuilder(StringBuilder buffer, Frame frame){
-		buffer.append( String.format("%s METHOD: %s", DurationFormatUtils.formatDuration(frame.getTotalTimeMilis(), DURATION_FORMAT_STRING), frame.getName()));
+		buffer.append( String.format("%s METHOD: %s", formatDuration(frame.getTotalTimeMilis()), frame.getName()));
 		if (frame.getCallsCount() > 1){
 			buffer.append(String.format(" (Count: %d Average: %s, Min: %s, Max: %s)",
 										frame.getCallsCount(),
-										DurationFormatUtils.formatDuration(frame.getAverageTimeMilis(), DURATION_FORMAT_STRING),
-										DurationFormatUtils.formatDuration(frame.getMinTimeMilis(), DURATION_FORMAT_STRING),
-										DurationFormatUtils.formatDuration(frame.getMaxTimeMilis(), DURATION_FORMAT_STRING)));
+										formatDuration(frame.getAverageTimeMilis()),
+										formatDuration(frame.getMinTimeMilis()),
+										formatDuration(frame.getMaxTimeMilis())));
 		}
 	}
 
-	public void addChild(Frame child) {
-		ValidateArgument.requirement(!children.containsKey(child.name), "Child with name " + child.name + " already exists.");
-		children.put(child.name, child);
+	static String formatDuration(long milliseconds){
+		return DurationFormatUtils.formatDuration(milliseconds, "HH:mm:ss.S");
 	}
-
 
 	public String getName() {
 		return name;
