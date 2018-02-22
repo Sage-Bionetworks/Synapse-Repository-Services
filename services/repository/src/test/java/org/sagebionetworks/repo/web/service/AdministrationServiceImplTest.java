@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -40,8 +39,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class AdministrationServiceImplTest {
 
 	@Mock
-	BackupDaemonLauncher mockBackupDaemonLauncher;
-	@Mock
 	ObjectTypeSerializer mockObjectTypeSerializer;
 	@Mock
 	UserManager mockUserManager;
@@ -63,7 +60,6 @@ public class AdministrationServiceImplTest {
 	public void before() throws DatastoreException, NotFoundException{
 		MockitoAnnotations.initMocks(this);
 		adminService = new AdministrationServiceImpl();
-		ReflectionTestUtils.setField(adminService, "backupDaemonLauncher", mockBackupDaemonLauncher);
 		ReflectionTestUtils.setField(adminService, "objectTypeSerializer", mockObjectTypeSerializer);
 		ReflectionTestUtils.setField(adminService, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(adminService, "stackStatusManager", mockStackStatusManager);

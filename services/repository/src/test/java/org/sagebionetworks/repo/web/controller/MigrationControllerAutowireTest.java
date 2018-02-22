@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,22 +127,6 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		expectedCount.setType(MigrationType.FILE_HANDLE);
 		MigrationTypeCount mtc = entityServletHelper.getMigrationTypeCount(adminUserId, MigrationType.FILE_HANDLE);
 		assertNotNull(mtc);
-	}
-	
-	@Test
-	public void testRowMetadata() throws Exception {
-		// First list the values for files
-		RowMetadataResult results = entityServletHelper.getRowMetadata(adminUserId, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startFileCount);
-		assertNotNull(results);
-		assertNotNull(results.getList());
-	}
-	
-	@Test
-	public void testRowMetadataByRange() throws Exception {
-		// First list the values for files
-		RowMetadataResult results = entityServletHelper.getRowMetadataByRange(adminUserId, MigrationType.FILE_HANDLE, Long.parseLong(handleOne.getId()), Long.parseLong(preview.getId()), Long.MAX_VALUE, 0L);
-		assertNotNull(results);
-		assertNotNull(results.getList());
 	}
 	
 	@Test

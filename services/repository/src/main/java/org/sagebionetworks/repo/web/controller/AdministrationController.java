@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -48,66 +47,6 @@ public class AdministrationController extends BaseController {
 	
 	@Autowired
 	private ServiceProvider serviceProvider;
-	
-	/**
-	 * Get the status of a running daemon (either a backup or restore)
-	 * @param daemonId
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_DAEMON_ID
-			}, method = RequestMethod.GET)
-	public @ResponseBody
-	BackupRestoreStatus getStatus(
-			@PathVariable String daemonId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		return serviceProvider.getAdministrationService().getStatus(daemonId, userId, header, request);
-	}
-	
-	/**
-	 * Terminate a running daemon.  This has no effect if the daemon is already terminated.
-	 * @param daemonId
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_DAEMON_ID
-			}, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void terminateDaemon(
-			@PathVariable String daemonId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		serviceProvider.getAdministrationService().terminateDaemon(daemonId, userId, header, request);
-	}
-	
 	
 	/**
 	 * Get the current status of the stack

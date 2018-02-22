@@ -15,23 +15,19 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
@@ -57,8 +53,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 public class AdministrationServiceImpl implements AdministrationService  {
 
 	static private Logger log = LogManager.getLogger(AdministrationServiceImpl.class);
-	@Autowired
-	private BackupDaemonLauncher backupDaemonLauncher;
 	
 	@Autowired
 	private ObjectTypeSerializer objectTypeSerializer;
@@ -86,36 +80,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	TransactionSynchronizationProxy transactionSynchronizationManager;
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStatus(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
-	@Override
-	public BackupRestoreStatus getStatus(String daemonId, Long userId,
-			HttpHeaders header,	HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		// Get the status of this daemon
-		return backupDaemonLauncher.getStatus(userInfo, daemonId);
-	}
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AdministrationService#terminateDaemon(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
-	@Override
-	public void terminateDaemon(String daemonId, Long userId,
-			HttpHeaders header,	HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		// Terminate the daemon
-		backupDaemonLauncher.terminate(userInfo, daemonId);
-	}
 	
 	
 	/* (non-Javadoc)
