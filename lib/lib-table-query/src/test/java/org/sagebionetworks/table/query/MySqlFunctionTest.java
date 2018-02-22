@@ -97,4 +97,11 @@ public class MySqlFunctionTest {
 		assertEquals("TRIM(' AB ')", element.toSql());
 		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
 	}
+	
+	@Test
+	public void testAvg() throws ParseException{
+		MySqlFunction element = new TableQueryParser("avg(' AB ')").mysqlFunction();
+		assertEquals("TRIM(' AB ')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
 }

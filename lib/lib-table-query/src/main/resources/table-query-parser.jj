@@ -132,10 +132,8 @@ TOKEN [IGNORE_CASE]: {
 | < and: "AND">
 | < asc: "ASC">
 | < as: "AS">
-| < avg: "AVG">
 | < between: "BETWEEN" >
 | < date: "DATE" >
-| < count: "COUNT">
 | < desc: "DESC" >
 | < distinct: "DISTINCT">
 | < default_specification: "DEFAULT" > 
@@ -148,15 +146,12 @@ TOKEN [IGNORE_CASE]: {
 | < is: "IS">
 | < like: "LIKE" >
 | < limit: "LIMIT" >
-| < max: "MAX" >
-| < min: "MIN" >
 | < not: "NOT" >
 | < null_specification: "NULL" >
 | < offset: "OFFSET" >
 | < or: "OR" >
 | < order_by: "ORDER BY" >
 | < select: "SELECT" >
-| < sum: "SUM" >
 | < time: "TIME" >
 | < timestamp: "TIMESTAMP">
 | < _true: "TRUE">
@@ -164,6 +159,30 @@ TOKEN [IGNORE_CASE]: {
 | < unknown: "UNKNOWN">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
+}
+
+/* Aggregate functions */
+TOKEN [IGNORE_CASE]: {
+  < aggregate_functions_name:
+   "AVG"
+   | "COUNT"
+   | "MIN"
+   | "MAX"
+   | "SUM"
+   | "BIT_AND"
+   | "BIT_OR"
+   | "BIT_XOR"
+   | "GROUP_CONCAT"
+   | "STD"
+   | "STDDEV"
+   | "STDDEV_POP"
+   | "STDDEV_SAMP"
+   | "VAR_POP"
+   | "VAR_SAMP"
+   | "VARIANCE"
+   | "JSON_ARRAYAGG"
+   | "JSON_OBJECTAGG"
+  >
 }
 
 /* date and time functions */
@@ -332,7 +351,6 @@ ValueExpressionPrimary valueExpressionPrimary():
 {
 	UnsignedValueSpecification unsignedValueSpecification = null;
 	ColumnReference columnReference = null;
-	SetFunctionSpecification setFunctionSpecification = null;
 	ParenthesizedValueExpression parenthesizedValueExpression;
 }
 {
@@ -874,7 +892,8 @@ MySqlFunctionName mySqlFunctionName():
 	Token functionName = null;
 }
 {
-	functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	functionName = <aggregate_functions_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	| functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <string_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 StringValueExpression stringValueExpression():
