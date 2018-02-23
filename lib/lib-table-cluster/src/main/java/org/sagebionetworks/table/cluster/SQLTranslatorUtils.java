@@ -28,13 +28,12 @@ import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
-import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GroupByClause;
+import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
-import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -123,8 +122,6 @@ public class SQLTranslatorUtils {
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.
 		ColumnNameReference referencedColumn = derivedColumn.getReferencedColumn();
-		// If element has a function get its name.
-		FunctionType functionType = derivedColumn.getFunctionType();
 		// Select defines the selection
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName(displayName);
@@ -140,13 +137,13 @@ public class SQLTranslatorUtils {
 			// If we have a column model the base type is defined by it.
 			columnType = model.getColumnType();
 		}
-		// If there is a function it can change the type
-		if(functionType != null){
-			columnType = getColumnTypeForFunction(functionType, columnType);
-		}else{
-			ColumnType mySqlFunctionType = getColumnTypeForMySqlFunction(derivedColumn.getFirstElementOfType(MySqlFunction.class));
-			if(mySqlFunctionType != null){
-				columnType = mySqlFunctionType;
+		FunctionReturnType functionReturnType = null;
+		// if this is a function it will have a return type
+		HasFunctionReturnType hasReturnType = derivedColumn.getFirstElementOfType(HasFunctionReturnType.class);
+		if(hasReturnType != null){
+			functionReturnType = hasReturnType.getFunctionReturnType();
+			if(functionReturnType != null) {
+				columnType = functionReturnType.getColumnType(columnType);
 			}
 		}
 		selectColumn.setColumnType(columnType);
@@ -154,15 +151,15 @@ public class SQLTranslatorUtils {
 		if(model != null && model.getName().equals(displayName)){
 			selectColumn.setId(model.getId());
 		}
-		validateSelectColumn(selectColumn, functionType, model, referencedColumn);
+		validateSelectColumn(selectColumn, functionReturnType, model, referencedColumn);
 		// done
 		return selectColumn;
 	}
 	
-	public static void validateSelectColumn(SelectColumn selectColumn, FunctionType functionType,
+	public static void validateSelectColumn(SelectColumn selectColumn, FunctionReturnType functionReturnType,
 			ColumnModel model, ColumnNameReference referencedColumn) {
 		ValidateArgument.requirement(model != null
-				|| functionType != null
+				|| functionReturnType != null
 				|| rowMetadataColumnNames.contains(selectColumn.getName().toUpperCase())
 				|| (referencedColumn != null && referencedColumn instanceof UnsignedLiteral),
 				"Unknown column "+selectColumn.getName());
@@ -190,71 +187,6 @@ public class SQLTranslatorUtils {
 			return ColumnType.DOUBLE;
 		}
 		return ColumnType.STRING;
-	}
-	
-	/**
-	 * Determine SelectColumn type for a given FunctionType and base ColumnType.
-	 * @param derivedColumn
-	 * @param model
-	 * @return
-	 */
-	public static ColumnType getColumnTypeForFunction(FunctionType functionType, ColumnType baseType){
-		ValidateArgument.required(functionType, "functionType");
-		switch(functionType) {
-		case COUNT:
-			return ColumnType.INTEGER;
-		case AVG:
-			if(!isNumericType(baseType)){
-				throw new IllegalArgumentException("Cannot calculate "+functionType.name()+" for type: "+baseType);
-			}
-			// average is always double.
-			return ColumnType.DOUBLE;
-		case SUM:
-			if(!isNumericType(baseType)){
-				throw new IllegalArgumentException("Cannot calculate "+functionType.name()+" for type: "+baseType);
-			}
-			// sum returns the same type as the numeric column.
-			return baseType;
-		case MAX:
-		case MIN:
-			ValidateArgument.required(baseType, "columnType");
-			// min and max return the same type as the column.
-			return baseType;
-		default:
-			throw new IllegalArgumentException("Unknown type: "+functionType.name());
-		}
-	}
-	
-	/**
-	 * Get the column type for a MySqlFunction.
-	 * @param function
-	 * @return
-	 */
-	public static ColumnType getColumnTypeForMySqlFunction(MySqlFunction function){
-		if(function == null){
-			return null;
-		}
-		FunctionReturnType returnType = function.getFunctionName().getFunctionReturnType();
-		return getColumnType(returnType);
-	}
-	
-	/**
-	 * For a given function type, get the column type.
-	 * @param returnType
-	 * @return
-	 */
-	public static ColumnType getColumnType(FunctionReturnType returnType){
-		ValidateArgument.required(returnType, "returnType");
-		switch(returnType){
-		case DOUBLE:
-			return ColumnType.DOUBLE;
-		case LONG:
-			return ColumnType.INTEGER;
-		case STRING:
-		return ColumnType.STRING;
-		default:
-			throw new IllegalArgumentException("Unknown type: "+returnType);
-	}
 	}
 	
 	/**

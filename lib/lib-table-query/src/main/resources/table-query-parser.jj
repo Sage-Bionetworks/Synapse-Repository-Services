@@ -172,7 +172,6 @@ TOKEN [IGNORE_CASE]: {
    | "BIT_AND"
    | "BIT_OR"
    | "BIT_XOR"
-   | "GROUP_CONCAT"
    | "STD"
    | "STDDEV"
    | "STDDEV_POP"
@@ -180,8 +179,6 @@ TOKEN [IGNORE_CASE]: {
    | "VAR_POP"
    | "VAR_SAMP"
    | "VARIANCE"
-   | "JSON_ARRAYAGG"
-   | "JSON_OBJECTAGG"
   >
 }
 
@@ -351,6 +348,7 @@ ValueExpressionPrimary valueExpressionPrimary():
 {
 	UnsignedValueSpecification unsignedValueSpecification = null;
 	ColumnReference columnReference = null;
+	SetFunctionSpecification setFunctionSpecification = null;
 	ParenthesizedValueExpression parenthesizedValueExpression;
 }
 {
@@ -538,13 +536,11 @@ SetFunctionSpecification generalSetFunction():
 	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
 }
 SetFunctionType setFunctionType():
-{}
 {
-	<avg> { return SetFunctionType.AVG; }
-	| <max> { return SetFunctionType.MAX; }
-	| <min> { return SetFunctionType.MIN; }
-	| <sum> { return SetFunctionType.SUM; }
-	| <count> { return SetFunctionType.COUNT; }
+	Token functionName;
+}
+{
+	functionName = <aggregate_functions_name> { return SetFunctionType.valueOf(functionName.image.toUpperCase()); }
 }
 WhereClause whereClause():
 {
@@ -892,8 +888,7 @@ MySqlFunctionName mySqlFunctionName():
 	Token functionName = null;
 }
 {
-	functionName = <aggregate_functions_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
-	| functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <string_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 StringValueExpression stringValueExpression():

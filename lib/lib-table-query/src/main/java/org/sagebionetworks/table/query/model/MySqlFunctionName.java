@@ -19,25 +19,6 @@ public enum MySqlFunctionName {
 	UPPER(FunctionReturnType.STRING),
 	LOWER(FunctionReturnType.STRING),
 	TRIM(FunctionReturnType.STRING),
-	// aggregate
-	AVG(FunctionReturnType.DOUBLE),
-	COUNT(FunctionReturnType.LONG),
-	MIN(FunctionReturnType.LONG),
-	MAX(FunctionReturnType.LONG),
-	SUM(FunctionReturnType.DOUBLE),
-	BIT_AND(FunctionReturnType.LONG),
-	BIT_OR(FunctionReturnType.LONG),
-	BIT_XOR(FunctionReturnType.LONG),
-	GROUP_CONCAT(FunctionReturnType.STRING),
-	STD(FunctionReturnType.DOUBLE),
-	STDDEV(FunctionReturnType.DOUBLE),
-	STDDEV_POP(FunctionReturnType.DOUBLE),
-	STDDEV_SAMP(FunctionReturnType.DOUBLE),
-	VAR_POP(FunctionReturnType.DOUBLE),
-	VAR_SAMP(FunctionReturnType.DOUBLE),
-	VARIANCE(FunctionReturnType.DOUBLE),
-	JSON_ARRAYAGG(FunctionReturnType.STRING),
-	JSON_OBJECTAGG(FunctionReturnType.STRING),
 	;
 	
 	FunctionReturnType returnType;

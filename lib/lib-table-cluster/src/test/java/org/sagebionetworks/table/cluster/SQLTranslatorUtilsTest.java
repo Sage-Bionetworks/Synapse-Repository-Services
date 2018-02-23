@@ -37,11 +37,9 @@ import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
-import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -143,135 +141,6 @@ public class SQLTranslatorUtilsTest {
 		// Should work for all types without errors
 		for(ColumnType type: ColumnType.values()){
 			SQLTranslatorUtils.isNumericType(type);
-		}
-	}
-	
-	@Test
-	public void testGetColumnTypeForFunctionCount(){
-		FunctionType functionType = FunctionType.COUNT;
-		ColumnType baseType = ColumnType.BOOLEAN;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// count is always integer
-		assertEquals(ColumnType.INTEGER, lookup);
-	}
-	
-	@Test
-	public void testGetColumnTypeForFunctionCountNullType(){
-		FunctionType functionType = FunctionType.COUNT;
-		ColumnType baseType = null;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// count is always integer
-		assertEquals(ColumnType.INTEGER, lookup);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionAvgNullType(){
-		FunctionType functionType = FunctionType.AVG;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionAvgNumericType(){
-		FunctionType functionType = FunctionType.AVG;
-		ColumnType baseType = ColumnType.INTEGER;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// avg is always double
-		assertEquals(ColumnType.DOUBLE, lookup);
-	}
-	
-	@Test  (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionAvgNonNumericType(){
-		FunctionType functionType = FunctionType.AVG;
-		ColumnType baseType = ColumnType.STRING;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionSumNullType(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionSumNumericTypeInteger(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = ColumnType.INTEGER;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// sum is same as input numeric
-		assertEquals(baseType, lookup);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionSumNumericTypeDouble(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = ColumnType.DOUBLE;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// sum is same as input numeric
-		assertEquals(baseType, lookup);
-	}
-	
-	@Test  (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionSumNonNumericType(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = ColumnType.STRING;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionMinNull(){
-		FunctionType functionType = FunctionType.MIN;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionMin(){
-		FunctionType functionType = FunctionType.MIN;
-		ColumnType baseType = ColumnType.DOUBLE;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// min is same as input
-		assertEquals(baseType, lookup);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionMaxNull(){
-		FunctionType functionType = FunctionType.MAX;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionMax(){
-		FunctionType functionType = FunctionType.MAX;
-		ColumnType baseType = ColumnType.DOUBLE;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// min is same as input
-		assertEquals(baseType, lookup);
-	}
-	
-	/**
-	 * should work for each type without an error
-	 */
-	@Test
-	public void testGetColumnTypeForAllFunctionsBaseTypeInteger(){
-		ColumnType baseType = ColumnType.INTEGER;
-		for(FunctionType functionType: FunctionType.values()){
-			SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
 		}
 	}
 	
@@ -538,56 +407,6 @@ public class SQLTranslatorUtilsTest {
 			String message = e.getMessage();
 			assertTrue(message.contains("fo0"));
 			assertTrue(message.contains("Unknown column"));
-		}
-	}
-	
-	@Test
-	public void testgetColumnTypeForMySqlFunctionNull() throws ParseException{
-		MySqlFunction function = null;
-		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
-		assertEquals(null, result);
-	}
-	
-	@Test
-	public void testgetColumnTypeForMySqlFunctionNow() throws ParseException{
-		MySqlFunction function = new TableQueryParser("now()").mysqlFunction();
-		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
-		assertEquals(ColumnType.STRING, result);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeNull(){
-		FunctionReturnType returnType = null;
-		SQLTranslatorUtils.getColumnType(returnType);
-	}
-	
-	@Test
-	public void testGetColumnTypeLong(){
-		FunctionReturnType returnType = FunctionReturnType.LONG;
-		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-		assertEquals(ColumnType.INTEGER, result);
-	}
-	
-	@Test
-	public void testGetColumnTypeDouble(){
-		FunctionReturnType returnType = FunctionReturnType.DOUBLE;
-		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-		assertEquals(ColumnType.DOUBLE, result);
-	}
-	
-	@Test
-	public void testGetColumnTypeString(){
-		FunctionReturnType returnType = FunctionReturnType.STRING;
-		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-		assertEquals(ColumnType.STRING, result);
-	}
-
-	@Test
-	public void testGetColumnTypeAllTypes(){
-		// should work for all types
-		for(FunctionReturnType returnType: FunctionReturnType.values()){
-			ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-			assertNotNull(result);
 		}
 	}
 	
@@ -1439,7 +1258,7 @@ public class SQLTranslatorUtilsTest {
 	public void testValidateSelectColumnWithFunction() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("function");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionType.AVG, null, new ActualIdentifier(new RegularIdentifier("someColumn")));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionReturnType.DOUBLE, null, new ActualIdentifier(new RegularIdentifier("someColumn")));
 	}
 
 	@Test
