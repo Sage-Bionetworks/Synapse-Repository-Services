@@ -62,6 +62,7 @@ public class ProfilerTest {
 
 		when(mockThreadLocalStack.get()).thenReturn(mockFrameStack);
 		ReflectionTestUtils.setField(Profiler.class,"threadFrameStack", mockThreadLocalStack);
+		when(mockFrameStack.peek()).thenReturn(mockFrame);
 	}
 
 	@Test
@@ -125,9 +126,8 @@ public class ProfilerTest {
 
 	@Test
 	public void testGetCurrentFrame__emptyStack(){
-		Stack<Frame> frameStack = new Stack<>();
 		String methodName = "asdf";
-
+		when(mockFrameStack.isEmpty()).thenReturn(true);
 		Frame currentFrame = spyProfiler.getCurrentFrame(methodName);
 
 		assertEquals(methodName, currentFrame.getName());
@@ -136,10 +136,7 @@ public class ProfilerTest {
 
 	@Test
 	public void testGetCurrentFrame__nonEmptyStack(){
-		Stack<Frame> frameStack = new Stack<>();
 		String methodName = "asdf";
-
-		frameStack.push(mockFrame);
 
 		when(mockFrame.addChildFrameIfAbsent(methodName)).thenReturn(new Frame(methodName));
 

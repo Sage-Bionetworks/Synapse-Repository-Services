@@ -93,7 +93,7 @@ public class Profiler {
 		}
 	}
 
-	static Frame getCurrentFrame(String methodName) {
+	Frame getCurrentFrame(String methodName) {
 		Stack<Frame> parentFramesStack = threadFrameStack.get();
 		Frame currentFrame;
 		if (parentFramesStack.isEmpty()) {
