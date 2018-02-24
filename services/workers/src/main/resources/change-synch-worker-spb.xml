@@ -9,7 +9,7 @@
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
-	<aop:aspectj-autoproxy />
+	<aop:aspectj-autoproxy proxy-target-class="true"/>
 
 	<bean id="clock" class="org.sagebionetworks.util.DefaultClock"/>
 

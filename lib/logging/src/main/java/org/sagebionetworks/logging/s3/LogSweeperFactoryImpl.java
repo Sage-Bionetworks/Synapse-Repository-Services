@@ -10,6 +10,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -20,9 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class LogSweeperFactoryImpl implements LogSweeperFactory {
-	
 	Logger log = (Logger) LogManager.getLogger(LogSweeperFactoryImpl.class);
-	
+
 	@Autowired
 	private LogDAO logDAO;
 	private long lockExpiresMs = 1000*30;
@@ -37,7 +37,8 @@ public class LogSweeperFactoryImpl implements LogSweeperFactory {
 		if(appendersToSweep == null) throw new IllegalArgumentException("Appends cannot be null");
 		log.debug("appenders: "+appendersToSweep);
 		// find the sweep directory
-		Map<String, Appender> map = log.getAppenders();
+		LoggerContext context = (LoggerContext) LogManager.getContext();
+		Map<String, Appender> map = context.getConfiguration().getAppenders();
 		// Find each appender
 		logDirectories = new LinkedList<File>();
 		Set<String> directorySet = new HashSet<String>();

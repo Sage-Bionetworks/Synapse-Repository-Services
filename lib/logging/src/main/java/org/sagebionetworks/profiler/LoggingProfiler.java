@@ -12,6 +12,11 @@ import org.apache.logging.log4j.Logger;
 public class LoggingProfiler implements ProfileHandler {
 
 	static private Logger log = LogManager.getLogger(LoggingProfiler.class);
+	private long elapseTimeThresholdMilis;
+
+	public LoggingProfiler(long elapseTimeThresholdMilis){
+		this.elapseTimeThresholdMilis = elapseTimeThresholdMilis;
+	}
 
 	@Override
 	public boolean shouldCaptureProfile(Object[] args) {
@@ -21,7 +26,7 @@ public class LoggingProfiler implements ProfileHandler {
 
 	@Override
 	public void fireProfile(Frame data) {
-		if (data.getElapse() < 2000) {
+		if (data.getTotalTimeMilis() < elapseTimeThresholdMilis) {
 			if (log.isTraceEnabled())
 				log.trace(data.toString());
 		} else {
