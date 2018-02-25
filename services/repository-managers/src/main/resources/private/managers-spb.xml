@@ -255,8 +255,6 @@
 			
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
-	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
-	
 	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>
 	
 	<bean id="fileProvider" class="org.sagebionetworks.repo.manager.migration.FileProviderImpl" scope="singleton"/>
@@ -416,37 +414,6 @@
 	<bean id="projectStatsManager"
 		class="org.sagebionetworks.repo.manager.ProjectStatsManagerImpl"
 		scope ="singleton" />	
-
-	<!-- The thread pool used by the backup/restore daemons -->
-	<bean id="backupDaemonThreadPool"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments"
-			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
-	</bean>
-
-	<!-- The second thread pool used by the backup/restore daemons -->
-	<bean id="backupDaemonThreadPool2"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments"
-			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
-	</bean>
-
-	<bean id="backupDaemonLauncher"
-		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
-		scope="singleton" >
-	</bean>
 	
 	<!-- Used to read document from repo -->
 	<bean id="searchDocumentDriver"

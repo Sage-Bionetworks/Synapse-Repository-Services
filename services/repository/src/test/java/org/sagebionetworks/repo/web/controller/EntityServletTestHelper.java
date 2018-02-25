@@ -6,7 +6,6 @@ import java.util.List;
 import javax.servlet.http.HttpServlet;
 
 import org.apache.commons.lang.StringUtils;
-import org.json.JSONObject;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -25,11 +24,8 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -38,7 +34,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -630,70 +625,6 @@ public class EntityServletTestHelper {
 	 * Get the RowMetadata for a given Migration type. This is used to get all
 	 * metadata from a source stack during migation.
 	 */
-	public RowMetadataResult getRowMetadata(Long userId,
-			MigrationType type, long limit, long offset) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/rows", userId, null);
-		request.setParameter("type", type.name());
-		request.setParameter("limit", "" + limit);
-		request.setParameter("offset", "" + offset);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-	
-	/**
-	 * Get the RowMetadata for a given type and id range
-	 * 
-	 * @param userId
-	 * @param type
-	 * @param minId
-	 * @param maxId
-	 * @return
-	 * @throws Exception
-	 */
-	public RowMetadataResult getRowMetadataByRange(Long userId,
-			MigrationType type, long minId, long maxId, long limit, long offset) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.MIGRATION_ROWS_BY_RANGE, userId, null);
-		request.setParameter("type", type.name());
-		request.setParameter("minId", "" + minId);
-		request.setParameter("maxId", "" + maxId);
-		request.setParameter("limit", "" + limit);
-		request.setParameter("offset", "" + offset);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-	
-
-	/**
-	 * Get the RowMetadata for a given Migration type. This is used to get all
-	 * metadata from a source stack during migation.
-	 */
-	public RowMetadataResult getRowMetadataDelta(Long userId,
-			MigrationType type, IdList list) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/delta", userId, list);
-		request.setParameter("type", type.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-
-	/**
-	 * Get the RowMetadata for a given Migration type. This is used to get all
-	 * metadata from a source stack during migation.
-	 */
 	public MigrationTypeList getPrimaryMigrationTypes(Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -704,54 +635,6 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), MigrationTypeList.class);
-	}
-
-	/**
-	 * Start the backup of a list of objects
-	 */
-	public BackupRestoreStatus startBackup(Long userId, MigrationType type,
-			IdList list) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/migration/backup", userId, list);
-		request.setParameter("type", type.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), BackupRestoreStatus.class);
-	}
-
-	/**
-	 * Start the restore of a list of objects
-	 */
-	public BackupRestoreStatus startRestore(Long userId,
-			MigrationType type, RestoreSubmission sub) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/migration/restore", userId, sub);
-		request.setParameter("type", type.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), BackupRestoreStatus.class);
-	}
-
-	/**
-	 * Get the status of a migration operation
-	 */
-	public BackupRestoreStatus getBackupRestoreStatus(Long userId,
-			String daemonId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/status", userId, null);
-		request.setParameter("daemonId", daemonId);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), BackupRestoreStatus.class);
 	}
 
 	/**

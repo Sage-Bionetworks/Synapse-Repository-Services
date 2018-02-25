@@ -4,13 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -30,9 +25,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
-import org.sagebionetworks.repo.manager.table.TableIndexManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -48,11 +41,9 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
-import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -62,23 +53,17 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -259,17 +244,7 @@ public class MigrationManagerImplAutowireTest {
 	public void testGetMinId() {
 		long min = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
 		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
-		RowMetadataResult rmr =	migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, 100, 0);
-		long m = Long.MAX_VALUE;
-		for (RowMetadata rm: rmr.getList()) {
-			Long id = rm.getId();
-			if (id < m) {
-				m = id;
-			}
-		}
-		assertTrue(m < Long.MAX_VALUE);
-		assertEquals(m, min);
-		assertTrue(min <= max);
+		assertTrue(min < max);
 	}
 	
 	@Test
@@ -399,129 +374,6 @@ public class MigrationManagerImplAutowireTest {
 		sStatus.setCurrentMessage("Stack in " + s.name() + " mode");
 		stackStatusDao.updateStatus(sStatus);
 	}
- 	
-	// Deprecated?
-	@Test
-	public void testListRowMetadata(){
-		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
-		assertNotNull(result);
-		assertEquals(new Long(startCount+2), result.getTotalCount());
-		assertNotNull(result.getList());
-		assertEquals(2, result.getList().size());
-		// List the delta
-		List<Long> ids = new LinkedList<Long>();
-		for(RowMetadata rm: result.getList()){
-			ids.add(rm.getId());
-		}
-		RowMetadataResult delta = migrationManager.getRowMetadataDeltaForType(adminUser, MigrationType.FILE_HANDLE, ids);
-		assertNotNull(delta);
-		assertNotNull(delta.getList());
-		assertEquals(result.getList(), delta.getList());
-	}
-	
-	@Test
-	public void testListRowMetadataByRange() {
-		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
-		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
-		RowMetadataResult result = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId, maxId - startId + 1, 0);
-		assertNotNull(result);
-		assertEquals(new Long(startCount+2), result.getTotalCount());
-		assertNotNull(result.getList());
-		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + result.getList());
-		assertEquals(2, result.getList().size());
-	}
-	
-	@Test
-	public void testProcessAsyncRowMetadataByRange() {
-		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
-		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
-		RowMetadataResult expectedRowMetadaResult = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId, maxId - startId + 1, 0);
-		AsyncMigrationRowMetadataRequest amrmReq = new AsyncMigrationRowMetadataRequest();
-		amrmReq.setLimit(maxId - startId + 1);
-		amrmReq.setMaxId(maxId);
-		amrmReq.setMinId(startId);
-		amrmReq.setOffset(0L);
-		amrmReq.setType(MigrationType.FILE_HANDLE.name());
-		
-		RowMetadataResult amrmRes = migrationManager.processAsyncMigrationRowMetadataRequest(adminUser, amrmReq);
-		
-		assertNotNull(amrmRes);
-		assertEquals(new Long(startCount+2), amrmRes.getTotalCount());
-		assertNotNull(amrmRes.getList());
-		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + amrmRes.getList());
-		assertEquals(2, amrmRes.getList().size());
-	}
-
-	@Test
-	public void testRoundTripWithTableNameAlias() throws Exception {
-		testRoundTrip(BackupAliasType.TABLE_NAME);
-	}
-
-	@Test
-	public void testRoundTripWithMigrationNameAlias() throws Exception {
-		testRoundTrip(BackupAliasType.MIGRATION_TYPE_NAME);
-	}
-
-	private void testRoundTrip(BackupAliasType backupAliasType) throws Exception{
-		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
-		assertNotNull(result);
-		// List the delta
-		List<Long> ids1 = new LinkedList<Long>();
-		ids1.add(Long.parseLong(preview.getId()));
-		List<Long> ids2 = new LinkedList<Long>();
-		ids2.add(Long.parseLong(withPreview.getId()));
-		// Write the backup data
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Writer writer = new OutputStreamWriter(out, "UTF-8");
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, writer, backupAliasType);
-		writer.flush();
-		String xml1 = new String(out.toByteArray(), "UTF-8");
-		System.out.println(xml1);
-		out = new ByteArrayOutputStream();
-		writer = new OutputStreamWriter(out, "UTF-8");
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, writer, backupAliasType);
-		writer.flush();
-		String xml2 = new String(out.toByteArray(), "UTF-8");
-		System.out.println(xml2);
-		// Now delete the rows
-		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids1);
-		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids2);
-		// The count should be the same as start
-		assertEquals(startCount, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
-		// Now restore them from the xml
-		ByteArrayInputStream in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
-		List<Long> ids = migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in, backupAliasType);
-		assertEquals(ids1, ids);
-		in = new ByteArrayInputStream(xml2.getBytes("UTF-8"));
-		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in, backupAliasType);
-		// The count should be backup
-		assertEquals(startCount+2, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
-		// Calling again should not fail
-		in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
-		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in, backupAliasType);
-		// Now get the data
-		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
-		assertNotNull(result);
-		assertEquals(result.getList(), afterResult.getList());
-
-		// Do this only if table enabled
-		if (StackConfiguration.singleton().getTableEnabled()) {
-			// pretend to be worker and generate caches and index
-			List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
-			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao,tableManagerSupport);
-			boolean isTableView = false;
-			manager.setIndexSchema(tableId, isTableView, mockProgressCallbackVoid, currentSchema);
-			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
-			RowReferenceSet rowRefs = new RowReferenceSet();
-			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
-			rowRefs.setTableId(tableId);
-			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models));
-			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
-
-			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
-		}
-	}
 	
 	@Test
 	public void testGetMigrationTypes() {
@@ -566,18 +418,7 @@ public class MigrationManagerImplAutowireTest {
 		assertTrue(result.isEmpty());
 	}
 	
-	@Test
-	public void testDeleteAll() throws Exception{
-		// Delete all data
-		migrationManager.deleteAllData(adminUser);
-		for (MigrationType type : MigrationType.values()) {
-			if(!migrationManager.isBootstrapType(type)) {
-				assertEquals("All data of type " + type + " should have been deleted", 
-						0L, migrationManager.getCount(adminUser, type));
-			}
-		}
-	}
-	
+
 	@Test
 	public void testBackupAndRestoreByRange() throws IOException {
 		MigrationType type =  MigrationType.NODE;
@@ -596,8 +437,6 @@ public class MigrationManagerImplAutowireTest {
 		// call under test
 		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
 		assertNotNull(backupResponse);
-		// call under test
-		migrationManager.deleteById(adminUser, type, projectIdsLong);
 		// restore the data from the backup
 		RestoreTypeRequest restoreRequest = new RestoreTypeRequest();
 		restoreRequest.setMigrationType(type);
@@ -621,45 +460,6 @@ public class MigrationManagerImplAutowireTest {
 			Project projectClone = entityManager.getEntity(adminUser, project.getId(), Project.class);
 			assertEquals(project, projectClone);
 		}
-	}
-
-	@Test
-	public void testBackupAndRestoreByList() throws IOException {
-		MigrationType type =  MigrationType.NODE;
-		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
-		long batchSize = 1;
-		BackupTypeListRequest request = new BackupTypeListRequest();
-		request.setMigrationType(type);
-		request.setAliasType(backupType);
-		request.setBatchSize(batchSize);
-		request.setRowIdsToBackup(projectIdsLong);
-		// call under test
-		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
-		assertNotNull(backupResponse);
-		// call under test
-		migrationManager.deleteById(adminUser, type, projectIdsLong);
-		// restore the data from the backup
-		RestoreTypeRequest restoreRequest = new RestoreTypeRequest();
-		restoreRequest.setMigrationType(type);
-		restoreRequest.setAliasType(backupType);
-		restoreRequest.setBatchSize(batchSize);
-		restoreRequest.setBackupFileKey(backupResponse.getBackupFileKey());
-		// call under test
-		RestoreTypeResponse restoreReponse = migrationManager.restoreRequest(adminUser, restoreRequest);
-		assertNotNull(restoreReponse);
-		// each node and revision should be restored.
-		assertEquals(new Long(projects.size()*2), restoreReponse.getRestoredRowCount());
-		// validate all of the data was restored.
-		validateProjectsRestored();
-	}
-
-	
-	@Test
-	public void testPLFM_4821() {
-		List<Long> idList = Lists.newArrayList(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		// attempt to delete the admin users should not work.
-		int count = migrationManager.deleteById(adminUser, MigrationType.PRINCIPAL, idList);
-		assertEquals(0, count);
 	}
 	
 	/**

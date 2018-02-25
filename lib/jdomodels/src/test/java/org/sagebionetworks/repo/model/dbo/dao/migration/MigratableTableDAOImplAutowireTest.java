@@ -29,16 +29,12 @@ import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,176 +85,6 @@ public class MigratableTableDAOImplAutowireTest {
 				fileHandleDao.delete(id);
 			}
 		}
-	}
-	
-	@Test
-	public void testMigrationRoundTrip() throws Exception {
-		long startCount = fileHandleDao.getCount();
-		long migrationCount = migratableTableDAO.getCount(MigrationType.FILE_HANDLE);
-		assertEquals(startCount, migrationCount);
-		long startMax = fileHandleDao.getMaxId();
-		// The one will have a preview
-		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		withPreview.setFileName("withPreview.txt");
-		S3FileHandle withPreview2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		withPreview2.setFileName("withPreview2.txt");
-		// The Preview
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		preview.setFileName("preview.txt");
-		// Preview 2
-		PreviewFileHandle preview2 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		preview2.setFileName("preview.txt");
-
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(withPreview);
-		fileHandleToCreate.add(withPreview2);
-		fileHandleToCreate.add(preview);
-		fileHandleToCreate.add(preview2);
-		fileHandleDao.createBatch(fileHandleToCreate);
-		
-		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		assertNotNull(withPreview);
-		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
-		assertNotNull(withPreview2);
-		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
-		assertNotNull(preview);
-		preview2 = (PreviewFileHandle) fileHandleDao.get(preview2.getId());
-		assertNotNull(preview2);
-		filesToDelete.add(withPreview.getId());
-		filesToDelete.add(withPreview2.getId());
-		filesToDelete.add(preview.getId());
-		filesToDelete.add(preview2.getId());
-		
-		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
-		
-		// Assign it as a preview
-		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
-		fileHandleDao.setPreviewId(withPreview2.getId(), preview2.getId());
-		// The etag should have changed
-		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
-		
-		// Now list all of the objects
-		RowMetadataResult totalList = migratableTableDAO.listRowMetadata(MigrationType.FILE_HANDLE, 1000, startCount);
-		assertNotNull(totalList);
-		assertEquals(new Long(startCount+4),  totalList.getTotalCount());
-		assertNotNull(totalList.getList());
-		assertEquals(4, totalList.getList().size());
-		System.out.println(totalList.getList());
-		
-		// The withPreview should be first.
-		RowMetadata row = totalList.getList().get(0);
-		assertEquals(withPreview.getId(), ""+row.getId());
-		assertEquals(withPreview.getEtag(), row.getEtag());
-		assertEquals(preview.getId(), ""+row.getParentId());
-		// 2
-		row = totalList.getList().get(1);
-		assertEquals(withPreview2.getId(), ""+row.getId());
-		assertEquals(withPreview2.getEtag(), row.getEtag());
-		assertEquals(preview2.getId(), ""+row.getParentId());
-		// previews
-		row = totalList.getList().get(2);
-		assertEquals(preview.getId(), ""+row.getId());
-		assertEquals(preview.getEtag(), row.getEtag());
-		assertEquals(null, row.getParentId());
-		// 2
-		row = totalList.getList().get(3);
-		assertEquals(preview2.getId(), ""+row.getId());
-		assertEquals(preview2.getEtag(), row.getEtag());
-		assertEquals(null, row.getParentId());
-		
-		// Get the full back object
-		List<Long> idsToBackup1 = new LinkedList<Long>();
-		idsToBackup1.add(Long.parseLong(preview.getId()));
-		idsToBackup1.add(Long.parseLong(preview2.getId()));
-		List<DBOFileHandle> backupList1 = migratableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup1);
-		assertNotNull(backupList1);
-		assertEquals(2, backupList1.size());
-		//with preview.
-		DBOFileHandle dbfh = backupList1.get(0);
-		assertEquals(preview.getId(), ""+dbfh.getId());
-		// preview.
-		dbfh = backupList1.get(1);
-		assertEquals(preview2.getId(), ""+dbfh.getId());
-		
-		// Second backup
-		List<Long> idsToBackup2 = new LinkedList<Long>();
-		idsToBackup2.add(Long.parseLong(withPreview.getId()));
-		idsToBackup2.add(Long.parseLong(withPreview2.getId()));
-		List<DBOFileHandle> backupList2 = migratableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup2);
-		assertNotNull(backupList2);
-		assertEquals(2, backupList2.size());
-		// withPreview.
-		dbfh = backupList2.get(0);
-		assertEquals(withPreview.getId(), ""+dbfh.getId());
-		// withPreview2.
-		dbfh = backupList2.get(1);
-		assertEquals(withPreview2.getId(), ""+dbfh.getId());
-		
-		// Now delete all of the data
-		int count = migratableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup1);
-		assertEquals(2, count);
-		count = migratableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup2);
-		assertEquals(2, count);
-		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
-		assertEquals(startMax, migratableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
-		
-		// Now restore the data
-		List<Long> results = migratableTableDAO.createOrUpdateBatch(backupList1);
-		assertNotNull(results);
-		assertEquals(idsToBackup1, results);
-		results = migratableTableDAO.createOrUpdateBatch(backupList2);
-		assertNotNull(results);
-		assertEquals(idsToBackup2, results);
-		// Now make sure if we update again it works
-		backupList1.get(0).setBucketName("updateBucketName");
-		results = migratableTableDAO.createOrUpdateBatch(backupList1);
-		assertNotNull(results);
-		assertEquals(idsToBackup1, results);
-	}
-	
-	
-	@Test
-	public void testPLFM_1978_listDeltaRowMetadata(){
-		// For PLFM-1978, calling listDeltaRowMetadata() with an empty list causes a BadSqlGrammarException
-		// because the resulting 'in' clause is empty.
-		List<Long> list = new LinkedList<Long>();
-		// pass the empty list should return an empty result
-		List<RowMetadata> results = migratableTableDAO.listDeltaRowMetadata(MigrationType.ACCESS_APPROVAL, list);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
-	@Test
-	public void testPLFM_1978_deleteObjectsById(){
-		// For PLFM-1978, calling deleteObjectsById() with an empty list causes a BadSqlGrammarException
-		// because the resulting 'in' clause is empty.
-		List<Long> list = new LinkedList<Long>();
-		// pass the empty list should return an empty result
-		int result = migratableTableDAO.deleteObjectsById(MigrationType.ACCESS_APPROVAL, list);
-		assertEquals(0, result);
-	}
-	
-	@Test
-	public void testPLFM_1978_getBackupBatch(){
-		// For PLFM-1978, calling getBackupBatch() with an empty list causes a BadSqlGrammarException
-		// because the resulting 'in' clause is empty.
-		List<Long> list = new LinkedList<Long>();
-		// pass the empty list should return an empty result
-		List<DBOFileHandle> results = migratableTableDAO.getBackupBatch(DBOFileHandle.class, list);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
-	@Test
-	public void testPLFM_1978_createOrUpdateBatch(){
-		// For PLFM-1978, calling createOrUpdateBatch() with an empty list causes a BadSqlGrammarException
-		// because the resulting 'in' clause is empty.
-		List<DBOFileHandle> list = new LinkedList<DBOFileHandle>();
-		// pass the empty list should return an empty result
-		List<Long> results = migratableTableDAO.createOrUpdateBatch(list);
-		assertNotNull(results);
-		assertEquals(0, results.size());
 	}
 	
 	@Test
@@ -441,107 +267,6 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetListRowMetadataByRangeOneBatch() throws Exception {
-		long startId = fileHandleDao.getMaxId() + 1;
-		long startCount = fileHandleDao.getCount();
-		RowMetadataResult l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, startId+1, 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(0, l.getList().size());
-		// Add a file handle
-		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handle1.setFileName("handle1");
-		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
-		filesToDelete.add(handle1.getId());
-		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())-1, 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(0, l.getList().size());
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId()), 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(1, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())+1, 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(1, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		// Add a preview
-		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		previewHandle1.setFileName("preview1");
-		previewHandle1 = (PreviewFileHandle) fileHandleDao.createFile(previewHandle1);
-		filesToDelete.add(previewHandle1.getId());
-		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()), 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+2, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(2, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		assertEquals(previewHandle1.getId(), l.getList().get(1).getId().toString());
-		// Delete preview
-		fileHandleDao.delete(previewHandle1.getId());
-		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()), 10, 0);
-		assertNotNull(l);
-		assertEquals(startCount+1, l.getTotalCount().longValue());
-		assertNotNull(l.getList());
-		assertEquals(1, l.getList().size());
-		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		
-	}
-	
-	@Test
-	public void testGetListRowMetadataByRangeMultipleBatches() {
-		long minId = fileHandleDao.getMaxId()+1;
-		long startCount = fileHandleDao.getCount();
-		List<Long> ids = new LinkedList<Long>();
-		// Create 5 file handles
-		for (int i = 1; i < 6; i++) {
-			S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-			handle.setFileName("handle"+i);
-			handle = (S3FileHandle) fileHandleDao.createFile(handle);
-			filesToDelete.add(handle.getId());
-			ids.add(Long.parseLong(handle.getId()));
-		}
-		// First batch
-		RowMetadataResult b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 0);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(2, b.getList().size());
-		assertEquals(ids.get(0), b.getList().get(0).getId());
-		assertEquals(ids.get(1), b.getList().get(1).getId());
-		// Second batch
-		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 2);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(2, b.getList().size());
-		assertEquals(ids.get(2), b.getList().get(0).getId());
-		assertEquals(ids.get(3), b.getList().get(1).getId());
-		// Last batch
-		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 4);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(1, b.getList().size());
-		assertEquals(ids.get(4), b.getList().get(0).getId());
-		// Beyond
-		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 5);
-		assertNotNull(b);
-		assertEquals(startCount+5L, b.getTotalCount().longValue());
-		assertNotNull(b.getList());
-		assertEquals(0, b.getList().size());
-	}
-	
-	@Test
 	public void testGetChecksumForType() throws Exception {
 		// Start checksum
 		String checksum1 = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
@@ -668,41 +393,6 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testStreamDatabaseObjectsById() {
-		List<Long> ids = new LinkedList<>();
-		ColumnModel one = new ColumnModel();
-		one.setColumnType(ColumnType.INTEGER);
-		one.setName("one");
-		one  = columnModelDao.createColumnModel(one);
-		ids.add(Long.parseLong(one.getId()));
-		
-		ColumnModel two = new ColumnModel();
-		two.setColumnType(ColumnType.INTEGER);
-		two.setName("two");
-		two = columnModelDao.createColumnModel(two);
-		ids.add(Long.parseLong(two.getId()));
-		
-		ColumnModel three = new ColumnModel();
-		three.setColumnType(ColumnType.INTEGER);
-		three.setName("three");
-		three = columnModelDao.createColumnModel(three);
-		ids.add(Long.parseLong(three.getId()));
-		
-		// Stream over the results
-		long batchSize  = 2;
-		Iterable<MigratableDatabaseObject<?,?>> it = migratableTableDAO.streamDatabaseObjects(MigrationType.COLUMN_MODEL, ids, batchSize);
-		List<DBOColumnModel> results = new LinkedList<>();
-		for(DatabaseObject data: it) {
-			assertTrue(data instanceof DBOColumnModel);
-			results.add((DBOColumnModel) data);
-		}
-		assertEquals(3, results.size());
-		assertEquals(one.getId(), results.get(0).getId().toString());
-		assertEquals(two.getId(), results.get(1).getId().toString());
-		assertEquals(three.getId(), results.get(2).getId().toString());
-	}
-	
-	@Test
 	public void testStreamDatabaseObjectsByRange() {
 		List<Long> ids = new LinkedList<>();
 		ColumnModel one = new ColumnModel();
@@ -797,21 +487,45 @@ public class MigratableTableDAOImplAutowireTest {
 		two.setPassHash("updatedHash2");
 		ids = migratableTableDAO.createOrUpdate(type, batch);
 		assertNotNull(ids);
-		
-		int deletedCount = migratableTableDAO.deleteById(type, ids);
-		assertEquals(ids.size(), deletedCount);
-		deletedCount = migratableTableDAO.deleteById(type, ids);
-		assertEquals(0, deletedCount);
 	}
 	
 	@Test
 	public void testGetPrimaryCardinalitySql() {
 		String expected = 
-				"SELECT P.ID, 1  + COUNT(S0.OWNER_NODE_ID) AS cardinality"
+				"SELECT P0.ID, 1  + T0.CARD AS CARD"
+				+ " FROM JDONODE AS P0"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.OWNER_NODE_ID) AS CARD"
 				+ " FROM JDONODE AS P"
-				+ " LEFT JOIN JDOREVISION AS S0 ON (P.ID =  S0.OWNER_NODE_ID)"
-				+ " WHERE P.ID >= ? AND P.ID < ? GROUP BY P.ID";
+				+ " LEFT JOIN JDOREVISION AS S ON (P.ID =  S.OWNER_NODE_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " ON (P0.ID = T0.ID)"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " ORDER BY P0.ID ASC";
 		String sql = migratableTableDAO.getPrimaryCardinalitySql(MigrationType.NODE);
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetPrimaryCardinalitySqlPLFM_4857() {
+		String expected = 
+				"SELECT P0.ID, 1  + T0.CARD + T1.CARD AS CARD"
+				+ " FROM V2_WIKI_PAGE AS P0"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.WIKI_ID) AS CARD FROM V2_WIKI_PAGE AS P"
+				+ " LEFT JOIN V2_WIKI_ATTACHMENT_RESERVATION AS S"
+				+ " ON (P.ID =  S.WIKI_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " ON (P0.ID = T0.ID)"
+				+ " JOIN"
+				+ " (SELECT P.ID, + COUNT(S.WIKI_ID) AS CARD FROM V2_WIKI_PAGE AS P"
+				+ " LEFT JOIN V2_WIKI_MARKDOWN AS S"
+				+ " ON (P.ID =  S.WIKI_ID)"
+				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T1"
+				+ " ON (P0.ID = T1.ID)"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " ORDER BY P0.ID ASC";
+		String sql = migratableTableDAO.getPrimaryCardinalitySql(MigrationType.V2_WIKI_PAGE);
 		assertEquals(expected, sql);
 	}
 	

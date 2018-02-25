@@ -10,9 +10,6 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.util.Callback;
 
 /**
  * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
@@ -54,60 +51,7 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * A table checksum (CHECKSUM TABLE statement)
 	 */
 	public String getChecksumForType(MigrationType type);
-	
-	/**
-	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
-	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
-	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
-	 *    
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset);
-	
-	/**
-	 * List row metadata in a paginated format for a given id range. All rows will be migrated in the order listed by this method.
-	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
-	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
-	 *    
-	 * @param minId
-	 * @param maxId
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset);
-	
-	/**
-	 * Given a list of ID return the RowMetadata for each row that exist in the table.
-	 * This method is used to detect changes between multiple stacks.  Only return values for IDs that
-	 * exist in table.  Any missing RowMetadata in the result will be interpreted as a row that does not
-	 * exist in table.
-	 * 
-	 * @param idList
-	 * @return
-	 */
-	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<Long> idList);
-	
-	/**
-	 * Get a batch of objects to backup.
-	 * @param clazz
-	 * @param rowIds
-	 * @return
-	 */
-	@Deprecated
-	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds);
-	
-	/**
-	 * Stream over all DatabaseObject with backupIds matching the given IDs.
-	 * @param clazz
-	 * @param rowIds
-	 * @param batchSize the maximum number of objects that should be loaded at a time.
-	 * @return
-	 */
-	public Iterable<MigratableDatabaseObject<?,?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds, long batchSize);
-	
+		
 	/**
 	 * Stream over all of the database object for the given within the provided ID range.
 	 * 
@@ -119,21 +63,7 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 */
 	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType migrationType, Long minimumId,
 			Long maximumId, Long batchSize);
-
-
-	/**
-	 * Create or update a batch.
-	 * @param batch - batch of objects to create or update.
-	 */
-	public <D extends DatabaseObject<D>> List<Long> createOrUpdateBatch(List<D> batch);
 	
-	/**
-	 * Delete objects by their IDs
-	 * @param type
-	 * @param idList
-	 */
-	@Deprecated
-	public int deleteObjectsById(MigrationType type, List<Long> idList);
 	
 	/**
 	 * Get the MigratableObjectType from 
@@ -187,14 +117,6 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @throws Exception 
 	 */
 	public List<Long> createOrUpdate(MigrationType type, List<DatabaseObject<?>> batch);
-
-	/**
-	 * Delete all rows for a given type with the given backup ids.
-	 * @param type
-	 * @param idList
-	 * @return
-	 */
-	int deleteById(MigrationType type, List<Long> idList);
 
 	/**
 	 * Delete all rows of the given type and row ID range.

@@ -2701,6 +2701,8 @@ public class NodeDAOImplTest {
 		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
 		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
 		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
+		//Ensure that primary annotations are not included in the entity replication (PLFM-4601)
+		annos.getPrimaryAnnotations().addAnnotation("primaryString", "primaryTest");
 		nodeDao.updateAnnotations(file.getId(), annos);
 		
 		int maxAnnotationChars = 10;

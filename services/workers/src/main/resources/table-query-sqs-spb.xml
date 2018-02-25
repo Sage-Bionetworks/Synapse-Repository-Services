@@ -11,6 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+
 	<bean id="tableQueryQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
