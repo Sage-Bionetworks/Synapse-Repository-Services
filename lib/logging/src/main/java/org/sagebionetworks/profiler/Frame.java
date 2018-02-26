@@ -78,10 +78,6 @@ public class Frame {
 		return children.get(methodName);
 	}
 
-	public List<Frame> getChildren() { //TODO: don't need?
-		return new ArrayList<>(children.values());
-	}
-
 	public void addElapsedTime(long elapsedMilliseconds){
 		this.elapsedTimeStatistics.addValue(elapsedMilliseconds);
 	}
