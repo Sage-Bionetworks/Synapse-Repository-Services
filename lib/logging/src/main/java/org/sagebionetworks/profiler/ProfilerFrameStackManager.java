@@ -23,7 +23,7 @@ public class ProfilerFrameStackManager {
 		this.handlers = handlers;
 	}
 
-	public void startProfiling(String methodName, Object[] profiledMethodArgs){
+	public void startProfiling(String methodName){
 		Stack<Frame> parentFramesStack = threadFrameStack.get();
 
 		Frame currentFrame = getCurrentFrame(methodName);
@@ -32,36 +32,35 @@ public class ProfilerFrameStackManager {
 		parentFramesStack.push(currentFrame);
 	}
 
-	public void endProfiling(String methodName, Object[] profiledMethodArgs, long elapsedTimeMillis){
+	public void endProfiling(String methodName, long elapsedTimeMillis){
 		Stack<Frame> parentFramesStack = threadFrameStack.get();
 
 		// now that the method finished pop the current frame off the stack
 		Frame currentFrame = parentFramesStack.pop();
 
 		if(!currentFrame.getName().equals(methodName)){
-			throw new IllegalStateException("Expected to end profiling on " + currentFrame.getName() + " but got " + methodName);
+			throw new IllegalArgumentException("Expected to end profiling on " + currentFrame.getName() + " but got " + methodName);
 		}
 
 		currentFrame.addElapsedTime(elapsedTimeMillis);
 
 		// If this is the first frame, log the profiling data
 		if (parentFramesStack.isEmpty()) {
-			doFireProfile(currentFrame, profiledMethodArgs);
+			doFireProfile(currentFrame);
 		}
 	}
 
 	/**
 	 * Should we even profile.
 	 *
-	 * @param profiledMethodArgs
 	 * @return
 	 */
-	boolean shouldCaptureData(Object[] profiledMethodArgs) {
+	boolean shouldCaptureData() {
 		if (handlers == null) {
 			return false;
 		}
 		for (ProfileHandler handler : this.handlers) {
-			if (handler.shouldCaptureProfile(profiledMethodArgs)) {
+			if (handler.shouldCaptureProfile()) {
 				return true;
 			}
 		}
@@ -83,10 +82,10 @@ public class ProfilerFrameStackManager {
 		return currentFrame;
 	}
 
-	void doFireProfile(Frame frame, Object[] profiledMethodArgs) {
+	void doFireProfile(Frame frame) {
 		if (handlers != null) {
 			for (ProfileHandler handler : this.handlers) {
-				if (handler.shouldCaptureProfile(profiledMethodArgs)) {
+				if (handler.shouldCaptureProfile()) {
 					handler.fireProfile(frame);
 				}
 			}

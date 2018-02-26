@@ -1,8 +1,5 @@
 package org.sagebionetworks.profiler;
 
-import java.util.List;
-import java.util.Stack;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
@@ -25,8 +22,7 @@ public class Profiler {
 	@Around("execution(* org.sagebionetworks..*.*(..)) && !within(org.sagebionetworks.profiler.*)")
 	public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
 		// Do nothing if logging is not on
-		Object[] profiledMethodArgs = pjp.getArgs();
-		if (!frameStackManager.shouldCaptureData(profiledMethodArgs)) {
+		if (!frameStackManager.shouldCaptureData()) {
 			// Just proceed if logging is off.
 			return pjp.proceed();
 		}
@@ -37,11 +33,11 @@ public class Profiler {
 
 		long startTime = System.nanoTime();
 		try {
-			frameStackManager.startProfiling(methodName, profiledMethodArgs);
+			frameStackManager.startProfiling(methodName);
 			return pjp.proceed();
 		} finally {
 			long endTime = System.nanoTime();
-			frameStackManager.endProfiling(methodName, profiledMethodArgs, (endTime - startTime) / 1000000);
+			frameStackManager.endProfiling(methodName, (endTime - startTime) / 1000000);
 		}
 	}
 

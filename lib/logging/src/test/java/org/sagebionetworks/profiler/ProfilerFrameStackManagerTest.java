@@ -1,6 +1,5 @@
 package org.sagebionetworks.profiler;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,21 +48,19 @@ public class ProfilerFrameStackManagerTest {
 
 	List<ProfileHandler> profileHandlers;
 
-	ProfilerFrameStackManager spyProfiler; //TODO: rename
+	ProfilerFrameStackManager spyProfilerFrameStackManager;
 
 	final String methodName = "myMethodNameIsSoCool";
 
 	long elapsedTime;
 
-	Object[] methodArgs;
 	@Before
 	public void setUp(){
 		elapsedTime = 1234567890;
-		methodArgs = new Object[] {};
-		spyProfiler = spy(new ProfilerFrameStackManager());
+		spyProfilerFrameStackManager = spy(new ProfilerFrameStackManager());
 		profileHandlers = Arrays.asList(mockProfileHandler1, mockProfileHandler2);
-		when(mockProfileHandler1.shouldCaptureProfile(methodArgs)).thenReturn(false);
-		when(mockProfileHandler2.shouldCaptureProfile(methodArgs)).thenReturn(true);
+		when(mockProfileHandler1.shouldCaptureProfile()).thenReturn(false);
+		when(mockProfileHandler2.shouldCaptureProfile()).thenReturn(true);
 		when(mockThreadLocalStack.get()).thenReturn(mockFrameStack);
 		when(mockFrameStack.peek()).thenReturn(mockFrame);
 		when(mockFrameStack.pop()).thenReturn(mockFrame);
@@ -73,89 +70,62 @@ public class ProfilerFrameStackManagerTest {
 
 	}
 
-	@After
-	public void noMoreInteractionsPls(){
-		verifyNoMoreInteractions(spyProfiler);
-		verifyNoMoreInteractions(mockFrame);
-		verifyNoMoreInteractions(mockThreadLocalStack);
-		verifyNoMoreInteractions(mockFrameStack);
-		verifyNoMoreInteractions(mockProfileHandler1);
-		verifyNoMoreInteractions(mockProfileHandler2);
-	}
-
 	@Test
 	public void testShouldCaptureData_nullHandlers(){
-		spyProfiler.setHandlers(null);
+		spyProfilerFrameStackManager.setHandlers(null);
 
-		assertFalse(spyProfiler.shouldCaptureData(methodArgs));
-
-		verify(spyProfiler).setHandlers(null);
-		verify(spyProfiler).shouldCaptureData(methodArgs);
+		assertFalse(spyProfilerFrameStackManager.shouldCaptureData());
 	}
 
 	@Test
 	public void testShouldCaptureData_emptyHandlers(){
-		spyProfiler.setHandlers(Collections.emptyList());
+		spyProfilerFrameStackManager.setHandlers(Collections.emptyList());
 
-		assertFalse(spyProfiler.shouldCaptureData(methodArgs));
-
-		verify(spyProfiler).shouldCaptureData(methodArgs);
-		verify(spyProfiler).setHandlers(Collections.emptyList());
-
+		assertFalse(spyProfilerFrameStackManager.shouldCaptureData());
 	}
 
 	@Test
 	public void testShouldCaptureData_multipleHandlers(){
-		spyProfiler.setHandlers(profileHandlers);
+		spyProfilerFrameStackManager.setHandlers(profileHandlers);
 
-		assertTrue(spyProfiler.shouldCaptureData(methodArgs));
+		assertTrue(spyProfilerFrameStackManager.shouldCaptureData());
 
-		verify(spyProfiler).shouldCaptureData(methodArgs);
-		verify(spyProfiler).setHandlers(profileHandlers);
-		verify(mockProfileHandler1).shouldCaptureProfile(methodArgs);
-		verify(mockProfileHandler2).shouldCaptureProfile(methodArgs);
+		verify(mockProfileHandler1).shouldCaptureProfile();
+		verify(mockProfileHandler2).shouldCaptureProfile();
 	}
 
 	@Test
 	public void testDoFireProfile_nullHandlers(){
-		spyProfiler.setHandlers(null);
+		spyProfilerFrameStackManager.setHandlers(null);
 
-		spyProfiler.doFireProfile(mockFrame, methodArgs);
+		spyProfilerFrameStackManager.doFireProfile(mockFrame);
 
-		verify(spyProfiler).doFireProfile(mockFrame, methodArgs);
-		verify(spyProfiler).setHandlers(null);
-		verify(mockProfileHandler1, never()).shouldCaptureProfile(any());
-		verify(mockProfileHandler2, never()).shouldCaptureProfile(any());
+		verify(mockProfileHandler1, never()).shouldCaptureProfile();
+		verify(mockProfileHandler2, never()).shouldCaptureProfile();
 		verify(mockProfileHandler1, never()).fireProfile(any());
 		verify(mockProfileHandler2, never()).fireProfile(any());
 	}
 
 	@Test
 	public void testDoFireProfile_emptyHandlers(){
-		spyProfiler.setHandlers(Collections.emptyList());
+		spyProfilerFrameStackManager.setHandlers(Collections.emptyList());
 
-		spyProfiler.doFireProfile(mockFrame, methodArgs);
+		spyProfilerFrameStackManager.doFireProfile(mockFrame);
 
-		verify(spyProfiler).setHandlers(Collections.emptyList());
-		verify(spyProfiler).doFireProfile(mockFrame, methodArgs);
-
-		verify(mockProfileHandler1, never()).shouldCaptureProfile(any());
-		verify(mockProfileHandler2, never()).shouldCaptureProfile(any());
+		verify(mockProfileHandler1, never()).shouldCaptureProfile();
+		verify(mockProfileHandler2, never()).shouldCaptureProfile();
 		verify(mockProfileHandler1, never()).fireProfile(any());
 		verify(mockProfileHandler2, never()).fireProfile(any());
 	}
 
 	@Test
 	public void testDoFireProfile_multipleHandlers(){
-		spyProfiler.setHandlers(profileHandlers);
+		spyProfilerFrameStackManager.setHandlers(profileHandlers);
 
-		spyProfiler.doFireProfile(mockFrame, methodArgs);
+		spyProfilerFrameStackManager.doFireProfile(mockFrame);
 
-
-		verify(spyProfiler).doFireProfile(mockFrame, methodArgs);
-		verify(spyProfiler).setHandlers(profileHandlers);
-		verify(mockProfileHandler1).shouldCaptureProfile(methodArgs);
-		verify(mockProfileHandler2).shouldCaptureProfile(methodArgs);
+		verify(mockProfileHandler1).shouldCaptureProfile();
+		verify(mockProfileHandler2).shouldCaptureProfile();
 		verify(mockProfileHandler1, never()).fireProfile(any());
 		verify(mockProfileHandler2).fireProfile(mockFrame);
 	}
@@ -164,13 +134,12 @@ public class ProfilerFrameStackManagerTest {
 	public void testGetCurrentFrame__emptyStack(){
 		String methodName = "asdf";
 		when(mockFrameStack.isEmpty()).thenReturn(true);
-		Frame currentFrame = spyProfiler.getCurrentFrame(methodName);
+		Frame currentFrame = spyProfilerFrameStackManager.getCurrentFrame(methodName);
 
 		assertEquals(methodName, currentFrame.getName());
 		assertNotEquals(mockFrame, currentFrame);
 
 		verify(mockThreadLocalStack).get();
-		verify(spyProfiler).getCurrentFrame(methodName);
 		verify(mockFrameStack).isEmpty();
 	}
 
@@ -181,11 +150,10 @@ public class ProfilerFrameStackManagerTest {
 
 		when(mockFrame.addChildFrameIfAbsent(methodName)).thenReturn(new Frame(methodName));
 
-		Frame currentFrame = spyProfiler.getCurrentFrame(methodName);
+		Frame currentFrame = spyProfilerFrameStackManager.getCurrentFrame(methodName);
 
 		assertEquals(methodName, currentFrame.getName());
 
-		verify(spyProfiler).getCurrentFrame(methodName);
 		verify(mockThreadLocalStack).get();
 		verify(mockFrameStack).isEmpty();
 		verify(mockFrameStack).peek();
@@ -194,15 +162,21 @@ public class ProfilerFrameStackManagerTest {
 
 	@Test
 	public void testStartProfiling(){
-		doReturn(mockFrame).when(spyProfiler).getCurrentFrame(methodName);
+		doReturn(mockFrame).when(spyProfilerFrameStackManager).getCurrentFrame(methodName);
 
 
-		spyProfiler.startProfiling(methodName, methodArgs);
+		spyProfilerFrameStackManager.startProfiling(methodName);
 
-		verify(spyProfiler).startProfiling(methodName, methodArgs);
+		verify(spyProfilerFrameStackManager).startProfiling(methodName);
 		verify(mockThreadLocalStack).get();
-		verify(spyProfiler).getCurrentFrame(methodName);
+		verify(spyProfilerFrameStackManager).getCurrentFrame(methodName);
 		verify(mockFrameStack).push(mockFrame);
+
+		verifyNoMoreInteractions(mockFrame);
+		verifyNoMoreInteractions(mockThreadLocalStack);
+		verifyNoMoreInteractions(mockFrameStack);
+		verifyNoMoreInteractions(mockProfileHandler1);
+		verifyNoMoreInteractions(mockProfileHandler2);
 	}
 
 
@@ -210,50 +184,63 @@ public class ProfilerFrameStackManagerTest {
 	public void testEndProfiling_methodNameNotMatchTopOfStack(){
 		String unmatchingMethodName = "This is not the method name you are looking for";
 		try {
-			spyProfiler.endProfiling(unmatchingMethodName, methodArgs, elapsedTime);
+			spyProfilerFrameStackManager.endProfiling(unmatchingMethodName, elapsedTime);
 			fail("An IllegalStateException should have been thrown");
-		}catch (IllegalStateException e){
+		}catch (IllegalArgumentException e){
 			// expected Exception
 		}
 
-		verify(spyProfiler).endProfiling(unmatchingMethodName, methodArgs, elapsedTime);
 		verify(mockThreadLocalStack).get();
 		verify(mockFrameStack).pop();
 		verify(mockFrame, times(2)).getName();
 
-
+		verifyNoMoreInteractions(mockFrame);
+		verifyNoMoreInteractions(mockThreadLocalStack);
+		verifyNoMoreInteractions(mockFrameStack);
+		verifyNoMoreInteractions(mockProfileHandler1);
+		verifyNoMoreInteractions(mockProfileHandler2);
 	}
 
 	@Test
 	public void testEndProfiling_methodNameMatchesTopOfStack_FrameStackNotEmpty(){
-		doNothing().when(spyProfiler).doFireProfile(mockFrame, methodArgs);
+		doNothing().when(spyProfilerFrameStackManager).doFireProfile(mockFrame);
 		when(mockFrameStack.isEmpty()).thenReturn(false);
 
-		spyProfiler.endProfiling(methodName, methodArgs, elapsedTime);
+		spyProfilerFrameStackManager.endProfiling(methodName, elapsedTime);
 
-		verify(spyProfiler).endProfiling(methodName, methodArgs, elapsedTime);
 		verify(mockThreadLocalStack).get();
 		verify(mockFrameStack).pop();
 		verify(mockFrameStack).isEmpty();
 		verify(mockFrame).addElapsedTime(elapsedTime);
 		verify(mockFrame).getName();
-		verify(spyProfiler,never()).doFireProfile(any(), any());
+		verify(spyProfilerFrameStackManager,never()).doFireProfile(any());
+
+		verifyNoMoreInteractions(mockFrame);
+		verifyNoMoreInteractions(mockThreadLocalStack);
+		verifyNoMoreInteractions(mockFrameStack);
+		verifyNoMoreInteractions(mockProfileHandler1);
+		verifyNoMoreInteractions(mockProfileHandler2);
 	}
 
 	@Test
 	public void testEndProfiling_methodNameMatchesTopOfStack_FrameStackEmpty(){
-		doNothing().when(spyProfiler).doFireProfile(mockFrame, methodArgs);
+		doNothing().when(spyProfilerFrameStackManager).doFireProfile(mockFrame);
 		when(mockFrameStack.isEmpty()).thenReturn(true);
 
-		spyProfiler.endProfiling(methodName, methodArgs, elapsedTime);
+		spyProfilerFrameStackManager.endProfiling(methodName, elapsedTime);
 
-		verify(spyProfiler).endProfiling(methodName, methodArgs, elapsedTime);
 		verify(mockThreadLocalStack).get();
 		verify(mockFrameStack).pop();
 		verify(mockFrameStack).isEmpty();
 		verify(mockFrame).addElapsedTime(elapsedTime);
 		verify(mockFrame).getName();
-		verify(spyProfiler).doFireProfile(mockFrame, methodArgs);
+		verify(spyProfilerFrameStackManager).doFireProfile(mockFrame);
+
+		verifyNoMoreInteractions(mockFrame);
+		verifyNoMoreInteractions(mockThreadLocalStack);
+		verifyNoMoreInteractions(mockFrameStack);
+		verifyNoMoreInteractions(mockProfileHandler1);
+		verifyNoMoreInteractions(mockProfileHandler2);
 	}
 
 
