@@ -66,21 +66,6 @@ public class DerivedColumn extends SQLElement {
 	}
 	
 	/**
-	 * If this select column is the results of a function, 
-	 * then return the type of the function.  Returns null for non-function
-	 * select columns.
-	 * 
-	 * @return
-	 */
-	public FunctionType getFunctionType(){
-		HasFunctionType hasFunction = valueExpression.getFirstElementOfType(HasFunctionType.class);
-		if(hasFunction != null){
-			return hasFunction.getFunctionType();
-		}
-		return null;
-	}
-	
-	/**
 	 * Return the column that might be referenced by this select element.
 	 * For example, 'count(foo)' references the column foo and 'bar as foo'
 	 * references bar.

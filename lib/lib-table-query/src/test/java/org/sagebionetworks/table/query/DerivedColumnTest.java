@@ -1,10 +1,9 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 public class DerivedColumnTest {
@@ -78,42 +77,6 @@ public class DerivedColumnTest {
 	public void testGetNameWithDoubleQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"has space\"");
 		assertEquals("has space", element.getDisplayName());
-	}
-	
-	@Test
-	public void testGetFunctionTypeNoFunctionCount() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("foo as bar");
-		assertEquals(null, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeCount() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*) as foo");
-		assertEquals(FunctionType.COUNT, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeMax() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(foo) as bar");
-		assertEquals(FunctionType.MAX, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeMin() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("min('foo')");
-		assertEquals(FunctionType.MIN, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeSum() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("sum('foo')");
-		assertEquals(FunctionType.SUM, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeAvg() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("avg('foo')");
-		assertEquals(FunctionType.AVG, element.getFunctionType());
 	}
 	
 	@Test

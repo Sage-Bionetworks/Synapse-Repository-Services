@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * This matches &ltset function specification&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class SetFunctionSpecification extends SQLElement implements HasAggregate, HasFunctionType {
+public class SetFunctionSpecification extends SQLElement implements HasAggregate, HasFunctionReturnType {
 	
 	Boolean countAsterisk;
 	SetFunctionType setFunctionType;
@@ -14,6 +14,7 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	
 	public SetFunctionSpecification(Boolean countAsterisk) {
 		this.countAsterisk = countAsterisk;
+		this.setFunctionType = SetFunctionType.COUNT;
 	}
 	
 	public SetFunctionSpecification(SetFunctionType setFunctionType, SetQuantifier setQuantifier, ValueExpression valueExpression) {
@@ -65,24 +66,8 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	}
 
 	@Override
-	public FunctionType getFunctionType() {
-		if(countAsterisk != null){
-			return FunctionType.COUNT;
-		}
-		// Switch by type.
-		switch (setFunctionType) {
-		case COUNT:
-			return FunctionType.COUNT;
-		case MAX:
-			return FunctionType.MAX;
-		case MIN:
-			return FunctionType.MIN;
-		case SUM:
-			return FunctionType.SUM;
-		case AVG:
-			return FunctionType.AVG;
-		default:
-			throw new IllegalArgumentException("unhandled set function type");
-		}
+	public FunctionReturnType getFunctionReturnType() {
+		return this.setFunctionType.getFunctionReturnType();
 	}
+
 }
