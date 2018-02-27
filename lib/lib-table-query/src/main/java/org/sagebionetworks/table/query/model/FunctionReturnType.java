@@ -15,7 +15,7 @@ public enum FunctionReturnType {
 	// Cases where the return type matches the parameter type.
 	MATCHES_PARAMETER(null);
 	
-	ColumnType columnType;
+	private ColumnType columnType;
 	
 	FunctionReturnType(ColumnType type){
 		this.columnType = type;
