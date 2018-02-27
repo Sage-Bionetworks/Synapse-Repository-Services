@@ -90,6 +90,10 @@
 		    <groupId>commons-lang</groupId>
 		    <artifactId>commons-lang</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-utils</artifactId>
+		</dependency>
 
 	</dependencies>
 </project>

@@ -2,11 +2,9 @@ package org.sagebionetworks.worker.job.tracking;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import io.jsonwebtoken.lang.Collections;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,10 +20,7 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricStats;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.worker.job.tracking.IntervalStatistics;
-import org.sagebionetworks.worker.job.tracking.JobIntervalProcessor;
-import org.sagebionetworks.worker.job.tracking.JobTracker;
-import org.sagebionetworks.worker.job.tracking.TrackedData;
+import org.sagebionetworks.util.IntervalStatistics;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;

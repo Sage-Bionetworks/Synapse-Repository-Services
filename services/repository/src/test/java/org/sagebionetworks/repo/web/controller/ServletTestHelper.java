@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -694,22 +693,6 @@ public class ServletTestHelper {
 	/**
 	 * Get the status of a backup/restore daemon
 	 */
-	public BackupRestoreStatus getDaemonStatus(
-			HttpServlet dispatchServlet, Long userId, String id)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.DAEMON + "/" + id, userId, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return (BackupRestoreStatus) objectMapper.readValue(
-				response.getContentAsString(), BackupRestoreStatus.class);
-	}
-
-	/**
-	 * Get the status of a backup/restore daemon
-	 */
 	public StackStatus getStackStatus(HttpServlet dispatchServlet)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -750,15 +733,6 @@ public class ServletTestHelper {
 				HTTPMODE.DELETE, UrlHelpers.ADMIN_CLEAR_LOCKS, userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
-	}
-
-	public void terminateDaemon(HttpServlet dispatchServlet,
-			Long userId, String id) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.DAEMON + "/" + id, userId, null);
-
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
-				HttpStatus.NO_CONTENT);
 	}
 
 	public EntityHeader getEntityType(HttpServlet dispatchServlet,

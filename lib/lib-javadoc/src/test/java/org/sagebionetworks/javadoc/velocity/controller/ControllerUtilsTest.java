@@ -66,7 +66,7 @@ public class ControllerUtilsTest {
 		assertEquals("/multiple/params", model.getUrl());
 		assertEquals("GET", model.getHttpType());
 		assertEquals("GET.multiple.params", model.getFullMethodName());
-		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.RowMetadataResult}", "RowMetadataResult"), model.getResponseBody());
+		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.MigrationTypeList}", "MigrationTypeList"), model.getResponseBody());
 		assertEquals(new Link("${org.sagebionetworks.repo.model.IdList}", "IdList"), model.getRequestBody());
 		assertEquals(new Link("${GET.multiple.params}", "GET /multiple/params"), model.getMethodLink());
 		assertNotNull(model.getDescription());

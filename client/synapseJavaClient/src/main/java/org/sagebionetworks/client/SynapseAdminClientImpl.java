@@ -14,9 +14,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -28,7 +25,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.util.ValidateArgument;
@@ -38,7 +34,6 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class SynapseAdminClientImpl extends SynapseClientImpl implements SynapseAdminClient {
 
-	private static final String DAEMON = ADMIN + "/daemon";
 	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
 	private static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + "/trashcan/purgeleaves";
@@ -52,11 +47,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
 	private static final String MIGRATION_COUNT = MIGRATION + "/count";
-	private static final String MIGRATION_ROWS = MIGRATION + "/rows";
-	private static final String MIGRATION_ROWS_BY_RANGE = MIGRATION + "/rowsbyrange";
-	private static final String MIGRATION_DELTA = MIGRATION + "/delta";
-	private static final String MIGRATION_BACKUP = MIGRATION + "/backup";
-	private static final String MIGRATION_RESTORE = MIGRATION + "/restore";
 	private static final String MIGRATION_DELETE = MIGRATION + "/delete";
 	private static final String MIGRATION_STATUS = MIGRATION + "/status";
 	private static final String MIGRATION_PRIMARY = MIGRATION + "/primarytypes";
@@ -91,12 +81,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	 */
 	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException {
 		return putJSONEntity(getRepoEndpoint(), STACK_STATUS, updated, StackStatus.class);
-	}
-
-	@Override
-	public BackupRestoreStatus getDaemonStatus(String daemonId) throws SynapseException {
-		String url = DAEMON + "/" + daemonId;
-		return getJSONEntity(getRepoEndpoint(), url, BackupRestoreStatus.class);
 	}
 
 	@Override
@@ -148,42 +132,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException {
 		String uri = MIGRATION_COUNT + "?type=" + type.name() ;
 		return getJSONEntity(getRepoEndpoint(), uri, MigrationTypeCount.class);
-	}
-	
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException {
-		String uri = MIGRATION_ROWS + "?type=" + migrationType.name() + "&limit=" + limit + "&offset=" + offset;
-		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
-	}
-	
-	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId, Long limit, Long offset) throws SynapseException {
-		String uri = MIGRATION_ROWS_BY_RANGE + "?type=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId + "&limit=" + limit + "&offset=" + offset;
-		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
-	}
-	
-	public RowMetadataResult getRowMetadataDelta(MigrationType migrationType, IdList ids) throws SynapseException {
-		String uri = MIGRATION_DELTA + "?type=" + migrationType.name();
-		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
-	}
-	
-	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids, BackupAliasType backupAliasType) throws SynapseException {
-		String uri = MIGRATION_BACKUP + "?type=" + migrationType.name();
-		if (backupAliasType != null) {
-			uri += "&backupAliasType=" + backupAliasType.name();
-		}
-		return postJSONEntity(getRepoEndpoint(), uri, ids, BackupRestoreStatus.class);
-	}
-	
-	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req, BackupAliasType backupAliasType) throws SynapseException {
-		String uri = MIGRATION_RESTORE + "?type=" + migrationType.name();
-		if (backupAliasType != null) {
-			uri += "&backupAliasType=" + backupAliasType.name();
-		}
-		return postJSONEntity(getRepoEndpoint(), uri, req, BackupRestoreStatus.class);
-	}
-	
-	public BackupRestoreStatus getStatus(String daemonId) throws SynapseException {
-		String uri = MIGRATION_STATUS + "?daemonId=" + daemonId;
-		return getJSONEntity(getRepoEndpoint(), uri, BackupRestoreStatus.class);
 	}
 	
 	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws SynapseException {

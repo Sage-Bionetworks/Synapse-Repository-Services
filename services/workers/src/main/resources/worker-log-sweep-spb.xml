@@ -17,6 +17,7 @@
 		<property name="appendersToSweep">
 			<list>
 				<value>workers</value>
+				<value>traceProfiling</value>
 			</list>
 		</property>
 	</bean>
