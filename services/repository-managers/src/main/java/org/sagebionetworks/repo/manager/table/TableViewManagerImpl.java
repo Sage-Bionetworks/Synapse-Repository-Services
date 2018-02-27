@@ -31,12 +31,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	public static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
 	
 	/**
-	 * Currently the maximum number of columns in a view is limited by: 'MySQL can
-	 * only use 61 tables in a join'. The query used to populate a view's table
-	 * currently uses a join for each column of the view.There is always at least
-	 * one join to ENTITY_REPLICATION.
+	 * Max columns per view is now the same as the max per table.
 	 */
-	public static final int MAX_COLUMNS_PER_VIEW = 61-1;
+	public static final int MAX_COLUMNS_PER_VIEW = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE;
 	
 	@Autowired
 	ViewScopeDao viewScopeDao;
