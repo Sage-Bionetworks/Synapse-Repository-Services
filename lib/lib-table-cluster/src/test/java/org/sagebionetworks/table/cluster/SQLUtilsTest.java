@@ -1560,6 +1560,16 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testBuildEntityReplicationSelect() {
+		StringBuilder builder = new StringBuilder();
+		SQLUtils.buildEntityReplicationSelect(builder);
+		assertEquals("R.ID"
+				+ ", MAX(R.CURRENT_VERSION) AS CURRENT_VERSION"
+				+ ", MAX(R.ETAG) AS ETAG"
+				+ ", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
+	}
+	
+	@Test
 	public void testCreateSelectInsertFromEntityReplication(){
 		String viewId = "syn123";
 		ColumnModel one = TableModelTestUtils.createColumn(1L);

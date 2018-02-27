@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 public class SQLUtils {
 
 
+	private static final String MAX_ALIAS_NAME = ", MAX(%1$s.%2$s) AS %2$s";
 	private static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %1$S";
 	private static final String SELECT_COUNT_FROM_TEMP = "SELECT COUNT(*) FROM ";
 	private static final String SQL_COPY_TABLE_TO_TEMP = "INSERT INTO %1$S SELECT * FROM %2$S ORDER BY "+ROW_ID;
@@ -1335,21 +1336,7 @@ public class SQLUtils {
 	 */
 	public static void buildSelect(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
-		builder.append(", ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
-		builder.append(", ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_ETAG);
-		builder.append(", ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+		buildEntityReplicationSelect(builder);
 		for(ColumnMetadata meta: metadata){
 			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 				// For doubles, the double-meta columns is also selected.
@@ -1366,6 +1353,50 @@ public class SQLUtils {
 			builder.append(meta.getSelectColumnName());
 			builder.append(" AS ");
 			builder.append(meta.getColumnNameForId());
+		}
+	}
+	
+	public static void buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
+		String columnName;
+		String asPrefix;
+		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			// For doubles, the double-meta columns is also selected.
+			columnName = ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
+			asPrefix = "_DBL";
+		}else {
+			columnName = meta.getSelectColumnName();
+			asPrefix = "";
+		}
+		if(meta.getEntityField() != null) {
+			// Entity field
+			buildEntityReplicationSelect(builder, columnName);
+		}else {
+			// annotation
+			builder.append(String.format(", MAX( IF(A.%1$x = %2$s"+,ANNOTATION_REPLICATION_COL_KEY, meta.getColumnModel().getName()));
+		}
+	}
+	
+	/**
+	 * Build the select of the basic entity replication data.
+	 * @param builder
+	 */
+	public static void buildEntityReplicationSelect(StringBuilder builder) {
+		builder.append(ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(ENTITY_REPLICATION_COL_ID);
+		buildEntityReplicationSelect(builder,
+				ENTITY_REPLICATION_COL_VERSION,
+				ENTITY_REPLICATION_COL_ETAG,
+				ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+	}
+	/**
+	 * Append MAX(NAME) for each provided name.
+	 * @param builder
+	 * @param names
+	 */
+	private static void buildEntityReplicationSelect(StringBuilder builder, String...names) {
+		for(String name: names) {
+			builder.append(String.format(MAX_ALIAS_NAME, ENTITY_REPLICATION_ALIAS, name));
 		}
 	}
 
