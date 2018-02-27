@@ -388,7 +388,7 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(content, attachmentString);
 		assertTrue(attachmentPart.getContentType(), attachmentPart.getContentType().startsWith("image/jpeg"));
 		assertEquals(attachmentPart.getContentType(), attachmentPart.getHeader("Content-Type")[0]);
-		assertEquals("foo; filename=bar.jpg", attachmentPart.getHeader("Content-Disposition")[0]);
+		assertEquals("foo; filename=\"bar.jpg\"", attachmentPart.getHeader("Content-Disposition")[0]);
 		assertEquals("101", attachmentPart.getHeader("Content-ID")[0]);
 		assertEquals("1000", attachmentPart.getHeader("size")[0]);
 		assertEquals("http://foo.bar.com", attachmentPart.getHeader("url")[0]);
