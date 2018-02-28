@@ -1004,6 +1004,61 @@ public class SQLUtilsTest {
 		assertEquals(0, changes.getToRename().size());
 	}
 	
+	/**
+	 * A LARGETEXT column that does not currently have an index should not have an index added.
+	 */
+	@Test
+	public void testCalculateIndexOptimizationLargeTextWithNoIndex(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setCardinality(100L);
+		info.setColumnName("someBlob");
+		info.setColumnType(ColumnType.LARGETEXT);
+		// column does not have an index
+		info.setHasIndex(false);
+		info.setMaxSize(null);
+		info.setType(MySqlColumnType.MEDIUMTEXT);
+		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		// call under test
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+		assertEquals(0, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	/**
+	 * A LARGETEXT column that has an index should remove the index.
+	 */
+	@Test
+	public void testCalculateIndexOptimizationLargeTextWithIndex(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setCardinality(100L);
+		info.setColumnName("someBlob");
+		info.setColumnType(ColumnType.LARGETEXT);
+		// column has an index
+		info.setHasIndex(true);
+		info.setMaxSize(null);
+		info.setType(MySqlColumnType.MEDIUMTEXT);
+		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		// call under test
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+		assertEquals(0, changes.getToAdd().size());
+		// the blob index should be removed.
+		assertEquals(1, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
 	@Test
 	public void testCalculateIndexChangesUnderMax(){
 		String tableId = "syn123";
