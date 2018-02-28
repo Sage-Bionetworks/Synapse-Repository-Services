@@ -365,7 +365,7 @@ public class SendRawEmailRequestBuilderTest {
 		attachment.setContent_type("image/jpeg");
 		attachment.setContent_id("101");
 		attachment.setDisposition("foo");
-		attachment.setFile_name("bar.jpg");
+		attachment.setFile_name("bar bar.jpg");
 		attachment.setSize("1000");
 		attachment.setUrl("http://foo.bar.com");
 		messageBody.setAttachments(Collections.singletonList(attachment));
@@ -388,7 +388,7 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(content, attachmentString);
 		assertTrue(attachmentPart.getContentType(), attachmentPart.getContentType().startsWith("image/jpeg"));
 		assertEquals(attachmentPart.getContentType(), attachmentPart.getHeader("Content-Type")[0]);
-		assertEquals("foo; filename=\"bar.jpg\"", attachmentPart.getHeader("Content-Disposition")[0]);
+		assertEquals("foo; filename=\"bar bar.jpg\"", attachmentPart.getHeader("Content-Disposition")[0]);
 		assertEquals("101", attachmentPart.getHeader("Content-ID")[0]);
 		assertEquals("1000", attachmentPart.getHeader("size")[0]);
 		assertEquals("http://foo.bar.com", attachmentPart.getHeader("url")[0]);
