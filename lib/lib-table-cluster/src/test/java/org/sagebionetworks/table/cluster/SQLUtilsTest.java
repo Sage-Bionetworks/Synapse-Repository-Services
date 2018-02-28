@@ -1004,19 +1004,23 @@ public class SQLUtilsTest {
 		assertEquals(0, changes.getToRename().size());
 	}
 	
+	/**
+	 * A LARGETEXT column that does not currently have an index should not have an index added.
+	 */
 	@Test
-	public void testCalculateIndexChangesIgnoreBlobs(){
+	public void testCalculateIndexOptimizationLargeTextWithNoIndex(){
 		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setCardinality(100L);
 		info.setColumnName("someBlob");
 		info.setColumnType(ColumnType.LARGETEXT);
+		// column does not have an index
 		info.setHasIndex(false);
-		info.setIndexName("idx_name");
 		info.setMaxSize(null);
 		info.setType(MySqlColumnType.MEDIUMTEXT);
 		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		// call under test
 		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 		assertNotNull(changes);
 		assertNotNull(changes.getToAdd());
@@ -1027,19 +1031,23 @@ public class SQLUtilsTest {
 		assertEquals(0, changes.getToRename().size());
 	}
 	
+	/**
+	 * A LARGETEXT column that has an index should remove the index.
+	 */
 	@Test
-	public void testCalculateIndexChangesRemoveBlobIndex(){
+	public void testCalculateIndexOptimizationLargeTextWithIndex(){
 		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setCardinality(100L);
 		info.setColumnName("someBlob");
 		info.setColumnType(ColumnType.LARGETEXT);
+		// column has an index
 		info.setHasIndex(true);
-		info.setIndexName("idx_name");
 		info.setMaxSize(null);
 		info.setType(MySqlColumnType.MEDIUMTEXT);
 		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		// call under test
 		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 		assertNotNull(changes);
 		assertNotNull(changes.getToAdd());
