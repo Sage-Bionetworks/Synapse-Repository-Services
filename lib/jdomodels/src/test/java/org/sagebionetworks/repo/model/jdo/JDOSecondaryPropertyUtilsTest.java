@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
-import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
@@ -49,43 +47,8 @@ public class JDOSecondaryPropertyUtilsTest {
 		// Each test starts with a new owner
 		owner = new DBONode();
 	}
-	
 
-	
-	@Test
-	public void testCompression() throws IOException{
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations dto = named.getAdditionalAnnotations();
-		dto.addAnnotation("stringOne", "one");
-		dto.addAnnotation("StringTwo", "3");
-		dto.addAnnotation("longOne", new Long(324));
-		dto.addAnnotation("doubleOne", new Double(32.4));
-		dto.addAnnotation("dateOne", new Date(System.currentTimeMillis()));
-		
-		byte[] compressed = JDOSecondaryPropertyUtils.compressAnnotations(named);
-		String xmlString = JDOSecondaryPropertyUtils.toXml(named);
-		System.out.println(xmlString);
-		NamedAnnotations mapClone = JDOSecondaryPropertyUtils.fromXml(xmlString);
-		assertEquals(named, mapClone);
-		assertNotNull(compressed);
-		System.out.println("Size: "+compressed.length);
-		// Now make sure we can read the compressed data
-		NamedAnnotations dtoCopy = JDOSecondaryPropertyUtils.decompressedAnnotations(compressed);
-		assertNotNull(dtoCopy);
-		// The copy should match the original
-		assertEquals(named, dtoCopy);
-	}
-	
 
-	@Test
-	public void testNullBlob() throws Exception{
-		// Create a revision with a null byte array
-		DBORevision rev = new DBORevision();
-		// Check the copy
-		NamedAnnotations dtoCopy = JDOSecondaryPropertyUtils.createFromJDO(rev);
-		assertNotNull(dtoCopy);
-	}
-	
 	@Test
 	public void testBlobCompression() throws IOException{
 		NamedAnnotations named = new NamedAnnotations();
@@ -119,52 +82,6 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertNotNull(second);
 		assertEquals(1, second.size());
 		assertEquals(values[2], new String(second.iterator().next(), "UTF-8"));
-
-	}
-	
-	/**
-	 * Test for adding all values to strings.
-	 */
-	@Test
-	public void testAddAllToString(){
-		Annotations annos = new Annotations();
-		annos.addAnnotation("one", "a");
-		annos.addAnnotation("one", "b");
-		long now = System.currentTimeMillis();
-		annos.addAnnotation("date", new Date(now));
-		annos.addAnnotation("double", new Double(123.5));
-		annos.addAnnotation("long", new Long(999));
-		// These conflict with the string
-		annos.addAnnotation("one", new Long(45));
-		// add some nulls
-		annos.getLongAnnotations().put("nullLong", null);
-		annos.getLongAnnotations().put("emptyLong", new ArrayList<Long>());
-		List<Long> list = new ArrayList<Long>();
-		list.add(null);
-		annos.getLongAnnotations().put("nullValue", list);
-		// Add them all to strings
-		JDOSecondaryPropertyUtils.addAllToStrings(annos);
-		List<String> values = annos.getStringAnnotations().get("one");
-		assertEquals(3, values.size());
-		assertEquals("a", values.get(0));
-		assertEquals("b", values.get(1));
-		assertEquals("45", values.get(2));
-		// Date
-		values = annos.getStringAnnotations().get("date");
-		assertEquals(1, values.size());
-		assertEquals(Long.toString(now), values.get(0));
-		// Double
-		values = annos.getStringAnnotations().get("double");
-		assertEquals(1, values.size());
-		assertEquals(Double.toString(123.5), values.get(0));
-		// Long
-		values = annos.getStringAnnotations().get("long");
-		assertEquals(1, values.size());
-		assertEquals(Long.toString(999), values.get(0));
-		// the values should still be in their original location as well
-		List<Long> longValues = annos.getLongAnnotations().get("long");
-		assertEquals(1, longValues.size());
-		assertEquals(new Long(999), longValues.get(0));
 
 	}
 
@@ -218,93 +135,8 @@ public class JDOSecondaryPropertyUtilsTest {
 		}
 		
 	}
-	
-	@Test
-	public void testPrepareAnnotationsForDBReplacement(){
-		NamedAnnotations namedAnnos = new NamedAnnotations();
-		namedAnnos.getPrimaryAnnotations().addAnnotation("string", "a");
-		namedAnnos.getPrimaryAnnotations().addAnnotation("string", "b");
-		namedAnnos.getPrimaryAnnotations().addAnnotation("long", new Long(123));
-		namedAnnos.getPrimaryAnnotations().addAnnotation("long", new Long(456));
-		namedAnnos.getAdditionalAnnotations().addAnnotation("addString", "c");
-		Annotations forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(namedAnnos, "9810");
-		assertNotNull(forDb);
-		assertEquals("9810", forDb.getId());
-		// the primary and secondary should be merged
-		List<String> strings = forDb.getStringAnnotations().get("string");
-		assertEquals(2, strings.size());
-		assertEquals("a", strings.get(0));
-		assertEquals("b", strings.get(1));
-		// Did additional property get merged?
-		strings = forDb.getStringAnnotations().get("addString");
-		assertEquals(1, strings.size());
-		assertEquals("c", strings.get(0));
-		// Are all longs put in the string.
-		strings = forDb.getStringAnnotations().get("long");
-		assertEquals(2, strings.size());
-		assertEquals("123", strings.get(0));
-		assertEquals("456", strings.get(1));
 
-	}
-	
-	@Test
-	public void testBuildDistinctMap(){
-		// The input list
-		Map<String, List<Long>> start = new HashMap<String, List<Long>>();
-		start.put("nullList", null);
-		start.put("emptyList", new LinkedList<Long>());
-		List<Long> list = new LinkedList<Long>();
-		list.add(1l);
-		start.put("single", list);
-		list = new LinkedList<Long>();
-		list.add(1l);
-		list.add(2l);
-		start.put("multiple", list);
-		list = new LinkedList<Long>();
-		list.add(333l);
-		list.add(333l);
-		start.put("duplicates", list);
-		
-		// This is the expected results
-		Map<String, List<Long>> expected = new HashMap<String, List<Long>>();
-		list = new LinkedList<Long>();
-		list.add(1l);
-		expected.put("single", list);
-		list = new LinkedList<Long>();
-		list.add(1l);
-		list.add(2l);
-		expected.put("multiple", list);
-		list = new LinkedList<Long>();
-		list.add(333l);
-		expected.put("duplicates", list);
-		
-		Map<String, List<Long>> distinct = JDOSecondaryPropertyUtils.buildDistinctMap(start);
-		assertEquals(expected, distinct);
-	}
-	
-	@Test
-	public void testBuildDistinctAnnotations(){
-		// Add a duplicate of each type
-		Annotations start = new Annotations();
-		start.addAnnotation("string", "one");
-		start.addAnnotation("string", "one");
-		start.addAnnotation("date", new Date(1l));
-		start.addAnnotation("date", new Date(1l));
-		start.addAnnotation("long", 123l);
-		start.addAnnotation("long", 123l);
-		start.addAnnotation("double", 123.0);
-		start.addAnnotation("double", 123.0);
-		
-		Annotations expected = new Annotations();
-		expected.addAnnotation("string", "one");
-		expected.addAnnotation("date", new Date(1l));
-		expected.addAnnotation("long", 123l);
-		expected.addAnnotation("double", 123.0);
-		
-		Annotations distinct = JDOSecondaryPropertyUtils.buildDistinctAnnotations(start);
-		assertEquals(expected, distinct);
-	}
-	
+
 	@Test
 	public void testCompressNullReference() throws IOException {
 		assertNull(JDOSecondaryPropertyUtils.compressReference(null));
@@ -325,15 +157,7 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertNotNull(compressed);
 		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(compressed));
 	}
-	
-	@Test
-	public void testCompressEmptyReferences() throws IOException {
-		Map<String, Set<Reference>> map = new HashMap<String, Set<Reference>>();
-		assertEquals(JDOSecondaryPropertyUtils.toXml(map), "<map/>");
-		byte[] compressed = JDOSecondaryPropertyUtils.compressReferences(map);
-		assertNotNull(compressed);
-	}
-	
+
 	@Test
 	public void testCompressNullReferences() throws IOException {
 		assertNull(JDOSecondaryPropertyUtils.compressReferences(null));
@@ -431,15 +255,14 @@ public class JDOSecondaryPropertyUtilsTest {
 		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
 		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
 		annos.getAdditionalAnnotations().addAnnotation("aDate", new Date(444L));
-		//  add a primary annotation
+		//  add a primary annotation, this should not be a part of the final result (PLFM-4601)
 		annos.getPrimaryAnnotations().addAnnotation("aPrimary", "primaryValue");
 		
 		List<AnnotationDTO> expected = Lists.newArrayList(
 				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
 				new AnnotationDTO(entityId, "aLong", AnnotationType.LONG, "123"),
 				new AnnotationDTO(entityId, "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new AnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444"),
-				new AnnotationDTO(entityId, "aPrimary", AnnotationType.STRING, "primar")
+				new AnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444")
 		);
 		
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
@@ -501,10 +324,10 @@ public class JDOSecondaryPropertyUtilsTest {
 		annos.getPrimaryAnnotations().addAnnotation(key, "valueTwo");
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
-		// only the primary annotation should remain.
+		// primary annotation should not be included in conversion (PLFM-4601) so the additional annotation is the expected value
 		assertEquals(1, results.size());
 		AnnotationDTO dto = results.get(0);
-		assertEquals("valueTwo", dto.getValue());
+		assertEquals("valueOne", dto.getValue());
 	}
 	
 	/**
