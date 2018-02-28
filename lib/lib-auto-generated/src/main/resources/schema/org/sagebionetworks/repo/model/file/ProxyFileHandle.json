@@ -1,5 +1,5 @@
 {
-	"description": "",
+	"description": "Reference to a file that accessible via a proxy server.  Each ProxyFileHandle must reference a ProxyStorageLocationSettings that defines how the files are accessed.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.ExternalFileHandleInterface"
