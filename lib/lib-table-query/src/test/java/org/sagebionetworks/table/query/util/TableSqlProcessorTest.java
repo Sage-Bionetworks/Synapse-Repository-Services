@@ -172,6 +172,16 @@ public class TableSqlProcessorTest {
 		assertEquals(expected, results);
 	}
 	
+	@Test
+	public void testGetSortingInfoPLFM_4459() throws ParseException{
+		SortItem foo = new SortItem();
+		foo.setColumn("foo");
+		foo.setDirection(SortDirection.ASC);
+		List<SortItem> expected = Arrays.asList(foo);
+		List<SortItem> results = TableSqlProcessor.getSortingInfo("select * from " + tableId + " order by foo");
+		assertEquals(expected, results);
+	}
+	
 	/////////////////////////////////
 	// generateSqlWithFacets() tests
 	/////////////////////////////////
