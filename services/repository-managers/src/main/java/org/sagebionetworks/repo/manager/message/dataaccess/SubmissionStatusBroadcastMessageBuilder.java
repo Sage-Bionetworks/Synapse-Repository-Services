@@ -23,13 +23,15 @@ public class SubmissionStatusBroadcastMessageBuilder implements BroadcastMessage
 
 	public static final String GREETING = "Hello %1$s,\n\n";
 	public static final String APPROVED_TITLE = "Synapse Notification: Your request had been approved";
-	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request."
-			+ " Please visit the resource of interest %1$s to complete any [additional requirements](https://www.synapse.org/#!AccessRequirements:ID=%2$s&TYPE=%3$s).\n\n";
+	
+	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request. There may be additional requirements to complete before you may access this resource; "
+			+ "[please view and complete any additional requirements](https://www.synapse.org/#!AccessRequirements:ID=%2$s&TYPE=%3$s).\n\n" 
+			+  "If all requirements have been completed, you may access the resource of interest \n %1$s.\n\n";
 
 	public static final String REJECTED_TITLE = "Synapse Notification: Action needed to complete your request";
 	public static final String REJECTED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:\n"
 			+ ">%1$s\n"
-			+ " Please visit the resource of interest %2$s to complete any [additional requirements](https://www.synapse.org/#!AccessRequirements:ID=%3$s&TYPE=%4$s).\n\n";
+			+ "[Please view and complete all requirements](https://www.synapse.org/#!AccessRequirements:ID=%3$s&TYPE=%4$s) to access the resource of interest \n%2$s \n\n";
 	public static final String ENTITY_PAGE_LINK = "https://www.synapse.org/#!Synapse:%1$s";
 	public static final String TEAM_PAGE_LINK = "https://www.synapse.org/#!Team:%1$s";
 
