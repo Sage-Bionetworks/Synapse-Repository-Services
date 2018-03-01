@@ -19,6 +19,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+
+import org.sagebionetworks.repo.manager.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -141,7 +144,8 @@ public class EntityManagerImplAutowireTest {
 		String sourceId = entityManager.createEntity(userInfo, source, null);
 		toDelete.add(sourceId);
 		// add a restriction to the project
-		arToDelete = accessRequirementManager.createLockAccessRequirement(userInfo, sourceId);
+		AccessRequirement ar = AccessRequirementManagerImpl.newLockAccessRequirement(adminUserInfo, sourceId, "jiraKey");
+		arToDelete = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		Folder child = new Folder();
 		child.setName("child");
 		child.setParentId(sourceId);
