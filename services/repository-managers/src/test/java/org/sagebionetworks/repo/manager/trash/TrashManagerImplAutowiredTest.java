@@ -179,7 +179,8 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeChildId = nodeChild.getId();
 
 		// add an access requirement to the parent
-		accessRequirementToDelete = accessRequirementManager.createLockAccessRequirement(testUserInfo, nodeParentId);
+		ar = AccessRequirementManagerImpl.newLockAccessRequirement(testAdminUserInfo, nodeParentId, "jiraKey");
+		accessRequirementToDelete = accessRequirementManager.createAccessRequirement(testAdminUserInfo, ar);
 		
 		// delete and try to restore to some other (unrestricted) parent
 		trashManager.moveToTrash(testUserInfo, nodeChildId);
