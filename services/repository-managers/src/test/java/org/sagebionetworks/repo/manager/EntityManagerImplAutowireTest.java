@@ -144,7 +144,7 @@ public class EntityManagerImplAutowireTest {
 		String sourceId = entityManager.createEntity(userInfo, source, null);
 		toDelete.add(sourceId);
 		// add a restriction to the project
-		ar = AccessRequirementManagerImpl.newLockAccessRequirement(adminUserInfo, sourceId, "jiraKey");
+		AccessRequirement ar = AccessRequirementManagerImpl.newLockAccessRequirement(adminUserInfo, sourceId, "jiraKey");
 		arToDelete = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		Folder child = new Folder();
 		child.setName("child");
