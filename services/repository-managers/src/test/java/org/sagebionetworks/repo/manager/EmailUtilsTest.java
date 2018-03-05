@@ -44,6 +44,27 @@ public class EmailUtilsTest {
 	}
 	
 	@Test
+	public void testReadMailTemplateWithNullFieldReplacement() {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#displayName#", "Foo Bar");
+		fieldValues.put("#domain#", "Synapse");
+		fieldValues.put("#username#", null);
+		String actual = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
+		String expected = "Hello Foo Bar,\r\n" + 
+				"\r\n" + 
+				"Welcome to Synapse!\r\n" + 
+				"\r\n" + 
+				"Here are the details of your account:\r\n" + 
+				"User Name: \r\n" + 
+				"Full Name: Foo Bar\r\n" + 
+				"\r\n" + 
+				"If you did not mean to create this account, please contact us at synapseInfo@synapse.org.\r\n" + 
+				"\r\n" + 
+				"Synapse Administrator\r\n";
+		assertEquals(expected, actual);
+	}
+	
+	@Test
 	public void testGetDisplayName() {
 		UserProfile up = new UserProfile();
 		up.setUserName("jh");
