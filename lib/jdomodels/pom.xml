@@ -61,6 +61,11 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>database-semaphore</artifactId>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-core</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>javax.transaction</groupId>

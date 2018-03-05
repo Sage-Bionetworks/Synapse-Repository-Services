@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.aspectj.weaver.AjAttribute.EffectiveSignatureAttribute;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
@@ -233,9 +235,10 @@ public class ColumnModelUtlisTest {
 	}
 
 	@Test
-	public void testEnumMaxCountDocumentation() {
+	public void testEnumMaxCountDocumentation() throws IOException {
+		String schema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(new ColumnModel());
 		// make sure the documentation is in agreement with the stack configuration
-		Matcher m = Pattern.compile("maximum number of entries for an enum is (\\d+)\"").matcher(ColumnModel.EFFECTIVE_SCHEMA);
+		Matcher m = Pattern.compile("maximum number of entries for an enum is (\\d+)\"").matcher(schema);
 		assertTrue(m.find());
 		assertEquals("" + StackConfiguration.singleton().getTableMaxEnumValues(), m.group(1));
 	}

@@ -17,9 +17,4 @@ public class JSONEntityUtilTest {
 		assertTrue(JSONEntityUtil.isJSONEntity(ExampleContainer.class));
 		assertFalse(JSONEntityUtil.isJSONEntity(Object.class));
 	}
-
-	@Test
-	public void testGetSchema(){
-		assertEquals(FileEntity.EFFECTIVE_SCHEMA, JSONEntityUtil.getJSONSchema(FileEntity.class));
-	}
 }

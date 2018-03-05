@@ -51,7 +51,6 @@ public class NodeTranslationUtils {
 
 	static {
 		ignoredFields = new HashSet<String>();
-		ignoredFields.add(JSONEntity.EFFECTIVE_SCHEMA);
 		ignoredFields.add(ObjectSchema.EXTRA_FIELDS);
 	}
 

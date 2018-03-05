@@ -26,17 +26,4 @@ public class JSONEntityUtil {
 		return false;
 	}
 
-	/**
-	 * Get the schema for a JSONEntity class.
-	 * @param clazz
-	 * @return
-	 */
-	public static String getJSONSchema(Class<? extends JSONEntity> clazz){
-		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
-		try {
-			return (String) clazz.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		} catch (Exception e) {
-			throw new RuntimeException("The JSONEtntiyClass did not have a static field: "+JSONEntity.EFFECTIVE_SCHEMA);
-		} 
-	}
 }

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
@@ -31,11 +33,12 @@ import com.sun.javadoc.Type;
 public class SchemaUtilsTest {
 
 	@Test
-	public void testGetEffectiveSchema(){
+	public void testGetEffectiveSchema() throws IOException{
 		// One case where it should exist
 		WikiPage wp = new WikiPage();
 		String schema = SchemaUtils.getEffectiveSchema(WikiPage.class.getName());
-		assertEquals(wp.getJSONSchema(), schema);
+		String expectedSchema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(new WikiPage());
+		assertEquals(expectedSchema, schema);
 		// Another where it should not
 		schema = SchemaUtils.getEffectiveSchema("not.a.real.Object");
 		assertNull(schema);

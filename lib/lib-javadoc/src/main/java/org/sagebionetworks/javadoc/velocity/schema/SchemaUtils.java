@@ -13,6 +13,7 @@ import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.server.ServerSideOnlyFactory;
 
 import com.sun.javadoc.ClassDoc;
@@ -194,8 +195,7 @@ public class SchemaUtils {
 		Class<JSONEntity> clazz;
 		try {
 			clazz = (Class<JSONEntity>) Class.forName(name);
-			Field f = clazz.getField("EFFECTIVE_SCHEMA");
-			String json = (String)f.get(null);
+			String json = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz.newInstance());
 			if(json == null) return null;
 			if(!json.startsWith("{")) return null;
 			return json;

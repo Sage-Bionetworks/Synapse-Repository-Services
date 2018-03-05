@@ -21,8 +21,6 @@ public class GenericList<T extends JSONEntity> implements JSONEntity {
 
 	private static final String CONCRETE_TYPE = "concreteType";
 
-	public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.model.GenericList\",\"title\":\"GenericList\",\"description\":\"A list of objects.\",\"name\":\"GenericList\",\"properties\":{\"list\":{\"items\":{\"type\":\"string\"},\"type\":\"array\",\"description\":\"The list\"}}}";
-
 	private List<T> list;
 
 	private Class<? extends T> clazz;
@@ -103,11 +101,6 @@ public class GenericList<T extends JSONEntity> implements JSONEntity {
 			}
 		}
 		return adapter;
-	}
-
-	@Override
-	public String getJSONSchema() {
-		return EFFECTIVE_SCHEMA;
 	}
 
 	@Override
