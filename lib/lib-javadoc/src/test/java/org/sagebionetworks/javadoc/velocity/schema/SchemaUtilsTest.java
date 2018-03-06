@@ -16,6 +16,7 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
+import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -35,13 +36,19 @@ public class SchemaUtilsTest {
 	@Test
 	public void testGetEffectiveSchema() throws IOException{
 		// One case where it should exist
-		WikiPage wp = new WikiPage();
 		String schema = SchemaUtils.getEffectiveSchema(WikiPage.class.getName());
-		String expectedSchema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(new WikiPage());
+		String expectedSchema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(WikiPage.class);
 		assertEquals(expectedSchema, schema);
 		// Another where it should not
 		schema = SchemaUtils.getEffectiveSchema("not.a.real.Object");
 		assertNull(schema);
+	}
+	
+	@Test
+	public void testGetEffectiveSchemaHasEffectiveSchema() throws IOException{
+		String schema = SchemaUtils.getEffectiveSchema(GenericList.class.getName());
+		String expectedSchema = new GenericList().getEffectiveSchema();
+		assertEquals(expectedSchema, schema);
 	}
 	
 	@Test

@@ -40,7 +40,7 @@ public class SchemaCache {
 		ObjectSchema schema = cache.get(clazz);
 		if(schema == null){
 			try {
-				String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz.newInstance());
+				String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz);
 				if(jsonString == null) throw new IllegalArgumentException("The JSON Schema cannot be null for entity.getJSONSchema()");
 				schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 			} catch (Exception e) {

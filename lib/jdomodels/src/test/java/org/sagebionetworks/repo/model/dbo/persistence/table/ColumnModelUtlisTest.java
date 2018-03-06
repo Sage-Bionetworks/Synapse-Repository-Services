@@ -236,7 +236,7 @@ public class ColumnModelUtlisTest {
 
 	@Test
 	public void testEnumMaxCountDocumentation() throws IOException {
-		String schema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(new ColumnModel());
+		String schema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(ColumnModel.class);
 		// make sure the documentation is in agreement with the stack configuration
 		Matcher m = Pattern.compile("maximum number of entries for an enum is (\\d+)\"").matcher(schema);
 		assertTrue(m.find());

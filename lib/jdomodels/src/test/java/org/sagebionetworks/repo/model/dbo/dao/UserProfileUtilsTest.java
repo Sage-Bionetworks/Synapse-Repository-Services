@@ -102,7 +102,7 @@ public class UserProfileUtilsTest {
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		
 		// Replace the blob with the older serialization method
-		String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(new UserProfile());
+		String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(UserProfile.class);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		dbo.setProperties(mapDtoFieldsToAnnotations(dto, schema));
 		
@@ -121,7 +121,7 @@ public class UserProfileUtilsTest {
 		dto.setRStudioUrl("http://rstudio.com");
 		dto.setEtag("0");
 
-		String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(new UserProfile());
+		String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(UserProfile.class);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		byte[] na = mapDtoFieldsToAnnotations(dto, schema);
 		
