@@ -1,18 +1,22 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.aspectj.weaver.AjAttribute.EffectiveSignatureAttribute;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
@@ -22,7 +26,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import com.google.common.collect.Lists;
 
