@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -136,8 +137,11 @@ public class NodeTranslationUtils {
 				nodeField.setAccessible(true);
 				Object value;
 				try {
-					value = field.get(base);
-					nodeField.set(node, value);
+					// only set non-static fields
+					if((field.getModifiers() & Modifier.STATIC) == 0) {
+						value = field.get(base);
+						nodeField.set(node, value);
+					}
 				} catch (IllegalAccessException e) {
 					// This should never occur
 					log.log(Level.WARNING, e.getMessage(), e);
@@ -429,9 +433,12 @@ public class NodeTranslationUtils {
 				nodeField.setAccessible(true);
 				Object value;
 				try {
-					value = nodeField.get(node);
-					if (value != null) {
-						field.set(base, value);
+					// only set non-static fields
+					if((field.getModifiers() & Modifier.STATIC)==0) {
+						value = nodeField.get(node);
+						if (value != null) {
+							field.set(base, value);
+						}
 					}
 				} catch (IllegalAccessException e) {
 					// This should never occur

@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
@@ -22,8 +21,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.sample.Example;
-import org.sagebionetworks.sample.ExampleContainer;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -39,8 +36,9 @@ import com.amazonaws.util.StringInputStream;
 
 
 public class JSONEntityHttpMessageConverterTest {
+
 	
-	ExampleContainer container;
+	Project project;
 	
 	HttpOutputMessage mockOutMessage;
 	HttpInputMessage mockInMessage;
@@ -49,23 +47,9 @@ public class JSONEntityHttpMessageConverterTest {
 
 	
 	@Before
-	public void before() throws IOException{
-		// This is the entity to write
-		container = new ExampleContainer();
-		container.setExampleList(new ArrayList<Example>());
-		container.setExampleSet(new HashSet<Example>());
-		
-		for(int i=0; i<5; i++){
-			Example example = new Example();
-			example.setName("name:"+i);
-			example.setQuantifier("quntifier:"+i);
-			example.setType("type:"+i);
-			if(i %2 == 0){
-				container.getExampleList().add(example);
-			}else{
-				container.getExampleSet().add(example);
-			}
-		}
+	public void before() throws IOException{	
+		project = new Project();
+		project.setName("foo-bar");
 		
 		// Create the mocks
 		outStream = new ByteArrayOutputStream();
@@ -83,15 +67,15 @@ public class JSONEntityHttpMessageConverterTest {
 	@Test
 	public void testCanRead(){
 		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
-		assertTrue(converter.canRead(ExampleContainer.class, MediaType.APPLICATION_JSON));
+		assertTrue(converter.canRead(Project.class, MediaType.APPLICATION_JSON));
 		assertFalse(converter.canRead(Object.class, MediaType.APPLICATION_JSON));
-		assertTrue(converter.canRead(ExampleContainer.class, new MediaType("application","json", Charset.forName("ISO-8859-1"))));
+		assertTrue(converter.canRead(Project.class, new MediaType("application","json", Charset.forName("ISO-8859-1"))));
 	}
 	
 	@Test
 	public void testCanWrite(){
 		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
-		assertTrue(converter.canWrite(ExampleContainer.class, MediaType.APPLICATION_JSON));
+		assertTrue(converter.canWrite(Project.class, MediaType.APPLICATION_JSON));
 		assertFalse(converter.canWrite(Object.class, MediaType.APPLICATION_JSON));
 	}
 	
@@ -99,26 +83,26 @@ public class JSONEntityHttpMessageConverterTest {
 	public void testRoundTrip() throws HttpMessageNotWritableException, IOException{
 		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		// Write it out.
-		converter.write(container, MediaType.APPLICATION_JSON, mockOutMessage);
+		converter.write(project, MediaType.APPLICATION_JSON, mockOutMessage);
 		
 		ByteArrayInputStream in  = new ByteArrayInputStream(outStream.toByteArray());
 		Mockito.when(mockInMessage.getBody()).thenReturn(in);
 		// Make sure we can read it back
-		JSONEntity results = converter.read(ExampleContainer.class, mockInMessage);
-		assertEquals(container, results);
+		JSONEntity results = converter.read(Project.class, mockInMessage);
+		assertEquals(project, results);
 	}
 	
 	@Test
 	public void testRoundTripWithPlainTextMediaType() throws HttpMessageNotWritableException, IOException{
 		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		// Write it out.
-		converter.write(container, MediaType.TEXT_PLAIN, mockOutMessage);
+		converter.write(project, MediaType.TEXT_PLAIN, mockOutMessage);
 		
 		ByteArrayInputStream in  = new ByteArrayInputStream(outStream.toByteArray());
 		Mockito.when(mockInMessage.getBody()).thenReturn(in);
 		// Make sure we can read it back
-		JSONEntity results = converter.read(ExampleContainer.class, mockInMessage);
-		assertEquals(container, results);
+		JSONEntity results = converter.read(Project.class, mockInMessage);
+		assertEquals(project, results);
 	}
 	
 	@Test
