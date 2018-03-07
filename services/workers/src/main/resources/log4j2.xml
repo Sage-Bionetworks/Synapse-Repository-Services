@@ -19,6 +19,17 @@
 				<SizeBasedTriggeringPolicy size="250 MB" />
 			</Policies>
 		</RollingFile>
+		<RollingFile name="traceProfiling"
+					 fileName="${org.sagebionetworks.local.logging.dir}/worker-trace-profile.log"
+					 filePattern="${org.sagebionetworks.local.logging.dir}/worker-trace-profile.%d{yyyy-MM-dd-hh-mm}.log.gz">
+			<PatternLayout>
+				<pattern>%d{ISO8601}{GMT+0} %X{sessionId} %-5p [%15.15t] [%c] - %m%n</pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" />
+				<SizeBasedTriggeringPolicy size="250 MB" />
+			</Policies>
+		</RollingFile>
 	</appenders>
 	<loggers>
 		<logger name="org.sagebionetworks" level="info" additivity="true">
@@ -27,5 +38,9 @@
 		<root level="error">
 			<appender-ref ref="Console" />
 		</root>
+		<logger name="org.sagebionetworks.profiler.LoggingProfiler"
+				level="debug" additivity="false">
+			<appender-ref ref="traceProfiling" />
+		</logger>
 	</loggers>
 </configuration>

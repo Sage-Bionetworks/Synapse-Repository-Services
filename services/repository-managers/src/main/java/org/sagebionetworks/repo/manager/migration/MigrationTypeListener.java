@@ -21,13 +21,5 @@ public interface MigrationTypeListener {
 	 * @param delta
 	 */
 	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(MigrationType type, List<D> delta);
-	
-	/**
-	 * Will be called when a batch of database objects are being deleted during migration.
-	 * 
-	 * This method will be called BEFORE the passed list of ID are deleted from the database.
-	 * 
-	 * @param idsToDelete
-	 */
-	public void beforeDeleteBatch(MigrationType type, List<Long> idsToDelete);
+
 }

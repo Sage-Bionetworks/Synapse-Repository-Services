@@ -359,9 +359,9 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public PaginatedTeamIds listIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending) {
+	public PaginatedTeamIds listIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sort, Boolean ascending) {
 		NextPageToken token = new NextPageToken(nextPageToken);
-		List<String> teamIds = teamDAO.getIdsForMember(teamMemberId, token.getLimitForQuery(), token.getOffset(), sortBy, ascending);
+		List<String> teamIds = teamDAO.getIdsForMember(teamMemberId, token.getLimitForQuery(), token.getOffset(), sort, ascending);
 		PaginatedTeamIds result = new PaginatedTeamIds();
 		result.setTeamIds(teamIds);
 		result.setNextPageToken(token.getNextPageTokenForCurrentResults(teamIds));
@@ -683,6 +683,10 @@ public class TeamManagerImpl implements TeamManager {
 			try {
 				get(team.getId());
 			} catch(NotFoundException e) {
+				long teamIdLong = Long.parseLong(team.getId());
+				if(!AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(teamIdLong)) {
+					throw new IllegalArgumentException("Not a bootstrap principal: "+teamIdLong);
+				}
 				Team newTeam = new Team();
 				newTeam.setId(team.getId());
 				newTeam.setName(team.getName());

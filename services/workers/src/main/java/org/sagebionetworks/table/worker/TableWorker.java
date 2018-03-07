@@ -84,6 +84,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			}
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
+				tableEntityManager.deleteTableIfDoesNotExist(tableId);
 				indexManager.deleteTableIndex(tableId);
 				return;
 			} else {
@@ -220,10 +221,6 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// Create or update the table with this schema.
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
 				"Creating table ", 0L, 100L);
-		
-		// List all of the changes
-		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
-				"Getting current table row versions ", 0L, 100L);
 
 		// List all change sets applied to this table.
 		List<TableRowChange> changes = tableEntityManager.listRowSetsKeysForTable(tableId);

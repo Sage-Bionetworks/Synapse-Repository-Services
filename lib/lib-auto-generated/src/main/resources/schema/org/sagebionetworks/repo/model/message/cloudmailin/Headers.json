@@ -1,0 +1,21 @@
+{
+  "title": "Headers",
+  "description": "The headers from the email message.",
+  "properties": {
+    "To": {
+      "type": "string"
+    },
+    "Cc": {
+      "type": "string"
+    },
+    "Bcc": {
+      "type": "string"
+    },
+    "Subject": {
+      "type": "string"
+    },
+    "From": {
+      "type": "string"
+    }
+  }
+}

@@ -14,7 +14,7 @@ public interface SearchDomainSetup {
 	 * 
 	 * @return true when post initialization is done
 	 */
-	public boolean postInitialize() throws Exception;
+	public boolean postInitialize();
 
 	/**
 	 * The name of of the search domain.
@@ -34,28 +34,11 @@ public interface SearchDomainSetup {
 	 * @return
 	 */
 	List<IndexFieldStatus> getIndexFieldStatus();
-	
+
 	/**
-	 * The JSON of the current access policy.
+	 * Get the CloudSearch domain endpoint for search service.
 	 * @return
 	 */
-	 AccessPoliciesStatus getAccessPoliciesStatus();
-	 
-	 /**
-	  * Get the search endpoint.
-	  * @return
-	  */
-	 public String getSearchEndpoint();
-	 
-	 /**
-	  * Get the document endpoint.
-	  * @return
-	  */
-	 public String getDocumentEndpoint();
+	public String getDomainSearchEndpoint();
 
-	 /**
-	  * Is Search enabled?
-	  * @return
-	  */
-	boolean isSearchEnabled();
 }

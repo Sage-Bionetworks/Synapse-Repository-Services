@@ -8,7 +8,7 @@
 		},
 		"etag": {
 			"type": "string",
-			"description": "FileHandles are immutable from the perspective of the API.  The only field that can be change is the preivewId.  When a new previewId is set, the etag will change."
+			"description": "FileHandles are immutable from the perspective of the API.  The only field that can be change is the previewId.  When a new previewId is set, the etag will change."
 		},
 		"createdBy": {
 			"description": "The ID Of the user that created this file.",

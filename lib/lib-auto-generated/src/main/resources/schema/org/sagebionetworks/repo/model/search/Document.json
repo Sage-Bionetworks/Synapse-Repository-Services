@@ -10,11 +10,11 @@
             "enum": [
                 {
                     "name": "add",
-                    "description": "TODO: Auto-generated description"
+                    "description": "Add a new searchable document to CloudSearch"
                 },
                 {
                     "name": "delete",
-                    "description": "TODO: Auto-generated description"
+                    "description": "Delete the document from CloudSearch"
                 }
             ]
         },
@@ -22,17 +22,6 @@
             "type": "string",
             "required": true,
             "description": "The id of the search document.  Currently we are using the Synapse entity id for this."
-        },
-        "version": {
-            "type": "integer",
-            "required": true,
-            "description": "The zero-based version number of the search document.  Currently we are using the Synapse entity etag for this."
-        },
-        "lang": {
-            "type": "string",
-            "required": false,
-            "description": "The language of the free text search found in the document.",
-            "default": "en"
         },
         "fields": {
             "type": "object",

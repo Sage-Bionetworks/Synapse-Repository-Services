@@ -11,7 +11,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
-import com.amazonaws.services.cloudsearchv2.model.AccessPoliciesStatus;
 import com.amazonaws.services.cloudsearchv2.model.CreateDomainRequest;
 import com.amazonaws.services.cloudsearchv2.model.DefineIndexFieldRequest;
 import com.amazonaws.services.cloudsearchv2.model.DeleteIndexFieldRequest;
@@ -19,22 +18,14 @@ import com.amazonaws.services.cloudsearchv2.model.DescribeDomainsRequest;
 import com.amazonaws.services.cloudsearchv2.model.DescribeDomainsResult;
 import com.amazonaws.services.cloudsearchv2.model.DescribeIndexFieldsRequest;
 import com.amazonaws.services.cloudsearchv2.model.DescribeIndexFieldsResult;
-import com.amazonaws.services.cloudsearchv2.model.DescribeServiceAccessPoliciesRequest;
-import com.amazonaws.services.cloudsearchv2.model.DescribeServiceAccessPoliciesResult;
 import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
 import com.amazonaws.services.cloudsearchv2.model.IndexDocumentsRequest;
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
 import com.amazonaws.services.cloudsearchv2.model.IndexFieldStatus;
-import com.amazonaws.services.cloudsearchv2.model.UpdateServiceAccessPoliciesRequest;
 
 public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
-
-	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":\"%1$s\"}}}]}";
-
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
 	private static final String CLOUD_SEARCH_API_VERSION = "2013-01-01";
-	private static final String SEARCH_ENDPOINT_TEMPALTE = "http://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/search";
-	private static final String DOCUMENT_ENDPOINT_TEMPALTE = "httpS://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/documents/batch";
 
 	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.singleton().getStack(),	StackConfiguration.getStackInstance());
 
@@ -42,40 +33,17 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
-	
-	boolean isSearchEnabled;
-	
-	@Override
-	public boolean isSearchEnabled() {
-		return isSearchEnabled;
-	}
 
-	/**
-	 * Injected via Spring
-	 * @param isSearchEnabled
-	 */
-	public void setSearchEnabled(boolean isSearchEnabled) {
-		this.isSearchEnabled = isSearchEnabled;
-	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		if(!isSearchEnabled()){
-			log.info("Search is disabled");
-			return;
-		}
 		// Do we have a search index?
 		String domainName = getSearchDomainName();
 		log.info("Search domain name: " + domainName);
 	}
 
 	@Override
-	public boolean postInitialize() throws Exception {
-		if (!isSearchEnabled()) {
-			log.info("Search is disabled");
-			return true;
-		}
-
+	public boolean postInitialize(){
 		String domainName = getSearchDomainName();
 		if (domainIsProcessing(domainName)) {
 			return false;
@@ -83,8 +51,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 		// Create the domain it it does not already exist.
 		createDomainIfNeeded(domainName);
-		// Set the policy.
-		setPolicyIfNeeded(domainName);
+
 		// Define the schema
 		defineAndValidateSchema(domainName);
 
@@ -102,35 +69,12 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	}
 
 	/**
-	 * @param domainName
-	 */
-	public void setPolicyIfNeeded(String domainName) {
-		DescribeServiceAccessPoliciesResult dsapr = awsSearchClient
-				.describeServiceAccessPolicies(new DescribeServiceAccessPoliciesRequest()
-						.withDomainName(domainName));
-		// Set the policy.
-		// Until we figure out a better plan, we are opening this up to 0.0.0.0
-		String policyJson = String.format(POLICY_TEMPLATE,"0.0.0.0/0");
-		log.debug("Expected Policy: " + policyJson);
-		String actualPolicyJson = dsapr.getAccessPolicies().getOptions();
-		log.info("Actual Policy: " + actualPolicyJson);
-		if (!policyJson.equals(actualPolicyJson)) {
-			log.info("Updateing the Search Access policy as it does not match the expected policy");
-			// Add the policy.
-			awsSearchClient.updateServiceAccessPolicies(new UpdateServiceAccessPoliciesRequest().withDomainName(domainName).withAccessPolicies(policyJson));
-		} else {
-			log.info("Search Access policy is already set.");
-		}
-	}
-
-	/**
 	 * If the passed domain name does not exist, it will be created.
 	 * 
 	 * @param domainName
 	 * @throws InterruptedException
 	 */
-	public void createDomainIfNeeded(String domainName)
-			throws InterruptedException {
+	public void createDomainIfNeeded(String domainName) {
 		DescribeDomainsResult result = awsSearchClient
 				.describeDomains(new DescribeDomainsRequest()
 						.withDomainNames(domainName));
@@ -231,13 +175,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 		return difr.getIndexFields();
 	}
 
-	public AccessPoliciesStatus getAccessPoliciesStatus() {
-		DescribeServiceAccessPoliciesResult dsapr = awsSearchClient
-				.describeServiceAccessPolicies(new DescribeServiceAccessPoliciesRequest()
-						.withDomainName(getSearchDomainName()));
-		return dsapr.getAccessPolicies();
-	}
-
 	/**
 	 * Wait for a domain
 	 * 
@@ -281,6 +218,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			log.warn("Search domain: " + domainName + " has been deleted!");
 			return false;
 		}
+
 		log.debug("Domain still processing:" + status.isProcessing());
 		return status.isProcessing();
 	}
@@ -307,14 +245,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	}
 
 	@Override
-	public String getSearchEndpoint() {
-		DomainStatus status = getDomainStatus();
-		return  String.format(SEARCH_ENDPOINT_TEMPALTE, status.getSearchService().getEndpoint());
-	}
-
-	@Override
-	public String getDocumentEndpoint() {
-		DomainStatus status = getDomainStatus();
-		return String.format(DOCUMENT_ENDPOINT_TEMPALTE, status.getDocService().getEndpoint());
+	public String getDomainSearchEndpoint(){
+		return getDomainStatus().getSearchService().getEndpoint();
 	}
 }

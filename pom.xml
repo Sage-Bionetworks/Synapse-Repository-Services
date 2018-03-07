@@ -62,7 +62,6 @@
 			<url>https://repository.apache.org/content/repositories/releases/
 			</url>
 		</repository>
-
 		<repository>
 			<id>central</id>
 			<name>Atlassian Public Repository</name>
@@ -615,11 +614,10 @@
 				<version>${org.json.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>javax.mail</groupId>
-				<artifactId>mail</artifactId>
-				<version>1.4</version>
+				<groupId>com.sun.mail</groupId>
+				<artifactId>javax.mail</artifactId>
+				<version>1.6.1</version>
 			</dependency>
-
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -836,7 +834,7 @@
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
-		<schema-to-pojo.version>0.3.14</schema-to-pojo.version>
+		<schema-to-pojo.version>0.3.15</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.45</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.2</org.apache.httpcomponents.version>

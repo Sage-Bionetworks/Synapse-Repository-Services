@@ -12,6 +12,8 @@
 
 	<aop:aspectj-autoproxy />
 
+	<import resource="classpath:worker-trace-profiler-spb.xml" />
+
 	<import resource="classpath:jdomodels-import.xml" />
 	<import resource="classpath:managers-import.xml" />
 	<import resource="classpath:managers-topic-publisher-import.xml" />

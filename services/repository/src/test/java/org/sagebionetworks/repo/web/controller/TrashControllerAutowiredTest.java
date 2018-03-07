@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import junit.framework.Assert;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,14 +15,18 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import junit.framework.Assert;
+
+import static org.junit.Assert.*;
 
 public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
@@ -44,6 +46,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 	
 	private Entity parent;
 	private Entity child;
+	private Entity child2;
 
 	@Before
 	public void before() throws Exception {
@@ -83,6 +86,13 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 			//do nothing if already deleted
 		}
 		try {
+			if (child2!=null) {
+				entityService.deleteEntity(testUserId, child.getId());
+			}
+		}catch (NotFoundException e){
+			//do nothing if already deleted
+		}
+		try {
 			entityService.deleteEntity(testUserId, parent.getId());
 		}catch (NotFoundException e){
 			//do nothing if already deleted
@@ -108,11 +118,17 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		// Both the parent and the child should be gone
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 		
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e)  {
+			// as expected
+		}
 
 		// The trash can should be empty
 		results = servletTestHelper.getTrashCan(testUserId);
@@ -129,6 +145,29 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 	}
 
 	@Test
+	public void testPurgeLink() throws Exception { // PLFM-4655
+		child2 = new Link();
+		child2.setName("TrashControllerAutowiredTest.link");
+		child2.setParentId(parent.getId());
+		child2.setEntityType(Link.class.getName());
+		child2 = servletTestHelper.createEntity(dispatchServlet, child2, testUserId);
+
+		// Move the Link to the trash can
+		servletTestHelper.trashEntity(testUserId, child2.getId());
+
+		// Purge the Link
+		servletTestHelper.purgeEntityInTrash(testUserId, child2.getId());
+
+		// Link should be gone
+		try {
+			servletTestHelper.getEntity(dispatchServlet, Link.class, child2.getId(), testUserId);
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
+	}
+
+	@Test
 	public void testPurgeAll() throws Exception {
 		// Move the parent to the trash can
 		servletTestHelper.trashEntity(testUserId, parent.getId());
@@ -139,11 +178,17 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		// Both the parent and the child should be gone
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 		
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 
 		// The trash can should be empty
 		PaginatedResults<TrashedEntity> results = servletTestHelper.getTrashCan(testUserId);
@@ -173,11 +218,17 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		// Now the parent and the child should not be visible
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 		
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 
 		// The parent and the child should be in the trash can
 		results = servletTestHelper.getTrashCan(testUserId);
@@ -229,11 +280,17 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		// Both the parent and the child should be gone
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), adminUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 		
 		try {
 			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), adminUserId);
-		} catch (NotFoundException e) { }
+			fail("NotFoundException expected.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 
 		// The trash can should be empty
 		results = servletTestHelper.adminGetTrashCan(adminUserId);

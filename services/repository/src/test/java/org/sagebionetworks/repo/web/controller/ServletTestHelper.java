@@ -36,11 +36,13 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -52,7 +54,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -692,22 +693,6 @@ public class ServletTestHelper {
 	/**
 	 * Get the status of a backup/restore daemon
 	 */
-	public BackupRestoreStatus getDaemonStatus(
-			HttpServlet dispatchServlet, Long userId, String id)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.DAEMON + "/" + id, userId, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return (BackupRestoreStatus) objectMapper.readValue(
-				response.getContentAsString(), BackupRestoreStatus.class);
-	}
-
-	/**
-	 * Get the status of a backup/restore daemon
-	 */
 	public StackStatus getStackStatus(HttpServlet dispatchServlet)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -748,15 +733,6 @@ public class ServletTestHelper {
 				HTTPMODE.DELETE, UrlHelpers.ADMIN_CLEAR_LOCKS, userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
-	}
-
-	public void terminateDaemon(HttpServlet dispatchServlet,
-			Long userId, String id) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.DAEMON + "/" + id, userId, null);
-
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
-				HttpStatus.NO_CONTENT);
 	}
 
 	public EntityHeader getEntityType(HttpServlet dispatchServlet,
@@ -1574,6 +1550,18 @@ public class ServletTestHelper {
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		
 		return ListWrapper.unwrap(new JSONObjectAdapterImpl(response.getContentAsString()), Team.class);
+	}
+
+	public PaginatedTeamIds getTeamIdsByMember(
+			HttpServlet dispatchServlet, Long teamMemberId, TeamSortOrder sort, Boolean ascending) throws Exception {
+		String uri = UrlHelpers.USER + "/" + teamMemberId + UrlHelpers.TEAM + "/id";
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, uri, userId, null);
+		request.addParameter(ServiceConstants.SORT_BY_PARAM, sort.name());
+		request.addParameter(ServiceConstants.ASCENDING_PARAM, ascending.toString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return new PaginatedTeamIds(new JSONObjectAdapterImpl(response.getContentAsString()));
 	}
 
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,

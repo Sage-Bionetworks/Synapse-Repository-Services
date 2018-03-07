@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -160,7 +160,7 @@ public class ExampleController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/multiple/params", method = RequestMethod.GET)
 	public @ResponseBody
-	RowMetadataResult getRowMetadataDelta(
+	MigrationTypeList getRowMetadataDelta(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@RequestParam(required = true) String type,
 			@RequestParam(required = false) String limit,
@@ -191,7 +191,7 @@ public class ExampleController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/multiple/{pathVar}", method = RequestMethod.GET)
 	public @ResponseBody
-	RowMetadataResult noAuthPathVariable(
+	MigrationTypeList noAuthPathVariable(
 			@PathVariable(required = true) String pathVar,
 			@RequestParam(required = false) String limit,
 			@RequestParam(required = false) String offset,
@@ -206,7 +206,7 @@ public class ExampleController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/missing/descriptions", method = RequestMethod.GET)
 	public @ResponseBody
-	RowMetadataResult missingDescriptions(
+	MigrationTypeList missingDescriptions(
 			@PathVariable(required = true) String pathVar,
 			@RequestParam(required = false) String limit,
 			@RequestParam(required = false) String offset,

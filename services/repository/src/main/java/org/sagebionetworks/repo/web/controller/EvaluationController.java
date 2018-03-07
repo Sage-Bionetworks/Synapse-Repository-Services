@@ -407,7 +407,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Creates a Submission. 
+	 * Creates a Submission and sends a submission notification email to the submitter's team members.
 	 * 
 	 * The passed request body should contain the following fields:
 	 * <ul>
@@ -422,17 +422,9 @@ public class EvaluationController extends BaseController {
 	 * (The submitter is taken to be a contributor and need not be included in the list.)
 	 * An individual submission must have a null teamId, a null or empty contributor list, and no
 	 * submissionEligibilityHash parameter.
+	 * </p>
 	 * <p>
-	 * The caller may optionally provide request parameters, challengeEndpoint and notificationUnsubscribeEndpoint.
-	 * These are prefixes of links which are put in submission notification emails and point back to the Synapse
-	 * portal.  The first is the prefix to an entity/challenge page.  The entity ID of the challenge project is
-	 * appended to create the complete URL.  The second is the prefix of a one-click unsubscribe link for notifications.
-	 * A serialization token containing user information is appended to the given endpoint to create the complete URL.
-	 * 
-	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.SUBMIT</a>.  
+	 * <b>Note:</b> The caller must be granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.SUBMIT</a>.
 	 * </p>
 	 * <p>
 	 * This call also creates an associated <a href="${org.sagebionetworks.evaluation.model.SubmissionStatus}">SubmissionStatus</a>, 
@@ -440,13 +432,16 @@ public class EvaluationController extends BaseController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param entityEtag - the current eTag of the Entity being submitted
-	 * @param submissionEligibilityHash - the hash provided by the 
+	 * @param entityEtag The current eTag of the Entity being submitted
+	 * @param submissionEligibilityHash The hash provided by the
 	 * <a href="${org.sagebionetworks.evaluation.model.TeamSubmissionEligibility}">TeamSubmissionEligibility</a>
 	 * object.
-	 * @param submissionEligibilityHash
-	 * @param teamEndpoint
-	 * @param notificationUnsubscribeEndpoint
+	 * @param challengeEndpoint The portal endpoint prefix to the an entity/challenge page. The entity ID of the
+	 * challenge project is appended to create the complete URL. In normal operation, this parameter should be omitted.
+	 * @param notificationUnsubscribeEndpoint The portal endpoint prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete URL:
+	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
+	 * In normal operation, this parameter should be omitted.
 	 * @param header
 	 * @param request
 	 * @return
@@ -465,8 +460,8 @@ public class EvaluationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestParam(value = AuthorizationConstants.SUBMISSION_ELIGIBILITY_HASH_PARAM, required = false) String submissionEligibilityHash,
-			@RequestParam(value = AuthorizationConstants.CHALLENGE_ENDPOINT_PARAM, required = false) String challengeEndpoint,
-			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
+			@RequestParam(value = AuthorizationConstants.CHALLENGE_ENDPOINT_PARAM, defaultValue = ServiceConstants.CHALLENGE_ENDPOINT) String challengeEndpoint,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, defaultValue = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT) String notificationUnsubscribeEndpoint,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException

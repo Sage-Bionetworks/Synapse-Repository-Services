@@ -8,8 +8,9 @@
 			"$ref":"org.sagebionetworks.repo.model.message.cloudmailin.Envelope"
 		}, 
 		"headers": {
-			"description": "The headers from the message, represented as a map.",
-			"type": "string"
+			"type": "object",
+			"description": "The headers from the email message.",
+			"$ref": "org.sagebionetworks.repo.model.message.cloudmailin.Headers"
 		},
 		"plain": {
 			"type": "string",

@@ -2573,7 +2573,7 @@ public class NodeDAOImplTest {
 		final Long projectId = KeyFactory.stringToKey(project.getId());
 		toDelete.add(project.getId());
 		// to delete the parent without deleting the child:
-		migratableTableDao.runWithForeignKeyIgnored(new Callable<Void>() {
+		migratableTableDao.runWithKeyChecksIgnored(new Callable<Void>() {
 
 			@Override
 			public Void call() throws Exception {
@@ -2606,7 +2606,7 @@ public class NodeDAOImplTest {
 		toDelete.add(child.getId());
 
 		// to delete the parent without deleting the child:
-		migratableTableDao.runWithForeignKeyIgnored(new Callable<Void>() {
+		migratableTableDao.runWithKeyChecksIgnored(new Callable<Void>() {
 
 			@Override
 			public Void call() throws Exception {
@@ -2701,6 +2701,8 @@ public class NodeDAOImplTest {
 		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
 		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
 		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
+		//Ensure that primary annotations are not included in the entity replication (PLFM-4601)
+		annos.getPrimaryAnnotations().addAnnotation("primaryString", "primaryTest");
 		nodeDao.updateAnnotations(file.getId(), annos);
 		
 		int maxAnnotationChars = 10;

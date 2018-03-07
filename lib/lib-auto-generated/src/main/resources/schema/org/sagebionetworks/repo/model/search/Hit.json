@@ -54,19 +54,18 @@
 		},
 		"tissue": {
 			"type": "string",
-			"description": "Type of tissue for the samples in this entity. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/ontology#6501"
-				}
-			],
+			"description": "Type of tissue for the samples in this entity.",
 			"title": "Tissue Type"
 		},
 		"num_samples": {
 			"type": "integer",
 			"description": "Approximate number of samples in this entity",
 			"title": "Number of Samples"
+		},
+		"consortium": {
+			"type": "string",
+			"description": "The name of the consortium",
+			"title": "Consortium"
 		}
 	}
 }

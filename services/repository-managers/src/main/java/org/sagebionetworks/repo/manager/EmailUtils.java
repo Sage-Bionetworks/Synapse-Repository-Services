@@ -162,7 +162,9 @@ public class EmailUtils {
 		ValidateArgument.required(template, "input");
 		ValidateArgument.required(fieldValues, "fieldValues");
 		for (String fieldMarker : fieldValues.keySet()) {
-			template = template.replaceAll(fieldMarker, fieldValues.get(fieldMarker));
+			String replacementValue = fieldValues.get(fieldMarker);
+			if (replacementValue==null) replacementValue = "";
+			template = template.replaceAll(fieldMarker, replacementValue);
 		}
 		return template;
 	}

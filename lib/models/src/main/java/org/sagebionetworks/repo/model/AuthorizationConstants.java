@@ -15,7 +15,10 @@ public class AuthorizationConstants {
 		AUTHENTICATED_USERS_GROUP(273948L), 
 		PUBLIC_GROUP(273949L), 
 		ANONYMOUS_USER(273950L),
-		CERTIFIED_USERS(3L);
+		CERTIFIED_USERS(3L),
+		ADMINISTRATORS_GROUP(2L),
+		ACCESS_AND_COMPLIANCE_GROUP(464532L),
+		TRUSTED_MESSAGE_SENDER_GROUP(4L);
 
 		private final long principalId;
 		
@@ -25,6 +28,20 @@ public class AuthorizationConstants {
 
 		private BOOTSTRAP_PRINCIPAL(long principalId) {
 			this.principalId = principalId;
+		}
+		
+		/**
+		 * Is the given ID a bootstrap principal ID?
+		 * @param id
+		 * @return
+		 */
+		public static boolean isBootstrapPrincipalId(long id) {
+			for(BOOTSTRAP_PRINCIPAL principal: BOOTSTRAP_PRINCIPAL.values()) {
+				if(principal.getPrincipalId().equals(id)) {
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 	

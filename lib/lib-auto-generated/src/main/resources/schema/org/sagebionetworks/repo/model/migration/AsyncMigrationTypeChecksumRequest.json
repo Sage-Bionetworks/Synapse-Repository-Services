@@ -2,12 +2,15 @@
 	"description": "Request checksum for given type.",
 	"implements": [
 		{
-			"$ref":"org.sagebionetworks.repo.model.migration.AdminRequest"
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
 		}
 	],
 	"properties": {
 		"type": {
-			"description": "The migration type",
+			"description": "Deprecated.  Use: 'migrationType'",
 			"type": "string"
 		}
 	}

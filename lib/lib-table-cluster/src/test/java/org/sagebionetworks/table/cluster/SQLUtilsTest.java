@@ -1004,6 +1004,61 @@ public class SQLUtilsTest {
 		assertEquals(0, changes.getToRename().size());
 	}
 	
+	/**
+	 * A LARGETEXT column that does not currently have an index should not have an index added.
+	 */
+	@Test
+	public void testCalculateIndexOptimizationLargeTextWithNoIndex(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setCardinality(100L);
+		info.setColumnName("someBlob");
+		info.setColumnType(ColumnType.LARGETEXT);
+		// column does not have an index
+		info.setHasIndex(false);
+		info.setMaxSize(null);
+		info.setType(MySqlColumnType.MEDIUMTEXT);
+		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		// call under test
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+		assertEquals(0, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	/**
+	 * A LARGETEXT column that has an index should remove the index.
+	 */
+	@Test
+	public void testCalculateIndexOptimizationLargeTextWithIndex(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setCardinality(100L);
+		info.setColumnName("someBlob");
+		info.setColumnType(ColumnType.LARGETEXT);
+		// column has an index
+		info.setHasIndex(true);
+		info.setMaxSize(null);
+		info.setType(MySqlColumnType.MEDIUMTEXT);
+		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		// call under test
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+		assertEquals(0, changes.getToAdd().size());
+		// the blob index should be removed.
+		assertEquals(1, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
 	@Test
 	public void testCalculateIndexChangesUnderMax(){
 		String tableId = "syn123";
@@ -1446,18 +1501,21 @@ public class SQLUtilsTest {
 		// call under test
 		SQLUtils.buildSelect(builder, metaList);
 		assertEquals(
-				"R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID"
-				+ ", A0.STRING_VALUE AS _C0_"
-				+ ", A1.DOUBLE_ABSTRACT AS _DBL_C1_"
-				+ ", A1.DOUBLE_VALUE AS _C1_"
-				+ ", A2.LONG_VALUE AS _C2_"
-				+ ", A3.BOOLEAN_VALUE AS _C3_"
-				+ ", A4.LONG_VALUE AS _C4_"
-				+ ", A5.LONG_VALUE AS _C5_"
-				+ ", A6.LONG_VALUE AS _C6_"
-				+ ", A7.STRING_VALUE AS _C7_"
-				+ ", A8.STRING_VALUE AS _C8_"
-				+ ", A9.LONG_VALUE AS _C9_"
+				"R.ID,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C0_,"
+				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='integer', A.LONG_VALUE, NULL)) AS _C2_,"
+				+ " MAX(IF(A.ANNO_KEY ='boolean', A.BOOLEAN_VALUE, NULL)) AS _C3_,"
+				+ " MAX(IF(A.ANNO_KEY ='date', A.LONG_VALUE, NULL)) AS _C4_,"
+				+ " MAX(IF(A.ANNO_KEY ='filehandleid', A.LONG_VALUE, NULL)) AS _C5_,"
+				+ " MAX(IF(A.ANNO_KEY ='entityid', A.LONG_VALUE, NULL)) AS _C6_,"
+				+ " MAX(IF(A.ANNO_KEY ='link', A.STRING_VALUE, NULL)) AS _C7_,"
+				+ " MAX(IF(A.ANNO_KEY ='largetext', A.STRING_VALUE, NULL)) AS _C8_,"
+				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C9_"
 				, builder.toString());
 	}
 	
@@ -1477,68 +1535,24 @@ public class SQLUtilsTest {
 		// call under test
 		SQLUtils.buildSelect(builder, metaList);
 		assertEquals(
-				"R.ID"
-				+ ", R.CURRENT_VERSION"
-				+ ", R.ETAG"
-				+ ", R.BENEFACTOR_ID"
-				+ ", R.ID AS _C0_"
-				+ ", R.NAME AS _C1_"
-				+ ", R.CREATED_ON AS _C2_"
-				+ ", R.CREATED_BY AS _C3_"
-				+ ", R.ETAG AS _C4_"
-				+ ", R.TYPE AS _C5_"
-				+ ", R.CURRENT_VERSION AS _C6_"
-				+ ", R.PARENT_ID AS _C7_"
-				+ ", R.BENEFACTOR_ID AS _C8_"
-				+ ", R.PROJECT_ID AS _C9_"
-				+ ", R.MODIFIED_ON AS _C10_"
-				+ ", R.MODIFIED_BY AS _C11_"
-				+ ", R.FILE_ID AS _C12_"
+				"R.ID,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.ID) AS ID,"
+				+ " MAX(R.NAME) AS NAME,"
+				+ " MAX(R.CREATED_ON) AS CREATED_ON,"
+				+ " MAX(R.CREATED_BY) AS CREATED_BY,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.TYPE) AS TYPE,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.PARENT_ID) AS PARENT_ID,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.PROJECT_ID) AS PROJECT_ID,"
+				+ " MAX(R.MODIFIED_ON) AS MODIFIED_ON,"
+				+ " MAX(R.MODIFIED_BY) AS MODIFIED_BY,"
+				+ " MAX(R.FILE_ID) AS FILE_ID"
 				, builder.toString());
-	}
-	
-	@Test
-	public void testBuildJoinsNoAnnotations(){
-		ColumnModel one = EntityField.benefactorId.getColumnModel();
-		one.setId("1");
-		ColumnModel two = EntityField.id.getColumnModel();
-		two.setId("2");
-		List<ColumnModel> schema = Lists.newArrayList(one, two);
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
-		StringBuilder builder = new StringBuilder();
-		// call under test
-		SQLUtils.buildJoins(metaList, builder);
-		assertEquals("", builder.toString());
-	}
-	
-	@Test
-	public void testBuildJoinsOneAnnotation(){
-		ColumnModel one = EntityField.benefactorId.getColumnModel();
-		one.setId("1");
-		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		List<ColumnModel> schema = Lists.newArrayList(one, two);
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
-		StringBuilder builder = new StringBuilder();
-		// call under test
-		SQLUtils.buildJoins(metaList, builder);
-		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON"
-				+ " (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2')", builder.toString());
-	}
-	
-	@Test
-	public void testBuildJoinsMultipleAnnotation(){
-		ColumnModel one =  TableModelTestUtils.createColumn(1L);
-		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		two.setColumnType(ColumnType.INTEGER);
-		List<ColumnModel> schema = Lists.newArrayList(one, two);
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
-		StringBuilder builder = new StringBuilder();
-		// call under test
-		SQLUtils.buildJoins(metaList, builder);
-		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A0 ON"
-				+ " (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
-				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON "
-				+ "(R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2')", builder.toString());
 	}
 	
 	@Test
@@ -1560,6 +1574,117 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testBuildAnnotationSelectString() {
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("bar");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(50L);
+		cm.setId("123");
+		int index = 4;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		boolean isDoubleAbstract = false;
+		// call under test
+		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
+		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildAnnotationSelectDoubleAbstract() {
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("foo");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("123");
+		int index = 4;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		boolean isDoubleAbstract = true;
+		// call under test
+		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
+		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C123_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildAnnotationSelectDoubleNotAbstract() {
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("foo");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("123");
+		int index = 4;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		boolean isDoubleAbstract = false;
+		// call under test
+		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
+		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C123_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildSelectMetadataEntityField() {
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = EntityField.createdOn.getColumnModel();
+		cm.setId("1");
+		int index = 2;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		// call under test
+		SQLUtils.buildSelectMetadata(builder, meta);
+		assertEquals(", MAX(R.CREATED_ON) AS CREATED_ON", builder.toString());
+	}
+	
+	@Test
+	public void testBuildSelectMetadataStringAnnotation() {
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("bar");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(50L);
+		cm.setId("123");
+		int index = 4;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		// call under test
+		SQLUtils.buildSelectMetadata(builder, meta);
+		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildSelectMetadataDoubleAnnotation() {
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("foo");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("456");
+		int index = 4;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		// call under test
+		SQLUtils.buildSelectMetadata(builder, meta);
+		// Should include two selects, one for the abstract double and the other for the double value.
+		assertEquals(
+				", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C456_"
+				+ ", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C456_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildEntityReplicationSelect() {
+		StringBuilder builder = new StringBuilder();
+		String columnName = TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
+		// Call under test
+		SQLUtils.buildEntityReplicationSelect(builder, columnName);
+		assertEquals(", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
+	}
+	
+	@Test
+	public void testBuildEntityReplicationSelectStandardColumns() {
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildEntityReplicationSelectStandardColumns(builder);
+		assertEquals("R.ID"
+				+ ", MAX(R.CURRENT_VERSION) AS CURRENT_VERSION"
+				+ ", MAX(R.ETAG) AS ETAG"
+				+ ", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
+	}
+	
+	
+	@Test
 	public void testCreateSelectInsertFromEntityReplication(){
 		String viewId = "syn123";
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
@@ -1569,11 +1694,21 @@ public class SQLUtilsTest {
 		ViewType type = ViewType.file;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
-				+ " FROM ENTITY_REPLICATION R"
-				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
-				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE IN ('file')", sql);
+				+ " SELECT"
+				+ " R.ID,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(R.ID) AS ID"
+				+ " FROM"
+				+ " ENTITY_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.ID = A.ENTITY_ID)"
+				+ " WHERE"
+				+ " R.PARENT_ID IN (:parentIds)"
+				+ " AND TYPE IN ('file')"
+				+ " GROUP BY R.ID", sql);
 	}
 	
 	@Test
@@ -1586,11 +1721,20 @@ public class SQLUtilsTest {
 		ViewType type = ViewType.project;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
-				+ " FROM ENTITY_REPLICATION R"
-				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
-				+ " WHERE R.ID IN (:parentIds) AND TYPE IN ('project')", sql);
+				+ " SELECT"
+				+ " R.ID,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(R.ID) AS ID"
+				+ " FROM"
+				+ " ENTITY_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.ID = A.ENTITY_ID)"
+				+ " WHERE R.ID IN (:parentIds)"
+				+ " AND TYPE IN ('project')"
+				+ " GROUP BY R.ID", sql);
 	}
 
 	@Test
@@ -1604,12 +1748,19 @@ public class SQLUtilsTest {
 		ViewType type = ViewType.file;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID,"
-				+ " A0.DOUBLE_ABSTRACT AS _DBL_C3_, A0.DOUBLE_VALUE AS _C3_"
+				+ " SELECT"
+				+ " R.ID, MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(IF(A.ANNO_KEY ='doubleAnnotation', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C3_,"
+				+ " MAX(IF(A.ANNO_KEY ='doubleAnnotation', A.DOUBLE_VALUE, NULL)) AS _C3_"
 				+ " FROM ENTITY_REPLICATION R"
-				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'doubleAnnotation')"
-				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE IN ('file')", sql);
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.ID = A.ENTITY_ID)"
+				+ " WHERE"
+				+ " R.PARENT_ID IN (:parentIds)"
+				+ " AND TYPE IN ('file')"
+				+ " GROUP BY R.ID", sql);
 	}
 	
 	@Test

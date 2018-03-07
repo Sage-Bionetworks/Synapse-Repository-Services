@@ -162,10 +162,8 @@ TOKEN [IGNORE_CASE]: {
 | < and: "AND">
 | < asc: "ASC">
 | < as: "AS">
-| < avg: "AVG">
 | < between: "BETWEEN" >
 | < date: "DATE" >
-| < count: "COUNT">
 | < desc: "DESC" >
 | < distinct: "DISTINCT">
 | < default_specification: "DEFAULT" > 
@@ -178,15 +176,12 @@ TOKEN [IGNORE_CASE]: {
 | < is: "IS">
 | < like: "LIKE" >
 | < limit: "LIMIT" >
-| < max: "MAX" >
-| < min: "MIN" >
 | < not: "NOT" >
 | < null_specification: "NULL" >
 | < offset: "OFFSET" >
 | < or: "OR" >
 | < order_by: "ORDER BY" >
 | < select: "SELECT" >
-| < sum: "SUM" >
 | < time: "TIME" >
 | < timestamp: "TIMESTAMP">
 | < _true: "TRUE">
@@ -194,6 +189,27 @@ TOKEN [IGNORE_CASE]: {
 | < unknown: "UNKNOWN">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
+}
+
+/* Aggregate functions */
+TOKEN [IGNORE_CASE]: {
+  < aggregate_functions_name:
+   "AVG"
+   | "COUNT"
+   | "MIN"
+   | "MAX"
+   | "SUM"
+   | "BIT_AND"
+   | "BIT_OR"
+   | "BIT_XOR"
+   | "STD"
+   | "STDDEV"
+   | "STDDEV_POP"
+   | "STDDEV_SAMP"
+   | "VAR_POP"
+   | "VAR_SAMP"
+   | "VARIANCE"
+  >
 }
 
 /* date and time functions */
@@ -572,13 +588,11 @@ SetFunctionSpecification generalSetFunction():
 	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
 }
 SetFunctionType setFunctionType():
-{}
 {
-	<avg> { return SetFunctionType.AVG; }
-	| <max> { return SetFunctionType.MAX; }
-	| <min> { return SetFunctionType.MIN; }
-	| <sum> { return SetFunctionType.SUM; }
-	| <count> { return SetFunctionType.COUNT; }
+	Token functionName;
+}
+{
+	functionName = <aggregate_functions_name> { return SetFunctionType.valueOf(functionName.image.toUpperCase()); }
 }
 WhereClause whereClause():
 {

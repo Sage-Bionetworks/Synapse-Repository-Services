@@ -2,13 +2,10 @@ package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -20,8 +17,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Abstraction for the Synapse Administration client.
@@ -38,27 +35,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException;
-	
-	/**
-	 * Get one page of metatdata for the given MigrationType
-	 * 
-	 * @param migrationType
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws SynapseException
-	 */
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException;
-	
-	/**
-	 * 
-	 * @param type
-	 * @param minId
-	 * @param maxId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId, Long limit, Long offset) throws SynapseException;
 	
 	/**
 	 * Get the counts for all types
@@ -104,43 +80,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	public MigrationTypeNames getMigrationTypeNames() throws SynapseException;
-
-	/**
-	 * Delete a list of IDs
-	 * 
-	 * @param migrationType
-	 * @param ids
-	 * @return
-	 * @throws SynapseException
-	 */
-	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws SynapseException;
-	
-	/**
-	 * Start a backup daemon task
-	 * @param migrationType
-	 * @param ids
-	 * @return
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws SynapseException;
-	
-	/**
-	 * Start a restore daemon task
-	 * @param migrationType
-	 * @param req
-	 * @return
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws SynapseException;
-	
-	/**
-	 * Get the status of a daemon backup/restore task
-	 * @param daemonId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus getStatus(String daemonId) throws SynapseException;
-	
+		
 	/**
 	 * Get checksum for migration type and range of ids
 	 * @throws SynapseException 
@@ -215,9 +155,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 */
 	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException;
 	
-	public BackupRestoreStatus getDaemonStatus(String daemonId)
-			throws SynapseException;
-
 	/**
 	 * List change messages.
 	 * @param startChangeNumber - The change number to start from.

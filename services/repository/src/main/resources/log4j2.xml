@@ -47,10 +47,6 @@
 			level="debug" additivity="false">
 			<appender-ref ref="traceProfiling" />
 		</logger>
-		<logger name="org.sagebionetworks.profiler.call.performance"
-			level="debug" additivity="false">
-			<appender-ref ref="performanceProfiling" />
-		</logger>
 		<logger name="org.sagebionetworks.spring"
 			level="info" additivity="false">
 			<appender-ref ref="performanceProfiling" />

@@ -74,6 +74,13 @@ import com.google.common.collect.Sets;
 
 public class TableEntityManagerImpl implements TableEntityManager, UploadRowProcessor {
 	
+	public static final String MAXIMUM_TABLE_SIZE_EXCEEDED = "Maximum table size exceeded.";
+
+	/**
+	 * See PLFM-4774
+	 */
+	public static final long MAXIMUM_VERSIONS_PER_TABLE = 30*1000;
+	
 	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
 
 	static private Log log = LogFactory.getLog(TableEntityManagerImpl.class);
@@ -319,6 +326,12 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
 		// Reserver IDs for the missing
 		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
+		
+		// validate the table would be within the size limit.
+		if(range.getVersionNumber() > MAXIMUM_VERSIONS_PER_TABLE) {
+			throw new IllegalArgumentException(MAXIMUM_TABLE_SIZE_EXCEEDED);
+		}
+		
 		// Are any rows being updated?
 		if (coutToReserver < delta.getRowCount()) {
 			// Validate that this update does not contain any row level conflicts.
@@ -549,15 +562,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		}
 	}
 
-	@WriteTransactionReadCommitted
-	@Override
-	public void deleteTable(String deletedId) {
-		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
-		deleteAllRows(deletedId);
-		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
-	}
-
-
 	@Override
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
 		if(change instanceof TableSchemaChangeRequest){
@@ -781,6 +785,29 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);
 		List<ColumnModel> schema = columnModelDao.getColumnModel(dto.getColumnIds(), true);
 		return new SparseChangeSet(dto, schema);
+	}
+
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteTableIfDoesNotExist(String tableId) {
+		if(!tableManagerSupport.doesTableExist(tableId)) {
+			// The table no longer exists so delete it.
+			this.deleteTable(tableId);
+		}
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void setTableAsDeleted(String deletedId) {
+		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteTable(String deletedId) {
+		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
+		deleteAllRows(deletedId);
 	}
 
 }

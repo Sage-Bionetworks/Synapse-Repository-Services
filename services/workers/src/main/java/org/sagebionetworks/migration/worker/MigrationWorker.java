@@ -17,10 +17,12 @@ import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -81,8 +83,12 @@ public class MigrationWorker implements MessageDrivenRunner {
 			return migrationManager.processAsyncMigrationTypeChecksumRequest(user, (AsyncMigrationTypeChecksumRequest)req);
 		} else if (req instanceof AsyncMigrationRangeChecksumRequest) {
 			return migrationManager.processAsyncMigrationRangeChecksumRequest(user, (AsyncMigrationRangeChecksumRequest)req);
-		} else if (req instanceof AsyncMigrationRowMetadataRequest) {
-			return migrationManager.processAsyncMigrationRowMetadataRequest(user, (AsyncMigrationRowMetadataRequest)req);
+		} else if (req instanceof BackupTypeRangeRequest) {
+			return migrationManager.backupRequest(user, (BackupTypeRangeRequest)req);
+		} else if (req instanceof RestoreTypeRequest) {
+			return migrationManager.restoreRequest(user, (RestoreTypeRequest)req);
+		} else if (req instanceof CalculateOptimalRangeRequest) {
+			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}

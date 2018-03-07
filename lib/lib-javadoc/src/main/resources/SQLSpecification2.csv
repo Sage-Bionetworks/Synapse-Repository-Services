@@ -7,6 +7,13 @@ Aggregation Functions,Get the maximum of all values for the column 'foo' in tabl
 Aggregation Functions,Get the minimum of all values for the column 'foo' in table 'syn123'.,select min(foo) from syn123
 Aggregation Functions,Get the average of all values for the column 'foo' in table 'syn123'.,select avg(foo) from syn123
 Aggregation Functions,Get the sum of all values for the column 'foo' in table 'syn123'.,select sum(foo) from syn123
+Aggregation Functions,Returns the bitwise AND of all bits in expr.,select bit_and(expr) from syn123
+Aggregation Functions,Returns the bitwise OR of all bits in expr.,select bit_or(expr) from syn123
+Aggregation Functions,Returns the bitwise XOR of all bits in expr.,select bit_xor(expr) from syn123
+Aggregation Functions,"Returns the population standard deviation of expr (the square root of VAR_POP()). You can also use STD() or STDDEV(), which are equivalent.",select STDDEV_POP(expr) from syn123
+Aggregation Functions,Returns the sample standard deviation of expr (the square root of VAR_SAMP(). ,select STDDEV_SAMP(expr) from syn123
+Aggregation Functions,"Returns the population standard variance of expr. It considers rows as the whole population, not as a sample, so it has the number of rows as the denominator. You can also use VARIANCE(), which is equivalent.",select VAR_POP(expr) from syn123
+Aggregation Functions,"Returns the sample variance of expr. That is, the denominator is the number of rows minus one. ",select VAR_POP(expr) from syn123
 Set Selection,The DISTINCT keyword can be used to select all distinct value (the value set) from a column. ,select distinct foo from syn123
 Set Selection,"The DISTINCT keyword applies to all selected columns, so if more than one column is listed, then the results will be a list of the distinct combinations of all selected columns.","select distinct foo, bar from syn123"
 Set Selection,"The DISTINCT keyword can be used with set functions.  In this example, we will get the count of the distinct values from the foo column.",select count(distinct foo) from syn123

@@ -11,10 +11,6 @@
 			"description": "The description of this entity.",
 			"title": "Description"
 		},
-		"id": {
-			"type": "string",
-			"description": "The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued"
-		},
 		"parent_id": {
 			"type": "string",
 			"description": "The ID of the parent of this entity"
@@ -47,13 +43,6 @@
 			"description": "The user that last modified this entity.",
 			"title": "Modified By"
 		},
-		"ancestors": {
-			"type": "array",
-			"items": {
-				"type": "integer"
-			},
-			"description": "The entity's list of ancestor ids used to look up all children of an en entity recursivily."
-		},
 		"boost": {
 			"type": "array",
 			"items": {
@@ -82,57 +71,30 @@
 			},
 			"description": "All group names with UPDATE access to this entity"
 		},
-		"species": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
-			"description": "The species associated with this entity",
-			"title": "Species"
-		},
 		"disease": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
+			"type": "string",
 			"description": "The disease associated with this entity",
 			"title": "Disease"
 		},
 		"tissue": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
-			"description": "Type of tissue for the samples in this entity. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/ontology#6501"
-				}
-			],
+			"type": "string",
+			"description": "Type of tissue for the samples in this entity.",
 			"title": "Tissue Type"
 		},
 		"platform": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
+			"type": "string",
 			"description": "Chip platform for the samples in this entity",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/ontology#6501"
-				}
-			],
 			"title": "Platform"
 		},
 		"num_samples": {
-			"type": "array",
-			"items": {
-				"type": "integer"
-			},
+			"type": "integer",
 			"description": "Approximate number of samples in this entity",
 			"title": "Number of Samples"
+		},
+		"consortium": {
+			"type": "string",
+			"description": "The name of the consortium",
+			"title": "Consortium"
 		}
 	}
 }

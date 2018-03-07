@@ -18,6 +18,7 @@
 	<aop:aspectj-autoproxy />
 
 	<import resource="classpath:upload-dao.spb.xml" />
+	<import resource="classpath:search-import.xml" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
@@ -254,7 +255,9 @@
 			
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
-	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
+	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>
+	
+	<bean id="fileProvider" class="org.sagebionetworks.repo.manager.migration.FileProviderImpl" scope="singleton"/>
 
 	<bean
 		id="migrationManager"
@@ -411,42 +414,16 @@
 	<bean id="projectStatsManager"
 		class="org.sagebionetworks.repo.manager.ProjectStatsManagerImpl"
 		scope ="singleton" />	
-
-	<!-- The thread pool used by the backup/restore daemons -->
-	<bean id="backupDaemonThreadPool"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments"
-			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
-	</bean>
-
-	<!-- The second thread pool used by the backup/restore daemons -->
-	<bean id="backupDaemonThreadPool2"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments"
-			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
-	</bean>
-
-	<bean id="backupDaemonLauncher"
-		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
-		scope="singleton" >
-	</bean>
 	
 	<!-- Used to read document from repo -->
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
 		scope="singleton" />
+
+	<!-- Used to perform search and upload search documents-->
+	<bean id="searchManager"
+		  class="org.sagebionetworks.repo.manager.search.SearchManagerImpl"
+		  scope="singleton" />
 
 	<!-- Used to interface to the Jira server -->
 	<bean id="jiraClient"

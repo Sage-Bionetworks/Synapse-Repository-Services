@@ -387,6 +387,29 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 	
+	/**
+	 * Validate that the maximum number of versions is enforced.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@Test
+	public void testAppendRowsOverLimitPLFM_4774() throws DatastoreException, NotFoundException, IOException{
+		IdRange range = new IdRange();
+		range.setVersionNumber(TableEntityManagerImpl.MAXIMUM_VERSIONS_PER_TABLE+1);
+		range.setEtag("etag");
+		range.setMaximumId(111L);
+		range.setMaximumUpdateId(222L);
+		range.setMinimumId(1000L);
+		when(mockTruthDao.reserveIdsInRange(any(String.class), anyLong())).thenReturn(range);
+		try {
+			manager.appendRows(user, tableId, set, mockProgressCallback);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals(TableEntityManagerImpl.MAXIMUM_TABLE_SIZE_EXCEEDED, e.getMessage());
+		}
+	}
+	
 	@Test
 	public void testAppendPartialRowsHappy() throws DatastoreException, NotFoundException, IOException {
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback);
@@ -890,6 +913,12 @@ public class TableEntityManagerTest {
 		manager.deleteTable(tableId);
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
+	}
+	
+	@Test
+	public void testSetTableDeleted(){
+		// call under test
+		manager.setTableAsDeleted(tableId);
 		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
 	}
 	
@@ -1423,6 +1452,31 @@ public class TableEntityManagerTest {
 		long sizePerRow = (endMemory - startMemory)/numberRows;
 		System.out.println("Measured size: "+sizePerRow+" bytes, calculated size: "+calcuatedSize+" bytes");
 		assertTrue("Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes",calcuatedSize > sizePerRow);
+	}
+	
+	@Test
+	public void testTeleteTableIfDoesNotExistShouldNotDelete() {
+		// the table exists
+		when(mockTableManagerSupport.doesTableExist(tableId)).thenReturn(true);
+		//call under test
+		manager.deleteTableIfDoesNotExist(tableId);
+		// since the table exist do not delete anything
+		verify(mockColumModelManager, never()).unbindAllColumnsAndOwnerFromObject(anyString());
+		verify(mockTruthDao, never()).deleteAllRowDataForTable(anyString());
+		verify(mockTableManagerSupport, never()).setTableDeleted(anyString(), any(ObjectType.class));
+	}
+	
+	@Test
+	public void testTeleteTableIfDoesNotExistShouldDelete() {
+		// the table does not exist
+		when(mockTableManagerSupport.doesTableExist(tableId)).thenReturn(false);
+		//call under test
+		manager.deleteTableIfDoesNotExist(tableId);
+		// since the table does not exist, delete all of the table's data.
+		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
+		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
+		// deleting the table should not send out another delete change. (PLFM-4799).
+		verify(mockTableManagerSupport, never()).setTableDeleted(anyString(), any(ObjectType.class));
 	}
 	
 	/**

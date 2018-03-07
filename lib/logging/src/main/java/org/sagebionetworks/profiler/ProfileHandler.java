@@ -4,10 +4,9 @@ public interface ProfileHandler {
 	
 	/**
 	 * Should profile data be captured?
-	 * @param args
 	 * @return
 	 */
-	public boolean shouldCaptureProfile(Object[] args);
+	public boolean shouldCaptureProfile();
 	
 	/**
 	 * Called after the frame data has been captured.

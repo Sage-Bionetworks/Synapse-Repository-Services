@@ -17,8 +17,8 @@ public class SearchSchemaLoaderTest {
 	public void testLoadSearchDomainSchema() throws IOException{
 		List<IndexField> list = SearchSchemaLoader.loadSearchDomainSchema();
 		assertNotNull(list);
-		// We currently have 25 index fields
-		assertEquals(25, list.size());
+		// We currently have 18 index fields
+		assertEquals(18, list.size());
 	}
 
 }

@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -20,46 +19,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpHeaders;
 
 public interface AdministrationService {
-
-
-	/**
-	 * Get the status of a running daemon (either a backup or restore)
-	 * @param daemonId
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	public BackupRestoreStatus getStatus(String daemonId, Long userId,
-			HttpHeaders header, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException,
-			ConflictingUpdateException;
-
-	/**
-	 * Terminate a running daemon.  This has no effect if the daemon is already terminated.
-	 * @param daemonId
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	public void terminateDaemon(String daemonId, Long userId,
-			HttpHeaders header, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException,
-			ConflictingUpdateException;
 
 	/**
 	 * Get the current status of the stack

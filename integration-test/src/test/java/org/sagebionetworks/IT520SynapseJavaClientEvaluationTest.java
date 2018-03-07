@@ -532,59 +532,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// contributor should get notification
 		assertTrue(EmailValidationUtil.doesFileExist(contributorNotification, 60000L));
 	}
-	
-	@Test
-	public void testTeamSubmissionRoundTripWithOUTNotification() throws Exception {
-		eval1.setStatus(EvaluationStatus.OPEN);
-		SubmissionQuota quota = createSubmissionQuota();
-		eval1.setQuota(quota);
-		eval1 = synapseOne.createEvaluation(eval1);
-		evaluationsToDelete.add(eval1.getId());
-		
-		Evaluation evaluationClone = synapseOne.getEvaluation(eval1.getId());
-		assertEquals(quota, evaluationClone.getQuota());
-		
-		String entityId = fileEntity.getId();
-		String entityEtag = fileEntity.getEtag();
-		
-		// let's register for the challenge!
-		Team myTeam = createParticipantTeam();
-		
-		// I want my friend to join my team
-		// first, he must register for the challenge
-		UserProfile contributorProfile = synapseTwo.getMyProfile();
-		synapseTwo.addTeamMember(participantTeam.getId(), contributorProfile.getOwnerId(), null, null);
-		// then he has to join my team
-		synapseTwo.addTeamMember(myTeam.getId(), contributorProfile.getOwnerId(), null, null);
-		
-		
-		List<String> contributorEmails = contributorProfile.getEmails();
-		assertEquals(1, contributorEmails.size());
-		String contributorEmail = contributorEmails.get(0);
-		String contributorNotification = EmailValidationUtil.getBucketKeyForEmail(contributorEmail);
-		// make sure there is no notification before the submission is created
-		if (EmailValidationUtil.doesFileExist(contributorNotification, 2000L))
-			EmailValidationUtil.deleteFile(contributorNotification);
 
-		TeamSubmissionEligibility tse = synapseOne.getTeamSubmissionEligibility(eval1.getId(), myTeam.getId());
-		
-		// create
-		sub1.setEvaluationId(eval1.getId());
-		sub1.setEntityId(entityId);
-		sub1.setTeamId(myTeam.getId());
-		SubmissionContributor contributor = new SubmissionContributor();
-		contributor.setPrincipalId(contributorProfile.getOwnerId());
-		sub1.setContributors(Collections.singleton(contributor));
-		long submissionEligibilityHash = tse.getEligibilityStateHash();
-		// NOTE:  Since we omit the challenge endpoint, no notification should be sent
-		sub1 = synapseOne.createTeamSubmission(sub1, entityEtag, ""+submissionEligibilityHash,
-				null, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		submissionsToDelete.add(sub1.getId());
-
-		// contributor should get notification
-		assertFalse(EmailValidationUtil.doesFileExist(contributorNotification, 60000L));
-	}
-	
 	@Test
 	public void testSubmissionEntityBundle() throws SynapseException, NotFoundException, InterruptedException, JSONObjectAdapterException {
 		eval1.setStatus(EvaluationStatus.OPEN);

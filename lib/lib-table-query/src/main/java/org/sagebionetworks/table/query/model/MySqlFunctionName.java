@@ -6,17 +6,20 @@ package org.sagebionetworks.table.query.model;
  */
 public enum MySqlFunctionName {
 
+	// date-time
 	CURRENT_TIMESTAMP(FunctionReturnType.STRING),
 	CURRENT_DATE(FunctionReturnType.STRING),
 	CURRENT_TIME(FunctionReturnType.STRING),
 	NOW(FunctionReturnType.STRING),
 	UNIX_TIMESTAMP(FunctionReturnType.LONG),
 	FROM_UNIXTIME(FunctionReturnType.STRING),
+	// string
 	CONCAT(FunctionReturnType.STRING),
 	REPLACE(FunctionReturnType.STRING),
 	UPPER(FunctionReturnType.STRING),
 	LOWER(FunctionReturnType.STRING),
-	TRIM(FunctionReturnType.STRING);
+	TRIM(FunctionReturnType.STRING),
+	;
 	
 	FunctionReturnType returnType;
 	

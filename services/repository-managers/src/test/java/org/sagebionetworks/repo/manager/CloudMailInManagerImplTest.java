@@ -13,7 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -22,6 +21,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Attachment;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
+import org.sagebionetworks.repo.model.message.cloudmailin.Headers;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -49,12 +49,12 @@ public class CloudMailInManagerImplTest {
 		message.setEnvelope(envelope);
 		envelope.setFrom("foo@bar.com");
 		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
-		JSONObject headers = new JSONObject();
-		headers.put("Subject", "test subject");
-		headers.put("To", "to");
-		headers.put("Cc", "cc");
-		headers.put("Bcc", "bcc");
-		message.setHeaders(headers.toString());
+		Headers headers = new Headers();
+		headers.setSubject("test subject");
+		headers.setTo("to");
+		headers.setCc("cc");
+		headers.setBcc("bcc");
+		message.setHeaders(headers);
 		String html = "<html><body>html content</body></html>";
 		message.setHtml(html);
 		String plain = "plain content";
@@ -110,9 +110,9 @@ public class CloudMailInManagerImplTest {
 		Envelope envelope = new Envelope();
 		message.setEnvelope(envelope);
 		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
-		JSONObject headers = new JSONObject();
-		headers.put("From", "foo@bar.com");
-		message.setHeaders(headers.toString());
+		Headers headers = new Headers();
+		headers.setFrom("foo@bar.com");
+		message.setHeaders(headers);
 		List<PrincipalAlias> recipientPrincipalAliases = new LinkedList<PrincipalAlias>();
 		Set<String> recipientUserNames = new HashSet<String>();
 		PrincipalAlias toAlias = new PrincipalAlias();
@@ -142,9 +142,9 @@ public class CloudMailInManagerImplTest {
 		Envelope envelope = new Envelope();
 		message.setEnvelope(envelope);
 		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
-		JSONObject headers = new JSONObject();
-		headers.put("Subject", "test subject");
-		message.setHeaders(headers.toString());
+		Headers headers = new Headers();
+		headers.setSubject("test subject");
+		message.setHeaders(headers);
 		
 		cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 	}
@@ -155,9 +155,9 @@ public class CloudMailInManagerImplTest {
 		Envelope envelope = new Envelope();
 		envelope.setFrom("foo@bar.com");
 		message.setEnvelope(envelope);
-		JSONObject headers = new JSONObject();
-		headers.put("Subject", "test subject");
-		message.setHeaders(headers.toString());
+		Headers headers = new Headers();
+		headers.setSubject("test subject");
+		message.setHeaders(headers);
 		
 		cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 	}
@@ -169,9 +169,9 @@ public class CloudMailInManagerImplTest {
 		message.setEnvelope(envelope);
 		envelope.setFrom("foo@bar.com");
 		envelope.setRecipients(Arrays.asList("baz@synapse.org", "INvalid@synapse.org"));
-		JSONObject headers = new JSONObject();
-		headers.put("Subject", "test subject");
-		message.setHeaders(headers.toString());
+		Headers headers = new Headers();
+		headers.setSubject("test subject");
+		message.setHeaders(headers);
 		String html = "<html><body>html content</body></html>";
 		message.setHtml(html);
 		
