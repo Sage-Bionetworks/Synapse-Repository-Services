@@ -734,7 +734,7 @@ public class TableViewIntegrationTest {
 		entityPermissionsManager.restoreInheritance(folderId, adminUserInfo);
 
 		// Query for the the file with the project as its benefactor.
-		sql = "select * from "+fileViewId+" where benefactorId="+project.getId()+" and id = "+fileId;
+		sql = "select * from "+fileViewId+" where benefactorId='"+project.getId()+"' and id = '"+fileId+"'";
 		expectedRowCount = 1;
 		results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
 		rows  = extractRows(results);
