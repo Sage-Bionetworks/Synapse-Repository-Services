@@ -43,6 +43,12 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-utils</artifactId>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-core</artifactId>
+		</dependency>
+		
 
 		<dependency>
 			<groupId>org.mockito</groupId>
