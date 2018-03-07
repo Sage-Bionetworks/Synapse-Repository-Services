@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -144,8 +145,8 @@ public class EntityManagerImplUnitTest {
 		NamedAnnotations annos = new NamedAnnotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
-		Entity entity = mock(Entity.class);
-		when(entity.getId()).thenReturn(id);
+		Entity entity = new Project();
+		entity.setId(id);
 		
 		String activityId;		
 
@@ -181,8 +182,8 @@ public class EntityManagerImplUnitTest {
 		NamedAnnotations annos = new NamedAnnotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
-		Entity entity = mock(Entity.class);
-		when(entity.getId()).thenReturn(id);
+		Entity entity = new Project();
+		entity.setId(id);
 		
 		String activityId;		
 
