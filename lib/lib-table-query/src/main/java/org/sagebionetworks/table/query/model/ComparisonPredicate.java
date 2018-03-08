@@ -55,8 +55,4 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 		return rowValueConstructorRHS.createIterable(UnsignedLiteral.class);
 	}
 
-	@Override
-	public Iterable<ColumnName> getRightHandSideColumnReferences() {
-		return rowValueConstructorRHS.createIterable(ColumnName.class);
-	}
 }

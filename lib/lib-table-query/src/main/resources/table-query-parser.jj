@@ -69,6 +69,36 @@ PARSER_END(TableQueryParser)
 	< end_double_quote: "\"">: DEFAULT
 }
 
+/**
+* When in the DEFAULT state, backtick quotes are the start of
+* string containing non-backtick quotes. This involves a state
+* change to: within_backtick.  The state change is necessary
+* to limit the scope of the <not_backtick> token which is too broad
+* for other cases.
+*/
+<DEFAULT> TOKEN: 
+{
+	< start_backtick: "`"> : within_backtick
+}
+// This token only has meaning within a backtick quote.
+<within_backtick> TOKEN :
+{
+	< not_backtick: ~["`"]> : within_backtick
+}
+// This token only has meaning within a double quote.
+<within_backtick> TOKEN :
+{
+	< escape_backtick: "``" > : within_backtick
+}
+/**
+* While within a double quote string, another double
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_backtick> TOKEN :
+{
+	< end_backtick: "`">: DEFAULT
+}
 
 /**
 * When in the DEFAULT state, single quotes are the start of
@@ -258,7 +288,6 @@ TOKEN: {
 | < backslash: "\\">
 | < right_bracket: "]">
 | < circumflex: "^">
-| < backtick: "`">
 | < left_curly_brace: "{">
 | < vertical_line: "|">
 | < right_curly_brace: "}">
@@ -399,6 +428,15 @@ ActualIdentifier actualIdentifier():
 }
 DelimitedIdentifier delimitedIdentifier():
 { 
+	DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier;
+	BacktickDelimitedIdentifier backtickDelimitedIdentifier;
+}
+{
+	doubleQuoteDelimitedIdentifier = doubleQuoteDelimitedIdentifier() { return new DelimitedIdentifier(doubleQuoteDelimitedIdentifier); }
+	| backtickDelimitedIdentifier = backtickDelimitedIdentifier() { return new DelimitedIdentifier(backtickDelimitedIdentifier); }
+}
+DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier():
+{ 
 	Token token = null;
 	StringBuilder builder = new StringBuilder();
 }
@@ -409,7 +447,21 @@ DelimitedIdentifier delimitedIdentifier():
 		| <escape_double_quote> { builder.append("\""); }
 	)*
 	<end_double_quote>
-	{ return new DelimitedIdentifier(builder.toString()); }
+	{ return new DoubleQuoteDelimitedIdentifier(builder.toString()); }
+}
+BacktickDelimitedIdentifier backtickDelimitedIdentifier():
+{ 
+	Token token = null;
+	StringBuilder builder = new StringBuilder();
+}
+{
+	<start_backtick>
+	( 
+		token = <not_backtick> { builder.append(token.image); }
+		| <escape_backtick> { builder.append("`"); }
+	)*
+	<end_backtick>
+	{ return new BacktickDelimitedIdentifier(builder.toString()); }
 }
 ColumnReference columnReference():
 {

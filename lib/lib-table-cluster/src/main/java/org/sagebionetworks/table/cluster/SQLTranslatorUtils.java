@@ -21,22 +21,28 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.DoubleQuoteDelimitedIdentifier;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -345,6 +351,28 @@ public class SQLTranslatorUtils {
 		if(pagination != null){
 			translate(pagination, parameters);
 		}
+		
+		/*
+		 *  By this point anything all remaining DelimitedIdentifier should be treated as a column
+		 *  reference and therefore should be enclosed in backticks.
+		 */
+		translateUnresolvedDelimitedIdentifiers(transformedModel);
+	}
+	
+	/**
+	 * Any DelimitedIdentifier remaining in the query after translation should be
+	 * treated as a column reference, which for MySQL, means the value must be
+	 * within backticks. Therefore, this function will translate any
+	 * DoubleQuoteDelimitedIdentifier into a BacktickDelimitedIdentifier. any
+	 * 
+	 * @param element
+	 */
+	public static void translateUnresolvedDelimitedIdentifiers(Element element) {
+		Iterable<DelimitedIdentifier> delimitedIdentifierIt = element.createIterable(DelimitedIdentifier.class);
+		for(DelimitedIdentifier identifier: delimitedIdentifierIt) {
+			String value = identifier.toSqlWithoutQuotes();
+			identifier.replaceChildren(new BacktickDelimitedIdentifier(value));
+		}
 	}
 
 	/**
@@ -389,15 +417,13 @@ public class SQLTranslatorUtils {
 			Map<String, ColumnModel> columnNameToModelMap) {
 		ValidateArgument.required(groupByClause, "groupByClause");
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
-		Iterable<ColumnNameReference> references = groupByClause.createIterable(ColumnNameReference.class);
-		if(references != null){
-			for(ColumnNameReference reference: references){
-				// Lookup the column
-				ColumnModel model = columnNameToModelMap.get(reference.toSqlWithoutQuotes());
-				if(model != null){
-					String newName = SQLUtils.getColumnNameForId(model.getId());
-					reference.replaceChildren(new StringOverride(newName));
-				}
+		Iterable<ColumnName> references = groupByClause.createIterable(ColumnName.class);
+		for(ColumnName reference: references){
+			// Lookup the column
+			ColumnModel model = columnNameToModelMap.get(reference.toSqlWithoutQuotes());
+			if(model != null){
+				String newName = SQLUtils.getColumnNameForId(model.getId());
+				reference.replaceChildren(new RegularIdentifier(newName));
 			}
 		}
 	}
@@ -418,14 +444,9 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
-		// Translate the left-hand-side
-		ColumnReference leftHandSide = predicate.getLeftHandSide();
-		// lookup the column name
-		ColumnNameReference columnNameReference = leftHandSide.getNameRHS().getFirstElementOfType(ColumnNameReference.class);
-		ColumnModel model = columnNameToModelMap.get(columnNameReference.toSqlWithoutQuotes());
+		// lookup the column name from the left-hand-side
+		ColumnModel model = columnNameToModelMap.get(predicate.getLeftHandSide().toSqlWithoutQuotes());
 		if(model != null){
-			String newName = SQLUtils.getColumnNameForId(model.getId());
-			columnNameReference.replaceChildren(new StringOverride(newName));
 			// handle the right-hand-side values
 			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
@@ -433,21 +454,16 @@ public class SQLTranslatorUtils {
 					translateRightHandeSide(element, model, parameters);
 				}
 			}
-			// handle the right-hand-side references
-			// We are currently treating all column names as values on the right-hand-side
-			Iterable<ColumnName> rightHandReferences = predicate.getRightHandSideColumnReferences();
-			if(rightHandReferences != null){
-				for(ColumnName columnName: rightHandReferences){
-					// is this a reference to a column?
-					ColumnModel subRefrence = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
-					if(subRefrence != null){
-						String replacementName = SQLUtils.getColumnNameForId(subRefrence.getId());
-						columnName.replaceChildren(new StringOverride(replacementName));
-					}else{
-						// since this does not match a column treat it as a value.
-						translateRightHandeSide(columnName, model, parameters);
-					}
-				}
+		}
+		
+		// replace all column references in the predicate
+		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
+		for (ColumnName columnName : rightHandReferences) {
+			// is this a reference to a column?
+			ColumnModel referencedColumn = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
+			if (referencedColumn != null) {
+				String replacementName = SQLUtils.getColumnNameForId(referencedColumn.getId());
+				columnName.replaceChildren(new RegularIdentifier(replacementName));
 			}
 		}
 	}
@@ -554,7 +570,7 @@ public class SQLTranslatorUtils {
 				}
 			}
 			if(newName != null){
-				columnNameReference.replaceChildren(new StringOverride(newName));
+				columnNameReference.replaceChildren(new RegularIdentifier(newName));
 			}
 		}
 	}
@@ -577,7 +593,7 @@ public class SQLTranslatorUtils {
 			String newName = null;
 			if(model != null){
 				newName = SQLUtils.getColumnNameForId(model.getId());
-				columnNameReference.replaceChildren(new StringOverride(newName));
+				columnNameReference.replaceChildren(new RegularIdentifier(newName));
 			}
 		}
 	}

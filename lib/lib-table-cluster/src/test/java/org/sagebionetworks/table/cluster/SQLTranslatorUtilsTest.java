@@ -48,6 +48,7 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
+import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 import com.google.common.collect.Lists;
@@ -994,7 +995,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereBetween() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and \"2\"").querySpecification();
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and 2").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ BETWEEN :b0 AND :b1",element.toSql());
@@ -1004,7 +1005,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,\"3\")").querySpecification();
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,3)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IN ( :b0, :b1, :b2 )",element.toSql());
@@ -1126,7 +1127,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select sum((id+foo)/aDouble) as \"sum\" from syn123").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT SUM((_C444_+_C111_)/CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS \"sum\" FROM T123",element.toSql());
+		assertEquals("SELECT SUM((_C444_+_C111_)/CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS `sum` FROM T123",element.toSql());
 	}
 	
 	/**
@@ -1154,7 +1155,8 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	/**
-	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a 
+	 * column reference.
 	 * 
 	 * @throws ParseException
 	 */
@@ -1163,8 +1165,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = notReference").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
-		assertEquals("notReference", parameters.get("b0"));
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = notReference",element.toSql());
 	}
 	
 	/**
@@ -1180,7 +1181,8 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	/**
-	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a 
+	 * column reference in backticks. See: PLFM-3867.
 	 * 
 	 * @throws ParseException
 	 */
@@ -1189,8 +1191,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"notReference\"").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
-		assertEquals("notReference", parameters.get("b0"));
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = `notReference`",element.toSql());
 	}
 	
 	@Test
@@ -1226,6 +1227,32 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT * FROM T123 WHERE _C111_ > UNIX_TIMESTAMP(CURRENT_TIMESTAMP-INTERVAL 1 MONTH)/:b0",element.toSql());
 		assertEquals("1000", parameters.get("b0"));
+	}
+	
+	/**
+	 * Double quoted alias should be wrapped in backticks.
+	 * See PLFM-4736
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateDoubleQuotedAliasOrder() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select bar as \"a1\", count(foo) as \"a2\" from syn123 group by \"a1\" order by \"a2\" desc").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C333_ AS `a1`, COUNT(_C111_) AS `a2` FROM T123 GROUP BY `a1` ORDER BY `a2` DESC",element.toSql());
+	}
+	
+	/**
+	 * Value in double quotes.  Any value in double quotes should be treated as a column reference in backticks.
+	 * See: PLFM-3866
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateValueInDoubleQuotes() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in(\"one\",\"two\")").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( `one`, `two` )",element.toSql());
 	}
 	
 	@Test
