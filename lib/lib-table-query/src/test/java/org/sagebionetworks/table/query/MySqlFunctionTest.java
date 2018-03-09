@@ -202,4 +202,18 @@ public class MySqlFunctionTest {
 		assertEquals("DAYOFYEAR('2007-02-03')", element.toSql());
 		assertEquals(FunctionReturnType.LONG, element.getFunctionReturnType());
 	}
+	
+	@Test
+	public void testMonthName() throws ParseException{
+		MySqlFunction element = new TableQueryParser("monthname('2007-02-03')").mysqlFunction();
+		assertEquals("MONTHNAME('2007-02-03')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionReturnType());
+	}
+	
+	@Test
+	public void testWeekOfYear() throws ParseException{
+		MySqlFunction element = new TableQueryParser("weekofyear('2007-02-03')").mysqlFunction();
+		assertEquals("WEEKOFYEAR('2007-02-03')", element.toSql());
+		assertEquals(FunctionReturnType.LONG, element.getFunctionReturnType());
+	}
 }

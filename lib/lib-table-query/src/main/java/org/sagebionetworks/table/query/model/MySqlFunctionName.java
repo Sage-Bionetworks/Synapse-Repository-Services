@@ -19,6 +19,8 @@ public enum MySqlFunctionName {
 	DAYOFWEEK(FunctionReturnType.LONG),
 	DAYOFMONTH(FunctionReturnType.LONG),
 	DAYOFYEAR(FunctionReturnType.LONG),
+	WEEKOFYEAR(FunctionReturnType.LONG),
+	MONTHNAME(FunctionReturnType.STRING),
 	// date-time-fields
 	MICROSECOND(FunctionReturnType.LONG),
 	SECOND(FunctionReturnType.LONG),
