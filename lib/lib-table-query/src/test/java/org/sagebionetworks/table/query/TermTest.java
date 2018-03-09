@@ -20,4 +20,10 @@ public class TermTest {
 		Term term = new TableQueryParser("foo/100*5/12").term();
 		assertEquals("foo/100*5/12", term.toSql());
 	}
+	
+	@Test
+	public void testTermArithmeticDiv() throws ParseException{
+		Term term = new TableQueryParser("5 div 2").term();
+		assertEquals("5 DIV 2", term.toSql());
+	}
 }

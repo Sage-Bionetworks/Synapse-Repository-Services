@@ -8,6 +8,7 @@ public enum ArithmeticOperator {
 
 	ASTERISK("*"),
 	SOLIDUS("/"),
+	DIV(" DIV "),
 	PLUS_SIGN("+"),
 	MINUS_SIGN("-"),
 	MODULO("%");
