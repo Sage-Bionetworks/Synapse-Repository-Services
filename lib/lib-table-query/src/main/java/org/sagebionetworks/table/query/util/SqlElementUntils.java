@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.Token;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFactor;
@@ -21,6 +22,7 @@ import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.DoubleQuoteDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.GroupByClause;
@@ -669,8 +671,13 @@ public class SqlElementUntils {
 			 * create the SortKey. For non-aggregate functions the name must be
 			 * bracketed in quotes.
 			 */
-			ValueExpression primary = new TableQueryParser(columnName)
-					.valueExpression();
+			TableQueryParser parser = new TableQueryParser(columnName);
+			ValueExpression primary = parser.valueExpression();
+			String nextToken = parser.getNextToken().toString();
+			if(nextToken.length() > 1) {
+				// The entire value was not consumed so it must be wrapped
+				return new TableQueryParser(wrapInDoubleQuotes(columnName)).sortKey();
+			}
 			if (primary.hasAnyAggregateElements()) {
 				return new SortKey(primary);
 			} else {
