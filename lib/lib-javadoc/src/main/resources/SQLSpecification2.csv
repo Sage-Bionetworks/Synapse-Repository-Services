@@ -44,7 +44,7 @@ Date and Time Functions,Filtering on columns of type DATE using a standard strin
 Date and Time Functions,Filtering on columns of type DATE using an interval.  This example will select all rows have been modified in last 30 days.  Interval units can be YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND | MICROSECOND.,select * from syn123 where modified_on > unix_timestamp(NOW() - INTERVAL 30 DAY)*1000
 Date and Time Functions,"For columns of type DATE, select the date value as a standard date string in the format: 'YYYY-MM-DD HH:MM:SS'.",select FROM_UNIXTIME(aDate/1000) from syn123
 Date and Time Functions,Function to extract a numeric value from a date-time string.  Supported functions include: MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | QUARTER | YEAR | YEARWEEK | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | WEEKOFYEAR,select microsecond('12:00:00.123456') from syn123
-Date and Time Functions,Function to extract a string value from a date-time string.  Supported functions include: DATE | DAYNAME | MONTHNAME,select dayname(‘2007-02-03’) from syn123
+Date and Time Functions,Function to extract a string value from a date-time string.  Supported functions include: DATE | DAYNAME | MONTHNAME,select dayname('2007-02-03') from syn123
 String Functions,Concatenate the values of columns foo and bar into a single string.,"select concat(foo, bar) from syn123"
 String Functions,Replace all space characters with underscores for all values from the foo column.,"select replace(foo, ' ', '_') from syn123   "
 String Functions,Convert all string values from the column foo to upper case.,select upper(foo) from syn123
