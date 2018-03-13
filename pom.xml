@@ -614,10 +614,11 @@
 				<version>${org.json.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.sun.mail</groupId>
-				<artifactId>javax.mail</artifactId>
-				<version>1.6.1</version>
+				<groupId>javax.mail</groupId>
+				<artifactId>mail</artifactId>
+				<version>1.4</version>
 			</dependency>
+
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->

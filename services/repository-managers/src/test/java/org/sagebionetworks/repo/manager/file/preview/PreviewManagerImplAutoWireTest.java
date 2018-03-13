@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -117,7 +116,7 @@ public class PreviewManagerImplAutoWireTest {
 		ObjectMetadata s3Meta = s3Client.getObjectMetadata(pfm.getBucketName(), pfm.getKey());
 		assertNotNull(s3Meta);
 		assertEquals(ImagePreviewGenerator.IMAGE_PNG, s3Meta.getContentType());
-		assertEquals(ContentDispositionUtils.getContentDispositionValue(pfm.getFileName()), s3Meta.getContentDisposition());
+		assertEquals(TransferUtils.getContentDispositionValue(pfm.getFileName()), s3Meta.getContentDisposition());
 	}
 
 	@Test
