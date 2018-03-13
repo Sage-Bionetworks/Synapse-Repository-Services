@@ -124,7 +124,7 @@ public class DBOColumnModelImplTest {
 		assertNotNull(list);
 		assertEquals(2, list.size());
 		assertTrue(list.contains(one));
-		assertTrue(list.contains(two));
+		assertTrue(list.contains(three));
 	}
 	
 	@Test
@@ -321,27 +321,20 @@ public class DBOColumnModelImplTest {
 		assertEquals(models, fetched);
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testBindNull() throws NotFoundException{
 		String tableId = "syn123";
-		int count = columnModelDao.bindColumnToObject(null, tableId);
-		assertEquals(0, count);
-		// Now bind some columns
-		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
-		// Create each one
-		List<ColumnModel> models = new LinkedList<ColumnModel>();
-		for(ColumnModel cm: raw){
-			models.add(columnModelDao.createColumnModel(cm));
-		}
-		count = columnModelDao.bindColumnToObject(models, tableId);
-		assertEquals(models.size(), count);
-		// Now if we set it back to empty the update should include 5 rows
-		columnModelDao.unbindAllColumnsFromObject(tableId);
-		
-		// The bound list should not be null
-		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(tableId);
-		assertNotNull(results);
-		assertEquals(0,  results.size());
+		List<ColumnModel> toBind = null;
+		// call under test
+		columnModelDao.bindColumnToObject(toBind, tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBindEmpty() throws NotFoundException{
+		String tableId = "syn123";
+		List<ColumnModel> toBind = new LinkedList<>();
+		// call under test
+		columnModelDao.bindColumnToObject(toBind, tableId);
 	}
 	
 	@Test
@@ -363,36 +356,7 @@ public class DBOColumnModelImplTest {
 		secondId = columnModelDao.createColumnModel(second).getId();
 		assertFalse("Two columns that differ only by case should not get the same",firstId.equals(secondId));
 	}
-	
-	/**
-	 *  Should not be able to bind two columns with the same name to the same object
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	@Test
-	public void testBindWithNameConflict() throws DatastoreException, NotFoundException{
-		// Should not be able to bind two columns with the same name to the same object
-		ColumnModel first = new ColumnModel();
-		first.setName("AbbB");
-		first.setColumnType(ColumnType.STRING);
-		first.setMaximumSize(10L);
-		first = columnModelDao.createColumnModel(first);
-		// The second has the same name but different type.
-		ColumnModel second = new ColumnModel();
-		second.setName(first.getName());
-		second.setColumnType(ColumnType.INTEGER);
-		second = columnModelDao.createColumnModel(second);
-		// They should not have the same id
-		assertFalse("Two columns with the same name but different type should not have the same ID",first.getId().equals(second.getId()));
-		// now try to bind both columns to an object
-		try{
-			columnModelDao.bindColumnToObject(Lists.newArrayList(first, second), "syn123");
-			fail("Should not be able to bind two columns with the same name to the same object");
-		}catch(IllegalArgumentException e){
-			// expected
-			assertTrue("The error should contain the duplicate name",e.getMessage().contains(first.getName()));
-		}
-	}
+
 	
 	@Test
 	public void testDeleteColumnModel() throws DatastoreException, NotFoundException {
