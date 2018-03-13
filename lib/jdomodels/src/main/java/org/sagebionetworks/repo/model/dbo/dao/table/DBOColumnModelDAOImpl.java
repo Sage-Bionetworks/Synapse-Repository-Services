@@ -186,41 +186,32 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@WriteTransaction
 	@Override
-	public int bindColumnToObject(List<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
-		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
-		if(newCurrentColumnIds == null || newCurrentColumnIds.isEmpty()){
-			// delete all columns for this object
-			return unbindAllColumnsFromObject(objectIdString);
-		}		
-		Long objectId = KeyFactory.stringToKey(objectIdString);
-		try {
-			// Create or update the owner.
-			DBOBoundColumnOwner owner = new DBOBoundColumnOwner();
-			owner.setObjectId(objectId);
-			owner.setEtag(UUID.randomUUID().toString());
-			basicDao.createOrUpdate(owner);
-			
-			// first bind these columns to the object. This binding is permanent and can only grow over time.
-			List<DBOBoundColumn> permanent = ColumnModelUtils.createDBOBoundColumnList(objectId, newCurrentColumnIds);
-			// Sort by columnId to prevent deadlock
-			ColumnModelUtils.sortByColumnId(permanent);
-			// Insert or update the batch
-			basicDao.createOrUpdateBatch(permanent);
-			// Now replace the current current ordinal binding for this object.
-			jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
-			// Now insert the ordinal values
-			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtils.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
-			// this is just an insert
-			basicDao.createBatch(ordinal);
-			return newCurrentColumnIds.size();
-		} catch (IllegalArgumentException e) {
-			// Check to see if the COL_MODEL_FK constraint was triggered.
-			if(e.getMessage().contains("COL_MODEL_FK")){
-				throw new NotFoundException("One or more of the following ColumnModel IDs does not exist: "+newCurrentColumnIds.toString());
-			}else{
-				throw e;
-			}
+	public int bindColumnToObject(final List<ColumnModel> newColumns, final String objectIdString) throws NotFoundException {
+		ValidateArgument.required(newColumns, "newColumns");
+		if(newColumns.isEmpty()) {
+			throw new IllegalArgumentException("NewColumns cannot be null");
 		}
+		ValidateArgument.required(objectIdString, "objectId");	
+		Long objectId = KeyFactory.stringToKey(objectIdString);
+		// Create or update the owner.
+		DBOBoundColumnOwner owner = new DBOBoundColumnOwner();
+		owner.setObjectId(objectId);
+		owner.setEtag(UUID.randomUUID().toString());
+		basicDao.createOrUpdate(owner);
+		
+		// first bind these columns to the object. This binding is permanent and can only grow over time.
+		List<DBOBoundColumn> permanent = ColumnModelUtils.createDBOBoundColumnList(objectId, newColumns);
+		// Sort by columnId to prevent deadlock
+		ColumnModelUtils.sortByColumnId(permanent);
+		// Insert or update the batch
+		basicDao.createOrUpdateBatch(permanent);
+		// Now replace the current current ordinal binding for this object.
+		jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
+		// Now insert the ordinal values
+		List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtils.createDBOBoundColumnOrdinalList(objectId, newColumns);
+		// this is just an insert
+		basicDao.createBatch(ordinal);
+		return newColumns.size();
 	}
 
 	@Override

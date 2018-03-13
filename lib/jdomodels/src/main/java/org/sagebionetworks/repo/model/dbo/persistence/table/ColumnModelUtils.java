@@ -260,13 +260,13 @@ public class ColumnModelUtils {
 	 * @param ids
 	 * @return
 	 */
-	public static List<DBOBoundColumn> createDBOBoundColumnList(Long objectId, List<String> ids){
+	public static List<DBOBoundColumn> createDBOBoundColumnList(Long objectId, List<ColumnModel> columns){
 		List<DBOBoundColumn> list = new LinkedList<DBOBoundColumn>();
 		long now = System.currentTimeMillis();
 		// Add each id
-		for(String id: ids){
+		for(ColumnModel column: columns){
 			DBOBoundColumn bc = new DBOBoundColumn();
-			bc.setColumnId(Long.parseLong(id));
+			bc.setColumnId(Long.parseLong(column.getId()));
 			bc.setObjectId(objectId);
 			bc.setUpdatedOn(now);
 			list.add(bc);
@@ -280,11 +280,12 @@ public class ColumnModelUtils {
 	 * @param ids
 	 * @return
 	 */
-	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(Long objectId, List<String> ids){
+	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(Long objectId, List<ColumnModel> columns){
 		List<DBOBoundColumnOrdinal> list = new LinkedList<DBOBoundColumnOrdinal>();
 		// Keep the order of the columns
-		for(int i=0; i<ids.size(); i++){
-			Long id = Long.parseLong(ids.get(i));
+		for(int i=0; i<columns.size(); i++){
+			ColumnModel column = columns.get(i);
+			Long id = Long.parseLong(column.getId());
 			DBOBoundColumnOrdinal bc = new DBOBoundColumnOrdinal();
 			bc.setColumnId(id);
 			bc.setObjectId(objectId);

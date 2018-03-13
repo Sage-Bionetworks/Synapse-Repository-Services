@@ -183,7 +183,7 @@ public class TableViewManagerImplTest {
 		// the size should be validated
 		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
+		verify(columnModelManager).bindColumnToObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
@@ -211,7 +211,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnToObject(userInfo, null, viewId);
+		verify(columnModelManager).bindColumnToObject(null, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
@@ -221,7 +221,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
-		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
+		verify(columnModelManager).bindColumnToObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
@@ -289,7 +289,7 @@ public class TableViewManagerImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
 		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
-		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
+		when(columnModelManager.getColumnModels(newColumnIds)).thenReturn(schema);
 		
 		// call under test
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
@@ -320,7 +320,7 @@ public class TableViewManagerImplTest {
 		}
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
 		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
-		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
+		when(columnModelManager.getColumnModels(newColumnIds)).thenReturn(schema);
 		
 		try {
 			// call under test

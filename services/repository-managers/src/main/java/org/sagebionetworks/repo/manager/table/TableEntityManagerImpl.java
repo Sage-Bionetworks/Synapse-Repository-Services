@@ -548,7 +548,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 
 				@Override
 				public Void call(ProgressCallback callback) throws Exception {
-					columModelManager.bindColumnToObject(userInfo, columnIds, id);
+					columModelManager.bindColumnToObject(columnIds, id);
 					tableManagerSupport.setTableToProcessingAndTriggerUpdate(id);
 					return null;
 				}
@@ -734,9 +734,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 
 		// first determine what the new Schema will be
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
-		boolean keepOrder = true;
-		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);
+		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, changes.getEntityId());
 		// If the change includes an update then a change needs to be pushed to the changes
 		if(containsColumnUpdate(changes.getChanges())){
 			List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
@@ -783,7 +781,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			change = tableRowTruthDao.upgradeToNewChangeSet(change.getTableId(), change.getRowVersion(), sparse.writeToDto());
 		}
 		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);
-		List<ColumnModel> schema = columnModelDao.getColumnModel(dto.getColumnIds(), true);
+		List<ColumnModel> schema = columnModelDao.getColumnModel(dto.getColumnIds());
 		return new SparseChangeSet(dto, schema);
 	}
 

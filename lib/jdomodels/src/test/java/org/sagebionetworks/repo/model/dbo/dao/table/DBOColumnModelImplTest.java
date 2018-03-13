@@ -120,32 +120,18 @@ public class DBOColumnModelImplTest {
 		// ask for the rows out of order.
 		ids.add(three.getId());
 		ids.add(one.getId());
-		List<ColumnModel> list = columnModelDao.getColumnModel(ids, false);
+		List<ColumnModel> list = columnModelDao.getColumnModel(ids);
 		assertNotNull(list);
 		assertEquals(2, list.size());
-		// The rows should be alphabetical order by name.
-		assertEquals(one, list.get(0));
-		assertEquals(three, list.get(1));
+		assertTrue(list.contains(one));
+		assertTrue(list.contains(two));
 	}
 	
 	@Test
 	public void testGetListEmpty() throws DatastoreException, NotFoundException{
-		List<ColumnModel> list = columnModelDao.getColumnModel(new LinkedList<String>(), false);
+		List<ColumnModel> list = columnModelDao.getColumnModel(new LinkedList<String>());
 		assertNotNull(list);
 		assertTrue(list.isEmpty());
-	}
-	
-	@Test
-	public void testGetListInOrder() throws DatastoreException, NotFoundException {
-		// Get the list
-		List<String> ids = Lists.newArrayList(two.getId(), three.getId(), one.getId());
-		List<ColumnModel> list = columnModelDao.getColumnModel(ids, true);
-		assertNotNull(list);
-		assertEquals(3, list.size());
-		// The rows should be alphabetical order by name.
-		assertEquals(two, list.get(0));
-		assertEquals(three, list.get(1));
-		assertEquals(one, list.get(2));
 	}
 
 	@Test
@@ -154,16 +140,15 @@ public class DBOColumnModelImplTest {
 		assertNotNull(ids);
 		assertTrue(ids.isEmpty());
 		// Now bind one column
-		List<String> toBind = new LinkedList<String>();
-		toBind.add(two.getId());
+		List<ColumnModel> toBind = Lists.newArrayList(two);
 		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
 		String ownerEtag = columnModelDao.lockOnOwner("syn123");
 		assertNotNull(ownerEtag);
 		// Now bind the next two
 		toBind.clear();
-		toBind.add(one.getId());
-		toBind.add(three.getId());
+		toBind.add(one);
+		toBind.add(three);
 		count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
 		
@@ -172,45 +157,10 @@ public class DBOColumnModelImplTest {
 		assertEquals(expected, ids);
 	}
 	
-	/**
-	 * Test for PLFM-3113
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Test
-	public void testBindColumnsWithDuplicates() throws DatastoreException, NotFoundException{
-		// Now bind one column
-		List<String> toBind = Lists.newArrayList(two.getId(), two.getId());
-		// call under test
-		try {
-			columnModelDao.bindColumnToObject(toBind, "syn123");
-		} catch (IllegalArgumentException e) {
-			assertEquals("", e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testBindColumnsDoesNotExist() throws Exception {
-		// Now bind one column
-		List<String> toBind = new LinkedList<String>();
-		// This should not exist
-		String fakeId = "999999999999";
-		toBind.add(fakeId);
-		try{
-			columnModelDao.bindColumnToObject(toBind, "syn123");
-			fail("Should have thrown an exception");
-		}catch(NotFoundException e){
-			System.out.println(e.getMessage());
-			assertTrue(e.getMessage().contains(fakeId));
-		}
-	}
-	
 	@Test
 	public void testUnbindColumnsAndDeleteOwner() throws DatastoreException, NotFoundException {
 		// Now bind one column
-		List<String> toBind = new LinkedList<String>();
-		toBind.add(one.getId());
-		toBind.add(two.getId());
+		List<ColumnModel> toBind = Lists.newArrayList(one, two);
 		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
 		columnModelDao.lockOnOwner("syn123");
@@ -228,23 +178,17 @@ public class DBOColumnModelImplTest {
 	@Test
 	public void testlistObjectsBoundToColumn() throws DatastoreException, NotFoundException{
 		// bind two columns to two objects
-		List<String> toBind = new LinkedList<String>();
-		toBind.add(two.getId());
-		toBind.add(one.getId());
+		List<ColumnModel> toBind = Lists.newArrayList(one, two);
 		columnModelDao.bindColumnToObject(toBind, "syn123");
 		// make only one the current
-		toBind.clear();
-		toBind.add(one.getId());
+		toBind = Lists.newArrayList(one);
 		columnModelDao.bindColumnToObject(toBind, "syn123");
 		
 		// bind to the other object
-		toBind.clear();
-		toBind.add(two.getId());
-		toBind.add(three.getId());
+		toBind = Lists.newArrayList(two, three);
 		columnModelDao.bindColumnToObject(toBind, "syn456");
 		// make only two the current
-		toBind.clear();
-		toBind.add(two.getId());
+		toBind = Lists.newArrayList(two);
 		columnModelDao.bindColumnToObject(toBind, "syn456");
 		
 		// None are bound to all three
@@ -282,8 +226,7 @@ public class DBOColumnModelImplTest {
 		
 		// now bind one to syn456
 		// make only two the current
-		toBind.clear();
-		toBind.add(one.getId());
+		toBind = Lists.newArrayList(one);
 		columnModelDao.bindColumnToObject(toBind, "syn456");
 		
 		// now filter one and two.
@@ -360,10 +303,9 @@ public class DBOColumnModelImplTest {
 		}
 		// Shuffle the results so the order they are bound to does not match the natural order
 		Collections.shuffle(models);
-		List<String> ids = TableModelUtils.getIds(models);
 		// Now bind them to the table in this shuffled order
 		String tableId = "syn123";
-		columnModelDao.bindColumnToObject(ids, tableId);
+		columnModelDao.bindColumnToObject(models, tableId);
 		// Now make sure we can fetch this back in the same order that we bound the columns
 		List<ColumnModel> fetched = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(fetched);
@@ -371,9 +313,8 @@ public class DBOColumnModelImplTest {
 		// Now if we update the columns bound to the object the order should change
 		models.remove(0);
 		Collections.shuffle(models);
-		ids = TableModelUtils.getIds(models);
 		// Bind the new columns in a new order
-		columnModelDao.bindColumnToObject(ids, tableId);
+		columnModelDao.bindColumnToObject(models, tableId);
 		// Get them back in the same order with the same columns
 		fetched = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(fetched);
@@ -392,13 +333,10 @@ public class DBOColumnModelImplTest {
 		for(ColumnModel cm: raw){
 			models.add(columnModelDao.createColumnModel(cm));
 		}
-		List<String> ids = TableModelUtils.getIds(models);
-		count = columnModelDao.bindColumnToObject(ids, tableId);
-		assertEquals(ids.size(), count);
+		count = columnModelDao.bindColumnToObject(models, tableId);
+		assertEquals(models.size(), count);
 		// Now if we set it back to empty the update should include 5 rows
-		List<String> empty = new LinkedList<String>();
-		count = columnModelDao.bindColumnToObject(empty, tableId);
-		assertEquals(ids.size(), count);
+		columnModelDao.unbindAllColumnsFromObject(tableId);
 		
 		// The bound list should not be null
 		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(tableId);
@@ -448,7 +386,7 @@ public class DBOColumnModelImplTest {
 		assertFalse("Two columns with the same name but different type should not have the same ID",first.getId().equals(second.getId()));
 		// now try to bind both columns to an object
 		try{
-			columnModelDao.bindColumnToObject(Arrays.asList(first.getId(), second.getId()), "syn123");
+			columnModelDao.bindColumnToObject(Lists.newArrayList(first, second), "syn123");
 			fail("Should not be able to bind two columns with the same name to the same object");
 		}catch(IllegalArgumentException e){
 			// expected

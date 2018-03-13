@@ -101,7 +101,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @return True if the this object was not already bound to this object.
 	 * @throws NotFoundException 
 	 */
-	public int bindColumnToObject(List<String> columnIds, String objectId) throws NotFoundException;
+	public int bindColumnToObject(List<ColumnModel> columnModels, String objectId) throws NotFoundException;
 	
 	/**
 	 * List all objects that are bound to a set of column IDs.
