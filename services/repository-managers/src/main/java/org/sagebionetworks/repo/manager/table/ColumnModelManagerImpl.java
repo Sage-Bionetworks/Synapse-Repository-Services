@@ -156,11 +156,27 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder)
+	public List<ColumnModel> getColumnModel(List<String> ids)
 			throws DatastoreException, NotFoundException {
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		if(ids == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
-		return columnModelDao.getColumnModel(ids, keepOrder);
+		if(ids == null) {
+			throw new IllegalArgumentException("ColumnModel IDs cannot be null");
+		}
+		List<ColumnModel> fromDb =  columnModelDao.getColumnModel(ids);
+		Map<String, ColumnModel> resultMap = new HashMap<>(fromDb.size());
+		Set<String> visitedIds = new HashSet<>(fromDb.size());
+		List<ColumnModel> results = new LinkedList<>();
+		for(String id: ids) {
+			ColumnModel cm = resultMap.get(id);
+			if(cm == null) {
+				throw new IllegalArgumentException("ColumnModel does not exist for id: "+id);
+			}
+			if(visitedIds.add(id)) {
+				results.add(cm);
+			}else {
+				throw new IllegalArgumentException("Duplicate column: "+cm.getName());
+			}
+		}
+		return results;
 	}
 	
 	@WriteTransaction

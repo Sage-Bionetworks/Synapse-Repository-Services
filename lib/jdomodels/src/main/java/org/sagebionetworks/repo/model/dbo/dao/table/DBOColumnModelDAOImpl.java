@@ -18,7 +18,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,8 +52,6 @@ import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.collect.Sets;
-
 /**
  * Database implementation of the ColumnModelDAO interface.
  * 
@@ -77,8 +74,6 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private static final String SQL_TRUNCATE_BOUND_COLUMN_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_ORDINAL+" >= 0";
 	private static final String SQL_TRUNCATE_COLUMN_MODEL= "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" >= 0";
 	private static final String SQL_SELECT_COLUMNS_FOR_IDS = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME;
-	private static final String SQL_SELECT_COLUMNS_FOR_IDS_IN_ORDER = "SELECT * FROM " + TABLE_COLUMN_MODEL + " WHERE " + COL_CM_ID
-			+ " IN ( :ids ) ORDER BY FIELD(" + COL_CM_ID + ", :ids )";
 	private static final String SQL_SELECT_ID_WHERE_HASH_EQUALS = "SELECT "+COL_CM_ID+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_HASH+" = ?";
 	
 	@Autowired
@@ -196,17 +191,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		if(newCurrentColumnIds == null || newCurrentColumnIds.isEmpty()){
 			// delete all columns for this object
 			return unbindAllColumnsFromObject(objectIdString);
-		}
-		// Get each model to valid they exist.
-		List<ColumnModel> columns = getColumnModel(newCurrentColumnIds, false);
-		// Validate that all names are unique within this object
-		Set<String> nameSet = new HashSet<String>(columns.size());
-		for(ColumnModel cm: columns){
-			if(!nameSet.add(cm.getName())){
-				throw new IllegalArgumentException("Cannot add two columns with the same name: '"+cm.getName()+"' to table: "+objectIdString);
-			}
-		}
-		
+		}		
 		Long objectId = KeyFactory.stringToKey(objectIdString);
 		try {
 			// Create or update the owner.
@@ -249,28 +234,16 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException {
+	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException {
 		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
 		if(ids.isEmpty()){
 			return new LinkedList<ColumnModel>();
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-		String sql = keepOrder ? SQL_SELECT_COLUMNS_FOR_IDS_IN_ORDER : SQL_SELECT_COLUMNS_FOR_IDS;
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		List<DBOColumnModel> dbos = namedTemplate.query(sql, parameters,ROW_MAPPER);
+		List<DBOColumnModel> dbos = namedTemplate.query(SQL_SELECT_COLUMNS_FOR_IDS, parameters,ROW_MAPPER);
 		// Convert to DTOs
-		List<ColumnModel> results = ColumnModelUtils.createDTOFromDBO(dbos);
-		if(results.size() < ids.size()){
-			// this could be a case of duplicate ids, in which case we want to throw a more specific error
-			Set<String> idSet = Sets.newHashSet();
-			for (String id : ids) {
-				if (!idSet.add(id)) {
-					throw new IllegalArgumentException("Duplicate id in the list of column ids: " + id);
-				}
-			}
-			throw new NotFoundException("One or more of the following ColumnModel IDs does not exist: "+ids.toString());
-		}
-		return results;
+		return ColumnModelUtils.createDTOFromDBO(dbos);
 	}
 
 	

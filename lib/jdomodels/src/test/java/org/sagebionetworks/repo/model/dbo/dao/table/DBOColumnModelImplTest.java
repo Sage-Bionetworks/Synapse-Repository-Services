@@ -172,6 +172,23 @@ public class DBOColumnModelImplTest {
 		assertEquals(expected, ids);
 	}
 	
+	/**
+	 * Test for PLFM-3113
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testBindColumnsWithDuplicates() throws DatastoreException, NotFoundException{
+		// Now bind one column
+		List<String> toBind = Lists.newArrayList(two.getId(), two.getId());
+		// call under test
+		try {
+			columnModelDao.bindColumnToObject(toBind, "syn123");
+		} catch (IllegalArgumentException e) {
+			assertEquals("", e.getMessage());
+		}
+	}
+	
 	@Test
 	public void testBindColumnsDoesNotExist() throws Exception {
 		// Now bind one column
