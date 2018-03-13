@@ -22,7 +22,6 @@ import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import org.sagebionetworks.util.ContentDispositionUtils;
 
 public class ObjectCSVDAOTest {
 
@@ -67,7 +66,7 @@ public class ObjectCSVDAOTest {
 		// Can we read the results?
 		List<ExampleObject> results = dao.readFromStream(inCapture.getValue());
 		assertEquals(data, results);
-		assertEquals(ContentDispositionUtils.getContentDispositionValue(key), metaCapture.getValue().getContentDisposition());
+		assertEquals("attachment; filename="+key+";", metaCapture.getValue().getContentDisposition());
 		assertEquals("application/x-gzip", metaCapture.getValue().getContentType());
 		assertEquals("gzip", metaCapture.getValue().getContentEncoding());
 		assertTrue(metaCapture.getValue().getContentLength() > 1);

@@ -105,7 +105,6 @@ import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -366,7 +365,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			}
 			String fileName = handle.getFileName();
 			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-				responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
+				responseHeaderOverrides.setContentDisposition("attachment; filename=" + fileName);
 			}
 
 			request.setResponseHeaders(responseHeaderOverrides);
@@ -916,7 +915,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(fileContents.length);
-		meta.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
+		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
 		if (contentEncoding!=null) meta.setContentEncoding(contentEncoding);
 		String key = MultipartUtils.createNewKey(createdBy, fileName, null);
 		String bucket = StackConfiguration.getS3Bucket();
