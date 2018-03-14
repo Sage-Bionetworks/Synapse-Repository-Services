@@ -173,17 +173,15 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		for(String id: ids) {
 			ColumnModel cm = resultMap.get(id);
 			if(cm == null) {
-				throw new IllegalArgumentException("Column does not exist for id: "+id);
+				throw new NotFoundException("Column does not exist for id: "+id);
 			}
-			if(visitedIds.add(id)) {
-				if(visitedNames.add(cm.getName())) {
-					results.add(cm);
-				}else {
-					throw new IllegalArgumentException("Duplicate column name: '"+cm.getName()+"'");
-				}
-			}else {
+			if(!visitedIds.add(id)) {
 				throw new IllegalArgumentException("Duplicate column: '"+cm.getName()+"'");
 			}
+			if(!visitedNames.add(cm.getName())) {
+				throw new IllegalArgumentException("Duplicate column name: '"+cm.getName()+"'");
+			}
+			results.add(cm);
 		}
 		return results;
 	}
@@ -400,7 +398,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds);
+		List<ColumnModel> models = getColumnModels(columnIds);
 		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();
@@ -421,6 +419,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@Override
 	public List<String> getColumnIdForTable(String id) {
 		return columnModelDao.getColumnIdsForObject(id);
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModelsForObject(String tableId) {
+		return columnModelDao.getColumnModelsForObject(tableId);
 	}
 	
 }

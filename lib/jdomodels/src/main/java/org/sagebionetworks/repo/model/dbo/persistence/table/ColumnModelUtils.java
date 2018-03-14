@@ -283,14 +283,15 @@ public class ColumnModelUtils {
 	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(Long objectId, List<ColumnModel> columns){
 		List<DBOBoundColumnOrdinal> list = new LinkedList<DBOBoundColumnOrdinal>();
 		// Keep the order of the columns
-		for(int i=0; i<columns.size(); i++){
-			ColumnModel column = columns.get(i);
+		int index = 0;
+		for(ColumnModel column: columns){
 			Long id = Long.parseLong(column.getId());
 			DBOBoundColumnOrdinal bc = new DBOBoundColumnOrdinal();
 			bc.setColumnId(id);
 			bc.setObjectId(objectId);
-			bc.setOrdinal(new Long(i));
+			bc.setOrdinal(new Long(index));
 			list.add(bc);
+			index++;
 		}
 		return list;
 	}

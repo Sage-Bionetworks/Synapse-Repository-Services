@@ -288,7 +288,7 @@ public class ColumnModelManagerTest {
 		try{
 			columnModelManager.getColumnModels(expectedNewSchemaIds);
 			fail();
-		}catch( IllegalArgumentException e) {
+		}catch( NotFoundException e) {
 			// expected
 			assertEquals("Column does not exist for id: 9999", e.getMessage());
 		}
@@ -364,6 +364,22 @@ public class ColumnModelManagerTest {
 	}
 	
 	/**
+	 * Test for PLFM-2636
+	 */
+	@Test
+	public void testBindColumnToObjectNull() {
+		String objectId = "syn123";
+		List<String> columnIds = null;
+		// call under test
+		List<ColumnModel> results = columnModelManager.bindColumnToObject(columnIds, objectId);
+		// should be an emptyt list
+		assertEquals(new LinkedList<>(), results);
+		verify(mockColumnModelDAO, never()).bindColumnToObject(anyListOf(ColumnModel.class), anyString());
+		// should unbind all columns from this object
+		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
+	}
+	
+	/**
 	 * Test for PLFM-3113.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -393,7 +409,7 @@ public class ColumnModelManagerTest {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Test (expected=IllegalArgumentException.class)
+	@Test (expected=NotFoundException.class)
 	public void testBindColumnToObjectDoesNotExist() throws DatastoreException, NotFoundException{
 		// bind a column that does not exist
 		expectedNewSchemaIds.add("9999");
@@ -631,12 +647,28 @@ public class ColumnModelManagerTest {
 				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>()));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateNewSchemaIdsAndValidateOverSizeLimit(){
+		// setup the current schema as empty
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<>());
 		// setup the new schema to be over the limit.
+		List<String> newSchemaIds = new LinkedList<>();
+		List<ColumnChange> changes = new LinkedList<>();
+		for(ColumnModel cm: overLimitSchema) {
+			ColumnChange change = new ColumnChange();
+			change.setOldColumnId(null);
+			change.setNewColumnId(cm.getId());
+			changes.add(change);
+			newSchemaIds.add(cm.getId());
+		}
 		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(overLimitSchema);
-		// call under test.
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
+		try {
+			// call under test.
+			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newSchemaIds);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("Too much data per column"));
+		}
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

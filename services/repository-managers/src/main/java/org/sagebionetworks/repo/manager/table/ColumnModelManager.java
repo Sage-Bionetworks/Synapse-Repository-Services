@@ -156,5 +156,12 @@ public interface ColumnModelManager {
 	 * @return
 	 */
 	public List<String> getColumnIdForTable(String id);
+
+	/**
+	 * Get the column models bound to this object.
+	 * @param tableId
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModelsForObject(String tableId);
 }
 
