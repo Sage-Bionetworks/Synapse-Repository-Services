@@ -179,7 +179,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				if(visitedNames.add(cm.getName())) {
 					results.add(cm);
 				}else {
-					throw new IllegalArgumentException("Duplicate column names: '"+cm.getName()+"'");
+					throw new IllegalArgumentException("Duplicate column name: '"+cm.getName()+"'");
 				}
 			}else {
 				throw new IllegalArgumentException("Duplicate column: '"+cm.getName()+"'");
