@@ -172,14 +172,14 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		List<ColumnModel> results = new LinkedList<>();
 		for(String id: ids) {
 			ColumnModel cm = resultMap.get(id);
-			if(cm == null) {
-				throw new NotFoundException("Column does not exist for id: "+id);
+			if (cm == null) {
+				throw new NotFoundException("Column does not exist for id: " + id);
 			}
-			if(!visitedIds.add(id)) {
-				throw new IllegalArgumentException("Duplicate column: '"+cm.getName()+"'");
+			if (!visitedIds.add(id)) {
+				throw new IllegalArgumentException("Duplicate column: '" + cm.getName() + "'");
 			}
-			if(!visitedNames.add(cm.getName())) {
-				throw new IllegalArgumentException("Duplicate column name: '"+cm.getName()+"'");
+			if (!visitedNames.add(cm.getName())) {
+				throw new IllegalArgumentException("Duplicate column name: '" + cm.getName() + "'");
 			}
 			results.add(cm);
 		}
