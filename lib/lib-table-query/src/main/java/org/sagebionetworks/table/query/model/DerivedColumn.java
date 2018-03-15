@@ -48,20 +48,9 @@ public class DerivedColumn extends SQLElement {
 	 */
 	public String getDisplayName() {
 		if(asClause != null){
-			return asClause.getFirstElementOfType(ActualIdentifier.class).toSqlWithoutQuotes();
-		}
-		// For any aggregate without an as, use the function SQL.
-		if(hasAnyAggregateElements()){
-			return toSql();
-		}
-		// If this has a string literal, then we need the unquoted value.
-		ColumnNameReference hasQuotes = getFirstElementOfType(ColumnNameReference.class);
-		if(hasQuotes != null){
-			// For columns with signedLiterals the name is the unquoted value.
-			return hasQuotes.toSqlWithoutQuotes();
-		}else{
-			// For all all others the name is just the SQL.
-			return toSql();
+			return asClause.getFirstElementOfType(ActualIdentifier.class).toSql();
+		}else {
+			return this.toSql();
 		}
 	}
 	

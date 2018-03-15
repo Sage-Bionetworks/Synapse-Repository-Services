@@ -130,6 +130,84 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void selectRowIdAndVersionStar() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionSingleColumn() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionDistinct() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select distinct foo from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionCount() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select count(*) from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionAggregateFunction() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select max(foo) from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionNonAggreageFunction() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select concat('a',foo) from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionConstant() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 'a constant' from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionConstantPlusColumn() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, 'a constant' from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionArithmeticNoColumns() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 5 div 2 from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionArithmeticWithColumns() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 5 div foo from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionGroupBy() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, count(*) from syn123 group by foo", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndNonAggregateFunction() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, DAYOFMONTH(bar) from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndAs() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo as `cats` from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
 	public void testSelectConstant() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select 'not a foo' from syn123", tableSchema).build();
 		assertEquals("SELECT 'not a foo' FROM T123", translator.getOutputSQL());
@@ -615,8 +693,9 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder(
 				"select doubletype as f1 from syn123", tableSchema).build();
 		assertEquals("SELECT"
-				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
-				+ "FROM T123", translator.getOutputSQL());
+				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1"
+				+ ", ROW_ID, ROW_VERSION"
+				+ " FROM T123", translator.getOutputSQL());
 	}
 	
 	/**
@@ -628,8 +707,9 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder(
 				"select doubletype as f1 from syn123 order by f1", tableSchema).build();
 		assertEquals("SELECT"
-				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
-				+ "FROM T123 ORDER BY f1", translator.getOutputSQL());
+				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1"
+				+ ", ROW_ID, ROW_VERSION"
+				+ " FROM T123 ORDER BY f1", translator.getOutputSQL());
 	}
 	
 	/**
@@ -837,7 +917,7 @@ public class SQLQueryTest {
 		newModel.replaceSelectList(newSelectList);
 		
 		SqlQuery copy = new SqlQueryBuilder(newModel, original).build();
-		assertEquals("SELECT _C111_ AS bar FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
+		assertEquals("SELECT _C111_ AS bar, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
 		assertEquals(3L, copy.getParameters().get("b0"));
 		assertEquals(overideOffset, copy.getParameters().get("b1"));
 		assertEquals(tableSchema, copy.getTableSchema());

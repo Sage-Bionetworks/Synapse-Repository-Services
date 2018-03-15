@@ -41,7 +41,7 @@ public class DerivedColumnTest {
 	@Test
 	public void testDerivedColumnGetNameQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'has space'");
-		assertEquals("has space", element.getDisplayName());
+		assertEquals("'has space'", element.getDisplayName());
 	}
 	
 	@Test
@@ -64,7 +64,7 @@ public class DerivedColumnTest {
 	@Test
 	public void testGetNameWithAsQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'bar' as \"foo\"");
-		assertEquals("foo", element.getDisplayName());
+		assertEquals("\"foo\"", element.getDisplayName());
 	}
 	
 	@Test
@@ -76,7 +76,25 @@ public class DerivedColumnTest {
 	@Test
 	public void testGetNameWithDoubleQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"has space\"");
-		assertEquals("has space", element.getDisplayName());
+		assertEquals("\"has space\"", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetNameWithFunction() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("date(foo)");
+		assertEquals("DATE(foo)", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetNameWithArithmetic() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("5 div 2");
+		assertEquals("5 DIV 2", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetNameWithArithmeticColumn() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("5+foo");
+		assertEquals("5+foo", element.getDisplayName());
 	}
 	
 	@Test
