@@ -41,7 +41,7 @@ public class DerivedColumnTest {
 	@Test
 	public void testDerivedColumnGetNameQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'has space'");
-		assertEquals("'has space'", element.getDisplayName());
+		assertEquals("has space", element.getDisplayName());
 	}
 	
 	@Test
@@ -64,7 +64,7 @@ public class DerivedColumnTest {
 	@Test
 	public void testGetNameWithAsQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'bar' as \"foo\"");
-		assertEquals("\"foo\"", element.getDisplayName());
+		assertEquals("foo", element.getDisplayName());
 	}
 	
 	@Test
@@ -76,7 +76,7 @@ public class DerivedColumnTest {
 	@Test
 	public void testGetNameWithDoubleQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"has space\"");
-		assertEquals("\"has space\"", element.getDisplayName());
+		assertEquals("has space", element.getDisplayName());
 	}
 	
 	@Test
@@ -155,6 +155,48 @@ public class DerivedColumnTest {
 	public void testGetReferencedColumnNameFunctionDistinct() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(distinct bar)");
 		assertEquals("bar", element.getReferencedColumnName());
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesSingleQuote() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("'single'quote'");
+		assertEquals("single'quote", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesDouble() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("\"double\"quote\"");
+		assertEquals("double\"quote", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesBacktick() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("`back`tick`");
+		assertEquals("back`tick", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesNoQuotes() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("count('foo')");
+		assertEquals("count('foo')", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesEmptyk() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("");
+		assertEquals("", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesNull() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes(null);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesJustQuotes() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("''");
+		assertEquals("", result);
 	}
 	
 }

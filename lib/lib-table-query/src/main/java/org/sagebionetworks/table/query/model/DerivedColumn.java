@@ -47,11 +47,41 @@ public class DerivedColumn extends SQLElement {
 	 * @return
 	 */
 	public String getDisplayName() {
+		String name = null;
 		if(asClause != null){
-			return asClause.getFirstElementOfType(ActualIdentifier.class).toSql();
+			name = asClause.getFirstElementOfType(ActualIdentifier.class).toSql();
 		}else {
-			return this.toSql();
+			name = this.toSql();
 		}
+		return stripLeadingAndTailingQuotes(name);
+	}
+	
+	/**
+	 * Strip the leading and tailing quotes from the passes string.
+	 * 
+	 * @param input
+	 * @return
+	 */
+	public static String stripLeadingAndTailingQuotes(String input) {
+		if(input == null) {
+			return null;
+		}
+		StringBuilder builder = new StringBuilder();
+		char[] chars = input.toCharArray();
+		for (int i = 0; i < chars.length; i++) {
+			char thisChar = chars[i];
+			if (i == 0 || i == chars.length - 1) {
+				switch (thisChar) {
+				case '"':
+				case '`':
+				case '\'':
+					// skip any leading or tailing quote.
+					continue;
+				}
+			}
+			builder.append(chars[i]);
+		}
+		return builder.toString();
 	}
 	
 	/**
