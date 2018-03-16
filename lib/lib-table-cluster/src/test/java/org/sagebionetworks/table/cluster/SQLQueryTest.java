@@ -184,7 +184,13 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void selectRowIdAndVersionArithmeticWithColumns() throws ParseException {
+	public void selectRowIdAndVersionArithmeticAndColumn() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 5 div 2, foo from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionArithmeticOfColumns() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select 5 div foo from syn123", tableSchema).build();
 		assertTrue(translator.includesRowIdAndVersion());
 	}
@@ -192,6 +198,12 @@ public class SQLQueryTest {
 	@Test
 	public void selectRowIdAndVersionGroupBy() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select foo, count(*) from syn123 group by foo", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionAggregateFunctionNoGroup() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, max(bar) from syn123", tableSchema).build();
 		assertFalse(translator.includesRowIdAndVersion());
 	}
 	
