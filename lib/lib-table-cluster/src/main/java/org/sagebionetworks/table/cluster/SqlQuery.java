@@ -193,7 +193,7 @@ public class SqlQuery {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-		if (!this.isAggregatedResult && model.getSelectList().hasAtLeastOneColumnReference()) {
+		if (!this.isAggregatedResult) {
 			// we need to add the row count and row version columns
 			SelectList expandedSelectList = SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
 			transformedModel.replaceSelectList(expandedSelectList);

@@ -51,16 +51,4 @@ public class SelectList extends SQLElement {
 			}
 		}
 	}
-	
-	/**
-	 * Does this select list have at least one column reference?
-	 * @return
-	 */
-	public boolean hasAtLeastOneColumnReference() {
-		if(asterisk != null) {
-			return true;
-		}
-		ColumnReference cr = this.getFirstElementOfType(ColumnReference.class);
-		return cr != null;
-	}
 }

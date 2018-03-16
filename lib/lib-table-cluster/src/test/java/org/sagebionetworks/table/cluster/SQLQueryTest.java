@@ -168,7 +168,7 @@ public class SQLQueryTest {
 	@Test
 	public void selectRowIdAndVersionConstant() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select 'a constant' from syn123", tableSchema).build();
-		assertFalse(translator.includesRowIdAndVersion());
+		assertTrue(translator.includesRowIdAndVersion());
 	}
 	
 	@Test
@@ -180,7 +180,7 @@ public class SQLQueryTest {
 	@Test
 	public void selectRowIdAndVersionArithmeticNoColumns() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select 5 div 2 from syn123", tableSchema).build();
-		assertFalse(translator.includesRowIdAndVersion());
+		assertTrue(translator.includesRowIdAndVersion());
 	}
 	
 	@Test
@@ -214,15 +214,27 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void selectRowIdAndNonAggregateFunctionColumnRef() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select DAYOFMONTH(bar) from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndNonAggregateFunctionOnly() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select DAYOFMONTH('2017-12-12') from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
 	public void selectRowIdAndAs() throws ParseException {
-		SqlQuery translator = new SqlQueryBuilder("select foo as `cats` from syn123", tableSchema).build();
+		SqlQuery translator = new SqlQueryBuilder("select foo as \"cats\" from syn123", tableSchema).build();
 		assertTrue(translator.includesRowIdAndVersion());
 	}
 	
 	@Test
 	public void testSelectConstant() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select 'not a foo' from syn123", tableSchema).build();
-		assertEquals("SELECT 'not a foo' FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT 'not a foo', ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("not a foo", ColumnType.STRING, null)), translator
 				.getSelectColumns());
 		assertEquals("not a foo", translator.getSelectColumns().get(0).getName());
