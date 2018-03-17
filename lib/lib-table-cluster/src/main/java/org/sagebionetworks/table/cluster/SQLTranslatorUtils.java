@@ -26,10 +26,8 @@ import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
-import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.DoubleQuoteDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GroupByClause;
@@ -98,22 +96,6 @@ public class SQLTranslatorUtils {
 			}
 		}
 		return selects;
-	}
-	
-	/**
-	 * All select elements match the schema if all elements have a column ID.
-	 * 
-	 * @param list
-	 * @return
-	 */
-	public static boolean doAllSelectMatchSchema(List<SelectColumn> selectList){
-		ValidateArgument.required(selectList, "selectList");
-		for(SelectColumn select: selectList){
-			if(select.getId() == null){
-				return false;
-			}
-		}
-		return true;
 	}
 	
 	/**

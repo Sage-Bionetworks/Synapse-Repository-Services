@@ -338,8 +338,8 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		Row row = queryResult.getQueryResults().getRows().get(0);
-		assertEquals(null, row.getRowId());
-		assertEquals(null, row.getVersionNumber());
+		assertEquals(new Long(0), row.getRowId());
+		assertEquals(new Long(0), row.getVersionNumber());
 		assertNotNull(row.getValues());
 		assertEquals("0", row.getValues().get(0));
 	}
