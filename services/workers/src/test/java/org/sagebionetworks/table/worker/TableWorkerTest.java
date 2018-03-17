@@ -160,8 +160,6 @@ public class TableWorkerTest {
 		
 		when(mockTableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		
-		when(mockTableManagerSupport.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(currentSchema);
-		
 		when(mockTableEntityManager.getSparseChangeSet(trc1)).thenReturn(sparseRowset1);
 		when(mockTableEntityManager.getSparseChangeSet(trc2)).thenReturn(sparseRowset2);
 		isTableView = false;

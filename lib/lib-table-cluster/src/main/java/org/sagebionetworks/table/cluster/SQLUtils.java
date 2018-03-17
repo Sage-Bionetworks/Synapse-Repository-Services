@@ -1466,9 +1466,9 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
-			builder.append("'");
+			builder.append("`");
 			builder.append(cm.getName());
-			builder.append("'");
+			builder.append("`");
 			first = false;
 		}
 		builder.append(" FROM ");
