@@ -48,7 +48,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
-import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 import com.google.common.collect.Lists;
@@ -521,32 +520,6 @@ public class SQLTranslatorUtilsTest {
 		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
 		assertNotNull(results);
 		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", results.toSql());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDoAllSelectMatchSchemaNullNull(){
-		// call under test
-		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(null));
-	}
-	
-	@Test
-	public void testDoAllSelectMatchSchemaTrue(){
-		SelectColumn one = new SelectColumn();
-		one.setId("123");
-		SelectColumn two = new SelectColumn();
-		two.setId("456");
-		// call under test
-		assertTrue(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
-	}
-	
-	@Test
-	public void testDoAllSelectMatchSchemaFalse(){
-		SelectColumn one = new SelectColumn();
-		one.setId("123");
-		SelectColumn two = new SelectColumn();
-		two.setId(null);
-		// call under test
-		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
 	}
 	
 	@Test
