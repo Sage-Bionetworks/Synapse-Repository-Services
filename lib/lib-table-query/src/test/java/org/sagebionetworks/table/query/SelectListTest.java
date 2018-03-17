@@ -35,5 +35,4 @@ public class SelectListTest {
 		SelectList element = new SelectList(columns);
 		assertEquals("MAX(foo), MIN(bar)", element.toString());
 	}
-	
 }

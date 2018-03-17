@@ -193,8 +193,7 @@ public class SqlQuery {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-		// Add ROW_ID and ROW_VERSION only if all columns have an Id.
-		if (SQLTranslatorUtils.doAllSelectMatchSchema(selectColumns)) {
+		if (!this.isAggregatedResult) {
 			// we need to add the row count and row version columns
 			SelectList expandedSelectList = SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
 			transformedModel.replaceSelectList(expandedSelectList);

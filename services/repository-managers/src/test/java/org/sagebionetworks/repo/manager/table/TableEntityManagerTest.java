@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
@@ -99,11 +98,11 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 public class TableEntityManagerTest {
 	
@@ -125,8 +124,6 @@ public class TableEntityManagerTest {
 	FileHandleDao mockFileDao;
 	@Mock
 	ColumnModelManager mockColumModelManager;
-	@Mock
-	ColumnModelDAO mockColumnModelDao;
 	@Mock
 	TableManagerSupport mockTableManagerSupport;
 	@Mock
@@ -178,7 +175,6 @@ public class TableEntityManagerTest {
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
 		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
-		ReflectionTestUtils.setField(manager, "columnModelDao", mockColumnModelDao);
 		ReflectionTestUtils.setField(manager, "tableUploadManager", mockTableUploadManager);
 		
 		maxBytesPerRequest = 10000000;
@@ -276,7 +272,7 @@ public class TableEntityManagerTest {
 		columChangedetails = createDetailsForChanges(changes);
 		
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
-		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(models);
+		when(mockColumModelManager.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
 		newColumnIds = Lists.newArrayList("111","333");
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, null)).thenReturn(newColumnIds);
@@ -888,7 +884,7 @@ public class TableEntityManagerTest {
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
-		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
+		verify(mockColumModelManager).bindColumnToObject(schema, tableId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
@@ -1167,15 +1163,13 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testUpdateTableSchema() throws IOException{
-		when(mockColumModelManager.getColumnModel(user, newColumnIds, true)).thenReturn(models);
+		when(mockColumModelManager.bindColumnToObject(newColumnIds, tableId)).thenReturn(models);
 		List<String> newSchemaIdsLong = TableModelUtils.getIds(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
-		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
-		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
 		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges());
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
@@ -1196,14 +1190,13 @@ public class TableEntityManagerTest {
 		newColumnIds = Lists.newArrayList("111");
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newColumnIds)).thenReturn(newColumnIds);
 		schemaChangeRequest.setOrderedColumnIds(newColumnIds);
-		when(mockColumModelManager.getColumnModel(user, newColumnIds, true)).thenReturn(models);
+		when(mockColumModelManager.bindColumnToObject(newColumnIds, tableId)).thenReturn(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), newColumnIds);
-		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
-		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
+		verify(mockColumModelManager).bindColumnToObject(newColumnIds, tableId);
 		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
@@ -1377,7 +1370,6 @@ public class TableEntityManagerTest {
 		assertNotNull(result);
 		// should not be upgraded since it already has.
 		verify(mockTruthDao, never()).upgradeToNewChangeSet(anyString(), anyLong(), any(SparseChangeSetDto.class));
-		verify(mockColumnModelDao, never()).getColumnIdsForObject(anyString());
 	}
 	
 	/**
