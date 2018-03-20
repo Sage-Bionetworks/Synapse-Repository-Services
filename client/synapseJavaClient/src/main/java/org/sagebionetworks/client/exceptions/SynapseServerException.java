@@ -12,51 +12,24 @@ package org.sagebionetworks.client.exceptions;
  * @author deflaux
  *
  */
-public class SynapseServerException extends SynapseException {
-	/**
-	 * The http response code associated with a server-side exception
-	 */
-	private int statusCode;
-	
-	/**
-	 * 
-	 */
+public abstract class SynapseServerException extends SynapseException {
+
 	private static final long serialVersionUID = 1L;
 
-
-	public int getStatusCode() {return statusCode;}
-
-	/**
-	 * 
-	 */
-	public SynapseServerException(int httpStatus) {
-		super("Status Code: "+httpStatus);
-		this.statusCode=httpStatus;
+	public SynapseServerException() {
+		super();
+	}
+	
+	public SynapseServerException(String message) {
+		super(message);
+	}
+	
+	public SynapseServerException(String message, Throwable cause) {
+		super(message, cause);
 	}
 
-	/**
-	 * @param message
-	 */
-	public SynapseServerException(int httpStatus, String message) {
-		super("Status Code: "+httpStatus+" message: "+message);
-		this.statusCode=httpStatus;
-	}
-
-	/**
-	 * @param arg0
-	 */
-	public SynapseServerException(int httpStatus, Throwable arg0) {
-		super(arg0);
-		this.statusCode=httpStatus;
-	}
-
-	/**
-	 * @param arg0
-	 * @param arg1
-	 */
-	public SynapseServerException(int httpStatus, String arg0, Throwable arg1) {
-		super(arg0, arg1);
-		this.statusCode=httpStatus;
+	public SynapseServerException(Throwable cause) {
+		super(cause);
 	}
 
 }
