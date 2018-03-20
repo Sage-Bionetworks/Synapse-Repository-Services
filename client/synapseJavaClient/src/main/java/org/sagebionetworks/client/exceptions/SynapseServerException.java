@@ -6,10 +6,7 @@ package org.sagebionetworks.client.exceptions;
 
 /**
  * 
- * SynapseException for problems occurring server-side.  Whenever possible methods should 
- * throw typed subclasses of this exception which correspond to specific status codes. 
- * 
- * @author deflaux
+ * Abstraction for exception from the server-side.
  *
  */
 public abstract class SynapseServerException extends SynapseException {

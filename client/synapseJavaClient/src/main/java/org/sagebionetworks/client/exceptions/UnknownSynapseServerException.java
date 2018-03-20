@@ -10,13 +10,16 @@ public class UnknownSynapseServerException extends SynapseServerException {
 	 */
 	private int statusCode;
 	
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
 
-	public int getStatusCode() {return statusCode;}
+	/**
+	 * The http response code associated with a server-side exception
+	 * @return
+	 */
+	public int getStatusCode() {
+		return statusCode;
+	}
 
 	/**
 	 * 
