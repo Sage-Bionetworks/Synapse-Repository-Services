@@ -224,7 +224,7 @@ public class TableSqlProcessorTest {
 		
 		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
 		assertEquals("SELECT * FROM syn123"
-				+ " WHERE ( ( \"integerColumn\" <= 12345 )"
+				+ " WHERE ( ( \"integerColumn\" <= '12345' )"
 				+ " AND ( \"stringColumn\" = 'testeroni' ) )"
 				+ " ORDER BY integerColumn DESC",
 				result);

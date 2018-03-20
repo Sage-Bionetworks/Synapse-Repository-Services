@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,6 +16,7 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
+import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -22,6 +24,7 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
@@ -31,14 +34,21 @@ import com.sun.javadoc.Type;
 public class SchemaUtilsTest {
 
 	@Test
-	public void testGetEffectiveSchema(){
+	public void testGetEffectiveSchema() throws IOException{
 		// One case where it should exist
-		WikiPage wp = new WikiPage();
 		String schema = SchemaUtils.getEffectiveSchema(WikiPage.class.getName());
-		assertEquals(wp.getJSONSchema(), schema);
+		String expectedSchema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(WikiPage.class);
+		assertEquals(expectedSchema, schema);
 		// Another where it should not
 		schema = SchemaUtils.getEffectiveSchema("not.a.real.Object");
 		assertNull(schema);
+	}
+	
+	@Test
+	public void testGetEffectiveSchemaHasEffectiveSchema() throws IOException{
+		String schema = SchemaUtils.getEffectiveSchema(GenericList.class.getName());
+		String expectedSchema = new GenericList().getEffectiveSchema();
+		assertEquals(expectedSchema, schema);
 	}
 	
 	@Test

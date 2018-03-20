@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,8 +24,8 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import com.google.common.collect.Lists;
 
@@ -233,9 +238,10 @@ public class ColumnModelUtlisTest {
 	}
 
 	@Test
-	public void testEnumMaxCountDocumentation() {
+	public void testEnumMaxCountDocumentation() throws IOException {
+		String schema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(ColumnModel.class);
 		// make sure the documentation is in agreement with the stack configuration
-		Matcher m = Pattern.compile("maximum number of entries for an enum is (\\d+)\"").matcher(ColumnModel.EFFECTIVE_SCHEMA);
+		Matcher m = Pattern.compile("maximum number of entries for an enum is (\\d+)\"").matcher(schema);
 		assertTrue(m.find());
 		assertEquals("" + StackConfiguration.singleton().getTableMaxEnumValues(), m.group(1));
 	}

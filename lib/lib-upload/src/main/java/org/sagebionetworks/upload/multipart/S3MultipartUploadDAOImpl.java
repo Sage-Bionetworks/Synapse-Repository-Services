@@ -9,9 +9,11 @@ import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
-import org.sagebionetworks.util.ContentDispositionUtils;
+import org.sagebionetworks.upload.UploadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -50,7 +52,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		}
 		ObjectMetadata objectMetadata = new ObjectMetadata();
 		objectMetadata.setContentType(contentType);
-		objectMetadata.setContentDisposition(ContentDispositionUtils
+		objectMetadata.setContentDisposition(UploadUtils
 				.getContentDispositionValue(request.getFileName()));
 		objectMetadata.setContentMD5(BinaryUtils.toBase64(BinaryUtils
 				.fromHex(request.getContentMD5Hex())));

@@ -736,10 +736,4 @@ public class Annotations implements JSONEntity, Serializable {
 		return writeTo;
 	}
 
-	@Override
-	public String getJSONSchema() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

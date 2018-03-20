@@ -324,12 +324,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 		return writeTo;
 	}
 
-	@Override
-	public String getJSONSchema() {
-		// Auto-generated method stub
-		return null;
-	}
-
 	/**
 	 * Get the Entity in this bundle.
 	 */

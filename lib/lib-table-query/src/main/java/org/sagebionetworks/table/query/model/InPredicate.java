@@ -59,8 +59,4 @@ public class InPredicate extends SQLElement implements HasPredicate {
 		return inPredicateValue.createIterable(UnsignedLiteral.class);
 	}
 
-	@Override
-	public Iterable<ColumnName> getRightHandSideColumnReferences() {
-		return inPredicateValue.createIterable(ColumnName.class);
-	}
 }

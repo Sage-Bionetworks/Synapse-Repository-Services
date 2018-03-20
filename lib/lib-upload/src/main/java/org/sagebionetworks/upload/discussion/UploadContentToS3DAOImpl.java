@@ -12,7 +12,6 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
-import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
@@ -77,7 +76,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytes);
 		ObjectMetadata om = new ObjectMetadata();
 		om.setContentType(TEXT_PLAIN_CHARSET_UTF_8);
-		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(key));
+		om.setContentDisposition("attachment; filename=" + key + ";");
 		om.setContentEncoding("gzip");
 		om.setContentLength(compressedBytes.length);
 		PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, key, in, om)
