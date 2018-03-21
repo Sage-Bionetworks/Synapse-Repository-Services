@@ -6,7 +6,6 @@ public class UnauthenticatedException extends RuntimeException {
 	
 	private static final long serialVersionUID = 11356746209283224L;
 
-
 	public UnauthenticatedException(String message) {
 		super(message);
 	}
