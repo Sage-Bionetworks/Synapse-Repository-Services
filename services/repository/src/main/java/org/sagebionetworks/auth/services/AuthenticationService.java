@@ -1,7 +1,5 @@
 package org.sagebionetworks.auth.services;
 
-import org.openid4java.message.ParameterList;
-import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -21,12 +19,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * Abstraction for the handling authentication
  */
 public interface AuthenticationService {
-	
-	/**
-	 * Authenticates a user/password combination, returning a session token if valid
-	 * @throws UnauthorizedException If the credentials are incorrect
-	 */
-	public Session authenticate(LoginCredentials credential) throws NotFoundException;
 	
 	/**
 	 * Revalidates a session token and checks if the user has accepted the terms of use.
@@ -99,20 +91,6 @@ public interface AuthenticationService {
 	 * Has the user accepted the terms of use?
 	 */
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
-	
-	/**
-	 * Uses the pre-validated OpenID information to fetch a session token
-	 * Will create a user if necessary 
-	 */
-	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException;
-	
-	/**
-	 * This should only be called after the OpendId info have already been validated.
-	 * @param info
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public Session processOpenIDInfo(OpenIDInfo info) throws NotFoundException;
 
 	public void sendPasswordEmail(String email) throws NotFoundException;
 

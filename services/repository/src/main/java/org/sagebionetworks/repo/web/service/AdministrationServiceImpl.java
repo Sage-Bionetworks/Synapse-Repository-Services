@@ -170,7 +170,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo user = userManager.createUser(userInfo, nu, cred, touAgreement, token);
+		UserInfo user = userManager.createTestUser(userInfo, nu, cred, touAgreement, token);
 		
 		EntityId id = new EntityId();
 		id.setId(user.getId().toString());
