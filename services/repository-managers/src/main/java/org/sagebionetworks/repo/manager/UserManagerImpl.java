@@ -38,6 +38,8 @@ import com.google.common.collect.Lists;
 
 public class UserManagerImpl implements UserManager {
 	
+	public static final String MESSAGE_CANNOT_AUTHENTICATE_AS_TEAM = "Cannot authenticate as team. Only users can authenticate.";
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
@@ -243,7 +245,7 @@ public class UserManagerImpl implements UserManager {
 			throw new NotFoundException("Did not find a user with alias: "+alias);
 		}
 		if(AliasType.TEAM_NAME.equals(pa.getType())) {
-			throw new UnauthenticatedException("Cannot authenticate as team. Only users can authenticate");
+			throw new UnauthenticatedException(MESSAGE_CANNOT_AUTHENTICATE_AS_TEAM);
 		}
 		return pa;
 	}

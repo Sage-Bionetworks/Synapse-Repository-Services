@@ -210,7 +210,7 @@ public class UserManagerImplUnitTest {
 			userManager.lookupUserForAuthentication(alias);
 			fail();
 		} catch (UnauthenticatedException e) {
-			assertEquals("Cannot authenticate as team. Only users can authenticate",e.getMessage());
+			assertEquals("Cannot authenticate as team. Only users can authenticate.",e.getMessage());
 		}
 	}
 	
