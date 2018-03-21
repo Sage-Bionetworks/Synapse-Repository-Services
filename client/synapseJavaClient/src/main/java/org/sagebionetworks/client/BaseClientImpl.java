@@ -1,12 +1,16 @@
 package org.sagebionetworks.client;
 
-import static org.sagebionetworks.client.Method.*;
+import static org.sagebionetworks.client.Method.DELETE;
+import static org.sagebionetworks.client.Method.GET;
+import static org.sagebionetworks.client.Method.POST;
+import static org.sagebionetworks.client.Method.PUT;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,8 +31,9 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseServiceUnavailable;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -290,9 +295,8 @@ public class BaseClientImpl implements BaseClient {
 		try {
 			SimpleHttpResponse response = simpleHttpClient.putFile(request, file);
 			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
-				throw new SynapseServerException(response.getStatusCode(),
-						"Response code: " + response.getStatusCode() + " " 
-						+ response.getStatusReason()
+				throw new UnknownSynapseServerException(response.getStatusCode(), 
+						response.getStatusReason()
 						+ " for " + url + " File: " + file.getName());
 			}
 			return response.getContent();
@@ -834,16 +838,16 @@ public class BaseClientImpl implements BaseClient {
 						SimpleHttpResponse response = ClientUtils.performRequest(simpleHttpClient, requestUrl, requestMethod, requestContent, requestHeaders);
 						int statusCode = response.getStatusCode();
 						if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
-							throw new RetryException(new SynapseServerException(statusCode, response.getContent()));
+							throw new RetryException(new SynapseServiceUnavailable(response.getContent()));
 						}
 						return response;
 					} catch (SocketTimeoutException ste) {
-						throw new RetryException(new SynapseServerException(HttpStatus.SC_SERVICE_UNAVAILABLE, ste));
+						throw new RetryException(new SynapseServiceUnavailable(ste));
 					}
 				}
 			});
 		} catch (RetryException e) {
-			throw (SynapseServerException) e.getCause();
+			throw (SynapseServiceUnavailable) e.getCause();
 		} catch (Exception e) {
 			throw new SynapseClientException("Failed to perform request.", e);
 		}

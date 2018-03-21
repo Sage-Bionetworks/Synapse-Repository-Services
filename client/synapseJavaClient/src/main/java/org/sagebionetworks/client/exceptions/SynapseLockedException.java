@@ -2,27 +2,28 @@ package org.sagebionetworks.client.exceptions;
 
 import org.apache.http.HttpStatus;
 
-
+/**
+ * Throw for HTTP status code of 423.
+ *
+ */
 public class SynapseLockedException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
 
-	private static final int LOCKED_STATUS_CODE = HttpStatus.SC_LOCKED;
-
 	public SynapseLockedException() {
-		super(LOCKED_STATUS_CODE);
+		super();
 	}
 
 	public SynapseLockedException(String message, Throwable cause) {
-		super(LOCKED_STATUS_CODE, message, cause);
+		super(message, cause);
 	}
 
 	public SynapseLockedException(String message) {
-		super(LOCKED_STATUS_CODE, message);
+		super(message);
 	}
 
 	public SynapseLockedException(Throwable cause) {
-		super(LOCKED_STATUS_CODE, cause);
+		super(cause);
 	}
 
 }
