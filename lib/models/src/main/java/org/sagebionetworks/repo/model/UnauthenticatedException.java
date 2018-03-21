@@ -15,7 +15,7 @@ public class UnauthenticatedException extends RuntimeException {
 	}
 
 	public UnauthenticatedException(Throwable cause) {
-		super(cause);
+		super(MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, cause);
 	}
 
 	public UnauthenticatedException(String message, Throwable cause) {

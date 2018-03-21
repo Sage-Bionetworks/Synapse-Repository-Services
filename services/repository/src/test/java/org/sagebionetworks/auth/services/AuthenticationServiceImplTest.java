@@ -62,7 +62,7 @@ public class AuthenticationServiceImplTest {
 	private static String sessionToken = "Some session token";
 	
 	String alias;
-	PrincipalAlias principalAlais;
+	PrincipalAlias principalAlias;
 	
 	LoginRequest loginRequest;
 	LoginResponse loginResponse;
@@ -94,11 +94,11 @@ public class AuthenticationServiceImplTest {
 		ReflectionTestUtils.setField(service, "oauthManager", mockOAuthManager);
 		
 		alias = "alias";
-		principalAlais = new PrincipalAlias();
-		principalAlais.setAlias(alias);
-		principalAlais.setAliasId(2222L);
-		principalAlais.setType(AliasType.USER_NAME);
-		when(mockUserManager.lookupUserForAuthentication(alias)).thenReturn(principalAlais);
+		principalAlias = new PrincipalAlias();
+		principalAlias.setAlias(alias);
+		principalAlias.setAliasId(2222L);
+		principalAlias.setType(AliasType.USER_NAME);
+		when(mockUserManager.lookupUserForAuthentication(alias)).thenReturn(principalAlias);
 		
 		loginRequest = new LoginRequest();
 		loginRequest.setAuthenticationReceipt("receipt");
@@ -110,8 +110,8 @@ public class AuthenticationServiceImplTest {
 		loginResponse.setAuthenticationReceipt("newReceipt");
 		loginResponse.setSessionToken("sessionToken");
 		
-		when(mockUserManager.lookupUserForAuthentication(loginRequest.getUsername())).thenReturn(principalAlais);
-		when(mockAuthenticationManager.login(principalAlais.getPrincipalId(), loginRequest.getPassword(), loginRequest.getAuthenticationReceipt())).thenReturn(loginResponse);
+		when(mockUserManager.lookupUserForAuthentication(loginRequest.getUsername())).thenReturn(principalAlias);
+		when(mockAuthenticationManager.login(principalAlias.getPrincipalId(), loginRequest.getPassword(), loginRequest.getAuthenticationReceipt())).thenReturn(loginResponse);
 	}
 	
 	@Test

@@ -211,7 +211,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
 		} catch (NotFoundException e) {
 			// see PLFM-3914
-			throw new UnauthenticatedException();
+			throw new UnauthenticatedException(e);
 		}
 	}
 
