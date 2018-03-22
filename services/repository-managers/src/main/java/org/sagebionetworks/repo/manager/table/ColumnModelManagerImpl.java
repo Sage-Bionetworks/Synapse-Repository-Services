@@ -104,19 +104,34 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return results;
 	}
 
-	private void validateColumnModel(ColumnModel columnModel) {
-		checkColumnNaming(columnModel);
+	/**
+	 * Validate the column model.
+	 * 
+	 * @param columnModel
+	 */
+	static void validateColumnModel(ColumnModel columnModel) {
+		ValidateArgument.required(columnModel, "ColumnModel");
+		checkColumnNaming(columnModel.getName());
 		validateFacetType(columnModel);
 	}
 	
-	private void checkColumnNaming(ColumnModel columnModel) {
+	/**
+	 * Validate the column name.
+	 * 
+	 * @param columnModel
+	 */
+	static void checkColumnNaming(String name) {
+		ValidateArgument.required(name, "name");
+		if(name.length() > TableConstants.MAX_COLUMN_NAME_SIZE_CHARS) {
+			throw new IllegalArgumentException("Column name must be: "+TableConstants.MAX_COLUMN_NAME_SIZE_CHARS+" characters or less.");
+		}
 		// Validate the name
-		if (TableConstants.isReservedColumnName(columnModel.getName())) {
-			throw new IllegalArgumentException("The column name: " + columnModel.getName() + " is a system reserved column name.");
+		if (TableConstants.isReservedColumnName(name)) {
+			throw new IllegalArgumentException("The column name: " + name + " is a system reserved column name.");
 		}
 	}
 	
-	void validateFacetType(ColumnModel columnModel){
+	static void validateFacetType(ColumnModel columnModel){
 		//validate the facetType agains its d
 		FacetType facetType = columnModel.getFacetType();
 		ColumnType columnType = columnModel.getColumnType();
