@@ -71,41 +71,6 @@ public class AuthenticationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authManager, "consumer", mockConsumer);
 	}
 
-	@Test
-	public void testAuthenticateWithPassword() throws Exception {
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("fake token");
-		Session session = authManager.authenticate(userId, password);
-		assertEquals(synapseSessionToken, session.getSessionToken());
-		
-		String passHash = PBKDF2Utils.hashPassword(password, salt);
-		verify(mockAuthDAO, times(1)).getPasswordSalt(eq(userId));
-		verify(mockAuthDAO, times(1)).checkUserCredentials(eq(userId), eq(passHash));
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testAuthenticateWithoutPassword() throws Exception {
-		authManager.authenticate(userId, null);
-	}
-
-	@Test
-	public void testAuthenticateThrottleWithLimitAttempts() throws Exception {
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("0","1","2","3","4","5","6","7","8","9", null);
-		for (int i = 0; i < MAX_CONCURRENT_LOCKS; i++) {
-			authManager.authenticate(userId, "password");
-		}
-	}
-
-	@Test (expected=LockedException.class)
-	public void testAuthenticateThrottleWithOverLimitAttempts() throws Exception {
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("0","1","2","3","4","5","6","7","8","9", null);
-		for (int i = 0; i < MAX_CONCURRENT_LOCKS+1; i++) {
-			authManager.authenticate(userId, "password");
-		}
-		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
-		verify(mockConsumer).addProfileData(captor.capture());
-		validateLoginFailAttemptMetricData(captor, userId);
-	}
-
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
 		ProfileData arg = captor.getValue();
 		assertEquals(AuthenticationManagerImpl.class.getName(), arg.getNamespace());

@@ -9,11 +9,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthenticationManager {
 
-	/**
-	 * Authenticates a user/password combination, returning a session token if valid
-	 * @param password If null, password checking is skipped
-	 */
-	public Session authenticate(long principalId, String password) throws NotFoundException;
 	
 	/**
 	 * Looks for the user holding the given session token

@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.OpenIDInfo;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -19,9 +21,12 @@ import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TermsOfUseException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -32,14 +37,20 @@ import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AuthenticationServiceImplTest {
 
 	private AuthenticationServiceImpl service;
 	
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private AuthenticationManager mockAuthenticationManager;
+	@Mock
 	private MessageManager mockMessageManager;
+	@Mock
 	private OAuthManager mockOAuthManager;
 	
 	private LoginCredentials credential;
@@ -49,6 +60,12 @@ public class AuthenticationServiceImplTest {
 	private static String password = "NeverUse_thisPassword";
 	private static long userId = 123456789L;
 	private static String sessionToken = "Some session token";
+	
+	String alias;
+	PrincipalAlias principalAlias;
+	
+	LoginRequest loginRequest;
+	LoginResponse loginResponse;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -70,7 +87,31 @@ public class AuthenticationServiceImplTest {
 		
 		mockMessageManager = Mockito.mock(MessageManager.class);
 		
-		service = new AuthenticationServiceImpl(mockUserManager, mockAuthenticationManager, mockMessageManager, mockOAuthManager);
+		service = new AuthenticationServiceImpl();
+		ReflectionTestUtils.setField(service, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(service, "authManager", mockAuthenticationManager);
+		ReflectionTestUtils.setField(service, "messageManager", mockMessageManager);
+		ReflectionTestUtils.setField(service, "oauthManager", mockOAuthManager);
+		
+		alias = "alias";
+		principalAlias = new PrincipalAlias();
+		principalAlias.setAlias(alias);
+		principalAlias.setAliasId(2222L);
+		principalAlias.setType(AliasType.USER_NAME);
+		when(mockUserManager.lookupUserForAuthentication(alias)).thenReturn(principalAlias);
+		
+		loginRequest = new LoginRequest();
+		loginRequest.setAuthenticationReceipt("receipt");
+		loginRequest.setUsername("username");
+		loginRequest.setPassword("password");
+		
+		loginResponse = new LoginResponse();
+		loginResponse.setAcceptsTermsOfUse(true);
+		loginResponse.setAuthenticationReceipt("newReceipt");
+		loginResponse.setSessionToken("sessionToken");
+		
+		when(mockUserManager.lookupUserForAuthentication(loginRequest.getUsername())).thenReturn(principalAlias);
+		when(mockAuthenticationManager.login(principalAlias.getPrincipalId(), loginRequest.getPassword(), loginRequest.getAuthenticationReceipt())).thenReturn(loginResponse);
 	}
 	
 	@Test
@@ -88,15 +129,6 @@ public class AuthenticationServiceImplTest {
 		} catch (TermsOfUseException e) {
 			// Expected
 		}
-	}
-	
-	@Test (expected=NotFoundException.class)
-	public void testOpenIDAuthentication_newUser() throws Exception {
-		// This user does not exist yet
-		OpenIDInfo info = new OpenIDInfo();
-		info.setEmail(username);
-		info.setFullName(fullName);
-		service.processOpenIDInfo(info);
 	}
 	
 	@Test
@@ -124,7 +156,7 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(alias);
+		when(mockUserManager.lookupUserForAuthentication(info.getUsersVerifiedEmail())).thenReturn(alias);
 		Session session = new Session();
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
@@ -145,32 +177,13 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(alias);
+		when(mockUserManager.lookupUserForAuthentication(info.getUsersVerifiedEmail())).thenReturn(alias);
 		Session session = new Session();
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
 		//call under test
 		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
 		assertEquals(session, result);
-	}
-	
-	@Test
-	public void testValidateOAuthAuthenticationCodeNoMatch() throws NotFoundException{
-		OAuthValidationRequest request = new OAuthValidationRequest();
-		request.setAuthenticationCode("some code");
-		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-		request.setRedirectUrl("https://domain.com");
-		ProvidedUserInfo info = new ProvidedUserInfo();
-		info.setUsersVerifiedEmail("first.last@domain.com");
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
-		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(null);
-		//call under test
-		try {
-			service.validateOAuthAuthenticationCodeAndLogin(request);
-			fail("Should have failed");
-		} catch (NotFoundException e) {
-			assertEquals("Email should be the error when not found.",info.getUsersVerifiedEmail(), e.getMessage());
-		}
 	}
 	
 	@Test
@@ -213,4 +226,28 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).unbindAlias(aliasName, AliasType.USER_ORCID, principalId);
 	}
 	
+	
+	@Test
+	public void testLogin() {
+		// call under test
+		LoginResponse response = service.login(loginRequest);
+		assertNotNull(response);
+		assertEquals(loginResponse, response);
+	}
+	
+	/**
+	 * Test for PLFM-3914
+	 * 
+	 */
+	@Test
+	public void testLoginNotFound() {
+		// NotFoundException should be converted to UnauthenticatedException;
+		when(mockUserManager.lookupUserForAuthentication(loginRequest.getUsername())).thenThrow(new NotFoundException("does not exist"));
+		try {
+			// call under test
+			service.login(loginRequest);
+		} catch (UnauthenticatedException e) {
+			assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e.getMessage());
+		}
+	}
 }

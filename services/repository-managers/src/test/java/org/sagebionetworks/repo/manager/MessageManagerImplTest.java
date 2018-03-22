@@ -223,12 +223,12 @@ public class MessageManagerImplTest {
 			NewUser nu = new NewUser();
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
-			testUser = userManager.createUser(adminUserInfo, nu, cred, tou);
+			testUser = userManager.createTestUser(adminUserInfo, nu, cred, tou);
 			
 			nu = new NewUser();
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
-			otherTestUser = userManager.createUser(adminUserInfo,nu, cred, tou);
+			otherTestUser = userManager.createTestUser(adminUserInfo,nu, cred, tou);
 			
 			tou.setPrincipalId(otherTestUser.getId());
 			basicDao.createOrUpdate(tou);
@@ -238,7 +238,7 @@ public class MessageManagerImplTest {
 			NewUser nu2 = new NewUser();
 			nu2.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu2.setUserName(UUID.randomUUID().toString());
-			trustedMessageSender = userManager.createUser(adminUserInfo, nu2, cred, tou);
+			trustedMessageSender = userManager.createTestUser(adminUserInfo, nu2, cred, tou);
 			tou.setPrincipalId(trustedMessageSender.getId());
 			basicDao.createOrUpdate(tou);
 			// now add to trusted users group

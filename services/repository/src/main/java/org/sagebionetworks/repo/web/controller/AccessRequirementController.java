@@ -175,7 +175,7 @@ public class AccessRequirementController extends BaseController {
 	 * @param userId
 	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
 	 * @param accessType the type of access to filter on
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -227,7 +227,7 @@ public class AccessRequirementController extends BaseController {
 	 * Retrieve paginated list of ALL Access Requirements associated with a Team.
 	 * @param userId
 	 * @param id the ID of the Team whose Access Requirements are retrieved.
-	 * @param request
+	 * @param loginRequest
 	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return

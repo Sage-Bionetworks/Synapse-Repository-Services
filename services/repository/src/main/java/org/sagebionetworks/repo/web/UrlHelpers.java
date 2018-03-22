@@ -999,7 +999,6 @@ public class UrlHelpers {
 	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
-	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
 	
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
@@ -1062,7 +1061,7 @@ public class UrlHelpers {
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
 	 * 
-	 * @param request
+	 * @param loginRequest
 	 * @return the uri for this entity's annotations
 	 */
 	public static String makeEntityAnnotationsUri(String entityId) {
@@ -1076,7 +1075,7 @@ public class UrlHelpers {
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
 	 * 
-	 * @param request
+	 * @param loginRequest
 	 * @return the uri for this entity's annotations
 	 */
 	public static String makeEntityACLUri(String entityId) {
