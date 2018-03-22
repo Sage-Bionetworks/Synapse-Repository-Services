@@ -324,11 +324,8 @@ public class SchemaUtils {
 			return getTypeHref(type.getItems());
 		}
 		if (TYPE.MAP == type.getType()) {
-			ObjectSchema keySchema = type.getKey();
+			ObjectSchema keySchema = new ObjectSchema(TYPE.STRING);
 			ObjectSchema valueSchema = type.getValue();
-			if (keySchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
-			}
 			if (valueSchema == null) {
 				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
 			}
@@ -358,11 +355,8 @@ public class SchemaUtils {
 			return getTypeDisplay(type.getItems());
 		}
 		if (TYPE.MAP == type.getType()) {
-			ObjectSchema keySchema = type.getKey();
+			ObjectSchema keySchema = new ObjectSchema(TYPE.STRING);
 			ObjectSchema valueSchema = type.getValue();
-			if (keySchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
-			}
 			if (valueSchema == null) {
 				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
 			}
