@@ -99,19 +99,19 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 				CSVWriter writer = new CSVWriter(new OutputStreamWriter(to, "UTF-8"), COMMA)) {
 			String[] lastRow = null;
 			int rowsRead = 0;
+			int columnWidth = 0;
 			// Read read a row from the csv.
-			while((lastRow = reader.readNext()) != null && rowsRead < MAX_ROW_COUNT ) {
-				int outWidth = Math.max(lastRow.length, MAX_COLUMN_COUNT+1);
-				String[] outRow = new String[outWidth];
-				// Copy the data from the last row into the output row.
-				for(int column = 0; column < outWidth; column++ ) {
-					if(column == MAX_COLUMN_COUNT) {
-						outRow[column] = HTML_ELLIPSIS;
-					}else {
-						outRow[column] = lastRow[column];
-					}
+			while((lastRow = reader.readNext()) != null && rowsRead < MAX_ROW_COUNT+1) {
+				String[] previewRow = null;
+				if(rowsRead > MAX_ROW_COUNT) {
+					// add a row of ellipsis
+					previewRow = createEllipsisRow(columnWidth);
+				}else {
+					// create a preview from the current row.
+					previewRow = createPreviewRow(lastRow);
 				}
-				writer.writeNext(outRow);
+				writer.writeNext(previewRow);
+				columnWidth = Math.max(columnWidth, previewRow.length);
 				rowsRead++;
 			}
 			writer.flush();
@@ -119,6 +119,60 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 		}
 	}
 	
+	/**
+	 * Create a preview row for the given row.
+	 * 
+	 * @param lastRow
+	 * @return
+	 */
+	public static String[] createPreviewRow(String[] lastRow) {
+		int outWidth = Math.min(lastRow.length, MAX_COLUMN_COUNT+1);
+		String[] outRow = new String[outWidth];
+		// Copy the data from the last row into the output row.
+		for(int columnIndex = 0; columnIndex < outWidth; columnIndex++ ) {
+			if(columnIndex > MAX_COLUMN_COUNT) {
+				outRow[columnIndex] = HTML_ELLIPSIS;
+			}else {
+				outRow[columnIndex] = createPreviewCell(lastRow[columnIndex]);
+			}
+		}
+		return outRow;
+	}
+	
+	/**
+	 * Create a preview cell from the input cell.
+	 * If the input cell is nu
+	 * @param inputCell
+	 * @return
+	 */
+	public static String createPreviewCell(String inputCell) {
+		if(inputCell == null) {
+			return null;
+		}
+		if(inputCell.length() < MAX_CELL_CHARACTER_COUNT) {
+			// cell under max.
+			return inputCell;
+		}else {
+			// cell over max
+			StringBuilder builder = new StringBuilder(inputCell.substring(0, MAX_CELL_CHARACTER_COUNT));
+			builder.append(HTML_ELLIPSIS);
+			return builder.toString();
+		}
+	}
+	
+	/**
+	 * Create a row of ellipsis with the given number of columns.
+	 * 
+	 * @param numberColumns
+	 * @return
+	 */
+	public static String[] createEllipsisRow(int numberColumns) {
+		String[] row = new String[numberColumns];
+		for(int i=0; i<numberColumns; i++) {
+			row[i] = HTML_ELLIPSIS;
+		}
+		return row;
+	}
 	
 //	public String read(InputStream from) throws IOException{
 //		StringBuilder buffer = new StringBuilder();
