@@ -5,12 +5,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Generates previews for text content types.
@@ -74,125 +81,158 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
-		String output = read(from);
-		IOUtils.write(output, to, "UTF-8");
+		generatePreview(delimiter, from, to);
 		//always generates a csv preview
 		return new PreviewOutputMetadata(TEXT_CSV_SEPARATED_VALUES, ".csv");
 	}
 	
-	public String read(InputStream from) throws IOException{
-		StringBuilder buffer = new StringBuilder();
-        InputStreamReader isr = new InputStreamReader(from, "UTF-8");
-        BufferedReader in = new BufferedReader(isr);
-        int currentLine = 0;
-        boolean isEndOfFile = false;
-        String lastRow = null;
-        while(currentLine < MAX_ROW_COUNT && !isEndOfFile) {
-        	lastRow = getNextRow(in);
-        	//if a line consists only of whitespace, then do not include it in the preview output
-        	if (lastRow.trim().length() > 0)
-        		buffer.append(lastRow);
-			currentLine++;
-			if (lastRow.length() > 0)
-				isEndOfFile = lastRow.charAt(lastRow.length()-1) == EOF;
-		}
-		if (currentLine >= MAX_ROW_COUNT) {
-			//indicate we are truncating rows.
-			if (lastRow != null && lastRow.length() > 0) {
-				//output the correct number of columns
-				int columnCount = lastRow.split(",").length;
-				for (int i = 0; i < columnCount; i++) {
-					buffer.append(HTML_ELLIPSIS);
-					if (i != columnCount-1)
-						buffer.append(COMMA);
+	/**
+	 * 
+	 * @param delimiter
+	 * @param from
+	 * @param to
+	 * @throws IOException 
+	 * @throws  
+	 */
+	public static void generatePreview(final Character delimiter, final InputStream from, final OutputStream to) throws IOException {
+		try (CSVReader reader = new CSVReader(new InputStreamReader(from, "UTF-8"), delimiter);
+				CSVWriter writer = new CSVWriter(new OutputStreamWriter(to, "UTF-8"), COMMA)) {
+			String[] lastRow = null;
+			int rowsRead = 0;
+			// Read read a row from the csv.
+			while((lastRow = reader.readNext()) != null && rowsRead < MAX_ROW_COUNT ) {
+				int outWidth = Math.max(lastRow.length, MAX_COLUMN_COUNT+1);
+				String[] outRow = new String[outWidth];
+				// Copy the data from the last row into the output row.
+				for(int column = 0; column < outWidth; column++ ) {
+					if(column == MAX_COLUMN_COUNT) {
+						outRow[column] = HTML_ELLIPSIS;
+					}else {
+						outRow[column] = lastRow[column];
+					}
 				}
+				writer.writeNext(outRow);
+				rowsRead++;
 			}
+			writer.flush();
+			writer.close();
 		}
-		in.close(); 
-		
-		if (isEndOfFile && buffer.length() > 0) {
-			buffer.deleteCharAt(buffer.length()-1);
-		}
-			
-		return buffer.toString();
 	}
 	
-	public String getNextRow(BufferedReader in) throws IOException {
-		int currentColumn = 0;
-		StringBuilder buffer = new StringBuilder();
-		boolean isEndOfLine = false;
-		boolean isEndOfFile = false;
-		while(currentColumn < MAX_COLUMN_COUNT && !isEndOfLine && !isEndOfFile) {
-        	String cellText = getNextCell(in);
-        	buffer.append(cellText);
-			currentColumn++;
-			isEndOfLine = cellText.endsWith("\n") || cellText.endsWith("\r");
-			if (cellText.length() > 0)
-				isEndOfFile = cellText.charAt(cellText.length()-1) == EOF;
-		}
-        if (currentColumn >= MAX_COLUMN_COUNT) {
-			//indicate we are truncating columns.
-        	buffer.append(HTML_ELLIPSIS);
-        	//and read until the end of line
-        	in.readLine();
-        }
-        if (!isEndOfLine && !isEndOfFile) {
-        	buffer.append("\n");	
-        }
-        return buffer.toString();
-	}
 	
-	public String getNextCell(BufferedReader in) throws IOException {
-		StringBuilder buffer = new StringBuilder();
-		int ch;
-		int count = 0;
-		boolean isInQuote = false;
-		//extract the cell text (or as much as we are allowed)
-		while ((ch = in.read()) > -1 && count < MAX_CELL_CHARACTER_COUNT && isInCell(ch, isInQuote)) {
-			if (ch == DOUBLE_QUOTE) {
-				isInQuote = !isInQuote;
-			} else {
-				if (ch == COMMA) {
-					//convert commas that occur inside of a cell to HTML_COMMA
-					buffer.append(HTML_COMMA);
-				} else if (ch == NEWLINE || ch == CR) {
-					//eat newlines inside of cells (convert to spaces)
-					buffer.append(" ");
-				} else {
-					buffer.append((char) ch);	
-				}
-				count++;
-			}
-		}
-		// now scan forward to the next newline if we didn't find one above
-		if (isInCell(ch, isInQuote)) {
-			buffer.append(HTML_ELLIPSIS);
-			while ((ch = in.read()) > -1) {
-				if (ch == DOUBLE_QUOTE) {
-					isInQuote = !isInQuote;
-				} else if (!isInCell(ch, isInQuote)) {
-					break;
-				}
-			}
-		}
-		
-		//always sending csv to output.  and if this is the end of the stream, output an EOF character so that callers recognize the state
-		if (ch == delimiter)
-			ch = COMMA;
-		else if (ch == -1)
-			ch = EOF;
-		buffer.append((char) ch);
-		return buffer.toString();
-	}
-	
-	public boolean isInCell(int ch, boolean isInQuote) {
-		//if in quote, then assume we're in the same cell
-		if (ch == -1)
-			return false;
-		if (isInQuote)
-			return true;
-		return ch != NEWLINE && ch != CR && ch != delimiter;
-	}
+//	public String read(InputStream from) throws IOException{
+//		StringBuilder buffer = new StringBuilder();
+//        InputStreamReader isr = new InputStreamReader(from, "UTF-8");
+//        BufferedReader in = new BufferedReader(isr);
+//        int currentLine = 0;
+//        boolean isEndOfFile = false;
+//        String lastRow = null;
+//        while(currentLine < MAX_ROW_COUNT && !isEndOfFile) {
+//        	lastRow = getNextRow(in);
+//        	//if a line consists only of whitespace, then do not include it in the preview output
+//        	if (lastRow.trim().length() > 0)
+//        		buffer.append(lastRow);
+//			currentLine++;
+//			if (lastRow.length() > 0)
+//				isEndOfFile = lastRow.charAt(lastRow.length()-1) == EOF;
+//		}
+//		if (currentLine >= MAX_ROW_COUNT) {
+//			//indicate we are truncating rows.
+//			if (lastRow != null && lastRow.length() > 0) {
+//				//output the correct number of columns
+//				int columnCount = lastRow.split(",").length;
+//				for (int i = 0; i < columnCount; i++) {
+//					buffer.append(HTML_ELLIPSIS);
+//					if (i != columnCount-1)
+//						buffer.append(COMMA);
+//				}
+//			}
+//		}
+//		in.close(); 
+//		
+//		if (isEndOfFile && buffer.length() > 0) {
+//			buffer.deleteCharAt(buffer.length()-1);
+//		}
+//			
+//		return buffer.toString();
+//	}
+//	
+//	public String getNextRow(BufferedReader in) throws IOException {
+//		int currentColumn = 0;
+//		StringBuilder buffer = new StringBuilder();
+//		boolean isEndOfLine = false;
+//		boolean isEndOfFile = false;
+//		while(currentColumn < MAX_COLUMN_COUNT && !isEndOfLine && !isEndOfFile) {
+//        	String cellText = getNextCell(in);
+//        	buffer.append(cellText);
+//			currentColumn++;
+//			isEndOfLine = cellText.endsWith("\n") || cellText.endsWith("\r");
+//			if (cellText.length() > 0)
+//				isEndOfFile = cellText.charAt(cellText.length()-1) == EOF;
+//		}
+//        if (currentColumn >= MAX_COLUMN_COUNT) {
+//			//indicate we are truncating columns.
+//        	buffer.append(HTML_ELLIPSIS);
+//        	//and read until the end of line
+//        	in.readLine();
+//        }
+//        if (!isEndOfLine && !isEndOfFile) {
+//        	buffer.append("\n");	
+//        }
+//        return buffer.toString();
+//	}
+//	
+//	public String getNextCell(BufferedReader in) throws IOException {
+//		StringBuilder buffer = new StringBuilder();
+//		int ch;
+//		int count = 0;
+//		boolean isInQuote = false;
+//		//extract the cell text (or as much as we are allowed)
+//		while ((ch = in.read()) > -1 && count < MAX_CELL_CHARACTER_COUNT && isInCell(ch, isInQuote)) {
+//			if (ch == DOUBLE_QUOTE) {
+//				isInQuote = !isInQuote;
+//			} else {
+//				if (ch == COMMA) {
+//					//convert commas that occur inside of a cell to HTML_COMMA
+//					buffer.append(HTML_COMMA);
+//				} else if (ch == NEWLINE || ch == CR) {
+//					//eat newlines inside of cells (convert to spaces)
+//					buffer.append(" ");
+//				} else {
+//					buffer.append((char) ch);	
+//				}
+//				count++;
+//			}
+//		}
+//		// now scan forward to the next newline if we didn't find one above
+//		if (isInCell(ch, isInQuote)) {
+//			buffer.append(HTML_ELLIPSIS);
+//			while ((ch = in.read()) > -1) {
+//				if (ch == DOUBLE_QUOTE) {
+//					isInQuote = !isInQuote;
+//				} else if (!isInCell(ch, isInQuote)) {
+//					break;
+//				}
+//			}
+//		}
+//		
+//		//always sending csv to output.  and if this is the end of the stream, output an EOF character so that callers recognize the state
+//		if (ch == delimiter)
+//			ch = COMMA;
+//		else if (ch == -1)
+//			ch = EOF;
+//		buffer.append((char) ch);
+//		return buffer.toString();
+//	}
+//	
+//	public boolean isInCell(int ch, boolean isInQuote) {
+//		//if in quote, then assume we're in the same cell
+//		if (ch == -1)
+//			return false;
+//		if (isInQuote)
+//			return true;
+//		return ch != NEWLINE && ch != CR && ch != delimiter;
+//	}
 	
 	@Override
 	public long calculateNeededMemoryBytesForPreview(String mimeType, long contentSize) {

@@ -2,8 +2,11 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -194,5 +197,18 @@ public class TabCsvTextPreviewTest {
 		csvPreviewGenerator.generatePreview(is, os);
 		String out = os.toString();
 		assertEquals("", out);
+	}
+	
+	@Test
+	public void testPLFM_4236() throws IOException {
+		File tempOut = File.createTempFile("TestPLFM_4236", ".csv");
+		System.out.println(tempOut.getAbsolutePath());
+		tempOut.deleteOnExit();
+		String fileName = "PLFM_4236.csv";
+		try(InputStream in = TabCsvTextPreviewTest.class.getClassLoader().getResourceAsStream(fileName);
+				FileOutputStream fos = new FileOutputStream(tempOut)){
+			assertNotNull("Failed to find: "+fileName+" on classpath",in);
+			csvPreviewGenerator.generatePreview(in, fos);
+		}
 	}
 }
