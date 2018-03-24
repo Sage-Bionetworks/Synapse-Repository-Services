@@ -1,20 +1,15 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
-
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
@@ -22,7 +17,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 /**
  * Generates previews for text content types.
  * 
- * @author Jay
+ * @author Jay & John
  *
  */
 public class TabCsvPreviewGenerator implements PreviewGenerator {
@@ -93,58 +88,84 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 
 	/**
 	 * Generate a preview that does not exceed the maximum number of rows or
-	 * columns, and each cell values is under a maxiumum number of
-	 * characters. @param delimiter @param from @param to @throws
-	 * IOException @throws
+	 * columns, and each cell values is under a maximum number of characters.
+	 * 
+	 * @param delimiter
+	 * @param from
+	 * @param to
+	 * @throws IOException
 	 */
 	public static void generatePreview(final Character delimiter, final InputStream from, final OutputStream to)
 			throws IOException {
 		try (CSVReader reader = new CSVReader(new InputStreamReader(from, "UTF-8"), delimiter);
 				CSVWriter writer = new CSVWriter(new OutputStreamWriter(to, "UTF-8"), COMMA)) {
-			String[] lastRow = null;
-			int rowsRead = 0;
-			int columnWidth = 0;
-			// Read read a row from the csv.
-			while ((lastRow = reader.readNext()) != null && rowsRead < MAX_ROW_COUNT + 1) {
-				String[] previewRow = null;
-				if (rowsRead > MAX_ROW_COUNT) {
-					// add a row of ellipsis
-					previewRow = createEllipsisRow(columnWidth);
-				} else {
-					// create a preview from the current row.
-					previewRow = createPreviewRow(lastRow);
-				}
-				writer.writeNext(previewRow);
-				columnWidth = Math.max(columnWidth, previewRow.length);
-				rowsRead++;
-			}
+			// generate the preview from the input.
+			List<String[]> previewRows = generatePreviewRows(reader);
+			writer.writeAll(previewRows);
 			writer.flush();
 			writer.close();
 		}
 	}
+	
+	/**
+	 * Generate a preview that does not exceed the maximum number of rows or
+	 * columns, and each cell values is under a maximum number of characters.
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	public static List<String[]> generatePreviewRows(CSVReader reader) throws IOException{
+		List<String[]> results = new LinkedList<>();
+		String[] lastRow = null;
+		int rowsRead = 0;
+		int columnWidth = 0;
+		// Read read a row from the csv.
+		while ((lastRow = reader.readNext()) != null && rowsRead < MAX_ROW_COUNT + 1) {
+			String[] previewRow = null;
+			if (rowsRead > MAX_ROW_COUNT - 1) {
+				// add a row of ellipsis
+				previewRow = createEllipsisRow(columnWidth);
+			} else {
+				// create a preview from the current row.
+				previewRow = createPreviewRow(lastRow);
+			}
+			results.add(previewRow);
+			columnWidth = Math.max(columnWidth, previewRow.length);
+			rowsRead++;
+		}
+		return results;
+	}
 
 	/**
-	 * Create a preview row for the given row.
+	 * Create a preview row from the given row. If the input row includes more
+	 * columns than the maximum allowed columns, the results will be truncated and
+	 * the last column will contain an ellipsis. If any cell in the input is over
+	 * the maximum number of characters the output cell will be truncated with an
+	 * ellipsis suffix.
 	 * 
 	 * @param lastRow
 	 * @return
 	 */
 	public static String[] createPreviewRow(String[] lastRow) {
-		int outWidth = Math.min(lastRow.length, MAX_COLUMN_COUNT + 1);
-		String[] outRow = new String[outWidth];
+		int resultNumberOfColumns = Math.min(lastRow.length, MAX_COLUMN_COUNT + 1);
+		String[] resultRow = new String[resultNumberOfColumns];
 		// Copy the data from the last row into the output row.
-		for (int columnIndex = 0; columnIndex < outWidth; columnIndex++) {
-			if (columnIndex > MAX_COLUMN_COUNT) {
-				outRow[columnIndex] = HTML_ELLIPSIS;
+		for (int columnIndex = 0; columnIndex < resultNumberOfColumns; columnIndex++) {
+			if (columnIndex > MAX_COLUMN_COUNT - 1) {
+				// use an ellipsis when over the max number of columns.
+				resultRow[columnIndex] = HTML_ELLIPSIS;
 			} else {
-				outRow[columnIndex] = createPreviewCell(lastRow[columnIndex]);
+				// create a preview for the cell value.
+				resultRow[columnIndex] = createPreviewCell(lastRow[columnIndex]);
 			}
 		}
-		return outRow;
+		return resultRow;
 	}
 
 	/**
-	 * Create a preview cell from the input cell. If the input cell is nu
+	 * Create a preview cell from the input cell. If the input cell is null the output will be null.
+	 * If the input is over the maximum number of characters the output will be truncated
+	 * with an ellipsis suffix.
 	 * 
 	 * @param inputCell
 	 * @return
@@ -153,7 +174,7 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 		if (inputCell == null) {
 			return null;
 		}
-		if (inputCell.length() < MAX_CELL_CHARACTER_COUNT) {
+		if (inputCell.length() <= MAX_CELL_CHARACTER_COUNT) {
 			// cell under max.
 			return inputCell;
 		} else {
@@ -170,130 +191,13 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 	 * @param numberColumns
 	 * @return
 	 */
-	public static String[] createEllipsisRow(int numberColumns) {
-		String[] row = new String[numberColumns];
-		for (int i = 0; i < numberColumns; i++) {
+	public static String[] createEllipsisRow(int numberOfColumns) {
+		String[] row = new String[numberOfColumns];
+		for (int i = 0; i < numberOfColumns; i++) {
 			row[i] = HTML_ELLIPSIS;
 		}
 		return row;
 	}
-
-	// public String read(InputStream from) throws IOException{
-	// StringBuilder buffer = new StringBuilder();
-	// InputStreamReader isr = new InputStreamReader(from, "UTF-8");
-	// BufferedReader in = new BufferedReader(isr);
-	// int currentLine = 0;
-	// boolean isEndOfFile = false;
-	// String lastRow = null;
-	// while(currentLine < MAX_ROW_COUNT && !isEndOfFile) {
-	// lastRow = getNextRow(in);
-	// //if a line consists only of whitespace, then do not include it in the
-	// preview output
-	// if (lastRow.trim().length() > 0)
-	// buffer.append(lastRow);
-	// currentLine++;
-	// if (lastRow.length() > 0)
-	// isEndOfFile = lastRow.charAt(lastRow.length()-1) == EOF;
-	// }
-	// if (currentLine >= MAX_ROW_COUNT) {
-	// //indicate we are truncating rows.
-	// if (lastRow != null && lastRow.length() > 0) {
-	// //output the correct number of columns
-	// int columnCount = lastRow.split(",").length;
-	// for (int i = 0; i < columnCount; i++) {
-	// buffer.append(HTML_ELLIPSIS);
-	// if (i != columnCount-1)
-	// buffer.append(COMMA);
-	// }
-	// }
-	// }
-	// in.close();
-	//
-	// if (isEndOfFile && buffer.length() > 0) {
-	// buffer.deleteCharAt(buffer.length()-1);
-	// }
-	//
-	// return buffer.toString();
-	// }
-	//
-	// public String getNextRow(BufferedReader in) throws IOException {
-	// int currentColumn = 0;
-	// StringBuilder buffer = new StringBuilder();
-	// boolean isEndOfLine = false;
-	// boolean isEndOfFile = false;
-	// while(currentColumn < MAX_COLUMN_COUNT && !isEndOfLine && !isEndOfFile) {
-	// String cellText = getNextCell(in);
-	// buffer.append(cellText);
-	// currentColumn++;
-	// isEndOfLine = cellText.endsWith("\n") || cellText.endsWith("\r");
-	// if (cellText.length() > 0)
-	// isEndOfFile = cellText.charAt(cellText.length()-1) == EOF;
-	// }
-	// if (currentColumn >= MAX_COLUMN_COUNT) {
-	// //indicate we are truncating columns.
-	// buffer.append(HTML_ELLIPSIS);
-	// //and read until the end of line
-	// in.readLine();
-	// }
-	// if (!isEndOfLine && !isEndOfFile) {
-	// buffer.append("\n");
-	// }
-	// return buffer.toString();
-	// }
-	//
-	// public String getNextCell(BufferedReader in) throws IOException {
-	// StringBuilder buffer = new StringBuilder();
-	// int ch;
-	// int count = 0;
-	// boolean isInQuote = false;
-	// //extract the cell text (or as much as we are allowed)
-	// while ((ch = in.read()) > -1 && count < MAX_CELL_CHARACTER_COUNT &&
-	// isInCell(ch, isInQuote)) {
-	// if (ch == DOUBLE_QUOTE) {
-	// isInQuote = !isInQuote;
-	// } else {
-	// if (ch == COMMA) {
-	// //convert commas that occur inside of a cell to HTML_COMMA
-	// buffer.append(HTML_COMMA);
-	// } else if (ch == NEWLINE || ch == CR) {
-	// //eat newlines inside of cells (convert to spaces)
-	// buffer.append(" ");
-	// } else {
-	// buffer.append((char) ch);
-	// }
-	// count++;
-	// }
-	// }
-	// // now scan forward to the next newline if we didn't find one above
-	// if (isInCell(ch, isInQuote)) {
-	// buffer.append(HTML_ELLIPSIS);
-	// while ((ch = in.read()) > -1) {
-	// if (ch == DOUBLE_QUOTE) {
-	// isInQuote = !isInQuote;
-	// } else if (!isInCell(ch, isInQuote)) {
-	// break;
-	// }
-	// }
-	// }
-	//
-	// //always sending csv to output. and if this is the end of the stream, output
-	// an EOF character so that callers recognize the state
-	// if (ch == delimiter)
-	// ch = COMMA;
-	// else if (ch == -1)
-	// ch = EOF;
-	// buffer.append((char) ch);
-	// return buffer.toString();
-	// }
-	//
-	// public boolean isInCell(int ch, boolean isInQuote) {
-	// //if in quote, then assume we're in the same cell
-	// if (ch == -1)
-	// return false;
-	// if (isInQuote)
-	// return true;
-	// return ch != NEWLINE && ch != CR && ch != delimiter;
-	// }
 
 	@Override
 	public long calculateNeededMemoryBytesForPreview(String mimeType, long contentSize) {
