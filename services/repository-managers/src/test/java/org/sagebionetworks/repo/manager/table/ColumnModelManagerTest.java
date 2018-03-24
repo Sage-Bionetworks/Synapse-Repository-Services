@@ -924,4 +924,58 @@ public class ColumnModelManagerTest {
 	public void testValidateSchemaWithProvidedOrderedColumnsWithDifferentOrder() {
 		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1", "2"), Arrays.asList("2", "1"));
 	}
+	
+	@Test
+	public void testCheckColumnNaming() {
+		String name = "foo";
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCheckColumnNamingReserved() {
+		String name = TableConstants.ROW_ID;
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	/**
+	 * PLFM-4329.
+	 */
+	@Test
+	public void testCheckColumnNamingAtLimit() {
+		String name = createStringOfSize(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS);
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	/**
+	 * PLFM-4329.
+	 */
+	@Test
+	public void testCheckColumnNamingOverLimit() {
+		String name = createStringOfSize(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS+1);
+		// call under test
+		try {
+			ColumnModelManagerImpl.checkColumnNaming(name);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals("Column name must be: 256 characters or less.", e.getMessage());
+		}
+	}
+	
+	/**
+	 * Create a string with the given number of characters.
+	 * 
+	 * @param numberChars
+	 * @return
+	 */
+	public static String createStringOfSize(int numberChars) {
+		char[] chars = new char[numberChars];
+		for(int i=0; i<numberChars; i++) {
+			chars[i] = (char) i;
+		}
+		return new String(chars);
+	}
+	
 }
