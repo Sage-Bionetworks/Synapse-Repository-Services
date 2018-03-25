@@ -63,44 +63,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * Files in Synapse are repressed with a <a
- * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>
- * object. There are currently three concrete implementations of FileHandle: <a
- * href="${org.sagebionetworks.repo.model.file.ExternalFileHandle}">
- * ExternalFileHandle</a>, <a
- * href="${org.sagebionetworks.repo.model.file.S3FileHandle}">S3FileHandle</a>,
- * <a href="${org.sagebionetworks.repo.model.file.PreviewFileHandle}">
- * PreviewFileHandle</a>.
- * </p>
- * <p>
- * <b>ExternalFileHandle</b>
- * </p>
- * <p>
- * An external file handle is used to represent an external URL. Synapse will
- * attempt to generate a preview for any external URL that can be publicly read.
- * The resulting preview file will be stored in Synapse and represented with a
- * PrevewFileHandle. The creator of the ExternalFileHandle will be listed as the
- * creator of the preview.
- * </p>
- * <p>
- * <b>S3FileHandle</b>
- * </p>
- * <p>
- * When a file is stored in Synapse, by default it is stored in Amazon's S3. The
- * S3FileHandle captures the extra information about the S3 file. Just like
- * ExternalFileHandles, Synapse will attempt to automatically create a preview
- * of all S3FileHandles.
- * </p>
- * <p>
- * <b>PreviewFileHandle</b>
- * </p>
- * <p>
- * When Synapse creates a preview file for either an ExternalFileHandle or an
- * S3FileHandle, the resulting preview file will be stored in S3 and be assigned
- * a PreviewFileHandle. Currently, Synapse will generate previews based on the
- * original file's contentType (see: <a class="external-link" rel="nofollow"
- * href="http://en.wikipedia.org/wiki/Internet_media_type">Internet Media
- * Type</a>).
+ * FileHandle is an abstraction for a reference to a file in Synapse.  For details on the various types see: <a
+ * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>.
  * </p>
  * <p>
  * <b>Multi-part File Upload API</b>

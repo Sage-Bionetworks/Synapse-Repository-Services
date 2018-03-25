@@ -254,7 +254,7 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(USER_NAME, user.getUserName());
 		assertEquals(EMAIL, user.getEmail());
 		verify(mockAuthManager).changePassword(USER_ID, PASSWORD);
-		verify(mockAuthManager).authenticate(USER_ID, PASSWORD);
+		verify(mockAuthManager).login(USER_ID, PASSWORD, null);
 	}
 
 	// token is OK 23 hours from now

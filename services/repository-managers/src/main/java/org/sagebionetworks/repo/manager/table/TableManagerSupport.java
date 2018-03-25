@@ -371,15 +371,6 @@ public interface TableManagerSupport {
 	ViewType getViewType(String tableId);
 
 	/**
-	 * Get the column models for the given columnIds.
-	 * 
-	 * @param ids
-	 * @param keepOrder
-	 * @return
-	 */
-	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder);
-
-	/**
 	 * Only Administrator can perform this action.
 	 * Trigger a table/ view to be rebuilt.
 	 * 

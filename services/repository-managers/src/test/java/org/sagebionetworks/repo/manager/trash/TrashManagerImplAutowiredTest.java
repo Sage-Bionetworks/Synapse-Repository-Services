@@ -19,6 +19,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -179,7 +180,8 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeChildId = nodeChild.getId();
 
 		// add an access requirement to the parent
-		accessRequirementToDelete = accessRequirementManager.createLockAccessRequirement(testUserInfo, nodeParentId);
+		AccessRequirement ar = AccessRequirementManagerImpl.newLockAccessRequirement(testAdminUserInfo, nodeParentId, "jiraKey");
+		accessRequirementToDelete = accessRequirementManager.createAccessRequirement(testAdminUserInfo, ar);
 		
 		// delete and try to restore to some other (unrestricted) parent
 		trashManager.moveToTrash(testUserInfo, nodeChildId);

@@ -34,7 +34,7 @@ import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
@@ -665,7 +665,7 @@ public class IT100TableControllerTest {
 		
 		try {
 			synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT, table.getId());
-		} catch (SynapseServerException e) {
+		} catch (UnknownSynapseServerException e) {
 			// this should result in a 413 "Payload Too Large"
 			assertEquals(413, e.getStatusCode());
 		}

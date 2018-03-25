@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -25,7 +23,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
@@ -74,9 +71,14 @@ import com.google.common.collect.Sets;
 
 public class TableEntityManagerImpl implements TableEntityManager, UploadRowProcessor {
 	
-	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
+	public static final String MAXIMUM_TABLE_SIZE_EXCEEDED = "Maximum table size exceeded.";
 
-	static private Log log = LogFactory.getLog(TableEntityManagerImpl.class);
+	/**
+	 * See PLFM-4774
+	 */
+	public static final long MAXIMUM_VERSIONS_PER_TABLE = 30*1000;
+	
+	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
 	
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
 	
@@ -90,8 +92,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	FileHandleDao fileHandleDao;
 	@Autowired
 	ColumnModelManager columModelManager;
-	@Autowired
-	ColumnModelDAO columnModelDao;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
 	@Autowired
@@ -319,6 +319,12 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
 		// Reserver IDs for the missing
 		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
+		
+		// validate the table would be within the size limit.
+		if(range.getVersionNumber() > MAXIMUM_VERSIONS_PER_TABLE) {
+			throw new IllegalArgumentException(MAXIMUM_TABLE_SIZE_EXCEEDED);
+		}
+		
 		// Are any rows being updated?
 		if (coutToReserver < delta.getRowCount()) {
 			// Validate that this update does not contain any row level conflicts.
@@ -535,7 +541,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 
 				@Override
 				public Void call(ProgressCallback callback) throws Exception {
-					columModelManager.bindColumnToObject(userInfo, columnIds, id);
+					columModelManager.bindColumnToObject(columnIds, id);
 					tableManagerSupport.setTableToProcessingAndTriggerUpdate(id);
 					return null;
 				}
@@ -721,9 +727,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 
 		// first determine what the new Schema will be
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
-		boolean keepOrder = true;
-		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);
+		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, changes.getEntityId());
 		// If the change includes an update then a change needs to be pushed to the changes
 		if(containsColumnUpdate(changes.getChanges())){
 			List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
@@ -761,7 +765,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		// If the new key is null then we need to translate from the old type to the new type.
 		if(change.getKeyNew() == null){
 			// Lookup the current schema
-			List<ColumnModel> currentSchema = columnModelDao.getColumnModelsForObject(change.getTableId());
+			List<ColumnModel> currentSchema = columModelManager.getColumnModelsForObject(change.getTableId());
 			// fetch the old type.
 			RowSet oldRowSet = tableRowTruthDao.getRowSet(change.getTableId(), change.getRowVersion(), currentSchema);
 			// translate to the new sparse
@@ -770,7 +774,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			change = tableRowTruthDao.upgradeToNewChangeSet(change.getTableId(), change.getRowVersion(), sparse.writeToDto());
 		}
 		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);
-		List<ColumnModel> schema = columnModelDao.getColumnModel(dto.getColumnIds(), true);
+		List<ColumnModel> schema = columModelManager.getColumnModels(dto.getColumnIds());
 		return new SparseChangeSet(dto, schema);
 	}
 

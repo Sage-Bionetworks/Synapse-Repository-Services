@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 
@@ -53,15 +52,13 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testBinaryRoundTripJSONEntity(){
-		Example example = new Example();
+		Project example = new Project();
 		example.setName("Example name");
-		example.setType("The best type ever");
-		example.setQuantifier("Totally not quantifyable!");
 		ObjectSchema schema = SchemaCache.getSchema(example);
 		byte[] bytes = NodeTranslationUtils.objectToBytes(example, schema);
 		assertNotNull(bytes);
 		// Now convert it back to a string
-		Example back = (Example) NodeTranslationUtils.bytesToObject(bytes, schema);
+		Project back = (Project) NodeTranslationUtils.bytesToObject(bytes, schema);
 		assertNotNull(back);
 		assertEquals(example, back);
 	}
@@ -70,26 +67,21 @@ public class NodeTranslationUtilsTest {
 	public void testBinaryRoundTripListJSONEntity(){
 		ObjectSchema schema = new ObjectSchema();
 		schema.setType(TYPE.ARRAY);
-		schema.setItems(SchemaCache.getSchema(new Example()));
-		schema.setUniqueItems(false);
+		schema.setItems(SchemaCache.getSchema(new Project()));
 		
-		Example example = new Example();
+		Project example = new Project();
 		example.setName("Example name");
-		example.setType("The best type ever");
-		example.setQuantifier("Totally not quantifyable!");
-		List<Example> list = new ArrayList<Example>();
+		List<Project> list = new ArrayList<Project>();
 		list.add(example);
 		// Add one more
-		example = new Example();
+		example = new Project();
 		example.setName("Example 2");
-		example.setType("The best type ever 2");
-		example.setQuantifier("Totally not quantifyable 2!");
 		list.add(example);
 		
 		byte[] bytes = NodeTranslationUtils.objectToBytes(list, schema);
 		assertNotNull(bytes);
 		// Now convert it back to a string
-		List<Example> back = (List<Example>) NodeTranslationUtils.bytesToObject(bytes, schema);
+		List<Project> back = (List<Project>) NodeTranslationUtils.bytesToObject(bytes, schema);
 		assertNotNull(back);
 		assertEquals(list, back);
 	}
@@ -98,26 +90,22 @@ public class NodeTranslationUtilsTest {
 	public void testBinaryRoundTripSetJSONEntity(){
 		ObjectSchema schema = new ObjectSchema();
 		schema.setType(TYPE.ARRAY);
-		schema.setItems(SchemaCache.getSchema(new Example()));
+		schema.setItems(SchemaCache.getSchema(new Project()));
 		schema.setUniqueItems(true);
 		
-		Example example = new Example();
+		Project example = new Project();
 		example.setName("Example name");
-		example.setType("The best type ever");
-		example.setQuantifier("Totally not quantifyable!");
-		Set<Example> set = new HashSet<Example>();
+		Set<Project> set = new HashSet<Project>();
 		set.add(example);
 		// Add one more
-		example = new Example();
+		example = new Project();
 		example.setName("Example 2");
-		example.setType("The best type ever 2");
-		example.setQuantifier("Totally not quantifyable 2!");
 		set.add(example);
 		
 		byte[] bytes = NodeTranslationUtils.objectToBytes(set, schema);
 		assertNotNull(bytes);
 		// Now convert it back to a string
-		Set<Example> back = (Set<Example>) NodeTranslationUtils.bytesToObject(bytes, schema);
+		Set<Project> back = (Set<Project>) NodeTranslationUtils.bytesToObject(bytes, schema);
 		assertNotNull(back);
 		assertEquals(set, back);
 	}

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -35,7 +36,7 @@ public interface PrincipalService {
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException;
+	LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException;
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.

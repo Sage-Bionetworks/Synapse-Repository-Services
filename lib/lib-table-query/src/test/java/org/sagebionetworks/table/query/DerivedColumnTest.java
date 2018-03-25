@@ -1,10 +1,9 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 public class DerivedColumnTest {
@@ -81,39 +80,21 @@ public class DerivedColumnTest {
 	}
 	
 	@Test
-	public void testGetFunctionTypeNoFunctionCount() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("foo as bar");
-		assertEquals(null, element.getFunctionType());
+	public void testGetNameWithFunction() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("date(foo)");
+		assertEquals("DATE(foo)", element.getDisplayName());
 	}
 	
 	@Test
-	public void testGetFunctionTypeCount() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*) as foo");
-		assertEquals(FunctionType.COUNT, element.getFunctionType());
+	public void testGetNameWithArithmetic() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("5 div 2");
+		assertEquals("5 DIV 2", element.getDisplayName());
 	}
 	
 	@Test
-	public void testGetFunctionTypeMax() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(foo) as bar");
-		assertEquals(FunctionType.MAX, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeMin() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("min('foo')");
-		assertEquals(FunctionType.MIN, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeSum() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("sum('foo')");
-		assertEquals(FunctionType.SUM, element.getFunctionType());
-	}
-	
-	@Test
-	public void testGetFunctionTypeAvg() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("avg('foo')");
-		assertEquals(FunctionType.AVG, element.getFunctionType());
+	public void testGetNameWithArithmeticColumn() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("5+foo");
+		assertEquals("5+foo", element.getDisplayName());
 	}
 	
 	@Test
@@ -174,6 +155,48 @@ public class DerivedColumnTest {
 	public void testGetReferencedColumnNameFunctionDistinct() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(distinct bar)");
 		assertEquals("bar", element.getReferencedColumnName());
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesSingleQuote() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("'single'quote'");
+		assertEquals("single'quote", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesDouble() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("\"double\"quote\"");
+		assertEquals("double\"quote", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesBacktick() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("`back`tick`");
+		assertEquals("back`tick", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesNoQuotes() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("count('foo')");
+		assertEquals("count('foo')", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesEmptyk() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("");
+		assertEquals("", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesNull() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes(null);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesJustQuotes() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("''");
+		assertEquals("", result);
 	}
 	
 }

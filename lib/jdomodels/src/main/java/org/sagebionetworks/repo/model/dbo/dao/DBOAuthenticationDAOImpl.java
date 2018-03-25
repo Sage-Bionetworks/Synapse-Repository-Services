@@ -150,7 +150,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_ID_BY_EMAIL_AND_PASSWORD, new SingleColumnRowMapper<Long>(), principalId, passHash);
 		} catch (EmptyResultDataAccessException e) {
-			throw new UnauthenticatedException("The provided username/password combination is incorrect");
+			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e);
 		}
 	}
 	

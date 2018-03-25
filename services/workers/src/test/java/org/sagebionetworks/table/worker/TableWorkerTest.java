@@ -160,8 +160,6 @@ public class TableWorkerTest {
 		
 		when(mockTableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		
-		when(mockTableManagerSupport.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(currentSchema);
-		
 		when(mockTableEntityManager.getSparseChangeSet(trc1)).thenReturn(sparseRowset1);
 		when(mockTableEntityManager.getSparseChangeSet(trc2)).thenReturn(sparseRowset2);
 		isTableView = false;
@@ -246,7 +244,7 @@ public class TableWorkerTest {
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
-		verify(mockTableManagerSupport, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
+		verify(mockTableManagerSupport, times(3)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 		
 		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1, 0L);
 		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);

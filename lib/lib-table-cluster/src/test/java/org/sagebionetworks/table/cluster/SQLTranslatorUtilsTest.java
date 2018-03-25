@@ -37,11 +37,9 @@ import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
-import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -143,135 +141,6 @@ public class SQLTranslatorUtilsTest {
 		// Should work for all types without errors
 		for(ColumnType type: ColumnType.values()){
 			SQLTranslatorUtils.isNumericType(type);
-		}
-	}
-	
-	@Test
-	public void testGetColumnTypeForFunctionCount(){
-		FunctionType functionType = FunctionType.COUNT;
-		ColumnType baseType = ColumnType.BOOLEAN;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// count is always integer
-		assertEquals(ColumnType.INTEGER, lookup);
-	}
-	
-	@Test
-	public void testGetColumnTypeForFunctionCountNullType(){
-		FunctionType functionType = FunctionType.COUNT;
-		ColumnType baseType = null;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// count is always integer
-		assertEquals(ColumnType.INTEGER, lookup);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionAvgNullType(){
-		FunctionType functionType = FunctionType.AVG;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionAvgNumericType(){
-		FunctionType functionType = FunctionType.AVG;
-		ColumnType baseType = ColumnType.INTEGER;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// avg is always double
-		assertEquals(ColumnType.DOUBLE, lookup);
-	}
-	
-	@Test  (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionAvgNonNumericType(){
-		FunctionType functionType = FunctionType.AVG;
-		ColumnType baseType = ColumnType.STRING;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionSumNullType(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionSumNumericTypeInteger(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = ColumnType.INTEGER;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// sum is same as input numeric
-		assertEquals(baseType, lookup);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionSumNumericTypeDouble(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = ColumnType.DOUBLE;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// sum is same as input numeric
-		assertEquals(baseType, lookup);
-	}
-	
-	@Test  (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionSumNonNumericType(){
-		FunctionType functionType = FunctionType.SUM;
-		ColumnType baseType = ColumnType.STRING;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionMinNull(){
-		FunctionType functionType = FunctionType.MIN;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionMin(){
-		FunctionType functionType = FunctionType.MIN;
-		ColumnType baseType = ColumnType.DOUBLE;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// min is same as input
-		assertEquals(baseType, lookup);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeForFunctionMaxNull(){
-		FunctionType functionType = FunctionType.MAX;
-		ColumnType baseType = null;
-		// call under test
-		SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-	}
-	
-	@Test 
-	public void testGetColumnTypeForFunctionMax(){
-		FunctionType functionType = FunctionType.MAX;
-		ColumnType baseType = ColumnType.DOUBLE;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// min is same as input
-		assertEquals(baseType, lookup);
-	}
-	
-	/**
-	 * should work for each type without an error
-	 */
-	@Test
-	public void testGetColumnTypeForAllFunctionsBaseTypeInteger(){
-		ColumnType baseType = ColumnType.INTEGER;
-		for(FunctionType functionType: FunctionType.values()){
-			SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
 		}
 	}
 	
@@ -542,56 +411,6 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testgetColumnTypeForMySqlFunctionNull() throws ParseException{
-		MySqlFunction function = null;
-		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
-		assertEquals(null, result);
-	}
-	
-	@Test
-	public void testgetColumnTypeForMySqlFunctionNow() throws ParseException{
-		MySqlFunction function = new TableQueryParser("now()").mysqlFunction();
-		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
-		assertEquals(ColumnType.STRING, result);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetColumnTypeNull(){
-		FunctionReturnType returnType = null;
-		SQLTranslatorUtils.getColumnType(returnType);
-	}
-	
-	@Test
-	public void testGetColumnTypeLong(){
-		FunctionReturnType returnType = FunctionReturnType.LONG;
-		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-		assertEquals(ColumnType.INTEGER, result);
-	}
-	
-	@Test
-	public void testGetColumnTypeDouble(){
-		FunctionReturnType returnType = FunctionReturnType.DOUBLE;
-		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-		assertEquals(ColumnType.DOUBLE, result);
-	}
-	
-	@Test
-	public void testGetColumnTypeString(){
-		FunctionReturnType returnType = FunctionReturnType.STRING;
-		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-		assertEquals(ColumnType.STRING, result);
-	}
-
-	@Test
-	public void testGetColumnTypeAllTypes(){
-		// should work for all types
-		for(FunctionReturnType returnType: FunctionReturnType.values()){
-			ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
-			assertNotNull(result);
-		}
-	}
-	
-	@Test
 	public void testCreateSelectListFromSchema(){
 		// call under test.
 		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(columnFoo, columnHasSpace));
@@ -701,32 +520,6 @@ public class SQLTranslatorUtilsTest {
 		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
 		assertNotNull(results);
 		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", results.toSql());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDoAllSelectMatchSchemaNullNull(){
-		// call under test
-		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(null));
-	}
-	
-	@Test
-	public void testDoAllSelectMatchSchemaTrue(){
-		SelectColumn one = new SelectColumn();
-		one.setId("123");
-		SelectColumn two = new SelectColumn();
-		two.setId("456");
-		// call under test
-		assertTrue(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
-	}
-	
-	@Test
-	public void testDoAllSelectMatchSchemaFalse(){
-		SelectColumn one = new SelectColumn();
-		one.setId("123");
-		SelectColumn two = new SelectColumn();
-		two.setId(null);
-		// call under test
-		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
 	}
 	
 	@Test
@@ -1175,7 +968,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereBetween() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and \"2\"").querySpecification();
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and 2").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ BETWEEN :b0 AND :b1",element.toSql());
@@ -1185,7 +978,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,\"3\")").querySpecification();
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,3)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IN ( :b0, :b1, :b2 )",element.toSql());
@@ -1307,7 +1100,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select sum((id+foo)/aDouble) as \"sum\" from syn123").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT SUM((_C444_+_C111_)/CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS \"sum\" FROM T123",element.toSql());
+		assertEquals("SELECT SUM((_C444_+_C111_)/CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS `sum` FROM T123",element.toSql());
 	}
 	
 	/**
@@ -1335,7 +1128,8 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	/**
-	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a 
+	 * column reference.
 	 * 
 	 * @throws ParseException
 	 */
@@ -1344,8 +1138,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = notReference").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
-		assertEquals("notReference", parameters.get("b0"));
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = notReference",element.toSql());
 	}
 	
 	/**
@@ -1361,7 +1154,8 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	/**
-	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a 
+	 * column reference in backticks. See: PLFM-3867.
 	 * 
 	 * @throws ParseException
 	 */
@@ -1370,8 +1164,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"notReference\"").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
-		assertEquals("notReference", parameters.get("b0"));
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = `notReference`",element.toSql());
 	}
 	
 	@Test
@@ -1409,6 +1202,32 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("1000", parameters.get("b0"));
 	}
 	
+	/**
+	 * Double quoted alias should be wrapped in backticks.
+	 * See PLFM-4736
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateDoubleQuotedAliasOrder() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select bar as \"a1\", count(foo) as \"a2\" from syn123 group by \"a1\" order by \"a2\" desc").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C333_ AS `a1`, COUNT(_C111_) AS `a2` FROM T123 GROUP BY `a1` ORDER BY `a2` DESC",element.toSql());
+	}
+	
+	/**
+	 * Value in double quotes.  Any value in double quotes should be treated as a column reference in backticks.
+	 * See: PLFM-3866
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateValueInDoubleQuotes() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in(\"one\",\"two\")").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( `one`, `two` )",element.toSql());
+	}
+	
 	@Test
 	public void testGetColumnTypeInfoArray(){
 		SelectColumn one = new SelectColumn();
@@ -1439,7 +1258,7 @@ public class SQLTranslatorUtilsTest {
 	public void testValidateSelectColumnWithFunction() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("function");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionType.AVG, null, new ActualIdentifier(new RegularIdentifier("someColumn")));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionReturnType.DOUBLE, null, new ActualIdentifier(new RegularIdentifier("someColumn")));
 	}
 
 	@Test

@@ -31,12 +31,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	public static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
 	
 	/**
-	 * Currently the maximum number of columns in a view is limited by: 'MySQL can
-	 * only use 61 tables in a join'. The query used to populate a view's table
-	 * currently uses a join for each column of the view.There is always at least
-	 * one join to ENTITY_REPLICATION.
+	 * Max columns per view is now the same as the max per table.
 	 */
-	public static final int MAX_COLUMNS_PER_VIEW = 61-1;
+	public static final int MAX_COLUMNS_PER_VIEW = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE;
 	
 	@Autowired
 	ViewScopeDao viewScopeDao;
@@ -71,7 +68,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, type);
 		// Define the schema of this view.
-		columModelManager.bindColumnToObject(userInfo, schema, viewIdString);
+		columModelManager.bindColumnToObject(schema, viewIdString);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewIdString);
 	}
@@ -94,9 +91,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// first determine what the new Schema will be
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
 		validateViewSchemaSize(newSchemaIds);
-		columModelManager.bindColumnToObject(user, newSchemaIds, viewId);
-		boolean keepOrder = true;
-		List<ColumnModel> newSchema = columModelManager.getColumnModel(user, newSchemaIds, keepOrder);
+		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, viewId);
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewId);
 		return newSchema;

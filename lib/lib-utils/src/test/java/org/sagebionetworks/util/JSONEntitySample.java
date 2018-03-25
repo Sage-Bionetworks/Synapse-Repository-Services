@@ -1,11 +1,14 @@
 package org.sagebionetworks.util;
 
-import org.sagebionetworks.schema.ObjectValidator;
+
+import org.sagebionetworks.schema.HasEffectiveSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-public class JSONEntitySample implements JSONEntity {
+public class JSONEntitySample implements JSONEntity, HasEffectiveSchema {
+	
+	 public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.util.JSONEntitySample\",\"title\":\"JSONEntitySample\",\"properties\":{\"stringField\":{\"description\":\"User's last name\",\"type\":\"string\"},\"hmac\":{\"description\":\"The hash message authentication code for the message.\",\"type\":\"string\"},\"firstName\":{\"description\":\"User's first name\",\"type\":\"string\"}},\"type\":\"object\"}";
 
 	public JSONEntitySample() {}
 
@@ -24,11 +27,6 @@ public class JSONEntitySample implements JSONEntity {
 	private String hmac;
 	private String stringField;
 
-    public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.util.JSONEntitySample\",\"title\":\"JSONEntitySample\",\"properties\":{\"stringField\":{\"description\":\"User's last name\",\"type\":\"string\"},\"hmac\":{\"description\":\"The hash message authentication code for the message.\",\"type\":\"string\"},\"firstName\":{\"description\":\"User's first name\",\"type\":\"string\"}},\"type\":\"object\"}";
-
-    public String getJSONSchema() {
-		return EFFECTIVE_SCHEMA;
-	}
 
 	/**
 	 * @see JSONEntity#initializeFromJSONObject(JSONObjectAdapter)
@@ -44,7 +42,6 @@ public class JSONEntitySample implements JSONEntity {
 		if (adapter == null) {
 			throw new IllegalArgumentException("org.sagebionetworks.schema.adapter.JSONObjectAdapter cannot be null");
 		}
-		ObjectValidator.validateEntity(JSONEntitySample.EFFECTIVE_SCHEMA, adapter, JSONEntitySample.class);
 		if (!adapter.isNull("hmac")) {
 			hmac = adapter.getString("hmac");
 		} else {
@@ -117,6 +114,11 @@ public class JSONEntitySample implements JSONEntity {
 	public String toString() {
 		return "JSONEntitySample [hmac=" + hmac + ", stringField="
 				+ stringField + "]";
+	}
+
+	@Override
+	public String getEffectiveSchema() {
+		return EFFECTIVE_SCHEMA;
 	}
 	
 	

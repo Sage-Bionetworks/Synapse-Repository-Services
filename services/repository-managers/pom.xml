@@ -256,22 +256,6 @@
 					<argLine>-Xmx1024m -Xms128m</argLine>
 				</configuration>
 			</plugin>
-
-			<plugin>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>schema-to-pojo-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<configuration>
-							<sourceDirectory>src/test/resources/test-schemas</sourceDirectory>
-							<outputDirectory>${project.build.directory}/auto-generated</outputDirectory>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 	</build>
 

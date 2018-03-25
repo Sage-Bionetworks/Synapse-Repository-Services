@@ -69,6 +69,36 @@ PARSER_END(TableQueryParser)
 	< end_double_quote: "\"">: DEFAULT
 }
 
+/**
+* When in the DEFAULT state, backtick quotes are the start of
+* string containing non-backtick quotes. This involves a state
+* change to: within_backtick.  The state change is necessary
+* to limit the scope of the <not_backtick> token which is too broad
+* for other cases.
+*/
+<DEFAULT> TOKEN: 
+{
+	< start_backtick: "`"> : within_backtick
+}
+// This token only has meaning within a backtick quote.
+<within_backtick> TOKEN :
+{
+	< not_backtick: ~["`"]> : within_backtick
+}
+// This token only has meaning within a double quote.
+<within_backtick> TOKEN :
+{
+	< escape_backtick: "``" > : within_backtick
+}
+/**
+* While within a double quote string, another double
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_backtick> TOKEN :
+{
+	< end_backtick: "`">: DEFAULT
+}
 
 /**
 * When in the DEFAULT state, single quotes are the start of
@@ -132,10 +162,7 @@ TOKEN [IGNORE_CASE]: {
 | < and: "AND">
 | < asc: "ASC">
 | < as: "AS">
-| < avg: "AVG">
 | < between: "BETWEEN" >
-| < date: "DATE" >
-| < count: "COUNT">
 | < desc: "DESC" >
 | < distinct: "DISTINCT">
 | < default_specification: "DEFAULT" > 
@@ -148,15 +175,12 @@ TOKEN [IGNORE_CASE]: {
 | < is: "IS">
 | < like: "LIKE" >
 | < limit: "LIMIT" >
-| < max: "MAX" >
-| < min: "MIN" >
 | < not: "NOT" >
 | < null_specification: "NULL" >
 | < offset: "OFFSET" >
 | < or: "OR" >
 | < order_by: "ORDER BY" >
 | < select: "SELECT" >
-| < sum: "SUM" >
 | < time: "TIME" >
 | < timestamp: "TIMESTAMP">
 | < _true: "TRUE">
@@ -164,6 +188,27 @@ TOKEN [IGNORE_CASE]: {
 | < unknown: "UNKNOWN">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
+}
+
+/* Aggregate functions */
+TOKEN [IGNORE_CASE]: {
+  < aggregate_functions_name:
+   "AVG"
+   | "COUNT"
+   | "MIN"
+   | "MAX"
+   | "SUM"
+   | "BIT_AND"
+   | "BIT_OR"
+   | "BIT_XOR"
+   | "STD"
+   | "STDDEV"
+   | "STDDEV_POP"
+   | "STDDEV_SAMP"
+   | "VAR_POP"
+   | "VAR_SAMP"
+   | "VARIANCE"
+  >
 }
 
 /* date and time functions */
@@ -174,7 +219,15 @@ TOKEN [IGNORE_CASE]: {
    | "CURRENT_TIME"
    | "NOW"
    | "UNIX_TIMESTAMP"
-   | "FROM_UNIXTIME"   
+   | "FROM_UNIXTIME"
+   | "YEARWEEK"
+   | "DATE"
+   | "DAYNAME"
+   | "DAYOFYEAR"
+   | "DAYOFMONTH"
+   | "DAYOFWEEK"
+   | "MONTHNAME"
+   | "WEEKOFYEAR"
   >
 }
 
@@ -189,14 +242,34 @@ TOKEN [IGNORE_CASE]: {
   >
 }
 
-/* datetime */
+/* date time field */
 TOKEN [IGNORE_CASE]: {
-  < year: "YEAR">
-| < month: "MONTH">
-| < day: "DAY">
-| < hour: "HOUR">
-| < minute: "MINUTE">
-| < second: "SECOND">
+	< date_time_field:
+	"MICROSECOND"
+	| "SECOND"
+	| "MINUTE"
+	| "HOUR"
+	| "DAY"
+	| "WEEK"
+	| "MONTH"
+	| "QUARTER"
+	| "YEAR"
+	>
+}
+/* Arithmetic operators */
+TOKEN [IGNORE_CASE]:{
+  < asterisk: "*">
+| < minus_sign: "-">
+| < not_equals_operator: "<>">
+| < equals_operator: "=">
+| < less_than_or_equals_operator: "<=">
+| < greater_than_or_equals_operator: ">=">
+| < less_than_operator: "<">
+| < greater_than_operator: ">">
+| < plus_sign: "+">
+| < solidus: "/">
+| < modulo: "%">
+| < div: "DIV">
 }
 
 TOKEN [IGNORE_CASE]: {
@@ -204,23 +277,12 @@ TOKEN [IGNORE_CASE]: {
 }
 
 /* Symbols and punctuation */
-TOKEN:{
-  < asterisk: "*">
-| < comma: ",">
+TOKEN [IGNORE_CASE]:{
+  < comma: ",">
 | < left_paren: "(">
-| < minus_sign: "-">
-| < not_equals_operator: "<>">
-| < less_than_or_equals_operator: "<=">
-| < greater_than_or_equals_operator: ">=">
-| < less_than_operator: "<">
-| < greater_than_operator: ">">
-| < equals_operator: "=">
 | < period: "." >
-| < plus_sign: "+">
 | < right_paren: ")">
-| < solidus: "/">
-| < modulo: "%">
-| <underscore: "_">
+| < underscore: "_">
 }
 
 TOKEN: {
@@ -242,7 +304,6 @@ TOKEN: {
 | < backslash: "\\">
 | < right_bracket: "]">
 | < circumflex: "^">
-| < backtick: "`">
 | < left_curly_brace: "{">
 | < vertical_line: "|">
 | < right_curly_brace: "}">
@@ -305,14 +366,11 @@ IntervalLiteral intervalLiteral():
 	<interval> unsignedInteger = unsignedInteger() datetimeField = datetimeField() { return new IntervalLiteral(unsignedInteger, datetimeField); }
 }
 DatetimeField datetimeField():
-{}
 {
-	<year> { return DatetimeField.YEAR; }
-	| <month> { return DatetimeField.MONTH; }
-	| <day> { return DatetimeField.DAY; }
-	| <hour> { return DatetimeField.HOUR; }
-	| <minute> { return DatetimeField.MINUTE; }
-	| <second> { return DatetimeField.SECOND; }
+	Token token = null;
+}
+{
+	token = <date_time_field> { return DatetimeField.valueOf(token.image.toUpperCase()); }
 }
 CharacterStringLiteral characterStringLiteral():
 {
@@ -383,6 +441,15 @@ ActualIdentifier actualIdentifier():
 }
 DelimitedIdentifier delimitedIdentifier():
 { 
+	DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier;
+	BacktickDelimitedIdentifier backtickDelimitedIdentifier;
+}
+{
+	doubleQuoteDelimitedIdentifier = doubleQuoteDelimitedIdentifier() { return new DelimitedIdentifier(doubleQuoteDelimitedIdentifier); }
+	| backtickDelimitedIdentifier = backtickDelimitedIdentifier() { return new DelimitedIdentifier(backtickDelimitedIdentifier); }
+}
+DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier():
+{ 
 	Token token = null;
 	StringBuilder builder = new StringBuilder();
 }
@@ -393,7 +460,21 @@ DelimitedIdentifier delimitedIdentifier():
 		| <escape_double_quote> { builder.append("\""); }
 	)*
 	<end_double_quote>
-	{ return new DelimitedIdentifier(builder.toString()); }
+	{ return new DoubleQuoteDelimitedIdentifier(builder.toString()); }
+}
+BacktickDelimitedIdentifier backtickDelimitedIdentifier():
+{ 
+	Token token = null;
+	StringBuilder builder = new StringBuilder();
+}
+{
+	<start_backtick>
+	( 
+		token = <not_backtick> { builder.append(token.image); }
+		| <escape_backtick> { builder.append("`"); }
+	)*
+	<end_backtick>
+	{ return new BacktickDelimitedIdentifier(builder.toString()); }
 }
 ColumnReference columnReference():
 {
@@ -520,13 +601,11 @@ SetFunctionSpecification generalSetFunction():
 	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
 }
 SetFunctionType setFunctionType():
-{}
 {
-	<avg> { return SetFunctionType.AVG; }
-	| <max> { return SetFunctionType.MAX; }
-	| <min> { return SetFunctionType.MIN; }
-	| <sum> { return SetFunctionType.SUM; }
-	| <count> { return SetFunctionType.COUNT; }
+	Token functionName;
+}
+{
+	functionName = <aggregate_functions_name> { return SetFunctionType.valueOf(functionName.image.toUpperCase()); }
 }
 WhereClause whereClause():
 {
@@ -817,6 +896,7 @@ FactorPrime factorPrime():
 {
 	<asterisk> factor = factor() { return new FactorPrime(ArithmeticOperator.ASTERISK, factor); }
 	| <solidus> factor = factor() { return new FactorPrime(ArithmeticOperator.SOLIDUS, factor); }
+	| <div> factor = factor() { return new FactorPrime(ArithmeticOperator.DIV, factor); }
 	| <modulo> factor = factor() { return new FactorPrime(ArithmeticOperator.MODULO, factor); }
 }
 Sign sign():
@@ -876,6 +956,7 @@ MySqlFunctionName mySqlFunctionName():
 {
 	functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <string_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	| functionName = <date_time_field> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 StringValueExpression stringValueExpression():
 {

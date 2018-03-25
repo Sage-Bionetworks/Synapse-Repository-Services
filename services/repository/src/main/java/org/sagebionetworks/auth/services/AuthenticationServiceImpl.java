@@ -1,10 +1,5 @@
 package org.sagebionetworks.auth.services;
 
-import java.io.IOException;
-
-import org.openid4java.message.ParameterList;
-import org.sagebionetworks.authutil.OpenIDConsumerUtils;
-import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -16,7 +11,6 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
-import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -28,7 +22,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -43,47 +36,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private AuthenticationManager authManager;
 	
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Autowired
 	private OAuthManager oauthManager;
 	
 	@Autowired
 	private MessageManager messageManager;
-	
-	public AuthenticationServiceImpl() {}
-	
-	public AuthenticationServiceImpl(
-			UserManager userManager, 
-			AuthenticationManager authManager, 
-			MessageManager messageManager, 
-			OAuthManager oauthManager) {
-		this.userManager = userManager;
-		this.authManager = authManager;
-		this.messageManager = messageManager;
-		this.oauthManager = oauthManager;
-	}
-
-	/**
-	 * Use {{@link #login(LoginRequest)}
-	 */
-	@Deprecated
-	@Override
-	@WriteTransaction
-	public Session authenticate(LoginCredentials credential) throws NotFoundException {
-		if (credential.getEmail() == null) {
-			throw new UnauthenticatedException("Username may not be null");
-		}
-		if (credential.getPassword() == null) {
-			throw new UnauthenticatedException("Password may not be null");
-		}
-		// Lookup the user.
-		PrincipalAlias pa = lookupUserForAuthentication(credential.getEmail());
-		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+credential.getEmail());;
-		
-		// Fetch the user's session token
-		return authManager.authenticate(pa.getPrincipalId(), credential.getPassword());
-	}
 
 	@Override
 	@WriteTransaction
@@ -188,84 +144,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
 		return authManager.hasUserAcceptedTermsOfUse(userId);
 	}
-	
-	@Override
-	@WriteTransaction
-	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException {
-		// Verify that the OpenID request is valid
-		OpenIDInfo openIDInfo;
-		try {
-			openIDInfo = OpenIDConsumerUtils.verifyResponse(parameters);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		if (openIDInfo == null) {
-			throw new UnauthenticatedException("OpenID is not valid");
-		}
-		return processOpenIDInfo(openIDInfo);
-	}
-	
-	/**
-	 * Returns the session token of the user described by the OpenID information
-	 */
-	@WriteTransaction
-	public Session processOpenIDInfo(OpenIDInfo info) throws NotFoundException {
-		// Get some info about the user
-		String email = info.getEmail();
-		if (email == null) {
-			throw new UnauthenticatedException("An email must be returned from the OpenID provider");
-		}
-		// First try to lookup the user by their OpenId
-		boolean isOpenIDBound = false;
-		PrincipalAlias alias = lookupUserForAuthentication(info.getIdentifier());
-		if(alias == null){
-			// Try to lookup the user by their email if we fail to look them up by OpenId
-			alias = lookupUserForAuthentication(email);
-		}else{
-			// This open ID is already bound to this user.
-			isOpenIDBound = true;
-		}
-		if(alias == null){
-			throw new NotFoundException("Failed to find a user with OpenId: "+info.getIdentifier());
-		}
-		// Open ID is successful
-		Session sesion = authManager.getSessionToken(alias.getPrincipalId());
-		
-		/**
-		 * Binding the OpenID here is temporary and should be removed when PLFM-2437 is resolved.
-		 */
-		if(!isOpenIDBound){
-			// Create the alias
-			PrincipalAlias openIdAlias = new PrincipalAlias();
-			openIdAlias.setType(AliasType.USER_OPEN_ID);
-			openIdAlias.setAlias(info.getIdentifier());
-			openIdAlias.setPrincipalId(alias.getPrincipalId());
-			principalAliasDAO.bindAliasToPrincipal(openIdAlias);
-		}
-		
-		return sesion;
-	}
-
-	@Override
-	public PrincipalAlias lookupUserForAuthentication(String alias) {
-		// Lookup the user
-		PrincipalAlias pa = userManager.lookupPrincipalByAlias(alias);
-		if(pa == null) return null;
-		if(AliasType.TEAM_NAME.equals(pa.getType())) throw new UnauthenticatedException("Cannot authenticate as team. Only users can authenticate");
-		return pa;
-	}
 
 	@Override
 	public Long getUserId(String username) throws NotFoundException {
-		PrincipalAlias pa = lookupUserForAuthentication(username);
-		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+username);
+		PrincipalAlias pa = userManager.lookupUserForAuthentication(username);
 		return pa.getPrincipalId();
 	}
 
 	@Override
 	public void sendPasswordEmail(String email) throws NotFoundException {
-		PrincipalAlias pa = lookupUserForAuthentication(email);
-		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+email);
+		PrincipalAlias pa = userManager.lookupUserForAuthentication(email);
 		sendPasswordEmail(pa.getPrincipalId());
 	}
 
@@ -287,11 +175,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
 		// This is the ID of the user within the provider's system.
-		PrincipalAlias emailAlias = userManager.lookupPrincipalByAlias(providedInfo.getUsersVerifiedEmail());
-		if(emailAlias == null){
-			// Let the caller know we did not find the user
-			throw new NotFoundException(providedInfo.getUsersVerifiedEmail());
-		}
+		PrincipalAlias emailAlias = userManager.lookupUserForAuthentication(providedInfo.getUsersVerifiedEmail());
 		// Return the user's session token
 		return authManager.getSessionToken(emailAlias.getPrincipalId());
 	}
@@ -315,15 +199,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public LoginResponse login(LoginRequest request) throws NotFoundException {
+	public LoginResponse login(LoginRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		// Lookup the user.
-		PrincipalAlias pa = lookupUserForAuthentication(request.getUsername());
-		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+request.getUsername());;
+		try {
+			// Lookup the user.
+			PrincipalAlias pa = userManager.lookupUserForAuthentication(request.getUsername());
 
-		// Fetch the user's session token
-		return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
+			// Fetch the user's session token
+			return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
+		} catch (NotFoundException e) {
+			// see PLFM-3914
+			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e);
+		}
+	}
+
+	@Override
+	public PrincipalAlias lookupUserForAuthentication(String alias) {
+		return userManager.lookupUserForAuthentication(alias);
 	}
 }

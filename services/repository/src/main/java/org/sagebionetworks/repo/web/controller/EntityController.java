@@ -640,7 +640,7 @@ public class EntityController extends BaseController {
 	 * @param userId
 	 * @param batch
 	 *            A comma separated list of Entity IDs to get EntityHeaders for.
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -673,7 +673,7 @@ public class EntityController extends BaseController {
 	 *            -The user that is doing the get.
 	 * @param batch
 	 *            - The comma-separated list of IDs of the entity to fetch.
-	 * @param request
+	 * @param loginRequest
 	 * @return The requested Entity if it exists.
 	 * @throws DatastoreException
 	 *             - Thrown when an there is a server failure.
@@ -1022,7 +1022,7 @@ public class EntityController extends BaseController {
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
-	 * @param request
+	 * @param loginRequest
 	 * @return A paginated list of results.
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException

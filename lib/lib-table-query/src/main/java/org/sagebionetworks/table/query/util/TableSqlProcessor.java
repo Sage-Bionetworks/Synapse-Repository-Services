@@ -173,11 +173,12 @@ public class TableSqlProcessor {
 				for (SortSpecification sort : list.getSortSpecifications()) {
 					SortItem item = new SortItem();
 					item.setColumn(sort.getSortKey().toSqlWithoutQuotes());
-					if (OrderingSpecification.ASC.equals(sort
-							.getOrderingSpecification())) {
+					if (sort.getOrderingSpecification() == null) {
+						// default to ASC.
 						item.setDirection(SortDirection.ASC);
 					} else {
-						item.setDirection(SortDirection.DESC);
+						// translate from the query object to the API object by name.
+						item.setDirection(SortDirection.valueOf(sort.getOrderingSpecification().name()));
 					}
 					results.add(item);
 				}

@@ -19,7 +19,7 @@ public class LoggingProfiler implements ProfileHandler {
 	}
 
 	@Override
-	public boolean shouldCaptureProfile(Object[] args) {
+	public boolean shouldCaptureProfile() {
 		return (log.isTraceEnabled() || log.isDebugEnabled() || log
 				.isErrorEnabled());
 	}

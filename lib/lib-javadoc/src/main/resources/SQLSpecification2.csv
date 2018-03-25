@@ -7,9 +7,19 @@ Aggregation Functions,Get the maximum of all values for the column 'foo' in tabl
 Aggregation Functions,Get the minimum of all values for the column 'foo' in table 'syn123'.,select min(foo) from syn123
 Aggregation Functions,Get the average of all values for the column 'foo' in table 'syn123'.,select avg(foo) from syn123
 Aggregation Functions,Get the sum of all values for the column 'foo' in table 'syn123'.,select sum(foo) from syn123
+Aggregation Functions,Returns the bit-wise AND of all bits in expr.,select bit_and(expr) from syn123
+Aggregation Functions,Returns the bit-wise OR of all bits in expr.,select bit_or(expr) from syn123
+Aggregation Functions,Returns the bit-wise XOR of all bits in expr.,select bit_xor(expr) from syn123
+Aggregation Functions,"Returns the population standard deviation of expr (the square root of VAR_POP()). You can also use STD() or STDDEV(), which are equivalent.",select STDDEV_POP(expr) from syn123
+Aggregation Functions,Returns the sample standard deviation of expr (the square root of VAR_SAMP(). ,select STDDEV_SAMP(expr) from syn123
+Aggregation Functions,"Returns the population standard variance of expr. It considers rows as the whole population, not as a sample, so it has the number of rows as the denominator. You can also use VARIANCE(), which is equivalent.",select VAR_POP(expr) from syn123
+Aggregation Functions,"Returns the sample variance of expr. That is, the denominator is the number of rows minus one. ",select VAR_POP(expr) from syn123
 Set Selection,The DISTINCT keyword can be used to select all distinct value (the value set) from a column. ,select distinct foo from syn123
 Set Selection,"The DISTINCT keyword applies to all selected columns, so if more than one column is listed, then the results will be a list of the distinct combinations of all selected columns.","select distinct foo, bar from syn123"
 Set Selection,"The DISTINCT keyword can be used with set functions.  In this example, we will get the count of the distinct values from the foo column.",select count(distinct foo) from syn123
+Arithmetic,Perform basic arithmetic.  Supported operators: + | - | /  | *,select (1 + 2)/3 from syn123
+Arithmetic,Perform integer division.,select 5 DIV 2 from syn123
+Arithmetic,Modulo operation.  Returns the remainder of integer division.,select 5 % 2 from syn123
 Filtering,Select all rows where column foo has a value equal to one.,select * from syn123 where foo =1
 Filtering,"Select all rows where column foo has a string value equal to 'a string', the right-hand-side but be within single quotes (').",select * from syn123 where foo = 'a string'
 Filtering,Select all rows where column foo has a value greater than one.,select * from syn123 where foo > 1
@@ -31,8 +41,10 @@ Filtering,Select all rows where column foo has a value equal to one or column ba
 Filtering,Select all rows where column foo has a value equal to one and column bar has a value equal to two.,select * from syn123 where foo=1 and bar =2
 Filtering,Predicates can be surrounded by the '(' and ')' to enforce precedence and nesting.,select * from syn123 where (foo=1 and bar =2) or foobar = 3
 Date and Time Functions,Filtering on columns of type DATE using a standard string format:  'YYYY-MM-DD HH:MM:SS'.  This example selects all rows where column aDate has a value greater than '2017-05-19 22:31:01' (GMT).  ,select * from syn123 where aDate > UNIX_TIMESTAMP('2017-05-19 22:31:01')*1000
-Date and Time Functions,Filtering on columns of type DATE using an interval.  This example will select all rows have been modified in last 30 days.  Interval units can be YEAR | MONTH | DAY | HOUR | MINUTE | SECOND.,select * from syn123 where modified_on > unix_timestamp(NOW() - INTERVAL 30 DAY)*1000
+Date and Time Functions,Filtering on columns of type DATE using an interval.  This example will select all rows have been modified in last 30 days.  Interval units can be YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND | MICROSECOND.,select * from syn123 where modified_on > unix_timestamp(NOW() - INTERVAL 30 DAY)*1000
 Date and Time Functions,"For columns of type DATE, select the date value as a standard date string in the format: 'YYYY-MM-DD HH:MM:SS'.",select FROM_UNIXTIME(aDate/1000) from syn123
+Date and Time Functions,Function to extract a numeric value from a date-time string.  Supported functions include: MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | QUARTER | YEAR | YEARWEEK | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | WEEKOFYEAR,select microsecond('12:00:00.123456') from syn123
+Date and Time Functions,Function to extract a string value from a date-time string.  Supported functions include: DATE | DAYNAME | MONTHNAME,select dayname('2007-02-03') from syn123
 String Functions,Concatenate the values of columns foo and bar into a single string.,"select concat(foo, bar) from syn123"
 String Functions,Replace all space characters with underscores for all values from the foo column.,"select replace(foo, ' ', '_') from syn123   "
 String Functions,Convert all string values from the column foo to upper case.,select upper(foo) from syn123

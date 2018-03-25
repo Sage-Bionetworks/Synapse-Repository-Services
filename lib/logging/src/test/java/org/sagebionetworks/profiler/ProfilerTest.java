@@ -9,16 +9,10 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Stack;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
@@ -41,42 +35,30 @@ public class ProfilerTest {
 
 	Profiler spyProfiler;
 
-	Object[] profiledMethodArgs;
 	@Before
 	public void setUp(){
-		profiledMethodArgs = new Object[]{};
-
 		Profiler profiler = new Profiler();
 		ReflectionTestUtils.setField(profiler, "frameStackManager", mockProfilerFrameStackManager);
 
 		spyProfiler = spy(profiler);
-
-		when(mockProceedingJoinPoint.getArgs()).thenReturn(profiledMethodArgs);
 	}
-
-	@After
-	public void noMoreInteractions(){
-		verifyNoMoreInteractions(mockProceedingJoinPoint);
-		verifyNoMoreInteractions(mockProfilerFrameStackManager);
-		verifyNoMoreInteractions(spyProfiler);
-	}
-
 
 	@Test
 	public void testDoBasicProfiling_shouldNotCaptureData() throws Throwable{
-		doReturn(false).when(mockProfilerFrameStackManager).shouldCaptureData(any());
+		doReturn(false).when(mockProfilerFrameStackManager).shouldCaptureData();
 
 		spyProfiler.doBasicProfiling(mockProceedingJoinPoint);
 
-		verify(spyProfiler).doBasicProfiling(mockProceedingJoinPoint);
-		verify(mockProfilerFrameStackManager).shouldCaptureData(any());
-		verify(mockProceedingJoinPoint).getArgs();
+		verify(mockProfilerFrameStackManager).shouldCaptureData();
 		verify(mockProceedingJoinPoint).proceed();
+
+		verifyNoMoreInteractions(mockProceedingJoinPoint);
+		verifyNoMoreInteractions(mockProfilerFrameStackManager);
 	}
 
 	@Test
 	public void testDoBasicProfiling_shouldCaptureData() throws Throwable{
-		doReturn(true).when(mockProfilerFrameStackManager).shouldCaptureData(any());
+		doReturn(true).when(mockProfilerFrameStackManager).shouldCaptureData();
 		Object target = new Object();
 		String signatureName = "fakename()";
 		Signature mockSignature = mock(Signature.class);
@@ -88,17 +70,17 @@ public class ProfilerTest {
 
 		spyProfiler.doBasicProfiling(mockProceedingJoinPoint);
 
-		verify(mockProfilerFrameStackManager).shouldCaptureData(any());
-		verify(spyProfiler).doBasicProfiling(mockProceedingJoinPoint);
-		verify(mockProceedingJoinPoint).getArgs();
+		verify(mockProfilerFrameStackManager).shouldCaptureData();
 		verify(mockProceedingJoinPoint).getSignature();
 		verify(mockProceedingJoinPoint).getTarget();
 		verify(mockSignature).getName();
-		verify(mockProfilerFrameStackManager).startProfiling(expectedMethodName, profiledMethodArgs);
+		verify(mockProfilerFrameStackManager).startProfiling(expectedMethodName);
 		verify(mockProceedingJoinPoint).proceed();
-		verify(mockProfilerFrameStackManager).endProfiling(eq(expectedMethodName), eq(profiledMethodArgs), anyLong());
+		verify(mockProfilerFrameStackManager).endProfiling(eq(expectedMethodName), anyLong());
 
 
 		verifyNoMoreInteractions(mockSignature);
+		verifyNoMoreInteractions(mockProceedingJoinPoint);
+		verifyNoMoreInteractions(mockProfilerFrameStackManager);
 	}
 }
