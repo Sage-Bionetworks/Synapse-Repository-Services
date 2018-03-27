@@ -175,7 +175,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	 * @see org.sagebionetworks.repo.manager.table.ColumnModelManager#getColumnModels(java.util.List)
 	 */
 	@Override
-	public List<ColumnModel> getColumnModels(List<String> ids)
+	public List<ColumnModel> getAndValidateColumnModels(List<String> ids)
 			throws DatastoreException, NotFoundException {
 		ValidateArgument.required(ids, "ColumnModel IDs");
 		List<ColumnModel> fromDb =  columnModelDao.getColumnModel(ids);
@@ -232,7 +232,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 							+ " columns per table");
 		}
 		// fetch the columns
-		List<ColumnModel> schema = getColumnModels(columnIds);
+		List<ColumnModel> schema = getAndValidateColumnModels(columnIds);
 		// Calculate the max row size for this schema.
 		int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
 		if (shemaSize > MY_SQL_MAX_BYTES_PER_ROW) {
@@ -413,7 +413,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		List<ColumnModel> models = getColumnModels(columnIds);
+		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds);
 		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();
