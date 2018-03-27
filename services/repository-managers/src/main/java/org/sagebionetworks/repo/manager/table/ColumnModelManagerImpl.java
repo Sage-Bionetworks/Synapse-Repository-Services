@@ -413,7 +413,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		List<ColumnModel> models = getColumnModels(columnIds);
+		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds);
 		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();

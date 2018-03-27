@@ -616,6 +616,35 @@ public class ColumnModelManagerTest {
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
 		assertEquals(expected, results);
 	}
+	
+	/**
+	 * For PLFM-4904 ColumnModelManager.getColumnChangeDetails() we throwing a 
+	 * 'Duplicate column name' exception if two columns have the same name.
+	 */
+	@Test
+	public void testPLFM_4904() {
+		ColumnModel oldCol = new ColumnModel();
+		oldCol.setName("foo");
+		oldCol.setId("111");
+		ColumnModel newCol = new ColumnModel();
+		newCol.setName("foo");
+		newCol.setId("222");
+		
+		List<String> colIds = Lists.newArrayList(newCol.getId(), oldCol.getId());
+ 
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(oldCol.getId());
+		change.setNewColumnId(newCol.getId());
+		List<ColumnChange> changes = Lists.newArrayList(change);
+		
+		// return both columns
+		when(mockColumnModelDAO.getColumnModel(colIds)).thenReturn(Lists.newArrayList(oldCol, newCol));
+		
+		// Call under test
+		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+	}
 
 	@Test
 	public void testCalculateNewSchemaIdsAndValidateWithNullOrderedColumnIds(){
