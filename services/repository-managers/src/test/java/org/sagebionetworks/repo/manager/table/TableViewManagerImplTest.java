@@ -320,7 +320,7 @@ public class TableViewManagerImplTest {
 		}
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
 		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
-		when(columnModelManager.getColumnModels(newColumnIds)).thenReturn(schema);
+		when(columnModelManager.getAndValidateColumnModels(newColumnIds)).thenReturn(schema);
 		
 		try {
 			// call under test

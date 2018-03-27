@@ -258,13 +258,13 @@ public class ColumnModelManagerTest {
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullList() throws DatastoreException, NotFoundException{
-		columnModelManager.getColumnModels(null);
+		columnModelManager.getAndValidateColumnModels(null);
 	}
 	
 	@Test
 	public void testGetColumns() {
 		//Call under test
-		List<ColumnModel> resutls = columnModelManager.getColumnModels(expectedNewSchemaIds);
+		List<ColumnModel> resutls = columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 		assertNotNull(resutls);
 		assertEquals(newSchema, resutls);
 	}
@@ -273,7 +273,7 @@ public class ColumnModelManagerTest {
 	public void testGetColumnsInOrder() {
 		Lists.reverse(expectedNewSchemaIds);
 		//Call under test
-		List<ColumnModel> resutls = columnModelManager.getColumnModels(expectedNewSchemaIds);
+		List<ColumnModel> resutls = columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 		assertNotNull(resutls);
 		// expected should also be in reverse order
 		Lists.reverse(newSchema);
@@ -286,7 +286,7 @@ public class ColumnModelManagerTest {
 		expectedNewSchemaIds.add("9999");
 		//Call under test
 		try{
-			columnModelManager.getColumnModels(expectedNewSchemaIds);
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 			fail();
 		}catch( NotFoundException e) {
 			// expected
@@ -300,7 +300,7 @@ public class ColumnModelManagerTest {
 		expectedNewSchemaIds.add(expectedNewSchemaIds.get(1));
 		//Call under test
 		try{
-			columnModelManager.getColumnModels(expectedNewSchemaIds);
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 			fail();
 		}catch( IllegalArgumentException e) {
 			// expected
@@ -316,7 +316,7 @@ public class ColumnModelManagerTest {
 		one.setName(zero.getName());
 		//Call under test
 		try{
-			columnModelManager.getColumnModels(expectedNewSchemaIds);
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 			fail();
 		}catch( IllegalArgumentException e) {
 			// expected
