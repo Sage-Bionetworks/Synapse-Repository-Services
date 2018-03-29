@@ -774,7 +774,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			change = tableRowTruthDao.upgradeToNewChangeSet(change.getTableId(), change.getRowVersion(), sparse.writeToDto());
 		}
 		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);
-		List<ColumnModel> schema = columModelManager.getColumnModels(dto.getColumnIds());
+		List<ColumnModel> schema = columModelManager.getAndValidateColumnModels(dto.getColumnIds());
 		return new SparseChangeSet(dto, schema);
 	}
 
