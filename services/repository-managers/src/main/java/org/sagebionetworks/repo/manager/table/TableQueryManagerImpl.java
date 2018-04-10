@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -203,7 +204,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final UserInfo user, final SqlQuery query,
 			final RowHandler rowHandler,final  boolean runCount, final boolean returnFacets)
 			throws DatastoreException, NotFoundException,
-			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {		
+			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {
 		// consistent queries are run with a read lock on the table and include the current etag.
 		if(query.isConsistent()){
 			// run with the read lock
@@ -247,14 +248,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		
 		try {
 			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, tableId, READ_LOCK_TIMEOUT_SEC, runner);
-		} catch (RuntimeException e) {
+		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
 			// runtime exceptions are unchanged.
-			throw e;
-		} catch (TableUnavailableException e) {
-			throw e;
-		} catch (TableFailedException e) {
-			throw e;
-		} catch (EmptyResultException e) {
 			throw e;
 		} catch (Exception e){
 			// all other checked exceptions are converted to runtime
@@ -528,7 +523,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			response.setEtag(result.getQueryResult().getQueryResults().getEtag());
 			return response;
 		} catch (EmptyResultException e) {
-			throw new IllegalArgumentException("Table "+e.getTableId()+" has an empty schema");
+			return createEmptyDownload(e.getTableId());
 		}
 	}
 	
@@ -654,6 +649,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		bundle.setMaxRowsPerPage(1L);
 		bundle.setSelectColumns(new LinkedList<SelectColumn>());
 		return bundle;
+	}
+
+	public static DownloadFromTableResult createEmptyDownload(String tableId){
+		DownloadFromTableResult result = new DownloadFromTableResult();
+		result.setHeaders(Collections.emptyList());
+		result.setResultsFileHandleId("TODO replace with empty filehandle id?");
+		result.setTableId(tableId);
+		result.set????
 	}
 	
 	/**
