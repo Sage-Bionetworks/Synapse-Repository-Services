@@ -522,8 +522,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// pass along the etag.
 			response.setEtag(result.getQueryResult().getQueryResults().getEtag());
 			return response;
-		} catch (EmptyResultException e) {
-			return createEmptyDownload(e.getTableId());
+		} catch (EmptyResultException e) { //this is thrown in queryPreflight()
+			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, Collections.emptyList(), request.getIncludeRowIdAndRowVersion(), request.getIncludeEntityEtag());
+			if (request.getWriteHeader()) {
+				handler.writeHeader();
+			}
+			DownloadFromTableResult result = new DownloadFromTableResult();
+			result.setHeaders(Collections.emptyList());
+			result.setTableId(e.getTableId());
+			result.setEtag(null);
+			//no need for result.setFileHandleId() because it is not know until the csv is uploaded by worker?.
+			return result;
 		}
 	}
 	
@@ -652,11 +661,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	public static DownloadFromTableResult createEmptyDownload(String tableId){
-		DownloadFromTableResult result = new DownloadFromTableResult();
-		result.setHeaders(Collections.emptyList());
-		result.setResultsFileHandleId("TODO replace with empty filehandle id?");
-		result.setTableId(tableId);
-		result.set????
+
 	}
 	
 	/**
@@ -678,9 +683,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		validateTableIsAvailable(tableId);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR);
-		if(tableBenefactors.isEmpty()){
-			throw new EmptyResultException("Table has no benefactors", tableId);
-		}
 		// Get the sub-set of benefactors visible to the user.
 		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, tableBenefactors);
 		return buildBenefactorFilter(query, accessibleBenefactors);
@@ -696,9 +698,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery, Set<Long> accessibleBenefactors) throws EmptyResultException{
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
-		if(accessibleBenefactors.isEmpty()){
-			throw new EmptyResultException("User does not have access to any benefactors in the table.", originalQuery.getTableName());
-		}
 		// copy the original model
 		try {
 			QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
@@ -713,12 +712,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			filterBuilder.append(TableConstants.ROW_BENEFACTOR);
 			filterBuilder.append(" IN (");
 			boolean isFirst = true;
-			for(Long id: accessibleBenefactors){
-				if(!isFirst){
-					filterBuilder.append(",");
+			if(accessibleBenefactors.isEmpty()){
+				filterBuilder.append("NULL");
+			}else{
+				for(Long id: accessibleBenefactors){
+					if(!isFirst){
+						filterBuilder.append(",");
+					}
+					filterBuilder.append(id);
+					isFirst = false;
 				}
-				filterBuilder.append(id);
-				isFirst = false;
 			}
 			filterBuilder.append(")");
 			// create the new where
