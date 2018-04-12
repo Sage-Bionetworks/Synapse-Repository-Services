@@ -1372,21 +1372,14 @@ public class TableQueryManagerImplTest {
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 123 )", filtered.toSql());
 	}
 	
-	@Test (expected=EmptyResultException.class)
+	@Test
 	public void testBuildBenefactorFilterEmpty() throws ParseException, EmptyResultException{
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		// call under test
-		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
-	}
-	
-	@Test (expected=EmptyResultException.class)
-	public void testAddRowLevelFilterEmpty() throws Exception {
-		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
-		//return empty benefactors
-		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
-		// call under test
-		manager.addRowLevelFilter(user, query);
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		assertNotNull(filtered);
+		assertEquals("", filtered.toSql());
 	}
 	
 	@Test
