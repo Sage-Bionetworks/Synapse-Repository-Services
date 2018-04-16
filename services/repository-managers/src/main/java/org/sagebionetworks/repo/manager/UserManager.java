@@ -36,10 +36,10 @@ public interface UserManager {
 	 * Creates a new user and initializes some fields as specified.
 	 * Must be an admin to use this
 	 */
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException;
 
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
 	
 	/**
@@ -66,7 +66,7 @@ public interface UserManager {
 	 * @param alias
 	 * @return
 	 */
-	public PrincipalAlias lookupPrincipalByAlias(String alias);
+	public PrincipalAlias lookupUserForAuthentication(String alias);
 
 	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	

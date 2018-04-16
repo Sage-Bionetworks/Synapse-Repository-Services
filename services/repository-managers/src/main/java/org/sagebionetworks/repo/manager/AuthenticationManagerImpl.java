@@ -50,24 +50,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private Consumer consumer;
 
-	public AuthenticationManagerImpl() { }
-
-	@Override
-	@WriteTransaction
-	public Session authenticate(long principalId, String password) throws NotFoundException {
-		ValidateArgument.required(password, "password");
-		// acquire a lock for throttling password attacks
-		String lockToken = authenticationThrottleMemoryCountingSemaphore.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
-		if (lockToken != null) {
-			authenticateAndThrowException(principalId, password);
-			authenticationThrottleMemoryCountingSemaphore.releaseLock(""+principalId, lockToken);
-			return getSessionToken(principalId);
-		} else {
-			logAttemptAfterAccountIsLocked(principalId);
-			throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
-		}
-	}
-
 	private void logAttemptAfterAccountIsLocked(long principalId) {
 		ProfileData loginFailAttemptExceedLimit = new ProfileData();
 		loginFailAttemptExceedLimit.setNamespace(this.getClass().getName());

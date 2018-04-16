@@ -132,7 +132,7 @@ public class AuthorizationManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUser, nu, cred, tou);
+		userInfo = userManager.createTestUser(adminUser, nu, cred, tou);
 
 		// Create a new group
 		testGroup = new UserGroup();
@@ -146,7 +146,7 @@ public class AuthorizationManagerImplTest {
 		// Create team with teamAdmin as the admin
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		teamAdmin = userManager.createUser(adminUser, nu, cred, tou);
+		teamAdmin = userManager.createTestUser(adminUser, nu, cred, tou);
 		team = new Team();
 		team.setName("teamName");
 		team = teamManager.create(teamAdmin, team);

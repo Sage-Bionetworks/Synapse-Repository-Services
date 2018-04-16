@@ -52,7 +52,7 @@ public class AdministrationController extends BaseController {
 	 * Get the current status of the stack
 	 * @param userId
 	 * @param header
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException

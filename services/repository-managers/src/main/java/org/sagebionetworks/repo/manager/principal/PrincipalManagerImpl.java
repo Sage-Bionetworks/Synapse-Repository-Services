@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -110,7 +111,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
 	@WriteTransaction
 	@Override
-	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
+	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
 		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date());
 		NewUser newUser = new NewUser();
 		newUser.setEmail(validatedEmail);
@@ -120,7 +121,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		long newPrincipalId = userManager.createUser(newUser);
 		
 		authManager.changePassword(newPrincipalId, accountSetupInfo.getPassword());
-		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword());
+		String authenticationReceipt = null;
+		return authManager.login(newPrincipalId, accountSetupInfo.getPassword(), authenticationReceipt);
 	}
 
 	@Override

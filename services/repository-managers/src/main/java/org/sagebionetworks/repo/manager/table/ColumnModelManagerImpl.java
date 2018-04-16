@@ -104,19 +104,34 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return results;
 	}
 
-	private void validateColumnModel(ColumnModel columnModel) {
-		checkColumnNaming(columnModel);
+	/**
+	 * Validate the column model.
+	 * 
+	 * @param columnModel
+	 */
+	static void validateColumnModel(ColumnModel columnModel) {
+		ValidateArgument.required(columnModel, "ColumnModel");
+		checkColumnNaming(columnModel.getName());
 		validateFacetType(columnModel);
 	}
 	
-	private void checkColumnNaming(ColumnModel columnModel) {
+	/**
+	 * Validate the column name.
+	 * 
+	 * @param columnModel
+	 */
+	static void checkColumnNaming(String name) {
+		ValidateArgument.required(name, "name");
+		if(name.length() > TableConstants.MAX_COLUMN_NAME_SIZE_CHARS) {
+			throw new IllegalArgumentException("Column name must be: "+TableConstants.MAX_COLUMN_NAME_SIZE_CHARS+" characters or less.");
+		}
 		// Validate the name
-		if (TableConstants.isReservedColumnName(columnModel.getName())) {
-			throw new IllegalArgumentException("The column name: " + columnModel.getName() + " is a system reserved column name.");
+		if (TableConstants.isReservedColumnName(name)) {
+			throw new IllegalArgumentException("The column name: " + name + " is a system reserved column name.");
 		}
 	}
 	
-	void validateFacetType(ColumnModel columnModel){
+	static void validateFacetType(ColumnModel columnModel){
 		//validate the facetType agains its d
 		FacetType facetType = columnModel.getFacetType();
 		ColumnType columnType = columnModel.getColumnType();
@@ -160,7 +175,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	 * @see org.sagebionetworks.repo.manager.table.ColumnModelManager#getColumnModels(java.util.List)
 	 */
 	@Override
-	public List<ColumnModel> getColumnModels(List<String> ids)
+	public List<ColumnModel> getAndValidateColumnModels(List<String> ids)
 			throws DatastoreException, NotFoundException {
 		ValidateArgument.required(ids, "ColumnModel IDs");
 		List<ColumnModel> fromDb =  columnModelDao.getColumnModel(ids);
@@ -217,7 +232,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 							+ " columns per table");
 		}
 		// fetch the columns
-		List<ColumnModel> schema = getColumnModels(columnIds);
+		List<ColumnModel> schema = getAndValidateColumnModels(columnIds);
 		// Calculate the max row size for this schema.
 		int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
 		if (shemaSize > MY_SQL_MAX_BYTES_PER_ROW) {
@@ -398,7 +413,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		List<ColumnModel> models = getColumnModels(columnIds);
+		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds);
 		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();

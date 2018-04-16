@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -102,7 +104,8 @@ public class PrincipalController extends BaseController {
 	@ResponseBody
 	public Session createNewAccount(
 			@RequestBody AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		return serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo);
+		LoginResponse response = serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo);
+		return DeprecatedUtils.createSession(response);
 	}
 	
 	/**

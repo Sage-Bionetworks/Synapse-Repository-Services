@@ -40,6 +40,8 @@ public class TableConstants {
 	 */
 	public static final Long ROW_VERSION_ID = -2L;
 	public static final Long ROW_ETAG_ID = -3L;
+	
+	public static final int MAX_COLUMN_NAME_SIZE_CHARS = 256;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and

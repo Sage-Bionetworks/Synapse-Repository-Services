@@ -110,11 +110,11 @@ public class EntityPermissionsManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		userInfo = userManager.createTestUser(adminUserInfo, nu, cred, tou);
 		
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		otherUserInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		otherUserInfo = userManager.createTestUser(adminUserInfo, nu, cred, tou);
 		
 		tou.setPrincipalId(otherUserInfo.getId());
 		basicDao.createOrUpdate(tou);

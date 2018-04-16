@@ -140,7 +140,7 @@ public class ClientUtilsTest {
 		try {
 			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
 		} catch (SynapseBadRequestException e) {
-			assertEquals("Status Code: 400 message: some reason", e.getMessage());
+			assertEquals("some reason", e.getMessage());
 		}
 	}
 
@@ -151,7 +151,7 @@ public class ClientUtilsTest {
 		try {
 			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
 		} catch (SynapseNotFoundException e) {
-			assertEquals("Status Code: 404 message: some reason", e.getMessage());
+			assertEquals("some reason", e.getMessage());
 		}
 	}
 
@@ -172,7 +172,7 @@ public class ClientUtilsTest {
 		try {
 			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
 		} catch (SynapseBadRequestException e) {
-			assertEquals("Status Code: 400 message: some reason", e.getMessage());
+			assertEquals("some reason", e.getMessage());
 		}
 	}
 
@@ -183,7 +183,7 @@ public class ClientUtilsTest {
 		try {
 			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
 		} catch (SynapseNotFoundException e) {
-			assertEquals("Status Code: 404 message: some reason", e.getMessage());
+			assertEquals("some reason", e.getMessage());
 		}
 	}
 

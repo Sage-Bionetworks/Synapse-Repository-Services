@@ -21,6 +21,7 @@ import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,10 +44,10 @@ public class DockerClientAuthFilter implements Filter {
 			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		} else {
 			try {
-				LoginCredentials credential = new LoginCredentials();
-				credential.setEmail(up.getUserName());
+				LoginRequest credential = new LoginRequest();
+				credential.setUsername(up.getUserName());
 				credential.setPassword(up.getPassword());
-				authenticationService.authenticate(credential);
+				authenticationService.login(credential);
 				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(up.getUserName());
 				userId = alias.getPrincipalId();
 			} catch (NotFoundException e) {

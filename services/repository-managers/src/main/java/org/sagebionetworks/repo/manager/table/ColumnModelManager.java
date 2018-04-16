@@ -57,7 +57,7 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModels(List<String> ids) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getAndValidateColumnModels(List<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns models bound to a Table.

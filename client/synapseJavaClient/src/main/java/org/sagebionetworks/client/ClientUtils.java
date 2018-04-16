@@ -25,6 +25,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -81,7 +82,7 @@ public class ClientUtils {
 		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
 			throw new SynapseTooManyRequestsException(reasonStr);
 		}else {
-			throw new SynapseServerException(statusCode, reasonStr);
+			throw new UnknownSynapseServerException(statusCode, reasonStr);
 		}
 	}
 

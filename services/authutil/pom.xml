@@ -55,14 +55,6 @@
 			<version>3.0-rc2</version>
 		</dependency>
 
-		<!-- note: This refers to a custom POM in the SageBionetworks artifactory, 
-			omitting Guice 2.0 -->
-		<dependency>
-			<groupId>org.openid4java</groupId>
-			<artifactId>openid4java-nodeps</artifactId>
-			<version>0.9.6.sb</version>
-		</dependency>
-
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>

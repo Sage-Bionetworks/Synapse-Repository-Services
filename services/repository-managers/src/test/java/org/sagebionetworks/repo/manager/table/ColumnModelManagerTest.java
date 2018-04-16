@@ -258,13 +258,13 @@ public class ColumnModelManagerTest {
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullList() throws DatastoreException, NotFoundException{
-		columnModelManager.getColumnModels(null);
+		columnModelManager.getAndValidateColumnModels(null);
 	}
 	
 	@Test
 	public void testGetColumns() {
 		//Call under test
-		List<ColumnModel> resutls = columnModelManager.getColumnModels(expectedNewSchemaIds);
+		List<ColumnModel> resutls = columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 		assertNotNull(resutls);
 		assertEquals(newSchema, resutls);
 	}
@@ -273,7 +273,7 @@ public class ColumnModelManagerTest {
 	public void testGetColumnsInOrder() {
 		Lists.reverse(expectedNewSchemaIds);
 		//Call under test
-		List<ColumnModel> resutls = columnModelManager.getColumnModels(expectedNewSchemaIds);
+		List<ColumnModel> resutls = columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 		assertNotNull(resutls);
 		// expected should also be in reverse order
 		Lists.reverse(newSchema);
@@ -286,7 +286,7 @@ public class ColumnModelManagerTest {
 		expectedNewSchemaIds.add("9999");
 		//Call under test
 		try{
-			columnModelManager.getColumnModels(expectedNewSchemaIds);
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 			fail();
 		}catch( NotFoundException e) {
 			// expected
@@ -300,7 +300,7 @@ public class ColumnModelManagerTest {
 		expectedNewSchemaIds.add(expectedNewSchemaIds.get(1));
 		//Call under test
 		try{
-			columnModelManager.getColumnModels(expectedNewSchemaIds);
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 			fail();
 		}catch( IllegalArgumentException e) {
 			// expected
@@ -316,7 +316,7 @@ public class ColumnModelManagerTest {
 		one.setName(zero.getName());
 		//Call under test
 		try{
-			columnModelManager.getColumnModels(expectedNewSchemaIds);
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
 			fail();
 		}catch( IllegalArgumentException e) {
 			// expected
@@ -615,6 +615,35 @@ public class ColumnModelManagerTest {
 		// Call under test
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
 		assertEquals(expected, results);
+	}
+	
+	/**
+	 * For PLFM-4904 ColumnModelManager.getColumnChangeDetails() we throwing a 
+	 * 'Duplicate column name' exception if two columns have the same name.
+	 */
+	@Test
+	public void testPLFM_4904() {
+		ColumnModel oldCol = new ColumnModel();
+		oldCol.setName("foo");
+		oldCol.setId("111");
+		ColumnModel newCol = new ColumnModel();
+		newCol.setName("foo");
+		newCol.setId("222");
+		
+		List<String> colIds = Lists.newArrayList(newCol.getId(), oldCol.getId());
+ 
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(oldCol.getId());
+		change.setNewColumnId(newCol.getId());
+		List<ColumnChange> changes = Lists.newArrayList(change);
+		
+		// return both columns
+		when(mockColumnModelDAO.getColumnModel(colIds)).thenReturn(Lists.newArrayList(oldCol, newCol));
+		
+		// Call under test
+		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
+		assertNotNull(results);
+		assertEquals(1, results.size());
 	}
 
 	@Test
@@ -924,4 +953,58 @@ public class ColumnModelManagerTest {
 	public void testValidateSchemaWithProvidedOrderedColumnsWithDifferentOrder() {
 		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1", "2"), Arrays.asList("2", "1"));
 	}
+	
+	@Test
+	public void testCheckColumnNaming() {
+		String name = "foo";
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCheckColumnNamingReserved() {
+		String name = TableConstants.ROW_ID;
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	/**
+	 * PLFM-4329.
+	 */
+	@Test
+	public void testCheckColumnNamingAtLimit() {
+		String name = createStringOfSize(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS);
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	/**
+	 * PLFM-4329.
+	 */
+	@Test
+	public void testCheckColumnNamingOverLimit() {
+		String name = createStringOfSize(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS+1);
+		// call under test
+		try {
+			ColumnModelManagerImpl.checkColumnNaming(name);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals("Column name must be: 256 characters or less.", e.getMessage());
+		}
+	}
+	
+	/**
+	 * Create a string with the given number of characters.
+	 * 
+	 * @param numberChars
+	 * @return
+	 */
+	public static String createStringOfSize(int numberChars) {
+		char[] chars = new char[numberChars];
+		for(int i=0; i<numberChars; i++) {
+			chars[i] = (char) i;
+		}
+		return new String(chars);
+	}
+	
 }

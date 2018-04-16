@@ -205,7 +205,7 @@ public class EvaluationController extends BaseController {
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -629,7 +629,7 @@ public class EvaluationController extends BaseController {
 	 * @param evalId the ID of the Evaluation to which the SubmissionSatus objects belong.
 	 * @param userId
 	 * @param header
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException

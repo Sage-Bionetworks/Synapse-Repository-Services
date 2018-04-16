@@ -1,6 +1,9 @@
 package org.sagebionetworks.client.exceptions;
 
-
+/**
+ * Exception throw for HTTP status code 429.
+ *
+ */
 public class SynapseTooManyRequestsException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
@@ -9,19 +12,19 @@ public class SynapseTooManyRequestsException extends SynapseServerException {
 	public static final int TOO_MANY_REQUESTS_STATUS_CODE = 429;
 
 	public SynapseTooManyRequestsException() {
-		super(TOO_MANY_REQUESTS_STATUS_CODE);
+		super();
 	}
 
 	public SynapseTooManyRequestsException(String message, Throwable cause) {
-		super(TOO_MANY_REQUESTS_STATUS_CODE, message, cause);
+		super(message, cause);
 	}
 
 	public SynapseTooManyRequestsException(String message) {
-		super(TOO_MANY_REQUESTS_STATUS_CODE, message);
+		super(message);
 	}
 
 	public SynapseTooManyRequestsException(Throwable cause) {
-		super(TOO_MANY_REQUESTS_STATUS_CODE, cause);
+		super(cause);
 	}
 
 }
