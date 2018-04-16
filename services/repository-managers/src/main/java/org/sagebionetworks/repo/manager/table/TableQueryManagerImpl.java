@@ -661,10 +661,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		bundle.setSelectColumns(new LinkedList<SelectColumn>());
 		return bundle;
 	}
-
-	public static DownloadFromTableResult createEmptyDownload(String tableId){
-
-	}
 	
 	/**
 	 * Add a row level filter to the given query.
@@ -707,6 +703,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
 			WhereClause where = originalQuery.getTableExpression().getWhereClause();
 			StringBuilder filterBuilder = new StringBuilder();
+			if (accessibleBenefactors.isEmpty()){
+				//There are no negative benefactorIds so this creates a filter that matches nothing
+				accessibleBenefactors = Collections.singleton(-1L);
+			}
 			filterBuilder.append("WHERE ");
 			if(where != null){
 				filterBuilder.append("(");
@@ -716,16 +716,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			filterBuilder.append(TableConstants.ROW_BENEFACTOR);
 			filterBuilder.append(" IN (");
 			boolean isFirst = true;
-			if(accessibleBenefactors.isEmpty()){
-				filterBuilder.append("NULL");
-			}else{
-				for(Long id: accessibleBenefactors){
-					if(!isFirst){
-						filterBuilder.append(",");
-					}
-					filterBuilder.append(id);
-					isFirst = false;
+			for(Long id: accessibleBenefactors){
+				if(!isFirst){
+					filterBuilder.append(",");
 				}
+				filterBuilder.append(id);
+				isFirst = false;
 			}
 			filterBuilder.append(")");
 			// create the new where
