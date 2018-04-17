@@ -525,16 +525,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			response.setEtag(result.getQueryResult().getQueryResults().getEtag());
 			return response;
 		} catch (EmptyResultException e) { //this is thrown in queryPreflight()
-			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, Collections.emptyList(), request.getIncludeRowIdAndRowVersion(), request.getIncludeEntityEtag());
-			if (request.getWriteHeader()) {
-				handler.writeHeader();
-			}
-			DownloadFromTableResult result = new DownloadFromTableResult();
-			result.setHeaders(Collections.emptyList());
-			result.setTableId(e.getTableId());
-			result.setEtag(null);
-			//no need for result.setFileHandleId() because it is not know until the csv is uploaded by worker?.
-			return result;
+			throw new IllegalArgumentException("Table " + e.getTableId() + " has an empty schema", e);
 		}
 	}
 	
