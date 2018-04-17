@@ -88,6 +88,7 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -1392,6 +1393,20 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
 		// call under test
 		QuerySpecification result = manager.addRowLevelFilter(user, query);
+		assertNotNull(result);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", result.toSql());
+	}
+
+	@Test
+	public void getAddRowLevelFilterTableDoesNotExist() throws TableFailedException, TableUnavailableException, ParseException {
+		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
+		//return empty benefactors
+		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
+
+		// call under test
+		QuerySpecification result = manager.addRowLevelFilter(user, query);
+
+		//Throw table not existing should be treated same as not having benefactors.
 		assertNotNull(result);
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", result.toSql());
 	}
