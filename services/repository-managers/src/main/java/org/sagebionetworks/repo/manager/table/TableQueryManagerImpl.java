@@ -689,15 +689,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery, Set<Long> accessibleBenefactors) {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
+		if(accessibleBenefactors.isEmpty()){
+			//There are no negative benefactorIds so this set would create a filter that matches no rows
+			accessibleBenefactors = Collections.singleton(-1L);
+		}
 		// copy the original model
 		try {
 			QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
 			WhereClause where = originalQuery.getTableExpression().getWhereClause();
 			StringBuilder filterBuilder = new StringBuilder();
-			if (accessibleBenefactors.isEmpty()){
-				//There are no negative benefactorIds so this creates a filter that matches nothing
-				accessibleBenefactors = Collections.singleton(-1L);
-			}
 			filterBuilder.append("WHERE ");
 			if(where != null){
 				filterBuilder.append("(");
