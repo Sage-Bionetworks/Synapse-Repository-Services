@@ -88,6 +88,7 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -1371,22 +1372,43 @@ public class TableQueryManagerImplTest {
 		// should filter by benefactorId
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 123 )", filtered.toSql());
 	}
-	
-	@Test (expected=EmptyResultException.class)
+
+	@Test
 	public void testBuildBenefactorFilterEmpty() throws ParseException, EmptyResultException{
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		// call under test
-		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		assertNotNull(filtered);
+
+		// should make filter always evaluate to false
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1 )", filtered.toSql());
+
 	}
 	
-	@Test (expected=EmptyResultException.class)
+	@Test
 	public void testAddRowLevelFilterEmpty() throws Exception {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
 		// call under test
-		manager.addRowLevelFilter(user, query);
+		QuerySpecification result = manager.addRowLevelFilter(user, query);
+		assertNotNull(result);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", result.toSql());
+	}
+
+	@Test
+	public void getAddRowLevelFilterTableDoesNotExist() throws TableFailedException, TableUnavailableException, ParseException {
+		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
+		//return empty benefactors
+		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
+
+		// call under test
+		QuerySpecification result = manager.addRowLevelFilter(user, query);
+
+		//Throw table not existing should be treated same as not having benefactors.
+		assertNotNull(result);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", result.toSql());
 	}
 	
 	@Test
@@ -1397,7 +1419,6 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 444 )", result.toSql());
 		// the table status must be checked before the table
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(tableId);
 	}
 	
 	
