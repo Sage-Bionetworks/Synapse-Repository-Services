@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.search.query.FacetSort;
 import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
 import org.sagebionetworks.repo.model.search.query.FacetTopN;
 import org.sagebionetworks.repo.model.search.query.KeyList;
+import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 
@@ -52,7 +53,8 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 public class SearchUtilTest {
 	private SearchQuery query;
 	private SearchRequest searchRequest;
-	private SearchRequest expectedSearchRequestBase;
+	private SearchRequest expectedSearchRequestBaseWithQueryTerm;
+	private SearchRequest expectedSearchRequestBaseNoQueryTermSet;
 	private SearchResult searchResult;
 
 	private List<String> q;
@@ -60,11 +62,15 @@ public class SearchUtilTest {
 	private List<KeyValue> bqNot;
 	private List<KeyValue> bq2;
 	private List<KeyValue> bqSpecialChar;
+	private List<KeyRange> keyRangeList;
+	private KeyRange keyRange;
 
+	UserInfo userInfo;
 	@Before
 	public void before() throws Exception {
 		query = new SearchQuery();
-		expectedSearchRequestBase =  new SearchRequest().withQueryParser(QueryParser.Structured);
+		expectedSearchRequestBaseWithQueryTerm =  new SearchRequest().withQueryParser(QueryParser.Simple);
+		expectedSearchRequestBaseNoQueryTermSet = new SearchRequest().withQueryParser(QueryParser.Structured).withQuery("matchall");
 		// q
 		q = new ArrayList<>();
 		q.add("hello");
@@ -101,6 +107,15 @@ public class SearchUtilTest {
 		bqSpecialChar.add(kv);
 
 		searchResult = new SearchResult();
+
+		userInfo = new UserInfo(false);
+		userInfo.setGroups(Sets.newLinkedHashSet(Arrays.asList(123L, 456L, 789L)));
+
+		keyRangeList = new ArrayList<>();
+		keyRange = new KeyRange();
+		keyRange.setKey("SomeRangeFacet");
+		keyRangeList.add(keyRange);
+
 	}
 
 	//////////////////////////////////////
@@ -131,16 +146,7 @@ public class SearchUtilTest {
 		// query only
 		query.setQueryTerm(q);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and 'hello' 'world')"), searchRequest);
-	}
-
-	@Test
-	public void testRegularQueryWithPrefix() {
-		// q
-		q.add("somePrefix*");
-		query.setQueryTerm(q);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and 'hello' 'world' (prefix 'somePrefix'))"), searchRequest);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world"), searchRequest);
 	}
 
 	@Test
@@ -148,18 +154,7 @@ public class SearchUtilTest {
 		// boolean query only
 		query.setBooleanQuery(bq);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'Value1')"), searchRequest);
-	}
-
-	@Test
-	public void testBooleanQueryWithPrefix() {
-		KeyValue prefixKV = new KeyValue();
-		prefixKV.setKey("someField");
-		prefixKV.setValue("somePrefix*");
-		bq.add(prefixKV);
-		query.setBooleanQuery(bq);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'Value1' (prefix field=someField 'somePrefix'))"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and Facet1:'Value1')"), searchRequest);
 	}
 
 	@Test
@@ -168,7 +163,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(Collections.singletonList(""));
 		query.setBooleanQuery(bq);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'Value1')"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and Facet1:'Value1')"), searchRequest);
 	}
 
 	@Test
@@ -176,7 +171,7 @@ public class SearchUtilTest {
 		// continuous bq
 		query.setBooleanQuery(bq2);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and (range field=Facet1 {,2000]))"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and (range field=Facet1 {,2000]))"), searchRequest);
 	}
 
 	@Test
@@ -184,7 +179,7 @@ public class SearchUtilTest {
 		// negated boolean query
 		query.setBooleanQuery(bqNot);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and (not Facet1:'Value1') Facet2:'Value2')"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and (not Facet1:'Value1') Facet2:'Value2')"), searchRequest);
 	}
 
 	@Test
@@ -192,7 +187,7 @@ public class SearchUtilTest {
 		// special characters in boolean query
 		query.setBooleanQuery(bqSpecialChar);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'c:\\\\dave\\'s_folde,r')"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and Facet1:'c:\\\\dave\\'s_folde,r')"), searchRequest);
 	}
 	@Test
 	public void testRegularQueryAndBooleanQuery() {
@@ -200,7 +195,42 @@ public class SearchUtilTest {
 		query.setBooleanQuery(bq);
 		query.setQueryTerm(q);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and (and 'hello' 'world') Facet1:'Value1')"), searchRequest);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFilterQuery("(and Facet1:'Value1')"), searchRequest);
+	}
+
+	@Test
+	public void testGenerateSearchRequest_rangeQueriesOnly(){
+		query.setQueryTerm(q);
+		query.setRangeQuery(keyRangeList);
+		keyRange.setMax("42");
+
+		searchRequest = SearchUtil.generateSearchRequest(query);
+
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
+				.withFilterQuery("(and (range field=SomeRangeFacet {,42]))"), searchRequest);
+	}
+
+	@Test
+	public void testGenerateSearchRequest_booleanQueriesAndRangeQueries(){
+		query.setBooleanQuery(bq);
+		query.setQueryTerm(q);
+		query.setRangeQuery(keyRangeList);
+		keyRange.setMax("42");
+
+		searchRequest = SearchUtil.generateSearchRequest(query);
+
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
+				.withFilterQuery("(and Facet1:'Value1' (range field=SomeRangeFacet {,42]))"), searchRequest);
+	}
+
+	@Test
+	public void testBooleanQueryWithBrackets(){
+		KeyValue kv = new KeyValue();
+		kv.setKey("disease");
+		kv.setValue("[\"normal\",\"carcinoma\"]");
+		query.setBooleanQuery(Collections.singletonList(kv));
+
+		System.out.println(SearchUtil.generateSearchRequest(query));
 	}
 
 	@Test
@@ -213,7 +243,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacet(facets);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withFacet("{\"facet1\":{},\"facet2\":{}}"), searchRequest);
+		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"facet1\":{},\"facet2\":{}}"), searchRequest);
 	}
 
 
@@ -283,7 +313,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setReturnFields(Arrays.asList("retF1", "retF2"));
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withReturn("retF1,retF2"), searchRequest);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withReturn("retF1,retF2"), searchRequest);
 
 	}
 	@Test
@@ -292,7 +322,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setSize(100L);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withSize(100L), searchRequest);
+		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withSize(100L), searchRequest);
 	}
 	@Test
 	public void testStartParameter() {
@@ -300,7 +330,50 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setStart(10L);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withStart(10L), searchRequest);
+		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withStart(10L), searchRequest);
+	}
+
+	///////////////////////////////////
+	// createRangeFilterQueries() test
+	///////////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateRangeFilterQueries_keyRangeWithNullMinAndNullMax(){
+		keyRange.setMin(null);
+		keyRange.setMax(null);
+
+		SearchUtil.createRangeFilterQueries(keyRangeList);
+	}
+
+	@Test
+	public void testCreateRangeFilterQueries_keyRangeWithNullMin(){
+		keyRange.setMin("56");
+		keyRange.setMax(null);
+
+		List<String> rangeFilterQueries = SearchUtil.createRangeFilterQueries(keyRangeList);
+		assertEquals(Arrays.asList("(range field=SomeRangeFacet [56,})"), rangeFilterQueries);
+	}
+
+	@Test
+	public void testCreateRangeFilterQueries_keyRangeWithNullMax(){
+		keyRange.setMin(null);
+		keyRange.setMax("89");
+
+		List<String> rangeFilterQueries = SearchUtil.createRangeFilterQueries(keyRangeList);
+		assertEquals(Arrays.asList("(range field=SomeRangeFacet {,89])"), rangeFilterQueries);
+
+	}
+
+	@Test
+	public void testCreateRangeFilterQueries_keyRangeWithMultipleValues(){
+		keyRange.setMin("56");
+		keyRange.setMax("89");
+
+		KeyRange keyRange2 = new KeyRange();
+		keyRange2.setMin("234");
+		keyRange2.setMax("567");
+
+		List<String> rangeFilterQueries = SearchUtil.createRangeFilterQueries(keyRangeList);
+		Arrays.asList("(range field=SomeRangeFacet [56,89])", "(range field=SomeRangeFacet [234,567])");
 	}
 
 	/////////////////////////////////
@@ -489,24 +562,45 @@ public class SearchUtilTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testFormulateAuthorizationFilterNullUserGroups(){
-		UserInfo userInfo = new UserInfo(false);
 		userInfo.setGroups(null);
 		SearchUtil.formulateAuthorizationFilter(userInfo);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testFormulateAuthorizationFilterEmptyUserGroups(){
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(new HashSet<>());
+		userInfo.setGroups(Collections.emptySet());
 		SearchUtil.formulateAuthorizationFilter(userInfo);
 	}
 
 	@Test
 	public void testFormulateAuthorizationFilterHappyCase(){
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(Sets.newLinkedHashSet(Arrays.asList(123L, 456L, 789L)));
 		String authFilter = SearchUtil.formulateAuthorizationFilter(userInfo);
 		assertEquals("(or acl:'123' acl:'456' acl:'789')", authFilter);
+	}
+
+	///////////////////////////////////
+	// addAuthorizationFilter() tests
+	///////////////////////////////////
+
+	@Test
+	public void testAddAuthourizationFilter__filterQueryAlreadyExists(){
+		String fitlerQuery = "(and indexName:'asdf')";
+		searchRequest = new SearchRequest().withFilterQuery(fitlerQuery);
+
+		//method under test
+		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
+
+		assertEquals("(and " + SearchUtil.formulateAuthorizationFilter(userInfo) + " " + fitlerQuery + ")", searchRequest.getFilterQuery());
+	}
+
+	@Test
+	public void testAddAuthourizationFilter__filterQueryNotExist(){
+		searchRequest = new SearchRequest();
+
+		//method under test
+		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
+
+		assertEquals(SearchUtil.formulateAuthorizationFilter(userInfo), searchRequest.getFilterQuery());
 	}
 
 	///////////////////////////
