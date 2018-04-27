@@ -202,6 +202,16 @@ public class SearchUtil{
 		return searchRequest;
 	}
 
+	/**
+	 * For each KeyRange in the List, create a String representing its CloudSearch structured query.
+	 * The order of the returned List<String> match the order of the input List<Keyrange>
+	 *
+	 * For example:
+	 * given [KeyRange(key=myKey, min=5, max=45)] return ["(range field=myKey [5,45])"]
+	 *
+	 * @param rangeQueries List of KeyRanges for which the range queries will be constructed
+	 * @return List<String> containing the Cloudsearch range structured query for each of the KeyRanges
+	 */
 	static List<String> createRangeFilterQueries(List<KeyRange> rangeQueries) {
 		List<String> filterQueryTerms = new ArrayList<>(rangeQueries.size());
 
