@@ -243,7 +243,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacet(facets);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"facet1\":{},\"facet2\":{}}"), searchRequest);
+		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"facet1\":{\"size\":10},\"facet2\":{\"size\":10}}"), searchRequest);
 	}
 
 

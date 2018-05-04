@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.FacetTopN;
 import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -50,6 +51,8 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
+
+	static final long DEFAULT_FACET_MAX_COUNT = 10;
 
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
@@ -154,31 +157,8 @@ public class SearchUtil{
 		}
 		searchRequest.setFilterQuery(filterQueryTerms.isEmpty() ? null : "(and " + String.join(" ", filterQueryTerms) + ")");
 
-		//preprocess the FacetSortConstraints
-		// facet field constraints
-		if (searchQuery.getFacetFieldConstraints() != null
-				&& searchQuery.getFacetFieldConstraints().size() > 0) {
-			throw new IllegalArgumentException("Facet field constraints are no longer supported");
-		}
-		if (searchQuery.getFacetFieldSort() != null){
-			throw new IllegalArgumentException("Sorting of facets is no longer supported");
-		}
 
-		// facets
-		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
-			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
-			for(String facetFieldName : searchQuery.getFacet()){
-				//no options inside {} since none are used by the webclient
-				facetStringJoiner.add("\""+ facetFieldName + "\":{}");
-			}
-			searchRequest.setFacet(facetStringJoiner.toString());
-		}
-
-		//switch to size parameter in facet
-		// facet top n
-		if (searchQuery.getFacetFieldTopN() != null) {
-			throw new IllegalArgumentException("facet-field-top-n is no longer supported");
-		}
+		searchRequest.setFacet(createFacetString(searchQuery));
 
 		// rank
 		if (searchQuery.getRank() != null){
@@ -233,6 +213,39 @@ public class SearchUtil{
 			filterQueryTerms.add("(range field=" + keyRange.getKey() + " " + rangeStringBuilder.toString() + ")");
 		}
 		return filterQueryTerms;
+	}
+
+	static String createFacetString(SearchQuery searchQuery){
+		//preprocess the FacetSortConstraints
+		// facet field constraints
+		if (searchQuery.getFacetFieldConstraints() != null
+				&& searchQuery.getFacetFieldConstraints().size() > 0) {
+			throw new IllegalArgumentException("Facet field constraints are no longer supported");
+		}
+		if (searchQuery.getFacetFieldSort() != null){
+			throw new IllegalArgumentException("Sorting of facets is no longer supported");
+		}
+
+		Map<String, Long> facetMaxCountMap = new HashMap<>();
+		//switch to size parameter in facet
+		// facet top n
+		if (searchQuery.getFacetFieldTopN() != null) {
+			for(FacetTopN facetTopN : searchQuery.getFacetFieldTopN()){
+				facetMaxCountMap.put(facetTopN.getKey(), facetTopN.getValue());
+			}
+		}
+
+		// facets
+		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
+			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
+			for(String facetFieldName : searchQuery.getFacet()){
+				//no options inside {} since none are used by the webclient
+				Long facetMaxCount = facetMaxCountMap.getOrDefault(facetFieldName, DEFAULT_FACET_MAX_COUNT);
+				facetStringJoiner.add("\""+ facetFieldName + "\":{\"size\":" + facetMaxCount + "}");
+			}
+			return facetStringJoiner.toString();
+		}
+		return null;
 	}
 
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){

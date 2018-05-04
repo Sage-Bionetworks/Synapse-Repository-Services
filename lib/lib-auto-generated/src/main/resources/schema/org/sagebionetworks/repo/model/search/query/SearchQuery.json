@@ -51,7 +51,7 @@
         },
         "facetFieldTopN":{
         	"type":"array",
-        	"description":"Set the maximum number of facet constraints to be included for the specified field in the search results. Default is the top 40.",
+        	"description":"Set the maximum number of facet constraints to be included for the specified field in the search results. Default is the top 10.",
             "uniqueItems":false,
             "items":{
                 "$ref":"org.sagebionetworks.repo.model.search.query.FacetTopN"
