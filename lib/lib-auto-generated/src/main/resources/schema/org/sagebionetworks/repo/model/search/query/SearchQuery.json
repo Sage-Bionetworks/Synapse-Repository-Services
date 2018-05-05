@@ -17,6 +17,14 @@
         		"$ref":"org.sagebionetworks.repo.model.search.query.KeyValue"
         	}
         },
+		"rangeQuery":{
+			"type":"array",
+			"description": "One or more key-value-range filters that filter values of a key based on the specified range where min<=value<=max. Multiple expressions are joined with a top-level AND.",
+			"uniqueItems":false,
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.search.query.KeyRange"
+			}
+		},
         "facet":{
         	"type":"array",
         	"description":"A list of the fields for which you want to compute facets.",

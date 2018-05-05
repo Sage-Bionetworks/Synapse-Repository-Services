@@ -162,14 +162,6 @@ public class SearchManagerImplTest {
 		assertEquals(SearchUtil.formulateAuthorizationFilter(nonAdminUserInfo), searchRequest.getFilterQuery());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testFilterSearchForAuthorizationUserIsNotAdminFilterQueryAlreadyExists(){
-		searchRequest.setFilterQuery("(or memes:'dank')");
-		SearchManagerImpl.filterSearchForAuthorization(nonAdminUserInfo, searchRequest);
-	}
-
-
-
 	@Test
 	public void testdocumentChangeMessageChangeTypeDelete() throws Exception{
 		// create a few delete messages.

@@ -1,0 +1,18 @@
+{
+	"description":"JSON schema for a faceted key-value-range. This filter will match for values where min<=value<=max. At least one of either 'min' or 'max' must be set for this range to be valid",
+	"properties":{
+		"key":{
+			"required":true,
+			"type":"string",
+			"description":"The facet's name"
+		},
+		"min":{
+			"type":"string",
+			"description":"The minimum value in the facet's range. The min value is included in the range. At least one of either 'min' or 'max' must be set for this range to be valid"
+		},
+		"max":{
+			"type":"string",
+			"description":"The maximum value in the facet's range. The max value is included in the range. At least one of either 'min' or 'max' must be set for this range to be valid"
+		}
+	}
+}

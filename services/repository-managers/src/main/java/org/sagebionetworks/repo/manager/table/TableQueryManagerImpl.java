@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +47,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.BadSqlGrammarException;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 	
@@ -203,7 +206,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final UserInfo user, final SqlQuery query,
 			final RowHandler rowHandler,final  boolean runCount, final boolean returnFacets)
 			throws DatastoreException, NotFoundException,
-			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {		
+			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {
 		// consistent queries are run with a read lock on the table and include the current etag.
 		if(query.isConsistent()){
 			// run with the read lock
@@ -247,14 +250,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		
 		try {
 			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, tableId, READ_LOCK_TIMEOUT_SEC, runner);
-		} catch (RuntimeException e) {
+		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
 			// runtime exceptions are unchanged.
-			throw e;
-		} catch (TableUnavailableException e) {
-			throw e;
-		} catch (TableFailedException e) {
-			throw e;
-		} catch (EmptyResultException e) {
 			throw e;
 		} catch (Exception e){
 			// all other checked exceptions are converted to runtime
@@ -527,8 +524,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// pass along the etag.
 			response.setEtag(result.getQueryResult().getQueryResults().getEtag());
 			return response;
-		} catch (EmptyResultException e) {
-			throw new IllegalArgumentException("Table "+e.getTableId()+" has an empty schema");
+		} catch (EmptyResultException e) { //this is thrown in queryPreflight()
+			throw new IllegalArgumentException("Table " + e.getTableId() + " has an empty schema", e);
 		}
 	}
 	
@@ -666,17 +663,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException 
 	 * @throws NotFoundException 
 	 */
-	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query) throws EmptyResultException, NotFoundException, TableUnavailableException, TableFailedException {
+	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query) throws NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getTableName();
 		// Get a connection to the table.
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-		// Can only get the benefactors if the table is available.
-		// We can only run this query if the table is available.
-		validateTableIsAvailable(tableId);
 		// lookup the distinct benefactor IDs applied to the table.
-		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR);
-		if(tableBenefactors.isEmpty()){
-			throw new EmptyResultException("Table has no benefactors", tableId);
+		Set<Long> tableBenefactors = null;
+		try {
+			tableBenefactors = indexDao.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR);
+		}catch (BadSqlGrammarException e){ //table has not been created yet
+			tableBenefactors = Collections.emptySet();
 		}
 		// Get the sub-set of benefactors visible to the user.
 		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, tableBenefactors);
@@ -690,11 +686,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 * @throws EmptyResultException 
 	 */
-	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery, Set<Long> accessibleBenefactors) throws EmptyResultException{
+	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery, Set<Long> accessibleBenefactors) {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
 		if(accessibleBenefactors.isEmpty()){
-			throw new EmptyResultException("User does not have access to any benefactors in the table.", originalQuery.getTableName());
+			//There are no negative benefactorIds so this set would create a filter that matches no rows
+			accessibleBenefactors = Collections.singleton(-1L);
 		}
 		// copy the original model
 		try {
