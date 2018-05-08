@@ -167,14 +167,6 @@ public class SearchUtilTest {
 	}
 
 	@Test
-	public void testBooleanQueryContinuous() {
-		// continuous bq
-		query.setBooleanQuery(bq2);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and (range field=Facet1 {,2000]))"), searchRequest);
-	}
-
-	@Test
 	public void testNegatedBooleanQuery() {
 		// negated boolean query
 		query.setBooleanQuery(bqNot);

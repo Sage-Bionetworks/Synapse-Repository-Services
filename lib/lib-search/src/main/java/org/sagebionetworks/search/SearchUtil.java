@@ -105,40 +105,6 @@ public class SearchUtil{
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue();
 
-				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
-				if(value.contains("..")) {
-					//TODO: remove this part once client stops using ".." notation for ranges
-					String[] range = value.split("\\.\\.", -1);
-
-					if(range.length != 2 ){
-						throw new IllegalArgumentException("Numeric range is incorrectly formatted");
-					}
-
-					StringBuilder rangeStringBuilder = new StringBuilder();
-					//left bound
-					if(range[0].equals("")){
-						rangeStringBuilder.append("{");
-					}else{
-						rangeStringBuilder.append("[" + range[0]);
-					}
-
-					//right bound
-					rangeStringBuilder.append(",");
-					if(range[1].equals("")){
-						rangeStringBuilder.append("}");
-					}else{
-						rangeStringBuilder.append( range[1] + "]");
-					}
-					value = rangeStringBuilder.toString();
-				}
-
-				//TODO: remove once client stops using filterQueryTerms for range queries
-				if((value.contains("{") || value.contains("["))
-						&& (value.contains("}") || value.contains("]")) ){ //if is a continuous range such as [300,}
-					filterQueryTerms.add("(range field=" + pair.getKey()+ " " + value + ")");
-					continue;
-				}
-
 				//add quotes around value. i.e. value -> 'value'
 				value = "'" + escapeQuotedValue(pair.getValue()) + "'";
 				String term = pair.getKey() + ":" + value;
@@ -362,7 +328,7 @@ public class SearchUtil{
 		return authorizationFilterJoiner.toString();
 	}
 
-	public static void addAuthorizationFilter(SearchRequest searchRequest, UserInfo userInfo){ //TODO: test
+	public static void addAuthorizationFilter(SearchRequest searchRequest, UserInfo userInfo){
 		String authFilter = formulateAuthorizationFilter(userInfo);
 		String existingFitler = searchRequest.getFilterQuery();
 		if(existingFitler != null){
