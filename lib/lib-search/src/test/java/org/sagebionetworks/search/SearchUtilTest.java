@@ -167,14 +167,6 @@ public class SearchUtilTest {
 	}
 
 	@Test
-	public void testBooleanQueryContinuous() {
-		// continuous bq
-		query.setBooleanQuery(bq2);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and (range field=Facet1 {,2000]))"), searchRequest);
-	}
-
-	@Test
 	public void testNegatedBooleanQuery() {
 		// negated boolean query
 		query.setBooleanQuery(bqNot);
@@ -590,7 +582,7 @@ public class SearchUtilTest {
 		//method under test
 		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
 
-		assertEquals("(and " + SearchUtil.formulateAuthorizationFilter(userInfo) + " " + fitlerQuery + ")", searchRequest.getFilterQuery());
+		assertEquals("(and (or acl:'123' acl:'456' acl:'789') (and indexName:'asdf'))", searchRequest.getFilterQuery());
 	}
 
 	@Test
@@ -600,7 +592,7 @@ public class SearchUtilTest {
 		//method under test
 		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
 
-		assertEquals(SearchUtil.formulateAuthorizationFilter(userInfo), searchRequest.getFilterQuery());
+		assertEquals("(or acl:'123' acl:'456' acl:'789')", searchRequest.getFilterQuery());
 	}
 
 	///////////////////////////
