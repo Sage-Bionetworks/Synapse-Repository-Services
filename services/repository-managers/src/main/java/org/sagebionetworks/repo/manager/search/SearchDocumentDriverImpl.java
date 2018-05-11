@@ -173,13 +173,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// Annotations
 		addAnnotationsToSearchDocument(fields, annos);
 
-		// References, just put the node id to which the reference refers. Not
-		// currently adding the version or the type of the reference (e.g.,
-		// code/input/output)
-		if (null != node.getReference()) {
-			fields.setReferences(Arrays.asList(node.getReference().getTargetId()));
-		}
-
 		// READ and UPDATE ACLs
 		List<String> readAclValues = new ArrayList<String>();
 		fields.setAcl(readAclValues);
