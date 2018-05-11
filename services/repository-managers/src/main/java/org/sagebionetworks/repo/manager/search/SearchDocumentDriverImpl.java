@@ -269,7 +269,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
 		for(String key: anno.keySet()){
 			Object value = anno.getSingleValue(key);
-			if(!(value instanceof byte[])) {
+			if( value != null && !(value instanceof byte[])) {
 				annoValuesMap.putIfAbsent(key.toLowerCase(), value.toString());
 			}
 		}
