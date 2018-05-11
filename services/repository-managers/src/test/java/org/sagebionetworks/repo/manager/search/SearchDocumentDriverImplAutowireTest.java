@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -204,10 +203,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		additionalAnnos.addAnnotation("dateKey", dateValue);
 		additionalAnnos
 				.addAnnotation("blobKey", new String("bytes").getBytes());
-		Reference ref = new Reference();
-		ref.setTargetId("123");
-		ref.setTargetVersionNumber(1L);
-		node.setReference(ref);
 		
 		String wikiPageText = "title\nmarkdown";
 
@@ -270,9 +265,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		// Check ACL fields
 		assertEquals(2, fields.getAcl().size());
 		assertEquals(1, fields.getUpdate_acl().size());
-
-		assertNotNull(fields.getReferences());
-		assertEquals(1, fields.getReferences().size());
 	}
 
 	private EntityPath createFakeEntityPath() {
