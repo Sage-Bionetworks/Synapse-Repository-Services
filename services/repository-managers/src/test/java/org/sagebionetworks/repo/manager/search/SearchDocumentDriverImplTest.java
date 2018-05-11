@@ -123,6 +123,18 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
+	public void addFirstAnnotationValuesToMap__SkipNullValue(){
+		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1));
+		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(null);
+
+		spySearchDocumentDriver.addFirstAnnotationValuesToMap(mockAnnotations, annoValuesMap);
+
+		verify(mockAnnotations, times(1)).keySet();
+		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
+		assertTrue(annoValuesMap.isEmpty());
+	}
+
+	@Test
 	public void getFirsAnnotationValues(){
 		Annotations mockPrimaryAnnotations = mockAnnotations;
 		Annotations mockAdditionaAnnotations = mock(Annotations.class);
