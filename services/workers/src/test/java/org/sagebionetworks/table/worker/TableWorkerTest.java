@@ -2,9 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -87,8 +85,6 @@ public class TableWorkerTest {
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception{
 		MockitoAnnotations.initMocks(this);
-		// Turn on the feature by default
-		when(mockConfiguration.getTableEnabled()).thenReturn(true);
 		when(mockConnectionFactory.connectToTableIndex(anyString())).thenReturn(mockTableIndexManager);
 		
 		// By default we want to the manager to just call the passed callable.
@@ -187,25 +183,6 @@ public class TableWorkerTest {
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
 		// call under test
 		worker.run(mockProgressCallback, one);
-	}
-	
-	/**
-	 * When the table feature is disabled all messages should be removed from the queue and no other methods should be called.
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testFeatureDisabled() throws Exception{
-		// Disable the feature
-		when(mockConfiguration.getTableEnabled()).thenReturn(false);
-		one.setObjectType(ObjectType.TABLE);
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.DELETE);
-		// call under test
-		worker.run(mockProgressCallback, one);
-		worker.run(mockProgressCallback, two);
-		// The connection factory should never be called
-		verifyZeroInteractions(mockConnectionFactory);
 	}
 	
 	/**

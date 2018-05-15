@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,8 +73,6 @@ public class TableIndexDAOImplTest {
 	@Before
 	public void before() {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		tableId = "syn123";
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
