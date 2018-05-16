@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;

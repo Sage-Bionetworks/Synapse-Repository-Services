@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBa
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
@@ -39,7 +39,7 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 	private FileHandleDao fileMetadataDao;	
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 	
 	@Autowired
 	private TempFileProvider tempFileProvider;

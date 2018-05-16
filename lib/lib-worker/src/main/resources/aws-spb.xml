@@ -14,14 +14,5 @@
 	<aop:aspectj-autoproxy />
 	
 	<import resource="stack-configuration.spb.xml" />
-
-	<bean id="userID" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
-	<bean id="userKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
-	
-	<!-- bean for AmazonWebServices BasicAWSCredentials -->
-	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
-		<constructor-arg index="0"><ref bean="userID"/></constructor-arg>
-		<constructor-arg index="1"><ref bean="userKey"/></constructor-arg>
-	</bean>
 	
 </beans>

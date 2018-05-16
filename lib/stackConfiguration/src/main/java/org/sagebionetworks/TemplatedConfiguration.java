@@ -89,20 +89,6 @@ public interface TemplatedConfiguration {
 	public String getStackInstance();
 
 	/**
-	 * Get the IAM user ID (AWS Access Key ID)
-	 * 
-	 * @return IAM user ID (AWS Access Key ID)
-	 */
-	public String getIAMUserId();
-
-	/**
-	 * Get the IAM user Key (AWS Secret Access Key)
-	 * 
-	 * @return IAM user Key (AWS Secret Access Key)
-	 */
-	public String getIAMUserKey();
-
-	/**
 	 * @return authentication service private endpoint
 	 */
 	public String getAuthenticationServicePrivateEndpoint();

@@ -176,24 +176,6 @@ public class StackConfiguration {
 		return configuration.getEncryptionKey();
 	}
 
-	/**
-	 * Get the IAM user ID (Access Key ID)
-	 * 
-	 * @return
-	 */
-	public static String getIAMUserId() {
-		return configuration.getIAMUserId();
-	}
-
-	/**
-	 * Get the IAM user Key (Secret Access Key)
-	 * 
-	 * @return
-	 */
-	public static String getIAMUserKey() {
-		return configuration.getIAMUserKey();
-	}
-
 	public static String getAuthenticationServicePrivateEndpoint() {
 		return configuration.getAuthenticationServicePrivateEndpoint();
 	}

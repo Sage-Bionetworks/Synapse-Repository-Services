@@ -31,8 +31,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	private static final String DROP_DATABASE = "DROP DATABASE ";
 	
 	@Autowired
-	AmazonRDSClient awsRDSClient;
-	@Autowired
 	InstanceDiscovery instanceDiscovery;
 	/**
 	 * Note: This field will be remove when we actually have more than one connection.

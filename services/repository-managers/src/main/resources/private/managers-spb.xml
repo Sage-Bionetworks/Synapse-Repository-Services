@@ -240,16 +240,12 @@
 
 	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
 
-	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.AmazonClientFactoryImpl"
-		scope="singleton" />
-
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 		
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 	
-	<bean id="amazonSESClient" class="com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient">
-        <constructor-arg ref="awsCredentials" />
-    </bean>
+	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="AmazonSimpleEmailService"/>
     
 	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
 			

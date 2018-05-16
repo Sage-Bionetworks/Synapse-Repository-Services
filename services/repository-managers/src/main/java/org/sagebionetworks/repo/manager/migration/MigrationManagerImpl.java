@@ -45,7 +45,7 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Iterables;
 
@@ -70,7 +70,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Autowired
 	BackupFileStream backupFileStream;
 	@Autowired
-	AmazonS3Client s3Client;
+	AmazonS3 s3Client;
 	@Autowired
 	FileProvider fileProvider;
 	

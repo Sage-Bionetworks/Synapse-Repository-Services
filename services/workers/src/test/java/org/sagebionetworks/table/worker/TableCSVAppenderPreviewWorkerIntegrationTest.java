@@ -46,7 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -69,7 +69,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	AmazonS3Client s3Client;
+	AmazonS3 s3Client;
 	@Autowired
 	SemaphoreManager semphoreManager;
 	@Autowired

@@ -11,19 +11,11 @@
 	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Create the AWS search client using the current credentials. Prototype 
-		because we want a new one for each bean -->
-	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
-		scope="prototype">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
+	<bean id="awsSNSClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonSNSClient" scope="prototype"/>
 
-	<!-- The AmazonSQSClient -->
-	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
+	<bean id="awsSQSClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonSQSClient" scope="singleton" />
 
 	<!-- The RepositoryMessagePublisher publish repository change messages to 
 		an AWS topic -->

@@ -45,7 +45,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.Lists;
 
 public class IT054FileEntityTest {
@@ -57,7 +57,6 @@ public class IT054FileEntityTest {
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
 
-	private static AmazonS3Client s3Client;
 	private File imageFile;
 	private S3FileHandle fileHandle;
 	private Project project;
@@ -73,8 +72,6 @@ public class IT054FileEntityTest {
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
-		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 	}
 	
 	@Before
@@ -103,7 +100,6 @@ public class IT054FileEntityTest {
 				synapse.deleteFileHandle(handle);
 			} catch (Exception e) {}
 		}
-		S3TestUtils.doDeleteAfter(s3Client);
 	}
 	
 	@AfterClass

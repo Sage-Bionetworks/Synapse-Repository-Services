@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 
 /**
  * This is a an integration test for the MembershipInvitationController.
@@ -37,7 +37,7 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 	public UserManager userManager;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	private Long adminUserId;
 	private UserInfo adminUserInfo;

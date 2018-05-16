@@ -10,7 +10,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.model.CreateDomainRequest;
 import com.amazonaws.services.cloudsearchv2.model.DefineIndexFieldRequest;
 import com.amazonaws.services.cloudsearchv2.model.DeleteIndexFieldRequest;
@@ -32,7 +32,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	static private Logger log = LogManager.getLogger(SearchDomainSetupImpl.class);
 
 	@Autowired
-	AmazonCloudSearchClient awsSearchClient;
+	AmazonCloudSearch awsSearchClient;
 
 
 	@Override
