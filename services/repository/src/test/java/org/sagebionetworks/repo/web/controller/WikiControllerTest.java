@@ -41,7 +41,7 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 
 /**
  * 
@@ -63,7 +63,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private V2WikiPageDao v2WikiPageDao;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	@Autowired
 	private IdGenerator idGenerator;

@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.google.common.collect.Lists;
@@ -32,7 +32,7 @@ import com.google.common.collect.Lists;
 public class ReplicationMessageManagerImplTest {
 
 	@Mock
-	AmazonSQSClient mockSqsClient;
+	AmazonSQS mockSqsClient;
 
 	ReplicationMessageManagerImpl manager;
 

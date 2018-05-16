@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.Lists;
 
 import junit.framework.Assert;
@@ -42,7 +42,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	private Entity parent;
 	private Long adminUserId;

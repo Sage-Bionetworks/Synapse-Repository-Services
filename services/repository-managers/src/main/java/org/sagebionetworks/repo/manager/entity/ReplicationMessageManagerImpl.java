@@ -12,7 +12,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.google.common.collect.Lists;
@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 public class ReplicationMessageManagerImpl implements ReplicationMessageManager {
 
 	@Autowired
-	AmazonSQSClient sqsClient;
+	AmazonSQS sqsClient;
 
 	String replicationQueueName;
 	String replicationQueueUrl;

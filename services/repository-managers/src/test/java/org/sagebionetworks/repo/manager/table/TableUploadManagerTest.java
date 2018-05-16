@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
@@ -59,7 +59,7 @@ public class TableUploadManagerTest {
 	@Mock
 	FileHandleManager  mockFileHandleManger;
 	@Mock
-	AmazonS3Client mockS3Client;
+	AmazonS3 mockS3Client;
 	@Mock
 	UploadRowProcessor rowProcessor;
 	
