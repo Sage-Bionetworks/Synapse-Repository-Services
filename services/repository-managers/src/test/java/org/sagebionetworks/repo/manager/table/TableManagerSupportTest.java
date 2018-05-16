@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -116,7 +115,6 @@ public class TableManagerSupportTest {
 	
 	@Before
 	public void before() throws Exception {
-		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
 		MockitoAnnotations.initMocks(this);
 		
 		manager = new TableManagerSupportImpl();

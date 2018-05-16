@@ -11,10 +11,7 @@ import java.util.UUID;
 
 import javax.servlet.ServletException;
 
-import junit.framework.Assert;
-
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
@@ -33,6 +30,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.Lists;
+
+import junit.framework.Assert;
 
 public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
@@ -53,7 +52,6 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	
 	@Before
 	public void before() throws Exception {
-		Assume.assumeTrue(config.getTableEnabled());
 	
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
@@ -67,18 +65,16 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	
 	@After
 	public void after(){
-		if (config.getTableEnabled()) {
-			for (String entity : Lists.reverse(entitiesToDelete)) {
-				try {
-					servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId,
-							Collections.singletonMap("skipTrashCan", "false"));
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+		for (String entity : Lists.reverse(entitiesToDelete)) {
+			try {
+				servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId,
+						Collections.singletonMap("skipTrashCan", "false"));
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-			for (S3FileHandle handle : handles) {
-				fileMetadataDao.delete(handle.getId());
-			}
+		}
+		for (S3FileHandle handle : handles) {
+			fileMetadataDao.delete(handle.getId());
 		}
 	}
 

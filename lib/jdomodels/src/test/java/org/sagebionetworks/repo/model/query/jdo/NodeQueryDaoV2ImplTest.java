@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,8 +61,6 @@ public class NodeQueryDaoV2ImplTest {
 	
 	@Before
 	public void before(){
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		
 		// Only the ProgressCallback is mocked for this test.  All other dependencies are autowired.
 		MockitoAnnotations.initMocks(this);

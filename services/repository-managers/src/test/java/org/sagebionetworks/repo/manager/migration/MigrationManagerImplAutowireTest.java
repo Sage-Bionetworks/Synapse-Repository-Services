@@ -179,29 +179,26 @@ public class MigrationManagerImplAutowireTest {
 			projectIdsLong.add(KeyFactory.stringToKey(id));
 		}
 
-		// Do this only if table enabled
-		if (StackConfiguration.singleton().getTableEnabled()) {
-			// create columns
-			LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
-			for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
-				cm = columnManager.createColumnModel(adminUser, cm);
-				schema.add(cm);
-			}
-			List<String> headers = TableModelUtils.getIds(schema);
-			// Create the table.
-			TableEntity table = new TableEntity();
-			table.setName(UUID.randomUUID().toString());
-			table.setColumnIds(headers);
-			tableId = entityManager.createEntity(adminUser, table, null);
-			tableEntityManager.setTableSchema(adminUser, headers, tableId);
-
-			// Now add some data
-			RowSet rowSet = new RowSet();
-			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
-			rowSet.setTableId(tableId);
-			tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback);
+		// create columns
+		LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+			cm = columnManager.createColumnModel(adminUser, cm);
+			schema.add(cm);
 		}
+		List<String> headers = TableModelUtils.getIds(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUser, table, null);
+		tableEntityManager.setTableSchema(adminUser, headers, tableId);
+
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback);
 		stackConfig = new StackConfiguration();
 	}
 	
