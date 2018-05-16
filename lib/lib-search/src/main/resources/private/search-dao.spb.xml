@@ -17,11 +17,6 @@
 		factory-method="createAmazonCloudSearchClient"
 		scope="singleton"/>
 
-	<bean id="awsCloudSearchDomainClient"
-		class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonCloudSearchDomain"
-		  scope="singleton"/>
-
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="cloudSearchClientProvider"
 		  class="org.sagebionetworks.search.CloudSearchClientProvider"

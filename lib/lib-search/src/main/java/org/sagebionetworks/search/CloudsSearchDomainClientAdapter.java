@@ -1,6 +1,6 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
@@ -19,16 +19,16 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A wrapper for AWS's AmazonCloudSearchDomainClient. DO NOT INSTANTIATE.
+ * A wrapper for AWS's AmazonCloudSearchDomain. DO NOT INSTANTIATE.
  * Use CloudSearchClientProvider to get an instance of this class.
  */
 public class CloudsSearchDomainClientAdapter {
 	static private Logger logger = LogManager.getLogger(CloudsSearchDomainClientAdapter.class);
 
-	private AmazonCloudSearchDomainClient client;
+	private AmazonCloudSearchDomain client;
 
 
-	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomainClient client){
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client){
 		this.client = client;
 	}
 

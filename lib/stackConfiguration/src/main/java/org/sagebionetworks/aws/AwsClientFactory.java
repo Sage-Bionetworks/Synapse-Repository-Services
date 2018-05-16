@@ -3,7 +3,7 @@ package org.sagebionetworks.aws;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClientBuilder;
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClientBuilder;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
@@ -92,11 +92,10 @@ public class AwsClientFactory {
 	 * Create an instance of the AmazonCloudSearchDomain using a credential chain.
 	 * @return
 	 */
-	public static AmazonCloudSearchDomain createAmazonCloudSearchDomain() {
-		AmazonCloudSearchDomainClientBuilder builder = AmazonCloudSearchDomainClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
-		return builder.build();
+	public static AmazonCloudSearchDomain createAmazonCloudSearchDomain(String endpoint) {
+		AmazonCloudSearchDomain domain = new AmazonCloudSearchDomainClient(new DefaultAWSCredentialsProviderChain());
+		domain.setEndpoint(endpoint);
+		return domain;
 	}
 	
 	/**
