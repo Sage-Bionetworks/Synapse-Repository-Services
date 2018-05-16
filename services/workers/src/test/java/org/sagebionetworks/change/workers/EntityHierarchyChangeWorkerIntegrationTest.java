@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Date;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,8 +60,6 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	
 	@Before
 	public void before(){
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		
 		// this is still an integration test even though a mock progress is used.
 		MockitoAnnotations.initMocks(this);

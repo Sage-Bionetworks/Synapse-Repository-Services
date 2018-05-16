@@ -103,8 +103,6 @@ public class EntityQueryManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception {
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 				
 		MockitoAnnotations.initMocks(this);
 		assertNotNull(entityManager);

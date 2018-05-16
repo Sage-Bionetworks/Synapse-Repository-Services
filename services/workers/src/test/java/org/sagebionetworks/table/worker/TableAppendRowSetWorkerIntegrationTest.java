@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,8 +83,6 @@ public class TableAppendRowSetWorkerIntegrationTest {
 
 	@Before
 	public void before() throws NotFoundException {
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
@@ -139,13 +136,11 @@ public class TableAppendRowSetWorkerIntegrationTest {
 
 	@After
 	public void after() {
-		if (config.getTableEnabled()) {
-			if (adminUserInfo != null) {
-				for (String id : toDelete) {
-					try {
-						entityManager.deleteEntity(adminUserInfo, id);
-					} catch (Exception e) {
-					}
+		if (adminUserInfo != null) {
+			for (String id : toDelete) {
+				try {
+					entityManager.deleteEntity(adminUserInfo, id);
+				} catch (Exception e) {
 				}
 			}
 		}
