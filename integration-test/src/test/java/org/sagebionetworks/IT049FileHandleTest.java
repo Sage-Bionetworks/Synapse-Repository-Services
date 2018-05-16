@@ -71,7 +71,6 @@ public class IT049FileHandleTest {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
-//	private static AmazonS3 s3Client;
 	
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
