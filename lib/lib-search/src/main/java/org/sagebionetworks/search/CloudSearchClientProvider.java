@@ -1,12 +1,12 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.Random;
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 
 /**
  * This class is responsible for initializing the setup of AWS CloudSearch
@@ -18,8 +18,7 @@ public class CloudSearchClientProvider {
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
 
-	@Autowired
-	AmazonCloudSearchDomainClient awsCloudSearchDomainClient;
+	AmazonCloudSearchDomain awsCloudSearchDomainClient;
 
 	private boolean isSearchEnabled;
 
@@ -34,7 +33,7 @@ public class CloudSearchClientProvider {
 			return singletonWrapper;
 		}else{
 			if(searchDomainSetup.postInitialize()) {
-				awsCloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
+				awsCloudSearchDomainClient = AwsClientFactory.createAmazonCloudSearchDomain(searchDomainSetup.getDomainSearchEndpoint());
 				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient);
 				return singletonWrapper;
 			} else{
