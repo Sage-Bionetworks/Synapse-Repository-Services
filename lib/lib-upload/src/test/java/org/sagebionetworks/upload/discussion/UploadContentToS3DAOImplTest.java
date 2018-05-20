@@ -18,7 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -28,7 +28,7 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 public class UploadContentToS3DAOImplTest {
 
 	@Mock
-	private AmazonS3Client mockS3Client;
+	private AmazonS3 mockS3Client;
 	@Mock
 	private S3Object mockS3Object;
 	@Mock

@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Date;
@@ -74,7 +73,6 @@ public class TableRowTruthDAOImplTest {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 		StackConfiguration mockStackConfiguration = mock(StackConfiguration.class);
-		when(mockStackConfiguration.getTableEnabled()).thenReturn(false);
 		fileHandleIds = new LinkedList<String>();		
 	}
 	

@@ -12,7 +12,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.Content;
@@ -36,7 +36,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	private AmazonSimpleEmailService amazonSESClient;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 	
 	@Override
 	public void sendEmail(SendEmailRequest emailRequest) {

@@ -9,7 +9,7 @@ import java.util.zip.GZIPInputStream;
 
 import org.sagebionetworks.csv.utils.ObjectCSVReader;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 
 /**
@@ -21,7 +21,7 @@ import com.amazonaws.services.s3.model.S3Object;
  */
 public class GzipCsvS3ObjectReader<T> {
 
-	private AmazonS3Client awsS3Client;
+	private AmazonS3 awsS3Client;
 	private Class<T> objectClass;
 	private String[] headers;
 
@@ -35,7 +35,7 @@ public class GzipCsvS3ObjectReader<T> {
 	 * @param headers
 	 *            Maps the column of the read CSV to fields of the objectClass.
 	 */
-	public GzipCsvS3ObjectReader(AmazonS3Client awsS3Client,
+	public GzipCsvS3ObjectReader(AmazonS3 awsS3Client,
 			Class<T> objectClass, String[] headers) {
 		super();
 		this.awsS3Client = awsS3Client;

@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
 import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
@@ -54,7 +54,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	@Autowired
 	DBOChangeDAO changeDao;
 	
-	AmazonSNSClient mockSNSClient;
+	AmazonSNS mockSNSClient;
 	
 	@Before
 	public void before(){
@@ -62,7 +62,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		this.changeDao.deleteAllChanges();
 		assertEquals("Failed to delete all change messages", 0, changeDao.getCurrentChangeNumber());
 		// We do not want to actually send messages as part of this test so we mock the client
-		mockSNSClient = Mockito.mock(AmazonSNSClient.class);
+		mockSNSClient = Mockito.mock(AmazonSNS.class);
 		messagePublisher.setAwsSNSClient(mockSNSClient);
 		when(mockSNSClient.createTopic(any(CreateTopicRequest.class))).thenReturn(new CreateTopicResult().withTopicArn("topicArn"));
 	}

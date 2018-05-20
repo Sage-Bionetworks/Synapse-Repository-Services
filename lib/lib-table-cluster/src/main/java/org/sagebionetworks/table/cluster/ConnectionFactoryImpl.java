@@ -31,8 +31,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	private static final String DROP_DATABASE = "DROP DATABASE ";
 	
 	@Autowired
-	AmazonRDSClient awsRDSClient;
-	@Autowired
 	InstanceDiscovery instanceDiscovery;
 	/**
 	 * Note: This field will be remove when we actually have more than one connection.
@@ -55,30 +53,17 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	 */
 	public void initialize(){
 		// There is nothing to do if the table feature is not enabled.
-		if(stackConfig.getTableEnabled()){
-			// The features is enabled so we must find all database instances that we can use
-			List<InstanceInfo> instances = instanceDiscovery.discoverAllInstances();
-			if(instances == null || instances.isEmpty()) throw new IllegalArgumentException("Did not find at least one database instances.");
-			
-			// This will be improved in the future.  For now we just use the first database we find
-			InstanceInfo instance = instances.get(0);
-			// Use the one instance to create a single connection pool
-			singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);
-			// ensure the index has the correct tables
-			TableIndexDAOImpl dao = new TableIndexDAOImpl(singleConnectionPool);
-			dao.createEntityReplicationTablesIfDoesNotExist();
-		}else{
-			log.debug("The table feature is disabled and cannot be used");
-		}
-	}
-	
-	/**
-	 * Validate that the table feature is enabled.
-	 */
-	private void validateEnable(){
-		if(!stackConfig.getTableEnabled()){
-			throw new IllegalArgumentException("The table feature is disabled (org.sagebionetworks.table.enabled=false) so this method is not available.");
-		}
+		// The features is enabled so we must find all database instances that we can use
+		List<InstanceInfo> instances = instanceDiscovery.discoverAllInstances();
+		if(instances == null || instances.isEmpty()) throw new IllegalArgumentException("Did not find at least one database instances.");
+		
+		// This will be improved in the future.  For now we just use the first database we find
+		InstanceInfo instance = instances.get(0);
+		// Use the one instance to create a single connection pool
+		singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);
+		// ensure the index has the correct tables
+		TableIndexDAOImpl dao = new TableIndexDAOImpl(singleConnectionPool);
+		dao.createEntityReplicationTablesIfDoesNotExist();
 	}
 	
 	/**

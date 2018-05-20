@@ -112,7 +112,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -165,7 +165,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	AuthorizationManager authorizationManager;
 
 	@Autowired
-	AmazonS3Client s3Client;
+	AmazonS3 s3Client;
 
 	@Autowired
 	UploadDaemonStatusDao uploadDaemonStatusDao;

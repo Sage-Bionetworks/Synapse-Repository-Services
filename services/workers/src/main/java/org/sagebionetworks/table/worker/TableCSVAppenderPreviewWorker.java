@@ -25,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
@@ -48,7 +48,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 
 	@Override

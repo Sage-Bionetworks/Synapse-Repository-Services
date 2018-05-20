@@ -9,7 +9,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.csv.utils.ObjectCSVWriter;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 /**
@@ -21,7 +21,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
  */
 public class GzipCsvS3ObjectWriter<T> {
 
-	private AmazonS3Client awsS3Client;
+	private AmazonS3 awsS3Client;
 	private Class<T> objectClass;
 	private String[] headers;
 
@@ -36,7 +36,7 @@ public class GzipCsvS3ObjectWriter<T> {
 	 *            Maps the fields of the given objectClass to columns of the
 	 *            resulting CSV file.
 	 */
-	public GzipCsvS3ObjectWriter(AmazonS3Client awsS3Client,
+	public GzipCsvS3ObjectWriter(AmazonS3 awsS3Client,
 			Class<T> objectClass, String[] headers) {
 		super();
 		this.awsS3Client = awsS3Client;

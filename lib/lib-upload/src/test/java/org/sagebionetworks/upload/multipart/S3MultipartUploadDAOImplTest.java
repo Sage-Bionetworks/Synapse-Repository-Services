@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -41,7 +41,7 @@ import com.google.common.collect.Lists;
 public class S3MultipartUploadDAOImplTest {
 	
 	@Mock
-	AmazonS3Client mockS3Client;
+	AmazonS3 mockS3Client;
 	@Mock
 	InitiateMultipartUploadResult mockResult;
 	

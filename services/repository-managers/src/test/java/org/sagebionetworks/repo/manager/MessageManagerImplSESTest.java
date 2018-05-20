@@ -78,9 +78,6 @@ public class MessageManagerImplSESTest {
 	private EntityPermissionsManager mockEntityPermissionsManager;
 	private FileHandleDao mockFileHandleDao;
 	private ProgressCallback mockProgressCallback;
-
-	@Autowired
-	private AWSCredentials awsCredentials;
 	
 	@Autowired
 	private SynapseEmailService synapseEmailService;

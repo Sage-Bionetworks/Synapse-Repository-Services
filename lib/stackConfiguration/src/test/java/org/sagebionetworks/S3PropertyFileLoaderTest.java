@@ -23,10 +23,8 @@ public class S3PropertyFileLoaderTest {
 	@Test (expected=AmazonServiceException.class)
 	public void testLoadFails() throws IOException{
 		String url = "https://s3.amazonaws.com/fake-bucket/fake-file.properties";
-		String id = "fake-id";
-		String key = "fake-key";
 		Properties props = new Properties();
-		S3PropertyFileLoader.loadPropertiesFromS3(url, id, key, props);
+		S3PropertyFileLoader.loadPropertiesFromS3(url, props);
 	}
 	
 	/**
@@ -37,10 +35,8 @@ public class S3PropertyFileLoaderTest {
 	@Test (expected=AmazonServiceException.class)
 	public void testS3FolderUrl() throws IOException{
 		String url = "https://s3.amazonaws.com/fake-bucket/fake-folder/fake-yet-another-folder/fake-file.properties";
-		String id = "fake-id";
-		String key = "fake-key";
 		Properties props = new Properties();
-		S3PropertyFileLoader.loadPropertiesFromS3(url, id, key, props);
+		S3PropertyFileLoader.loadPropertiesFromS3(url, props);
 	}
 	
 	/**
@@ -52,10 +48,8 @@ public class S3PropertyFileLoaderTest {
 	@Test
 	public void testLoad() throws IOException{
 		String url = "Set a real URL to test";
-		String id = "Set a real ID to test";
-		String key = "Set a real key to test.";
 		Properties props = new Properties();
-		S3PropertyFileLoader.loadPropertiesFromS3(url, id, key, props);
+		S3PropertyFileLoader.loadPropertiesFromS3(url,props);
 		assertNotNull(props.getProperty("org.sagebionetworks.repository.database.connection.url"));
 	}
 	

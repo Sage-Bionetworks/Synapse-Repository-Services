@@ -34,7 +34,7 @@ import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
@@ -45,7 +45,7 @@ public class PreviewManagerImplTest {
 	PreviewManagerImpl previewManager;
 	FileHandleDao stubFileMetadataDao;
 	@Mock
-	private AmazonS3Client mockS3Client;
+	private AmazonS3 mockS3Client;
 	@Mock
 	private TempFileProvider mockFileProvider;
 	@Mock

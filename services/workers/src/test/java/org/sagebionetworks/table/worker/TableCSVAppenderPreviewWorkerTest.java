@@ -22,7 +22,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
@@ -44,7 +44,7 @@ public class TableCSVAppenderPreviewWorkerTest {
 	@Mock
 	private FileHandleManager mockFileHandleManager;
 	@Mock
-	private AmazonS3Client mockS3Client;
+	private AmazonS3 mockS3Client;
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock

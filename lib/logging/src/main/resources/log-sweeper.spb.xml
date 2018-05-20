@@ -13,31 +13,11 @@
 
 	<import resource="classpath:stack-configuration.spb.xml" />
 
-	<bean id="userID" class="org.sagebionetworks.StackConfiguration"
-		factory-method="getIAMUserId" />
-	<bean id="userKey" class="org.sagebionetworks.StackConfiguration"
-		factory-method="getIAMUserKey" />
+	<bean id="amazonS3Client" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonS3Client" scope="singleton" />
 
-	<!-- bean for AmazonWebServices BasicAWSCredentials -->
-	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
-		<constructor-arg index="0">
-			<ref bean="userID" />
-		</constructor-arg>
-		<constructor-arg index="1">
-			<ref bean="userKey" />
-		</constructor-arg>
-	</bean>
-
-	<bean name="s3ClientOptions" class="com.amazonaws.services.s3.S3ClientOptions" scope="singleton">
-		<property name="pathStyleAccess" value="true"/>
-	</bean>
-	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-		<property name="s3ClientOptions" ref="s3ClientOptions"/>
-	</bean>
-	
-	<bean id="logDAO" class="org.sagebionetworks.logging.s3.LogDAOImpl" scope="singleton" init-method="initialize">
+	<bean id="logDAO" class="org.sagebionetworks.logging.s3.LogDAOImpl"
+		scope="singleton" init-method="initialize">
 		<property name="bucketName" ref="stackConfiguration.logBucketName" />
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
 	</bean>

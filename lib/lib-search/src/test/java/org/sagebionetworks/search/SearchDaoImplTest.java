@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
 
 import org.sagebionetworks.repo.web.ServiceUnavailableException;

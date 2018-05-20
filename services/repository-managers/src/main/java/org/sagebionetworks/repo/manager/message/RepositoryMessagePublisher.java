@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.AmazonSNS;
 
 /**
  * This object will observe the TransactionalMessenger and sent those messages to an AWS topic.
@@ -35,7 +35,7 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * Used by tests to inject a mock client.
 	 * @param awsSNSClient
 	 */
-	public void setAwsSNSClient(AmazonSNSClient awsSNSClient);
+	public void setAwsSNSClient(AmazonSNS awsSNSClient);
 	
 	
 	/**

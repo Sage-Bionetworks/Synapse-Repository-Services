@@ -47,7 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Function;
@@ -77,7 +77,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	private NodeManager nodeManager;
 
 	@Autowired
-	private AmazonS3Client s3client;
+	private AmazonS3 s3client;
 
 	@Autowired
 	private UserProfileManager userProfileManager;
