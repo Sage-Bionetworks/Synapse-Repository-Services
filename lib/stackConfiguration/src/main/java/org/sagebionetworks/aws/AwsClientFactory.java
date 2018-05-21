@@ -35,14 +35,28 @@ public class AwsClientFactory {
 		 * with 'org.sagebionetworks.stack.iam.key'
 		 */
 		if (System.getProperty(AWS_ACCESS_KEY_ID) == null) {
-			System.setProperty(AWS_ACCESS_KEY_ID, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_ID));
+			setSystemProperty(AWS_ACCESS_KEY_ID, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_ID));
 		}
 		/*
 		 * If 'aws.secretKey' is missing from the system properties, attempt to set it
 		 * with 'org.sagebionetworks.stack.iam.key'
 		 */
 		if (System.getProperty(AWS_SECRET_KEY) == null) {
-			System.setProperty(AWS_SECRET_KEY, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_KEY));
+			setSystemProperty(AWS_SECRET_KEY, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_KEY));
+		}
+	}
+	
+	/**
+	 * Set the given property to System.setProperty() if the key and value are not null and the value is not empty.
+	 * @param key
+	 * @param value
+	 */
+	public static void setSystemProperty(String key, String value) {
+		if(key != null && value != null) {
+			value = value.trim();
+			if(value.length() > 0) {
+				System.setProperty(key, value);
+			}
 		}
 	}
 
