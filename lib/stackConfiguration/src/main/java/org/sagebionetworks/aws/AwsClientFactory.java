@@ -24,6 +24,8 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
  */
 public class AwsClientFactory {
 
+	public static final String AWS_SECRET_KEY_OLD = "AWS_SECRET_KEY";
+	public static final String AWS_ACCESS_KEY_ID_OLD = "AWS_ACCESS_KEY_ID";
 	public static final String AWS_ACCESS_KEY_ID = "aws.accessKeyId";
 	public static final String AWS_SECRET_KEY = "aws.secretKey";
 	public static final String OLD_ORG_SAGEBIONETWORKS_STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
@@ -43,6 +45,20 @@ public class AwsClientFactory {
 		 */
 		if (System.getProperty(AWS_SECRET_KEY) == null) {
 			setSystemProperty(AWS_SECRET_KEY, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_KEY));
+		}
+		/*
+		 * If 'aws.accessKeyId' is missing from the system properties, attempt to set it
+		 * with 'org.sagebionetworks.stack.iam.key'
+		 */
+		if (System.getProperty(AWS_ACCESS_KEY_ID) == null) {
+			setSystemProperty(AWS_ACCESS_KEY_ID, System.getProperty(AWS_ACCESS_KEY_ID_OLD));
+		}
+		/*
+		 * If 'aws.secretKey' is missing from the system properties, attempt to set it
+		 * with 'org.sagebionetworks.stack.iam.key'
+		 */
+		if (System.getProperty(AWS_SECRET_KEY) == null) {
+			setSystemProperty(AWS_SECRET_KEY, System.getProperty(AWS_SECRET_KEY_OLD));
 		}
 	}
 	
