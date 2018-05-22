@@ -48,14 +48,14 @@ public class AwsClientFactory {
 		}
 		/*
 		 * If 'aws.accessKeyId' is missing from the system properties, attempt to set it
-		 * with 'org.sagebionetworks.stack.iam.key'
+		 * with 'AWS_ACCESS_KEY_ID'
 		 */
 		if (System.getProperty(AWS_ACCESS_KEY_ID) == null) {
 			setSystemProperty(AWS_ACCESS_KEY_ID, System.getProperty(AWS_ACCESS_KEY_ID_OLD));
 		}
 		/*
 		 * If 'aws.secretKey' is missing from the system properties, attempt to set it
-		 * with 'org.sagebionetworks.stack.iam.key'
+		 * with 'AWS_SECRET_KEY'
 		 */
 		if (System.getProperty(AWS_SECRET_KEY) == null) {
 			setSystemProperty(AWS_SECRET_KEY, System.getProperty(AWS_SECRET_KEY_OLD));
