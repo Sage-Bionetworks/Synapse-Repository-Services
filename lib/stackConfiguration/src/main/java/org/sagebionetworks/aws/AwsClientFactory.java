@@ -24,6 +24,8 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
  */
 public class AwsClientFactory {
 
+	public static final String AWS_SECRET_KEY_OLD = "AWS_SECRET_KEY";
+	public static final String AWS_ACCESS_KEY_ID_OLD = "AWS_ACCESS_KEY_ID";
 	public static final String AWS_ACCESS_KEY_ID = "aws.accessKeyId";
 	public static final String AWS_SECRET_KEY = "aws.secretKey";
 	public static final String OLD_ORG_SAGEBIONETWORKS_STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
@@ -35,14 +37,42 @@ public class AwsClientFactory {
 		 * with 'org.sagebionetworks.stack.iam.key'
 		 */
 		if (System.getProperty(AWS_ACCESS_KEY_ID) == null) {
-			System.setProperty(AWS_ACCESS_KEY_ID, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_ID));
+			setSystemProperty(AWS_ACCESS_KEY_ID, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_ID));
 		}
 		/*
 		 * If 'aws.secretKey' is missing from the system properties, attempt to set it
 		 * with 'org.sagebionetworks.stack.iam.key'
 		 */
 		if (System.getProperty(AWS_SECRET_KEY) == null) {
-			System.setProperty(AWS_SECRET_KEY, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_KEY));
+			setSystemProperty(AWS_SECRET_KEY, System.getProperty(OLD_ORG_SAGEBIONETWORKS_STACK_IAM_KEY));
+		}
+		/*
+		 * If 'aws.accessKeyId' is missing from the system properties, attempt to set it
+		 * with 'AWS_ACCESS_KEY_ID'
+		 */
+		if (System.getProperty(AWS_ACCESS_KEY_ID) == null) {
+			setSystemProperty(AWS_ACCESS_KEY_ID, System.getProperty(AWS_ACCESS_KEY_ID_OLD));
+		}
+		/*
+		 * If 'aws.secretKey' is missing from the system properties, attempt to set it
+		 * with 'AWS_SECRET_KEY'
+		 */
+		if (System.getProperty(AWS_SECRET_KEY) == null) {
+			setSystemProperty(AWS_SECRET_KEY, System.getProperty(AWS_SECRET_KEY_OLD));
+		}
+	}
+	
+	/**
+	 * Set the given property to System.setProperty() if the key and value are not null and the value is not empty.
+	 * @param key
+	 * @param value
+	 */
+	public static void setSystemProperty(String key, String value) {
+		if(key != null && value != null) {
+			value = value.trim();
+			if(value.length() > 0) {
+				System.setProperty(key, value);
+			}
 		}
 	}
 
