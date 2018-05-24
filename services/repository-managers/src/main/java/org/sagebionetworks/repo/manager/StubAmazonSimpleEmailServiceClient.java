@@ -13,90 +13,7 @@ import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.ResponseMetadata;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
-import com.amazonaws.services.simpleemail.model.CloneReceiptRuleSetRequest;
-import com.amazonaws.services.simpleemail.model.CloneReceiptRuleSetResult;
-import com.amazonaws.services.simpleemail.model.CreateReceiptFilterRequest;
-import com.amazonaws.services.simpleemail.model.CreateReceiptFilterResult;
-import com.amazonaws.services.simpleemail.model.CreateReceiptRuleRequest;
-import com.amazonaws.services.simpleemail.model.CreateReceiptRuleResult;
-import com.amazonaws.services.simpleemail.model.CreateReceiptRuleSetRequest;
-import com.amazonaws.services.simpleemail.model.CreateReceiptRuleSetResult;
-import com.amazonaws.services.simpleemail.model.DeleteIdentityPolicyRequest;
-import com.amazonaws.services.simpleemail.model.DeleteIdentityPolicyResult;
-import com.amazonaws.services.simpleemail.model.DeleteIdentityRequest;
-import com.amazonaws.services.simpleemail.model.DeleteIdentityResult;
-import com.amazonaws.services.simpleemail.model.DeleteReceiptFilterRequest;
-import com.amazonaws.services.simpleemail.model.DeleteReceiptFilterResult;
-import com.amazonaws.services.simpleemail.model.DeleteReceiptRuleRequest;
-import com.amazonaws.services.simpleemail.model.DeleteReceiptRuleResult;
-import com.amazonaws.services.simpleemail.model.DeleteReceiptRuleSetRequest;
-import com.amazonaws.services.simpleemail.model.DeleteReceiptRuleSetResult;
-import com.amazonaws.services.simpleemail.model.DeleteVerifiedEmailAddressRequest;
-import com.amazonaws.services.simpleemail.model.DeleteVerifiedEmailAddressResult;
-import com.amazonaws.services.simpleemail.model.DescribeActiveReceiptRuleSetRequest;
-import com.amazonaws.services.simpleemail.model.DescribeActiveReceiptRuleSetResult;
-import com.amazonaws.services.simpleemail.model.DescribeReceiptRuleRequest;
-import com.amazonaws.services.simpleemail.model.DescribeReceiptRuleResult;
-import com.amazonaws.services.simpleemail.model.DescribeReceiptRuleSetRequest;
-import com.amazonaws.services.simpleemail.model.DescribeReceiptRuleSetResult;
-import com.amazonaws.services.simpleemail.model.GetIdentityDkimAttributesRequest;
-import com.amazonaws.services.simpleemail.model.GetIdentityDkimAttributesResult;
-import com.amazonaws.services.simpleemail.model.GetIdentityMailFromDomainAttributesRequest;
-import com.amazonaws.services.simpleemail.model.GetIdentityMailFromDomainAttributesResult;
-import com.amazonaws.services.simpleemail.model.GetIdentityNotificationAttributesRequest;
-import com.amazonaws.services.simpleemail.model.GetIdentityNotificationAttributesResult;
-import com.amazonaws.services.simpleemail.model.GetIdentityPoliciesRequest;
-import com.amazonaws.services.simpleemail.model.GetIdentityPoliciesResult;
-import com.amazonaws.services.simpleemail.model.GetIdentityVerificationAttributesRequest;
-import com.amazonaws.services.simpleemail.model.GetIdentityVerificationAttributesResult;
-import com.amazonaws.services.simpleemail.model.GetSendQuotaRequest;
-import com.amazonaws.services.simpleemail.model.GetSendQuotaResult;
-import com.amazonaws.services.simpleemail.model.GetSendStatisticsRequest;
-import com.amazonaws.services.simpleemail.model.GetSendStatisticsResult;
-import com.amazonaws.services.simpleemail.model.ListIdentitiesRequest;
-import com.amazonaws.services.simpleemail.model.ListIdentitiesResult;
-import com.amazonaws.services.simpleemail.model.ListIdentityPoliciesRequest;
-import com.amazonaws.services.simpleemail.model.ListIdentityPoliciesResult;
-import com.amazonaws.services.simpleemail.model.ListReceiptFiltersRequest;
-import com.amazonaws.services.simpleemail.model.ListReceiptFiltersResult;
-import com.amazonaws.services.simpleemail.model.ListReceiptRuleSetsRequest;
-import com.amazonaws.services.simpleemail.model.ListReceiptRuleSetsResult;
-import com.amazonaws.services.simpleemail.model.ListVerifiedEmailAddressesRequest;
-import com.amazonaws.services.simpleemail.model.ListVerifiedEmailAddressesResult;
-import com.amazonaws.services.simpleemail.model.PutIdentityPolicyRequest;
-import com.amazonaws.services.simpleemail.model.PutIdentityPolicyResult;
-import com.amazonaws.services.simpleemail.model.ReorderReceiptRuleSetRequest;
-import com.amazonaws.services.simpleemail.model.ReorderReceiptRuleSetResult;
-import com.amazonaws.services.simpleemail.model.SendBounceRequest;
-import com.amazonaws.services.simpleemail.model.SendBounceResult;
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendEmailResult;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendRawEmailResult;
-import com.amazonaws.services.simpleemail.model.SetActiveReceiptRuleSetRequest;
-import com.amazonaws.services.simpleemail.model.SetActiveReceiptRuleSetResult;
-import com.amazonaws.services.simpleemail.model.SetIdentityDkimEnabledRequest;
-import com.amazonaws.services.simpleemail.model.SetIdentityDkimEnabledResult;
-import com.amazonaws.services.simpleemail.model.SetIdentityFeedbackForwardingEnabledRequest;
-import com.amazonaws.services.simpleemail.model.SetIdentityFeedbackForwardingEnabledResult;
-import com.amazonaws.services.simpleemail.model.SetIdentityHeadersInNotificationsEnabledRequest;
-import com.amazonaws.services.simpleemail.model.SetIdentityHeadersInNotificationsEnabledResult;
-import com.amazonaws.services.simpleemail.model.SetIdentityMailFromDomainRequest;
-import com.amazonaws.services.simpleemail.model.SetIdentityMailFromDomainResult;
-import com.amazonaws.services.simpleemail.model.SetIdentityNotificationTopicRequest;
-import com.amazonaws.services.simpleemail.model.SetIdentityNotificationTopicResult;
-import com.amazonaws.services.simpleemail.model.SetReceiptRulePositionRequest;
-import com.amazonaws.services.simpleemail.model.SetReceiptRulePositionResult;
-import com.amazonaws.services.simpleemail.model.UpdateReceiptRuleRequest;
-import com.amazonaws.services.simpleemail.model.UpdateReceiptRuleResult;
-import com.amazonaws.services.simpleemail.model.VerifyDomainDkimRequest;
-import com.amazonaws.services.simpleemail.model.VerifyDomainDkimResult;
-import com.amazonaws.services.simpleemail.model.VerifyDomainIdentityRequest;
-import com.amazonaws.services.simpleemail.model.VerifyDomainIdentityResult;
-import com.amazonaws.services.simpleemail.model.VerifyEmailAddressRequest;
-import com.amazonaws.services.simpleemail.model.VerifyEmailAddressResult;
-import com.amazonaws.services.simpleemail.model.VerifyEmailIdentityRequest;
-import com.amazonaws.services.simpleemail.model.VerifyEmailIdentityResult;
+import com.amazonaws.services.simpleemail.model.*;
 import com.amazonaws.services.simpleemail.waiters.AmazonSimpleEmailServiceWaiters;
 
 /**
@@ -433,6 +350,195 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 
 	@Override
 	public AmazonSimpleEmailServiceWaiters waiters() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CreateConfigurationSetResult createConfigurationSet(
+			CreateConfigurationSetRequest createConfigurationSetRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CreateConfigurationSetEventDestinationResult createConfigurationSetEventDestination(
+			CreateConfigurationSetEventDestinationRequest createConfigurationSetEventDestinationRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CreateConfigurationSetTrackingOptionsResult createConfigurationSetTrackingOptions(
+			CreateConfigurationSetTrackingOptionsRequest createConfigurationSetTrackingOptionsRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CreateCustomVerificationEmailTemplateResult createCustomVerificationEmailTemplate(
+			CreateCustomVerificationEmailTemplateRequest createCustomVerificationEmailTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CreateTemplateResult createTemplate(CreateTemplateRequest createTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DeleteConfigurationSetResult deleteConfigurationSet(
+			DeleteConfigurationSetRequest deleteConfigurationSetRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DeleteConfigurationSetEventDestinationResult deleteConfigurationSetEventDestination(
+			DeleteConfigurationSetEventDestinationRequest deleteConfigurationSetEventDestinationRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DeleteConfigurationSetTrackingOptionsResult deleteConfigurationSetTrackingOptions(
+			DeleteConfigurationSetTrackingOptionsRequest deleteConfigurationSetTrackingOptionsRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DeleteCustomVerificationEmailTemplateResult deleteCustomVerificationEmailTemplate(
+			DeleteCustomVerificationEmailTemplateRequest deleteCustomVerificationEmailTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DeleteTemplateResult deleteTemplate(DeleteTemplateRequest deleteTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DescribeConfigurationSetResult describeConfigurationSet(
+			DescribeConfigurationSetRequest describeConfigurationSetRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public GetAccountSendingEnabledResult getAccountSendingEnabled(
+			GetAccountSendingEnabledRequest getAccountSendingEnabledRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public GetCustomVerificationEmailTemplateResult getCustomVerificationEmailTemplate(
+			GetCustomVerificationEmailTemplateRequest getCustomVerificationEmailTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public GetTemplateResult getTemplate(GetTemplateRequest getTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ListConfigurationSetsResult listConfigurationSets(
+			ListConfigurationSetsRequest listConfigurationSetsRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ListCustomVerificationEmailTemplatesResult listCustomVerificationEmailTemplates(
+			ListCustomVerificationEmailTemplatesRequest listCustomVerificationEmailTemplatesRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ListTemplatesResult listTemplates(ListTemplatesRequest listTemplatesRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public SendBulkTemplatedEmailResult sendBulkTemplatedEmail(
+			SendBulkTemplatedEmailRequest sendBulkTemplatedEmailRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public SendCustomVerificationEmailResult sendCustomVerificationEmail(
+			SendCustomVerificationEmailRequest sendCustomVerificationEmailRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public SendTemplatedEmailResult sendTemplatedEmail(SendTemplatedEmailRequest sendTemplatedEmailRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public TestRenderTemplateResult testRenderTemplate(TestRenderTemplateRequest testRenderTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UpdateAccountSendingEnabledResult updateAccountSendingEnabled(
+			UpdateAccountSendingEnabledRequest updateAccountSendingEnabledRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UpdateConfigurationSetEventDestinationResult updateConfigurationSetEventDestination(
+			UpdateConfigurationSetEventDestinationRequest updateConfigurationSetEventDestinationRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UpdateConfigurationSetReputationMetricsEnabledResult updateConfigurationSetReputationMetricsEnabled(
+			UpdateConfigurationSetReputationMetricsEnabledRequest updateConfigurationSetReputationMetricsEnabledRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UpdateConfigurationSetSendingEnabledResult updateConfigurationSetSendingEnabled(
+			UpdateConfigurationSetSendingEnabledRequest updateConfigurationSetSendingEnabledRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UpdateConfigurationSetTrackingOptionsResult updateConfigurationSetTrackingOptions(
+			UpdateConfigurationSetTrackingOptionsRequest updateConfigurationSetTrackingOptionsRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UpdateCustomVerificationEmailTemplateResult updateCustomVerificationEmailTemplate(
+			UpdateCustomVerificationEmailTemplateRequest updateCustomVerificationEmailTemplateRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UpdateTemplateResult updateTemplate(UpdateTemplateRequest updateTemplateRequest) {
 		// TODO Auto-generated method stub
 		return null;
 	}

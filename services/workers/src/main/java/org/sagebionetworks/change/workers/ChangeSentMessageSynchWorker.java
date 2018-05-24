@@ -55,7 +55,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	static private Logger log = LogManager
 			.getLogger(ChangeSentMessageSynchWorker.class);
 	
-	private static String METRIC_NAMESPACE = ChangeSentMessageSynchWorker.class.getName()+" - "+ StackConfiguration.getStackInstance();
+	private static String METRIC_NAMESPACE = ChangeSentMessageSynchWorker.class.getName()+" - "+ StackConfiguration.singleton().getStackInstance();
 
 	@Autowired
 	DBOChangeDAO changeDao;

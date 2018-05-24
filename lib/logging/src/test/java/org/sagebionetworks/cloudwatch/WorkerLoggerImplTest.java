@@ -34,7 +34,7 @@ public class WorkerLoggerImplTest {
 
 		assertNull(pd.getMetricStats());
 		assertEquals("org.sagebionetworks.cloudwatch.WorkerLogger", pd.getName());
-		assertEquals("Asynchronous Workers - "+StackConfiguration.getStackInstance(), pd.getNamespace());
+		assertEquals("Asynchronous Workers - "+StackConfiguration.singleton().getStackInstance(), pd.getNamespace());
 		assertTrue(pd.getTimestamp().getTime()-timestamp.getTime()<10L);
 		assertEquals("Count", pd.getUnit());
 		assertEquals(1D, pd.getValue(), 1E-10);
@@ -67,7 +67,7 @@ public class WorkerLoggerImplTest {
 
 		assertNull(pd.getMetricStats());
 		assertEquals(name, pd.getName());
-		assertEquals("Asynchronous Workers - "+StackConfiguration.getStackInstance(), pd.getNamespace());
+		assertEquals("Asynchronous Workers - "+StackConfiguration.singleton().getStackInstance(), pd.getNamespace());
 		assertTrue(pd.getTimestamp().getTime()-timestamp.getTime()<10L);
 		assertEquals("Count", pd.getUnit());
 		assertEquals(1D, pd.getValue(), 1E-10);

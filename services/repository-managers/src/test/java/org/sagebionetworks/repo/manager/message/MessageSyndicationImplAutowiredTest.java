@@ -50,7 +50,7 @@ public class MessageSyndicationImplAutowiredTest {
 	@Autowired
 	DBOChangeDAO changeDAO;
 	
-	private String queueName = StackConfiguration.singleton().getStack()+"-"+StackConfiguration.getStackInstance()+"-test-syndication";
+	private String queueName = StackConfiguration.singleton().getStack()+"-"+StackConfiguration.singleton().getStackInstance()+"-test-syndication";
 	private String queueUrl;
 	
 	@Before

@@ -26,7 +26,7 @@ public class MemoryLogger {
 	public static final String USED = "used";
 	public static final String ALL_INSTANCES = "all";
 	public static final String REPO_MEMORY_NAMESPACE = "Repository-Memory-"
-			+ StackConfiguration.getStackInstance();
+			+ StackConfiguration.singleton().getStackInstance();
 	/*
 	 * Since the smallest period supported by cloud watch is one minute, metrics
 	 * are only pushed to cloud watch once per minute.

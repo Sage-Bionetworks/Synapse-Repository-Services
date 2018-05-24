@@ -1,18 +1,26 @@
 package org.sagebionetworks.aws;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClientBuilder;
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClientBuilder;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
+import com.amazonaws.services.kms.AWSKMS;
+import com.amazonaws.services.kms.AWSKMSAsyncClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.secretsmanager.AWSSecretsManager;
+import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
@@ -123,9 +131,11 @@ public class AwsClientFactory {
 	 * @return
 	 */
 	public static AmazonCloudSearchDomain createAmazonCloudSearchDomain(String endpoint) {
-		AmazonCloudSearchDomain domain = new AmazonCloudSearchDomainClient(new DefaultAWSCredentialsProviderChain());
-		domain.setEndpoint(endpoint);
-		return domain;
+		AmazonCloudSearchDomainClientBuilder builder = AmazonCloudSearchDomainClientBuilder.standard();
+		builder.withRegion(Regions.US_EAST_1);
+		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
+		builder.setEndpointConfiguration(new EndpointConfiguration(endpoint, Regions.US_EAST_1.getName()));
+		return builder.build();
 	}
 	
 	/**
@@ -150,11 +160,49 @@ public class AwsClientFactory {
 		return builder.build();
 	}
 	
+	/**
+	 * Create an instance of AmazonSimpleEmailService using a credential chain.
+	 * @return
+	 */
 	public static AmazonSimpleEmailService createAmazonSimpleEmailServiceClient() {
 		AmazonSimpleEmailServiceClientBuilder builder = AmazonSimpleEmailServiceClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
 		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
 		return builder.build();
 	}
+
+	/**
+	 * Create an instance of AWSKMS client using a credential chain.
+	 * 
+	 * @return
+	 */
+	public static AWSKMS createAmazonKeyManagementServiceClient() {
+		AWSKMSAsyncClientBuilder builder = AWSKMSAsyncClientBuilder.standard();
+		builder.withRegion(Regions.US_EAST_1);
+		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
+		return builder.build();
+	}
 	
+	/**
+	 * Create an instance of AWSSecretsManager client using a credential chain.
+	 * 
+	 * @return
+	 */
+	public static AWSSecretsManager createAmazonSecretManagerClient() {
+		AWSSecretsManagerClientBuilder builder = AWSSecretsManagerClientBuilder.standard();
+		builder.withRegion(Regions.US_EAST_1);
+		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
+		return builder.build();
+	}
+	
+	/**
+	 * Create an instance of AWSSimpleSystemsManagement client using a credential chain.
+	 * @return
+	 */
+	public static AWSSimpleSystemsManagement createAmazonSimpleSystemManagementClient() {
+		AWSSimpleSystemsManagementClientBuilder builder = AWSSimpleSystemsManagementClientBuilder.standard();
+		builder.withRegion(Regions.US_EAST_1);
+		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
+		return builder.build();
+	}
 }

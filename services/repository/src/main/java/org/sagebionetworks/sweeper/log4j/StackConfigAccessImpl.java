@@ -15,7 +15,7 @@ public class StackConfigAccessImpl implements StackConfigAccess {
 
 	@Override
 	public String getStackInstance() {
-		return StackConfiguration.getStackInstance();
+		return StackConfiguration.singleton().getStackInstance();
 	}
 
 	@Override

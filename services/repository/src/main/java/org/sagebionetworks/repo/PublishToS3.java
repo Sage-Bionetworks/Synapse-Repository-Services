@@ -38,7 +38,7 @@ public class PublishToS3 {
 		if(!source.exists()) throw new IllegalArgumentException("Source path does not exist: "+source.getAbsolutePath());
 		// Create the bucket if needed
 		String stack = StackConfiguration.singleton().getStack();
-		String instance = StackConfiguration.getStackInstance();
+		String instance = StackConfiguration.singleton().getStackInstance();
 		String bucketName = stack+"."+instance+".rest.doc.sagebase.org";
 		
 		// Create an S3 Connection

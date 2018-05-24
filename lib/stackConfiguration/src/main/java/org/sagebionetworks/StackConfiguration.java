@@ -78,7 +78,7 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public static String getStackInstance() {
+	public String getStackInstance() {
 		return configuration.getStackInstance();
 	}
 
@@ -682,7 +682,7 @@ public class StackConfiguration {
 	public String getStackAndStackInstancePrefix(){
 		return String.format(StackConstants.STACK_AND_INSTANCE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 	
 	/**
@@ -691,7 +691,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public String getAsyncQueueName(String baseName) {
-		return String.format(StackConstants.ASYNC_QUEUE_TEMPLATE, singleton().getStack(), StackConfiguration.getStackInstance(),
+		return String.format(StackConstants.ASYNC_QUEUE_TEMPLATE, singleton().getStack(), getStackInstance(),
 				baseName);
 	}
 
@@ -715,7 +715,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public String getWorkerQueueName(String baseName) {
-		return String.format(StackConstants.WORKER_QUEUE_TEMPLATE, singleton().getStack(), StackConfiguration.getStackInstance(),
+		return String.format(StackConstants.WORKER_QUEUE_TEMPLATE, singleton().getStack(), getStackInstance(),
 				baseName);
 	}
 
@@ -741,7 +741,7 @@ public class StackConfiguration {
 	public String getRepositoryChangeTopicPrefix() {
 		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 	
 	/**
@@ -772,7 +772,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public String getRepositoryModificationTopicName() {
-		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX, singleton().getStack(), StackConfiguration.getStackInstance())
+		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX, singleton().getStack(), getStackInstance())
 				+ "modifications";
 	}
 
@@ -784,13 +784,13 @@ public class StackConfiguration {
 	public String getSearchUpdateQueueName() {
 		return String.format(StackConstants.SEARCH_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 	
 	public String getSearchUpdateDeadLetterQueueName() {
 		return String.format(StackConstants.SEARCH_DEAD_LETTER_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	/**
@@ -799,7 +799,7 @@ public class StackConfiguration {
 	public String getDynamoUpdateQueueName() {
 		return String.format(StackConstants.DYNAMO_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	/**
@@ -810,7 +810,7 @@ public class StackConfiguration {
 	public String getEntityAnnotationsUpdateQueueName() {
 		return String.format(StackConstants.ENTITY_ANNOTATIONS_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	/**
@@ -821,7 +821,7 @@ public class StackConfiguration {
 	public String getMessageUpdateQueueName() {
 		return String.format(StackConstants.MESSAGE_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	/**
@@ -832,7 +832,7 @@ public class StackConfiguration {
 	public String getFileUpdateQueueName() {
 		return String.format(StackConstants.FILE_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	/**
@@ -843,7 +843,7 @@ public class StackConfiguration {
 	public String getFileUpdateDeadLetterQueueName() {
 		return String.format(StackConstants.FILE_DEAD_LETTER_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	/**
@@ -854,7 +854,7 @@ public class StackConfiguration {
 	public String getSubmissionAnnotationsUpdateQueueName() {
 		return String.format(StackConstants.SUBMISSION_ANNOTATIONS_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 	
 	/**
@@ -863,7 +863,7 @@ public class StackConfiguration {
 	public String getUnsentMessagesQueueName() {
 		return String.format(StackConstants.UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 	
 	/**
@@ -872,24 +872,24 @@ public class StackConfiguration {
 	public String getPrincipalHeaderQueueName() {
 		return String.format(StackConstants.PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	public String getTableUpdateQueueName() {
 		return String.format(StackConstants.TABLE_CLUSTER_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 	
 	public String getTableUpdateDeadLetterQueueName() {
 		return String.format(StackConstants.TABLE_CLUSTER_DEAD_LETTER_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 
 	public String getTableCurrentCacheUpdateQueueName() {
 		return String.format(StackConstants.TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE, singleton().getStack(),
-				StackConfiguration.getStackInstance());
+				getStackInstance());
 	}
 	
 	
