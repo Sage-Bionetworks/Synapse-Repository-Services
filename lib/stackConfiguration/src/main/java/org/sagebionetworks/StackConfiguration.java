@@ -176,24 +176,6 @@ public class StackConfiguration {
 		return configuration.getEncryptionKey();
 	}
 
-	/**
-	 * Get the IAM user ID (Access Key ID)
-	 * 
-	 * @return
-	 */
-	public static String getIAMUserId() {
-		return configuration.getIAMUserId();
-	}
-
-	/**
-	 * Get the IAM user Key (Secret Access Key)
-	 * 
-	 * @return
-	 */
-	public static String getIAMUserKey() {
-		return configuration.getIAMUserKey();
-	}
-
 	public static String getAuthenticationServicePrivateEndpoint() {
 		return configuration.getAuthenticationServicePrivateEndpoint();
 	}
@@ -615,46 +597,6 @@ public class StackConfiguration {
 		return Boolean.parseBoolean(configuration
 				.getProperty("org.sagebionetworks.search.enabled"));
 	}
-	
-	/**
-	 * Is the Dynamo feature enabled?
-	 * @return
-	 */
-	public boolean getDynamoEnabled(){
-		return Boolean.parseBoolean(configuration
-				.getProperty("org.sagebionetworks.dynamo.enabled"));
-	}
-	
-	public boolean getDynamoTableRowCacheEnabled(){
-		return Boolean.parseBoolean(configuration
-				.getProperty("org.sagebionetworks.dynamo.table.row.cache.enabled"));
-	}
-	
-	/**
-	 * Is the Table feature enabled?
-	 * @return
-	 */
-	public boolean getTableEnabled(){
-		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.table.enabled"));
-	}
-
-	/**
-	 * Is the Table create all indexes feature enabled?
-	 * 
-	 * @return
-	 */
-	public boolean getTableAllIndexedEnabled() {
-		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.table.allindexed.enabled"));
-	}
-
-	/**
-	 * Are sub folders in auto sync folders allowed
-	 * 
-	 * @return
-	 */
-	public boolean getAutoSyncSubFoldersAllowed() {
-		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.autosync.subfolders.enabled"));
-	}
 
 	/**
 	 * Is the DOI feature enabled?
@@ -676,39 +618,7 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
 	}
-
-	public static String getBCCSignupEnabled() {
-		return configuration
-				.getProperty("org.sagebionetworks.bcc.signup.enabled");
-	}
-
-	/**
-	 * 
-	 * Returns the email address to which requests for BCC participation are
-	 * sent.
-	 * 
-	 * @return
-	 */
-	public static String getBCCApprovalEmail() {
-		return configuration
-				.getProperty("org.sagebionetworks.bcc.approvalEmail");
-	}
-
-	public static String getGoogleAppsOAuthConsumerKey() {
-		return configuration
-				.getProperty("org.sagebionetworks.bcc.googleapps.oauth.consumer.key");
-	}
-
-	public static String getGoogleAppsOAuthConsumerSecret() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.consumer.secret");
-	}
-
-	public static String getGoogleAppsOAuthAccessToken() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token");
-	}
-
+	
 	public static String getGoogleAppsOAuthAccessTokenSecret() {
 		return configuration
 				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token.secret");
@@ -724,15 +634,6 @@ public class StackConfiguration {
 				.getDecryptedProperty("org.sagebionetworks.portal.api.linkedin.secret");
 	}
 
-	public static String getPortalGetSatisfactionKey() {
-		return configuration
-				.getProperty("org.sagebionetworks.portal.api.getsatisfaction.key");
-	}
-
-	public static String getPortalGetSatisfactionSecret() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
-	}
 
 	/**
 	 * The AWS domain name is the <stack>+<stackInstance>

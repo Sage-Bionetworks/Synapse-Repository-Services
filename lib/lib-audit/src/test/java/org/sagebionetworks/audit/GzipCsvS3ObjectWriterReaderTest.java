@@ -15,12 +15,12 @@ import org.sagebionetworks.audit.dao.GzipCsvS3ObjectReader;
 import org.sagebionetworks.audit.dao.GzipCsvS3ObjectWriter;
 import org.sagebionetworks.csv.utils.ExampleObject;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class GzipCsvS3ObjectWriterReaderTest {
 
-	private AmazonS3Client mockS3Client;
+	private AmazonS3 mockS3Client;
 	private String bucketName;
 	private Class<ExampleObject> objectClass;
 	private String[] headers;
@@ -29,7 +29,7 @@ public class GzipCsvS3ObjectWriterReaderTest {
 
 	@Before
 	public void setUp() {
-		mockS3Client = Mockito.mock(AmazonS3Client.class);
+		mockS3Client = Mockito.mock(AmazonS3.class);
 		bucketName = "object.csv.dao.test";
 		objectClass = ExampleObject.class;
 		headers = new String[]{"aString", "aLong", "aBoolean", "aDouble", "anInteger", "aFloat", "someEnum"};

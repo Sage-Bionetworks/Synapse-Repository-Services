@@ -24,13 +24,13 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
 public class BulkDownloadDaoImpTest {
 	
 	FileHandleDao mockFileHandleDao;
-	AmazonS3Client mockS3client;
+	AmazonS3 mockS3client;
 	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
 	FileHandleManager mockFileHandleManager;
 	
@@ -40,7 +40,7 @@ public class BulkDownloadDaoImpTest {
 	@Before
 	public void before(){
 		mockFileHandleDao = Mockito.mock(FileHandleDao.class);
-		mockS3client = Mockito.mock(AmazonS3Client.class);
+		mockS3client = Mockito.mock(AmazonS3.class);
 		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
 		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
 		

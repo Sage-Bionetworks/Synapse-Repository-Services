@@ -61,7 +61,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -81,7 +81,7 @@ public class MigrationManagerImplTest {
 	@Mock
 	BackupFileStream mockBackupFileStream;
 	@Mock
-	AmazonS3Client mockS3Client;
+	AmazonS3 mockS3Client;
 	@Mock
 	FileProvider mockFileProvider;
 	@Mock

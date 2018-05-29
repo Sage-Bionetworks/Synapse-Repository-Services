@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.search;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -17,16 +16,12 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.search.SearchDaoImpl;
 import org.sagebionetworks.search.SearchUtil;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -66,8 +61,7 @@ public class SearchManagerImpl implements SearchManager{
 
 	static void filterSearchForAuthorization(UserInfo userInfo, SearchRequest searchRequest) {
 		if (!userInfo.isAdmin()){
-			ValidateArgument.requirement(searchRequest.getFilterQuery() == null, "searchRequest's fitler query should be null");
-			searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userInfo));
+			SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
 		}
 	}
 

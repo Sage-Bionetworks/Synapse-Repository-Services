@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
@@ -201,7 +200,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(columns, "columns");
-		validateFeatureEnabled();
 
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(user, tableId);
@@ -493,15 +491,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 					throw new UnauthorizedException("Cannot access files: "+remainingFilesToCheck.toString());
 				}
 			}
-		}
-	}
-	
-	/**
-	 * Throws an exception if the table feature is disabled.
-	 */
-	public void validateFeatureEnabled(){
-		if(!StackConfiguration.singleton().getTableEnabled()){
-			throw new IllegalStateException("This method cannot be called when the table feature is disabled.");
 		}
 	}
 	

@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.Lists;
 
 public class ProjectSettingsImplTest {
@@ -42,7 +42,7 @@ public class ProjectSettingsImplTest {
 	private NodeManager mockNodeManager;
 
 	@Mock
-	private AmazonS3Client mockS3client;
+	private AmazonS3 mockS3client;
 
 	@Mock
 	private UserProfileManager mockUserProfileManager;

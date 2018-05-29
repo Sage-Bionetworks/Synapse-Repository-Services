@@ -105,12 +105,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Create the file
 			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
-		}catch (TableUnavailableException e){
-			// This just means we cannot do this right now.  We can try again later.
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
-			// Throwing this will put the message back on the queue in 5 seconds.
-			throw new RecoverableMessageException();
-		} catch (LockUnavilableException e){
+		}catch (TableUnavailableException | LockUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
 			// Throwing this will put the message back on the queue in 5 seconds.

@@ -13,17 +13,9 @@
 
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="awsSearchClient"
-		class="com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<bean id="awsCloudSearchDomainClient"
-		  class="com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient"
-		  scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
+		class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonCloudSearchClient"
+		scope="singleton"/>
 
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="cloudSearchClientProvider"

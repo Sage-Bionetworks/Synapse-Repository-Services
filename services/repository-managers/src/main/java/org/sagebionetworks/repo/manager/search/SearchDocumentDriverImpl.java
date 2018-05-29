@@ -173,13 +173,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// Annotations
 		addAnnotationsToSearchDocument(fields, annos);
 
-		// References, just put the node id to which the reference refers. Not
-		// currently adding the version or the type of the reference (e.g.,
-		// code/input/output)
-		if (null != node.getReference()) {
-			fields.setReferences(Arrays.asList(node.getReference().getTargetId()));
-		}
-
 		// READ and UPDATE ACLs
 		List<String> readAclValues = new ArrayList<String>();
 		fields.setAcl(readAclValues);
@@ -269,7 +262,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
 		for(String key: anno.keySet()){
 			Object value = anno.getSingleValue(key);
-			if(!(value instanceof byte[])) {
+			if( value != null && !(value instanceof byte[])) {
 				annoValuesMap.putIfAbsent(key.toLowerCase(), value.toString());
 			}
 		}

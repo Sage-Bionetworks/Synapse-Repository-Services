@@ -127,7 +127,6 @@
 	<!-- TableEntity -->
 	<bean id="stackConfiguration.tableRowChangeBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableUpdateDeadLetterQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />				
 	<bean id="stackConfiguration.tableCurrentCacheUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
@@ -140,9 +139,7 @@
     <bean id="stackConfiguration.semaphoreExclusiveMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
     <bean id="stackConfiguration.semaphoreSharedMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
 	
-	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.dynamoEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.dynamoTableRowCacheEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
+	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	
 	<!-- Configuration for multi-part upload daemons. -->
 	<bean id="stackConfiguration.fileMultipartUploadDaemonTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	

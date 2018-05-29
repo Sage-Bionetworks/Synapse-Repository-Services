@@ -20,7 +20,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
 import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
@@ -42,7 +42,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	TransactionalMessenger transactionalMessanger;
 
 	@Autowired
-	AmazonSNSClient awsSNSClient;
+	AmazonSNS awsSNSClient;
 	
 	private boolean shouldMessagesBePublishedToTopic;
 
@@ -76,7 +76,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * @param messageQueue
 	 */
 	public RepositoryMessagePublisherImpl(String topicPrefix, String modificationTopicName, TransactionalMessenger transactionalMessanger,
-			AmazonSNSClient awsSNSClient) {
+			AmazonSNS awsSNSClient) {
 		this.topicPrefix = topicPrefix;
 		this.modificationTopicName = modificationTopicName;
 		this.transactionalMessanger = transactionalMessanger;
@@ -87,7 +87,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * Used by tests to inject a mock client.
 	 * @param awsSNSClient
 	 */
-	public void setAwsSNSClient(AmazonSNSClient awsSNSClient) {
+	public void setAwsSNSClient(AmazonSNS awsSNSClient) {
 		this.awsSNSClient = awsSNSClient;
 	}
 

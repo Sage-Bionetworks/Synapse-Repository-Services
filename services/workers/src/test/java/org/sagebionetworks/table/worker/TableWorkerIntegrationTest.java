@@ -25,7 +25,6 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -117,14 +116,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -201,8 +200,6 @@ public class TableWorkerIntegrationTest {
 		users = Lists.newArrayList();
 		mockPprogressCallback = Mockito.mock(ProgressCallback.class);
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -222,24 +219,22 @@ public class TableWorkerIntegrationTest {
 	
 	@After
 	public void after() throws Exception {
-		if (config.getTableEnabled()) {
-			if (tableId != null) {
-				try {
-					entityManager.deleteEntity(adminUserInfo, tableId);
-				} catch (Exception e) {}
-			}
-			if (projectId != null) {
-				entityManager.deleteEntity(adminUserInfo, projectId);
-			}
-			// cleanup
-			columnManager.truncateAllColumnData(adminUserInfo);
-			// Drop all data in the index database
-			this.tableConnectionFactory.dropAllTablesForAllConnections();
-			for (UserInfo user : users) {
-				try {
-					userManager.deletePrincipal(adminUserInfo, user.getId());
-				} catch (Exception e) {
-				}
+		if (tableId != null) {
+			try {
+				entityManager.deleteEntity(adminUserInfo, tableId);
+			} catch (Exception e) {}
+		}
+		if (projectId != null) {
+			entityManager.deleteEntity(adminUserInfo, projectId);
+		}
+		// cleanup
+		columnManager.truncateAllColumnData(adminUserInfo);
+		// Drop all data in the index database
+		this.tableConnectionFactory.dropAllTablesForAllConnections();
+		for (UserInfo user : users) {
+			try {
+				userManager.deletePrincipal(adminUserInfo, user.getId());
+			} catch (Exception e) {
 			}
 		}
 	}

@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -34,7 +34,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 1000 * 60 * 15;
 
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	/*
 	 * (non-Javadoc)

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -70,11 +71,12 @@ public class SearchUtil{
 
 	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
 		ValidateArgument.required(searchQuery, "searchQuery");
-		SearchRequest searchRequest = new SearchRequest();
 
 		List<String> q = searchQuery.getQueryTerm();
 		List<KeyValue> bq = searchQuery.getBooleanQuery();
-		StringBuilder queryTermsStringBuilder = new StringBuilder();
+		List<KeyRange> rangeQueries =  searchQuery.getRangeQuery();
+
+		SearchRequest searchRequest = new SearchRequest();
 
 		// clean up empty q
 		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
@@ -82,60 +84,26 @@ public class SearchUtil{
 		}
 
 		// test for minimum search requirements
-		if (!(q != null && q.size() > 0) && !(bq != null && bq.size() > 0)) {
+		if ((q == null || q.isEmpty()) && (bq == null || bq.isEmpty())) {
 			throw new IllegalArgumentException(
 					"Either one queryTerm or one booleanQuery must be defined");
 		}
 
-		// unstructured query terms into structured query terms
-		if (q != null && q.size() > 0)
-			queryTermsStringBuilder.append(joinQueryTerms(q));
+		if (q != null && !q.isEmpty()) {
+			searchRequest.setQueryParser(QueryParser.Simple);
+			searchRequest.setQuery(String.join(" ", q));
+		}else{
+			searchRequest.setQueryParser(QueryParser.Structured);
+			searchRequest.setQuery("matchall"); //if no query is given. default to matching all queries
+		}
+
+		List<String> filterQueryTerms = new ArrayList<String>();
 
 		// boolean query into structured query terms
-		if (bq != null && bq.size() > 0) {
-			List<String> bqTerms = new ArrayList<String>();
+		if (bq != null) {
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue();
-
-				if(value.contains("*")){ //prefix queries are treated differently
-					String prefixQuery = createPrefixQuery(value, pair.getKey());
-					bqTerms.add(prefixQuery);
-					continue;
-				}
-
-				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
-				if(value.contains("..")) {
-					//TODO: remove this part once client stops using ".." notation for ranges
-					String[] range = value.split("\\.\\.", -1);
-
-					if(range.length != 2 ){
-						throw new IllegalArgumentException("Numeric range is incorrectly formatted");
-					}
-
-					StringBuilder rangeStringBuilder = new StringBuilder();
-					//left bound
-					if(range[0].equals("")){
-						rangeStringBuilder.append("{");
-					}else{
-						rangeStringBuilder.append("[" + range[0]);
-					}
-
-					//right bound
-					rangeStringBuilder.append(",");
-					if(range[1].equals("")){
-						rangeStringBuilder.append("}");
-					}else{
-						rangeStringBuilder.append( range[1] + "]");
-					}
-					value = rangeStringBuilder.toString();
-				}
-
-				if((value.contains("{") || value.contains("["))
-						&& (value.contains("}") || value.contains("]")) ){ //if is a continuous range such as [300,}
-					bqTerms.add("(range field=" + pair.getKey()+ " " + value + ")");
-					continue;
-				}
 
 				//add quotes around value. i.e. value -> 'value'
 				value = "'" + escapeQuotedValue(pair.getValue()) + "'";
@@ -143,16 +111,14 @@ public class SearchUtil{
 				if(pair.getNot() != null && pair.getNot()) {
 					term = "(not " + term + ")";
 				}
-				bqTerms.add(term);
+				filterQueryTerms.add(term);
 			}
-
-			//turns it from (and <q1> <q2> ... <qN>) into (and (and <q1> <q2> ... <qN>) <bqterm1> <bqterm2> ... <bqtermN>)
-			queryTermsStringBuilder.append( (queryTermsStringBuilder.length() > 0 ? " ":"") + String.join(" ", bqTerms)+ ")");
-			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
 		}
 
-		searchRequest.setQueryParser(QueryParser.Structured);
-		searchRequest.setQuery(queryTermsStringBuilder.toString());
+		if (rangeQueries != null && !rangeQueries.isEmpty()) {
+			filterQueryTerms.addAll(createRangeFilterQueries(rangeQueries));
+		}
+		searchRequest.setFilterQuery(filterQueryTerms.isEmpty() ? null : "(and " + String.join(" ", filterQueryTerms) + ")");
 
 		//preprocess the FacetSortConstraints
 		// facet field constraints
@@ -200,6 +166,49 @@ public class SearchUtil{
 			searchRequest.setStart(searchQuery.getStart());
 
 		return searchRequest;
+	}
+
+	/**
+	 * For each KeyRange in the List, create a String representing its CloudSearch structured query.
+	 * The order of the returned List<String> match the order of the input List<Keyrange>
+	 *
+	 * For example:
+	 * given [KeyRange(key=myKey, min=5, max=45)] return ["(range field=myKey [5,45])"]
+	 *
+	 * @param rangeQueries List of KeyRanges for which the range queries will be constructed
+	 * @return List<String> containing the Cloudsearch range structured query for each of the KeyRanges
+	 */
+	static List<String> createRangeFilterQueries(List<KeyRange> rangeQueries) {
+		List<String> filterQueryTerms = new ArrayList<>(rangeQueries.size());
+
+		for (KeyRange keyRange : rangeQueries) {
+			String key = keyRange.getKey();
+			String min = keyRange.getMin();
+			String max = keyRange.getMax();
+
+			if (min == null && max == null) {
+				throw new IllegalArgumentException("at least one of min or max for key=" + key + "must be not null");
+			}
+
+			StringBuilder rangeStringBuilder = new StringBuilder();
+			//left bound
+			if (min == null) {
+				rangeStringBuilder.append("{");
+			} else {
+				rangeStringBuilder.append("[" + min);
+			}
+
+			//right bound
+			rangeStringBuilder.append(",");
+			if (max == null) {
+				rangeStringBuilder.append("}");
+			} else {
+				rangeStringBuilder.append(max + "]");
+			}
+
+			filterQueryTerms.add("(range field=" + keyRange.getKey() + " " + rangeStringBuilder.toString() + ")");
+		}
+		return filterQueryTerms;
 	}
 
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
@@ -288,31 +297,6 @@ public class SearchUtil{
 	/*
 	 * Private Methods
 	 */
-	/**
-	 * Creates a prefix query if there is an asterisk
-	 * @param prefixStringWithAsterisk prefix string containing the * symbol
-	 * @param fieldName optional. used in boolean queries but not in regular queries. 
-	 * @return
-	 */
-	private static String createPrefixQuery(String prefixStringWithAsterisk, String fieldName){
-		int asteriskIndex = prefixStringWithAsterisk.indexOf('*');
-		if(asteriskIndex == -1){
-			throw new IllegalArgumentException("the prefixString does not contain an * (asterisk) symbol");
-		}
-		return "(prefix" + (fieldName==null ? "" : " field=" + fieldName) + " '" + prefixStringWithAsterisk.substring(0, asteriskIndex) + "')";
-	}
-	
-	public static String joinQueryTerms(List<String> list){
-		StringJoiner sb = new StringJoiner(" ", "(and ", ")");
-		for (String item : list) {
-			if(item.contains("*")){
-				sb.add(createPrefixQuery(item, null));
-			}else{
-				sb.add('\'' + item + '\''); //wraps item with single quotes (e.g. 'item')
-			}
-		}
-		return sb.toString();
-	}
 
 	private static String escapeQuotedValue(String value) {
 		value = value.replaceAll("\\\\", "\\\\\\\\"); // replace \ -> \\
@@ -342,6 +326,16 @@ public class SearchUtil{
 			authorizationFilterJoiner.add(FIELD_ACL + ":'" + group + "'");
 		}
 		return authorizationFilterJoiner.toString();
+	}
+
+	public static void addAuthorizationFilter(SearchRequest searchRequest, UserInfo userInfo){
+		String authFilter = formulateAuthorizationFilter(userInfo);
+		String existingFitler = searchRequest.getFilterQuery();
+		if(existingFitler != null){
+			searchRequest.setFilterQuery("(and " + authFilter + " " + existingFitler + ")");
+		}else{
+			searchRequest.setFilterQuery(authFilter);
+		}
 	}
 
 	/**

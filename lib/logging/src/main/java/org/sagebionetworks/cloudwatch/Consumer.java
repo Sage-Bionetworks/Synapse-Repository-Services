@@ -11,7 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
+import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
@@ -35,7 +35,7 @@ public class Consumer {
 
 	// need a cloudWatch client
 	@Autowired
-	AmazonCloudWatchClient cloudWatchClient;
+	AmazonCloudWatch cloudWatchClient;
 
 	/**
 	 * No parameter consumer constructor.
@@ -47,7 +47,7 @@ public class Consumer {
 	 * Consumer constructor that takes AmazonCloudWatch client as parameter.
 	 * @param client for Amazon
 	 */
-	public Consumer(AmazonCloudWatchClient cloudWatchClient) {
+	public Consumer(AmazonCloudWatch cloudWatchClient) {
 		this.cloudWatchClient = cloudWatchClient;
 	}
 
@@ -227,7 +227,7 @@ public class Consumer {
 	 * @return String for Success/Failure message "put" generates
 	 */
 	protected void sendMetrics(PutMetricDataRequest listForCW,
-			AmazonCloudWatchClient cloudWatchClient) {
+			AmazonCloudWatch cloudWatchClient) {
 		try {
 			//System.out.println("hereiswhatthePut " + listForCW.toString());
 			// below is the line that sends to CloudWatch
@@ -242,18 +242,18 @@ public class Consumer {
 	/**
 	 * Getter for AmazonCloudWatch client.
 	 * 
-	 * @return AmazonCloudWatchClient
+	 * @return AmazonCloudWatch
 	 */
-	protected AmazonCloudWatchClient getCW() {
+	protected AmazonCloudWatch getCW() {
 		return cloudWatchClient;
 	}
 
 	/**
-	 * Setter for AmazonCloudWatchClient.
+	 * Setter for AmazonCloudWatch.
 	 * 
 	 * @param cw
 	 */
-	protected void setCloudWatch(AmazonCloudWatchClient cloudWatchClient) {
+	protected void setCloudWatch(AmazonCloudWatch cloudWatchClient) {
 		this.cloudWatchClient = cloudWatchClient;
 	}
 

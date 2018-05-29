@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.DeleteMessageRequest;
@@ -25,7 +25,7 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 	
 	@Autowired
-	AmazonSQSClient awsSQSClient;
+	AmazonSQS awsSQSClient;
 	
 	/**
 	 * Mapping from a job type to a queue URL

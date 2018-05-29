@@ -50,13 +50,6 @@
 			},
 			"description": "stuff in this field any extra copies of data that you would like to boost in free text search"
 		},
-		"references": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
-			"description": "The the id of the entity to which this reference refers"
-		},
 		"acl": {
 			"type": "array",
 			"items": {

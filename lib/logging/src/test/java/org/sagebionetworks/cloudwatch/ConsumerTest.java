@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
+import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 
@@ -26,12 +26,12 @@ import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
  */
 public class ConsumerTest {
 	
-	private AmazonCloudWatchClient mockClient;
+	private AmazonCloudWatch mockClient;
 	private Consumer consumer; 
 	
 	@Before
 	public void before(){
-		mockClient = Mockito.mock(AmazonCloudWatchClient.class);
+		mockClient = Mockito.mock(AmazonCloudWatch.class);
 		consumer = new Consumer(mockClient);
 	}
 	
