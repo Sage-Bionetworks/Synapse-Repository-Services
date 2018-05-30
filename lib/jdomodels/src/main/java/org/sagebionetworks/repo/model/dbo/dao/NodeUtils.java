@@ -57,7 +57,7 @@ public class NodeUtils {
 		if (dto.getModifiedOn()==null) throw new InvalidModelException("modifiedOn may not be null");
 		rev.setModifiedOn(dto.getModifiedOn().getTime());
 		
-		if (dto.getVersionComment().length()>DBORevision.MAX_COMMENT_LENGTH) 
+		if (dto.getVersionComment()!=null && dto.getVersionComment().length()>DBORevision.MAX_COMMENT_LENGTH) 
 			throw new IllegalArgumentException("Version comment length exceeds "+DBORevision.MAX_COMMENT_LENGTH+".");
 		
 		rev.setComment(dto.getVersionComment());
