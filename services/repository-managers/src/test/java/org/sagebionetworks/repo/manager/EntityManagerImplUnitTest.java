@@ -2,15 +2,21 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.model.NextPageToken.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
+import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
+import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_OFFSET;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -21,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -212,6 +217,31 @@ public class EntityManagerImplUnitTest {
 		reset(node);
 	}
 	
+	@Test
+	public void testUpdateFileHandleId() throws Exception {
+		String id = "123";
+		Node node = new Node();
+		node.setFileHandleId("101");
+		NamedAnnotations annos = new NamedAnnotations();
+		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		FileEntity entity = new FileEntity();
+		entity.setId(id);
+		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202
+		entity.setDataFileHandleId(dataFileHandleId);
+		entity.setVersionComment("a comment for the original version");
+		entity.setVersionLabel("a label for the original version");
+		
+		boolean newVersion = false; // even though new version is false the 
+		// modified file handle will trigger a version update
+		
+		// method under test
+		entityManager.updateEntity(mockUser, entity, newVersion, null);
+		
+		assertNull(node.getVersionComment());
+		assertNull(node.getVersionLabel());
+	}
+
 	@Test
 	public void testGetChildren(){
 		// call under test

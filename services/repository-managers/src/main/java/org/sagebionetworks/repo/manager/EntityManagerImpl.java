@@ -357,6 +357,7 @@ public class EntityManagerImpl implements EntityManager {
 				newVersion = true;
 				// setting this to null we cause the revision id to be used.
 				updatedFile.setVersionLabel(null);
+				updatedFile.setVersionComment(null);
 			}
 		}
 
