@@ -45,5 +45,5 @@ public class EzidConstants {
 	/**
 	 * URL (with the trailing slash) for the DOI name resolution service.
 	 */
-	public static final String DX_URL = "http://dx.doi.org/";
+	public static final String DOI_URL = "https://doi.org/";
 }

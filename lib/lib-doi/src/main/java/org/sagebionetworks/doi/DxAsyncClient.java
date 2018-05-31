@@ -19,7 +19,7 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
  */
 public class DxAsyncClient {
 
-	public static final String DOI_API_HANDLES_URL = "http://doi.org/api/handles/";
+	public static final String DOI_API_HANDLES_URL = "https://doi.org/api/handles/";
 	public static final String URL_PARAM = "?type=URL";
 	private static final String VALUES = "values";
 	private static final String DATA = "data";
