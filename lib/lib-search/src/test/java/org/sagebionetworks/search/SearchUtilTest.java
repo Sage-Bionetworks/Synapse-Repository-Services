@@ -638,4 +638,16 @@ public class SearchUtilTest {
 		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
 	}
 
+
+	////////////////////////////////////////////
+	// stripUnsupportedUnicodeCharacters() test
+	////////////////////////////////////////////
+
+	@Test
+	public void testStripUnsupportedUnicodeCharacters(){
+		String testString = "Some string\uD7FF and some more string";
+		String result = SearchUtil.stripUnsupportedUnicodeCharacters(testString);
+		assertEquals("Some string and some more string", result);
+	}
+
 }

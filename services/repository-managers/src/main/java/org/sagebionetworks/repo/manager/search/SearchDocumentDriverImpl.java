@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.search.SearchUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -152,7 +153,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			descriptionValue.append(wikiPagesText);
 		}
 		// Set the description
-		fields.setDescription(descriptionValue.toString());
+		fields.setDescription(SearchUtil.stripUnsupportedUnicodeCharacters(descriptionValue));
 
 		fields.setCreated_by(node.getCreatedByPrincipalId().toString());
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
@@ -50,6 +51,7 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
+	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[\\x{0020}\\x{D7FF}]"); //TODO: figure out hwo to do unicode range in java. Also \u0020 is supposed to be the space character?
 
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
@@ -68,6 +70,14 @@ public class SearchUtil{
 		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
 	}
 
+	/**
+	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
+	 * @param charSequence input to be stripped of unsupported Unicode characters
+	 * @return String of the input charSequence with unsupported Unicode characters stripped out
+	 */
+	public static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
+		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
+	}
 
 	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
 		ValidateArgument.required(searchQuery, "searchQuery");
