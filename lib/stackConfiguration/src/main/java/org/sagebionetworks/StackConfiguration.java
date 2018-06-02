@@ -4,7 +4,6 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -275,43 +274,6 @@ public class StackConfiguration {
 	public String getIdGeneratorDatabaseDriver() {
 		return configuration
 				.getProperty("org.sagebionetworks.id.generator.database.driver");
-	}
-
-	/**
-	 * All of these keys are used to build up a map of JDO configurations passed
-	 * to the JDOPersistenceManagerFactory
-	 */
-	private static String[] MAP_PROPERTY_NAME = new String[] {
-			"javax.jdo.PersistenceManagerFactoryClass",
-			"datanucleus.NontransactionalRead",
-			"datanucleus.NontransactionalWrite",
-			"javax.jdo.option.RetainValues", "datanucleus.autoCreateSchema",
-			"datanucleus.validateConstraints", "datanucleus.validateTables",
-			"datanucleus.transactionIsolation", };
-
-	public Map<String, String> getRepositoryJDOConfigurationMap() {
-		HashMap<String, String> map = new HashMap<String, String>();
-		for (String name : MAP_PROPERTY_NAME) {
-			String value = configuration.getProperty(name);
-			if (value == null)
-				throw new IllegalArgumentException("Failed to find property: "
-						+ name);
-			map.put(name, value);
-		}
-		map.put("javax.jdo.option.ConnectionURL",
-				getRepositoryDatabaseConnectionUrl());
-		map.put("javax.jdo.option.ConnectionDriverName",
-				getRepositoryDatabaseDriver());
-		map.put("javax.jdo.option.ConnectionUserName",
-				getRepositoryDatabaseUsername());
-		map.put("javax.jdo.option.ConnectionPassword",
-				getRepositoryDatabasePassword());
-		// See PLFM-852
-		map.put("datanucleus.cache.level2.type", "none");
-		map.put("datanucleus.cache.query.type", "none");
-		map.put("datanucleus.cache.collections", "false");
-		map.put("datanucleus.cache.level1.type", "weak");
-		return map;
 	}
 
 	/**
@@ -623,17 +585,6 @@ public class StackConfiguration {
 		return configuration
 				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token.secret");
 	}
-
-	public static String getPortalLinkedInKey() {
-		return configuration
-				.getProperty("org.sagebionetworks.portal.api.linkedin.key");
-	}
-
-	public static String getPortalLinkedInSecret() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.portal.api.linkedin.secret");
-	}
-
 
 	/**
 	 * The AWS domain name is the <stack>+<stackInstance>

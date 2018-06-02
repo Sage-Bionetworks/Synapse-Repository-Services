@@ -183,26 +183,4 @@ public class AwsClientFactory {
 		return builder.build();
 	}
 	
-	/**
-	 * Create an instance of AWSSecretsManager client using a credential chain.
-	 * 
-	 * @return
-	 */
-	public static AWSSecretsManager createAmazonSecretManagerClient() {
-		AWSSecretsManagerClientBuilder builder = AWSSecretsManagerClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
-		return builder.build();
-	}
-	
-	/**
-	 * Create an instance of AWSSimpleSystemsManagement client using a credential chain.
-	 * @return
-	 */
-	public static AWSSimpleSystemsManagement createAmazonSimpleSystemManagementClient() {
-		AWSSimpleSystemsManagementClientBuilder builder = AWSSimpleSystemsManagementClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(new DefaultAWSCredentialsProviderChain());
-		return builder.build();
-	}
 }
