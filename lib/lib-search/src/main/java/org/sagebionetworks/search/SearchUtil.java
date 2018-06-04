@@ -52,8 +52,7 @@ public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
 	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
-	private static final String UNSUPPORTED_UNICODE_REGEX = "[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]";
-	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile(UNSUPPORTED_UNICODE_REGEX);
+	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
 
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
