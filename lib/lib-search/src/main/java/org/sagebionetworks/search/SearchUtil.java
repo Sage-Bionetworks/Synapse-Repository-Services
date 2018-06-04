@@ -6,7 +6,6 @@ import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.base.CharMatcher;
 import org.apache.commons.lang.math.NumberUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -51,7 +50,10 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
-	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[\\x{0020}\\x{D7FF}]"); //TODO: figure out hwo to do unicode range in java. Also \u0020 is supposed to be the space character?
+
+	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+	private static final String UNSUPPORTED_UNICODE_REGEX = "[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]";
+	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile(UNSUPPORTED_UNICODE_REGEX);
 
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
@@ -75,7 +77,7 @@ public class SearchUtil{
 	 * @param charSequence input to be stripped of unsupported Unicode characters
 	 * @return String of the input charSequence with unsupported Unicode characters stripped out
 	 */
-	public static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
+	static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
 		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
 	}
 
@@ -372,7 +374,7 @@ public class SearchUtil{
 		}
 		// Some descriptions have control characters in them for some reason, in any case, just get rid
 		// of all control characters in the search document
-		return CharMatcher.JAVA_ISO_CONTROL.removeFrom(stringJoiner.toString());
+		return stripUnsupportedUnicodeCharacters(stringJoiner.toString());
 	}
 
 	/**
