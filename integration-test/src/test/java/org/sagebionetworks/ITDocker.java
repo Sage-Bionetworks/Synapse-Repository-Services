@@ -123,7 +123,7 @@ public class ITDocker {
 		String service = "docker.synapse.org";
 		String repoPath = projectId+"/reponame";
 		String scope = TYPE+":"+repoPath+":"+ACCESS_TYPES_STRING;
-		String urlString = StackConfiguration.getDockerServiceEndpoint() + DOCKER_AUTHORIZATION;
+		String urlString = StackConfiguration.singleton().getDockerServiceEndpoint() + DOCKER_AUTHORIZATION;
 		urlString += "?" + SERVICE_PARAM + "=" + URLEncoder.encode(service, "UTF-8");
 		urlString += "&" + SCOPE_PARAM + "=" + URLEncoder.encode(scope, "UTF-8");
 		
@@ -213,7 +213,7 @@ public class ITDocker {
 		String digest = UUID.randomUUID().toString(); // usu. a SHA256, but not required
 		DockerRegistryEventList registryEvents = createDockerRegistryEvent(
 				RegistryEventAction.push,  host,  userToDelete,  repositoryPath,  tag,  digest);
-		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
+		URL url = new URL(StackConfiguration.singleton().getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url.toString());
@@ -239,7 +239,7 @@ public class ITDocker {
 				"Authorization",
 				createBasicAuthorizationHeader("wrong user name", "wrong password"));
 		DockerRegistryEventList registryEvents = new DockerRegistryEventList();
-		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
+		URL url = new URL(StackConfiguration.singleton().getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url.toString());

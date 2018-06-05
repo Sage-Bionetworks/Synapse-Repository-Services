@@ -25,7 +25,7 @@ public class PropertyProviderImpl implements PropertyProvider {
 		if (fileName == null) {
 			throw new IllegalArgumentException("filename cannot be null");
 		}
-		try(InputStream input = TemplatedConfigurationImpl.class.getClassLoader().getResourceAsStream(fileName);){
+		try(InputStream input = ConfigurationPropertiesImpl.class.getClassLoader().getResourceAsStream(fileName);){
 			if(input == null) {
 				throw new IllegalArgumentException("Cannot find file on classpath: "+fileName);
 			}

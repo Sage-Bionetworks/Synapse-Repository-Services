@@ -32,35 +32,17 @@ public class StackConfiguration {
 	private static final Logger log = LogManager.getLogger(StackConfiguration.class
 			.getName());
 
-	private static final TemplatedConfiguration configuration;
+	private static final ConfigurationProperties configuration;
 	static {
-		configuration = new TemplatedConfigurationImpl(
+		configuration = new ConfigurationPropertiesImpl(
 				AwsClientFactory.createAmazonKeyManagementServiceClient(),
 				new PropertyProviderImpl(),
-				LogManager.getLogger(TemplatedConfigurationImpl.class.getName()
+				LogManager.getLogger(ConfigurationPropertiesImpl.class.getName()
 				));
 	}
 	
 	private static InetAddress address = null;
 
-
-	/**
-	 * The name of the stack.
-	 * 
-	 * @return
-	 */
-	public String getStack() {
-		return configuration.getStack();
-	}
-
-	/**
-	 * The stack instance (i.e '1', or '2')
-	 * 
-	 * @return
-	 */
-	public String getStackInstance() {
-		return configuration.getStackInstance();
-	}
 
 	/**
 	 * Is this a production stack?
@@ -147,30 +129,6 @@ public class StackConfiguration {
 			}
 		}
 
-	}
-
-	public static String getAuthenticationServicePrivateEndpoint() {
-		return configuration.getAuthenticationServicePrivateEndpoint();
-	}
-
-	public static String getAuthenticationServicePublicEndpoint() {
-		return configuration.getAuthenticationServicePublicEndpoint();
-	}
-
-	public static String getRepositoryServiceEndpoint() {
-		return configuration.getRepositoryServiceEndpoint();
-	}
-
-	public static String getFileServiceEndpoint() {
-		return configuration.getFileServiceEndpoint();
-	}
-
-	public static String getDockerServiceEndpoint() {
-		return configuration.getDockerServiceEndpoint();
-	}
-
-	public static String getDockerRegistryListenerEndpoint() {
-		return configuration.getDockerRegistryListenerEndpoint();
 	}
 
 	/**
@@ -283,7 +241,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public String getRepositoryDatabaseSchemaName() {
-		return configuration.getStack()+configuration.getStackInstance();
+		return getStack()+getStackInstance();
 	}
 
 	/**
@@ -345,10 +303,6 @@ public class StackConfiguration {
 	public String getDatabaseConnectionPoolMaxNumberConnections() {
 		return configuration
 				.getProperty("org.sagebionetworks.pool.max.number.connections");
-	}
-
-	public static int getHttpClientMaxConnsPerRoute() {
-		return configuration.getHttpClientMaxConnsPerRoute();
 	}
 	
 	/**
@@ -1425,12 +1379,85 @@ public class StackConfiguration {
 	}
 	
 	/**
+	 * Stack identifies production vs develop.
+	 * @return Will be 'prod' for production or 'dev' for develop. 
+	 */
+	public String getStack() {
+		return configuration.getProperty(StackConstants.STACK_PROPERTY_NAME);
+	}
+
+	/**
+	 * The instance number of this stack.
+	 * Can also be a developer's name for a 'dev' stack.
+	 * @return
+	 */
+	public String getStackInstance() {
+		return configuration.getProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME);
+	}
+
+
+	/**
+	 * 
+	 *  @return authentication service private endpoint
+	 */
+	public String getAuthenticationServicePrivateEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.authenticationservice.privateendpoint");
+	}
+
+
+	/**
+	 * @return authentication service public endpoint
+	 */
+	public String getAuthenticationServicePublicEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.authenticationservice.publicendpoint");
+	}
+
+	/**
+	 * @return repository service endpoint
+	 */
+	public String getRepositoryServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.repositoryservice.endpoint");
+	}
+
+	/**
+	 * Get the file service Endpoint.
+	 * @return
+	 */
+	public String getFileServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.fileservice.endpoint");
+	}
+
+	/**
+	 * 
+	 * @return search service endpoint
+	 */
+	public String getSearchServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.searchservice.endpoint");
+	}
+
+	/**
+	 * 
+	 * @return docker service endpoint
+	 */
+	public String getDockerServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.docker.endpoint");
+	}
+
+	/**
+	 * 
+	 * @return the endpoint for the docker registry event listener
+	 */
+	public String getDockerRegistryListenerEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.docker.registry.listener.endpoint");
+	}
+	
+	/**
 	 * Get the decrypted HMAC signing key for a given version.
 	 * 
 	 * @param keyVersion
 	 * @return
 	 */
-	public static String getHmacSigningKeyForVersion(int keyVersion) {
+	public String getHmacSigningKeyForVersion(int keyVersion) {
 		StringJoiner joiner = new StringJoiner(".");
 		joiner.add("org.sagebionetworks.hmac.signing.key.version");
 		joiner.add(""+keyVersion);
@@ -1444,7 +1471,7 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public static int getCurrentHmacSigningKeyVersion() {
+	public int getCurrentHmacSigningKeyVersion() {
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.hmac.signing.key.current.version"));
 	}
 }

@@ -90,7 +90,7 @@ public class IT503PythonClientFilter {
 		project = synapseOne.createEntity(project);
 		
 		// get the underlying SharedClientConnection so we can 'roll our own' request
-		String endpoint = StackConfiguration.getRepositoryServiceEndpoint();
+		String endpoint = StackConfiguration.singleton().getRepositoryServiceEndpoint();
 		String uri = "/entity/"+project.getId();
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Accept", "application/json");
@@ -136,7 +136,7 @@ public class IT503PythonClientFilter {
 	
 	@Test
 	public void testFileServices() throws Exception {
-		String endpoint = StackConfiguration.getFileServiceEndpoint();
+		String endpoint = StackConfiguration.singleton().getFileServiceEndpoint();
 		String uri = "/createChunkedFileUploadToken";
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Accept", "application/json");

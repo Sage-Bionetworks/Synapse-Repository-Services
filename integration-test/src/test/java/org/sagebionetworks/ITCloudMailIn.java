@@ -65,7 +65,7 @@ public class ITCloudMailIn {
 		SynapseClientHelper.setEndpoints(synapseOne);
 		user1ToDelete = SynapseClientHelper
 				.createUser(adminSynapse, synapseOne);
-		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
+		repoEndpoint = StackConfiguration.singleton().getRepositoryServiceEndpoint();
 		username = StackConfiguration.getCloudMailInUser();
 		password = StackConfiguration.getCloudMailInPassword();
 		simpleHttpClient = new SimpleHttpClientImpl();
