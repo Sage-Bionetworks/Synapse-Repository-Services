@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
 public class BulkDownloadManagerImpl implements BulkDownloadManager{
@@ -31,7 +31,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager{
 	@Autowired
 	FileHandleDao fileHandleDao;
 	@Autowired
-	AmazonS3Client s3client;
+	AmazonS3 s3client;
 	@Autowired
 	FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	@Autowired

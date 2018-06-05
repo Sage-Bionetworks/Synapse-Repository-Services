@@ -6,7 +6,6 @@ import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.base.CharMatcher;
 import org.apache.commons.lang.math.NumberUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -32,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
@@ -53,6 +53,8 @@ public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
 	static final long DEFAULT_FACET_MAX_COUNT = 10;
+	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
 
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
@@ -71,6 +73,14 @@ public class SearchUtil{
 		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
 	}
 
+	/**
+	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
+	 * @param charSequence input to be stripped of unsupported Unicode characters
+	 * @return String of the input charSequence with unsupported Unicode characters stripped out
+	 */
+	static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
+		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
+	}
 
 	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
 		ValidateArgument.required(searchQuery, "searchQuery");
@@ -107,40 +117,6 @@ public class SearchUtil{
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue();
-
-				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
-				if(value.contains("..")) {
-					//TODO: remove this part once client stops using ".." notation for ranges
-					String[] range = value.split("\\.\\.", -1);
-
-					if(range.length != 2 ){
-						throw new IllegalArgumentException("Numeric range is incorrectly formatted");
-					}
-
-					StringBuilder rangeStringBuilder = new StringBuilder();
-					//left bound
-					if(range[0].equals("")){
-						rangeStringBuilder.append("{");
-					}else{
-						rangeStringBuilder.append("[" + range[0]);
-					}
-
-					//right bound
-					rangeStringBuilder.append(",");
-					if(range[1].equals("")){
-						rangeStringBuilder.append("}");
-					}else{
-						rangeStringBuilder.append( range[1] + "]");
-					}
-					value = rangeStringBuilder.toString();
-				}
-
-				//TODO: remove once client stops using filterQueryTerms for range queries
-				if((value.contains("{") || value.contains("["))
-						&& (value.contains("}") || value.contains("]")) ){ //if is a continuous range such as [300,}
-					filterQueryTerms.add("(range field=" + pair.getKey()+ " " + value + ")");
-					continue;
-				}
 
 				//add quotes around value. i.e. value -> 'value'
 				value = "'" + escapeQuotedValue(pair.getValue()) + "'";
@@ -182,6 +158,16 @@ public class SearchUtil{
 		return searchRequest;
 	}
 
+	/**
+	 * For each KeyRange in the List, create a String representing its CloudSearch structured query.
+	 * The order of the returned List<String> match the order of the input List<Keyrange>
+	 *
+	 * For example:
+	 * given [KeyRange(key=myKey, min=5, max=45)] return ["(range field=myKey [5,45])"]
+	 *
+	 * @param rangeQueries List of KeyRanges for which the range queries will be constructed
+	 * @return List<String> containing the Cloudsearch range structured query for each of the KeyRanges
+	 */
 	static List<String> createRangeFilterQueries(List<KeyRange> rangeQueries) {
 		List<String> filterQueryTerms = new ArrayList<>(rangeQueries.size());
 
@@ -365,7 +351,7 @@ public class SearchUtil{
 		return authorizationFilterJoiner.toString();
 	}
 
-	public static void addAuthorizationFilter(SearchRequest searchRequest, UserInfo userInfo){ //TODO: test
+	public static void addAuthorizationFilter(SearchRequest searchRequest, UserInfo userInfo){
 		String authFilter = formulateAuthorizationFilter(userInfo);
 		String existingFitler = searchRequest.getFilterQuery();
 		if(existingFitler != null){
@@ -399,7 +385,7 @@ public class SearchUtil{
 		}
 		// Some descriptions have control characters in them for some reason, in any case, just get rid
 		// of all control characters in the search document
-		return CharMatcher.JAVA_ISO_CONTROL.removeFrom(stringJoiner.toString());
+		return stripUnsupportedUnicodeCharacters(stringJoiner.toString());
 	}
 
 	/**

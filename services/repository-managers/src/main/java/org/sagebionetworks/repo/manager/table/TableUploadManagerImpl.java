@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 
 public class TableUploadManagerImpl implements TableUploadManager {
@@ -28,7 +28,7 @@ public class TableUploadManagerImpl implements TableUploadManager {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	@Override
 	public TableUpdateResponse uploadCSV(ProgressCallback progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor) {

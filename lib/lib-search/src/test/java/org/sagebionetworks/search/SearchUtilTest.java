@@ -167,14 +167,6 @@ public class SearchUtilTest {
 	}
 
 	@Test
-	public void testBooleanQueryContinuous() {
-		// continuous bq
-		query.setBooleanQuery(bq2);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and (range field=Facet1 {,2000]))"), searchRequest);
-	}
-
-	@Test
 	public void testNegatedBooleanQuery() {
 		// negated boolean query
 		query.setBooleanQuery(bqNot);
@@ -590,7 +582,7 @@ public class SearchUtilTest {
 		//method under test
 		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
 
-		assertEquals("(and " + SearchUtil.formulateAuthorizationFilter(userInfo) + " " + fitlerQuery + ")", searchRequest.getFilterQuery());
+		assertEquals("(and (or acl:'123' acl:'456' acl:'789') (and indexName:'asdf'))", searchRequest.getFilterQuery());
 	}
 
 	@Test
@@ -600,7 +592,7 @@ public class SearchUtilTest {
 		//method under test
 		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
 
-		assertEquals(SearchUtil.formulateAuthorizationFilter(userInfo), searchRequest.getFilterQuery());
+		assertEquals("(or acl:'123' acl:'456' acl:'789')", searchRequest.getFilterQuery());
 	}
 
 	///////////////////////////
@@ -644,6 +636,34 @@ public class SearchUtilTest {
 
 		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(deleteDoc,addDoc));
 		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
+	}
+
+	@Test
+	public void testConvertSearchDocumentsToJSONStringWithUnsupportedUnicode(){
+		Document addDoc = new Document();
+		addDoc.setId("syn5158082362");
+		addDoc.setType(DocumentTypeNames.add);
+		DocumentFields fields = new DocumentFields();
+		fields.setName("John Cena");
+		fields.setDescription("You Can't See Me: \uD83D\uDC68\uD83D\uDC4B");
+		addDoc.setFields(fields);
+
+		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(addDoc));
+		assertEquals("[{\"type\":\"add\",\"id\":\"syn5158082362\",\"fields\":{\"name\":\"John Cena\",\"description\":\"You Can't See Me: \"}}]", jsonString);
+	}
+
+
+	////////////////////////////////////////////
+	// stripUnsupportedUnicodeCharacters() test
+	////////////////////////////////////////////
+
+	@Test
+	public void testStripUnsupportedUnicodeCharacters(){
+		//test unicode characters from https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+		String testString = "⌐( ͡° ͜ʖ ͡°) ╯╲___\uD800\uDBFF\uDFFF\uDC00\uFFFE\uFFFF\uD83C\uDF0ADon't mind me just taking my unsupported unicode characters for a walk";
+
+		String result = SearchUtil.stripUnsupportedUnicodeCharacters(testString);
+		assertEquals("⌐( ͡° ͜ʖ ͡°) ╯╲___Don't mind me just taking my unsupported unicode characters for a walk", result);
 	}
 
 }

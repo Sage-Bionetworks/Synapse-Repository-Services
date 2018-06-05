@@ -20,7 +20,7 @@ public class EzidConstants {
 	/**
 	 * DOI Publisher is always Sage Bionetworks.
 	 */
-	public static final String PUBLISHER = "Sage Bionetworks";
+	public static final String PUBLISHER = "Synapse";
 
 	/**
 	 * Default DOI creator (author) when the corresponding information is missing in Synapse.

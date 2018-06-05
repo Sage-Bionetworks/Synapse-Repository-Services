@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  *
  */
 public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORevision> {
+	public static final int MAX_COMMENT_LENGTH = 256;
+
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		// This is a sub-table of node, so it gets backed up with nodes using the node ids

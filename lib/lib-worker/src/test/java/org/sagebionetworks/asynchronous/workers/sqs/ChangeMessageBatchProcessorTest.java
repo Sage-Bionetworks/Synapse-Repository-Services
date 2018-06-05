@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.Message;
 
@@ -36,7 +36,7 @@ public class ChangeMessageBatchProcessorTest {
 	@Mock
 	ProgressCallback mockProgressCallback;
 	@Mock
-	AmazonSQSClient mockAwsSQSClient;
+	AmazonSQS mockAwsSQSClient;
 	@Mock
 	ChangeMessageDrivenRunner mockRunner;
 	@Mock

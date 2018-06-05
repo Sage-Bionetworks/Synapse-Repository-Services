@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -74,6 +75,26 @@ public class NodeUtilsTest {
 		assertNotNull(copy.getFileHandleId());
 		// It should match
 		assertEquals(node, copy);
+	}
+	
+	@Test
+	public void testExcessivelyLongComment() throws DatastoreException, InvalidModelException {
+		Node node = new Node();
+		node.setModifiedByPrincipalId(createdById);
+		node.setModifiedOn(new Date(System.currentTimeMillis()+2993));
+		StringBuilder sb = new StringBuilder();
+		for (int i=0; i<DBORevision.MAX_COMMENT_LENGTH+1; i++) sb.append(" ");
+		node.setVersionComment(sb.toString());
+		// Now create a revision for this node
+		DBONode jdoNode = new DBONode();
+		
+		DBORevision jdoRev = new DBORevision();
+		try {
+			NodeUtils.updateFromDto(node, jdoNode, jdoRev, false);
+			fail("Expected IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
 	}
 	
 	@Test

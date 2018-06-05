@@ -5,6 +5,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,7 +20,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +55,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -64,11 +65,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import au.com.bytecode.opencsv.CSVReader;
-
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -94,7 +95,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	AmazonS3Client s3Client;
+	AmazonS3 s3Client;
 	@Autowired
 	SemaphoreManager semphoreManager;
 	@Autowired
@@ -111,8 +112,6 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws NotFoundException{
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		// Start with an empty queue.
@@ -124,18 +123,16 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	
 	@After
 	public void after(){
-		if(config.getTableEnabled()){
-			if(adminUserInfo != null){
-				for(String id: toDelete){
-					try {
-						entityManager.deleteEntity(adminUserInfo, id);
-					} catch (Exception e) {}
-				}
+		if(adminUserInfo != null){
+			for(String id: toDelete){
+				try {
+					entityManager.deleteEntity(adminUserInfo, id);
+				} catch (Exception e) {}
 			}
-			if(fileHandle != null){
-				s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
-				fileHandleDao.delete(fileHandle.getId());
-			}
+		}
+		if(fileHandle != null){
+			s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
+			fileHandleDao.delete(fileHandle.getId());
 		}
 	}
 

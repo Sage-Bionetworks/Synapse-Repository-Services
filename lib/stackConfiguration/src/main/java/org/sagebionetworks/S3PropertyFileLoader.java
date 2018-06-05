@@ -9,10 +9,9 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.AwsClientFactory;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
 /**
@@ -32,15 +31,11 @@ public class S3PropertyFileLoader {
 	 * @return
 	 * @throws IOException
 	 */
-	public static void loadPropertiesFromS3(String propertyFileUrl, String IAMId, String IAMKey, Properties properties) throws IOException {
+	public static void loadPropertiesFromS3(String propertyFileUrl, Properties properties) throws IOException {
 		log.info("propertyFileUrl="+propertyFileUrl);
-		log.info("IAMId= "+IAMId);
 		if (propertyFileUrl == null)throw new IllegalArgumentException("The file URL cannot be null");
-		if (IAMId == null) throw new IllegalArgumentException("IAM id cannot be null");
-		if (IAMKey == null)	throw new IllegalArgumentException("IAM key cannot be null");
 		if(properties == null) throw new IllegalArgumentException("Properties cannot be null");
-		AWSCredentials creds = new BasicAWSCredentials(IAMId, IAMKey);
-		AmazonS3Client client = new AmazonS3Client(creds);
+		AmazonS3 client = AwsClientFactory.createAmazonS3Client();
 		// Create a temp file to store the properties file.
 		File temp = null;
 		FileInputStream in = null;

@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
@@ -53,7 +53,7 @@ import com.amazonaws.util.BinaryUtils;
 public class MultipartManagerImpl implements MultipartManager {
 	
 	@Autowired
-	AmazonS3Client s3Client;
+	AmazonS3 s3Client;
 	@Autowired
 	FileHandleDao fileHandleDao;
 	@Autowired

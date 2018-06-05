@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -85,9 +83,6 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 	
 	@Test
 	public void testQueryForRoot() throws Exception{
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
-				
 		// Only an admin can see the root node
 		String query = "select id, eTag from entity where parentId == null";
 		QueryResults results = controller.query(adminUserId, query, mockRequest);
@@ -98,9 +93,6 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Ignore
 	@Test
 	public void testQueryByPrincipal() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException, JSONObjectAdapterException{
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
-
 		// Create a project
 		Project p = new Project();
 		p.setEntityType(Project.class.getName());

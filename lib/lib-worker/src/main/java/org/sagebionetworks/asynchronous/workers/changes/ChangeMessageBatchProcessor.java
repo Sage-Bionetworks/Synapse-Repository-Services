@@ -12,7 +12,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.Message;
 
@@ -28,11 +28,11 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	static private Logger log = LogManager
 			.getLogger(ChangeMessageBatchProcessor.class);
 
-	private AmazonSQSClient awsSQSClient;
+	private AmazonSQS awsSQSClient;
 	private String queueUrl;
 	private ChangeMessageRunner runner;
 
-	public ChangeMessageBatchProcessor(AmazonSQSClient awsSQSClient,
+	public ChangeMessageBatchProcessor(AmazonSQS awsSQSClient,
 			String queueName, ChangeMessageRunner runner) {
 		this.awsSQSClient = awsSQSClient;
 		// create the queue if it does not exist.

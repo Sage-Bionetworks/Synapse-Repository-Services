@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.AmazonSNS;
 
 /**
  * Unit test for RepositoryMessagePublisherImpl.
@@ -28,14 +28,14 @@ public class RepositoryMessagePublisherImplTest {
 	
 	ChangeMessage message;
 	TransactionalMessenger mockTransactionalMessanger;
-	AmazonSNSClient mockAwsSNSClient;
+	AmazonSNS mockAwsSNSClient;
 	
 	RepositoryMessagePublisherImpl messagePublisher;
 	
 	@Before
 	public void before(){
 		mockTransactionalMessanger = Mockito.mock(TransactionalMessenger.class);
-		mockAwsSNSClient = Mockito.mock(AmazonSNSClient.class);
+		mockAwsSNSClient = Mockito.mock(AmazonSNS.class);
 		message = new ChangeMessage();
 		message.setChangeNumber(123l);
 		message.setTimestamp(new Date());

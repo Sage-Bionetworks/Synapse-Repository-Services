@@ -3,7 +3,9 @@ package org.sagebionetworks.asynchronous.workers.changes;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack;
 
+import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 
 /**
@@ -17,7 +19,7 @@ public class ChangeMessageDrivenWorkerStack implements Runnable {
 	MessageDrivenWorkerStack stack;
 
 	public ChangeMessageDrivenWorkerStack(CountingSemaphore semaphore,
-			AmazonSQSClient awsSQSClient, AmazonSNSClient awsSNSClient,
+			AmazonSQS awsSQSClient, AmazonSNS awsSNSClient,
 			ChangeMessageDrivenWorkerStackConfig config) {
 		// Get the configured runner.
 		ChangeMessageRunner changeRunner = config.getRunner();
@@ -32,8 +34,8 @@ public class ChangeMessageDrivenWorkerStack implements Runnable {
 				awsSQSClient, config.getConfig().getMessageQueueConfiguration()
 						.getQueueName(), changeRunner);
 		config.getConfig().setRunner(batchProcessor);
-		stack = new MessageDrivenWorkerStack(semaphore, awsSQSClient,
-				awsSNSClient, config.getConfig());
+		stack = new MessageDrivenWorkerStack(semaphore, (AmazonSQSClient) awsSQSClient,
+				(AmazonSNSClient) awsSNSClient, config.getConfig());
 	}
 
 	@Override

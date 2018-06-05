@@ -92,7 +92,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -111,7 +111,7 @@ public class FileHandleManagerImplTest {
 	@Mock
 	FileHandleDao mockFileHandleDao;
 	@Mock
-	AmazonS3Client mockS3Client;
+	AmazonS3 mockS3Client;
 	@Mock
 	AuthorizationManager mockAuthorizationManager;
 	@Mock

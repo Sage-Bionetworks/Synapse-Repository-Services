@@ -74,14 +74,11 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 			// If we have IAM id and key the load the properties using the
 			// Amazon
 			// client, else the URL should be public.
-			String iamId = getIAMUserId();
-			String iamKey = getIAMUserKey();
 			if (propertyFileUrl
-					.startsWith(StackConstants.S3_PROPERTY_FILENAME_PREFIX)
-					&& iamId != null && iamKey != null) {
+					.startsWith(StackConstants.S3_PROPERTY_FILENAME_PREFIX)) {
 				try {
 					S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl,
-							iamId, iamKey, stackPropertyOverrides);
+							stackPropertyOverrides);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
@@ -262,36 +259,6 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 					StackConstants.STACK_INSTANCE_PROPERTY_NAME,
 					StackConstants.PARAM4);
 		return instance;
-	}
-
-	@Override
-	public String getIAMUserId() {
-		// There are a few places where we can find this
-		String id = System.getProperty("AWS_ACCESS_KEY_ID");
-		if (id != null)
-			return id;
-		id = System.getProperty(StackConstants.STACK_IAM_ID);
-		if (id == null)
-			return null;
-		id = id.trim();
-		if ("".equals(id))
-			return null;
-		return id;
-	}
-
-	@Override
-	public String getIAMUserKey() {
-		// There are a few places to look for this
-		String key = System.getProperty("AWS_SECRET_KEY");
-		if (key != null)
-			return key;
-		key = System.getProperty(StackConstants.STACK_IAM_KEY);
-		if (key == null)
-			return null;
-		key = key.trim();
-		if ("".equals(key))
-			return null;
-		return key;
 	}
 
 	@Override

@@ -1,6 +1,6 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 public class CloudSearchDomainClientAdapterTest {
 
 	@Mock
-	private AmazonCloudSearchDomainClient mockCloudSearchDomainClient;
+	private AmazonCloudSearchDomain mockCloudSearchDomainClient;
 
 	@Mock
 	private SearchResult mockResponse;

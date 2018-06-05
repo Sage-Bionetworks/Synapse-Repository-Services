@@ -19,17 +19,6 @@ public class StackConfigAccessImpl implements StackConfigAccess {
 	}
 
 	@Override
-	public String getIAMUserId() {
-		
-		return StackConfiguration.getIAMUserId();
-	}
-
-	@Override
-	public String getIAMUserKey() {
-		return StackConfiguration.getIAMUserKey();
-	}
-
-	@Override
 	public String getS3LogBucket() {
 		return StackConfiguration.getS3LogBucket();
 	}

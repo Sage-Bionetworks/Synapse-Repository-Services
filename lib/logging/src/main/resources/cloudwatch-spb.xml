@@ -15,21 +15,9 @@
 
 	<import resource="classpath:stack-configuration.spb.xml" />
 
-	<bean id="userID" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
-	<bean id="userKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
-
-	<!-- bean for AmazonWebServices BasicAWSCredentials -->
-	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
-		<constructor-arg index="0"><ref bean="userID"/></constructor-arg>
-		<constructor-arg index="1"><ref bean="userKey"/></constructor-arg>
-	</bean>	
-
 	<!-- bean for AmazonCloudWatch client -->
-	<bean id="cloudWatchClient" class="com.amazonaws.services.cloudwatch.AmazonCloudWatchClient">
-  		<constructor-arg>
-            <ref bean="awsCredentials"/>
-        </constructor-arg>
-	</bean>
+	<bean id="cloudWatchClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createCloudWatchClient" />
 
 	<!-- A consumer that logs performance data for all bean method calls to Amazon CloudWatch. -->  
 	<bean id="consumer" class="org.sagebionetworks.cloudwatch.Consumer" scope="singleton"/>

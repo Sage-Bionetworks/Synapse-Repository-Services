@@ -76,7 +76,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 
 /**
@@ -106,7 +106,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private NamedParameterJdbcTemplate namedTemplate;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;	
