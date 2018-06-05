@@ -27,7 +27,6 @@
 
 	<!-- non worker triggers -->
 	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
-	<import resource="classpath:stack-configuration-trigger.spb.xml" />
 	<import resource="classpath:cloudwatch-trigger-spb.xml" />
 	
 	<import resource="classpath:aws-worker.spb.xml" />

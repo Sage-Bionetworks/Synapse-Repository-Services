@@ -8,15 +8,10 @@ package org.sagebionetworks;
 public class StackConstants {
 	
 	static final String S3_PROPERTY_FILENAME_PREFIX = "https://s3.amazonaws.com";
-
-	static final String STACK_PROPERTY_FILE_URL 	= "org.sagebionetworks.stack.configuration.url";
-	static final String STACK_ENCRYPTION_KEY		 = "org.sagebionetworks.stackEncryptionKey";
 	
 	static final String STACK_PROPERTY_NAME 			= "org.sagebionetworks.stack";
 	static final String STACK_INSTANCE_PROPERTY_NAME 	= "org.sagebionetworks.stack.instance";
 	
-	static final String PARAM1 = "PARAM1";
-	static final String PARAM2 = "PARAM2";
 	static final String PARAM4 = "PARAM4";
 	static final String PARAM3 = "PARAM3";
 	

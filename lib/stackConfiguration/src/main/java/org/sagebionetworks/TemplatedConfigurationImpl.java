@@ -1,209 +1,130 @@
 package org.sagebionetworks;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.Properties;
-import java.util.Set;
+import java.util.StringJoiner;
 
-/**
- * @author deflaux
- *
- */
+import org.apache.logging.log4j.Logger;
+
+import com.amazonaws.services.kms.AWSKMS;
+import com.amazonaws.services.kms.model.DecryptRequest;
+import com.amazonaws.services.kms.model.DecryptResult;
+
 public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 
-	private String defaultPropertiesFilename;
-	private String templatePropertiesFilename;
+	private static final String WILL_NOT_DECRYPT_MESSAGE = "Property: '%s' does not exist so value of '%s' will not be decrypted.";
 
-	private Properties defaultStackProperties = null;
-	private Properties stackPropertyOverrides = null;
-	private Properties requiredProperties = null;
-	private String propertyFileUrl = null;
+	public static final String UTF_8 = "UTF-8";
+
+	public static final String PROPERTY_KEY_STACK_CMK_ALIAS = "org.sagebionetworks.stack.cmk.alias";
+
+	static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
+
+	private Logger log;
+	
+	private Properties properties;
+
+	private AWSKMS awsKeyManagerClient;
 
 	/**
-	 * Pass in the default location for the properties file and also the
-	 * template to use
-	 * 
-	 * @param defaultPropertiesFilename
-	 * @param templatePropertiesFilename
+	 * The only constructor with AWSKMS and property provider.
+	 * @param awsKeyManagerClient
+	 * @param propertyProvider
 	 */
-	public TemplatedConfigurationImpl(String defaultPropertiesFilename,
-			String templatePropertiesFilename) {
-		this.defaultPropertiesFilename = defaultPropertiesFilename;
-		this.templatePropertiesFilename = templatePropertiesFilename;
+	public TemplatedConfigurationImpl(AWSKMS awsKeyManagerClient, PropertyProvider propertyProvider, Logger log) {
+		this.log = log;
+		this.awsKeyManagerClient = awsKeyManagerClient;
+		// Will contain the filal properties
+		properties = new Properties();
+		// Load the default properties.
+		overrideProperties(propertyProvider.loadPropertiesFromClasspath(DEFAULT_PROPERTIES_FILENAME));
+		// Maven settings override defaults.
+		overrideProperties(propertyProvider.getMavenSettingsProperties());
+		// System properties override all.
+		overrideProperties(propertyProvider.getSystemProperties());
 	}
 
-	@Override
-	public void reloadConfiguration() {
-		defaultStackProperties = new Properties();
-		stackPropertyOverrides = new Properties();
-		requiredProperties = new Properties();
-
-		// Load the default properties from the classpath.
-		loadPropertiesFromClasspath(defaultPropertiesFilename,
-				defaultStackProperties);
-		// Load the required properties
-		loadPropertiesFromClasspath(templatePropertiesFilename,
-				requiredProperties);
-		// Try loading the settings file
-		addSettingsPropertiesToSystem(stackPropertyOverrides);
-		
-		Properties systemProperties = System.getProperties();
-		for (Object propertyName : systemProperties.keySet()) {
-			String value = (String)systemProperties.get(propertyName);
-			if (value!=null && value.length()>0) {
-				stackPropertyOverrides.setProperty((String)propertyName,
-						value);
+	/**
+	 * Override all non-null values from
+	 * 
+	 * @param originals
+	 * @param overrides
+	 */
+	void overrideProperties(Properties overrides) {
+		for (Object propertyName : overrides.keySet()) {
+			String value = (String) overrides.get(propertyName);
+			if (value != null && value.length() > 0) {
+				properties.setProperty((String) propertyName, value);
 			}
-		}
-		
-		// These three properties are required. If they are null, an exception
-		// will be thrown
-		getEncryptionKey();
-		String stack = getStack();
-		String stackInstance = getStackInstance();
-
-		propertyFileUrl = getPropertyOverridesFileURL();
-		if ((null != propertyFileUrl) && (0 < propertyFileUrl.length())) {
-			// Validate the property file
-			StackUtils.validateStackProperty(stack + stackInstance,
-					StackConstants.STACK_PROPERTY_FILE_URL, propertyFileUrl);
-
-			// If we have IAM id and key the load the properties using the
-			// Amazon
-			// client, else the URL should be public.
-			if (propertyFileUrl
-					.startsWith(StackConstants.S3_PROPERTY_FILENAME_PREFIX)) {
-				try {
-					S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl,
-							stackPropertyOverrides);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			} else {
-				loadPropertiesFromURL(propertyFileUrl, stackPropertyOverrides);
-			}
-			// Validate the required properties
-			StackUtils.validateRequiredProperties(requiredProperties,
-					stackPropertyOverrides, stack, stackInstance);
 		}
 	}
 
-	public String getProperty(String propertyName) {
-		String propertyValue = null;
-		if (stackPropertyOverrides.containsKey(propertyName)) {
-			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-		} else {
-			propertyValue = defaultStackProperties.getProperty(propertyName);
+	/**
+	 * Load the given property.
+	 * 
+	 * @throws IllegalArgumentException
+	 *             if the key is null or the resulting value is null.
+	 */
+	public String getProperty(String propertyKey) {
+		if (propertyKey == null) {
+			throw new IllegalArgumentException("Property key cannot be null");
 		}
-		// NullPointerExceptions further downstream are not very helpful, throw
-		// here
-		// instead. In general folks calling methods here do not want null
-		// values,
-		// but if they do, they can try/catch.
-		//
-		// Also note that required properties should be checked for existence by
-		// out template
-		// so this should only happen for optional properties that code is
-		// requesting
-		if (null == propertyValue) {
-			throw new NullPointerException(
-					"no value found in StackConfiguration for property "
-							+ propertyName + " propertyFileURL="
-							+ propertyFileUrl);
+		String propertyValue = properties.getProperty(propertyKey);
+		if (propertyValue == null) {
+			throw new IllegalArgumentException("Property value is null for key: " + propertyKey);
 		}
 		return propertyValue;
 	}
 
 	@Override
-	public Set<String> getAllPropertyNames() {
-		Set<String> allPropertyNames = new HashSet<String>();
-		allPropertyNames.addAll(defaultStackProperties.stringPropertyNames());
-		allPropertyNames.addAll(stackPropertyOverrides.stringPropertyNames());
-		return allPropertyNames;
-	}
-
-	@Override
 	public String getDecryptedProperty(String propertyName) {
-		String stackEncryptionKey = getEncryptionKey();
-		if (stackEncryptionKey == null || stackEncryptionKey.length() == 0)
-			throw new RuntimeException(
-					"Expected system property org.sagebionetworks.stackEncryptionKey");
-		String encryptedProperty = getProperty(propertyName);
-		if (encryptedProperty == null || encryptedProperty.length() == 0)
-			throw new RuntimeException("Expected property for " + propertyName);
-		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		String clearTextPassword = se.decrypt(encryptedProperty);
-		return clearTextPassword;
-	}
-
-	private void loadPropertiesFromClasspath(String filename,
-			Properties properties) {
-		if (filename == null)
-			throw new IllegalArgumentException("filename cannot be null");
-		if (properties == null)
-			throw new IllegalArgumentException("properties cannot be null");
-		URL propertiesLocation = TemplatedConfigurationImpl.class
-				.getResource(filename);
-		if (null == propertiesLocation) {
-			throw new IllegalArgumentException(
-					"Could not load property file from classpath: " + filename);
+		if(propertyName == null) {
+			throw new IllegalArgumentException("Property key cannot be null");
+		}
+		// Properties are only decrypted if a key alias is provider
+		if(!this.properties.containsKey(PROPERTY_KEY_STACK_CMK_ALIAS)) {
+			log.warn(String.format(WILL_NOT_DECRYPT_MESSAGE, PROPERTY_KEY_STACK_CMK_ALIAS, propertyName));
+			return getProperty(propertyName);
 		}
 		try {
-			properties.load(propertiesLocation.openStream());
-		} catch (Exception e) {
-			throw new Error(e);
+			// load the Base64 encoded encrypted string from the properties.
+			String encryptedValueBase64 = getProperty(propertyName);
+			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
+			DecryptResult back = this.awsKeyManagerClient.decrypt(new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
+			byte[] rawBytes = new byte[back.getPlaintext().remaining()];
+			back.getPlaintext().get(rawBytes);
+			return new String(rawBytes, UTF_8);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
 	/**
-	 * Add the properties from the settings file to the system properties if
-	 * they are there.
-	 */
-	private void addSettingsPropertiesToSystem(Properties properties) {
-		Properties props;
-		try {
-			props = SettingsLoader.loadSettingsFile();
-			if (props != null) {
-				Iterator it = props.keySet().iterator();
-				while (it.hasNext()) {
-					String key = (String) it.next();
-					String value = props.getProperty(key);
-					System.setProperty(key, value);
-					properties.setProperty(key, value);
-				}
-			}
-		} catch (Exception e) {
-			throw new Error(e);
-		}
-	}
-
-	/**
-	 * Load a property file from a URL
+	 * Load
 	 * 
-	 * @param url
+	 * @param filename
 	 * @param properties
+	 * @return
+	 * @throws IOException
 	 */
-	private void loadPropertiesFromURL(String url, Properties properties) {
-		if (url == null)
-			throw new IllegalArgumentException("url cannot be null");
-		if (properties == null)
-			throw new IllegalArgumentException("properties cannot be null");
-		URL propertiesLocation;
-		try {
-			propertiesLocation = new URL(url);
-		} catch (MalformedURLException e1) {
-			throw new IllegalArgumentException(
-					"Could not load property file from url: " + url, e1);
+	public static Properties loadPropertiesFromClasspath(String filename) throws IOException {
+		if (filename == null) {
+			throw new IllegalArgumentException("filename cannot be null");
 		}
-		try {
-			properties.load(propertiesLocation.openStream());
-		} catch (Exception e) {
-			throw new Error(e);
+		try (InputStream input = TemplatedConfigurationImpl.class.getClassLoader().getResourceAsStream(filename);) {
+			if (input == null) {
+				throw new IllegalArgumentException("Cannot find file on classpath: " + filename);
+			}
+			Properties properties = new Properties();
+			properties.load(input);
+			return properties;
 		}
 	}
+
 
 	/**
 	 * Throws the same RuntimeException when a required property is missing.
@@ -211,30 +132,9 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	 * @param propertyKey
 	 * @param alternate
 	 */
-	private void throwRequiredPropertyException(String propertyKey,
-			String alternate) {
-		throw new RuntimeException("The property: " + propertyKey
-				+ " or its alternate: " + alternate
-				+ " is required and cannot be null");
-	}
-
-	@Override
-	public String getPropertyOverridesFileURL() {
-		String url = System.getProperty(StackConstants.PARAM1);
-		if (url == null)
-			url = System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL);
-		return url;
-	}
-
-	@Override
-	public String getEncryptionKey() {
-		String ek = System.getProperty(StackConstants.PARAM2);
-		if (ek == null)
-			ek = System.getProperty(StackConstants.STACK_ENCRYPTION_KEY);
-		if (ek == null)
-			throwRequiredPropertyException(StackConstants.STACK_ENCRYPTION_KEY,
-					StackConstants.PARAM2);
-		return ek;
+	private void throwRequiredPropertyException(String propertyKey, String alternate) {
+		throw new RuntimeException(
+				"The property: " + propertyKey + " or its alternate: " + alternate + " is required and cannot be null");
 	}
 
 	@Override
@@ -243,8 +143,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		if (stack == null)
 			stack = System.getProperty(StackConstants.STACK_PROPERTY_NAME);
 		if (stack == null)
-			throwRequiredPropertyException(StackConstants.STACK_PROPERTY_NAME,
-					StackConstants.PARAM3);
+			throwRequiredPropertyException(StackConstants.STACK_PROPERTY_NAME, StackConstants.PARAM3);
 		return stack;
 	}
 
@@ -252,12 +151,9 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	public String getStackInstance() {
 		String instance = System.getProperty(StackConstants.PARAM4);
 		if (instance == null)
-			instance = System
-					.getProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME);
+			instance = System.getProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME);
 		if (instance == null)
-			throwRequiredPropertyException(
-					StackConstants.STACK_INSTANCE_PROPERTY_NAME,
-					StackConstants.PARAM4);
+			throwRequiredPropertyException(StackConstants.STACK_INSTANCE_PROPERTY_NAME, StackConstants.PARAM4);
 		return instance;
 	}
 
@@ -275,11 +171,11 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	public String getRepositoryServiceEndpoint() {
 		return getProperty("org.sagebionetworks.repositoryservice.endpoint");
 	}
-	
+
 	public String getFileServiceEndpoint() {
 		return getProperty("org.sagebionetworks.fileservice.endpoint");
 	}
-	
+
 	@Override
 	public String getSearchServiceEndpoint() {
 		return getProperty("org.sagebionetworks.searchservice.endpoint");
@@ -289,7 +185,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	public String getDockerServiceEndpoint() {
 		return getProperty("org.sagebionetworks.docker.endpoint");
 	}
-	
+
 	@Override
 	public String getDockerRegistryListenerEndpoint() {
 		return getProperty("org.sagebionetworks.docker.registry.listener.endpoint");
@@ -304,10 +200,8 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		String maxConnsPropertyName = "org.sagebionetworks.httpclient.connectionpool.maxconnsperroute";
 		int maxConns = Integer.parseInt(getProperty(maxConnsPropertyName));
 		if (1 > maxConns) {
-			throw new IllegalArgumentException(maxConnsPropertyName
-					+ " must be greater than zero");
+			throw new IllegalArgumentException(maxConnsPropertyName + " must be greater than zero");
 		}
 		return maxConns;
 	}
-
 }

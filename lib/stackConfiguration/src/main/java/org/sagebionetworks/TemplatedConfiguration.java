@@ -1,7 +1,5 @@
 package org.sagebionetworks;
 
-import java.util.Set;
-
 /**
  * TemplatedConfiguration should serve as the base for any configuration we need
  * for any of our Java software. It encapsulates the core functionality of a
@@ -29,13 +27,6 @@ import java.util.Set;
 public interface TemplatedConfiguration {
 
 	/**
-	 * Load stack configuration from properties files. Note that the System
-	 * property org.sagebionetworks.stack is used to let the system know for
-	 * which stack overrides should be loaded.
-	 */
-	public void reloadConfiguration();
-
-	/**
 	 * @param propertyName
 	 * @return the property value or a NullPointerException will be thrown
 	 *         (throwing it preemptively here so as to provide a better error
@@ -44,35 +35,12 @@ public interface TemplatedConfiguration {
 	public String getProperty(String propertyName);
 
 	/**
-	 * @return all property names
-	 */
-	public Set<String> getAllPropertyNames();
-
-	/**
 	 * @param propertyName
 	 * @return the decrypted property value or a NullPointerException will be
 	 *         thrown (throwing it preemptively here so as to provide a better
 	 *         error message)
 	 */
 	public String getDecryptedProperty(String propertyName);
-
-	/**
-	 * The location of the property file that overrides configuration
-	 * properties.
-	 * 
-	 * @return location of the property file that overrides configuration
-	 *         properties
-	 */
-	public String getPropertyOverridesFileURL();
-
-	/**
-	 * The encryption key used to read passwords in the configuration property
-	 * file.
-	 * 
-	 * @return encryption key used to read passwords in the configuration
-	 *         property file
-	 */
-	public String getEncryptionKey();
 
 	/**
 	 * The name of the stack.
@@ -133,5 +101,6 @@ public interface TemplatedConfiguration {
 	 * @return the endpoint for the docker registry event listener
 	 */
 	public String getDockerRegistryListenerEndpoint();
+	
 
 }

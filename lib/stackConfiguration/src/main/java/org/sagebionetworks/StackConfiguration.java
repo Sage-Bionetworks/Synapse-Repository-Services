@@ -6,9 +6,11 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.AwsClientFactory;
 
 /**
  * StackConfiguration wraps all configuration needed for a Synapse service stack
@@ -26,42 +28,21 @@ public class StackConfiguration {
 	private static final String HUDSON = "hud";
 	
 	static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
-	static final String TEMPLATE_PROPERTIES = "/template.properties";
 
 	private static final Logger log = LogManager.getLogger(StackConfiguration.class
 			.getName());
 
-	private static TemplatedConfiguration configuration = null;
+	private static final TemplatedConfiguration configuration;
+	static {
+		configuration = new TemplatedConfigurationImpl(
+				AwsClientFactory.createAmazonKeyManagementServiceClient(),
+				new PropertyProviderImpl(),
+				LogManager.getLogger(TemplatedConfigurationImpl.class.getName()
+				));
+	}
+	
 	private static InetAddress address = null;
 
-	private static volatile TemplatedConfiguration dynamicConfiguration = null;
-
-	static {
-		init();
-	}
-
-	public static void init() {
-		configuration = new TemplatedConfigurationImpl(
-				DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
-		// Load the stack configuration the first time this class is referenced
-		try {
-			configuration.reloadConfiguration();
-		} catch (Throwable t) {
-			log.error(t.getMessage(), t);
-			throw new RuntimeException(t);
-		}
-		dynamicConfiguration = configuration;
-	}
-
-	public static void reloadDynamicStackConfiguration() {
-		TemplatedConfiguration newConfiguration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
-		newConfiguration.reloadConfiguration();
-		dynamicConfiguration = newConfiguration;
-	}
-
-	public static void reloadStackConfiguration() {
-		configuration.reloadConfiguration();
-	}
 
 	/**
 	 * The name of the stack.
@@ -168,13 +149,6 @@ public class StackConfiguration {
 
 	}
 
-	/**
-	 * @return the encryption key for this stack
-	 */
-	public static String getEncryptionKey() {
-		return configuration.getEncryptionKey();
-	}
-
 	public static String getAuthenticationServicePrivateEndpoint() {
 		return configuration.getAuthenticationServicePrivateEndpoint();
 	}
@@ -197,17 +171,6 @@ public class StackConfiguration {
 
 	public static String getDockerRegistryListenerEndpoint() {
 		return configuration.getDockerRegistryListenerEndpoint();
-	}
-
-	/**
-	 * This is the bucket for workflow-related files such as configuration or
-	 * search document files. Each workflow should store stuff under its own
-	 * workflow name prefix so that we can configure permissions not only on the
-	 * bucket but also the S3 object prefix.
-	 */
-	public static String getS3WorkflowBucket() {
-		return configuration
-				.getProperty("org.sagebionetworks.s3.bucket.workflow");
 	}
 
 	/**
@@ -1459,5 +1422,29 @@ public class StackConfiguration {
 	public static Long getMaximumNumberOfEntitiesPerContainer() {
 		return Long.parseLong(configuration
 				.getProperty("org.sagebionetworks.synapse.max.entities.per.container"));
+	}
+	
+	/**
+	 * Get the decrypted HMAC signing key for a given version.
+	 * 
+	 * @param keyVersion
+	 * @return
+	 */
+	public static String getHmacSigningKeyForVersion(int keyVersion) {
+		StringJoiner joiner = new StringJoiner(".");
+		joiner.add("org.sagebionetworks.hmac.signing.key.version");
+		joiner.add(""+keyVersion);
+		String key = joiner.toString();
+		return configuration.getDecryptedProperty(key);
+	}
+
+	/**
+	 * Get the current version of the HMAC signing key to be used 
+	 * to sign all new requests.
+	 * 
+	 * @return
+	 */
+	public static int getCurrentHmacSigningKeyVersion() {
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.hmac.signing.key.current.version"));
 	}
 }
