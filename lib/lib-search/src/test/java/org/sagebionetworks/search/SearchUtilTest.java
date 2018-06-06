@@ -7,6 +7,7 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Sets;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -23,6 +24,8 @@ import org.sagebionetworks.repo.model.search.query.FacetTopN;
 import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
+import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
+import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 
 import java.util.ArrayList;
@@ -56,6 +59,7 @@ public class SearchUtilTest {
 	private SearchRequest expectedSearchRequestBaseWithQueryTerm;
 	private SearchRequest expectedSearchRequestBaseNoQueryTermSet;
 	private SearchResult searchResult;
+	private SearchFacetOption searchFacetOption;
 
 	private List<String> q;
 	private List<KeyValue> bq;
@@ -116,6 +120,10 @@ public class SearchUtilTest {
 		keyRange.setKey("SomeRangeFacet");
 		keyRangeList.add(keyRange);
 
+		searchFacetOption = new SearchFacetOption();
+		searchFacetOption.setMaxResultCount(42L);
+		searchFacetOption.setSortType(SearchFacetSort.COUNT);
+		searchFacetOption.setName("N A M E");
 	}
 
 	//////////////////////////////////////
@@ -235,7 +243,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacet(facets);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"facet1\":{\"size\":10},\"facet2\":{\"size\":10}}"), searchRequest);
+		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"facet1\":{},\"facet2\":{}}"), searchRequest);
 	}
 
 
@@ -323,6 +331,14 @@ public class SearchUtilTest {
 		query.setStart(10L);
 		searchRequest = SearchUtil.generateSearchRequest(query);
 		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withStart(10L), searchRequest);
+	}
+
+	@Test
+	public void testGenerateSearchRequest_FacetOptions_usingFacetOptions(){
+		query.setQueryTerm(q);
+		query.setFacetOptions(Collections.singletonList(searchFacetOption));
+		searchRequest = SearchUtil.generateSearchRequest(query);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"N A M E\":{\"sort\":\"count\",\"size\":42}}"), searchRequest);
 	}
 
 	///////////////////////////////////
@@ -666,4 +682,43 @@ public class SearchUtilTest {
 		assertEquals("⌐( ͡° ͜ʖ ͡°) ╯╲___Don't mind me just taking my unsupported unicode characters for a walk", result);
 	}
 
+	////////////////////////////////////////
+	//  createCloudSearchFacetJSON() tests
+	////////////////////////////////////////
+
+	@Test
+	public void testCreateCloudSearchFacetJSON_SortTypeNull(){
+		searchFacetOption.setMaxResultCount(56L);
+		searchFacetOption.setSortType(null);
+		JSONObject result = SearchUtil.createCloudSearchFacetOptionJSON(searchFacetOption);
+		assertEquals("{\"size\":56}", result.toString());
+	}
+
+	@Test
+	public void testCreateCloudSearchFacetJSON_MaxCountNull(){
+		searchFacetOption.setMaxResultCount(null);
+		searchFacetOption.setSortType(SearchFacetSort.ALPHA);
+
+		JSONObject result = SearchUtil.createCloudSearchFacetOptionJSON(searchFacetOption);
+		assertEquals("{\"sort\":\"bucket\"}", result.toString());
+	}
+
+
+	///////////////////////////////////////
+	// createCloudSearchFacetJSON() tests
+	///////////////////////////////////////
+	@Test
+	public void testCreateCloudSearchFacetJSON_SingleFacet(){
+		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(searchFacetOption));
+		assertEquals("{\"N A M E\":{\"sort\":\"count\",\"size\":42}}", result.toString());
+	}
+
+	@Test
+	public void testCreateCloudSearchFacetJSON_MultipleFacets(){
+		SearchFacetOption otherFacetOption = new SearchFacetOption();
+		otherFacetOption.setName("S A M E");
+
+		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Arrays.asList(searchFacetOption, otherFacetOption));
+		assertEquals("{\"N A M E\":{\"sort\":\"count\",\"size\":42},\"S A M E\":{}}", result.toString());
+	}
 }

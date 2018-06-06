@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
 import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
@@ -26,6 +25,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -153,7 +153,9 @@ public class SearchUtil{
 				facetStringJoiner.add("\""+ facetFieldName + "\":{}");
 			}
 			searchRequest.setFacet(facetStringJoiner.toString());
-		}else{
+		}
+
+		if (!CollectionUtils.isEmpty(searchQuery.getFacetOptions())){
 			searchRequest.setFacet(createCloudSearchFacetJSON(searchQuery.getFacetOptions()).toString());
 		}
 
@@ -238,26 +240,14 @@ public class SearchUtil{
 		return facetJSON;
 	}
 
-	private static JSONObject createCloudSearchFacetOptionJSON(SearchFacetOption facetOption) {
+	static JSONObject createCloudSearchFacetOptionJSON(SearchFacetOption facetOption) {
 		JSONObject facetOptionJSON = new JSONObject();
 
 		SearchFacetSort sortType = facetOption.getSortType();
 		Long maxCount = facetOption.getMaxResultCount();
 
 		if(sortType != null) {
-			//TODO: is there better way to map from auto-generated enum to string without naming the enum same as the value string?
-			String sortString;
-			switch (sortType){
-				case ALPHA:
-					sortString = "bucket";
-					break;
-				case COUNT:
-					sortString = "count";
-					break;
-				default:
-					throw new IllegalArgumentException("Unexpected sort type: " + sortType);
-			}
-			facetOptionJSON.put("sort", sortString);
+			facetOptionJSON.put("sort", CloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name().toLowerCase());
 		}
 
 		if(maxCount != null){
