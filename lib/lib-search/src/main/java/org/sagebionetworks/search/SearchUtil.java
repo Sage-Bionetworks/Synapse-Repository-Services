@@ -7,6 +7,7 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.commons.lang.math.NumberUtils;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Document;
@@ -16,9 +17,11 @@ import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.FacetTopN;
+import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
 import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
+import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
+import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -52,7 +55,6 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
-	static final long DEFAULT_FACET_MAX_COUNT = 10;
 	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
 	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
 
@@ -133,8 +135,33 @@ public class SearchUtil{
 		}
 		searchRequest.setFilterQuery(filterQueryTerms.isEmpty() ? null : "(and " + String.join(" ", filterQueryTerms) + ")");
 
+		//preprocess the FacetSortConstraints
+		// facet field constraints
+		if (searchQuery.getFacetFieldConstraints() != null
+				&& searchQuery.getFacetFieldConstraints().size() > 0) {
+			throw new IllegalArgumentException("Facet field constraints are no longer supported");
+		}
+		if (searchQuery.getFacetFieldSort() != null){
+			throw new IllegalArgumentException("Sorting of facets is no longer supported");
+		}
 
-		searchRequest.setFacet(createFacetString(searchQuery));
+		// facets
+		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
+			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
+			for(String facetFieldName : searchQuery.getFacet()){
+				//no options inside {} since none are used by the webclient
+				facetStringJoiner.add("\""+ facetFieldName + "\":{}");
+			}
+			searchRequest.setFacet(facetStringJoiner.toString());
+		}else{
+			searchRequest.setFacet(createCloudSearchFacetJSON(searchQuery.getFacetOptions()).toString());
+		}
+
+		//switch to size parameter in facet
+		// facet top n
+		if (searchQuery.getFacetFieldTopN() != null) {
+			throw new IllegalArgumentException("facet-field-top-n is no longer supported");
+		}
 
 		// rank
 		if (searchQuery.getRank() != null){
@@ -201,38 +228,44 @@ public class SearchUtil{
 		return filterQueryTerms;
 	}
 
-	static String createFacetString(SearchQuery searchQuery){
-		//preprocess the FacetSortConstraints
-		// facet field constraints
-		if (searchQuery.getFacetFieldConstraints() != null
-				&& searchQuery.getFacetFieldConstraints().size() > 0) {
-			throw new IllegalArgumentException("Facet field constraints are no longer supported");
-		}
-		if (searchQuery.getFacetFieldSort() != null){
-			throw new IllegalArgumentException("Sorting of facets is no longer supported");
-		}
+	static JSONObject createCloudSearchFacetJSON(List<SearchFacetOption> searchFacetOptions){
+		JSONObject facetJSON = new JSONObject();
 
-		Map<String, Long> facetMaxCountMap = new HashMap<>();
-		//switch to size parameter in facet
-		// facet top n
-		if (searchQuery.getFacetFieldTopN() != null) {
-			for(FacetTopN facetTopN : searchQuery.getFacetFieldTopN()){
-				facetMaxCountMap.put(facetTopN.getKey(), facetTopN.getValue());
-			}
+		for(SearchFacetOption facetOption : searchFacetOptions){
+			JSONObject facetOptionJSON = createCloudSearchFacetOptionJSON(facetOption);
+			facetJSON.putOnce(facetOption.getName(), facetOptionJSON);
 		}
-
-		// facets
-		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
-			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
-			for(String facetFieldName : searchQuery.getFacet()){
-				//no options inside {} since none are used by the webclient
-				Long facetMaxCount = facetMaxCountMap.getOrDefault(facetFieldName, DEFAULT_FACET_MAX_COUNT);
-				facetStringJoiner.add("\""+ facetFieldName + "\":{\"size\":" + facetMaxCount + "}");
-			}
-			return facetStringJoiner.toString();
-		}
-		return null;
+		return facetJSON;
 	}
+
+	private static JSONObject createCloudSearchFacetOptionJSON(SearchFacetOption facetOption) {
+		JSONObject facetOptionJSON = new JSONObject();
+
+		SearchFacetSort sortType = facetOption.getSortType();
+		Long maxCount = facetOption.getMaxResultCount();
+
+		if(sortType != null) {
+			//TODO: is there better way to map from auto-generated enum to string without naming the enum same as the value string?
+			String sortString;
+			switch (sortType){
+				case ALPHA:
+					sortString = "bucket";
+					break;
+				case COUNT:
+					sortString = "count";
+					break;
+				default:
+					throw new IllegalArgumentException("Unexpected sort type: " + sortType);
+			}
+			facetOptionJSON.put("sort", sortString);
+		}
+
+		if(maxCount != null){
+			facetOptionJSON.put("size", maxCount);
+		}
+		return facetOptionJSON;
+	}
+
 
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();
