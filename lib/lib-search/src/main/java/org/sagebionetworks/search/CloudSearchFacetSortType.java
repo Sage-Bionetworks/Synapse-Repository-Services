@@ -6,6 +6,10 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 
+/**
+ * An enum representing the types of facet result sorting available in CloudSearch.
+ * Additionally provides a mapping from Synapse's facet result sorting into CloudSearch's facet result sorting
+ */
 public enum CloudSearchFacetSortType {
 	BUCKET(SearchFacetSort.ALPHA),
 	COUNT(SearchFacetSort.COUNT);
