@@ -234,13 +234,13 @@ public class SearchUtil{
 		JSONObject facetJSON = new JSONObject();
 
 		for(SearchFacetOption facetOption : searchFacetOptions){
-			JSONObject facetOptionJSON = createCloudSearchFacetOptionJSON(facetOption);
+			JSONObject facetOptionJSON = createOptionsJSONForFacet(facetOption);
 			facetJSON.putOnce(facetOption.getName(), facetOptionJSON);
 		}
 		return facetJSON;
 	}
 
-	static JSONObject createCloudSearchFacetOptionJSON(SearchFacetOption facetOption) {
+	static JSONObject createOptionsJSONForFacet(SearchFacetOption facetOption) {
 		JSONObject facetOptionJSON = new JSONObject();
 
 		SearchFacetSort sortType = facetOption.getSortType();

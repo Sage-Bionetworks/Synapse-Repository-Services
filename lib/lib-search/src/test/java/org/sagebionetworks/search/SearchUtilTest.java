@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -683,23 +682,23 @@ public class SearchUtilTest {
 	}
 
 	////////////////////////////////////////
-	//  createCloudSearchFacetJSON() tests
+	//  createOptionsJSONForFacet() tests
 	////////////////////////////////////////
 
 	@Test
-	public void testCreateCloudSearchFacetJSON_SortTypeNull(){
+	public void testCreateOptionsJSONForFacet_SortTypeNull(){
 		searchFacetOption.setMaxResultCount(56L);
 		searchFacetOption.setSortType(null);
-		JSONObject result = SearchUtil.createCloudSearchFacetOptionJSON(searchFacetOption);
+		JSONObject result = SearchUtil.createOptionsJSONForFacet(searchFacetOption);
 		assertEquals("{\"size\":56}", result.toString());
 	}
 
 	@Test
-	public void testCreateCloudSearchFacetJSON_MaxCountNull(){
+	public void testCreateOptionsJSONForFacet_MaxCountNull(){
 		searchFacetOption.setMaxResultCount(null);
 		searchFacetOption.setSortType(SearchFacetSort.ALPHA);
 
-		JSONObject result = SearchUtil.createCloudSearchFacetOptionJSON(searchFacetOption);
+		JSONObject result = SearchUtil.createOptionsJSONForFacet(searchFacetOption);
 		assertEquals("{\"sort\":\"bucket\"}", result.toString());
 	}
 
