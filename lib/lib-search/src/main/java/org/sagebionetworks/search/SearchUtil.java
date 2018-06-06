@@ -230,6 +230,11 @@ public class SearchUtil{
 		return filterQueryTerms;
 	}
 
+	/**
+	 * Translates a list of SearchFacetOptions into a valid JSON for CloudSearch's SearchRequest facet field.
+	 * @param searchFacetOptions list of SearchFacetOption
+	 * @return a JSON representation of the SearchFacetOption that is compatible with CloudSearch
+	 */
 	static JSONObject createCloudSearchFacetJSON(List<SearchFacetOption> searchFacetOptions){
 		JSONObject facetJSON = new JSONObject();
 
@@ -240,6 +245,11 @@ public class SearchUtil{
 		return facetJSON;
 	}
 
+	/**
+	 * Helper method to createCloudSearchFacetJSON() which creates the JSON for each individual SearchFacetOption
+	 * @param facetOption A facetOption
+	 * @return translation of the the facetOption's sortType and maxCount into CloudSearch's facet option JSON.
+	 */
 	static JSONObject createOptionsJSONForFacet(SearchFacetOption facetOption) {
 		JSONObject facetOptionJSON = new JSONObject();
 
