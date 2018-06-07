@@ -19,7 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.team.TeamManager;
-import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -78,6 +78,9 @@ public class AuthorizationManagerImplTest {
 
 	@Autowired
 	private TeamManager teamManager;
+	
+	@Autowired
+	private TokenGenerator tokenGenerator;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
@@ -691,7 +694,7 @@ public class AuthorizationManagerImplTest {
 	public void testCanAccessMembershipInvitationWithMembershipInvtnSignedToken() {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setMembershipInvitationId("validId");
-		TokenGeneratorSingleton.singleton().signToken(token);
+		tokenGenerator.signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, accessType);
@@ -714,7 +717,7 @@ public class AuthorizationManagerImplTest {
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
 		token.setInviteeId(userId.toString());
 		token.setMembershipInvitationId("validId");
-		TokenGeneratorSingleton.singleton().signToken(token);
+		tokenGenerator.signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			// Only updating is allowed

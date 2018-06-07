@@ -52,12 +52,8 @@
 	</bean>
 
 	<bean id="tokenGenerator"
-		class="org.sagebionetworks.repo.manager.token.TokenGeneratorImpl">
-		<constructor-arg ref="stackConfiguration" index="0" />
-		<constructor-arg index="1">
-			<bean class="org.sagebionetworks.common.util.ClockImpl" />
-		</constructor-arg>
-	</bean>
+		class="org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton"
+		factory-method="singleton"/>
 
 	<bean id="oAuthManager" class="org.sagebionetworks.repo.manager.oauth.OAuthManagerImpl">
 		<property name="providerMap">
