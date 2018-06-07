@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -54,7 +55,7 @@ public class ObjectRecordQueueAutowireTest {
 		batch = new ObjectRecordBatch(records, type);
 		// start clean
 		objectRecordDAO.deleteAllStackInstanceBatches(type);
-		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getAsyncQueueName(QUEUE_NAME));
 	}
 	
 	@Test (timeout=1000*60*2)

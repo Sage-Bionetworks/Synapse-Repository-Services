@@ -7,6 +7,7 @@ import java.sql.Statement;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 
 
 /**
@@ -23,9 +24,9 @@ public class DatabasePreparation {
 		String prop = System.getProperties().getProperty("org.sagebionetworks.database.drop.schema");
 		if(prop != null && Boolean.parseBoolean(prop)){
 			// Drop the current schema
-			StackConfiguration config = new StackConfiguration();
+			StackConfiguration config = StackConfigurationSingleton.singleton();
 			// This is a safety check to prevent droping prod-database.
-			if(isNonProductionStack(StackConfiguration.singleton().getStack())){
+			if(isNonProductionStack(config.getStack())){
 				// Make the database connection.
 				BasicDataSource ds = new BasicDataSource();
 				ds.setDriverClassName(config.getRepositoryDatabaseDriver());

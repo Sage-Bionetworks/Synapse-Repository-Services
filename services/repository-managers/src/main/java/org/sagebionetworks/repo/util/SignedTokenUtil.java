@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.util;
 
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.ClockImpl;
 import org.sagebionetworks.repo.model.SignedTokenInterface;
 
@@ -16,7 +16,7 @@ public class SignedTokenUtil {
 	 */
 	private static final TokenGenerator tokenGenerator;
 	static {
-		tokenGenerator = new TokenGeneratorImpl(StackConfiguration.singleton(), new ClockImpl());
+		tokenGenerator = new TokenGeneratorImpl(StackConfigurationSingleton.singleton(), new ClockImpl());
 	}
 
 	/**

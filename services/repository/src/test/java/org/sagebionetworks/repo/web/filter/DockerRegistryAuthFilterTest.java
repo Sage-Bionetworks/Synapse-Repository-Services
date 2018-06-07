@@ -15,7 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.auth.BasicAuthUtils;
 
 import com.sun.syndication.io.impl.Base64;
@@ -56,8 +56,8 @@ public class DockerRegistryAuthFilterTest {
 	@Test
 	public void testDoFilterAuthenticateSuccess() throws Exception {
 		String basicAuthenticationHeader = BasicAuthUtils.BASIC_PREFIX + Base64.encode(
-				StackConfiguration.getDockerRegistryUser()+":"+
-						StackConfiguration.getDockerRegistryPassword());
+				StackConfigurationSingleton.singleton().getDockerRegistryUser()+":"+
+						StackConfigurationSingleton.singleton().getDockerRegistryPassword());
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockFilterChain).doFilter(any(HttpServletRequest.class), eq(mockResponse));

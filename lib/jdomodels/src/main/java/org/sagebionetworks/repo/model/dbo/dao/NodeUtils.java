@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -27,7 +28,7 @@ public class NodeUtils {
 	
 	private static final String COLUMN_ID_DELIMITER = ",";
 	
-	public static final String ROOT_ENTITY_ID = StackConfiguration.singleton().getRootFolderEntityId();
+	public static final String ROOT_ENTITY_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 
 	/**
 	 * Used to update an existing object

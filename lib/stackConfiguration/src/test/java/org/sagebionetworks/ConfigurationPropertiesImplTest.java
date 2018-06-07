@@ -30,6 +30,8 @@ public class ConfigurationPropertiesImplTest {
 	@Mock
 	AWSKMS mockAwsKeyManagerClient;
 	@Mock
+	LoggerProvider mockLoggerProvider;
+	@Mock
 	Logger mockLog;
 
 	@Captor
@@ -51,6 +53,9 @@ public class ConfigurationPropertiesImplTest {
 
 	@Before
 	public void before() throws UnsupportedEncodingException {
+		
+		when(mockLoggerProvider.getLogger(anyString())).thenReturn(mockLog);
+		
 		defaultProps = new Properties();
 		defaultProps.setProperty("one", "1-default");
 		defaultProps.setProperty("two", "2-default");
@@ -87,7 +92,7 @@ public class ConfigurationPropertiesImplTest {
 				.withPlaintext(ByteBuffer.wrap(decryptedValue.getBytes(ConfigurationPropertiesImpl.UTF_8)));
 		when(mockAwsKeyManagerClient.decrypt(any(DecryptRequest.class))).thenReturn(decryptResult);
 
-		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLog);
+		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLoggerProvider);
 
 		verify(mockPropertyProvider).getMavenSettingsProperties();
 		verify(mockPropertyProvider).getSystemProperties();
@@ -135,7 +140,7 @@ public class ConfigurationPropertiesImplTest {
 	public void testNullSettings() {
 		settingProps = null;
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(settingProps);
-		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLog);
+		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLoggerProvider);
 
 		assertEquals("1-default", configuration.getProperty("one"));
 		assertEquals("2-system", configuration.getProperty("two"));
@@ -162,7 +167,7 @@ public class ConfigurationPropertiesImplTest {
 	public void testGetDecryptedPropertyNoAlias() throws UnsupportedEncodingException {
 		// Remove the alis
 		systemProps.remove(ConfigurationPropertiesImpl.PROPERTY_KEY_STACK_CMK_ALIAS);
-		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLog);
+		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLoggerProvider);
 		
 		// call under test
 		String results = configuration.getDecryptedProperty(keyToBeDecrypted);

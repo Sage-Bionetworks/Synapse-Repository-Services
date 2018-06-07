@@ -1,14 +1,10 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -38,9 +34,12 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	@Autowired
 	private AmazonS3 s3Client;
 	
+	@Autowired
+	private StackConfiguration stackConfiguration;
+	
 	@Override
 	public void sendEmail(SendEmailRequest emailRequest) {
-		if (StackConfiguration.singleton().isProductionStack() || StackConfiguration.getDeliverEmail()) {
+		if (stackConfiguration.isProductionStack() || stackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendEmail(emailRequest);
 		} else {
 			writeToFile(emailRequest);
@@ -49,7 +48,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	
 	@Override
 	public void sendRawEmail(SendRawEmailRequest sendRawEmailRequest) {
-		if (StackConfiguration.singleton().isProductionStack() || StackConfiguration.getDeliverEmail()) {
+		if (stackConfiguration.isProductionStack() || stackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendRawEmail(sendRawEmailRequest);
 		} else {
 			writeToFile(sendRawEmailRequest);
@@ -86,7 +85,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 			is = new StringInputStream(emailBody);
 			ObjectMetadata metadata = new ObjectMetadata();
 			metadata.setContentLength(emailBody.length());
-			s3Client.putObject(StackConfiguration.getS3Bucket(), fileName, is, metadata);
+			s3Client.putObject(stackConfiguration.getS3Bucket(), fileName, is, metadata);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}

@@ -20,6 +20,7 @@ import javax.mail.internet.MimeMultipart;
 import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -134,13 +135,14 @@ public class SendRawEmailRequestBuilder {
 		// Create the subject and body of the message
 		if (subject == null) subject = "";
 
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		String unsubscribeLink = null;
 		String profileSettingLink = null;
 		if (withUnsubscribeLink && notificationUnsubscribeEndpoint==null) {
-			notificationUnsubscribeEndpoint = StackConfiguration.getDefaultPortalNotificationEndpoint();
+			notificationUnsubscribeEndpoint = config.getDefaultPortalNotificationEndpoint();
 		}
 		if (withProfileSettingLink && userProfileSettingEndpoint == null) {
-			userProfileSettingEndpoint = StackConfiguration.getDefaultPortalProfileSettingEndpoint();
+			userProfileSettingEndpoint = config.getDefaultPortalProfileSettingEndpoint();
 		}
 		if (withUnsubscribeLink && userId!=null) {
 			unsubscribeLink = EmailUtils.

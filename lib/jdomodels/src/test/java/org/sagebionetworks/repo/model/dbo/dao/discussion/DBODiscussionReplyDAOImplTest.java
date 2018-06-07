@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -72,7 +73,7 @@ public class DBODiscussionReplyDAOImplTest {
 		usersToDelete.add(userId);
 		// create a project
 		Node project = NodeTestUtils.createNew("projectName" + "-" + new Random().nextInt(), userId);
-		project.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
+		project.setParentId(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 		projectId = nodeDao.createNew(project);
 		// create a forum
 		Forum dto = forumDao.createForum(projectId);

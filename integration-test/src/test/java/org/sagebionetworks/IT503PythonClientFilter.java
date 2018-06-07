@@ -49,8 +49,8 @@ public class IT503PythonClientFilter {
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
@@ -90,7 +90,7 @@ public class IT503PythonClientFilter {
 		project = synapseOne.createEntity(project);
 		
 		// get the underlying SharedClientConnection so we can 'roll our own' request
-		String endpoint = StackConfiguration.singleton().getRepositoryServiceEndpoint();
+		String endpoint = StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint();
 		String uri = "/entity/"+project.getId();
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Accept", "application/json");
@@ -136,7 +136,7 @@ public class IT503PythonClientFilter {
 	
 	@Test
 	public void testFileServices() throws Exception {
-		String endpoint = StackConfiguration.singleton().getFileServiceEndpoint();
+		String endpoint = StackConfigurationSingleton.singleton().getFileServiceEndpoint();
 		String uri = "/createChunkedFileUploadToken";
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Accept", "application/json");

@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -70,7 +71,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private static final String REGISTRY_TYPE = "registry";
 	private static final String REGISTRY_CATALOG = "catalog";	
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(
-			StackConfiguration.getTrashFolderEntityIdStatic());
+			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";

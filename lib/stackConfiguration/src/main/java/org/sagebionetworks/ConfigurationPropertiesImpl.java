@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
+import com.google.inject.Inject;
 
 public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 
@@ -32,8 +33,9 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	 * @param awsKeyManagerClient
 	 * @param propertyProvider
 	 */
-	public ConfigurationPropertiesImpl(AWSKMS awsKeyManagerClient, PropertyProvider propertyProvider, Logger log) {
-		this.log = log;
+	@Inject
+	public ConfigurationPropertiesImpl(AWSKMS awsKeyManagerClient, PropertyProvider propertyProvider, LoggerProvider logProvider) {
+		this.log = logProvider.getLogger(ConfigurationPropertiesImpl.class.getName());
 		this.awsKeyManagerClient = awsKeyManagerClient;
 		// Will contain the final properties
 		properties = new Properties();

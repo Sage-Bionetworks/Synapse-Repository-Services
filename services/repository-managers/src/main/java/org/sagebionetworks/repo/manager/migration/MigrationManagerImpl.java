@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.pdfbox.io.IOUtils;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -59,9 +59,9 @@ import com.google.common.collect.Iterables;
 public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
-	public static String backupBucket = StackConfiguration.getSharedS3BackupBucket();
-	public static String stack = StackConfiguration.singleton().getStack();
-	public static String instance = StackConfiguration.singleton().getStackInstance();
+	public static String backupBucket = StackConfigurationSingleton.singleton().getSharedS3BackupBucket();
+	public static String stack = StackConfigurationSingleton.singleton().getStack();
+	public static String instance = StackConfigurationSingleton.singleton().getStackInstance();
 	
 	@Autowired
 	MigratableTableDAO migratableTableDao;

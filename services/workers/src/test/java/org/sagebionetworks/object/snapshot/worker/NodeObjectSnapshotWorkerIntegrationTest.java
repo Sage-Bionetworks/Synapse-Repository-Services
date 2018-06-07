@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -67,7 +68,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		toDelete = new ArrayList<String>();
 
 		type = NodeRecord.class.getSimpleName().toLowerCase();
-		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getAsyncQueueName(QUEUE_NAME));
 		
 		// Clear the data for this test instance.
 		objectRecordDAO.deleteAllStackInstanceBatches(type);

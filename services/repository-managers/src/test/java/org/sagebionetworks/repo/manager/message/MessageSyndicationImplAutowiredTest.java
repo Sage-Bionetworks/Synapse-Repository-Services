@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -50,7 +51,7 @@ public class MessageSyndicationImplAutowiredTest {
 	@Autowired
 	DBOChangeDAO changeDAO;
 	
-	private String queueName = StackConfiguration.singleton().getStack()+"-"+StackConfiguration.singleton().getStackInstance()+"-test-syndication";
+	private String queueName = StackConfigurationSingleton.singleton().getStack()+"-"+StackConfigurationSingleton.singleton().getStackInstance()+"-test-syndication";
 	private String queueUrl;
 	
 	@Before

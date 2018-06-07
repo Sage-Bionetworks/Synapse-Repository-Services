@@ -26,7 +26,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -118,7 +118,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNodeDao.getNode(nodeId)).thenReturn(mockNode);
 		
 		type = EntityType.file;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer()-1);
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer()-1);
 		// Types that have count limits
 		entityTypesWithCountLimits = Sets.newHashSet(EntityType.file, EntityType.folder, EntityType.link);
 				
@@ -865,13 +865,13 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testValidateChildCountFileOver(){
 		EntityType type = EntityType.file;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer());
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer());
 		try {
 			nodeManager.validateChildCount(parentId, type);
 			fail();
 		} catch (IllegalArgumentException e) {
 			// expected
-			assertTrue(e.getMessage().contains(""+StackConfiguration.getMaximumNumberOfEntitiesPerContainer()));
+			assertTrue(e.getMessage().contains(""+StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer()));
 			assertTrue(e.getMessage().contains(parentId));
 		}
 	}
@@ -886,7 +886,7 @@ public class NodeManagerImplUnitTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateChildCountFolderOver(){
 		type = EntityType.folder;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer());
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer());
 		nodeManager.validateChildCount(parentId, type);
 	}
 	
@@ -900,7 +900,7 @@ public class NodeManagerImplUnitTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateChildCountLinkOver(){
 		type = EntityType.link;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer());
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer());
 		nodeManager.validateChildCount(parentId, type);
 	}
 	
@@ -918,7 +918,7 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testValidateChildCountParentTrash(){
-		parentId = StackConfiguration.getTrashFolderEntityIdStatic();
+		parentId = StackConfigurationSingleton.singleton().getTrashFolderEntityId();
 		nodeManager.validateChildCount(parentId, type);
 		// no check should occur for a move to the trash
 		verify(mockNodeDao, never()).getChildCount(anyString());
@@ -926,7 +926,7 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testValidateChildCountParentRoot(){
-		parentId = StackConfiguration.getRootFolderEntityIdStatic();
+		parentId = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 		nodeManager.validateChildCount(parentId, type);
 		// no check should occur for a create in root
 		verify(mockNodeDao, never()).getChildCount(anyString());

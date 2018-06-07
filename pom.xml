@@ -622,7 +622,11 @@
 				<artifactId>mail</artifactId>
 				<version>1.4</version>
 			</dependency>
-
+			<dependency>
+				<groupId>com.google.inject</groupId>
+				<artifactId>guice</artifactId>
+				<version>4.2.0</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -826,8 +830,7 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.5.1</gwtVersion>
-		<guiceVersion>3.0-rc2</guiceVersion>
-		<guavaVersion>10.0.1</guavaVersion>
+		<guavaVersion>25.0-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
 		<org.springframework.version>4.3.3.RELEASE</org.springframework.version>
 		<jackson.version>1.8.1</jackson.version>

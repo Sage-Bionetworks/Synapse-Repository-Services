@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -338,6 +339,6 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		assertEquals(StackConfiguration.getMigrationAdminAPIKey(), secretKey);
+		assertEquals(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey(), secretKey);
 	}
 }

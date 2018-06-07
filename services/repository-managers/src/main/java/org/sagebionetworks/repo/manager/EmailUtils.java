@@ -15,6 +15,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -97,7 +98,7 @@ public class EmailUtils {
 	public static String getEmailAddressForPrincipalName(String principalAlias) {
 		String actEmailAddress = 
 				AliasUtils.getUniqueAliasName(principalAlias)+
-				StackConfiguration.getNotificationEmailSuffix();
+				StackConfigurationSingleton.singleton().getNotificationEmailSuffix();
 		try {
 			return (new InternetAddress(actEmailAddress, principalAlias)).toString();
 		} catch (UnsupportedEncodingException e) {
@@ -189,7 +190,7 @@ public class EmailUtils {
 	 */
 	public static String createSource(String senderDisplayName, String senderUserName) {
 		if (senderUserName==null) senderUserName=DEFAULT_EMAIL_ADDRESS_LOCAL_PART;
-		String senderEmailAddress = senderUserName+StackConfiguration.getNotificationEmailSuffix();
+		String senderEmailAddress = senderUserName+StackConfigurationSingleton.singleton().getNotificationEmailSuffix();
 		// Construct whom the email is from 
 		String source;
 		if (senderDisplayName==null) {
