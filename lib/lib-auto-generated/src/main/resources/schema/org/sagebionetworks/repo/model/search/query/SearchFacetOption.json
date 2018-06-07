@@ -2,7 +2,7 @@
 	"description": "Specify which field should be returned as facets and the format of the results for each field",
 	"properties": {
 		"name": {
-			"type": {"$ref":"SearchFieldName"},
+			"$ref":"org.sagebionetworks.repo.model.search.query.SearchFieldName",
 			"description": "name of the field for which facet information will be returned",
 			"required": true
 		},
