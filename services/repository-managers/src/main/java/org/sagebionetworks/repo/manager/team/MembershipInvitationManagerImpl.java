@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -38,7 +39,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +62,8 @@ public class MembershipInvitationManagerImpl implements
 	private SynapseEmailService sesClient;
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
+	private TokenGenerator tokenGenerator;
 
 	public static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
@@ -236,7 +238,7 @@ public class MembershipInvitationManagerImpl implements
 		response.setInviteeId(userId.toString());
 		response.setMembershipInvitationId(membershipInvitationId);
 		response.setExpiresOn(new Date(new Date().getTime() + TWENTY_FOUR_HOURS_IN_MS));
-		SignedTokenUtil.signToken(response);
+		tokenGenerator.signToken(response);
 		return response;
 	}
 

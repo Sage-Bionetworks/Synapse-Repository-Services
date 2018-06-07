@@ -14,15 +14,14 @@ import java.util.Map;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -213,7 +212,7 @@ public class EmailUtils {
 		token.setUserId(userId);
 		token.setMemberId(memberId);
 		token.setTeamId(teamId);
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
@@ -223,7 +222,7 @@ public class EmailUtils {
 	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId) {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setMembershipInvitationId(membershipInvitationId);
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
@@ -238,7 +237,7 @@ public class EmailUtils {
 		Settings settings = new Settings();
 		settings.setSendEmailNotifications(false);
 		token.setSettings(settings);
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);

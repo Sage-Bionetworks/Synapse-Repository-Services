@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.util;
+package org.sagebionetworks.repo.manager.token;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -48,11 +48,13 @@ public class TokenGeneratorImpl implements TokenGenerator {
 	public void signToken(SignedTokenInterface token) {
 		// use the current key version to sign this token.
 		int keyVersion = configuration.getCurrentHmacSigningKeyVersion();
+		token.setVersion((long) keyVersion);
+		if(token.getExpiresOn() == null) {
+			long expires = clock.currentTimeMillis() + TOKEN_EXPIRATION_MS;
+			token.setExpiresOn(new Date(expires));
+		}
 		String hmac = generateSignature(token, keyVersion);
 		token.setHmac(hmac);
-		token.setVersion((long) keyVersion);
-		long expires = clock.currentTimeMillis() + TOKEN_EXPIRATION_MS;
-		token.setExpiresOn(new Date(expires));
 	}
 
 	@Override

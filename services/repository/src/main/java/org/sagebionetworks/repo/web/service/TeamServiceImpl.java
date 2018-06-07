@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -31,7 +32,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -242,7 +242,7 @@ public class TeamServiceImpl implements TeamService {
 	
 	@Override
 	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
-		SignedTokenUtil.validateToken(joinTeamToken);
+		TokenGeneratorSingleton.singleton().validateToken(joinTeamToken);
 		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());

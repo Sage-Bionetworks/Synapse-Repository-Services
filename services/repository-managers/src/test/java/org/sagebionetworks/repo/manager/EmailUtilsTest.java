@@ -14,10 +14,10 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
 
 public class EmailUtilsTest {
@@ -116,7 +116,7 @@ public class EmailUtilsTest {
 		
 		JoinTeamSignedToken token = SerializationUtils.hexDecodeAndDeserialize(
 				link.substring(endpoint.length()), JoinTeamSignedToken.class);
-		SignedTokenUtil.validateToken(token);
+		TokenGeneratorSingleton.singleton().validateToken(token);
 		assertEquals(userId, token.getUserId());
 		assertEquals(memberId, token.getMemberId());
 		assertEquals(teamId, token.getTeamId());
@@ -132,7 +132,7 @@ public class EmailUtilsTest {
 		assertTrue(link.startsWith(endpoint));
 		NotificationSettingsSignedToken token = SerializationUtils.hexDecodeAndDeserialize(
 				link.substring(endpoint.length()), NotificationSettingsSignedToken.class);
-		SignedTokenUtil.validateToken(token);
+		TokenGeneratorSingleton.singleton().validateToken(token);
 		assertEquals(userId, token.getUserId());
 		assertNotNull(token.getCreatedOn());
 		assertNotNull(token.getHmac());

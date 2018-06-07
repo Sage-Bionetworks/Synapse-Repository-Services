@@ -8,21 +8,9 @@ import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.aws.AwsClientFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.kms.AWSKMS;
 import com.google.inject.Inject;
 
-/**
- * StackConfiguration wraps all configuration needed for a Synapse service stack
- * and exposes it via this programmatic API.
- * 
- * Note that it wraps an instance of TemplatedConfigurationImpl which was
- * initialized with a template for the properties a Synapse service stack should
- * have and default property values for service stacks.
- * 
- */
 public class StackConfigurationImpl implements StackConfiguration {
 
 	private final String PROD = "prod";

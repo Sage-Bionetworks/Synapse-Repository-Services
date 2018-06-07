@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.manager.principal;
 
 import java.util.Date;
 
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.principal.AccountCreationToken;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class PrincipalUtils {
@@ -17,7 +17,7 @@ public class PrincipalUtils {
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
 		emailValidationSignedToken.setEmail(user.getEmail());
 		emailValidationSignedToken.setCreatedOn(now);
-		SignedTokenUtil.signToken(emailValidationSignedToken);
+		TokenGeneratorSingleton.singleton().signToken(emailValidationSignedToken);
 		accountCreationToken.setEmailValidationSignedToken(emailValidationSignedToken);
 		return accountCreationToken;
 	}
@@ -27,7 +27,7 @@ public class PrincipalUtils {
 		emailValidationSignedToken.setUserId(userId + "");
 		emailValidationSignedToken.setEmail(email);
 		emailValidationSignedToken.setCreatedOn(now);
-		SignedTokenUtil.signToken(emailValidationSignedToken);
+		TokenGeneratorSingleton.singleton().signToken(emailValidationSignedToken);
 		return emailValidationSignedToken;
 	}
 
@@ -40,7 +40,7 @@ public class PrincipalUtils {
 		ValidateArgument.required(createdOn, "EmailValidationSignedToken.createdOn");
 		if (now.getTime() - createdOn.getTime() > EMAIL_VALIDATION_TIME_LIMIT_MILLIS)
 			throw new IllegalArgumentException("Email validation link is out of date.");
-		SignedTokenUtil.validateToken(token);
+		TokenGeneratorSingleton.singleton().validateToken(token);
 		return email;
 	}
 
@@ -54,7 +54,7 @@ public class PrincipalUtils {
 		ValidateArgument.required(createdOn, "EmailValidationSignedToken.createdOn");
 		if (now.getTime() - createdOn.getTime() > EMAIL_VALIDATION_TIME_LIMIT_MILLIS)
 			throw new IllegalArgumentException("Email validation link is out of date.");
-		SignedTokenUtil.validateToken(token);
+		TokenGeneratorSingleton.singleton().validateToken(token);
 		return email;
 	}
 }

@@ -3,6 +3,11 @@ package org.sagebionetworks;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 
+ * Provides access to stack configuration information.
+ *
+ */
 public interface StackConfiguration {
 
 	/**
@@ -37,7 +42,6 @@ public interface StackConfiguration {
 	 */
 	public int getStackInstanceNumber();
 
-
 	/**
 	 * This is the bucket for Synapse data.
 	 */
@@ -51,7 +55,7 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public Integer getS3ReadAccessExpirySeconds();
-	
+
 	public Integer getS3WriteAccessExpiryHours();
 
 	public String getMailPassword();
@@ -285,6 +289,7 @@ public interface StackConfiguration {
 	public String getAWSDomainName();
 
 	public String getWorkflowExecutionRetentionPeriodInDays();
+
 	/**
 	 * The maximum number of entities that can be moved into the trash can at one
 	 * time.
@@ -452,6 +457,7 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public long getMaxFileTransferMemoryPoolBytes();
+
 	/**
 	 * The maximum memory that can be used for preview generation.
 	 * 
@@ -586,11 +592,13 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2GoogleClientId();
+
 	/**
 	 * 
 	 * @return
 	 */
 	public String getOAuth2GoogleClientSecret();
+
 	/**
 	 * 
 	 * @return
@@ -707,6 +715,7 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getTablesDatabaseEndpointForIndex(int index);
+
 	/**
 	 * Get the schema name of a table's database given its index.
 	 * 
@@ -867,6 +876,5 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public int getCurrentHmacSigningKeyVersion();
-
 
 }

@@ -27,6 +27,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -43,7 +44,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -152,7 +152,7 @@ public class PrincipalManagerImplUnitTest {
 		EmailValidationSignedToken token = new EmailValidationSignedToken();
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 		PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate);
 	}
 
@@ -163,7 +163,7 @@ public class PrincipalManagerImplUnitTest {
 		EmailValidationSignedToken token = new EmailValidationSignedToken();
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 		PrincipalUtils.validateEmailValidationSignedToken(token, outOfDate);
 	}
 
@@ -174,7 +174,7 @@ public class PrincipalManagerImplUnitTest {
 		token.setUserId(Long.toString(USER_ID));
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 		try {
 			// Method under test
 			PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate);
@@ -238,7 +238,7 @@ public class PrincipalManagerImplUnitTest {
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
 		emailValidationSignedToken.setEmail(user.getEmail());
 		emailValidationSignedToken.setCreatedOn(now);
-		SignedTokenUtil.signToken(emailValidationSignedToken);
+		TokenGeneratorSingleton.singleton().signToken(emailValidationSignedToken);
 		accountSetupInfo.setEmailValidationSignedToken(emailValidationSignedToken);
 		accountSetupInfo.setFirstName(FIRST_NAME);
 		accountSetupInfo.setLastName(LAST_NAME);

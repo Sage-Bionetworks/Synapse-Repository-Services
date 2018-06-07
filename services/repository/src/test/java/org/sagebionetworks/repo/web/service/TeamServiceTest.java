@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ResponseMessage;
@@ -39,7 +40,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 
 public class TeamServiceTest {
 	
@@ -253,7 +253,7 @@ public class TeamServiceTest {
 		jtst.setUserId(userId.toString());
 		jtst.setTeamId(teamId);
 		jtst.setMemberId(principalId.toString());
-		SignedTokenUtil.signToken(jtst);
+		TokenGeneratorSingleton.singleton().signToken(jtst);
 		
 		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(true);
 		
@@ -298,7 +298,7 @@ public class TeamServiceTest {
 		jtst.setUserId(userId.toString());
 		jtst.setTeamId(teamId);
 		jtst.setMemberId(principalId.toString());
-		SignedTokenUtil.signToken(jtst);
+		TokenGeneratorSingleton.singleton().signToken(jtst);
 		
 		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(false);
 		

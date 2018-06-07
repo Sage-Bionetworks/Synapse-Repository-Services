@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.util;
+package org.sagebionetworks.repo.manager.token;
 
 import org.sagebionetworks.repo.model.SignedTokenInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;

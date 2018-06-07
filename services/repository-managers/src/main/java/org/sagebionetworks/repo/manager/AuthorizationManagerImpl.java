@@ -18,6 +18,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -57,7 +58,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,9 +110,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private DockerNodeDao dockerNodeDao;
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
-	@Autowired
-	private MembershipInvitationDAO membershipInvitationDAO;
-
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -664,8 +661,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
 		String miId = token.getMembershipInvitationId();
 		try {
-			SignedTokenUtil.validateToken(token);
-		} catch (IllegalArgumentException e) {
+			TokenGeneratorSingleton.singleton().validateToken(token);
+		} catch (UnauthorizedException e) {
 			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
 		if (accessType == ACCESS_TYPE.READ) {
@@ -678,8 +675,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
 		String miId = token.getMembershipInvitationId();
 		try {
-			SignedTokenUtil.validateToken(token);
-		} catch (IllegalArgumentException e) {
+			TokenGeneratorSingleton.singleton().validateToken(token);
+		} catch (UnauthorizedException e) {
 			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
 		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(miId) && accessType == ACCESS_TYPE.UPDATE) {

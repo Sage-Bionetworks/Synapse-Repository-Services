@@ -19,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -42,7 +43,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -691,7 +691,7 @@ public class AuthorizationManagerImplTest {
 	public void testCanAccessMembershipInvitationWithMembershipInvtnSignedToken() {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setMembershipInvitationId("validId");
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, accessType);
@@ -714,7 +714,7 @@ public class AuthorizationManagerImplTest {
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
 		token.setInviteeId(userId.toString());
 		token.setMembershipInvitationId("validId");
-		SignedTokenUtil.signToken(token);
+		TokenGeneratorSingleton.singleton().signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			// Only updating is allowed
