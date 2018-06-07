@@ -1,0 +1,19 @@
+{	"description": "Names of search fields that can be faceted/returned",
+	"properties":{
+		"type": "string",
+		"enum":[
+			"Id",
+			"Name",
+			"Description",
+			"EntityType",
+			"ModifiedOn",
+			"CreatedBy",
+			"CreatedOn",
+			"ModifiedOn",
+			"ConsortiumAnnotation",
+			"DiseaseAnnotation",
+			"NumberOfSamplesAnnotation",
+			"TissueAnnotation"
+		]
+	}
+}
