@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -42,6 +43,7 @@ public class ExternalDockerRepoValidatorTest {
 		provider = new ExternalDockerRepoValidator();
 		ReflectionTestUtils.setField(provider, "nodeDAO", nodeDAO);
 		ReflectionTestUtils.setField(provider, "dockerNodeDao", dockerNodeDao);
+		ReflectionTestUtils.setField(provider, "stackConfiguration", StackConfigurationSingleton.singleton());
 		when(dockerNodeDao.getRepositoryNameForEntityId(KeyFactory.keyToString(ENTITY_ID_LONG))).thenReturn(null);
 	}
 	
