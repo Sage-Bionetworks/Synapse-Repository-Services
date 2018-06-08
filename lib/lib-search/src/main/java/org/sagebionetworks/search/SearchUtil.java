@@ -7,6 +7,7 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.commons.lang.math.NumberUtils;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Document;
@@ -18,10 +19,13 @@ import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
+import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
+import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -151,6 +155,10 @@ public class SearchUtil{
 			searchRequest.setFacet(facetStringJoiner.toString());
 		}
 
+		if (!CollectionUtils.isEmpty(searchQuery.getFacetOptions())){
+			searchRequest.setFacet(createCloudSearchFacetJSON(searchQuery.getFacetOptions()).toString());
+		}
+
 		//switch to size parameter in facet
 		// facet top n
 		if (searchQuery.getFacetFieldTopN() != null) {
@@ -221,6 +229,43 @@ public class SearchUtil{
 		}
 		return filterQueryTerms;
 	}
+
+	/**
+	 * Translates a list of SearchFacetOptions into a valid JSON for CloudSearch's SearchRequest facet field.
+	 * @param searchFacetOptions list of SearchFacetOption
+	 * @return a JSON representation of the SearchFacetOption that is compatible with CloudSearch
+	 */
+	static JSONObject createCloudSearchFacetJSON(List<SearchFacetOption> searchFacetOptions){
+		JSONObject facetJSON = new JSONObject();
+
+		for(SearchFacetOption facetOption : searchFacetOptions){
+			JSONObject facetOptionJSON = createOptionsJSONForFacet(facetOption);
+			facetJSON.putOnce(facetOption.getName(), facetOptionJSON);
+		}
+		return facetJSON;
+	}
+
+	/**
+	 * Helper method to createCloudSearchFacetJSON() which creates the JSON for each individual SearchFacetOption
+	 * @param facetOption A facetOption
+	 * @return translation of the the facetOption's sortType and maxCount into CloudSearch's facet option JSON.
+	 */
+	static JSONObject createOptionsJSONForFacet(SearchFacetOption facetOption) {
+		JSONObject facetOptionJSON = new JSONObject();
+
+		SearchFacetSort sortType = facetOption.getSortType();
+		Long maxCount = facetOption.getMaxResultCount();
+
+		if(sortType != null) {
+			facetOptionJSON.put("sort", CloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name().toLowerCase());
+		}
+
+		if(maxCount != null){
+			facetOptionJSON.put("size", maxCount);
+		}
+		return facetOptionJSON;
+	}
+
 
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();
