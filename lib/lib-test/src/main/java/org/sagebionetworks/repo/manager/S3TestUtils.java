@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
@@ -19,12 +20,16 @@ import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 
 public class S3TestUtils {
+	private static final String UTF_8 = "UTF-8";
+	
 	static ThreadLocal<LinkedList<Pair<String, String>>> s3ObjectsToDelete = new ThreadLocal<LinkedList<Pair<String, String>>>();
 	
 	public static String createObjectFromString(String bucket, String key, String data, AmazonS3 s3Client) throws Exception {
 		ObjectMetadata metadata = new ObjectMetadata();
-		metadata.setContentLength(data.length());
-		PutObjectResult putObject = s3Client.putObject(bucket, key, new StringInputStream(data), metadata);
+		byte[] bytes = data.getBytes(UTF_8);
+		metadata.setContentLength(bytes.length);
+		ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+		PutObjectResult putObject = s3Client.putObject(bucket, key, bis, metadata);
 		addObjectToDelete(bucket, key);
 		return putObject.getContentMd5();
 	}
@@ -35,7 +40,7 @@ public class S3TestUtils {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			IOUtils.copy(sois, baos);
-			return baos.toString();
+			return new String(baos.toByteArray(), UTF_8);
 		} finally {
 			sois.close();
 			baos.close();

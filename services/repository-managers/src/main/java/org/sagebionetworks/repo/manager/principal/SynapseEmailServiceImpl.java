@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.principal;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
@@ -82,9 +83,10 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 		String fileName = to+".json";
 		InputStream is;
 		try {
-			is = new StringInputStream(emailBody);
+			byte[] bytes = emailBody.getBytes("UTF-8");
+			is = new ByteArrayInputStream(bytes);
 			ObjectMetadata metadata = new ObjectMetadata();
-			metadata.setContentLength(emailBody.length());
+			metadata.setContentLength(bytes.length);
 			s3Client.putObject(stackConfiguration.getS3Bucket(), fileName, is, metadata);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
