@@ -17,8 +17,9 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 
 public enum CloudSearchFieldNames {
-	//TODO: is this dupliating what tracks whether a field is facetable?
-	// TODO: should we have config file that defines the search indicies instaed of code?
+	/***
+	 * TODO: This class should be the "Truth" on the configuration for search index. The SearchDomainSetupImpl class should be refactored to use this enum to initialize the search index.
+	 */
 	NAME(SearchFieldName.Name, FIELD_NAME, false),
 	TISSUE(SearchFieldName.TissueAnnotation, FIELD_TISSUE, true),
 	ENTITY_TYPE(SearchFieldName.EntityType, FIELD_NODE_TYPE, true),
@@ -35,6 +36,8 @@ public enum CloudSearchFieldNames {
 	final SearchFieldName synapseSearchFieldName;
 	final String cloudSearchIndexName;
 	final boolean isFaceted;
+	final boolean isRetruned;
+	final SomeType cloudSearchIndexType; //TODO: set these fileds for the enums
 
 	CloudSearchFieldNames(SearchFieldName synapseSearchFieldName, String cloudSearchIndexName, boolean isFaceted){
 		this.synapseSearchFieldName = synapseSearchFieldName;
