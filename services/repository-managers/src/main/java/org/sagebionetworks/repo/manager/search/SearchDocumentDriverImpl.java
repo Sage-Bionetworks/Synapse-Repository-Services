@@ -56,7 +56,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	/**
 	 * No more than 100 values in a field value array
 	 */
-	public static final int FIELD_VALUE_SIZE_LIMIT = 100;
+	public static final int FIELD_VALUE_SIZE_LIMIT = 1000;
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
