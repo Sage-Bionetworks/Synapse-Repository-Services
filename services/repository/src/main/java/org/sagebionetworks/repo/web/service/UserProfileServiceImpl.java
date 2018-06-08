@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -89,6 +90,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
 	UserGroupDAO userGroupDao;
+	
+	@Autowired
+	TokenGenerator tokenGenerator;
 	
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
@@ -296,7 +300,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Override
 	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken notificationSettingsSignedToken) {
-		TokenGeneratorSingleton.singleton().validateToken(notificationSettingsSignedToken);
+		tokenGenerator.validateToken(notificationSettingsSignedToken);
 		String userId = notificationSettingsSignedToken.getUserId();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
 

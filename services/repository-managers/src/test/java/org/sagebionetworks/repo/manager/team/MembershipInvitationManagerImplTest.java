@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
-import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -64,8 +63,8 @@ public class MembershipInvitationManagerImplTest {
 	private TeamDAO mockTeamDAO = null;
 	@Mock
 	private SynapseEmailService mockSynapseEmailService;
-	// use a real token generator.
-	private TokenGenerator tokenGenerator = TokenGeneratorSingleton.singleton();
+	@Mock
+	private TokenGenerator tokenGenerator;
 
 	private UserInfo userInfo = null;
 

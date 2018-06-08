@@ -15,6 +15,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
@@ -206,30 +207,30 @@ public class EmailUtils {
 	
 
 	
-	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId, Date createdOn) {
+	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId, Date createdOn, TokenGenerator tokenGenerator) {
 		JoinTeamSignedToken token = new JoinTeamSignedToken();
 		token.setCreatedOn(createdOn);
 		token.setUserId(userId);
 		token.setMemberId(memberId);
 		token.setTeamId(teamId);
-		TokenGeneratorSingleton.singleton().signToken(token);
+		tokenGenerator.signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
 		return result;
 	}
 
-	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId) {
+	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId, TokenGenerator tokenGenerator) {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setMembershipInvitationId(membershipInvitationId);
-		TokenGeneratorSingleton.singleton().signToken(token);
+		tokenGenerator.signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
 		return result;
 	}
 
-	public static String createOneClickUnsubscribeLink(String endpoint, String userId) {
+	public static String createOneClickUnsubscribeLink(String endpoint, String userId, TokenGenerator tokenGenerator) {
 		if (endpoint==null || userId==null) throw new IllegalArgumentException("endpoint and userId are required.");
 		NotificationSettingsSignedToken token = new NotificationSettingsSignedToken();
 		token.setCreatedOn(new Date());
@@ -237,7 +238,7 @@ public class EmailUtils {
 		Settings settings = new Settings();
 		settings.setSendEmailNotifications(false);
 		token.setSettings(settings);
-		TokenGeneratorSingleton.singleton().signToken(token);
+		tokenGenerator.signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);

@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -94,6 +95,8 @@ public class UserProfileServiceTest {
 	private VerificationDAO mockVerificationDao;
 	@Mock
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
 	
 	@Before
 	public void before() throws Exception {
@@ -140,6 +143,7 @@ public class UserProfileServiceTest {
 		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(userProfileService, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(userProfileService, "principalPrefixDAO", mockPrincipalPrefixDAO);
+		ReflectionTestUtils.setField(userProfileService, "tokenGenerator", mockTokenGenerator);
 		
 		aliasList = new AliasList();
 		aliasList.setList(Lists.newArrayList("aliasOne", "aliasTwo"));
@@ -270,7 +274,7 @@ public class UserProfileServiceTest {
 		Settings settings = new Settings();
 		settings.setSendEmailNotifications(false);
 		notificationSettingsSignedToken.setSettings(settings);
-		TokenGeneratorSingleton.singleton().signToken(notificationSettingsSignedToken);
+		notificationSettingsSignedToken.setHmac("signed");
 		
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(userId);

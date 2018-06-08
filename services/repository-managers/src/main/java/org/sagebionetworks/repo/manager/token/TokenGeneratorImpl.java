@@ -14,6 +14,10 @@ import org.sagebionetworks.securitytools.HMACUtils;
 
 public class TokenGeneratorImpl implements TokenGenerator {
 
+	public static final String TOKEN_SIGNATURE_IS_INVALID = "Token signature is invalid.";
+
+	public static final String TOKEN_HAS_EXPIRED = "Token has expired.";
+
 	private static final String UTF_8 = Charset.forName("utf-8").name();
 
 	/**
@@ -63,7 +67,7 @@ public class TokenGeneratorImpl implements TokenGenerator {
 		token.setHmac(null);
 		// is the token expired?
 		if(isExpired(token)) {
-			throw new UnauthorizedException("Token has expired.");
+			throw new UnauthorizedException(TOKEN_HAS_EXPIRED);
 		}
 		int keyVersion = DEFAULT_KEY_VERSION;
 		if(token.getVersion() != null) {
@@ -71,7 +75,7 @@ public class TokenGeneratorImpl implements TokenGenerator {
 		}
 		String regeneratedHmac = generateSignature(token, keyVersion);
 		if (!regeneratedHmac.equals(hmac)) {
-			throw new UnauthorizedException("Token signature is invalid.");
+			throw new UnauthorizedException(TOKEN_SIGNATURE_IS_INVALID);
 		}
 		// restore the starting HMAC.
 		token.setHmac(hmac);

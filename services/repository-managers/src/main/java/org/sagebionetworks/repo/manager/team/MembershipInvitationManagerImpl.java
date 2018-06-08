@@ -119,7 +119,7 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mi.getTeamId()).getName());
 		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mi.getTeamId());
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
-				acceptInvitationEndpoint, mi.getInviteeId(), mi.getInviteeId(), mi.getTeamId(), mi.getCreatedOn()));
+				acceptInvitationEndpoint, mi.getInviteeId(), mi.getInviteeId(), mi.getTeamId(), mi.getCreatedOn(), tokenGenerator));
 		if (mi.getMessage()==null || mi.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {
@@ -141,7 +141,7 @@ public class MembershipInvitationManagerImpl implements
 		Map<String,String> fieldValues = new HashMap<>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mi.getTeamId());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mi.getId()));
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mi.getId(), tokenGenerator));
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mi.getMessage());
 		String messageBody = EmailUtils.readMailTemplate("message/teamMembershipInvitationExtendedToEmailTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()

@@ -21,6 +21,7 @@ import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -146,7 +147,7 @@ public class SendRawEmailRequestBuilder {
 		}
 		if (withUnsubscribeLink && userId!=null) {
 			unsubscribeLink = EmailUtils.
-					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, userId);
+					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, userId, TokenGeneratorSingleton.singleton());
 		}
 		if (withProfileSettingLink && userId != null) {
 			profileSettingLink = userProfileSettingEndpoint;

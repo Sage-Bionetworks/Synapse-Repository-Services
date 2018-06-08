@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
-import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -53,21 +53,8 @@ public class TeamServiceImpl implements TeamService {
 	private NotificationManager notificationManager;
 	@Autowired
 	private UserProfileManager userProfileManager;
-	
-	public TeamServiceImpl() {}
-	
-	// for testing
-	public TeamServiceImpl(TeamManager teamManager, 
-			PrincipalPrefixDAO principalPrefixDAO,
-			UserManager userManager,
-			NotificationManager notificationManager,
-			UserProfileManager userProfileManager) {
-		this.teamManager=teamManager;
-		this.principalPrefixDAO=principalPrefixDAO;
-		this.userManager=userManager;
-		this.notificationManager=notificationManager;
-		this.userProfileManager = userProfileManager;
-	}
+	@Autowired
+	private TokenGenerator tokenGenerator;
 	
 	
 	/* (non-Javadoc)
@@ -242,7 +229,7 @@ public class TeamServiceImpl implements TeamService {
 	
 	@Override
 	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
-		TokenGeneratorSingleton.singleton().validateToken(joinTeamToken);
+		tokenGenerator.validateToken(joinTeamToken);
 		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
