@@ -160,10 +160,10 @@
 				<version>${jackson.version}</version>
 			</dependency>
 
-			<!-- Used for timer triggers (cron-like)
-			Note: spring-context-support also depends on this libary as an optional dependancy.
-			Since spring-context-support version 4.0.2-RELEASE uses quartz version 1.8.6 that 
-			is the version of quartz we are using.  See the  spring-context-support pom.xml.-->
+			<!-- Used for timer triggers (cron-like) Note: spring-context-support 
+				also depends on this libary as an optional dependancy. Since spring-context-support 
+				version 4.0.2-RELEASE uses quartz version 1.8.6 that is the version of quartz 
+				we are using. See the spring-context-support pom.xml. -->
 			<dependency>
 				<groupId>org.quartz-scheduler</groupId>
 				<artifactId>quartz</artifactId>
@@ -593,11 +593,8 @@
 			<dependency>
 				<groupId>com.sun</groupId>
 				<artifactId>tools</artifactId>
-				<!-- 
-				A copy of the tools.jar from 
-				jdk1.8.0_152 was manually added to 
-				atrifactory to create version 1.8.20171103.
-				-->
+				<!-- A copy of the tools.jar from jdk1.8.0_152 was manually added to 
+					atrifactory to create version 1.8.20171103. -->
 				<version>1.8.20171103</version>
 			</dependency>
 
@@ -625,7 +622,19 @@
 			<dependency>
 				<groupId>com.google.inject</groupId>
 				<artifactId>guice</artifactId>
-				<version>4.2.0</version>
+				<version>3.0</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.atlassian.jira</groupId>
+				<artifactId>jira-rest-java-client-api</artifactId>
+				<version>${jira.client.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.atlassian.jira</groupId>
+				<artifactId>jira-rest-java-client-core</artifactId>
+				<version>${jira.client.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -830,27 +839,33 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.5.1</gwtVersion>
-		<guavaVersion>25.0-jre</guavaVersion>
+		<guavaVersion>17.0</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>4.3.3.RELEASE</org.springframework.version>
+		<org.springframework.version>4.3.3.RELEASE
+		</org.springframework.version>
 		<jackson.version>1.8.1</jackson.version>
 		<xstream.version>1.3.1</xstream.version>
-		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
+		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ
+		</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
-		<mysql.mysql-connector-java.version>5.1.13</mysql.mysql-connector-java.version>
+		<mysql.mysql-connector-java.version>5.1.13
+		</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
+		<org.apache.commons.commons-dbcp.version>1.4
+		</org.apache.commons.commons-dbcp.version>
 		<schema-to-pojo.version>0.3.21</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.335</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.2</org.apache.httpcomponents.version>
+		<org.apache.httpcomponents.version>4.5.2
+		</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
 		<org.json.version>20090211</org.json.version>
+		<jira.client.version>2.0.0-m19</jira.client.version>
 	</properties>
 
 	<distributionManagement>

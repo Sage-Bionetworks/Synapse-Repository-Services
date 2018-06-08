@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.util.jrjc;
 import java.net.URI;
 import java.util.concurrent.ExecutionException;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 
 import com.atlassian.jira.rest.client.api.IssueRestClient;

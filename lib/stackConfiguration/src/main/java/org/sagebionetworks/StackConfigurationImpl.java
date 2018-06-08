@@ -1106,7 +1106,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 		String emailDeliveredString = null;
 		try {
 			emailDeliveredString = configuration.getProperty("org.sagebionetworks.email.delivered");
-		} catch (NullPointerException e) {
+		} catch (IllegalArgumentException e) {
 			emailDeliveredString = null;
 		}
 		if (emailDeliveredString == null || emailDeliveredString.length() == 0)
