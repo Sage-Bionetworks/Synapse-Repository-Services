@@ -75,8 +75,12 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	}
 	
 	public void writeToFile(SendRawEmailRequest rawEmailRequest) {
-		String to = rawEmailRequest.getDestinations().get(0);
-		writeObjectToFile(new String(rawEmailRequest.getRawMessage().getData().array()), to);
+		try {
+			String to = rawEmailRequest.getDestinations().get(0);
+			writeObjectToFile(new String(rawEmailRequest.getRawMessage().getData().array(), "UTF-8"), to);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public void writeObjectToFile(String emailBody, String to) {
