@@ -19,7 +19,6 @@
 		</property>
 		<property name="triggers">
 			<list>
-				<ref bean="stackConfigurationReloadTrigger" />
 	           	<ref bean="repoLogSweeperTrigger" />
 				<ref bean="cloudwatchTrigger" />
 				<ref bean="accessRecorderTrigger" />

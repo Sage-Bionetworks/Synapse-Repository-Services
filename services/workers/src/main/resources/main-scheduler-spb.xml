@@ -89,7 +89,6 @@
 				<ref bean="migrationMessageReceiverTrigger"/>
 				<!-- others -->
 				<ref bean="changeSentMessageSynchTrigger" />
-				<ref bean="stackConfigurationReloadTrigger" />
 				<!-- workers publish messages too -->
 				<ref bean="messagePublisherTrigger" />
 				<ref bean="tableViewWorkerTrigger" />
