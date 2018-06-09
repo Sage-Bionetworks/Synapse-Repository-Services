@@ -1620,6 +1620,7 @@ public class IT500SynapseJavaClient {
 		EmailValidationUtil.deleteFile(inviterNotification);
 	}
 
+	@Ignore // See PLFM-4131
 	@Test
 	public void testMembershipRequestAndAcceptanceViaNotification() throws Exception {
 		// create a Team
