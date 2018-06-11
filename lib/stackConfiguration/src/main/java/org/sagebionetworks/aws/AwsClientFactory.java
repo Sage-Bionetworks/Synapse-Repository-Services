@@ -79,7 +79,7 @@ public class AwsClientFactory {
 	 */
 	public static AmazonCloudSearchDomain createAmazonCloudSearchDomain(String endpoint) {
 		AmazonCloudSearchDomainClientBuilder builder = AmazonCloudSearchDomainClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
+		builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, Regions.US_EAST_1.getName()));
 		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
 		return builder.build();
 	}
