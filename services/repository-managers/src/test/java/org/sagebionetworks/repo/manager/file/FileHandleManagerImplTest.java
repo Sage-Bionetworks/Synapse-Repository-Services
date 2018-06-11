@@ -45,6 +45,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -289,7 +290,7 @@ public class FileHandleManagerImplTest {
 		InputStream stream = new StringInputStream("stream");
 		TransferRequest metadata = FileHandleManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata", stream);
 		assertNotNull(metadata);
-		assertEquals(StackConfiguration.getS3Bucket(), metadata.getS3bucketName());
+		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), metadata.getS3bucketName());
 		assertEquals(Mimetypes.MIMETYPE_OCTET_STREAM, metadata.getContentType());
 		assertNotNull(metadata.getS3key());
 		assertTrue(metadata.getS3key().startsWith("123/"));

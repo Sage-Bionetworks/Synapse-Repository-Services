@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -23,7 +24,7 @@ public class MultipartUtils {
 	public static String getBucket(StorageLocationSetting storageLocationSetting) {
 		String bucket;
 		if (storageLocationSetting == null || storageLocationSetting instanceof S3StorageLocationSetting) {
-			bucket = StackConfiguration.getS3Bucket();
+			bucket = StackConfigurationSingleton.singleton().getS3Bucket();
 		} else if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			bucket = ((ExternalS3StorageLocationSetting) storageLocationSetting).getBucket();
 		} else {

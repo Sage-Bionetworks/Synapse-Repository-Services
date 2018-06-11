@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -110,6 +111,7 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
 		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
 		ReflectionTestUtils.setField(dockerManager, "transactionalMessenger", transactionalMessenger);
+		ReflectionTestUtils.setField(dockerManager, "stackConfiguration", StackConfigurationSingleton.singleton());
 		
 		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
 		

@@ -23,7 +23,6 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.idGeneratorDatabaseUsername",
 			"stackConfiguration.idGeneratorDatabasePassword",
 			// Repository properties
-			"stackConfiguration.repositoryJDOConfigurationMap",
 			"stackConfiguration.repositoryDatabaseDriver",
 			"stackConfiguration.repositoryDatabaseConnectionUrl",
 			"stackConfiguration.repositoryDatabaseUsername",

@@ -13,7 +13,7 @@ import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -39,8 +39,8 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
-import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
+import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -64,8 +64,8 @@ public class NodeManagerImpl implements NodeManager {
 	
 	private static final Pattern INVALID_ALIAS_CHARACTERS = Pattern.compile("[^a-zA-Z0-9_]");
 	
-	public static final Long ROOT_ID = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
-	public static final Long TRASH_ID = KeyFactory.stringToKey(StackConfiguration.getTrashFolderEntityIdStatic());
+	public static final Long ROOT_ID = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
+	public static final Long TRASH_ID = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	@Autowired
 	NodeDAO nodeDao;	
@@ -186,11 +186,11 @@ public class NodeManagerImpl implements NodeManager {
 					&& !TRASH_ID.equals(parentIdLong)) {
 				// Get the child count
 				long currentCount = nodeDao.getChildCount(parentId);
-				if (currentCount + 1 > StackConfiguration
+				if (currentCount + 1 > StackConfigurationSingleton.singleton()
 						.getMaximumNumberOfEntitiesPerContainer()) {
 					throw new IllegalArgumentException(
 							"Limit of "
-									+ StackConfiguration
+									+ StackConfigurationSingleton.singleton()
 											.getMaximumNumberOfEntitiesPerContainer()
 									+ " children exceeded for parent: "
 									+ parentId);

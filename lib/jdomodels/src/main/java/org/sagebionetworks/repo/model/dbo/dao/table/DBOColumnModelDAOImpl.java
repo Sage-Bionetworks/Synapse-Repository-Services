@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -138,7 +139,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws DatastoreException, NotFoundException {
 		// Convert to the DBO
-		DBOColumnModel dbo = ColumnModelUtils.createDBOFromDTO(model, StackConfiguration.singleton().getTableMaxEnumValues());
+		DBOColumnModel dbo = ColumnModelUtils.createDBOFromDTO(model, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		// check to see if a column model already exists with this hash.
 		String existingId = getColumnForHash(dbo.getHash());
 		if(existingId != null){

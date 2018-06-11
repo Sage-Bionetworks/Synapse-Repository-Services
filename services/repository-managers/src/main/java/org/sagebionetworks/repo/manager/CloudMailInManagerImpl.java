@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONException;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -48,7 +49,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	private static final String CC_HEADER = "Cc";
 	private static final String BCC_HEADER = "Bcc";
 	
-	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfiguration.getNotificationEmailSuffix().toLowerCase();
+	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfigurationSingleton.singleton().getNotificationEmailSuffix().toLowerCase();
 	
 	private static final String INVALID_EMAIL_ADDRESSES_SUBJECT = "Message Failure Notification";
 	private static final String INVALID_EMAIL_ADDRESSES_TEMPLATE = "message/InvalidEmailAddressesTemplate.html";

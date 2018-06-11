@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -58,7 +59,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String TRASH_FOLDER_ID = StackConfiguration.getTrashFolderEntityIdStatic();
+	private static final String TRASH_FOLDER_ID = StackConfigurationSingleton.singleton().getTrashFolderEntityId();
 
 	private static final String SELECT_GET_FAVORITES_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID +", "+ COL_FAVORITE_CREATED_ON
 															+ " FROM " + TABLE_FAVORITE 

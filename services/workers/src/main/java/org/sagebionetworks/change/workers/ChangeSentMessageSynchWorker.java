@@ -9,6 +9,7 @@ import java.util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -55,7 +56,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	static private Logger log = LogManager
 			.getLogger(ChangeSentMessageSynchWorker.class);
 	
-	private static String METRIC_NAMESPACE = ChangeSentMessageSynchWorker.class.getName()+" - "+ StackConfiguration.getStackInstance();
+	private static String METRIC_NAMESPACE = ChangeSentMessageSynchWorker.class.getName()+" - "+ StackConfigurationSingleton.singleton().getStackInstance();
 
 	@Autowired
 	DBOChangeDAO changeDao;

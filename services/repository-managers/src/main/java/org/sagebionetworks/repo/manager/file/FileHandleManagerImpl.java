@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -246,7 +247,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		TransferRequest request = new TransferRequest();
 		request.setContentType(ContentTypeUtils.getContentType(contentType,
 				fileName));
-		request.setS3bucketName(StackConfiguration.getS3Bucket());
+		request.setS3bucketName(StackConfigurationSingleton.singleton().getS3Bucket());
 		request.setS3key(createNewKey(userId, fileName));
 		request.setFileName(fileName);
 		request.setInputStream(inputStream);
@@ -499,7 +500,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public void initialize() {
 		// We need to ensure that Cross-Origin Resource Sharing (CORS) is
 		// enabled on the bucket
-		String bucketName = StackConfiguration.getS3Bucket();
+		String bucketName = StackConfigurationSingleton.singleton().getS3Bucket();
 		BucketCrossOriginConfiguration bcoc = s3Client
 				.getBucketCrossOriginConfiguration(bucketName);
 		if (bcoc == null || bcoc.getRules() == null
@@ -542,14 +543,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		allowAll.setAllowedHeaders("*");
 		bcoc.withRules(allowAll);
 		s3Client.setBucketCrossOriginConfiguration(
-				StackConfiguration.getS3Bucket(), bcoc);
+				StackConfigurationSingleton.singleton().getS3Bucket(), bcoc);
 		log.info("Set CORSRule on bucket: " + bucketName + " to be: "
 				+ allowAll);
 	}
 
 	@Override
 	public BucketCrossOriginConfiguration getBucketCrossOriginConfiguration() {
-		String bucketName = StackConfiguration.getS3Bucket();
+		String bucketName = StackConfigurationSingleton.singleton().getS3Bucket();
 		return s3Client.getBucketCrossOriginConfiguration(bucketName);
 	}
 
@@ -918,7 +919,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
 		if (contentEncoding!=null) meta.setContentEncoding(contentEncoding);
 		String key = MultipartUtils.createNewKey(createdBy, fileName, null);
-		String bucket = StackConfiguration.getS3Bucket();
+		String bucket = StackConfigurationSingleton.singleton().getS3Bucket();
 		s3Client.putObject(bucket, key, in, meta);
 		// Create the file handle
 		S3FileHandle handle = new S3FileHandle();

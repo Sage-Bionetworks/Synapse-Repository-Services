@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -134,7 +135,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 			csv.close();
 		}
 		fileHandle = new S3FileHandle();
-		fileHandle.setBucketName(StackConfiguration.getS3Bucket());
+		fileHandle.setBucketName(StackConfigurationSingleton.singleton().getS3Bucket());
 		fileHandle.setKey(UUID.randomUUID()+".csv");
 		fileHandle.setContentType("text/csv");
 		fileHandle.setCreatedBy(""+adminUserInfo.getId());

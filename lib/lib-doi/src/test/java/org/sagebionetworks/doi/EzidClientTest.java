@@ -21,6 +21,7 @@ import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.CoreProtocolPNames;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -39,8 +40,8 @@ public class EzidClientTest {
 		AuthScope authScope = new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT, "EZID", AuthPolicy.BASIC);
 		Credentials credentials = httpClient.getCredentialsProvider().getCredentials(authScope);
 		assertNotNull(credentials);
-		assertEquals(StackConfiguration.getEzidUsername(), credentials.getUserPrincipal().getName());
-		assertEquals(StackConfiguration.getEzidPassword(), credentials.getPassword());
+		assertEquals(StackConfigurationSingleton.singleton().getEzidUsername(), credentials.getUserPrincipal().getName());
+		assertEquals(StackConfigurationSingleton.singleton().getEzidPassword(), credentials.getPassword());
 		retryableClient = (RetryableHttpClient)ReflectionTestUtils.getField(client, "readClient");
 		assertNotNull(retryableClient);
 		httpClient = (DefaultHttpClient)ReflectionTestUtils.getField(retryableClient, "httpClient");

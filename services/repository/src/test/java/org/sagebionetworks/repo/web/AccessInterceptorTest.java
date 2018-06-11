@@ -11,10 +11,13 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
+import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
@@ -27,28 +30,35 @@ import org.springframework.test.util.ReflectionTestUtils;
  * @author jmhill
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class AccessInterceptorTest {
 	
+	@Mock
 	HttpServletRequest mockRequest;
+	@Mock
 	HttpServletResponse mockResponse;
+	@Mock
+	StackConfiguration mockConfiguration;
 	Object mockHandler;
 	UserInfo mockUserInfo;
 	StubAccessRecorder stubRecorder;
 	AccessInterceptor interceptor;
 	Long userId;
 	TestClock testClock = new TestClock();
+	int instanceNumber;
+	String stack;
 
 	@Before
 	public void before() throws Exception {
 		userId = 12345L;
-		mockRequest = Mockito.mock(HttpServletRequest.class);
-		mockResponse = Mockito.mock(HttpServletResponse.class);
 		mockHandler = Mockito.mock(Object.class);
 		mockUserInfo = new UserInfo(false, 123L);
 		stubRecorder = new StubAccessRecorder();
 		interceptor = new AccessInterceptor();
 		ReflectionTestUtils.setField(interceptor, "accessRecorder", stubRecorder);
 		ReflectionTestUtils.setField(interceptor, "clock", testClock);
+		ReflectionTestUtils.setField(interceptor, "stackConfiguration", mockConfiguration);
+
 		// Setup the happy mock
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId.toString());
 		when(mockRequest.getRequestURI()).thenReturn("/entity/syn789");
@@ -61,6 +71,10 @@ public class AccessInterceptorTest {
 		when(mockRequest.getQueryString()).thenReturn("?param1=foo");
 		// setup response
 		when(mockResponse.getStatus()).thenReturn(200);
+		instanceNumber = 101;
+		when(mockConfiguration.getStackInstanceNumber()).thenReturn(instanceNumber);
+		stack = "dev";
+		when(mockConfiguration.getStack()).thenReturn(stack);
 	}
 	
 	
@@ -93,9 +107,9 @@ public class AccessInterceptorTest {
 		assertEquals("http://www.example-social-network.com", result.getOrigin());
 		assertEquals("1.0 fred, 1.1 example.com", result.getVia());
 		assertEquals(new Long(Thread.currentThread().getId()), result.getThreadId());
-		String stackInstanceNumber = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
+		String stackInstanceNumber = KeyGeneratorUtil.getInstancePrefix(instanceNumber);
 		assertEquals(stackInstanceNumber, result.getInstance());
-		assertEquals(StackConfiguration.singleton().getStack(), result.getStack());
+		assertEquals(mockConfiguration.getStack(), result.getStack());
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());

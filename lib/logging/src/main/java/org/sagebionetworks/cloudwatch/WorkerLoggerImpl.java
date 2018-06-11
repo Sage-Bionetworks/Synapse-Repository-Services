@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -72,7 +73,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 			boolean willRetry,
 			Date timestamp) {
 		ProfileData nextPD = new ProfileData();
-		nextPD.setNamespace(WORKER_NAMESPACE+" - "+ StackConfiguration.getStackInstance()); 
+		nextPD.setNamespace(WORKER_NAMESPACE+" - "+ StackConfigurationSingleton.singleton().getStackInstance()); 
 		nextPD.setName(name);
 		nextPD.setValue(1D); // i.e. we are counting discrete events
 		nextPD.setUnit("Count"); // for allowed values see http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/StandardUnit.html

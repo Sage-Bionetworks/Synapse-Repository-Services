@@ -25,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -225,7 +226,7 @@ public class MessageManagerImplUnitTest {
 	@Test
 	public void testCreateNotificationMessagePLAIN() throws Exception {
 		mtu.setIsNotificationMessage(true);
-		String from = EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+StackConfiguration.getNotificationEmailSuffix();
+		String from = EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+StackConfigurationSingleton.singleton().getNotificationEmailSuffix();
 		fileHandle.setContentType("text/plain");
 		String messageBody = "message body";
 		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);

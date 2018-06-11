@@ -40,14 +40,14 @@ public class IT060SynapseJavaClientDoiTest {
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
 
-		StackConfiguration config = new StackConfiguration();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		Assume.assumeTrue(config.getDoiEnabled());
 
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(config.getMigrationAdminUsername());
+		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -60,7 +60,7 @@ public class IT060SynapseJavaClientDoiTest {
 
 	@AfterClass
 	public static void afterClass() throws Exception {
-		StackConfiguration config = new StackConfiguration();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		if (config.getDoiEnabled()) {
 			if (entity != null) {
 				synapse.deleteAndPurgeEntityById(entity.getId());

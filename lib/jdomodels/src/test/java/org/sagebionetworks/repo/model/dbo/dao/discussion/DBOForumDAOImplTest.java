@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -45,7 +46,7 @@ public class DBOForumDAOImplTest {
 		// create a project
 		Node project = NodeTestUtils.createNew("projectName" + "-" + new Random().nextInt(),
 				Long.parseLong(userId));
-		project.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
+		project.setParentId(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 		projectId = nodeDao.createNew(project);
 	}
 

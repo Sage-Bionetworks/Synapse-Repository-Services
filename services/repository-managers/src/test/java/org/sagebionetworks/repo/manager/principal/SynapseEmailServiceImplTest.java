@@ -11,6 +11,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,7 +41,7 @@ public class SynapseEmailServiceImplTest {
 	
 	@BeforeClass
 	public static void before() throws Exception {
-		BUCKET = StackConfiguration.getS3Bucket();
+		BUCKET = StackConfigurationSingleton.singleton().getS3Bucket();
 	}
 	
 	@After

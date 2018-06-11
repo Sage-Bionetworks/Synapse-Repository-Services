@@ -52,8 +52,8 @@ public class IT300JSONPServices {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -80,7 +80,7 @@ public class IT300JSONPServices {
 	@Test
 	public void testTeamJSONP() throws Exception {
 		// Make a simple call to the repository service 
-		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
+		StringBuilder urlBuilder = new StringBuilder(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
 		String callbackName = "parseMe";
 		urlBuilder.append("/teams"+"?callback="); 
 		urlBuilder.append(callbackName);
@@ -116,7 +116,7 @@ public class IT300JSONPServices {
 	@Test
 	public void testTeamMembershipJSONP() throws Exception {
 		// Make a simple call to the repository service 
-		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
+		StringBuilder urlBuilder = new StringBuilder(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
 		String callbackName = "parseMe";
 		String teamId = makeATeam();
 		urlBuilder.append("/teamMembers/"+teamId+"?callback="); 

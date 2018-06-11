@@ -21,14 +21,19 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ResponseMessage;
@@ -39,26 +44,30 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TeamServiceTest {
 	
 	private TeamServiceImpl teamService;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private TeamManager mockTeamManager;
+	@Mock
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
+	@Mock
 	private NotificationManager mockNotificationManager;
+	@Mock
 	private UserProfileManager mockUserProfileManager;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
 	
 	private Team team = null;
 	private TeamMember member = null;
 	
 	@Before
 	public void before() throws Exception {
-		mockUserManager = Mockito.mock(UserManager.class);
-		
-		mockTeamManager = mock(TeamManager.class);
-		mockPrincipalPrefixDAO = mock(PrincipalPrefixDAO.class);
 			
 		team = new Team();
 		team.setId("101");
@@ -74,16 +83,15 @@ public class TeamServiceTest {
 		
 		PaginatedResults<TeamMember> members = PaginatedResults.createWithLimitAndOffset(Arrays.asList(new TeamMember[]{member}), 100L, 0L);
 		when(mockTeamManager.listMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
-
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
 		
-		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
+		teamService = new TeamServiceImpl();
 		
-		teamService = new TeamServiceImpl(mockTeamManager, 
-				mockPrincipalPrefixDAO, 
-				mockUserManager, 
-				mockNotificationManager,
-				mockUserProfileManager);
+		ReflectionTestUtils.setField(teamService, "teamManager", mockTeamManager);
+		ReflectionTestUtils.setField(teamService, "principalPrefixDAO", mockPrincipalPrefixDAO);
+		ReflectionTestUtils.setField(teamService, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(teamService, "notificationManager", mockNotificationManager);
+		ReflectionTestUtils.setField(teamService, "userProfileManager", mockUserProfileManager);
+		ReflectionTestUtils.setField(teamService, "tokenGenerator", mockTokenGenerator);
 	}
 	
 	@Test
@@ -253,7 +261,7 @@ public class TeamServiceTest {
 		jtst.setUserId(userId.toString());
 		jtst.setTeamId(teamId);
 		jtst.setMemberId(principalId.toString());
-		SignedTokenUtil.signToken(jtst);
+		jtst.setHmac("someHMAC");
 		
 		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(true);
 		
@@ -298,7 +306,7 @@ public class TeamServiceTest {
 		jtst.setUserId(userId.toString());
 		jtst.setTeamId(teamId);
 		jtst.setMemberId(principalId.toString());
-		SignedTokenUtil.signToken(jtst);
+		jtst.setHmac("someHMAC");
 		
 		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(false);
 		

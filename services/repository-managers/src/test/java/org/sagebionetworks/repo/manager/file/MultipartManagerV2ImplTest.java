@@ -34,6 +34,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -234,7 +235,7 @@ public class MultipartManagerV2ImplTest {
 		ArgumentCaptor<CreateMultipartRequest> requestCapture = ArgumentCaptor.forClass(CreateMultipartRequest.class);
 		verify(mockMultiparUploadDAO).createUploadStatus(requestCapture.capture());
 		assertEquals(uploadToken, requestCapture.getValue().getUploadToken());
-		assertEquals(StackConfiguration.getS3Bucket(), requestCapture.getValue().getBucket());
+		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), requestCapture.getValue().getBucket());
 		assertNotNull(requestCapture.getValue().getKey());
 		assertEquals(requestJson, requestCapture.getValue().getRequestBody());
 		assertEquals(userInfo.getId(), requestCapture.getValue().getUserId());

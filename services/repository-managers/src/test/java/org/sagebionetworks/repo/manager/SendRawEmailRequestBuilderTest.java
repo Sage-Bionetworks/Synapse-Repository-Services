@@ -15,8 +15,10 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -28,6 +30,13 @@ public class SendRawEmailRequestBuilderTest {
 	
 	private static final String UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
 	private static final String PROFILE_SETTING_ENDPOINT = "https://www.synapse.org/#profile:edit";
+	
+	StackConfiguration config;
+	
+	@Before
+	public void before() {
+		config = StackConfigurationSingleton.singleton();
+	}
 
 	@Test
 	public void testCreateRawEmailRequest() throws Exception {
@@ -90,7 +99,7 @@ public class SendRawEmailRequestBuilderTest {
 				.withCc("Cc <cc@foo.bar>")
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
-		String from = EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+StackConfiguration.getNotificationEmailSuffix();
+		String from = EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+config.getNotificationEmailSuffix();
 		assertFalse(request.getSource().equals("Foo Bar <foobar@synapse.org>"));
 		assertEquals(from, request.getSource());
 		assertEquals(1, request.getDestinations().size());
@@ -173,7 +182,7 @@ public class SendRawEmailRequestBuilderTest {
 		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
-		assertTrue(bodyContent.indexOf(StackConfiguration.getDefaultPortalNotificationEndpoint())>0);
+		assertTrue(bodyContent.indexOf(config.getDefaultPortalNotificationEndpoint())>0);
 		assertTrue(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
 	}
 
@@ -257,7 +266,7 @@ public class SendRawEmailRequestBuilderTest {
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
-		assertTrue(bodyContent.indexOf(StackConfiguration.getDefaultPortalProfileSettingEndpoint())>0);
+		assertTrue(bodyContent.indexOf(config.getDefaultPortalProfileSettingEndpoint())>0);
 	}
 
 	@Test

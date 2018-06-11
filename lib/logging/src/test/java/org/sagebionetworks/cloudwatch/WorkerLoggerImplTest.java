@@ -13,6 +13,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -34,7 +35,7 @@ public class WorkerLoggerImplTest {
 
 		assertNull(pd.getMetricStats());
 		assertEquals("org.sagebionetworks.cloudwatch.WorkerLogger", pd.getName());
-		assertEquals("Asynchronous Workers - "+StackConfiguration.getStackInstance(), pd.getNamespace());
+		assertEquals("Asynchronous Workers - "+StackConfigurationSingleton.singleton().getStackInstance(), pd.getNamespace());
 		assertTrue(pd.getTimestamp().getTime()-timestamp.getTime()<10L);
 		assertEquals("Count", pd.getUnit());
 		assertEquals(1D, pd.getValue(), 1E-10);
@@ -67,7 +68,7 @@ public class WorkerLoggerImplTest {
 
 		assertNull(pd.getMetricStats());
 		assertEquals(name, pd.getName());
-		assertEquals("Asynchronous Workers - "+StackConfiguration.getStackInstance(), pd.getNamespace());
+		assertEquals("Asynchronous Workers - "+StackConfigurationSingleton.singleton().getStackInstance(), pd.getNamespace());
 		assertTrue(pd.getTimestamp().getTime()-timestamp.getTime()<10L);
 		assertEquals("Count", pd.getUnit());
 		assertEquals(1D, pd.getValue(), 1E-10);

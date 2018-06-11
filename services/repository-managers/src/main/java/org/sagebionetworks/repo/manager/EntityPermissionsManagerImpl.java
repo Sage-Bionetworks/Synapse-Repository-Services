@@ -17,6 +17,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -55,7 +56,7 @@ import com.google.common.collect.Sets.SetView;
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 	private static final Long TRASH_FOLDER_ID = Long.parseLong(
-			StackConfiguration.getTrashFolderEntityIdStatic());
+			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	@Autowired
 	private NodeDAO nodeDao;

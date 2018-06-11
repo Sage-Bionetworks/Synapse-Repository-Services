@@ -41,15 +41,15 @@ public class IT510SynapseJavaClientSearchTest {
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		StackConfiguration config = new StackConfiguration();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(config.getSearchEnabled());
 		
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(config.getMigrationAdminUsername());
+		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -63,7 +63,7 @@ public class IT510SynapseJavaClientSearchTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		StackConfiguration config = new StackConfiguration();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// There's nothing to do if search is disabled
 		if (!config.getSearchEnabled()) {
 			return;

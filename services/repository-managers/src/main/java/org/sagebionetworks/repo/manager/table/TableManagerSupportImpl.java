@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -345,7 +346,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		List<Long> containersToReconcile = new LinkedList<Long>();
 		if(ViewType.project.equals(type)){
 			// project views reconcile with root.
-			Long rootId = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+			Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 			containersToReconcile.add(rootId);
 		}else{
 			// all other views reconcile one the view's scope.
