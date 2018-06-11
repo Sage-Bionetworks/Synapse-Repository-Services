@@ -30,8 +30,6 @@ public class SynapseCredentialProviderChainTest {
 	@Mock
 	AWSCredentialsProvider mockDefaultProvider;
 
-	;
-
 	String accessId;
 	String accessSecret;
 	Properties settings;
@@ -48,10 +46,10 @@ public class SynapseCredentialProviderChainTest {
 		settings.put(ORG_SAGEBIONETWORKS_STACK_IAM_KEY, accessSecret+settingsSufffix);
 		
 		// setup system
-		String sysetmSufffix = "-system";
+		String systemSufffix = "-system";
 		system = new Properties();
-		system.put(ORG_SAGEBIONETWORKS_STACK_IAM_ID, accessId+sysetmSufffix);
-		system.put(ORG_SAGEBIONETWORKS_STACK_IAM_KEY, accessSecret+sysetmSufffix);
+		system.put(ORG_SAGEBIONETWORKS_STACK_IAM_ID, accessId+systemSufffix);
+		system.put(ORG_SAGEBIONETWORKS_STACK_IAM_KEY, accessSecret+systemSufffix);
 		
 		String defaultSuffix = "-default";
 		when(mockDefaultProvider.getCredentials()).thenReturn(new BasicAWSCredentials(accessId+defaultSuffix, accessSecret+defaultSuffix));

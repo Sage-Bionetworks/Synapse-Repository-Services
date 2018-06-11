@@ -68,15 +68,6 @@ public class TokenGeneratorImplTest {
 	}
 	
 	@Test
-	public void testIsExpiredNotExpired() {
-		// current time is before the old token expiration.
-		when(mockClock.currentTimeMillis()).thenReturn(OLD_TOKEN_EXPIRATION_EPOCH_MS+1L);
-		// token without expires on
-		token.setExpiresOn(null);
-		assertTrue(generator.isExpired(token));
-	}
-	
-	@Test
 	public void testGenerateSignature() {
 		int keyVersion = 0;
 		// call under test
@@ -116,6 +107,19 @@ public class TokenGeneratorImplTest {
 		assertNotNull(token.getExpiresOn());
 		assertEquals(3L, token.getExpiresOn().getTime());
 		assertNotNull(token.getHmac());
+	}
+	
+	@Test
+	public void testSignTokenWithExpiresPLFM_4958() {
+		// should use the provided expiration
+		token.setExpiresOn(new Date(TOKEN_EXPIRATION_MS+10));
+		// call under test
+		try {
+			generator.signToken(token);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("PLFM-4958"));
+		}
 	}
 	
 	@Test

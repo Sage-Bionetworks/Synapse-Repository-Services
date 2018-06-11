@@ -30,9 +30,9 @@ public class TokenGeneratorImpl implements TokenGenerator {
 	public static final int DEFAULT_KEY_VERSION = 0;
 	
 	/**
-	 * All tokens without an expiration will expire on Thursday, July 19, 2018 12:00:00 AM GMT
+	 * All tokens without an expiration will expire on Thursday, July 26, 2018 12:00:00 AM GMT
 	 */
-	public static final long OLD_TOKEN_EXPIRATION_EPOCH_MS = 1531958400000L;
+	public static final long OLD_TOKEN_EXPIRATION_EPOCH_MS = 1532563200000L;
 
 	StackConfiguration configuration;
 	Clock clock;
@@ -56,6 +56,8 @@ public class TokenGeneratorImpl implements TokenGenerator {
 		if(token.getExpiresOn() == null) {
 			long expires = clock.currentTimeMillis() + TOKEN_EXPIRATION_MS;
 			token.setExpiresOn(new Date(expires));
+		}else if(token.getExpiresOn().getTime() > clock.currentTimeMillis() + TOKEN_EXPIRATION_MS){
+			throw new IllegalArgumentException("Token expiration cannot be greater than 30 days. See: PLFM-4958");
 		}
 		String hmac = generateSignature(token, keyVersion);
 		token.setHmac(hmac);
@@ -86,6 +88,11 @@ public class TokenGeneratorImpl implements TokenGenerator {
 			throw new IllegalArgumentException("HMAC is added only after generating signature.");
 		}
 		try {
+			/*
+			 * We are using toJSON as a way to normalize the token to sign. If the toJSON
+			 * were to change the order of the results existing tokens would not longer
+			 * be valid.
+			 */
 			String jsonString = EntityFactory.createJSONStringForEntity(token);
 			byte[] secretKey = configuration.getHmacSigningKeyForVersion(keyVersion).getBytes(UTF_8);
 			byte[] signatureAsBytes = HMACUtils.generateHMACSHA1SignatureFromRawKey(jsonString, secretKey);
