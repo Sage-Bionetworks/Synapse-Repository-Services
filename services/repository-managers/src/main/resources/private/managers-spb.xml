@@ -51,6 +51,10 @@
 		<constructor-arg ref="stackConfiguration.oAuth2ORCIDClientSecret" index="1" />
 	</bean>
 
+	<bean id="tokenGenerator"
+		class="org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton"
+		factory-method="singleton"/>
+
 	<bean id="oAuthManager" class="org.sagebionetworks.repo.manager.oauth.OAuthManagerImpl">
 		<property name="providerMap">
 			<map>

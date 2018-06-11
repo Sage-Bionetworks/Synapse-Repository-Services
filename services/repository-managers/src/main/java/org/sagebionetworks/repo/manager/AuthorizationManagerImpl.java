@@ -11,18 +11,18 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.Node;
@@ -56,7 +55,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +68,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private static final String REGISTRY_TYPE = "registry";
 	private static final String REGISTRY_CATALOG = "catalog";	
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(
-			StackConfiguration.getTrashFolderEntityIdStatic());
+			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
@@ -110,8 +108,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
 	@Autowired
-	private MembershipInvitationDAO membershipInvitationDAO;
-
+	private TokenGenerator tokenGenerator;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -663,8 +660,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
 		String miId = token.getMembershipInvitationId();
 		try {
-			SignedTokenUtil.validateToken(token);
-		} catch (IllegalArgumentException e) {
+			tokenGenerator.validateToken(token);
+		} catch (UnauthorizedException e) {
 			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
 		if (accessType == ACCESS_TYPE.READ) {
@@ -677,8 +674,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
 		String miId = token.getMembershipInvitationId();
 		try {
-			SignedTokenUtil.validateToken(token);
-		} catch (IllegalArgumentException e) {
+			tokenGenerator.validateToken(token);
+		} catch (UnauthorizedException e) {
 			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
 		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(miId) && accessType == ACCESS_TYPE.UPDATE) {

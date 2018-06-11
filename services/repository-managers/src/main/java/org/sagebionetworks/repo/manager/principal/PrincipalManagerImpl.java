@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -63,6 +64,9 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private TokenGenerator tokenGenerator;
 
 	@Override
 	public boolean isAliasAvailable(String alias) {
@@ -91,7 +95,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		AccountCreationToken token = PrincipalUtils.createAccountCreationToken(user, now);
+		AccountCreationToken token = PrincipalUtils.createAccountCreationToken(user, now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
 		EmailUtils.validateSynapsePortalHost(url);
@@ -112,7 +116,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@WriteTransaction
 	@Override
 	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date());
+		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date(), tokenGenerator);
 		NewUser newUser = new NewUser();
 		newUser.setEmail(validatedEmail);
 		newUser.setFirstName(accountSetupInfo.getFirstName());
@@ -135,7 +139,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now);
+		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
 		EmailUtils.validateSynapsePortalHost(url);
@@ -163,7 +167,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Override
 	public void addEmail(UserInfo userInfo, EmailValidationSignedToken emailValidationSignedToken,
 						 Boolean setAsNotificationEmail) throws NotFoundException {
-		String newEmail = PrincipalUtils.validateAdditionalEmailSignedToken(emailValidationSignedToken, Long.toString(userInfo.getId()), new Date());
+		String newEmail = PrincipalUtils.validateAdditionalEmailSignedToken(emailValidationSignedToken, Long.toString(userInfo.getId()), new Date(), tokenGenerator);
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(newEmail);
 		alias.setPrincipalId(userInfo.getId());

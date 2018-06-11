@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -117,13 +118,13 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		long currentTime = System.currentTimeMillis();
 		handle.setCreatedOn(new Date(currentTime));
 		handle.setKey(token.getKey());
-		handle.setBucketName(StackConfiguration.getS3Bucket());
+		handle.setBucketName(StackConfigurationSingleton.singleton().getS3Bucket());
 		// Upload this to S3
 		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytest);
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(handle.getContentSize());
 		metadata.setContentMD5(hexMD5);
-		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), in, metadata);
+		s3Client.putObject(StackConfigurationSingleton.singleton().getS3Bucket(), token.getKey(), in, metadata);
 		handle.setEtag(UUID.randomUUID().toString());
 		handle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save the metadata

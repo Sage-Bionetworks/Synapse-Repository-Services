@@ -6,7 +6,6 @@ import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.base.CharMatcher;
 import org.apache.commons.lang.math.NumberUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
@@ -51,6 +51,9 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
+	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
+
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
 		facetTypes.put(FIELD_NODE_TYPE, FacetTypeNames.LITERAL);
@@ -68,6 +71,14 @@ public class SearchUtil{
 		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
 	}
 
+	/**
+	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
+	 * @param charSequence input to be stripped of unsupported Unicode characters
+	 * @return String of the input charSequence with unsupported Unicode characters stripped out
+	 */
+	static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
+		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
+	}
 
 	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
 		ValidateArgument.required(searchQuery, "searchQuery");
@@ -362,7 +373,7 @@ public class SearchUtil{
 		}
 		// Some descriptions have control characters in them for some reason, in any case, just get rid
 		// of all control characters in the search document
-		return CharMatcher.JAVA_ISO_CONTROL.removeFrom(stringJoiner.toString());
+		return stripUnsupportedUnicodeCharacters(stringJoiner.toString());
 	}
 
 	/**

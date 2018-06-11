@@ -15,19 +15,19 @@ public class EmailValidationUtil {
 	public static boolean doesFileExist(String key, long maxWaitTimeInMillis) throws Exception {
 		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
 		
-		return S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client, maxWaitTimeInMillis);
+		return S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, maxWaitTimeInMillis);
 	}
 	
 	public static void deleteFile(String key) throws Exception {
 		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
 		
-		S3TestUtils.deleteFile(StackConfiguration.getS3Bucket(), key, s3Client);
+		S3TestUtils.deleteFile(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client);
 	}
 	
 	public static String readFile(String key) throws Exception {
 		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
 		
-		return S3TestUtils.getObjectAsString(StackConfiguration.getS3Bucket(), key, s3Client);
+		return S3TestUtils.getObjectAsString(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client);
 	}
 	
 	public static String getBucketKeyForEmail(String email) {

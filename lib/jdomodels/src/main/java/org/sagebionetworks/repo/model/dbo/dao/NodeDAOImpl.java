@@ -57,6 +57,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.Annotations;
@@ -329,7 +330,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
 
 	// Track the trash folder.
-	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 	
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
 		@Override
@@ -363,7 +364,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 
-	private final Long ROOT_NODE_ID = Long.parseLong(StackConfiguration.getRootFolderEntityIdStatic());
+	private final Long ROOT_NODE_ID = Long.parseLong(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 	
 	private static final String BIND_ID_KEY = "bindId";
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";

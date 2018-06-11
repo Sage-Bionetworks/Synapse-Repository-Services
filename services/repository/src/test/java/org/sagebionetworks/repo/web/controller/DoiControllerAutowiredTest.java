@@ -3,15 +3,10 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import javax.servlet.http.HttpServlet;
-
-import junit.framework.Assert;
-
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
@@ -25,8 +20,8 @@ import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import junit.framework.Assert;
 
 public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
@@ -39,6 +34,9 @@ public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestB
 	@Autowired
 	private UserManager userManager;
 	
+	@Autowired
+	StackConfiguration stackConfiguration;
+	
 	
 	private Long adminUserId;
 	private Entity entity;
@@ -46,8 +44,7 @@ public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestB
 	@Before
 	public void before() throws Exception {
 
-		StackConfiguration config = new StackConfiguration();
-		Assume.assumeTrue(config.getDoiEnabled());
+		Assume.assumeTrue(stackConfiguration.getDoiEnabled());
 
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
@@ -59,8 +56,7 @@ public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestB
 
 	@After
 	public void after() throws Exception {
-		StackConfiguration config = new StackConfiguration();
-		if (config.getDoiEnabled()) {
+		if (stackConfiguration.getDoiEnabled()) {
 			entityService.deleteEntity(adminUserId, entity.getId());
 			doiAdminDao.clear();
 		}

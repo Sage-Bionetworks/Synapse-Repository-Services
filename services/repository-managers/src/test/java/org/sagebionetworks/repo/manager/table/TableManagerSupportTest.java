@@ -35,6 +35,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -623,7 +624,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testTriggerScopeReconciliationProjectView(){
 		ViewType type = ViewType.project;
-		Long rootId = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+		Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 		// project views reconcile on root.
 		List<Long> toReconcile = Lists.newArrayList(rootId);
 		// call under test

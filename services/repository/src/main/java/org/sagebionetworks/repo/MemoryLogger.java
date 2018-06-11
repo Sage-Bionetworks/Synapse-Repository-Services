@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Date;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricStats;
@@ -26,7 +27,7 @@ public class MemoryLogger {
 	public static final String USED = "used";
 	public static final String ALL_INSTANCES = "all";
 	public static final String REPO_MEMORY_NAMESPACE = "Repository-Memory-"
-			+ StackConfiguration.getStackInstance();
+			+ StackConfigurationSingleton.singleton().getStackInstance();
 	/*
 	 * Since the smallest period supported by cloud watch is one minute, metrics
 	 * are only pushed to cloud watch once per minute.

@@ -6,6 +6,15 @@
 			"type": "string",
 			"description": "The hash message authentication code for the message."
 		},
+		"version": {
+			"type": "integer",
+			"description": "The version of the key used to generate the HMAC."
+		},
+		"expiresOn": {
+			"type": "string",
+			"format":"date-time",
+			"description": "The date-time when this token expires."
+		},
 		"createdOn": {
 			"type": "string",
 			"format":"date-time",

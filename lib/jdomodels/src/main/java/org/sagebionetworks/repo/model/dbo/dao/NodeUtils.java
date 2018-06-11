@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -27,7 +28,7 @@ public class NodeUtils {
 	
 	private static final String COLUMN_ID_DELIMITER = ",";
 	
-	public static final String ROOT_ENTITY_ID = StackConfiguration.singleton().getRootFolderEntityId();
+	public static final String ROOT_ENTITY_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 
 	/**
 	 * Used to update an existing object
@@ -56,7 +57,12 @@ public class NodeUtils {
 		rev.setModifiedBy(dto.getModifiedByPrincipalId());
 		if (dto.getModifiedOn()==null) throw new InvalidModelException("modifiedOn may not be null");
 		rev.setModifiedOn(dto.getModifiedOn().getTime());
+		
+		if (dto.getVersionComment()!=null && dto.getVersionComment().length()>DBORevision.MAX_COMMENT_LENGTH) 
+			throw new IllegalArgumentException("Version comment length exceeds "+DBORevision.MAX_COMMENT_LENGTH+".");
+		
 		rev.setComment(dto.getVersionComment());
+		
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());
 		} 	

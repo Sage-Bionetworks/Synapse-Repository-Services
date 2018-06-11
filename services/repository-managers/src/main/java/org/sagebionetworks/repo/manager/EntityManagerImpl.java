@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -49,7 +50,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	public static final Direction DEFAULT_SORT_DIRECTION = Direction.ASC;
 	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
-	public static final String ROOT_ID = StackConfiguration.getRootFolderEntityIdStatic();
+	public static final String ROOT_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 	public static final List<EntityType> PROJECT_ONLY = Lists.newArrayList(EntityType.project);
 	
 	@Autowired
@@ -357,6 +358,7 @@ public class EntityManagerImpl implements EntityManager {
 				newVersion = true;
 				// setting this to null we cause the revision id to be used.
 				updatedFile.setVersionLabel(null);
+				updatedFile.setVersionComment(null);
 			}
 		}
 

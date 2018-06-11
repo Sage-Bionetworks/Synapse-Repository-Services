@@ -11,7 +11,8 @@
 	<aop:aspectj-autoproxy />
 	
 	<!-- This the StackConfiguration singleton -->
-	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfiguration"/>
+	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfigurationSingleton"
+	factory-method="singleton" scope="singleton" />
 	
 	<bean id="stackConfiguration.stackAndStackInstancePrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[LOCATIONABLE_CONVERT_TYPE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -70,9 +71,6 @@
 	
 	<bean id="stackConfiguration.oAuth2ORCIDClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.oAuth2ORCIDClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	
-	<!-- Map used for JDO config  -->
-	<bean id="stackConfiguration.repositoryJDOConfigurationMap" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.repositoryDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

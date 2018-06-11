@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -12,6 +13,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -74,6 +76,26 @@ public class NodeUtilsTest {
 		assertNotNull(copy.getFileHandleId());
 		// It should match
 		assertEquals(node, copy);
+	}
+	
+	@Test
+	public void testExcessivelyLongComment() throws DatastoreException, InvalidModelException {
+		Node node = new Node();
+		node.setModifiedByPrincipalId(createdById);
+		node.setModifiedOn(new Date(System.currentTimeMillis()+2993));
+		StringBuilder sb = new StringBuilder();
+		for (int i=0; i<DBORevision.MAX_COMMENT_LENGTH+1; i++) sb.append(" ");
+		node.setVersionComment(sb.toString());
+		// Now create a revision for this node
+		DBONode jdoNode = new DBONode();
+		
+		DBORevision jdoRev = new DBORevision();
+		try {
+			NodeUtils.updateFromDto(node, jdoNode, jdoRev, false);
+			fail("Expected IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
 	}
 	
 	@Test
@@ -203,7 +225,7 @@ public class NodeUtilsTest {
 	
 	@Test
 	public void testIsRootEntityId(){
-		String rootId = StackConfiguration.singleton().getRootFolderEntityId();
+		String rootId = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 		assertTrue(NodeUtils.isRootEntityId(rootId));
 		assertFalse(NodeUtils.isRootEntityId(rootId+"1"));
 		Long rootLong = KeyFactory.stringToKey(rootId);

@@ -25,17 +25,14 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.jdo.SizeLimitRowMapper;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +49,7 @@ public class QueryDAOImpl implements QueryDAO {
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	private static final long MAX_BYTES_PER_QUERY = 
-			StackConfiguration.getMaximumBytesPerQueryResult();
+			StackConfigurationSingleton.singleton().getMaximumBytesPerQueryResult();
 	private static Logger log = LogManager.getLogger(QueryDAOImpl.class);
 	
 	private static final String ATTRIBUTE_PARAM = "ATTRIBUTE";

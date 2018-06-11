@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -62,7 +63,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		projectId = nodeDao.createNew(project);
 
 		type = UploadDestinationListSetting.class.getSimpleName().toLowerCase();
-		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getAsyncQueueName(QUEUE_NAME));
 	}
 
 	@After
