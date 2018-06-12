@@ -26,7 +26,6 @@ MVN_GOAL=install
 if [ ${build_deploy} ]; then
 	MVN_GOAL=deploy
 	SETTINGS_XML="<servers><server><id>sagebionetworks</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers>"
-        echo ${SETTINGS_XML}
 fi
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
@@ -61,6 +60,7 @@ clean_up_network ${network_name}
 clean_up_volumes
 
 mkdir -p ${m2_cache_parent_folder}/.m2/
+ls -l ${m2_cache_parent_folder}
 if [ ${SETTINGS_XML} ]; then
   echo ${SETTINGS_XML} > ${m2_cache_parent_folder}/.m2/settings.xml
 fi
