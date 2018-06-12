@@ -28,7 +28,6 @@ if [ ${build_deploy} ]; then
 	SETTINGS_XML="<servers><server><id>sagebionetworks</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers>"
         echo ${SETTINGS_XML} > /tmp/settings.xml
 fi
-exit
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
 
