@@ -104,7 +104,7 @@ bash -c "mvn clean ${MVN_GOAL} \
 -Dorg.sagebionetworks.table.cluster.endpoint.0=${rds_container_name} \
 -Dorg.sagebionetworks.table.cluster.schema.0=${tables_schema_name} \
 -Dorg.sagebionetworks.search.enabled=${org_sagebionetworks_search_enabled} \
--Dserver.username=${artifactory_usernaime} \
+-Dserver.username=${artifactory_username} \
 -Dserver.password=${artificatory_password} \
 -Duser.home=/root"
 
