@@ -25,7 +25,10 @@ fi
 MVN_GOAL=install
 if [ ${build_deploy} ]; then
 	MVN_GOAL=deploy
+	SETTINGS_XML="<servers><server><id>sagebionetworks</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers>"
+        echo ${SETTINGS_XML} > /tmp/settings.xml
 fi
+exit
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
 
@@ -86,6 +89,7 @@ docker run -i --rm --name ${build_container_name} \
 --network=${network_name} \
 --link ${rds_container_name}:${rds_container_name} \
 -v ${m2_cache_parent_folder}/.m2:/root/.m2 \
+-v /tmp/settings.xml:/root/.m2/settings.xml
 -v ${src_folder}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
@@ -104,8 +108,6 @@ bash -c "mvn clean ${MVN_GOAL} \
 -Dorg.sagebionetworks.table.cluster.endpoint.0=${rds_container_name} \
 -Dorg.sagebionetworks.table.cluster.schema.0=${tables_schema_name} \
 -Dorg.sagebionetworks.search.enabled=${org_sagebionetworks_search_enabled} \
--Dserver.username=${artifactory_username} \
--Dserver.password=${artificatory_password} \
 -Duser.home=/root"
 
 clean_up_container ${build_container_name}
