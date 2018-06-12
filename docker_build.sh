@@ -26,7 +26,7 @@ MVN_GOAL=install
 if [ ${build_deploy} ]; then
 	MVN_GOAL=deploy
 	SETTINGS_XML="<servers><server><id>sagebionetworks</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers>"
-        echo ${SETTINGS_XML} > /tmp/settings.xml
+        echo ${SETTINGS_XML}
 fi
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
@@ -61,6 +61,9 @@ clean_up_network ${network_name}
 clean_up_volumes
 
 mkdir -p ${m2_cache_parent_folder}/.m2/
+if [ ${SETTINGS_XML} ]; then
+  echo ${SETTINGS_XML} > ${m2_cache_parent_folder}/.m2/settings.xml
+fi
 
 docker network create --driver bridge ${network_name}
 
@@ -88,7 +91,6 @@ docker run -i --rm --name ${build_container_name} \
 --network=${network_name} \
 --link ${rds_container_name}:${rds_container_name} \
 -v ${m2_cache_parent_folder}/.m2:/root/.m2 \
--v /tmp/settings.xml:/root/.m2/settings.xml \
 -v ${src_folder}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
