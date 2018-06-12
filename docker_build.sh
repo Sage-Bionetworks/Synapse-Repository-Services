@@ -88,7 +88,7 @@ docker run -i --rm --name ${build_container_name} \
 --network=${network_name} \
 --link ${rds_container_name}:${rds_container_name} \
 -v ${m2_cache_parent_folder}/.m2:/root/.m2 \
--v /tmp/settings.xml:/root/.m2/settings.xml
+-v /tmp/settings.xml:/root/.m2/settings.xml \
 -v ${src_folder}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
