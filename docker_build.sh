@@ -62,6 +62,7 @@ clean_up_volumes
 mkdir -p ${m2_cache_parent_folder}/.m2/
 ls -l ${m2_cache_parent_folder}
 if [ ${SETTINGS_XML} ]; then
+  touch ${m2_cache_parent_folder}/.m2/settings.xml
   echo ${SETTINGS_XML} > ${m2_cache_parent_folder}/.m2/settings.xml
 fi
 
