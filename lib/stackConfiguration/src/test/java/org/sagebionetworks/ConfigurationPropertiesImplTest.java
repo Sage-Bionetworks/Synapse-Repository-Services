@@ -1,5 +1,18 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Base64;
@@ -14,13 +27,12 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConfigurationPropertiesImplTest {
@@ -30,9 +42,13 @@ public class ConfigurationPropertiesImplTest {
 	@Mock
 	AWSKMS mockAwsKeyManagerClient;
 	@Mock
+	AmazonS3 mockS3Client;
+	@Mock
 	LoggerProvider mockLoggerProvider;
 	@Mock
 	Logger mockLog;
+	@Mock
+	S3Object mockS3Object;
 
 	@Captor
 	ArgumentCaptor<DecryptRequest> decryptRequestCaprtor;
@@ -42,17 +58,21 @@ public class ConfigurationPropertiesImplTest {
 	Properties defaultProps;
 	Properties settingProps;
 	Properties systemProps;
+	Properties secretProps;
 
 	String cmkAlis;
 	String keyToBeDecrypted;
 	String encryptedValue;
 	String base64EncodedCipher;
 	String decryptedValue;
+	
+	String secretsBucket;
+	String secretsKey;
 
 	DecryptResult decryptResult;
 
 	@Before
-	public void before() throws UnsupportedEncodingException {
+	public void before() throws IOException {
 		
 		when(mockLoggerProvider.getLogger(anyString())).thenReturn(mockLog);
 		
@@ -91,13 +111,33 @@ public class ConfigurationPropertiesImplTest {
 		decryptResult = new DecryptResult()
 				.withPlaintext(ByteBuffer.wrap(decryptedValue.getBytes(ConfigurationPropertiesImpl.UTF_8)));
 		when(mockAwsKeyManagerClient.decrypt(any(DecryptRequest.class))).thenReturn(decryptResult);
+		
+		secretsBucket = "aSecretBucket";
+		secretsKey = "aSecretKey";
+		systemProps.put(ConfigurationPropertiesImpl.ORG_SAGEBIONETWORKS_SECRETS_BUCKET, secretsBucket);
+		systemProps.put(ConfigurationPropertiesImpl.ORG_SAGEBIONETWORKS_SECRETS_KEY, secretsKey);
+		
+		secretProps = new Properties();
+		secretProps.put("secretOne", "cipherOne");
+		secretProps.put("secretTwo", "cipherTwo");
+		
+		when(mockS3Client.doesObjectExist(secretsBucket, secretsKey)).thenReturn(true);
+		setupSecretInputStream();
+		when(mockS3Client.getObject(secretsBucket, secretsKey)).thenReturn(mockS3Object);
 
-		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLoggerProvider);
+		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockS3Client, mockPropertyProvider, mockLoggerProvider);
 
 		verify(mockPropertyProvider).getMavenSettingsProperties();
 		verify(mockPropertyProvider).getSystemProperties();
 		verify(mockPropertyProvider)
 				.loadPropertiesFromClasspath(ConfigurationPropertiesImpl.DEFAULT_PROPERTIES_FILENAME);
+	}
+
+	void setupSecretInputStream() throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		secretProps.store(baos, "no comment");
+		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+		when(mockS3Object.getObjectContent()).thenReturn(new S3ObjectInputStream(bais, null));
 	}
 
 	@Test
@@ -109,6 +149,9 @@ public class ConfigurationPropertiesImplTest {
 		assertEquals("4-system", configuration.getProperty("four"));
 		assertEquals("5-settings", configuration.getProperty("five"));
 		assertEquals("6-system", configuration.getProperty("six"));
+		// secrets should also be loaded
+		assertEquals("cipherOne", configuration.getProperty("secretOne"));
+		assertEquals("cipherTwo", configuration.getProperty("secretTwo"));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -140,7 +183,7 @@ public class ConfigurationPropertiesImplTest {
 	public void testNullSettings() {
 		settingProps = null;
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(settingProps);
-		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLoggerProvider);
+		configuration.initialize();
 
 		assertEquals("1-default", configuration.getProperty("one"));
 		assertEquals("2-system", configuration.getProperty("two"));
@@ -167,7 +210,7 @@ public class ConfigurationPropertiesImplTest {
 	public void testGetDecryptedPropertyNoAlias() throws UnsupportedEncodingException {
 		// Remove the alis
 		systemProps.remove(ConfigurationPropertiesImpl.PROPERTY_KEY_STACK_CMK_ALIAS);
-		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockPropertyProvider, mockLoggerProvider);
+		configuration.initialize();
 		
 		// call under test
 		String results = configuration.getDecryptedProperty(keyToBeDecrypted);
@@ -202,7 +245,57 @@ public class ConfigurationPropertiesImplTest {
 			assertEquals("Property with key: 'unknown' does not exist.", e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testLoadSecrets() throws IOException {
+		setupSecretInputStream();
+		// call under test
+		Properties propSecrets = configuration.loadSecrets(secretsBucket, secretsKey);
+		assertNotNull(propSecrets);
+		assertEquals("cipherOne", propSecrets.getProperty("secretOne"));
+		assertEquals("cipherTwo", propSecrets.getProperty("secretTwo"));
+		verify(mockS3Client, times(2)).doesObjectExist(secretsBucket, secretsKey);
+		verify(mockS3Client, times(2)).getObject(secretsBucket, secretsKey);
+		verify(mockLog, times(2)).info("Loaded 2 secrets from: aSecretBucket/aSecretKey");
+	}
+	
+	@Test
+	public void testLoadSecretsKeyNull() throws IOException {
+		setupSecretInputStream();
+		secretsKey = null;
+		// call under test
+		Properties propSecrets = configuration.loadSecrets(secretsBucket, secretsKey);
+		assertEquals(null, propSecrets);
+		verify(mockS3Client, times(1)).doesObjectExist(anyString(), anyString());
+		verify(mockS3Client, times(1)).getObject(anyString(), anyString());
+		verify(mockLog).warn(ConfigurationPropertiesImpl.SECRETS_WERE_NOT_LOADED_FROM_S3);
+	}
+	
+	@Test
+	public void testLoadSecretsBucketNull() throws IOException {
+		setupSecretInputStream();
+		secretsBucket = null;
+		// call under test
+		Properties propSecrets = configuration.loadSecrets(secretsBucket, secretsKey);
+		assertEquals(null, propSecrets);
+		verify(mockS3Client, times(1)).doesObjectExist(anyString(), anyString());
+		verify(mockS3Client, times(1)).getObject(anyString(), anyString());
+		verify(mockLog).warn(ConfigurationPropertiesImpl.SECRETS_WERE_NOT_LOADED_FROM_S3);
+	}
 
+	@Test
+	public void testLoadSecretsDoesNotExist() throws IOException {
+		setupSecretInputStream();
+		when(mockS3Client.doesObjectExist(secretsBucket, secretsKey)).thenReturn(false);
+		// call under test
+		Properties propSecrets = configuration.loadSecrets(secretsBucket, secretsKey);
+		assertEquals(null, propSecrets);
+		verify(mockS3Client, times(2)).doesObjectExist(anyString(), anyString());
+		verify(mockS3Client, times(1)).getObject(anyString(), anyString());
+		verify(mockLog).warn(ConfigurationPropertiesImpl.SECRETS_WERE_NOT_LOADED_FROM_S3);
+		verify(mockLog).warn("S3 Object does not exist with bucket: 'aSecretBucket' and key: 'aSecretKey'");
+	}
+	
 	/**
 	 * Helper to create an base 64 encoded string.
 	 * 

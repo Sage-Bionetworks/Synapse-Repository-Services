@@ -1,5 +1,7 @@
 package org.sagebionetworks;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Base64;
@@ -7,13 +9,21 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.inject.Inject;
 
 public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 
+	public static final String S3_OBJECT_DOES_NOT_EXIST = "S3 Object does not exist with bucket: '%s' and key: '%s'";
+	public static final String ORG_SAGEBIONETWORKS_SECRETS_KEY = "org.sagebionetworks.secrets.key";
+	public static final String ORG_SAGEBIONETWORKS_SECRETS_BUCKET = "org.sagebionetworks.secrets.bucket";
+	public static final String SECRETS_WERE_NOT_LOADED_FROM_S3 = "Secrets were not loaded from S3.";
+	public static final String LOADED_SECRECTS_S3 = "Loaded %s secrets from: %s/%s";
 	public static final String DECRYPTING_PROPERTY = "Decrypting property '%s'...";
 	public static final String PROPERTY_WITH_KEY_S_DOES_NOT_EXIST = "Property with key: '%s' does not exist.";
 	public static final String PROPERTY_KEY_CANNOT_BE_NULL = "Property key cannot be null";
@@ -27,6 +37,10 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	private Properties properties;
 
 	private AWSKMS awsKeyManagerClient;
+	
+	private AmazonS3 s3Client;
+	
+	private PropertyProvider propertyProvider;
 
 	/**
 	 * The only constructor with AWSKMS and property provider.
@@ -34,9 +48,15 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	 * @param propertyProvider
 	 */
 	@Inject
-	public ConfigurationPropertiesImpl(AWSKMS awsKeyManagerClient, PropertyProvider propertyProvider, LoggerProvider logProvider) {
+	public ConfigurationPropertiesImpl(AWSKMS awsKeyManagerClient, AmazonS3 s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
 		this.log = logProvider.getLogger(ConfigurationPropertiesImpl.class.getName());
 		this.awsKeyManagerClient = awsKeyManagerClient;
+		this.s3Client = s3Client;
+		this.propertyProvider = propertyProvider;
+		initialize();
+	}
+
+	void initialize() {
 		// Will contain the final properties
 		properties = new Properties();
 		// Load the default properties.
@@ -45,6 +65,10 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 		overrideProperties(propertyProvider.getMavenSettingsProperties());
 		// System properties override all.
 		overrideProperties(propertyProvider.getSystemProperties());
+		// load any secrets from S3
+		String secretsBucket = properties.getProperty(ORG_SAGEBIONETWORKS_SECRETS_BUCKET);
+		String secretsKey = properties.getProperty(ORG_SAGEBIONETWORKS_SECRETS_KEY);
+		overrideProperties(loadSecrets(secretsBucket, secretsKey));
 	}
 
 	/**
@@ -114,5 +138,37 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 		byte[] rawBytes = new byte[buffer.remaining()];
 		buffer.get(rawBytes);
 		return new String(rawBytes, UTF_8);
+	}
+	
+	/**
+	 * Load the secrets from the given S3 bucket and key.
+	 * @param secretBucket
+	 * @param secretKey
+	 * @return Returns the properties from the given bucket and key. If the bucket or key are null then will return null.
+	 * IF the object does not exist then will return null.
+	 * @throws IOException 
+	 * @throws SdkClientException 
+	 * @throws AmazonServiceException 
+	 */
+	Properties loadSecrets(String secretBucket, String secretKey) {
+		if(secretBucket != null && secretKey != null) {
+			if(s3Client.doesObjectExist(secretBucket, secretKey)) {
+				try {
+					try(InputStream input = s3Client.getObject(secretBucket, secretKey).getObjectContent()){
+						Properties props = new Properties();
+						props.load(input);
+						log.info(String.format(LOADED_SECRECTS_S3, props.keySet().size(), secretBucket, secretKey));
+						return props;
+					}
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				} 
+			}else {
+				// the object does not exist
+				log.warn(String.format(S3_OBJECT_DOES_NOT_EXIST, secretBucket, secretKey));
+			}
+		}
+		log.warn(SECRETS_WERE_NOT_LOADED_FROM_S3);
+		return null;
 	}
 }

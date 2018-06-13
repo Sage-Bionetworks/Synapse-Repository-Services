@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import org.sagebionetworks.aws.AwsClientFactory;
 
 import com.amazonaws.services.kms.AWSKMS;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.inject.Provides;
 
 /**
@@ -22,6 +23,11 @@ public class StackConfigurationGuiceModule extends com.google.inject.AbstractMod
 	@Provides
 	public AWSKMS provideAWSKMSClient() {
 		return AwsClientFactory.createAmazonKeyManagementServiceClient();
+	}
+	
+	@Provides
+	public AmazonS3 provideAmazonS3Client() {
+		return AwsClientFactory.createAmazonS3Client();
 	}
 
 }
