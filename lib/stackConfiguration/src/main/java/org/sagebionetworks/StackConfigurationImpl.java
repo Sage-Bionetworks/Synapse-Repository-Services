@@ -923,7 +923,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2GoogleClientId() {
-		return configuration.getProperty("org.sagebionetworks.oauth2.google.client.id");
+		return configuration.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.id");
 	}
 
 	/**
@@ -939,7 +939,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientId() {
-		return configuration.getProperty("org.sagebionetworks.oauth2.orcid.client.id");
+		return configuration.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.id");
 	}
 
 	/**
@@ -1160,7 +1160,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	public String getDockerAuthorizationCertificate() {
-		return configuration.getProperty("org.sagebionetworks.docker.authorization.certificate");
+		return configuration.getDecryptedProperty("org.sagebionetworks.docker.authorization.certificate");
 	}
 
 	public List<String> getDockerRegistryHosts() {
