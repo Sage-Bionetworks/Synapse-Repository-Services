@@ -8,6 +8,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.AwsClientFactory;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -37,8 +38,8 @@ public class PublishToS3 {
 		if(!source.isDirectory()) throw new IllegalArgumentException("Expected the source path to be a directory: "+source.getAbsolutePath());
 		if(!source.exists()) throw new IllegalArgumentException("Source path does not exist: "+source.getAbsolutePath());
 		// Create the bucket if needed
-		String stack = StackConfiguration.singleton().getStack();
-		String instance = StackConfiguration.getStackInstance();
+		String stack = StackConfigurationSingleton.singleton().getStack();
+		String instance = StackConfigurationSingleton.singleton().getStackInstance();
 		String bucketName = stack+"."+instance+".rest.doc.sagebase.org";
 		
 		// Create an S3 Connection

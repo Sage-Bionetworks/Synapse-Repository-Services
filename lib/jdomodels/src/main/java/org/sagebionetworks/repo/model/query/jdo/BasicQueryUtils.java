@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
@@ -18,7 +19,7 @@ public class BasicQueryUtils {
 
 	public static final String ENTITY = "entity";
 	
-	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	public static final Expression EXP_BENEFACTOR_NOT_EQUAL_TRASH = new Expression(new CompoundId(null, NodeField.BENEFACTOR_ID.getFieldName()), Comparator.NOT_EQUALS, TRASH_FOLDER_ID);
 	public static final Expression EXP_VERSIONABLE_TYPES = new Expression(new CompoundId(null, NodeField.NODE_TYPE.getFieldName()), Comparator.IN, VERSIONABLE_TYPES);

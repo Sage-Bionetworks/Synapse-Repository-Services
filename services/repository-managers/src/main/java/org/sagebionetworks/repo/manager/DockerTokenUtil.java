@@ -26,6 +26,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 
 public class DockerTokenUtil {
@@ -39,6 +40,7 @@ public class DockerTokenUtil {
 
 	// Eliptic Curve key is required by the Json Web Token signing library
 	public static final String KEY_GENERATION_ALGORITHM = "EC";
+	
 
 	static {
 		Security.removeProvider("SunEC");
@@ -92,7 +94,7 @@ public class DockerTokenUtil {
 	private static PrivateKey readPrivateKey() {
 		try {
 			KeyFactory factory = KeyFactory.getInstance(KEY_GENERATION_ALGORITHM);
-			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationPrivateKey());
+			byte[] content = Base64.decodeBase64(StackConfigurationSingleton.singleton().getDockerAuthorizationPrivateKey());
 			PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(content);
 			return factory.generatePrivate(privKeySpec);
 		} catch (Exception e) {
@@ -102,7 +104,7 @@ public class DockerTokenUtil {
 
 	public static X509Certificate readCertificate() {
 		try {
-			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationCertificate());
+			byte[] content = Base64.decodeBase64(StackConfigurationSingleton.singleton().getDockerAuthorizationCertificate());
 			CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
 			X509Certificate certificate = (X509Certificate)certFactory.generateCertificate(new ByteArrayInputStream(content));
 			if (certificate.getPublicKey()==null) throw new RuntimeException();

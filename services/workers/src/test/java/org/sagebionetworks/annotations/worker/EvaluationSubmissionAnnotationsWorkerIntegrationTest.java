@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -93,7 +94,7 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 	    userInfo = new UserInfo(true);
 	    userInfo.setId(userId);
 		semphoreManager.releaseAllLocksAsAdmin(userInfo);
-		queueCleaner.purgeQueue(StackConfiguration.singleton().getSubmissionAnnotationsUpdateQueueName());
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getSubmissionAnnotationsUpdateQueueName());
 		
 		// create a node
   		Node node = new Node();

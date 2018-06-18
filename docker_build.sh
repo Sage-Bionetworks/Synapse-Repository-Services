@@ -9,6 +9,9 @@
 # org_sagebionetworks_search_enabled - when set to "true", will enable search feature and its tests
 # rds_password - the password for the build database, common to all dev builds
 # JOB_NAME - a unique string differentiating concurrent builds.  if omitted is the stack + user
+# build_deploy - when set to "true" deploy artifacts
+# artifactory_username - username to deploy artifacts
+# artifactory_password - password to deploy artifacts
 
 # if anything fails, stop
 set -e
@@ -17,6 +20,12 @@ rds_user_name=${stack}${user}
 
 if [ ! ${JOB_NAME} ]; then
 	JOB_NAME=${stack}${user}
+fi
+
+MVN_GOAL=install
+if [ ${build_deploy} ]; then
+	MVN_GOAL=deploy
+	SETTINGS_XML="<settings><servers><server><id>sagebionetworks</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers></settings>"
 fi
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
@@ -51,6 +60,9 @@ clean_up_network ${network_name}
 clean_up_volumes
 
 mkdir -p ${m2_cache_parent_folder}/.m2/
+if [ ${SETTINGS_XML} ]; then
+  echo ${SETTINGS_XML} > ${m2_cache_parent_folder}/.m2/settings.xml
+fi
 
 docker network create --driver bridge ${network_name}
 
@@ -83,7 +95,7 @@ docker run -i --rm --name ${build_container_name} \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
 -w /repo \
 maven:3-jdk-8 \
-bash -c "mvn clean install \
+bash -c "mvn clean ${MVN_GOAL} \
 -Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \

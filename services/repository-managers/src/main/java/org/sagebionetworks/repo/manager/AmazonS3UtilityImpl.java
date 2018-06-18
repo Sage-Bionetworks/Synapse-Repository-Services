@@ -12,6 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -32,7 +33,7 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	
 	static private Log log = LogFactory.getLog(AmazonS3UtilityImpl.class);
 
-	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
+	private static final String S3_BUCKET = StackConfigurationSingleton.singleton().getS3Bucket();
 	
 	@Autowired
 	AmazonS3 client;

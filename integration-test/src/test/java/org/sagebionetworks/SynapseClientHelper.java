@@ -15,9 +15,9 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  */
 public class SynapseClientHelper {
 	public static void setEndpoints(SynapseClient client) {
-		client.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		client.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
-		client.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
+		client.setAuthEndpoint(StackConfigurationSingleton.singleton().getAuthenticationServicePrivateEndpoint());
+		client.setRepositoryEndpoint(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
+		client.setFileEndpoint(StackConfigurationSingleton.singleton().getFileServiceEndpoint());
 	}
 	
 	/**

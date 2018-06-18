@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -102,7 +103,7 @@ public class ProjectSettingsImplAutowiredTest {
 		externalS3LocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3LocationSetting.setUploadType(UploadType.S3);
 		externalS3LocationSetting.setEndpointUrl("");
-		externalS3LocationSetting.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
+		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey("key" + UUID.randomUUID());
 
 		s3Client.createBucket(externalS3LocationSetting.getBucket());

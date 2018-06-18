@@ -13,6 +13,7 @@ import javax.imageio.ImageIO;
 import org.imgscalr.Scalr;
 import org.imgscalr.Scalr.Mode;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 
 /**
  * Generates previews for image content types.
@@ -53,8 +54,8 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 			throw new IllegalArgumentException("The passed input stream was not an image");
 		}
 		// Let image scalar do the heavy lifting!
-		int maxWidthPixels = StackConfiguration.getMaximumPreviewWidthPixels();
-		int maxHeightPixels = StackConfiguration.getMaximumPreviewHeightPixels();
+		int maxWidthPixels = StackConfigurationSingleton.singleton().getMaximumPreviewWidthPixels();
+		int maxHeightPixels = StackConfigurationSingleton.singleton().getMaximumPreviewHeightPixels();
 		//only resize if original image is bigger than our preview max size
 		int height = image.getHeight();
 		int width = image.getWidth();

@@ -27,7 +27,6 @@
 		<org.sagebionetworks.auth.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.auth.context}${org.sagebionetworks.auth.servlet.prefix}/</org.sagebionetworks.auth.service.base.url>
 		<org.sagebionetworks.repository.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.repository.context}${org.sagebionetworks.repository.servlet.prefix}/</org.sagebionetworks.repository.service.base.url>
 		<org.sagebionetworks.portal.base.url>${tomcat.endpoint}/${org.sagebionetworks.portal.context}${org.sagebionetworks.portal.servlet.prefix}/</org.sagebionetworks.portal.base.url>
-		<org.sagebionetworks.stackEncryptionKey>${settings.org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
 		<!-- Setting this to true will cause Cargo to setup and start both web
 			applications and then wait for shutdown (ctrl-c) This is useful for debugging
 			the deployed applications. -->
@@ -120,8 +119,6 @@
 							<extractDir>${project.build.directory}/tomcat7x/container</extractDir>
 						</zipUrlInstaller>
 						<systemProperties>
-							<org.sagebionetworks.stackEncryptionKey>${org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
-							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url>
 							<org.sagebionetworks.stack>${org.sagebionetworks.stack}</org.sagebionetworks.stack>
 							<org.sagebionetworks.stack.instance>${org.sagebionetworks.stack.instance}</org.sagebionetworks.stack.instance>
 							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>

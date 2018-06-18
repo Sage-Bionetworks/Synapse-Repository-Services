@@ -1,28 +1,21 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -68,6 +61,9 @@ public class DockerManagerImpl implements DockerManager {
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	
+	@Autowired
+	StackConfiguration stackConfiguration;
 	
 	public static String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
@@ -132,7 +128,7 @@ public class DockerManagerImpl implements DockerManager {
 				
 				// need to make sure this is a registry we support
 				String host = event.getRequest().getHost();
-				if (!StackConfiguration.getDockerRegistryHosts().contains(host)) continue;
+				if (!stackConfiguration.getDockerRegistryHosts().contains(host)) continue;
 				// note the user ID was authenticated in the authorization check
 				Long userId = Long.parseLong(event.getActor().getName());
 				// the 'repository path' does not include the registry host or the tag

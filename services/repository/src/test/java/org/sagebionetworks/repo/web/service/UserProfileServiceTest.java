@@ -7,10 +7,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +36,8 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
+import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -58,7 +64,6 @@ import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -90,6 +95,8 @@ public class UserProfileServiceTest {
 	private VerificationDAO mockVerificationDao;
 	@Mock
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
 	
 	@Before
 	public void before() throws Exception {
@@ -136,6 +143,7 @@ public class UserProfileServiceTest {
 		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(userProfileService, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(userProfileService, "principalPrefixDAO", mockPrincipalPrefixDAO);
+		ReflectionTestUtils.setField(userProfileService, "tokenGenerator", mockTokenGenerator);
 		
 		aliasList = new AliasList();
 		aliasList.setList(Lists.newArrayList("aliasOne", "aliasTwo"));
@@ -266,7 +274,7 @@ public class UserProfileServiceTest {
 		Settings settings = new Settings();
 		settings.setSendEmailNotifications(false);
 		notificationSettingsSignedToken.setSettings(settings);
-		SignedTokenUtil.signToken(notificationSettingsSignedToken);
+		notificationSettingsSignedToken.setHmac("signed");
 		
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(userId);
