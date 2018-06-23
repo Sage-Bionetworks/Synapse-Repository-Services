@@ -14,6 +14,7 @@
 	<version>develop-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
+
 	<scm>
 		<connection>scm:svn:https://sagebionetworks.jira.com/svn/PLFM/trunk
 		</connection>
