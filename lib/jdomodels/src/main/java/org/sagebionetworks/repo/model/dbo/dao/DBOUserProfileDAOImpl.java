@@ -14,7 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -70,13 +70,15 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	private static final String SQL_SELECT_USER_PROFILE = "SELECT G."+COL_USER_GROUP_CREATION_DATE+", P.* FROM "+TABLE_USER_GROUP+" G JOIN "+TABLE_USER_PROFILE+" P ON (G."+COL_USER_GROUP_ID+" = P."+COL_USER_PROFILE_ID+")";
 
-	private static final String SELECT_PAGINATED = "SELECT * FROM "
-			+ TABLE_USER_PROFILE + " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :"
+	private static final String SQL_SELECT_PROFILE_BY_ID = SQL_SELECT_USER_PROFILE+" WHERE G."+COL_USER_GROUP_ID+" = ?";
+
+	private static final String SELECT_PAGINATED = SQL_SELECT_USER_PROFILE + " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :"
 			+ OFFSET_PARAM_NAME;
 
-	private static final String LIST_FOR_IDS = "SELECT * FROM "
-			+ TABLE_USER_PROFILE + " WHERE " + COL_USER_PROFILE_ID + " in (:"
+	private static final String LIST_FOR_IDS = SQL_SELECT_USER_PROFILE + " WHERE P." + COL_USER_PROFILE_ID + " in (:"
 			+ COL_USER_PROFILE_ID + ")";
 
 	private static final String SQL_SELECT_PROFILE_PIC_ID = "SELECT "
@@ -86,8 +88,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	private static final RowMapper<DBOUserProfile> USER_PROFILE_ROW_MAPPER = (new DBOUserProfile())
 			.getTableMapping();
 	
-	private static final String SELECT_FOR_UPDATE_SQL = "select * from "
-			+ TABLE_USER_PROFILE + " where " + COL_USER_PROFILE_ID + "=:"
+	private static final String SELECT_FOR_UPDATE_SQL = SQL_SELECT_USER_PROFILE + " where " + COL_USER_PROFILE_ID + "=:"
 			+ DBOUserProfile.OWNER_ID_FIELD_NAME + " for update";
 
 	private static final String SQL_GET_USER_INFO_FOR_NOTIFICATION = "SELECT"
@@ -144,10 +145,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Override
 	public UserProfile get(String id) throws DatastoreException,
 			NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
-		DBOUserProfile jdo = basicDao.getObjectByPrimaryKey(
-				DBOUserProfile.class, param);
+		DBOUserProfile jdo = jdbcTemplate.queryForObject(SQL_SELECT_PROFILE_BY_ID, USER_PROFILE_ROW_MAPPER, id);
 		UserProfile dto = UserProfileUtils.convertDboToDto(jdo);
 		return dto;
 	}

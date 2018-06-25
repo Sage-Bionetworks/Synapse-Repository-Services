@@ -263,6 +263,8 @@ public class DBOUserProfileDAOImplTest {
 			String id = userProfileDAO.create(userProfile);
 			assertNotNull(id);
 			userProfile.setOwnerId(id);
+			// Creation date should be userGroup.creationDate.
+			userProfile.setCreatedOn(userGroupDAO.get(Long.parseLong(id)).getCreationDate());
 		}
 		
 		assertEquals(userProfiles.size()+initialCount, userProfileDAO.getCount());
