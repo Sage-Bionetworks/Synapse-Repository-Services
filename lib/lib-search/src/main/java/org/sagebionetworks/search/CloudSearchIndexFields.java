@@ -32,6 +32,12 @@ import java.util.List;
 
 public class CloudSearchIndexFields {
 
+		/*
+		 * CloudSearchV2 defaults to this analysis scheme if not specified,
+		 * but specifying it will make equals() function for comparing
+		 * the created IndexFields to ones retrieved from AWS work.
+		 */
+		private static String DEFAULT_TEXT_ANALYSIS_SCHEME = "_en_default_";
 
 		//can search values, faceting enabled for this index. index values not be returned in search results.
 		private static LiteralOptions literalOptionsReturnDisabled = new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
@@ -63,7 +69,7 @@ public class CloudSearchIndexFields {
 		public static IndexField INDEX_FIELD_REFERENCE = new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnDisabled);
 
 		//Literal text field facets with return enabled
-		public static IndexField INDEX_FIELD_TISSUE = new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
+		public static IndexField INDEX_FIELD_TISSUE = new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled);
 		public static IndexField INDEX_FIELD_CREATED_BY = new IndexField().withIndexFieldName(FIELD_CREATED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled);
 		public static IndexField INDEX_FIELD_DISEASE = new IndexField().withIndexFieldName(FIELD_DISEASE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled);
 		public static IndexField INDEX_FIELD_MODIFIED_BY = new IndexField().withIndexFieldName(FIELD_MODIFIED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled);

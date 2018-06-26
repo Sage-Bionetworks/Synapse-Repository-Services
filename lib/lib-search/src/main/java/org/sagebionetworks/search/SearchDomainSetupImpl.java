@@ -117,7 +117,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			currentFieldsMap.put(field.getIndexFieldName(), field);
 		}
 		// The the expected schema.
-		List<IndexField> indexList = SearchSchemaLoader.loadSearchDomainSchema();
+		List<IndexField> indexList = CloudSearchField.loadSearchDomainSchema();
 		for (IndexField field : indexList) {
 			// Determine if this field already exists
 			IndexField currentField = currentFieldsMap.get(field.getIndexFieldName());
