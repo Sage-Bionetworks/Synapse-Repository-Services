@@ -50,54 +50,7 @@ public class SearchSchemaLoader {
 	 * 
 	 * @return
 	 */
-	public static final List<IndexField> SEARCH_SCHEMA_FIELDS;
-	static {
 
-		//can search values, faceting enabled for this index. index values not be returned in search results.
-		LiteralOptions literalOptionsReturnDisabled = new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true).withReturnEnabled(false);
-
-		//can search values, faceting disabled, return disabled
-		LiteralArrayOptions literalArrayOptionsFacetDisabledReturnDisabled = new LiteralArrayOptions().withSearchEnabled(true).withFacetEnabled(false).withReturnEnabled(false);
-
-		//search, facet, and return all enabled
-		LiteralOptions literalOptionsReturnEnabled = new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(true);
-		LiteralArrayOptions literalArrayOptionsReturnEnabled = new LiteralArrayOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(true);
-
-		// faceting is disabled because all values are unique
-		LiteralOptions literalOptionsFacetDisabled = new LiteralOptions().withReturnEnabled(true).withSearchEnabled(true).withFacetEnabled(false);
-
-
-		List<IndexField> list = new ArrayList<>();
-		// Literal fields to be returned in Search Results
-		list.add(new IndexField().withIndexFieldName(FIELD_ETAG).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsFacetDisabled));
-		// Free text fields to be returned in Search Results
-		list.add(new IndexField().withIndexFieldName(FIELD_NAME).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withReturnEnabled(true).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
-		list.add(new IndexField().withIndexFieldName(FIELD_DESCRIPTION).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withReturnEnabled(true).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
-		list.add(new IndexField().withIndexFieldName(FIELD_BOOST).withIndexFieldType(IndexFieldType.TextArray).withTextArrayOptions(new TextArrayOptions().withReturnEnabled(false).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
-		// Numeric fields (by default these are both faceted and available to be returned in search results)
-		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_ON).withIndexFieldType(IndexFieldType.Int));
-		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_ON).withIndexFieldType(IndexFieldType.Int));
-		list.add(new IndexField().withIndexFieldName(FIELD_NUM_SAMPLES).withIndexFieldType(IndexFieldType.Int));
-		// Literal text field facets with return disabled
-		list.add(new IndexField().withIndexFieldName(FIELD_PARENT_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_PLATFORM).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnDisabled));
-
-		//Literal text field facets with return enabled
-		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_CONSORTIUM).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(literalOptionsReturnEnabled));
-
-		//faceting and return disabled
-		list.add(new IndexField().withIndexFieldName(FIELD_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsFacetDisabledReturnDisabled));
-		list.add(new IndexField().withIndexFieldName(FIELD_UPDATE_ACL).withIndexFieldType(IndexFieldType.LiteralArray).withLiteralArrayOptions(literalArrayOptionsFacetDisabledReturnDisabled));
-
-
-		SEARCH_SCHEMA_FIELDS = Collections.unmodifiableList(list);
-	}
 
 
 	public static List<IndexField> loadSearchDomainSchema() {
