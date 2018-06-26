@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -26,13 +25,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:audit-dao.spb.xml" })
 public class AccessRecordDAOImplTest {
 
+	public static final long MAX_TIMEOUT_MS = 30*1000;
 	@Autowired
 	AccessRecordDAO accessRecordDAO;
 	
 	
 	@Before
 	public void before(){
-
+		// Start with no batches
+		accessRecordDAO.deleteAllStackInstanceBatches();
 	}
 	
 	@After
@@ -67,20 +68,19 @@ public class AccessRecordDAOImplTest {
 	}
 	
 	@Test
-	public void testListBatchKeys() throws IOException{
-		// Start with no batches
-		accessRecordDAO.deleteAllStackInstanceBatches();
-		int count = 5;
-		Set<String> keys = new HashSet<String>();
-		for(int i=0; i< count; i++){
-			List<AccessRecord> toTest = AuditTestUtils.createAccessRecordList(1, 2001);
-			String key = accessRecordDAO.saveBatch(toTest, true);
-			assertNotNull(key);
-			keys.add(key);
+	public void testListBatchKeys() throws IOException, InterruptedException{
+		List<AccessRecord> toTest = AuditTestUtils.createAccessRecordList(1, 2001);
+		String key = accessRecordDAO.saveBatch(toTest, true);
+		assertNotNull(key);
+		long start = System.currentTimeMillis();
+		while(true) {
+			assertTrue("Timeout waiting for key to appear in S3.", System.currentTimeMillis()-start < MAX_TIMEOUT_MS);
+			Set<String> foundKeys = accessRecordDAO.listAllKeys();
+			if(foundKeys.contains(key)) {
+				break;
+			}else {
+				Thread.sleep(1000);
+			}
 		}
-		// Now iterate over all key and ensure all keys are found
-		Set<String> foundKeys = accessRecordDAO.listAllKeys();
-		// the two set should be equal
-		assertEquals(keys, foundKeys);
 	}
 }
