@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -145,7 +146,12 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Override
 	public UserProfile get(String id) throws DatastoreException,
 			NotFoundException {
-		DBOUserProfile jdo = jdbcTemplate.queryForObject(SQL_SELECT_PROFILE_BY_ID, USER_PROFILE_ROW_MAPPER, id);
+		DBOUserProfile jdo;
+		try {
+			jdo = jdbcTemplate.queryForObject(SQL_SELECT_PROFILE_BY_ID, USER_PROFILE_ROW_MAPPER, id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("UserProfile cannot be found for: "+id);
+		}
 		UserProfile dto = UserProfileUtils.convertDboToDto(jdo);
 		return dto;
 	}

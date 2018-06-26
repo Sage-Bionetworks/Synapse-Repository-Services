@@ -243,6 +243,12 @@ public class DBOUserProfileDAOImplTest {
 		assertEquals(userProfile.getLastName(), clone.getLastName());
 	}
 	
+	@Test (expected=NotFoundException.class)
+	public void testGetDoesNotExist() {
+		// call under test
+		userProfileDAO.get("-123");
+	}
+	
 	@Test
 	public void testCRUD() throws Exception{
 		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
