@@ -473,29 +473,34 @@ public interface StackConfiguration {
 	public boolean getShouldMessagesBePublishedToTopic();
 
 	/**
-	 * EZID user name.
+	 * Username to register DOIs with the DOI provider.
 	 */
-	public String getEzidUsername();
+	public String getDoiUsername();
 
 	/**
-	 * EZID password.
+	 * Password to register DOIs with the DOI provider.
 	 */
-	public String getEzidPassword();
+	public String getDoiPassword();
 
 	/**
-	 * EZID REST API URL.
+	 * Realm for authenticating with the DOI provider.
 	 */
-	public String getEzidUrl();
+	public String getDoiRealm();
 
 	/**
-	 * EZID DOI prefix.
+	 * DOI Provider's REST API URL.
 	 */
-	public String getEzidDoiPrefix();
+	public String getDoiEndpointURL();
 
 	/**
-	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
+	 * DOI prefix (must be prepended to DOIs that we register)
 	 */
-	public String getEzidTargetUrlPrefix();
+	public String getDoiPrefix();
+
+	/**
+	 * DOI target URL prefix. Example: https://synapse.prod.sagebase.org/
+	 */
+	public String getDoiTargetUrlPrefix();
 
 	/**
 	 * The maximum size of a backup batch.
