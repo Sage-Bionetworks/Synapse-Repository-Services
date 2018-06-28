@@ -133,10 +133,11 @@ public interface TableServices {
 
 	/**
 	 * Get the default columns for a view of the given type.
-	 * @param valueOf
+	 * @param viewType deprecated.
+	 * @param viewTypeMask 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultViewColumnsForType(ViewType valueOf);
+	public List<ColumnModel> getDefaultViewColumnsForType(ViewType viewType, Long viewTypeMask);
 
 	/**
 	 * Get the possible ColumnModel definitions based on annotations for a given view.

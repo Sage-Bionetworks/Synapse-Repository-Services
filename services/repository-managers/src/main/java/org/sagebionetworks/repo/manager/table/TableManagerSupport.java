@@ -340,11 +340,22 @@ public interface TableManagerSupport {
 	public List<ColumnModel> getColumnModels(EntityField... field);
 
 	/**
-	 * Get the default ColumnModels for each primary filed of FileEntity.
+	 * Get the default ColumnModels for a view based on the viewTypeMask.
+	 * 
+	 * @param viewTypeMask Bit mask of the types included in the view.
 	 * 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType);
+	public List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMask);
+	
+	/**
+	 * Use {@link #getDefaultTableViewColumns(Long)}.
+	 * This method only exists for backwards compatibility.
+	 * @param viewType
+	 * @param viewTypeMask
+	 * @return
+	 */
+	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType, Long viewTypeMask);
 
 	/**
 	 * Get the entity type for the given table.

@@ -278,15 +278,19 @@ public class TableController extends BaseController {
 	}
 	
 	/**
-	 * Get the list of default <a
-	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
-	 * </a> that are available for a <a
-	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
-	 * </a>.
+	 * Get the list of default
+	 * <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
+	 * </a> that are available based on the types included in the view.
 	 * 
-	 * @param viewtype Must be a value from <a
-	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
-	 * </a> enumeration.
+	 * @param viewtype
+	 *            Deprecated. Use: 'viewTypeMask'. Must be a value from <a href=
+	 *            "${org.sagebionetworks.repo.model.table.ViewType}">ViewType </a>
+	 *            enumeration.
+	 * @param viewTypeMask
+	 *            Bit mask representing the types to include in the view. The
+	 *            following are the possible types (type=<mask_hex>): File=0x01,
+	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20.
+	 * Note: Set either viewtype or viewTypeMask but not both.
 	 * @return -
 	 * @throws DatastoreException
 	 *             - Synapse error.
@@ -295,10 +299,11 @@ public class TableController extends BaseController {
 	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_IVEW, method = RequestMethod.GET)
 	public @ResponseBody
 	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
-			@PathVariable String viewtype)
+			@PathVariable String viewtype,
+			@PathVariable Long viewTypeMask)
 			throws DatastoreException, NotFoundException {
 		List<ColumnModel> results = serviceProvider.getTableServices()
-				.getDefaultViewColumnsForType(ViewType.valueOf(viewtype));
+				.getDefaultViewColumnsForType(ViewType.valueOf(viewtype), viewTypeMask);
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 	

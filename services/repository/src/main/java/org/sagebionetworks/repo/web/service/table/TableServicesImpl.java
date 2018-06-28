@@ -212,8 +212,8 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultViewColumnsForType(ViewType viewType) {
-		return tableManagerSupport.getDefaultTableViewColumns(viewType);
+	public List<ColumnModel> getDefaultViewColumnsForType(ViewType viewType, Long viewTypeMask) {
+		return tableManagerSupport.getDefaultTableViewColumns(viewType, viewTypeMask);
 	}
 	
 	@Override

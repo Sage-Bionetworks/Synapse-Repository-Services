@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -83,7 +84,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			EntityField.dataFileHandleId
 			);
 	
-	private static final List<EntityField> PROEJCT_VIEW_DEAFULT_COLUMNS = Lists.newArrayList(
+	private static final List<EntityField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
 			EntityField.id,
 			EntityField.name,
 			EntityField.createdOn,
@@ -540,16 +541,26 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType) {
-		ValidateArgument.required(viewType, "viewType");
-		switch(viewType){
-		case file:
-		case file_and_table:	
+	public List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMaks) {
+		ValidateArgument.required(viewTypeMaks, "viewTypeMaks");
+		if((viewTypeMaks & ViewTypeMask.File.getMask())> 0) {
+			// mask includes files so return file columns.
 			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
-		case project:
-			return getColumnModels(PROEJCT_VIEW_DEAFULT_COLUMNS);
-		default:
-			throw new IllegalArgumentException("Unsupported type: "+viewType);
+		}else {
+			// mask does not include files so return basic entity columns.
+			return getColumnModels(BASIC_ENTITY_DEAFULT_COLUMNS);
+		}
+	}
+	
+	@Override
+	public List<ColumnModel> getDefaultTableViewColumns(final ViewType viewType, final Long viewTypeMask) {
+		if(viewType != null && viewTypeMask != null) {
+			throw new IllegalArgumentException("Cannot set both 'viewtype' and 'viewTypeMask', set one or the other.");
+		}
+		if(viewType != null) {
+			return getDefaultTableViewColumns(ViewTypeMask.getMaskForDepricatedType(viewType));
+		}else {
+			return getDefaultTableViewColumns(viewTypeMask);
 		}
 	}
 	
@@ -603,4 +614,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			getAllContainerIdsForScope(scopeIds, type);
 		}
 	}
+
+
 }

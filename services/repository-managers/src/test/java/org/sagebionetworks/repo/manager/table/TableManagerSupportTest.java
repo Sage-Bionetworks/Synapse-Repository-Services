@@ -34,7 +34,6 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -62,6 +61,7 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -764,8 +764,9 @@ public class TableManagerSupportTest {
 		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
 		}
+		Long viewTypeMask = null;
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file, viewTypeMask);
 		assertEquals(expected, results);
 	}
 	
@@ -775,8 +776,9 @@ public class TableManagerSupportTest {
 		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
 		}
+		Long viewTypeMask = null;
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file_and_table);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file_and_table, viewTypeMask);
 		assertEquals(expected, results);
 	}
 	
@@ -791,16 +793,87 @@ public class TableManagerSupportTest {
 				EntityField.modifiedOn.getColumnModel(),
 				EntityField.modifiedBy.getColumnModel()
 				);
+		Long viewTypeMask = null;
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.project);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.project, viewTypeMask);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsMaskExcludesFiles(){
+		long typeMask = 0;
+		for(ViewTypeMask type: ViewTypeMask.values()) {
+			if(type != ViewTypeMask.File) {
+				typeMask |= type.getMask();
+			}
+		}
+		List<ColumnModel> expected = Lists.newArrayList(
+				EntityField.id.getColumnModel(),
+				EntityField.name.getColumnModel(),
+				EntityField.createdOn.getColumnModel(),
+				EntityField.createdBy.getColumnModel(),
+				EntityField.etag.getColumnModel(),
+				EntityField.modifiedOn.getColumnModel(),
+				EntityField.modifiedBy.getColumnModel()
+				);
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsMaskIncludeFiles(){
+		long typeMask = 0;
+		for(ViewTypeMask type: ViewTypeMask.values()) {
+			typeMask |= type.getMask();
+		}
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		for(EntityField field: EntityField.values()){
+			expected.add(field.getColumnModel());
+		}
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
 		assertEquals(expected, results);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetDefaultTableViewColumnsNull(){
-		ViewType type = null;
+	public void testGetDefaultTableViewColumnsNullMask(){
+		Long typeMask = null;
 		// call under test
-		manager.getDefaultTableViewColumns(type);
+		manager.getDefaultTableViewColumns(typeMask);
+	}
+	
+	
+	/**
+	 * Cannot set both parameters.
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDefaultTableViewColumnsBothParameters() {
+		ViewType viewType = ViewType.file;
+		Long viewTypeMask = ViewTypeMask.Folder.getMask();
+		// call under test
+		manager.getDefaultTableViewColumns(viewType, viewTypeMask);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDefaultTableViewColumnsBothNull() {
+		ViewType viewType = null;
+		Long viewTypeMask = null;
+		// call under test
+		manager.getDefaultTableViewColumns(viewType, viewTypeMask);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsBothTypeNull(){
+		ViewType viewType = null;
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		for(EntityField field: EntityField.values()){
+			expected.add(field.getColumnModel());
+		}
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(viewType, viewTypeMask);
+		assertEquals(expected, results);
 	}
 	
 	@Test
