@@ -759,38 +759,43 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * EZID user name.
+	 * Username to register DOIs with the DOI provider.
 	 */
-	public String getEzidUsername() {
-		return configuration.getProperty("org.sagebionetworks.ezid.username");
+	public String getDoiUsername() {
+		return configuration.getProperty("org.sagebionetworks.doi.ezid.username");
 	}
 
 	/**
-	 * EZID password.
+	 * Password to register DOIs with the DOI provider.
 	 */
-	public String getEzidPassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.ezid.password");
+	public String getDoiPassword() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.doi.ezid.password");
 	}
+
+	/**
+	 * Realm for authenticating with the DOI provider.
+	 */
+	public String getDoiRealm() { return configuration.getProperty("org.sagebionetworks.doi.ezid.realm"); }
 
 	/**
 	 * EZID REST API URL.
 	 */
-	public String getEzidUrl() {
-		return configuration.getProperty("org.sagebionetworks.ezid.url");
+	public String getDoiEndpointURL() {
+		return configuration.getProperty("org.sagebionetworks.doi.ezid.url");
 	}
 
 	/**
 	 * EZID DOI prefix.
 	 */
-	public String getEzidDoiPrefix() {
-		return configuration.getProperty("org.sagebionetworks.ezid.doi.prefix");
+	public String getDoiPrefix() {
+		return configuration.getProperty("org.sagebionetworks.doi.prefix");
 	}
 
 	/**
 	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
 	 */
-	public String getEzidTargetUrlPrefix() {
-		return configuration.getProperty("org.sagebionetworks.ezid.doi.target.url.prefix");
+	public String getDoiTargetUrlPrefix() {
+		return configuration.getProperty("org.sagebionetworks.doi.target.url.prefix");
 	}
 
 	/**

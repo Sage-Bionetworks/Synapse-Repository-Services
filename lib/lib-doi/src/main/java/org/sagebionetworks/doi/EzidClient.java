@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.doi.Doi;
  */
 public class EzidClient implements DoiClient {
 
-	private static final String REALM = "EZID";
+	private static final String REALM = EzidConstants.AUTH_REALM;
 	private static final Integer TIME_OUT = Integer.valueOf(9000); // 9 seconds
 	private static final String USER_AGENT = "Synapse";
 	private final RetryableHttpClient writeClient;
