@@ -110,7 +110,7 @@ public class TableManagerSupportTest {
 	Set<Long> scope;
 	Set<Long> containersInScope;
 	UserInfo userInfo;
-	ViewType viewType;
+	Long viewType;
 	
 	Integer callableReturn;
 	
@@ -137,7 +137,7 @@ public class TableManagerSupportTest {
 		
 		tableId = "syn123";
 		tableIdLong = KeyFactory.stringToKey(tableId);
-		viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		
@@ -512,14 +512,14 @@ public class TableManagerSupportTest {
 		for(long i=0; i<countOverLimit; i++){
 			overLimit.add(i);
 		}
-		viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		// call under test.
 		manager.getAllContainerIdsForScope(overLimit, viewType);
 	}
 	
 	@Test
 	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
-		viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(containersInScope, containers);
@@ -528,7 +528,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
-		viewType = ViewType.project;
+		viewType = ViewTypeMask.Project.getMask();
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(scope, containers);
@@ -581,29 +581,29 @@ public class TableManagerSupportTest {
 	@Test
 	public void testcreateViewOverLimitMessageFileView(){
 		// call under test
-		String message = manager.createViewOverLimitMessage(ViewType.file);
+		String message = manager.createViewOverLimitMessage(ViewTypeMask.File.getMask());
 		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
 	}
 	
 	@Test
 	public void testcreateViewOverLimitMessageFileAndTableView(){
 		// call under test
-		String message = manager.createViewOverLimitMessage(ViewType.file_and_table);
+		String message = manager.createViewOverLimitMessage(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
 	}
 	
 	@Test
 	public void testcreateViewOverLimitMessageProjectView(){
 		// call under test
-		String message = manager.createViewOverLimitMessage(ViewType.project);
+		String message = manager.createViewOverLimitMessage(ViewTypeMask.Project.getMask());
 		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, message);
 	}
 	
 	@Test
 	public void calculateFileViewCRC32(){
 		Long crc32 = 45678L;
-		ViewType type = ViewType.file;
-		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
+		Long type = ViewTypeMask.File.getMask();
+		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
 		Long crcResult = manager.calculateViewCRC32(tableId);
@@ -613,7 +613,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testTriggerScopeReconciliationFileView(){
-		ViewType type = ViewType.file;
+		Long type = ViewTypeMask.File.getMask();
 		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
 		// call under test
 		manager.triggerScopeReconciliation(type, containersInScope);
@@ -623,7 +623,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testTriggerScopeReconciliationProjectView(){
-		ViewType type = ViewType.project;
+		Long type = ViewTypeMask.Project.getMask();
 		Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 		// project views reconcile on root.
 		List<Long> toReconcile = Lists.newArrayList(rootId);
@@ -648,8 +648,8 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableVersionForFileView() {
 		Long crc32 = 45678L;
-		ViewType type = ViewType.file;
-		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
+		Long type = ViewTypeMask.File.getMask();
+		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		// call under test

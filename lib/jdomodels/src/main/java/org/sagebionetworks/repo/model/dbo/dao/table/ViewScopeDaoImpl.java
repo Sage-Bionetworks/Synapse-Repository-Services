@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_CONTAINER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_VIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYPE_VIEW_TYPE_MASK;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_SCOPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_TYPE;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,7 +16,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +26,9 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 	
 	private static final String SQL_TRUNCATE_TABLE = "DELETE FROM "+TABLE_VIEW_TYPE+" WHERE "+COL_VIEW_TYPE_VIEW_ID+" IS NOT NULL";
 
-	private static final String SQL_SELECT_VIEW_TYPE = "SELECT "+COL_VIEW_TYPE_VIEW_TYPE+" FROM "+TABLE_VIEW_TYPE+" WHERE "+COL_VIEW_TYPE_VIEW_ID+" = ?";
+	private static final String SQL_SELECT_VIEW_TYPE = "SELECT "+COL_VIEW_TYPE_VIEW_TYPE_MASK+" FROM "+TABLE_VIEW_TYPE+" WHERE "+COL_VIEW_TYPE_VIEW_ID+" = ?";
 
-	private static final String SQL_INSERT_VIEW_TYPE = "INSERT INTO "+TABLE_VIEW_TYPE+" ("+COL_VIEW_TYPE_VIEW_ID+", "+COL_VIEW_TYPE_VIEW_TYPE+", "+COL_VIEW_TYPE_ETAG+") VALUES(?,?,?) ON DUPLICATE KEY UPDATE "+COL_VIEW_TYPE_VIEW_TYPE+" = ?, "+COL_VIEW_TYPE_ETAG+" = ?";
+	private static final String SQL_INSERT_VIEW_TYPE = "INSERT INTO "+TABLE_VIEW_TYPE+" ("+COL_VIEW_TYPE_VIEW_ID+", "+COL_VIEW_TYPE_VIEW_TYPE_MASK+", "+COL_VIEW_TYPE_ETAG+") VALUES(?,?,?) ON DUPLICATE KEY UPDATE "+COL_VIEW_TYPE_VIEW_TYPE_MASK+" = ?, "+COL_VIEW_TYPE_ETAG+" = ?";
 
 	private static final String SQL_SELECT_CONTAINERS_FOR_VIEW = "SELECT "+COL_VIEW_SCOPE_CONTAINER_ID+" FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_VIEW_ID+" = ?";
 
@@ -40,13 +45,12 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void setViewScopeAndType(Long viewId, Set<Long> containerIds, ViewType viewType) {
+	public void setViewScopeAndType(Long viewId, Set<Long> containerIds, Long viewTypeMask) {
 		ValidateArgument.required(viewId, "viewId");
-		ValidateArgument.required(viewType, "viewType");
-		// add the type
-		String type = viewType.name();
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_INSERT_VIEW_TYPE,viewId, type, etag, type, etag);
+		jdbcTemplate.update(SQL_INSERT_VIEW_TYPE,viewId, viewTypeMask, etag, viewTypeMask, etag);
 		
 		// clear any existing scope for this view
 		jdbcTemplate.update(SQL_DELETE_ALL_FOR_VIEW_ID, viewId);
@@ -83,8 +87,7 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 	}
 
 	@Override
-	public ViewType getViewType(Long tableId) {
-		String type = jdbcTemplate.queryForObject(SQL_SELECT_VIEW_TYPE, String.class, tableId);
-		return ViewType.valueOf(type);
+	public Long getViewTypeMask(Long tableId) {
+		return jdbcTemplate.queryForObject(SQL_SELECT_VIEW_TYPE, Long.class, tableId);
 	}
 }

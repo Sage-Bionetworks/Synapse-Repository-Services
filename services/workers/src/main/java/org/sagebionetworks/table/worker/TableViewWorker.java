@@ -122,7 +122,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		final String token = tableManagerSupport.startTableProcessing(tableId);
 		try{
 			// Look-up the type for this table.
-			ViewType viewType = tableManagerSupport.getViewType(tableId);
+			ViewType viewType = tableManagerSupport.getViewTypeMask(tableId);
 
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(tableId);

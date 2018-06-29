@@ -98,7 +98,7 @@ public class TableViewWorkerTest {
 		when(tableManagerSupport.startTableProcessing(tableId)).thenReturn(token);
 		when(tableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		when(tableManagerSupport.getAllContainerIdsForViewScope(tableId, ViewType.file)).thenReturn(viewScope);
-		when(tableManagerSupport.getViewType(tableId)).thenReturn(ViewType.file);
+		when(tableManagerSupport.getViewTypeMask(tableId)).thenReturn(ViewType.file);
 
 		when(connectionFactory.connectToTableIndex(tableId)).thenReturn(
 				indexManager);

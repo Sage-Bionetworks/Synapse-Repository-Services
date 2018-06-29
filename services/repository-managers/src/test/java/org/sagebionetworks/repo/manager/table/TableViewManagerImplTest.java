@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -61,7 +62,7 @@ public class TableViewManagerImplTest {
 	List<String> schema;
 	List<String> scope;
 	String viewId;
-	ViewType viewType;
+	Long viewType;
 	
 	Set<Long> scopeIds;
 	long rowCount;
@@ -93,7 +94,7 @@ public class TableViewManagerImplTest {
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		
 		viewId = "syn555";
-		viewType = ViewType.file;
+		viewType =ViewTypeMask.File.getMask();
 		
 		doAnswer(new Answer<ColumnModel>(){
 			@Override
@@ -171,7 +172,7 @@ public class TableViewManagerImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySetOf(Long.class), any(ViewType.class));
+		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySetOf(Long.class), any(Long.class));
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
 	}

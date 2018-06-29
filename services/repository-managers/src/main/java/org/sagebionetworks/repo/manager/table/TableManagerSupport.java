@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -196,7 +195,7 @@ public interface TableManagerSupport {
 	 * @param viewId
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(String viewId, ViewType viewType);
+	public Set<Long> getAllContainerIdsForViewScope(String viewId, Long viewTypeMask);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -208,7 +207,7 @@ public interface TableManagerSupport {
 	 * @param scope
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType);
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask);
 
 
 	/**
@@ -379,7 +378,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	ViewType getViewType(String tableId);
+	Long getViewTypeMask(String tableId);
 
 	/**
 	 * Only Administrator can perform this action.
@@ -396,7 +395,7 @@ public interface TableManagerSupport {
 	 * @param scopeIds
 	 * @param type
 	 */
-	public void validateScopeSize(Set<Long> scopeIds, ViewType type);
+	public void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask);
 
 	/**
 	 * This will trigger a worker to detect and reconcile any entity replication
@@ -406,7 +405,7 @@ public interface TableManagerSupport {
 	 * @param expandedScope
 	 *            The fully expanded scope of the view.
 	 */
-	void triggerScopeReconciliation(ViewType type, Set<Long> expandedScope);
+	void triggerScopeReconciliation(Long viewTypeMask, Set<Long> expandedScope);
 
 	/**
 	 * Does the given table exist?  If the table is in the trash then this will

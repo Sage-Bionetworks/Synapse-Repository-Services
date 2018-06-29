@@ -1,13 +1,22 @@
 package org.sagebionetworks.repo.model.table;
 
+import org.sagebionetworks.repo.model.EntityType;
+
 public enum ViewTypeMask {
 
-	File(0x01), Project(0x02), Table(0x04), Folder(0x08), View(0x10), Docker(0x20);
+	File(0x01, EntityType.file),
+	Project(0x02, EntityType.project),
+	Table(0x04, EntityType.table),
+	Folder(0x08, EntityType.folder),
+	View(0x10, EntityType.entityview),
+	Docker(0x20, EntityType.dockerrepo);
 
 	long bitMask;
+	EntityType entityType;
 
-	ViewTypeMask(int mask) {
+	ViewTypeMask(int mask, EntityType entityType) {
 		this.bitMask = mask;
+		this.entityType = entityType;
 	}
 
 	/**
@@ -28,7 +37,7 @@ public enum ViewTypeMask {
 			throw new IllegalArgumentException("Unknown type: " + oldType);
 		}
 	}
-	
+
 	/**
 	 * The bit mask for this type.
 	 * 
@@ -36,6 +45,10 @@ public enum ViewTypeMask {
 	 */
 	public long getMask() {
 		return this.bitMask;
+	}
+	
+	public EntityType getEntityType() {
+		return this.entityType;
 	}
 
 }

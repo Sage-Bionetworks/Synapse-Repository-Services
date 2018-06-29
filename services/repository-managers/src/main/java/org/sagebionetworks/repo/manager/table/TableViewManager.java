@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.ViewType;
 
 /**
  * Business logic for materialized table views.
@@ -23,7 +22,7 @@ public interface TableViewManager {
 	 * @param viewId
 	 */
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
-			List<String> scope, ViewType type, String viewId);
+			List<String> scope, Long viewTypeMask, String viewId);
 	
 	 /**
 	  * Find Views that contain the given Entity.

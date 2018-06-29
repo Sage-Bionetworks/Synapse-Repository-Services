@@ -53,7 +53,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
-			List<String> scope, ViewType type, String viewIdString) {
+			List<String> scope, Long type, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(type, "viewType");
 		validateViewSchemaSize(schema);
