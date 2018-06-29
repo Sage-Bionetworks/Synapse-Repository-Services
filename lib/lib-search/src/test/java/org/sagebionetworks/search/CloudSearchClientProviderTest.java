@@ -54,7 +54,7 @@ public class CloudSearchClientProviderTest {
 		when(mockSearchDomainSetup.postInitialize()).thenReturn(true);
 		when(mockSearchDomainSetup.getDomainSearchEndpoint()).thenReturn(fakeEndpoint);
 
-		//get cloudsearch client twice
+		//get awscloudsearch client twice
 		assertSame(provider.getCloudSearchClient(), provider.getCloudSearchClient());
 
 		//verify that the setup only occurred once

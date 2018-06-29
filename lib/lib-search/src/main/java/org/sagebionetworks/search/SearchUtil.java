@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.search.awscloudsearch.CloudSearchField;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.CollectionUtils;
 
@@ -239,8 +241,15 @@ public class SearchUtil{
 		JSONObject facetJSON = new JSONObject();
 
 		for(SearchFacetOption facetOption : searchFacetOptions){
+			// TODO: maybe better to move this logic into CloudSearchField.
+			// TODO: it's currently an interface but we could use an abstract class instead?
+			// TODO: consider using Java 8 "default interface method for multiple implementations"
+			CloudSearchField field = SynapseToCloudSearchField.cloudSearchFieldFor(facetOption.getName());
+			if(!field.isFaceted()){
+				throw new IllegalArgumentException("The field:\"" + facetOption.getName() +"\" can not be faceted");
+			}
 			JSONObject facetOptionJSON = createOptionsJSONForFacet(facetOption);
-			facetJSON.putOnce(facetOption.getName(), facetOptionJSON);
+			facetJSON.putOnce(field.getFieldName() , facetOptionJSON);
 		}
 		return facetJSON;
 	}
@@ -339,7 +348,7 @@ public class SearchUtil{
 		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
 		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE));
 		synapseHit.setConsortium(getFirstListValueFromMap(fieldsMap, FIELD_CONSORTIUM));
-		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+		//synapseHit.setPath() also exists but there does not appear to be a path field in the awscloudsearch anymore.
 		synapseHit.setId(cloudSearchHit.getId());
 		return synapseHit;
 	}

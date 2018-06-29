@@ -9,8 +9,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 
-@Ignore// Turned off until the dao is turned on.
 public class SynapseToCloudSearchFieldTest {
 	//TODO: add more tests
 	

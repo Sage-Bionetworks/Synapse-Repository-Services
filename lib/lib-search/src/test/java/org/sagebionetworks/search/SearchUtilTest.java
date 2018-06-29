@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
 import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
+import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 
 import java.util.ArrayList;
@@ -122,7 +123,7 @@ public class SearchUtilTest {
 		searchFacetOption = new SearchFacetOption();
 		searchFacetOption.setMaxResultCount(42L);
 		searchFacetOption.setSortType(SearchFacetSort.COUNT);
-		searchFacetOption.setName("N A M E");
+		searchFacetOption.setName(SearchFieldName.EntityType);
 	}
 
 	//////////////////////////////////////
@@ -227,10 +228,13 @@ public class SearchUtilTest {
 		KeyValue kv = new KeyValue();
 		kv.setKey("disease");
 		kv.setValue("[\"normal\",\"carcinoma\"]");
+		query.setQueryTerm(q);
 		query.setBooleanQuery(Collections.singletonList(kv));
 
-		System.out.println(SearchUtil.generateSearchRequest(query));
-	}
+		searchRequest = SearchUtil.generateSearchRequest(query);
+
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
+				.withFilterQuery("(and disease:'[\"normal\",\"carcinoma\"]')"), searchRequest);	}
 
 	@Test
 	public void testFacets() {
@@ -337,7 +341,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetOptions(Collections.singletonList(searchFacetOption));
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"N A M E\":{\"sort\":\"count\",\"size\":42}}"), searchRequest);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"node_type\":{\"sort\":\"count\",\"size\":42}}"), searchRequest);
 	}
 
 	///////////////////////////////////
@@ -709,15 +713,15 @@ public class SearchUtilTest {
 	@Test
 	public void testCreateCloudSearchFacetJSON_SingleFacet(){
 		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(searchFacetOption));
-		assertEquals("{\"N A M E\":{\"sort\":\"count\",\"size\":42}}", result.toString());
+		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42}}", result.toString());
 	}
 
 	@Test
 	public void testCreateCloudSearchFacetJSON_MultipleFacets(){
 		SearchFacetOption otherFacetOption = new SearchFacetOption();
-		otherFacetOption.setName("S A M E");
+		otherFacetOption.setName(SearchFieldName.CreatedOn);
 
-		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Arrays.asList(searchFacetOption, otherFacetOption));
-		assertEquals("{\"N A M E\":{\"sort\":\"count\",\"size\":42},\"S A M E\":{}}", result.toString());
+		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Arrays.asList( searchFacetOption, otherFacetOption));
+		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42},\"created_on\":{}}", result.toString());
 	}
 }
