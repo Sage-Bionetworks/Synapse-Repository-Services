@@ -222,7 +222,7 @@ public class TableServicesImpl implements TableServices {
 	}
 	
 	@Override
-	public ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, ViewType type, String nextPageToken){
+	public ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, Long type, String nextPageToken){
 		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scopeIds, type, nextPageToken);
 	}
 	
