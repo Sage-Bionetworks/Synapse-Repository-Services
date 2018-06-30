@@ -54,7 +54,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 				ObjectRecord.class, HEADERS);
 		writer = new GzipCsvS3ObjectWriter<ObjectRecord>(s3Client,
 				ObjectRecord.class, HEADERS);
-		bucketDao = new BucketDaoImpl((AmazonS3Client) s3Client, snapshotRecordBucketName);
+		bucketDao = new BucketDaoImpl(s3Client, snapshotRecordBucketName);
 		s3Client.createBucket(snapshotRecordBucketName);
 	}
 

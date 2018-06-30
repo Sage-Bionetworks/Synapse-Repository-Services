@@ -196,6 +196,12 @@
 				"$ref":"org.sagebionetworks.repo.model.UserPreference"
 			},
   			"uniqueItems": true
-        } 
+        },
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this profile was created.",
+			"title": "Created On"
+		} 
 	}
 }

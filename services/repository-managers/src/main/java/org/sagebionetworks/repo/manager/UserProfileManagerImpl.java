@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -54,6 +55,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private FileHandleManager fileHandleManager;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 
 	@Override

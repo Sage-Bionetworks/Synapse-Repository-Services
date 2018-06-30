@@ -132,6 +132,7 @@ public class UserProfileManagerImplTest {
 			profile.setOpenIds(new ArrayList<String>());
 			profile.setUserName(USER_NAME);
 			profile.setEtag(created.getEtag());
+			profile.setCreatedOn(created.getCreatedOn());
 			assertEquals(profile, created);
 		}
 		assertNotNull(created);
