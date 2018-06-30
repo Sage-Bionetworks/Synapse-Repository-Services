@@ -6,25 +6,27 @@ import org.sagebionetworks.util.ValidateArgument;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Function;
 
 class SynapseCreatedCloudSearchField implements CloudSearchField{
-	private static Map<IndexFieldType, Function<IndexField, ?>> indexOptionGetterFuncMap;
+	private static final Map<IndexFieldType, Function<IndexField, ?>> INDEX_OPTIONS_GETTER_MAP;
 	static{
-		indexOptionGetterFuncMap = new EnumMap<IndexFieldType, Function<IndexField, ?>>(IndexFieldType.class);
-		indexOptionGetterFuncMap.put(IndexFieldType.Literal, IndexField::getLiteralOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.LiteralArray, IndexField::getLiteralArrayOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.Text, IndexField::getTextOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.TextArray, IndexField::getTextArrayOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.Int, IndexField::getIntOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.IntArray, IndexField::getIntArrayOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.Date, IndexField::getDateOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.DateArray, IndexField::getDateArrayOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.Latlon, IndexField::getLatLonOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.Double, IndexField::getDoubleOptions);
-		indexOptionGetterFuncMap.put(IndexFieldType.DoubleArray, IndexField::getDoubleArrayOptions);
+		Map<IndexFieldType, Function<IndexField, ?>> temp = new EnumMap<>(IndexFieldType.class);
+		temp.put(IndexFieldType.Literal, IndexField::getLiteralOptions);
+		temp.put(IndexFieldType.LiteralArray, IndexField::getLiteralArrayOptions);
+		temp.put(IndexFieldType.Text, IndexField::getTextOptions);
+		temp.put(IndexFieldType.TextArray, IndexField::getTextArrayOptions);
+		temp.put(IndexFieldType.Int, IndexField::getIntOptions);
+		temp.put(IndexFieldType.IntArray, IndexField::getIntArrayOptions);
+		temp.put(IndexFieldType.Date, IndexField::getDateOptions);
+		temp.put(IndexFieldType.DateArray, IndexField::getDateArrayOptions);
+		temp.put(IndexFieldType.Latlon, IndexField::getLatLonOptions);
+		temp.put(IndexFieldType.Double, IndexField::getDoubleOptions);
+		temp.put(IndexFieldType.DoubleArray, IndexField::getDoubleArrayOptions);
+		INDEX_OPTIONS_GETTER_MAP = Collections.unmodifiableMap(temp);
 	}
 
 
@@ -34,8 +36,7 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 		ValidateArgument.required(indexField, "indexField");
 		ValidateArgument.required(indexField.getIndexFieldType(), "indexField.indexFieldType");
 		this.indexField = indexField;
-		Object indexFieldOption = getIndexFieldOption();
-		if(indexFieldOption == null){
+		if(getIndexFieldOption() == null){
 			throw new IllegalArgumentException("indexField must have an IndexOption associated with it");
 		}
 	}
@@ -82,8 +83,8 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 	}
 
 	private Object getIndexFieldOption(){
-		IndexFieldType indexFieldType = IndexFieldType.fromValue(indexField.getIndexFieldType());
-		Function<IndexField, ?> indexFieldOptionGetter = indexOptionGetterFuncMap.get(indexFieldType);
-		return indexFieldOptionGetter.apply(indexField);
+		IndexFieldType indexFieldType = IndexFieldType.fromValue(this.indexField.getIndexFieldType());
+		Function<IndexField, ?> indexFieldOptionGetter = INDEX_OPTIONS_GETTER_MAP.get(indexFieldType);
+		return indexFieldOptionGetter.apply(this.indexField);
 	}
 }
