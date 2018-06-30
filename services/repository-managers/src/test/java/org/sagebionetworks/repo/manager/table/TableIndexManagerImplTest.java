@@ -643,7 +643,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
-		scopeSynIds = null;
+		scope.setScope(null);
 		// call under test
 		manager.getPossibleColumnModelsForScope(scope, tokenString);
 	}

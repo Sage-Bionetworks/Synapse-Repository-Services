@@ -58,11 +58,10 @@ public class TableViewManagerImpl implements TableViewManager {
 			ViewScope scope, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scope.getScope(), "scope");
 		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		Set<Long> scopeIds = null;
-		if(scope != null){
+		if(scope.getScope() != null){
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		}
 		Long viewTypeMaks = ViewTypeMask.getViewTypeMask(scope);

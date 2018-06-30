@@ -224,7 +224,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testSetViewSchemaAndScopeWithNullScope(){
-		scope = null;
+		viewScope.setScope(null);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
@@ -234,7 +234,8 @@ public class TableViewManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetViewSchemaAndScopeWithNullType(){
-		viewType = null;
+		viewScope.setViewType(null);
+		viewScope.setViewTypeMask(null);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 	}
