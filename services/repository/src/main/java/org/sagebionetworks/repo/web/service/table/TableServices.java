@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -154,6 +155,6 @@ public interface TableServices {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, ViewType type,
+	ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope,
 			String nextPageToken);
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +15,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -33,6 +35,7 @@ public class EntityViewMetadataProviderTest {
 	
 	UserInfo userInfo;
 	ViewType viewType;
+	ViewScope scope;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -50,20 +53,22 @@ public class EntityViewMetadataProviderTest {
 		table.setScopeIds(scopeIds);
 		
 		userInfo = new UserInfo(false, 55L);
+		
+		scope = EntityViewMetadataProvider.createViewScope(table);
 	}
 
 	@Test
 	public void testCreate(){
 		// call under test
 		provider.entityCreated(userInfo, table);
-		verify(mockFileViewManager).setViewSchemaAndScope(userInfo, columnIds, scopeIds, viewType, entityId);
+		verify(mockFileViewManager).setViewSchemaAndScope(userInfo, columnIds, scope, entityId);
 	}
 	
 	@Test
 	public void testUpdate(){
 		// call under test
 		provider.entityUpdated(userInfo, table);
-		verify(mockFileViewManager).setViewSchemaAndScope(userInfo, columnIds, scopeIds, viewType, entityId);
+		verify(mockFileViewManager).setViewSchemaAndScope(userInfo, columnIds, scope, entityId);
 	}
 	
 	@Test
@@ -74,6 +79,27 @@ public class EntityViewMetadataProviderTest {
 		provider.addTypeSpecificMetadata(testEntity, null, null, null); //the other parameters are not used at all
 		verify(mockFileViewManager).getTableSchema(entityId);
 		assertEquals(columnIds, testEntity.getColumnIds());
+	}
+	
+	@Test
+	public void testCreateViewScopeWithType() {
+		ViewScope scope = EntityViewMetadataProvider.createViewScope(table);
+		assertNotNull(scope);
+		assertEquals(viewType, scope.getViewType());
+		assertEquals(scopeIds, scope.getScope());
+		assertEquals(null, scope.getViewTypeMask());
+	}
+	
+	@Test
+	public void testCreateViewScopeWithMask() {
+		Long mask = new Long(0x10);
+		table.setViewTypeMask(mask);
+		table.setType(null);
+		ViewScope scope = EntityViewMetadataProvider.createViewScope(table);
+		assertNotNull(scope);
+		assertEquals(null, scope.getViewType());
+		assertEquals(scopeIds, scope.getScope());
+		assertEquals(mask, scope.getViewTypeMask());
 	}
 
 }

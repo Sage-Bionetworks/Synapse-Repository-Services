@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -220,10 +221,10 @@ public class TableServicesImpl implements TableServices {
 	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken){
 		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewId, nextPageToken);
 	}
-	
+
 	@Override
-	public ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, Long type, String nextPageToken){
-		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scopeIds, type, nextPageToken);
+	public ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope, String nextPageToken) {
+		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scope, nextPageToken);
 	}
 	
 }

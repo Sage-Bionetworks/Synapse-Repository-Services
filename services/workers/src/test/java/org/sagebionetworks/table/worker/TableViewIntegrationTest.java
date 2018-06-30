@@ -76,6 +76,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -250,7 +251,10 @@ public class TableViewIntegrationTest {
 		view.setType(type);
 		String viewId = entityManager.createEntity(adminUserInfo, view, null);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), view.getScopeIds(), view.getType(), viewId);
+		ViewScope viewScope = new ViewScope();
+		viewScope.setScope(view.getScopeIds());
+		viewScope.setViewType(view.getType());
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
 		entitiesToDelete.add(view.getId());
 		return viewId;
 	}
@@ -584,8 +588,11 @@ public class TableViewIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
+		ViewScope scope = new ViewScope();
+		scope.setScope(Lists.newArrayList(project.getId()));
+		scope.setViewType(ViewType.file);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
-				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
+				scope, fileViewId);
 
 		// Add an annotation with the same name and a value larger than the size
 		// of the column.
@@ -621,8 +628,11 @@ public class TableViewIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
+		ViewScope scope = new ViewScope();
+		scope.setScope(Lists.newArrayList(project.getId()));
+		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
-				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
+				scope, fileViewId);
 
 		// Add an annotation with a duplicate name as a primary annotation.
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);

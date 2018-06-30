@@ -548,14 +548,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	@Override
 	public List<ColumnModel> getDefaultTableViewColumns(final ViewType viewType, final Long viewTypeMask) {
-		if(viewType != null && viewTypeMask != null) {
-			throw new IllegalArgumentException("Cannot set both 'viewtype' and 'viewTypeMask', set one or the other.");
-		}
-		if(viewType != null) {
-			return getDefaultTableViewColumns(ViewTypeMask.getMaskForDepricatedType(viewType));
-		}else {
-			return getDefaultTableViewColumns(viewTypeMask);
-		}
+		long mask = ViewTypeMask.getViewTypeMask(viewType, viewTypeMask);
+		return getDefaultTableViewColumns(mask);
 	}
 	
 	/**

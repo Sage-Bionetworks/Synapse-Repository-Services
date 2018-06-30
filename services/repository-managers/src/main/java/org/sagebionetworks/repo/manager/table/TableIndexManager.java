@@ -6,6 +6,7 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -178,7 +179,7 @@ public interface TableIndexManager {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	public ColumnModelPage getPossibleColumnModelsForScope(List<String> scopeIds, Long viewTypeMask, String nextPageToken);
+	public ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken);
 	
 	/**
 	 * Get the possible ColumnModel definitions based on annotations for a given view.

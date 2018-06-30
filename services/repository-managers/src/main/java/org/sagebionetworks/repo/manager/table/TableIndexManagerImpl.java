@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
@@ -317,17 +318,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForScope(
-			List<String> scopeIds, Long viewTypeMask, String nextPageToken) {
-		ValidateArgument.required(scopeIds, "scopeIds");
-		if(viewTypeMask == null){
-			// default to file
-			viewTypeMask = ViewTypeMask.File.getMask();
-		}
+			ViewScope scope, String nextPageToken) {
+		ValidateArgument.required(scope, "scope");
+		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
+		long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		// lookup the containers for the given scope
-		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scopeIds));
+		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, viewTypeMask);
 		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewTypeMask, nextPageToken);
 	}
+	
 	
 	/**
 	 * Get the possible annotations for the given set of container IDs.

@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
@@ -90,6 +91,7 @@ public class TableIndexManagerImplTest {
 	String tokenString;
 	List<String> scopeSynIds;
 	Set<Long> scopeIds;
+	ViewScope scope;
 	
 	Long viewType;
 	
@@ -154,6 +156,9 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, viewType)).thenReturn(containerIds);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
+		scope = new ViewScope();
+		scope.setScope(scopeSynIds);
+		scope.setViewTypeMask(viewType);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -620,7 +625,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -630,7 +635,7 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull(){
 		viewType = null;
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		// should default to file view.
 		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), nextPageToken.getLimit()+1, nextPageToken.getOffset());
@@ -640,7 +645,7 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
 		scopeSynIds = null;
 		// call under test
-		manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
+		manager.getPossibleColumnModelsForScope(scope, tokenString);
 	}
 	
 	/**
