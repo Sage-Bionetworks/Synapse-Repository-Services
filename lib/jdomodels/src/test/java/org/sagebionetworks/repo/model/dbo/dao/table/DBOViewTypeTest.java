@@ -7,7 +7,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 
-public class DBOViweTypeTest {
+public class DBOViewTypeTest {
 
 	/**
 	 * Test for PLFM_4956
