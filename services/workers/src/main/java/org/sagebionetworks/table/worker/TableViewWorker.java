@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -122,7 +121,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		final String token = tableManagerSupport.startTableProcessing(tableId);
 		try{
 			// Look-up the type for this table.
-			ViewType viewType = tableManagerSupport.getViewType(tableId);
+			Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
 
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(tableId);
@@ -133,14 +132,14 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			List<ColumnModel> expandedSchema = tableViewManager.getViewSchema(tableId);
 			
 			// Get the containers for this view.
-			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewType);
+			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
 
 			// create the table in the index.
 			boolean isTableView = true;
 			indexManager.setIndexSchema(tableId, isTableView, callback, expandedSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 			// populate the view by coping data from the entity replication tables.
-			Long viewCRC = indexManager.populateViewFromEntityReplication(tableId, callback, viewType, allContainersInScope, expandedSchema);
+			Long viewCRC = indexManager.populateViewFromEntityReplication(tableId, callback, viewTypeMask, allContainersInScope, expandedSchema);
 			// now that table is created and populated the indices on the table can be optimized.
 			indexManager.optimizeTableIndices(tableId);
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.

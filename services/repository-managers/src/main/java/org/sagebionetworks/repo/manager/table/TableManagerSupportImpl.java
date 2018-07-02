@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -40,7 +39,7 @@ import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -83,7 +82,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			EntityField.dataFileHandleId
 			);
 	
-	private static final List<EntityField> PROEJCT_VIEW_DEAFULT_COLUMNS = Lists.newArrayList(
+	private static final List<EntityField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
 			EntityField.id,
 			EntityField.name,
 			EntityField.createdOn,
@@ -332,19 +331,19 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public Long calculateViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
-		ViewType type = getViewType(tableId);
-		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, type);
+		Long viewTypeMask = getViewTypeMask(tableId);
+		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, viewTypeMask);
 		// Trigger the reconciliation of this view's scope.
-		triggerScopeReconciliation(type, viewContainers);
+		triggerScopeReconciliation(viewTypeMask, viewContainers);
 		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(tableId);
-		return indexDao.calculateCRC32ofEntityReplicationScope(type, viewContainers);
+		return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
 	}
 
 	@Override
-	public void triggerScopeReconciliation(ViewType type, Set<Long> viewContainers) {
+	public void triggerScopeReconciliation(Long viewTypeMask, Set<Long> viewContainers) {
 		// Trigger the reconciliation of this view
 		List<Long> containersToReconcile = new LinkedList<Long>();
-		if(ViewType.project.equals(type)){
+		if(ViewTypeMask.Project.getMask() == viewTypeMask){
 			// project views reconcile with root.
 			Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 			containersToReconcile.add(rootId);
@@ -361,12 +360,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForViewScope(String viewIdString, ViewType viewType) {
+	public Set<Long> getAllContainerIdsForViewScope(String viewIdString, Long viewTypeMask) {
 		ValidateArgument.required(viewIdString, "viewId");
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		// Lookup the scope for this view.
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-		return getAllContainerIdsForScope(scope, viewType);
+		return getAllContainerIdsForScope(scope, viewTypeMask);
 	}
 
 	/*
@@ -374,15 +373,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getAllContainerIdsForScope(java.util.Set)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType) {
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask) {
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		// Validate the given scope is under the limit.
 		if(scope.size() > MAX_CONTAINERS_PER_VIEW){
-			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
+			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
 		}
 		
-		if(ViewType.project == viewType){
+		if(ViewTypeMask.Project.getMask() == viewTypeMask){
 			return scope;
 		}
 		// Expand the scope to include all sub-folders
@@ -390,7 +389,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
 		} catch (LimitExceededException e) {
 			// Convert the generic exception to a specific exception.
-			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
+			throw new IllegalArgumentException(createViewOverLimitMessage(viewTypeMask));
 		}
 	}
 	
@@ -399,17 +398,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * 
 	 * @param viewType
 	 */
-	public String createViewOverLimitMessage(ViewType viewType) throws IllegalArgumentException{
-		ValidateArgument.required(viewType, "ViewType");
-		switch (viewType) {
-		case project:
+	public String createViewOverLimitMessage(Long viewTypeMask) throws IllegalArgumentException{
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
 			return SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW;
-		case file:
-		case file_and_table:
+		}else {
 			return SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW;
-		default:
-			throw new IllegalArgumentException("Unknown type: "
-					+ viewType.name());
 		}
 	}
 	
@@ -535,21 +529,19 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public ViewType getViewType(String tableId){
-		return viewScopeDao.getViewType(KeyFactory.stringToKey(tableId));
+	public Long getViewTypeMask(String tableId){
+		return viewScopeDao.getViewTypeMask(KeyFactory.stringToKey(tableId));
 	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType) {
-		ValidateArgument.required(viewType, "viewType");
-		switch(viewType){
-		case file:
-		case file_and_table:	
+	public List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMaks) {
+		ValidateArgument.required(viewTypeMaks, "viewTypeMaks");
+		if((viewTypeMaks & ViewTypeMask.File.getMask())> 0) {
+			// mask includes files so return file columns.
 			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
-		case project:
-			return getColumnModels(PROEJCT_VIEW_DEAFULT_COLUMNS);
-		default:
-			throw new IllegalArgumentException("Unsupported type: "+viewType);
+		}else {
+			// mask does not include files so return basic entity columns.
+			return getColumnModels(BASIC_ENTITY_DEAFULT_COLUMNS);
 		}
 	}
 	
@@ -597,10 +589,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public void validateScopeSize(Set<Long> scopeIds, ViewType type) {
+	public void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask) {
 		if(scopeIds != null){
 			// Validation is built into getAllContainerIdsForScope() call
-			getAllContainerIdsForScope(scopeIds, type);
+			getAllContainerIdsForScope(scopeIds, viewTypeMask);
 		}
 	}
+
 }

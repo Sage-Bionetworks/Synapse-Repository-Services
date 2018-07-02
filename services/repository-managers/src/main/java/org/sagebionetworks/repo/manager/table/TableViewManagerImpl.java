@@ -18,7 +18,9 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.table.cluster.SQLUtils;
@@ -53,20 +55,21 @@ public class TableViewManagerImpl implements TableViewManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
-			List<String> scope, ViewType type, String viewIdString) {
+			ViewScope scope, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(type, "viewType");
+		ValidateArgument.required(scope, "scope");
 		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		Set<Long> scopeIds = null;
-		if(scope != null){
-			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
+		if(scope.getScope() != null){
+			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		}
+		Long viewTypeMaks = ViewTypeMask.getViewTypeMask(scope);
 		// validate the scope size
-		tableManagerSupport.validateScopeSize(scopeIds, type);
+		tableManagerSupport.validateScopeSize(scopeIds, viewTypeMaks);
 		
 		// Define the scope of this view.
-		viewScopeDao.setViewScopeAndType(viewId, scopeIds, type);
+		viewScopeDao.setViewScopeAndType(viewId, scopeIds, viewTypeMaks);
 		// Define the schema of this view.
 		columModelManager.bindColumnToObject(schema, viewIdString);
 		// trigger an update
