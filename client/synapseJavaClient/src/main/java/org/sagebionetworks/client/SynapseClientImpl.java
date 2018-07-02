@@ -356,7 +356,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	protected static final String COLUMN = "/column";
 	protected static final String COLUMN_BATCH = COLUMN + "/batch";
-	protected static final String COLUMN_VIEW_DEFAULT = COLUMN + "/tableview/defaults/";
+	protected static final String COLUMN_VIEW_DEFAULT = COLUMN + "/tableview/defaults";
 	protected static final String TABLE = "/table";
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
@@ -3752,7 +3752,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public List<ColumnModel> getDefaultColumnsForView(ViewType viewType)
 			throws SynapseException {
 		ValidateArgument.required(viewType, "viewType");
-		String url = COLUMN_VIEW_DEFAULT+viewType.name();
+		String url = COLUMN_VIEW_DEFAULT+"/"+viewType.name();
+		return getListOfJSONEntity(getRepoEndpoint(), url, ColumnModel.class);
+	}
+	
+	@Override
+	public List<ColumnModel> getDefaultColumnsForView(Long viewTypeMask)
+			throws SynapseException {
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		String url = COLUMN_VIEW_DEFAULT+"?viewTypeMask="+viewTypeMask;
 		return getListOfJSONEntity(getRepoEndpoint(), url, ColumnModel.class);
 	}
 

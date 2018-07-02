@@ -346,15 +346,6 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMask);
-	
-	/**
-	 * Use {@link #getDefaultTableViewColumns(Long)}.
-	 * This method only exists for backwards compatibility.
-	 * @param viewType
-	 * @param viewTypeMask
-	 * @return
-	 */
-	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType, Long viewTypeMask);
 
 	/**
 	 * Get the entity type for the given table.

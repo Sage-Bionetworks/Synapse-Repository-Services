@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -546,12 +545,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 	
-	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(final ViewType viewType, final Long viewTypeMask) {
-		long mask = ViewTypeMask.getViewTypeMask(viewType, viewTypeMask);
-		return getDefaultTableViewColumns(mask);
-	}
-	
 	/**
 	 * Get the ColumnModels for the given entity fields.
 	 * @param fields
@@ -602,6 +595,5 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			getAllContainerIdsForScope(scopeIds, viewTypeMask);
 		}
 	}
-
 
 }

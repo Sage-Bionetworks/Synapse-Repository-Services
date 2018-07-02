@@ -211,10 +211,10 @@ public class TableServicesImpl implements TableServices {
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
 		return tableQueryManager.getMaxRowsPerPage(models);
 	}
-
+	
 	@Override
-	public List<ColumnModel> getDefaultViewColumnsForType(ViewType viewType, Long viewTypeMask) {
-		return tableManagerSupport.getDefaultTableViewColumns(viewType, viewTypeMask);
+	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask) {
+		return tableManagerSupport.getDefaultTableViewColumns(viewTypeMask);
 	}
 	
 	@Override

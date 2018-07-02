@@ -131,14 +131,15 @@ public interface TableServices {
 	 * @return
 	 */
 	public Long getMaxRowsPerPage(List<ColumnModel> models);
-
+	
+	
 	/**
 	 * Get the default columns for a view of the given type.
 	 * @param viewType deprecated.
 	 * @param viewTypeMask 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultViewColumnsForType(ViewType viewType, Long viewTypeMask);
+	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask);
 
 	/**
 	 * Get the possible ColumnModel definitions based on annotations for a given view.

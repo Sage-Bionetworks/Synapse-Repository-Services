@@ -1329,6 +1329,19 @@ public interface SynapseClient extends BaseClient {
 	 */
 	List<ColumnModel> getDefaultColumnsForView(ViewType viewType) throws SynapseException;
 	
+	/**
+	 * Get the default columns for a given view type mask.
+	 * 
+	 * @param viewTypeMask
+	 *            Bit mask representing the types to include in the view. The
+	 *            following are the possible types (type=<mask_hex>): File=0x01,
+	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20.
+
+	 * @return
+	 * @throws SynapseException
+	 */
+	List<ColumnModel> getDefaultColumnsForView(Long viewTypeMask) throws SynapseException;
+	
 	// Team services
 	
 	/**

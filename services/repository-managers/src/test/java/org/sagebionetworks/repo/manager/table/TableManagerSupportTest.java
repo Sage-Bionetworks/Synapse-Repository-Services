@@ -764,9 +764,8 @@ public class TableManagerSupportTest {
 		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
 		}
-		Long viewTypeMask = null;
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file, viewTypeMask);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.File.getMask());
 		assertEquals(expected, results);
 	}
 	
@@ -776,9 +775,9 @@ public class TableManagerSupportTest {
 		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
 		}
-		Long viewTypeMask = null;
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file_and_table, viewTypeMask);
+		Long viewTypeMaks = ViewTypeMask.File.getMask() | ViewTypeMask.Table.getMask();
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(viewTypeMaks);
 		assertEquals(expected, results);
 	}
 	
@@ -793,9 +792,8 @@ public class TableManagerSupportTest {
 				EntityField.modifiedOn.getColumnModel(),
 				EntityField.modifiedBy.getColumnModel()
 				);
-		Long viewTypeMask = null;
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.project, viewTypeMask);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.Project.getMask());
 		assertEquals(expected, results);
 	}
 	
@@ -842,39 +840,7 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.getDefaultTableViewColumns(typeMask);
 	}
-	
-	
-	/**
-	 * Cannot set both parameters.
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetDefaultTableViewColumnsBothParameters() {
-		ViewType viewType = ViewType.file;
-		Long viewTypeMask = ViewTypeMask.Folder.getMask();
-		// call under test
-		manager.getDefaultTableViewColumns(viewType, viewTypeMask);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetDefaultTableViewColumnsBothNull() {
-		ViewType viewType = null;
-		Long viewTypeMask = null;
-		// call under test
-		manager.getDefaultTableViewColumns(viewType, viewTypeMask);
-	}
-	
-	@Test
-	public void testGetDefaultTableViewColumnsBothTypeNull(){
-		ViewType viewType = null;
-		Long viewTypeMask = ViewTypeMask.File.getMask();
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
-			expected.add(field.getColumnModel());
-		}
-		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(viewType, viewTypeMask);
-		assertEquals(expected, results);
-	}
+
 	
 	@Test
 	public void testGetEntityPath(){
