@@ -135,7 +135,6 @@ public interface TableServices {
 	
 	/**
 	 * Get the default columns for a view of the given type.
-	 * @param viewType deprecated.
 	 * @param viewTypeMask 
 	 * @return
 	 */

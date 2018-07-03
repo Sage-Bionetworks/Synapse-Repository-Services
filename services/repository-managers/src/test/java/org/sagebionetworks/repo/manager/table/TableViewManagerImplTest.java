@@ -238,6 +238,35 @@ public class TableViewManagerImplTest {
 		viewScope.setViewTypeMask(null);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		
+	}
+	
+	/**
+	 * Project cannot be combined with anything else.
+	 */
+	@Test
+	public void testSetViewSchemaAndScopeWithProjectCombinedWithOtherTypes(){
+		long mask = ViewTypeMask.Project.getMask() | ViewTypeMask.File.getMask();
+		viewScope.setViewTypeMask(mask);
+		try {
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals(TableViewManagerImpl.PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE, e.getMessage());
+		}
+	}
+	
+	/**
+	 * Project cannot be combined with anything else.
+	 */
+	@Test
+	public void testSetViewSchemaAndScopeWithProjectOnly(){
+		long mask = ViewTypeMask.Project.getMask();
+		viewScope.setViewTypeMask(mask);
+		// call under test
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), mask);
 	}
 	
 	@Test
