@@ -66,11 +66,13 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 	}
 
 
-	private boolean invokeIndexFieldOptionMethod(String methodName){
+	boolean invokeIndexFieldOptionMethod(String methodName){
 		Object indexFieldOption = getIndexFieldOption();
 		try {
 			Method method = indexFieldOption.getClass().getMethod(methodName);
-			return (Boolean) method.invoke(indexFieldOption);
+			//we expect results to be booleans
+			Boolean result = (Boolean) method.invoke(indexFieldOption);
+			return result == null ? false : result;
 		} catch (NoSuchMethodException e) {
 			// Certain index *FieldOptions may not have a method available.
 			// For example, TextFieldOptions does not have "getFacetEnabled()"
@@ -82,7 +84,7 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 		}
 	}
 
-	private Object getIndexFieldOption(){
+	Object getIndexFieldOption(){
 		IndexFieldType indexFieldType = IndexFieldType.fromValue(this.indexField.getIndexFieldType());
 		Function<IndexField, ?> indexFieldOptionGetter = INDEX_OPTIONS_GETTER_MAP.get(indexFieldType);
 		return indexFieldOptionGetter.apply(this.indexField);
