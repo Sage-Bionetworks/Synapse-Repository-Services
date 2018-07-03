@@ -87,6 +87,13 @@ public class SynapseCreatedCloudSearchFieldTest {
 	}
 
 	@Test
+	public void testGetFieldName(){
+		String fieldName = "F I E L D N A M E";
+		indexField.setIndexFieldName(fieldName);
+		assertEquals(fieldName, synapseCreatedCloudSearchField.getFieldName());
+	}
+
+	@Test
 	public void testGetIndexFieldOption(){
 		assertCorrectIndexFieldOptionClass(IndexFieldType.Literal, LiteralOptions.class);
 		assertCorrectIndexFieldOptionClass(IndexFieldType.LiteralArray, LiteralArrayOptions.class);
@@ -129,29 +136,6 @@ public class SynapseCreatedCloudSearchFieldTest {
 	}
 
 	@Test
-	public void invokeIndexFieldOption_methodExistsIllegalAccessException() throws Exception{
-		//TODO: this test does not work
-		indexField.setIndexFieldType(IndexFieldType.Literal);
-		indexField.getLiteralOptions().setSearchEnabled(true);
-
-
-		//use Java Reflection to make the field private
-		Method getSearchEnabledMethod = indexField.getLiteralOptions().getClass().getDeclaredMethod("getSearchEnabled");
-		getSearchEnabledMethod.setAccessible(false);
-		getSearchEnabledMethod.invoke(indexField.getLiteralOptions());
-
-		try {
-			System.out.println(synapseCreatedCloudSearchField.invokeIndexFieldOptionMethod("getSearchEnabled"));
-			indexField.getLiteralOptions().getSearchEnabled();
-			fail("RuntimeException should have been thrown");
-		} catch (RuntimeException e){
-			//expected
-		}finally {
-			getSearchEnabledMethod.setAccessible(true);
-		}
-	}
-
-	@Test
 	public void invokeIndexFieldOption_methodExistsInvocationTargetException(){
 		indexField.setIndexFieldType(IndexFieldType.Literal);
 
@@ -167,5 +151,28 @@ public class SynapseCreatedCloudSearchFieldTest {
 		}
 	}
 
+	@Test
+	public void testIsFaceted(){
+		indexField.getLiteralOptions().setFacetEnabled(true);
+		assertTrue(synapseCreatedCloudSearchField.isFaceted());
+		indexField.getLiteralOptions().setFacetEnabled(false);
+		assertFalse(synapseCreatedCloudSearchField.isFaceted());
+	}
+
+	@Test
+	public void testIsSearchable(){
+		indexField.getLiteralOptions().setSearchEnabled(true);
+		assertTrue(synapseCreatedCloudSearchField.isSearchable());
+		indexField.getLiteralOptions().setSearchEnabled(false);
+		assertFalse(synapseCreatedCloudSearchField.isSearchable());
+	}
+
+	@Test
+	public void testIsReturned(){
+		indexField.getLiteralOptions().setReturnEnabled(true);
+		assertTrue(synapseCreatedCloudSearchField.isReturned());
+		indexField.getLiteralOptions().setReturnEnabled(false);
+		assertFalse(synapseCreatedCloudSearchField.isReturned());
+	}
 
 }
