@@ -201,7 +201,7 @@ public class StackUtilsTest {
 		Properties realValues = new Properties();
 		String stack ="myStackName";
 		String instance ="B";
-		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+stack+"XXXXX.awscloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
 		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
 		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
 	}
@@ -217,7 +217,7 @@ public class StackUtilsTest {
 		String stack ="myStackName";
 		String instance ="B";
 		// note that this url is http instead of https
-		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", "http://doc-"+stack+"XXXXX.awscloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", "http://doc-"+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
 		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
 		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
 	}
@@ -232,7 +232,7 @@ public class StackUtilsTest {
 		Properties realValues = new Properties();
 		String stack ="myStackName";
 		String instance ="B";
-		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+stack+"XXXXX.awscloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
 		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
 		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
 	}
@@ -248,7 +248,7 @@ public class StackUtilsTest {
 		String stack ="myStackName";
 		String instance ="B";
 		// note that this url is http instead of https
-		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", "http://doc-"+stack+"XXXXX.awscloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", "http://doc-"+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
 		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
 		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
 	}
@@ -264,7 +264,7 @@ public class StackUtilsTest {
 		String stack ="myStackName";
 		String instance ="B";
 		// Note that we have the wrong stack name here
-		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+"wrongStack"+"XXXXX.awscloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+"wrongStack"+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
 		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
 		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
 	}
