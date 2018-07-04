@@ -771,7 +771,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask);
-		return namedTemplate.query(sql, param, new RowMapper<ColumnModel>() {
+		List<ColumnModel> results = namedTemplate.query(sql, param, new RowMapper<ColumnModel>() {
 
 			@Override
 			public ColumnModel mapRow(ResultSet rs, int rowNum)
@@ -781,16 +781,41 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ColumnModel cm = new ColumnModel();
 				cm.setName(name);
 				cm.setColumnType(type);
-				if(ColumnType.STRING.equals(type)){
-					long maxLength = rs.getLong(3);
-					if(maxLength < 1){
-						maxLength = ColumnConstants.DEFAULT_STRING_SIZE;
-					}
-					cm.setMaximumSize(maxLength);
-				}
+				cm.setMaximumSize(rs.getLong(3));
 				return cm;
 			}
 		});
+		// See PLFM-5034
+		setMaximumSizes(results);
+		return results;
+	}
+	
+	/**
+	 * See: PLFM-5034. When there are multiple columns with the same name but
+	 * different type, the grouping will calculate a max size for each type. The
+	 * string max size needs to be the maximum size of all types with the same name,
+	 * since a string column would include all values from the other types.
+	 * 
+	 * @param results
+	 */
+	public static void setMaximumSizes(List<ColumnModel> results) {
+		Map<String, Long> maxMap = new HashMap<>(results.size());
+		for(ColumnModel cm: results) {
+			ValidateArgument.required(cm.getMaximumSize(), "ColumnModel.maximumSize");
+			Long previousMax = maxMap.get(cm.getName());
+			if(previousMax == null) {
+				previousMax = 0L;
+			}
+			maxMap.put(cm.getName(), Math.max(previousMax, cm.getMaximumSize()));
+		}
+		// only keep max size for strings
+		for(ColumnModel cm: results) {
+			if(ColumnType.STRING == cm.getColumnType()) {
+				cm.setMaximumSize(maxMap.get(cm.getName()));
+			}else {
+				cm.setMaximumSize(null);
+			}
+		}
 	}
 
 	@Override
