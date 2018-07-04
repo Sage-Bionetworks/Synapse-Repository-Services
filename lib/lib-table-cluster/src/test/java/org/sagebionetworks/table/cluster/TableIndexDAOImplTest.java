@@ -1469,6 +1469,99 @@ public class TableIndexDAOImplTest {
 		assertEquals(null, cm.getMaximumSize());
 	}
 	
+	/**
+	 * Test added for PLFM-5034
+	 */
+	@Test
+	public void testGetPossibleAnnotationsForContainersPLFM_5034(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		String duplicateName = "duplicate";
+		
+		// one
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 15);
+		file1.getAnnotations().clear();
+		file1.setParentId(333L);
+		// add a string annotation with a size of 3
+		AnnotationDTO annoDto = new AnnotationDTO();
+		annoDto.setEntityId(file1.getId());
+		annoDto.setKey(duplicateName);
+		annoDto.setType(AnnotationType.STRING);
+		annoDto.setValue("123");
+		file1.getAnnotations().add(annoDto);
+	
+		// two
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 12);
+		file2.getAnnotations().clear();
+		file2.setParentId(222L);
+		// add a long annotation with a size of 6
+		annoDto = new AnnotationDTO();
+		annoDto.setEntityId(file2.getId());
+		annoDto.setKey(duplicateName);
+		annoDto.setType(AnnotationType.LONG);
+		annoDto.setValue("123456");
+		file1.getAnnotations().add(annoDto);
+
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), limit, offset);
+		assertNotNull(columns);
+		assertEquals(2, columns.size());
+		// one
+		ColumnModel cm = columns.get(0);
+		assertEquals(duplicateName, cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(6L), cm.getMaximumSize());
+		// two
+		cm = columns.get(1);
+		assertEquals(duplicateName, cm.getName());
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSetMaximumSizesNullMax() {
+		ColumnModel one = new ColumnModel();
+		one.setMaximumSize(null);
+		// call under test
+		TableIndexDAOImpl.setMaximumSizes(Lists.newArrayList(one));
+	}
+	
+	@Test
+	public void testSetMaximumSizes() {
+		ColumnModel one = new ColumnModel();
+		one.setName("foo");
+		one.setColumnType(ColumnType.STRING);
+		one.setMaximumSize(100L);
+		
+		ColumnModel two = new ColumnModel();
+		two.setName("foo");
+		two.setColumnType(ColumnType.DOUBLE);
+		two.setMaximumSize(0L);
+		
+		ColumnModel three = new ColumnModel();
+		three.setName("bar");
+		three.setColumnType(ColumnType.STRING);
+		three.setMaximumSize(0L);
+		
+		ColumnModel four = new ColumnModel();
+		four.setName("bar");
+		four.setColumnType(ColumnType.USERID);
+		four.setMaximumSize(202L);
+		
+		// call under test
+		TableIndexDAOImpl.setMaximumSizes(Lists.newArrayList(one,two,three,four));
+		
+		assertEquals(new Long(100L), one.getMaximumSize());
+		assertEquals(null, two.getMaximumSize());
+		assertEquals(new Long(202L), three.getMaximumSize());
+		assertEquals(null, four.getMaximumSize());
+	}
+	
 	@Test
 	public void testGetPossibleAnnotationsForContainersProject(){
 		// delete all data
