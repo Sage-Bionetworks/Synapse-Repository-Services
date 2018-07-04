@@ -22,4 +22,8 @@ public class SynapseToCloudSearchFieldTest {
 		assertEquals(18, list.size());
 	}
 
+	@Test
+	public void testCloudSearchFieldFor(){
+
+	}
 }

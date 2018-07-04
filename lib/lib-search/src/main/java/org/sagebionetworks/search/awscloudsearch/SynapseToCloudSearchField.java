@@ -1,43 +1,54 @@
 package org.sagebionetworks.search.awscloudsearch;
 
 
-import static org.sagebionetworks.search.awscloudsearch.CloudSearchIndexFieldConstants.*;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ACL;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_BOOST;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CONSORTIUM;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_BY;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_ON;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DESCRIPTION;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DISEASE;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ETAG;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_MODIFIED_BY;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_MODIFIED_ON;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NAME;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NODE_TYPE;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_PARENT_ID;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_PLATFORM;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_REFERENCE;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_TISSUE;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_UPDATE_ACL;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
+import org.sagebionetworks.util.ValidateArgument;
 
 public enum SynapseToCloudSearchField {
-	/***
-	 * TODO: This class should be the "Truth" on the configuration for search index. The SearchDomainSetupImpl class should be refactored to use this enum to initialize the search index.
-	 */
 	ID(SearchFieldName.Id, new IdCloudSearchField()), //Id is an implicit field
-	NAME(SearchFieldName.Name, new SynapseCreatedCloudSearchField(INDEX_FIELD_NAME)),
-	TISSUE(SearchFieldName.TissueAnnotation, new SynapseCreatedCloudSearchField(INDEX_FIELD_TISSUE)),
-	ENTITY_TYPE(SearchFieldName.EntityType, new SynapseCreatedCloudSearchField(INDEX_FIELD_NODE_TYPE)),
-	DISEASE(SearchFieldName.DiseaseAnnotation, new SynapseCreatedCloudSearchField(INDEX_FIELD_DISEASE)),
-	MODIFIED_BY(SearchFieldName.ModifiedBy, new SynapseCreatedCloudSearchField(INDEX_FIELD_MODIFIED_BY)),
-	CREATED_BY(SearchFieldName.CreatedBy, new SynapseCreatedCloudSearchField(INDEX_FIELD_CREATED_BY)),
-	NUM_SAMPLES(SearchFieldName.NumSamplesAnnotation, new SynapseCreatedCloudSearchField(INDEX_FIELD_NUM_SAMPLES)),
-	CREATED_ON(SearchFieldName.CreatedOn, new SynapseCreatedCloudSearchField(INDEX_FIELD_CREATED_ON)),
-	MODIFIED_ON(SearchFieldName.ModifiedOn, new SynapseCreatedCloudSearchField(INDEX_FIELD_MODIFIED_ON)),
-	DESCRIPTION(SearchFieldName.Description, new SynapseCreatedCloudSearchField(INDEX_FIELD_DESCRIPTION)),
-	CONSORTIUM(SearchFieldName.ConsortiumAnnotation, new SynapseCreatedCloudSearchField(INDEX_FIELD_CONSORTIUM)),
+	NAME(SearchFieldName.Name, CLOUD_SEARCH_FIELD_NAME),
+	TISSUE(SearchFieldName.TissueAnnotation, CLOUD_SEARCH_FIELD_TISSUE),
+	ENTITY_TYPE(SearchFieldName.EntityType, CLOUD_SEARCH_FIELD_NODE_TYPE),
+	DISEASE(SearchFieldName.DiseaseAnnotation, CLOUD_SEARCH_FIELD_DISEASE),
+	MODIFIED_BY(SearchFieldName.ModifiedBy, CLOUD_SEARCH_FIELD_MODIFIED_BY),
+	CREATED_BY(SearchFieldName.CreatedBy, CLOUD_SEARCH_FIELD_CREATED_BY),
+	NUM_SAMPLES(SearchFieldName.NumSamplesAnnotation, CLOUD_SEARCH_FIELD_NUM_SAMPLES),
+	CREATED_ON(SearchFieldName.CreatedOn, CLOUD_SEARCH_FIELD_CREATED_ON),
+	MODIFIED_ON(SearchFieldName.ModifiedOn, CLOUD_SEARCH_FIELD_MODIFIED_ON),
+	DESCRIPTION(SearchFieldName.Description, CLOUD_SEARCH_FIELD_DESCRIPTION),
+	CONSORTIUM(SearchFieldName.ConsortiumAnnotation, CLOUD_SEARCH_FIELD_CONSORTIUM),
 
-
-	//The ones below are not exposed in our API currently
-	ETAG(null, new SynapseCreatedCloudSearchField(INDEX_FIELD_ETAG)),
-	BOOST(null, new SynapseCreatedCloudSearchField(INDEX_FIELD_BOOST)),
-	PARENT_ID(null, new SynapseCreatedCloudSearchField(INDEX_FIELD_PARENT_ID)),
-	PLATFORM(null, new SynapseCreatedCloudSearchField(INDEX_FIELD_PLATFORM)),
-	REFERENCE(null, new SynapseCreatedCloudSearchField(INDEX_FIELD_REFERENCE)),
-	ACL(null, new SynapseCreatedCloudSearchField(INDEX_FIELD_ACL)),
-	UPDATE_ACL(null, new SynapseCreatedCloudSearchField(INDEX_FIELD_UPDATE_ACL));
+	//The ones below are not exposed in our API currently (and probably never will be)
+	ETAG(null, CLOUD_SEARCH_FIELD_ETAG),
+	BOOST(null, CLOUD_SEARCH_FIELD_BOOST),
+	PARENT_ID(null, CLOUD_SEARCH_FIELD_PARENT_ID),
+	PLATFORM(null, CLOUD_SEARCH_FIELD_PLATFORM),
+	REFERENCE(null, CLOUD_SEARCH_FIELD_REFERENCE),
+	ACL(null, CLOUD_SEARCH_FIELD_ACL),
+	UPDATE_ACL(null, CLOUD_SEARCH_FIELD_UPDATE_ACL);
 
 	private final SearchFieldName synapseSearchFieldName;
 	private final CloudSearchField indexField;
@@ -52,6 +63,8 @@ public enum SynapseToCloudSearchField {
 	}
 
 	public static CloudSearchField cloudSearchFieldFor(SearchFieldName synapseSearchFieldName){
+		ValidateArgument.required(synapseSearchFieldName, "synapseSearchFieldName");
+
 		for (SynapseToCloudSearchField synapseToCloudSearchField : values()){
 			if(synapseSearchFieldName == synapseToCloudSearchField.synapseSearchFieldName){
 				return synapseToCloudSearchField.indexField;
