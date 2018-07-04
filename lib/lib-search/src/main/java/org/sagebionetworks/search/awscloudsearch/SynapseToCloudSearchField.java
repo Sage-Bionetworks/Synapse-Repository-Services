@@ -9,6 +9,7 @@ import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstant
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DESCRIPTION;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DISEASE;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ETAG;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ID;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NAME;
@@ -28,18 +29,20 @@ import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 import org.sagebionetworks.util.ValidateArgument;
 
 public enum SynapseToCloudSearchField {
-	ID(SearchFieldName.Id, new IdCloudSearchField()), //Id is an implicit field
+	ID(SearchFieldName.Id, CLOUD_SEARCH_FIELD_ID),
 	NAME(SearchFieldName.Name, CLOUD_SEARCH_FIELD_NAME),
-	TISSUE(SearchFieldName.TissueAnnotation, CLOUD_SEARCH_FIELD_TISSUE),
 	ENTITY_TYPE(SearchFieldName.EntityType, CLOUD_SEARCH_FIELD_NODE_TYPE),
-	DISEASE(SearchFieldName.DiseaseAnnotation, CLOUD_SEARCH_FIELD_DISEASE),
 	MODIFIED_BY(SearchFieldName.ModifiedBy, CLOUD_SEARCH_FIELD_MODIFIED_BY),
-	CREATED_BY(SearchFieldName.CreatedBy, CLOUD_SEARCH_FIELD_CREATED_BY),
-	NUM_SAMPLES(SearchFieldName.NumSamplesAnnotation, CLOUD_SEARCH_FIELD_NUM_SAMPLES),
-	CREATED_ON(SearchFieldName.CreatedOn, CLOUD_SEARCH_FIELD_CREATED_ON),
 	MODIFIED_ON(SearchFieldName.ModifiedOn, CLOUD_SEARCH_FIELD_MODIFIED_ON),
+	CREATED_BY(SearchFieldName.CreatedBy, CLOUD_SEARCH_FIELD_CREATED_BY),
+	CREATED_ON(SearchFieldName.CreatedOn, CLOUD_SEARCH_FIELD_CREATED_ON),
 	DESCRIPTION(SearchFieldName.Description, CLOUD_SEARCH_FIELD_DESCRIPTION),
+
+	//indexes of annotations
 	CONSORTIUM(SearchFieldName.ConsortiumAnnotation, CLOUD_SEARCH_FIELD_CONSORTIUM),
+	DISEASE(SearchFieldName.DiseaseAnnotation, CLOUD_SEARCH_FIELD_DISEASE),
+	NUM_SAMPLES(SearchFieldName.NumSamplesAnnotation, CLOUD_SEARCH_FIELD_NUM_SAMPLES),
+	TISSUE(SearchFieldName.TissueAnnotation, CLOUD_SEARCH_FIELD_TISSUE),
 
 	//The ones below are not exposed in our API currently (and probably never will be)
 	ETAG(null, CLOUD_SEARCH_FIELD_ETAG),
@@ -62,6 +65,11 @@ public enum SynapseToCloudSearchField {
 		return indexField;
 	}
 
+	/**
+	 * Returns the CloudSearchField corresponding ot the SearchFieldName
+	 * @param synapseSearchFieldName the SearchFieldName used to find its corresponding CloudSearchField
+	 * @return CloudSearchField corresponding to the SearchFieldName or null if no match is found.
+	 */
 	public static CloudSearchField cloudSearchFieldFor(SearchFieldName synapseSearchFieldName){
 		ValidateArgument.required(synapseSearchFieldName, "synapseSearchFieldName");
 
@@ -73,6 +81,10 @@ public enum SynapseToCloudSearchField {
 		return null;
 	}
 
+	/**
+	 * Returns a List of all IndexFields needed for initialization of the Cloud Search Domain.
+	 * @return a List of all IndexFields needed for initialization of the Cloud Search Domain,
+	 */
 	public static List<IndexField> loadSearchDomainSchema() {
 		List<IndexField> indexFields = new ArrayList<>();
 		for(SynapseToCloudSearchField fieldEnum : values()){
