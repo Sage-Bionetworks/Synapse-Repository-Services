@@ -711,13 +711,20 @@ public class SearchUtilTest {
 	// createCloudSearchFacetJSON() tests
 	///////////////////////////////////////
 	@Test
-	public void testCreateCloudSearchFacetJSON_SingleFacet(){
+	public void testCreateCloudSearchFacetJSON_SingleField(){
 		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(searchFacetOption));
 		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42}}", result.toString());
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateCloudSearchFacetJSON_SingleFieldIsNotFacetable(){
+		SearchFacetOption otherFacetOption = new SearchFacetOption();
+		otherFacetOption.setName(SearchFieldName.Description);
+		SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(otherFacetOption));
+	}
+
 	@Test
-	public void testCreateCloudSearchFacetJSON_MultipleFacets(){
+	public void testCreateCloudSearchFacetJSON_MultipleField(){
 		SearchFacetOption otherFacetOption = new SearchFacetOption();
 		otherFacetOption.setName(SearchFieldName.CreatedOn);
 
