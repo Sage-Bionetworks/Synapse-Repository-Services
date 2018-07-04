@@ -348,7 +348,7 @@ public class SearchUtil{
 		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
 		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE));
 		synapseHit.setConsortium(getFirstListValueFromMap(fieldsMap, FIELD_CONSORTIUM));
-		//synapseHit.setPath() also exists but there does not appear to be a path field in the awscloudsearch anymore.
+		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
 		synapseHit.setId(cloudSearchHit.getId());
 		return synapseHit;
 	}
