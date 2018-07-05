@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchFacetSortType;
 import org.sagebionetworks.search.awscloudsearch.CloudSearchField;
 import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.sagebionetworks.util.ValidateArgument;
@@ -266,7 +267,7 @@ public class SearchUtil{
 		Long maxCount = facetOption.getMaxResultCount();
 
 		if(sortType != null) {
-			facetOptionJSON.put("sort", CloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name().toLowerCase());
+			facetOptionJSON.put("sort", SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name().toLowerCase());
 		}
 
 		if(maxCount != null){
