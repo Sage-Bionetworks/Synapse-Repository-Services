@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -20,12 +21,14 @@ public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<En
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, EntityView entityView) {
-		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), entityView.getScopeIds(),entityView.getType(), entityView.getId());
+		ViewScope scope = createViewScope(entityView);
+		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), scope, entityView.getId());
 	}
 
 	@Override
 	public void entityCreated(UserInfo userInfo, EntityView entityView) {
-		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), entityView.getScopeIds(),entityView.getType(),  entityView.getId());
+		ViewScope scope = createViewScope(entityView);
+		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), scope,  entityView.getId());
 	}
 
 	@Override
@@ -34,5 +37,13 @@ public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<En
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		List<String> tableSchema = fileViewManager.getTableSchema(entity.getId());
 		entity.setColumnIds(tableSchema);
+	}
+	
+	public static ViewScope createViewScope(EntityView view) {
+		ViewScope scope = new ViewScope();
+		scope.setScope(view.getScopeIds());
+		scope.setViewType(view.getType());
+		scope.setViewTypeMask(view.getViewTypeMask());
+		return scope;
 	}
 }

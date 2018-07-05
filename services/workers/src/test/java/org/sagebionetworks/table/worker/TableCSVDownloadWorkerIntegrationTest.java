@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -281,7 +282,10 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		view.setType(ViewType.project);
 		tableId = entityManager.createEntity(adminUserInfo, view, null);
 		toDelete.add(tableId);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, headers, projectIds, ViewType.project, tableId);
+		ViewScope scope = new ViewScope();
+		scope.setScope(projectIds);
+		scope.setViewType(ViewType.project);
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, headers, scope, tableId);
 		// Wait for the three rows to appear in the view
 		int expectedRowCount = 3;
 		waitForConsistentQuery(adminUserInfo, "SELECT * FROM "+tableId, expectedRowCount);

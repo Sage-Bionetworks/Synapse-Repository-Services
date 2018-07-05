@@ -28,7 +28,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_ENTITY_
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_ENTITY_CHILD_ID_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.TYPE_PARAMETER_NAME;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -713,9 +712,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public long calculateCRC32ofEntityReplicationScope(ViewType viewType,
+	public long calculateCRC32ofEntityReplicationScope(Long viewTypeMask,
 			Set<Long> allContainersInScope) {
-		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		if(allContainersInScope.isEmpty()){
 			return -1L;
@@ -723,7 +722,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		String sql = SQLUtils.getCalculateCRC32Sql(viewType);
+		String sql = SQLUtils.getCalculateCRC32Sql(viewTypeMask);
 		Long crc32 = namedTemplate.queryForObject(sql, param, Long.class);
 		if(crc32 == null){
 			return -1L;
@@ -742,9 +741,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
+	public void copyEntityReplicationToTable(String viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
-		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		if(allContainersInScope.isEmpty()){
 			// nothing to do if the scope is empty.
@@ -753,13 +752,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewType, currentSchema);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema);
 		namedTemplate.update(sql, param);
 	}
 
 	@Override
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
-			Set<Long> containerIds, ViewType type, Long limit, Long offset) {
+			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset) {
 		ValidateArgument.required(containerIds, "containerIds");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
@@ -771,7 +770,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(type);
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask);
 		return namedTemplate.query(sql, param, new RowMapper<ColumnModel>() {
 
 			@Override

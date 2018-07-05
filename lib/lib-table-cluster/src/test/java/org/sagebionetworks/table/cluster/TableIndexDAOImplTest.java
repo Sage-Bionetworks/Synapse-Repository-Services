@@ -39,7 +39,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -1256,17 +1256,17 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(381255304L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(file1.getParentId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(3214398L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(file2.getParentId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(378040906L), crc);
 	}
 	
@@ -1286,17 +1286,17 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(project1.getId(), project2.getId());
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
 		assertEquals(new Long(381255304L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(project1.getId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
 		assertEquals(new Long(3214398L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(project2.getId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
 		assertEquals(new Long(378040906L), crc);
 	}
 	
@@ -1305,7 +1305,7 @@ public class TableIndexDAOImplTest {
 		// nothing should have this scope
 		Set<Long> scope = Sets.newHashSet(99999L);
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(-1), crc);
 	}
 	
@@ -1313,7 +1313,7 @@ public class TableIndexDAOImplTest {
 	public void testCalculateCRC32ofEntityReplicationScopeEmpty(){
 		Set<Long> scope = new HashSet<Long>();
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(-1), crc);
 	}
 	
@@ -1328,7 +1328,7 @@ public class TableIndexDAOImplTest {
 	public void testCalculateCRC32ofEntityReplicationNullScope(){
 		Set<Long> scope = null;
 		// call under test
-		tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 	}
 	
 	@Test
@@ -1352,7 +1352,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1397,7 +1397,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1424,7 +1424,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
@@ -1449,8 +1449,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
-		ViewType type = ViewType.file;
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, type, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -1486,8 +1485,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> containerIds = Sets.newHashSet(2L, 3L);
 		long limit = 5;
 		long offset = 0;
-		ViewType type = ViewType.project;
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, type, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.Project.getMask(), limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one

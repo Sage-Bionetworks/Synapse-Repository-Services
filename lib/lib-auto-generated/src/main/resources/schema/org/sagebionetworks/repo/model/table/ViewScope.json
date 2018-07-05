@@ -1,15 +1,20 @@
 {
-	"description":"List of parent IDs that define a view scope.",
-	"properties":{
+	"description": "List of parent IDs that define a view scope.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasViewTypeMask"
+		}
+	],
+	"properties": {
 		"scope": {
-			"description":"List of parent IDs that define a view scope.",
+			"description": "List of parent IDs that define a view scope.",
 			"type": "array",
 			"items": {
-				"type":"string"
+				"type": "string"
 			}
 		},
 		"viewType": {
-			"description":"The type of view for the scope.",
+			"description": "Deprecated. Use: 'viewTypeMask'",
 			"$ref": "org.sagebionetworks.repo.model.table.ViewType"
 		}
 	}
