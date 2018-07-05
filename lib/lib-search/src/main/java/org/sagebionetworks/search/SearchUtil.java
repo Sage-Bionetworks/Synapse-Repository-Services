@@ -1,5 +1,30 @@
 package org.sagebionetworks.search;
 
+import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.regex.Pattern;
+
 import com.amazonaws.services.cloudsearchdomain.model.Bucket;
 import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
@@ -24,36 +49,11 @@ import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchFacetSortType;
 import org.sagebionetworks.search.awscloudsearch.CloudSearchField;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchFacetSortType;
 import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.CollectionUtils;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.regex.Pattern;
-
-import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
@@ -242,9 +242,6 @@ public class SearchUtil{
 		JSONObject facetJSON = new JSONObject();
 
 		for(SearchFacetOption facetOption : searchFacetOptions){
-			// TODO: maybe better to move this logic into CloudSearchField.
-			// TODO: it's currently an interface but we could use an abstract class instead?
-			// TODO: consider using Java 8 "default interface method for multiple implementations"
 			CloudSearchField field = SynapseToCloudSearchField.cloudSearchFieldFor(facetOption.getName());
 			if(!field.isFaceted()){
 				throw new IllegalArgumentException("The field:\"" + facetOption.getName() +"\" can not be faceted");

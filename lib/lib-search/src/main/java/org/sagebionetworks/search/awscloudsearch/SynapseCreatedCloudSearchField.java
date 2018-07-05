@@ -11,6 +11,9 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Wrapper for IndexFields defined in CloudSearch.
+ */
 class SynapseCreatedCloudSearchField implements CloudSearchField{
 	private static final Map<IndexFieldType, Function<IndexField, ?>> INDEX_OPTIONS_GETTER_MAP;
 	static{

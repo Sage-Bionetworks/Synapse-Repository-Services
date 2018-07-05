@@ -27,10 +27,6 @@ import com.amazonaws.services.cloudsearchv2.model.LiteralOptions;
 import com.amazonaws.services.cloudsearchv2.model.TextArrayOptions;
 import com.amazonaws.services.cloudsearchv2.model.TextOptions;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 class CloudSearchFieldConstants {
 
 		/*

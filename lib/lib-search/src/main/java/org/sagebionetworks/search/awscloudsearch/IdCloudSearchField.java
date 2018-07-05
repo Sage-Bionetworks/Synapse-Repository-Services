@@ -1,7 +1,8 @@
 package org.sagebionetworks.search.awscloudsearch;
 
 /**
- * This is a special case of CloudSearch index field. The unique id of an entry in CloudSearch must exist and can be referenced by "_id"
+ * This is a special case of CloudSearch index field.
+ * The unique id of an entry in CloudSearch must always exist so there is no need to create an IndexField for it.
  */
 class IdCloudSearchField implements CloudSearchField{
 	public static final String ID_FIELD_NAME = "_id";

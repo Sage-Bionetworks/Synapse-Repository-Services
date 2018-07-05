@@ -28,6 +28,10 @@ import com.amazonaws.services.cloudsearchv2.model.IndexField;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 import org.sagebionetworks.util.ValidateArgument;
 
+/**
+ * This class tracks all of the fields used in CloudSearch and provides mapping from fields listed in Synapse's API
+ * to their actual CloudSearch fields.
+ */
 public enum SynapseToCloudSearchField {
 	ID(SearchFieldName.Id, CLOUD_SEARCH_FIELD_ID),
 	NAME(SearchFieldName.Name, CLOUD_SEARCH_FIELD_NAME),
@@ -54,19 +58,15 @@ public enum SynapseToCloudSearchField {
 	UPDATE_ACL(null, CLOUD_SEARCH_FIELD_UPDATE_ACL);
 
 	private final SearchFieldName synapseSearchFieldName;
-	private final CloudSearchField indexField;
+	private final CloudSearchField cloudSearchField;
 
-	SynapseToCloudSearchField(SearchFieldName synapseSearchFieldName, CloudSearchField indexField){
+	SynapseToCloudSearchField(SearchFieldName synapseSearchFieldName, CloudSearchField cloudSearchField){
 		this.synapseSearchFieldName = synapseSearchFieldName;
-		this.indexField = indexField;
-	}
-
-	public CloudSearchField getIndexField() {
-		return indexField;
+		this.cloudSearchField = cloudSearchField;
 	}
 
 	/**
-	 * Returns the CloudSearchField corresponding ot the SearchFieldName
+	 * Returns the CloudSearchField corresponding to the SearchFieldName
 	 * @param synapseSearchFieldName the SearchFieldName used to find its corresponding CloudSearchField
 	 * @return CloudSearchField corresponding to the SearchFieldName or null if no match is found.
 	 */
@@ -75,7 +75,7 @@ public enum SynapseToCloudSearchField {
 
 		for (SynapseToCloudSearchField synapseToCloudSearchField : values()){
 			if(synapseSearchFieldName == synapseToCloudSearchField.synapseSearchFieldName){
-				return synapseToCloudSearchField.indexField;
+				return synapseToCloudSearchField.cloudSearchField;
 			}
 		}
 		return null;
@@ -88,7 +88,7 @@ public enum SynapseToCloudSearchField {
 	public static List<IndexField> loadSearchDomainSchema() {
 		List<IndexField> indexFields = new ArrayList<>();
 		for(SynapseToCloudSearchField fieldEnum : values()){
-			CloudSearchField cloudSearchIndexField = fieldEnum.getIndexField();
+			CloudSearchField cloudSearchIndexField = fieldEnum.cloudSearchField;
 			if(cloudSearchIndexField instanceof SynapseCreatedCloudSearchField){
 				indexFields.add( ((SynapseCreatedCloudSearchField) cloudSearchIndexField).getIndexField() );
 			}

@@ -1,20 +1,17 @@
 package org.sagebionetworks.search.awscloudsearch;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.junit.Ignore;
-import org.junit.Test;
-
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
+import org.junit.Test;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
-import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 
 public class SynapseToCloudSearchFieldTest {
-	//TODO: add more tests
-	
+
 	@Test
 	public void testLoadSearchDomainSchema() throws IOException{
 		List<IndexField> list = SynapseToCloudSearchField.loadSearchDomainSchema();
