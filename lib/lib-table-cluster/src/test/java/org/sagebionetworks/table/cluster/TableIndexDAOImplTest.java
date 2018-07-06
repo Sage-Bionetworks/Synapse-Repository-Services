@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import org.junit.After;
 import org.junit.Before;
@@ -1523,43 +1524,65 @@ public class TableIndexDAOImplTest {
 		assertEquals(null, cm.getMaximumSize());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testSetMaximumSizesNullMax() {
-		ColumnModel one = new ColumnModel();
-		one.setMaximumSize(null);
+	@Test
+	public void testExpandFromAggregation() {
+		
+		ColumnAggregation one = new ColumnAggregation();
+		one.setColumnName("foo");
+		one.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
+		one.setMaxSize(101L);
+		
+		ColumnAggregation two = new ColumnAggregation();
+		two.setColumnName("bar");
+		two.setColumnTypeConcat(concatTypes(AnnotationType.DOUBLE, AnnotationType.LONG));
+		two.setMaxSize(0L);
+		
+		ColumnAggregation three = new ColumnAggregation();
+		three.setColumnName("foobar");
+		three.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		three.setMaxSize(202L);
+
 		// call under test
-		TableIndexDAOImpl.setMaximumSizes(Lists.newArrayList(one));
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three));
+		assertEquals(5, results.size());
+		// zero
+		ColumnModel cm = results.get(0);
+		assertEquals("foo", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(101), cm.getMaximumSize());
+		// one
+		cm = results.get(1);
+		assertEquals("foo", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// two
+		cm = results.get(2);
+		assertEquals("bar", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// three
+		cm = results.get(3);
+		assertEquals("bar", cm.getName());
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// four
+		cm = results.get(4);
+		assertEquals("foobar", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(202), cm.getMaximumSize());		
 	}
 	
-	@Test
-	public void testSetMaximumSizes() {
-		ColumnModel one = new ColumnModel();
-		one.setName("foo");
-		one.setColumnType(ColumnType.STRING);
-		one.setMaximumSize(100L);
-		
-		ColumnModel two = new ColumnModel();
-		two.setName("foo");
-		two.setColumnType(ColumnType.DOUBLE);
-		two.setMaximumSize(0L);
-		
-		ColumnModel three = new ColumnModel();
-		three.setName("bar");
-		three.setColumnType(ColumnType.STRING);
-		three.setMaximumSize(0L);
-		
-		ColumnModel four = new ColumnModel();
-		four.setName("bar");
-		four.setColumnType(ColumnType.USERID);
-		four.setMaximumSize(202L);
-		
-		// call under test
-		TableIndexDAOImpl.setMaximumSizes(Lists.newArrayList(one,two,three,four));
-		
-		assertEquals(new Long(100L), one.getMaximumSize());
-		assertEquals(null, two.getMaximumSize());
-		assertEquals(new Long(202L), three.getMaximumSize());
-		assertEquals(null, four.getMaximumSize());
+	/**
+	 * Helper to create a concatenated list of column types delimited with dot ('.')
+	 * @param types
+	 * @return
+	 */
+	public static String concatTypes(AnnotationType...types) {
+		StringJoiner joiner = new StringJoiner(",");
+		for(AnnotationType type: types) {
+			joiner.add(type.name());
+		}
+		return joiner.toString();
 	}
 	
 	@Test
