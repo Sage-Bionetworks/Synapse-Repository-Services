@@ -8,6 +8,7 @@ package org.sagebionetworks.search;
  */
 public class SearchConstants {
 	/**
+	 * TODO: this needs to be refactored into the awscloudsearch package
 	 * The search field names
 	 */
 	public static final String FIELD_NAME		 	= "name";

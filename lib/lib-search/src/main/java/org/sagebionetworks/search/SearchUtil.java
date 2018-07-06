@@ -1,37 +1,5 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchdomain.model.Bucket;
-import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
-import com.amazonaws.services.cloudsearchdomain.model.Hits;
-import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import org.apache.commons.lang.math.NumberUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.DocumentFields;
-import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.model.search.Facet;
-import org.sagebionetworks.repo.model.search.FacetConstraint;
-import org.sagebionetworks.repo.model.search.FacetTypeNames;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.KeyRange;
-import org.sagebionetworks.repo.model.search.query.KeyValue;
-import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.ValidateArgument;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.regex.Pattern;
-
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
@@ -47,6 +15,45 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.regex.Pattern;
+
+import com.amazonaws.services.cloudsearchdomain.model.Bucket;
+import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
+import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import org.apache.commons.lang.math.NumberUtils;
+import org.json.JSONObject;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentFields;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.search.Facet;
+import org.sagebionetworks.repo.model.search.FacetConstraint;
+import org.sagebionetworks.repo.model.search.FacetTypeNames;
+import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.KeyRange;
+import org.sagebionetworks.repo.model.search.query.KeyValue;
+import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
+import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.search.awscloudsearch.CloudSearchField;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchFacetSortType;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
+import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.util.CollectionUtils;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
@@ -141,7 +148,7 @@ public class SearchUtil{
 			throw new IllegalArgumentException("Sorting of facets is no longer supported");
 		}
 
-		// facets
+		// facets TODO: Deprecated. remove once clients stop using
 		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
 			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
 			for(String facetFieldName : searchQuery.getFacet()){
@@ -149,6 +156,11 @@ public class SearchUtil{
 				facetStringJoiner.add("\""+ facetFieldName + "\":{}");
 			}
 			searchRequest.setFacet(facetStringJoiner.toString());
+		}
+
+		// Translate from provided FacetOption to AWS CloudSearch options
+		if (!CollectionUtils.isEmpty(searchQuery.getFacetOptions())){
+			searchRequest.setFacet(createCloudSearchFacetJSON(searchQuery.getFacetOptions()).toString());
 		}
 
 		//switch to size parameter in facet
@@ -161,7 +173,6 @@ public class SearchUtil{
 		if (searchQuery.getRank() != null){
 			throw new IllegalArgumentException("Rank is no longer supported");
 		}
-
 
 		// return-fields
 		if (searchQuery.getReturnFields() != null
@@ -221,6 +232,47 @@ public class SearchUtil{
 		}
 		return filterQueryTerms;
 	}
+
+	/**
+	 * Translates a list of SearchFacetOptions into a valid JSON for CloudSearch's SearchRequest facet field.
+	 * @param searchFacetOptions list of SearchFacetOption
+	 * @return a JSON representation of the SearchFacetOption that is compatible with CloudSearch
+	 */
+	static JSONObject createCloudSearchFacetJSON(List<SearchFacetOption> searchFacetOptions){
+		JSONObject facetJSON = new JSONObject();
+
+		for(SearchFacetOption facetOption : searchFacetOptions){
+			addOptionsJSONForFacet(facetJSON, facetOption);
+		}
+		return facetJSON;
+	}
+
+	/**
+	 * Helper method to createCloudSearchFacetJSON() which creates the JSON for each individual SearchFacetOption
+	 * @param facetOption A facetOption
+	 * @return translation of the the facetOption's sortType and maxCount into CloudSearch's facet option JSON.
+	 */
+	static void addOptionsJSONForFacet(JSONObject facetJSON, SearchFacetOption facetOption) {
+		CloudSearchField field = SynapseToCloudSearchField.cloudSearchFieldFor(facetOption.getName());
+		if(!field.isFaceted()){
+			throw new IllegalArgumentException("The field:\"" + facetOption.getName() +"\" can not be faceted");
+		}
+
+		JSONObject facetOptionJSON = new JSONObject();
+
+		SearchFacetSort sortType = facetOption.getSortType();
+		Long maxCount = facetOption.getMaxResultCount();
+
+		if(sortType != null) {
+			facetOptionJSON.put("sort", SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name());
+		}
+
+		if(maxCount != null){
+			facetOptionJSON.put("size", maxCount);
+		}
+		facetJSON.putOnce(field.getFieldName() , facetOptionJSON);
+	}
+
 
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();

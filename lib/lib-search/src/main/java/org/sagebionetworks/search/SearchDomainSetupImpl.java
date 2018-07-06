@@ -6,8 +6,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -117,7 +117,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			currentFieldsMap.put(field.getIndexFieldName(), field);
 		}
 		// The the expected schema.
-		List<IndexField> indexList = SearchSchemaLoader.loadSearchDomainSchema();
+		List<IndexField> indexList = SynapseToCloudSearchField.loadSearchDomainSchema();
 		for (IndexField field : indexList) {
 			// Determine if this field already exists
 			IndexField currentField = currentFieldsMap.get(field.getIndexFieldName());

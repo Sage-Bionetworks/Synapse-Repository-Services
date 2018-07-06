@@ -1,0 +1,53 @@
+{	"description": "Names of search fields that can be faceted/returned",
+	"type": "string",
+	"enum":[
+		{
+			"name":"Id",
+			"description":"Synapse ID of the Entity"
+		},
+		{
+			"name":"Name",
+			"description":"Name of the Entity"
+		},
+		{
+			"name":"Description",
+			"description":"Description of the Entity"
+		},
+		{
+			"name":"EntityType",
+			"description":"Type of the Entity"
+		},
+		{
+			"name":"ModifiedBy",
+			"description":"User ID of the last user that modified this Entity"
+		},
+		{
+			"name":"ModifiedOn",
+			"description":"Unix Timestamp of when the Entity was last modified"
+		},
+		{
+			"name":"CreatedBy",
+			"description":"User ID of the user who created this Entity"
+		},
+		{
+			"name":"CreatedOn",
+			"description":"Unix Timestamp of when this Entity was created"
+		},
+		{
+			"name":"Consortium",
+			"description":"Value of the Entity's Annotation with Key=\"consortium\" if it exists"
+		},
+		{
+			"name":"Disease",
+			"description":"Value of the Entity's Annotation with Key=\"disease\" if it exists"
+		},
+		{
+			"name":"NumSamples",
+			"description":"Value of the Entity's Annotation with Key=\"numSamples\" if it exists"
+		},
+		{
+			"name":"Tissue",
+			"description":"Value of the Entity's Annotation with Key=\"tissue\" if it exists"
+		}
+	]
+}

@@ -1,39 +1,5 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchdomain.model.Bucket;
-import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
-import com.amazonaws.services.cloudsearchdomain.model.Hits;
-import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.collect.Sets;
-import org.junit.Before;
-import org.junit.Test;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.DocumentFields;
-import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.model.search.Facet;
-import org.sagebionetworks.repo.model.search.FacetConstraint;
-import org.sagebionetworks.repo.model.search.FacetTypeNames;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.FacetSort;
-import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
-import org.sagebionetworks.repo.model.search.query.FacetTopN;
-import org.sagebionetworks.repo.model.search.query.KeyList;
-import org.sagebionetworks.repo.model.search.query.KeyRange;
-import org.sagebionetworks.repo.model.search.query.KeyValue;
-import org.sagebionetworks.repo.model.search.query.SearchQuery;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -50,12 +16,50 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import com.amazonaws.services.cloudsearchdomain.model.Bucket;
+import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
+import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.Sets;
+import org.json.JSONObject;
+import org.junit.Before;
+import org.junit.Test;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentFields;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.search.Facet;
+import org.sagebionetworks.repo.model.search.FacetConstraint;
+import org.sagebionetworks.repo.model.search.FacetTypeNames;
+import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.FacetSort;
+import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
+import org.sagebionetworks.repo.model.search.query.FacetTopN;
+import org.sagebionetworks.repo.model.search.query.KeyList;
+import org.sagebionetworks.repo.model.search.query.KeyRange;
+import org.sagebionetworks.repo.model.search.query.KeyValue;
+import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
+import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
+import org.sagebionetworks.repo.model.search.query.SearchFieldName;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
+
 public class SearchUtilTest {
 	private SearchQuery query;
 	private SearchRequest searchRequest;
 	private SearchRequest expectedSearchRequestBaseWithQueryTerm;
 	private SearchRequest expectedSearchRequestBaseNoQueryTermSet;
 	private SearchResult searchResult;
+	private SearchFacetOption searchFacetOption;
 
 	private List<String> q;
 	private List<KeyValue> bq;
@@ -116,6 +120,10 @@ public class SearchUtilTest {
 		keyRange.setKey("SomeRangeFacet");
 		keyRangeList.add(keyRange);
 
+		searchFacetOption = new SearchFacetOption();
+		searchFacetOption.setMaxResultCount(42L);
+		searchFacetOption.setSortType(SearchFacetSort.COUNT);
+		searchFacetOption.setName(SearchFieldName.EntityType);
 	}
 
 	//////////////////////////////////////
@@ -220,10 +228,13 @@ public class SearchUtilTest {
 		KeyValue kv = new KeyValue();
 		kv.setKey("disease");
 		kv.setValue("[\"normal\",\"carcinoma\"]");
+		query.setQueryTerm(q);
 		query.setBooleanQuery(Collections.singletonList(kv));
 
-		System.out.println(SearchUtil.generateSearchRequest(query));
-	}
+		searchRequest = SearchUtil.generateSearchRequest(query);
+
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
+				.withFilterQuery("(and disease:'[\"normal\",\"carcinoma\"]')"), searchRequest);	}
 
 	@Test
 	public void testFacets() {
@@ -323,6 +334,14 @@ public class SearchUtilTest {
 		query.setStart(10L);
 		searchRequest = SearchUtil.generateSearchRequest(query);
 		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withStart(10L), searchRequest);
+	}
+
+	@Test
+	public void testGenerateSearchRequest_FacetOptions_usingFacetOptions(){
+		query.setQueryTerm(q);
+		query.setFacetOptions(Collections.singletonList(searchFacetOption));
+		searchRequest = SearchUtil.generateSearchRequest(query);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"node_type\":{\"sort\":\"count\",\"size\":42}}"), searchRequest);
 	}
 
 	///////////////////////////////////
@@ -666,4 +685,51 @@ public class SearchUtilTest {
 		assertEquals("⌐( ͡° ͜ʖ ͡°) ╯╲___Don't mind me just taking my unsupported unicode characters for a walk", result);
 	}
 
+	////////////////////////////////////////
+	//  createOptionsJSONForFacet() tests
+	////////////////////////////////////////
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateCloudSearchFacetJSON_SingleFieldIsNotFacetable(){
+		searchFacetOption.setName(SearchFieldName.Description);
+		SearchUtil.addOptionsJSONForFacet(new JSONObject(), searchFacetOption);
+	}
+
+	@Test
+	public void testCreateOptionsJSONForFacet_SortTypeNull(){
+		searchFacetOption.setMaxResultCount(56L);
+		searchFacetOption.setSortType(null);
+		JSONObject jsonObject = new JSONObject();
+		SearchUtil.addOptionsJSONForFacet(jsonObject, searchFacetOption);
+		assertEquals("{\"node_type\":{\"size\":56}}", jsonObject.toString());
+	}
+
+	@Test
+	public void testCreateOptionsJSONForFacet_MaxCountNull(){
+		searchFacetOption.setMaxResultCount(null);
+		searchFacetOption.setSortType(SearchFacetSort.ALPHA);
+		JSONObject jsonObject = new JSONObject();
+
+		SearchUtil.addOptionsJSONForFacet(jsonObject, searchFacetOption);
+		assertEquals("{\"node_type\":{\"sort\":\"bucket\"}}", jsonObject.toString());
+	}
+
+
+	///////////////////////////////////////
+	// createCloudSearchFacetJSON() tests
+	///////////////////////////////////////
+	@Test
+	public void testCreateCloudSearchFacetJSON_SingleField(){
+		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(searchFacetOption));
+		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42}}", result.toString());
+	}
+
+	@Test
+	public void testCreateCloudSearchFacetJSON_MultipleField(){
+		SearchFacetOption otherFacetOption = new SearchFacetOption();
+		otherFacetOption.setName(SearchFieldName.CreatedOn);
+
+		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Arrays.asList( searchFacetOption, otherFacetOption));
+		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42},\"created_on\":{}}", result.toString());
+	}
 }
