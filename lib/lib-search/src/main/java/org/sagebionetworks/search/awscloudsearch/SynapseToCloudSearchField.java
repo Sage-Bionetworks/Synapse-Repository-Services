@@ -45,10 +45,10 @@ public enum SynapseToCloudSearchField {
 	DESCRIPTION(SearchFieldName.Description, CLOUD_SEARCH_FIELD_DESCRIPTION),
 
 	//indexes of annotations
-	CONSORTIUM(SearchFieldName.ConsortiumAnnotation, CLOUD_SEARCH_FIELD_CONSORTIUM),
-	DISEASE(SearchFieldName.DiseaseAnnotation, CLOUD_SEARCH_FIELD_DISEASE),
-	NUM_SAMPLES(SearchFieldName.NumSamplesAnnotation, CLOUD_SEARCH_FIELD_NUM_SAMPLES),
-	TISSUE(SearchFieldName.TissueAnnotation, CLOUD_SEARCH_FIELD_TISSUE),
+	CONSORTIUM(SearchFieldName.Consortium, CLOUD_SEARCH_FIELD_CONSORTIUM),
+	DISEASE(SearchFieldName.Disease, CLOUD_SEARCH_FIELD_DISEASE),
+	NUM_SAMPLES(SearchFieldName.NumSamples, CLOUD_SEARCH_FIELD_NUM_SAMPLES),
+	TISSUE(SearchFieldName.Tissue, CLOUD_SEARCH_FIELD_TISSUE),
 
 	//The ones below are not exposed in our API currently (and probably never will be)
 	ETAG(null, CLOUD_SEARCH_FIELD_ETAG),

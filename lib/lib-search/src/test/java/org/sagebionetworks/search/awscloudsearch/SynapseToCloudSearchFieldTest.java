@@ -47,9 +47,9 @@ public class SynapseToCloudSearchFieldTest {
 		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.CreatedBy), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_BY);
 		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.CreatedOn), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_ON);
 		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Description), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DESCRIPTION);
-		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.ConsortiumAnnotation), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CONSORTIUM);
-		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.DiseaseAnnotation), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DISEASE);
-		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.NumSamplesAnnotation), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NUM_SAMPLES);
-		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.TissueAnnotation), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_TISSUE);
+		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Consortium), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CONSORTIUM);
+		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Disease), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DISEASE);
+		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.NumSamples), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NUM_SAMPLES);
+		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Tissue), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_TISSUE);
 	}
 }
