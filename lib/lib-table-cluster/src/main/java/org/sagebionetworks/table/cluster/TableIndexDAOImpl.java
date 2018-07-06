@@ -771,28 +771,47 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask);
-		return namedTemplate.query(sql, param, new RowMapper<ColumnModel>() {
+		List<ColumnAggregation> results = namedTemplate.query(sql, param, new RowMapper<ColumnAggregation>() {
 
 			@Override
-			public ColumnModel mapRow(ResultSet rs, int rowNum)
+			public ColumnAggregation mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
-				String name = rs.getString(ANNOTATION_REPLICATION_COL_KEY);
-				ColumnType type = AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)).getColumnType();
-				ColumnModel cm = new ColumnModel();
-				cm.setName(name);
-				cm.setColumnType(type);
-				if(ColumnType.STRING.equals(type)){
-					long maxLength = rs.getLong(3);
-					if(maxLength < 1){
-						maxLength = ColumnConstants.DEFAULT_STRING_SIZE;
-					}
-					cm.setMaximumSize(maxLength);
-				}
-				return cm;
+				ColumnAggregation aggregation = new ColumnAggregation();
+				aggregation.setColumnName(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
+				aggregation.setColumnTypeConcat(rs.getString(2));
+				aggregation.setMaxSize(rs.getLong(3));
+				return aggregation;
 			}
 		});
+		// convert from the aggregation to column models.
+		return expandFromAggregation(results);
 	}
-
+	
+	/**
+	 * Expand the given column aggregations into column model objects.
+	 * This was added for PLFM-5034
+	 * 
+	 * @param aggregations
+	 * @return
+	 */
+	public static List<ColumnModel> expandFromAggregation(List<ColumnAggregation> aggregations){
+		List<ColumnModel> results = new LinkedList<>();
+		for(ColumnAggregation aggregation: aggregations) {
+			String[] typeSplit = aggregation.getColumnTypeConcat().split(",");
+			for(String typeString: typeSplit) {
+				ColumnModel model = new ColumnModel();
+				model.setName(aggregation.getColumnName());
+				ColumnType type = AnnotationType.valueOf(typeString).getColumnType();
+				model.setColumnType(type);
+				if(ColumnType.STRING == type) {
+					model.setMaximumSize(aggregation.getMaxSize());
+				}
+				results.add(model);
+			}
+		}
+		return results;
+	}
+	
 	@Override
 	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds) {
 		ValidateArgument.required(parentIds, "parentIds");
