@@ -19,7 +19,7 @@ public class SynapseToCloudSearchFacetSortTypeTest {
 
 	@Test
 	public void testGetCloudSearchSortTypeFor(){
-		assertEquals(SynapseToCloudSearchFacetSortType.COUNT, SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(SearchFacetSort.COUNT));
-		assertEquals(SynapseToCloudSearchFacetSortType.BUCKET, SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(SearchFacetSort.ALPHA));
+		assertEquals(SynapseToCloudSearchFacetSortType.count, SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(SearchFacetSort.COUNT));
+		assertEquals(SynapseToCloudSearchFacetSortType.bucket, SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(SearchFacetSort.ALPHA));
 	}
 }

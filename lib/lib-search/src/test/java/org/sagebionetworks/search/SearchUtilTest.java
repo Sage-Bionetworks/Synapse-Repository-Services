@@ -689,21 +689,29 @@ public class SearchUtilTest {
 	//  createOptionsJSONForFacet() tests
 	////////////////////////////////////////
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateCloudSearchFacetJSON_SingleFieldIsNotFacetable(){
+		searchFacetOption.setName(SearchFieldName.Description);
+		SearchUtil.addOptionsJSONForFacet(new JSONObject(), searchFacetOption);
+	}
+
 	@Test
 	public void testCreateOptionsJSONForFacet_SortTypeNull(){
 		searchFacetOption.setMaxResultCount(56L);
 		searchFacetOption.setSortType(null);
-		JSONObject result = SearchUtil.createOptionsJSONForFacet(searchFacetOption);
-		assertEquals("{\"size\":56}", result.toString());
+		JSONObject jsonObject = new JSONObject();
+		SearchUtil.addOptionsJSONForFacet(jsonObject, searchFacetOption);
+		assertEquals("{\"node_type\":{\"size\":56}}", jsonObject.toString());
 	}
 
 	@Test
 	public void testCreateOptionsJSONForFacet_MaxCountNull(){
 		searchFacetOption.setMaxResultCount(null);
 		searchFacetOption.setSortType(SearchFacetSort.ALPHA);
+		JSONObject jsonObject = new JSONObject();
 
-		JSONObject result = SearchUtil.createOptionsJSONForFacet(searchFacetOption);
-		assertEquals("{\"sort\":\"bucket\"}", result.toString());
+		SearchUtil.addOptionsJSONForFacet(jsonObject, searchFacetOption);
+		assertEquals("{\"node_type\":{\"sort\":\"bucket\"}}", jsonObject.toString());
 	}
 
 
@@ -714,13 +722,6 @@ public class SearchUtilTest {
 	public void testCreateCloudSearchFacetJSON_SingleField(){
 		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(searchFacetOption));
 		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42}}", result.toString());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateCloudSearchFacetJSON_SingleFieldIsNotFacetable(){
-		SearchFacetOption otherFacetOption = new SearchFacetOption();
-		otherFacetOption.setName(SearchFieldName.Description);
-		SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(otherFacetOption));
 	}
 
 	@Test

@@ -34,19 +34,19 @@
 			"description":"Unix Timestamp of when this Entity was created"
 		},
 		{
-			"name":"ConsortiumAnnotation",
+			"name":"Consortium",
 			"description":"Value of the Entity's Annotation with Key=\"consortium\" if it exists"
 		},
 		{
-			"name":"DiseaseAnnotation",
+			"name":"Disease",
 			"description":"Value of the Entity's Annotation with Key=\"disease\" if it exists"
 		},
 		{
-			"name":"NumSamplesAnnotation",
+			"name":"NumSamples",
 			"description":"Value of the Entity's Annotation with Key=\"numSamples\" if it exists"
 		},
 		{
-			"name":"TissueAnnotation",
+			"name":"Tissue",
 			"description":"Value of the Entity's Annotation with Key=\"tissue\" if it exists"
 		}
 	]

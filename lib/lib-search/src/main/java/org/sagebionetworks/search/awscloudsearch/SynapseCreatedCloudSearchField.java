@@ -34,6 +34,9 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 
 
 	private IndexField indexField;
+	boolean isSearchable;
+	boolean isFaceted;
+	boolean isReturned;
 
 	SynapseCreatedCloudSearchField(IndexField indexField){
 		ValidateArgument.required(indexField, "indexField");
@@ -42,10 +45,11 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 		if(getIndexFieldOption() == null){
 			throw new IllegalArgumentException("indexField must have an IndexOption associated with it");
 		}
-	}
-
-	public IndexField getIndexField() {
-		return indexField.clone();
+		// We don't expect the IndexField to be modified after being passed in to the constructor.
+		// So instead of using Reflection every time a getter is called, preprocess the boolean values here
+		this.isSearchable = invokeIndexFieldOptionMethod("getSearchEnabled");
+		this.isFaceted = invokeIndexFieldOptionMethod("getFacetEnabled");
+		this.isReturned = invokeIndexFieldOptionMethod("getReturnEnabled");
 	}
 
 	@Override
@@ -55,19 +59,22 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 
 	@Override
 	public boolean isSearchable() {
-		return invokeIndexFieldOptionMethod("getSearchEnabled");
+		return isSearchable;
 	}
 
 	@Override
 	public boolean isFaceted() {
-		return invokeIndexFieldOptionMethod("getFacetEnabled");
+		return isFaceted;
 	}
 
 	@Override
 	public boolean isReturned() {
-		return invokeIndexFieldOptionMethod("getReturnEnabled");
+		return isReturned;
 	}
 
+	IndexField getIndexField() {
+		return indexField.clone();
+	}
 
 	boolean invokeIndexFieldOptionMethod(String methodName){
 		Object indexFieldOption = getIndexFieldOption();
@@ -88,8 +95,8 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 	}
 
 	Object getIndexFieldOption(){
-		IndexFieldType indexFieldType = IndexFieldType.fromValue(this.indexField.getIndexFieldType());
+		IndexFieldType indexFieldType = IndexFieldType.fromValue(indexField.getIndexFieldType());
 		Function<IndexField, ?> indexFieldOptionGetter = INDEX_OPTIONS_GETTER_MAP.get(indexFieldType);
-		return indexFieldOptionGetter.apply(this.indexField);
+		return indexFieldOptionGetter.apply(indexField);
 	}
 }

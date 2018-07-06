@@ -22,6 +22,8 @@ import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstant
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_UPDATE_ACL;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
@@ -78,7 +80,7 @@ public enum SynapseToCloudSearchField {
 				return synapseToCloudSearchField.cloudSearchField;
 			}
 		}
-		return null;
+		throw new IllegalArgumentException("Unknown SearchField");
 	}
 
 	/**

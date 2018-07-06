@@ -148,7 +148,7 @@ public class SearchUtil{
 			throw new IllegalArgumentException("Sorting of facets is no longer supported");
 		}
 
-		// facets
+		// facets TODO: Deprecated. remove once clients stop using
 		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
 			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
 			for(String facetFieldName : searchQuery.getFacet()){
@@ -158,6 +158,7 @@ public class SearchUtil{
 			searchRequest.setFacet(facetStringJoiner.toString());
 		}
 
+		// Translate from provided FacetOption to AWS CloudSearch options
 		if (!CollectionUtils.isEmpty(searchQuery.getFacetOptions())){
 			searchRequest.setFacet(createCloudSearchFacetJSON(searchQuery.getFacetOptions()).toString());
 		}
@@ -172,7 +173,6 @@ public class SearchUtil{
 		if (searchQuery.getRank() != null){
 			throw new IllegalArgumentException("Rank is no longer supported");
 		}
-
 
 		// return-fields
 		if (searchQuery.getReturnFields() != null
@@ -242,12 +242,7 @@ public class SearchUtil{
 		JSONObject facetJSON = new JSONObject();
 
 		for(SearchFacetOption facetOption : searchFacetOptions){
-			CloudSearchField field = SynapseToCloudSearchField.cloudSearchFieldFor(facetOption.getName());
-			if(!field.isFaceted()){
-				throw new IllegalArgumentException("The field:\"" + facetOption.getName() +"\" can not be faceted");
-			}
-			JSONObject facetOptionJSON = createOptionsJSONForFacet(facetOption);
-			facetJSON.putOnce(field.getFieldName() , facetOptionJSON);
+			addOptionsJSONForFacet(facetJSON, facetOption);
 		}
 		return facetJSON;
 	}
@@ -257,20 +252,25 @@ public class SearchUtil{
 	 * @param facetOption A facetOption
 	 * @return translation of the the facetOption's sortType and maxCount into CloudSearch's facet option JSON.
 	 */
-	static JSONObject createOptionsJSONForFacet(SearchFacetOption facetOption) {
+	static void addOptionsJSONForFacet(JSONObject facetJSON, SearchFacetOption facetOption) {
+		CloudSearchField field = SynapseToCloudSearchField.cloudSearchFieldFor(facetOption.getName());
+		if(!field.isFaceted()){
+			throw new IllegalArgumentException("The field:\"" + facetOption.getName() +"\" can not be faceted");
+		}
+
 		JSONObject facetOptionJSON = new JSONObject();
 
 		SearchFacetSort sortType = facetOption.getSortType();
 		Long maxCount = facetOption.getMaxResultCount();
 
 		if(sortType != null) {
-			facetOptionJSON.put("sort", SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name().toLowerCase());
+			facetOptionJSON.put("sort", SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name());
 		}
 
 		if(maxCount != null){
 			facetOptionJSON.put("size", maxCount);
 		}
-		return facetOptionJSON;
+		facetJSON.putOnce(field.getFieldName() , facetOptionJSON);
 	}
 
 

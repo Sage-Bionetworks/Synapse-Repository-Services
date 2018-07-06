@@ -154,24 +154,33 @@ public class SynapseCreatedCloudSearchFieldTest {
 	@Test
 	public void testIsFaceted(){
 		indexField.getLiteralOptions().setFacetEnabled(true);
+		synapseCreatedCloudSearchField = new SynapseCreatedCloudSearchField(indexField);
 		assertTrue(synapseCreatedCloudSearchField.isFaceted());
+
 		indexField.getLiteralOptions().setFacetEnabled(false);
+		synapseCreatedCloudSearchField = new SynapseCreatedCloudSearchField(indexField);
 		assertFalse(synapseCreatedCloudSearchField.isFaceted());
 	}
 
 	@Test
 	public void testIsSearchable(){
 		indexField.getLiteralOptions().setSearchEnabled(true);
+		synapseCreatedCloudSearchField = new SynapseCreatedCloudSearchField(indexField);
 		assertTrue(synapseCreatedCloudSearchField.isSearchable());
+
 		indexField.getLiteralOptions().setSearchEnabled(false);
+		synapseCreatedCloudSearchField = new SynapseCreatedCloudSearchField(indexField);
 		assertFalse(synapseCreatedCloudSearchField.isSearchable());
 	}
 
 	@Test
 	public void testIsReturned(){
 		indexField.getLiteralOptions().setReturnEnabled(true);
+		synapseCreatedCloudSearchField = new SynapseCreatedCloudSearchField(indexField);
 		assertTrue(synapseCreatedCloudSearchField.isReturned());
+
 		indexField.getLiteralOptions().setReturnEnabled(false);
+		synapseCreatedCloudSearchField = new SynapseCreatedCloudSearchField(indexField);
 		assertFalse(synapseCreatedCloudSearchField.isReturned());
 	}
 

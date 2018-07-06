@@ -11,25 +11,21 @@ import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
  * Additionally provides a mapping from Synapse's facet result sorting into CloudSearch's facet result sorting
  */
 public enum SynapseToCloudSearchFacetSortType {
-	BUCKET(SearchFacetSort.ALPHA),
-	COUNT(SearchFacetSort.COUNT);
+	bucket(SearchFacetSort.ALPHA),
+	count(SearchFacetSort.COUNT);
 
 	private SearchFacetSort synapseSearchSortType;
-
-	private static final Map<SearchFacetSort, SynapseToCloudSearchFacetSortType> SYNAPSE_SORT_TO_CLOUDSEARCH_SORT;
-	static{ //initialize SYNAPSE_SORT_TO_CLOUDSEARCH_SORT
-		Map<SearchFacetSort, SynapseToCloudSearchFacetSortType> tempMap = new EnumMap<>(SearchFacetSort.class);
-		for(SynapseToCloudSearchFacetSortType cloudSearchSortType : SynapseToCloudSearchFacetSortType.values()){
-			tempMap.put(cloudSearchSortType.synapseSearchSortType, cloudSearchSortType);
-		}
-		SYNAPSE_SORT_TO_CLOUDSEARCH_SORT = Collections.unmodifiableMap(tempMap);
-	}
 
 	SynapseToCloudSearchFacetSortType(SearchFacetSort synapseSortType){
 		this.synapseSearchSortType = synapseSortType;
 	}
 
-	public static SynapseToCloudSearchFacetSortType getCloudSearchSortTypeFor(SearchFacetSort synapseSearchSortType){
-		return SYNAPSE_SORT_TO_CLOUDSEARCH_SORT.get(synapseSearchSortType);
+	public static SynapseToCloudSearchFacetSortType getCloudSearchSortTypeFor(SearchFacetSort synapseSearchSortType) {
+		for (SynapseToCloudSearchFacetSortType cloudSearchSortType : SynapseToCloudSearchFacetSortType.values()) {
+			if( synapseSearchSortType == cloudSearchSortType.synapseSearchSortType){
+				return cloudSearchSortType;
+			}
+		}
+		throw new IllegalArgumentException("unknown SearchFacetSort");
 	}
 }

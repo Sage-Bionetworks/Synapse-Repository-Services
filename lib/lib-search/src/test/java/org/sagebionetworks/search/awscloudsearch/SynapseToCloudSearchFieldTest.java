@@ -5,8 +5,12 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
+import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
+import com.google.common.collect.Sets;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 
@@ -16,8 +20,16 @@ public class SynapseToCloudSearchFieldTest {
 	public void testLoadSearchDomainSchema() throws IOException{
 		List<IndexField> list = SynapseToCloudSearchField.loadSearchDomainSchema();
 		assertNotNull(list);
+
+		Set<String> expectedFieldNames = Sets.newHashSet("modified_on", "disease", "consortium",
+				"description", "tissue", "acl", "created_by", "platform", "reference", "node_type", "created_on",
+				"update_acl", "parent_id", "name", "modified_by", "etag", "boost", "num_samples");
+
+		Set<String> actualfieldNames = list.stream().map(IndexField::getIndexFieldName).collect(Collectors.toSet());
 		// We currently have 18 index fields
 		assertEquals(18, list.size());
+		assertEquals(18, actualfieldNames.size());
+		assertEquals(expectedFieldNames, actualfieldNames);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
