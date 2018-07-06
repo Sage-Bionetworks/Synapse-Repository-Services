@@ -1512,16 +1512,16 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
-		// one
-		ColumnModel cm = columns.get(0);
-		assertEquals(duplicateName, cm.getName());
-		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(6L), cm.getMaximumSize());
-		// two
-		cm = columns.get(1);
-		assertEquals(duplicateName, cm.getName());
-		assertEquals(ColumnType.INTEGER, cm.getColumnType());
-		assertEquals(null, cm.getMaximumSize());
+		// the order could change
+		for(ColumnModel column: columns) {
+			assertEquals(duplicateName, column.getName());
+			if(ColumnType.STRING == column.getColumnType()) {
+				assertEquals(new Long(6L), column.getMaximumSize());
+			}else {
+				assertEquals(ColumnType.INTEGER, column.getColumnType());
+				assertEquals(null, column.getMaximumSize());
+			}
+		}
 	}
 	
 	@Test
