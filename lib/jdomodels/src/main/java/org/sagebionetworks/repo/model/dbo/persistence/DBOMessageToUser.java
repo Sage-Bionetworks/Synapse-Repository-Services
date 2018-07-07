@@ -290,6 +290,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				backup.setBytesBcc(dbo.getBytesBcc());
 				return backup;
 			}
+
+			@Override
+			public boolean ignoreOnRestore(DBOMessageToUserBackup backup) {
+				return false;
+			}
 		};
 	}
 

@@ -100,6 +100,11 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 				backup.setSecretKey(dbo.getSecretKey());
 				return backup;
 			}
+			
+			@Override
+			public boolean ignoreOnRestore(DBOCredentialBackup backup) {
+				return false;
+			}
 		};
 	}
 

@@ -12,6 +12,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -117,19 +118,7 @@ public class DBOGroupMembers implements MigratableDatabaseObject<DBOGroupMembers
 
 	@Override
 	public MigratableTableTranslation<DBOGroupMembers, DBOGroupMembers> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOGroupMembers, DBOGroupMembers>(){
-
-			@Override
-			public DBOGroupMembers createDatabaseObjectFromBackup(
-					DBOGroupMembers backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOGroupMembers createBackupFromDatabaseObject(DBOGroupMembers dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOGroupMembers>();
 	}
 
 

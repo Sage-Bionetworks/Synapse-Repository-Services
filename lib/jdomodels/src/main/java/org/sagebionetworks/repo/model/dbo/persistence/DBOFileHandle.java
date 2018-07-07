@@ -160,6 +160,11 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 			public FileHandleBackup createBackupFromDatabaseObject(DBOFileHandle dbo) {
 				return FileMetadataUtils.createBackupFromDBO(dbo);
 			}
+
+			@Override
+			public boolean ignoreOnRestore(FileHandleBackup backup) {
+				return false;
+			}
 		};
 	}
 

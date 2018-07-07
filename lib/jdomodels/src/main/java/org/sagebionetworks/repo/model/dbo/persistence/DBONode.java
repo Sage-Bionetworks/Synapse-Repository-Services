@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -159,18 +160,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	}
 	@Override
 	public MigratableTableTranslation<DBONode, DBONode> getTranslator() {
-		// currently we do not have a backup object for nodes
-		return new MigratableTableTranslation<DBONode, DBONode>(){
-
-			@Override
-			public DBONode createDatabaseObjectFromBackup(DBONode backup) {
-				return backup;
-			}
-
-			@Override
-			public DBONode createBackupFromDatabaseObject(DBONode dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBONode>();
 	}
 	@Override
 	public Class<? extends DBONode> getBackupClass() {

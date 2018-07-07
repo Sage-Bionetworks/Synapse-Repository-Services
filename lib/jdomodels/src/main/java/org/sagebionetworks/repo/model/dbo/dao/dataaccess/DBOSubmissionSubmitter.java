@@ -9,6 +9,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -168,20 +169,7 @@ public class DBOSubmissionSubmitter implements MigratableDatabaseObject<DBOSubmi
 
 	@Override
 	public MigratableTableTranslation<DBOSubmissionSubmitter, DBOSubmissionSubmitter> getTranslator() {
-		return new MigratableTableTranslation<DBOSubmissionSubmitter, DBOSubmissionSubmitter>(){
-
-			@Override
-			public DBOSubmissionSubmitter createDatabaseObjectFromBackup(
-					DBOSubmissionSubmitter backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOSubmissionSubmitter createBackupFromDatabaseObject(DBOSubmissionSubmitter dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBOSubmissionSubmitter>();
 	}
 
 	@Override

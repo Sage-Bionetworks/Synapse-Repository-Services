@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -165,17 +166,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new MigratableTableTranslation<DBODoi, DBODoi>(){
-
-			@Override
-			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBODoi>();
 	}
 
 	@Override

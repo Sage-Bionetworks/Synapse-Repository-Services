@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -94,19 +95,7 @@ public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComme
 
 	@Override
 	public MigratableTableTranslation<DBOComment, DBOComment> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOComment, DBOComment>(){
-
-			@Override
-			public DBOComment createDatabaseObjectFromBackup(
-					DBOComment backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOComment createBackupFromDatabaseObject(DBOComment dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOComment>();
 	}
 
 

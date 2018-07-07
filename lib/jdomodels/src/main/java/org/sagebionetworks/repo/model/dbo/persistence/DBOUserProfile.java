@@ -299,6 +299,11 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 			public DBOUserProfile createBackupFromDatabaseObject(
 					DBOUserProfile dbo) {
 				return dbo;
+			}
+
+			@Override
+			public boolean ignoreOnRestore(DBOUserProfile backup) {
+				return false;
 			}};
 	}
 

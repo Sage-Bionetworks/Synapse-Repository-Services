@@ -156,6 +156,11 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 				}
 				return dbo;
 			}
+
+			@Override
+			public boolean ignoreOnRestore(DBOForum backup) {
+				return false;
+			}
 			
 		};
 	}

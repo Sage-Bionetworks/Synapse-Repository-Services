@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -99,17 +100,7 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 
 	@Override
 	public MigratableTableTranslation<DBOMessageStatus, DBOMessageStatus> getTranslator() {
-		return new MigratableTableTranslation<DBOMessageStatus, DBOMessageStatus>() {
-			@Override
-			public DBOMessageStatus createDatabaseObjectFromBackup(DBOMessageStatus backup) {
-				return backup;
-			}
-			
-			@Override
-			public DBOMessageStatus createBackupFromDatabaseObject(DBOMessageStatus dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOMessageStatus>();
 	}
 
 	@Override

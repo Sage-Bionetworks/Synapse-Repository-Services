@@ -42,4 +42,11 @@ public interface MigratableTableTranslation<D extends DatabaseObject<?>, B> {
 	 * @return
 	 */
 	public B createBackupFromDatabaseObject(D dbo);
+	
+	/**
+	 * Return true if the given object should not be migrated.
+	 * @param backup
+	 * @return
+	 */
+	public boolean ignoreOnRestore(B backup);
 }

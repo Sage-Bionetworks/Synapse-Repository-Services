@@ -12,6 +12,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -92,19 +93,7 @@ public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcas
 
 	@Override
 	public MigratableTableTranslation<DBOBroadcastMessage, DBOBroadcastMessage> getTranslator() {
-		return new MigratableTableTranslation<DBOBroadcastMessage, DBOBroadcastMessage>(){
-
-			@Override
-			public DBOBroadcastMessage createDatabaseObjectFromBackup(
-					DBOBroadcastMessage backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOBroadcastMessage createBackupFromDatabaseObject(
-					DBOBroadcastMessage dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOBroadcastMessage>();
 	}
 
 	@Override

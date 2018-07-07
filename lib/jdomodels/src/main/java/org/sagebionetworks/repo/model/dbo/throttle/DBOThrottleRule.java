@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -113,18 +114,7 @@ public class DBOThrottleRule implements MigratableDatabaseObject<DBOThrottleRule
 	}
 	@Override
 	public MigratableTableTranslation<DBOThrottleRule, DBOThrottleRule> getTranslator() {
-		return new MigratableTableTranslation<DBOThrottleRule, DBOThrottleRule>() {
-
-			@Override
-			public DBOThrottleRule createDatabaseObjectFromBackup(DBOThrottleRule backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOThrottleRule createBackupFromDatabaseObject(DBOThrottleRule dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOThrottleRule>();
 	}
 	@Override
 	public Class<? extends DBOThrottleRule> getBackupClass() {

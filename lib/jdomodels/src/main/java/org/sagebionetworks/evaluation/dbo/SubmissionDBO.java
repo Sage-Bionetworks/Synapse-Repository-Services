@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -325,18 +326,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	
 	@Override
 	public MigratableTableTranslation<SubmissionDBO, SubmissionDBO> getTranslator() {
-		return new MigratableTableTranslation<SubmissionDBO, SubmissionDBO>(){
-			@Override
-			public SubmissionDBO createDatabaseObjectFromBackup(
-					SubmissionDBO backup) {
-				return backup;
-			}
-
-			@Override
-			public SubmissionDBO createBackupFromDatabaseObject(
-					SubmissionDBO dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<SubmissionDBO>();
 	}
 	@Override
 	public Class<? extends SubmissionDBO> getBackupClass() {
