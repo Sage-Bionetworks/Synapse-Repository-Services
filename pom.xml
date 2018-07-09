@@ -315,6 +315,14 @@
 				<artifactId>httpmime</artifactId>
 				<version>${org.apache.httpcomponents.version}</version>
 			</dependency>
+
+			<!--Apache Xerces XML DOM library-->
+			<dependency>
+				<groupId>xerces</groupId>
+				<artifactId>xercesImpl</artifactId>
+				<version>2.11.0</version>
+			</dependency>
+
 			<dependency>
 				<groupId>commons-net</groupId>
 				<artifactId>commons-net</artifactId>
