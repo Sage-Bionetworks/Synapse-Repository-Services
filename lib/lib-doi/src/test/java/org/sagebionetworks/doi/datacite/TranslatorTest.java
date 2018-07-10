@@ -1,155 +1,189 @@
 package org.sagebionetworks.doi.datacite;
 
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.doi.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
 
-import java.io.File;
+import javax.xml.parsers.DocumentBuilder;
+import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TranslatorTest {
 
-	@Mock
-	private DoiMetadata mockMetadata;
-	@Mock
-	private List<DoiCreator> mockDoiCreators;
-	@Mock
-	private DoiCreator mockCreator1;
-	@Mock
-	private DoiCreator mockCreator2;
-	@Mock
-	private DoiCreator mockCreator3;
-	@Mock
-	private List<DoiTitle> mockDoiTitles;
-	@Mock
-	private DoiTitle mockTitle1;
-	@Mock
-	private DoiTitle mockTitle2;
-	@Mock
-	private DoiTitle mockTitle3;
-	@Mock
-	private DoiResourceType mockResourceType;
+	private DocumentBuilder documentBuilder;
 
 	@Before
-	public void setup() {
-		when(mockMetadata.getCreators()).thenReturn(mockDoiCreators);
-		when(mockDoiCreators.get(0)).thenReturn(mockCreator1);
-		when(mockCreator1.getCreatorName()).thenReturn("Creator");
-		when(mockMetadata.getTitles()).thenReturn(mockDoiTitles);
-		when(mockDoiTitles.get(0)).thenReturn(mockTitle1);
-		when(mockTitle1.getTitle()).thenReturn("Title");
-		when(mockMetadata.getPublicationYear()).thenReturn(Long.valueOf(2000));
-		when(mockMetadata.getResourceType()).thenReturn(mockResourceType);
-	}
-
-	//Test a DataCite schema 2.2 XML String
-	@Test
-	public void Datacite2ToDoiMetadataTest() throws Exception{
-		when(mockResourceType.getResourceTypeText()).thenReturn("");
-		ClassLoader loader = this.getClass().getClassLoader();
-		String path = loader.getResource("Datacite2Sample.xml").getFile();
-		String xml = FileUtils.readFileToString(new File(path));
-		DataciteTranslator translator = new DataciteTranslator();
-		DoiMetadata metadata = translator.translate(xml);
-		assertEquals(mockMetadata.getCreators().get(0).getCreatorName(), metadata.getCreators().get(0).getCreatorName());
-		assertEquals(mockMetadata.getTitles().get(0).getTitle(), metadata.getTitles().get(0).getTitle());
-		assertEquals(mockMetadata.getPublicationYear(), metadata.getPublicationYear());
-		assertEquals(mockMetadata.getResourceType().getResourceTypeText(), metadata.getResourceType().getResourceTypeText());
-		assertNull(metadata.getResourceType().getResourceTypeGeneral());
-	}
-
-	//Test a v3 XML String
-	@Test
-	public void Datacite3ToDoiMetadataTest() throws Exception {
-		when(mockResourceType.getResourceTypeText()).thenReturn("");
-		ClassLoader loader = this.getClass().getClassLoader();
-		String path = loader.getResource("Datacite3Sample.xml").getFile();
-		String xml = FileUtils.readFileToString(new File(path));
-		DataciteTranslator translator = new DataciteTranslator();
-		DoiMetadata metadata = translator.translate(xml);
-		assertEquals(mockMetadata.getCreators().get(0).getCreatorName(), metadata.getCreators().get(0).getCreatorName());
-		assertEquals(mockMetadata.getTitles().get(0).getTitle(), metadata.getTitles().get(0).getTitle());
-		assertEquals(mockMetadata.getPublicationYear(), metadata.getPublicationYear());
-		assertEquals(mockMetadata.getResourceType().getResourceTypeText(), metadata.getResourceType().getResourceTypeText());
-		assertNull(metadata.getResourceType().getResourceTypeGeneral());
-	}
-
-	//Test a v4 XML String
-	@Test
-	public void Datacite4ToDoiMetadataTest() throws Exception{
-		when(mockResourceType.getResourceTypeText()).thenReturn("(:unav)");
-		ClassLoader loader = this.getClass().getClassLoader();
-		String path = loader.getResource("Datacite4Sample.xml").getFile();
-		String xml = FileUtils.readFileToString(new File(path));
-		DataciteTranslator translator = new DataciteTranslator();
-		DoiMetadata metadata = translator.translate(xml);
-		assertEquals(mockMetadata.getCreators().get(0).getCreatorName(), metadata.getCreators().get(0).getCreatorName());
-		assertEquals(mockMetadata.getTitles().get(0).getTitle(), metadata.getTitles().get(0).getTitle());
-		assertEquals(mockMetadata.getPublicationYear(), metadata.getPublicationYear());
-		assertEquals(mockMetadata.getResourceType().getResourceTypeText(), metadata.getResourceType().getResourceTypeText());
-		assertEquals(DoiResourceTypeGeneral.Other, DoiResourceTypeGeneral.valueOf(metadata.getResourceType().getResourceTypeGeneral().name()));
-	}
-
-	//Test a v4 XML String
-	@Test
-	public void MultipleAuthorsTitlesTest() throws Exception{
-		when(mockDoiCreators.size()).thenReturn(3);
-		when(mockDoiTitles.size()).thenReturn(3);
-		when(mockDoiCreators.get(1)).thenReturn(mockCreator2);
-		when(mockDoiCreators.get(2)).thenReturn(mockCreator3);
-		when(mockCreator1.getCreatorName()).thenReturn("Creator 1");
-		when(mockCreator2.getCreatorName()).thenReturn("Creator 2");
-		when(mockCreator3.getCreatorName()).thenReturn("Creator 3");
-		when(mockDoiTitles.get(1)).thenReturn(mockTitle2);
-		when(mockDoiTitles.get(2)).thenReturn(mockTitle3);
-		when(mockTitle1.getTitle()).thenReturn("Title 1");
-		when(mockTitle2.getTitle()).thenReturn("Title 2");
-		when(mockTitle3.getTitle()).thenReturn("Title 3");
-
-		when(mockResourceType.getResourceTypeText()).thenReturn("(:unav)");
-		ClassLoader loader = this.getClass().getClassLoader();
-		String path = loader.getResource("Datacite4SampleMultiAuthor.xml").getFile();
-		String xml = FileUtils.readFileToString(new File(path));
-		DataciteTranslator translator = new DataciteTranslator();
-		DoiMetadata metadata = translator.translate(xml);
-		assertEquals(mockMetadata.getCreators().size(), metadata.getCreators().size());
-		assertEquals(mockMetadata.getTitles().size(), metadata.getTitles().size());
-		for (int i = 0; i < metadata.getCreators().size(); i++) {
-			assertEquals(mockMetadata.getCreators().get(i).getCreatorName(),
-					metadata.getCreators().get(i).getCreatorName());
-		}
-		for (int i = 0; i < metadata.getTitles().size(); i++) {
-			assertEquals(mockMetadata.getTitles().get(i).getTitle(),
-					metadata.getTitles().get(i).getTitle());
-		}
-
-		assertEquals(mockMetadata.getPublicationYear(), metadata.getPublicationYear());
-		assertEquals(mockMetadata.getResourceType().getResourceTypeText(), metadata.getResourceType().getResourceTypeText());
-		assertEquals(DoiResourceTypeGeneral.Other, DoiResourceTypeGeneral.valueOf(metadata.getResourceType().getResourceTypeGeneral().name()));
+	public void before() throws Exception {
+		documentBuilder = DocumentBuilderFactoryImpl.newInstance().newDocumentBuilder();
 	}
 
 	@Test
-	public void TestNoResourceText() throws Exception{
-		when(mockResourceType.getResourceTypeText()).thenReturn("");
-		ClassLoader loader = this.getClass().getClassLoader();
-		String path = loader.getResource("Datacite4SampleNoResource.xml").getFile();
-		String xml = FileUtils.readFileToString(new File(path));
+	public void getNameIdTest() throws Exception {
 		DataciteTranslator translator = new DataciteTranslator();
+
+		// Creator element with just a name, no identifiers
+		Document dom = documentBuilder.parse(new InputSource(new StringReader("<nameIdentifier schemeURI=\"http://orcid.org/\" nameIdentifierScheme=\"ORCID\">0123-4567-8987-789X</nameIdentifier>")));
+		Element id = (Element)dom.getElementsByTagName("nameIdentifier").item(0);
+		DoiNameIdentifier expected = new DoiNameIdentifier();
+
+		expected.setIdentifier("0123-4567-8987-789X");
+		expected.setNameIdentifierScheme(NameIdentifierSchemes.ORCID);
+
+		// Unit under test
+		assertEquals(expected, translator.getNameIdentifier(id));
+	}
+
+	@Test
+	public void getCreatorTest() throws Exception {
+		DataciteTranslator translator = new DataciteTranslator();
+
+		// Creator element with just a name
+		Document dom = documentBuilder.parse(new InputSource(new StringReader("<creator><creatorName>Author</creatorName></creator>")));
+		Element creator = (Element)dom.getElementsByTagName("creator").item(0);
+		DoiCreator expected = new DoiCreator();
+		expected.setCreatorName("Author");
+		// Unit under test
+		assertEquals(expected, translator.getCreator(creator));
+	}
+
+	@Test
+	public void getCreatorWithMultipleIdentifiersTest() throws Exception {
+		DataciteTranslator translator = new DataciteTranslator();
+		Document dom = documentBuilder.parse(new InputSource(new StringReader(
+				"<creator><creatorName>Author</creatorName><nameIdentifier schemeURI=\"http://orcid.org/\" nameIdentifierScheme=\"ORCID\">0123-4567-8987-789X</nameIdentifier>" +
+						"            <nameIdentifier schemeURI=\"http://www.insi.org/\" nameIdentifierScheme=\"ISNI\">9876-5432-10123-456X</nameIdentifier></creator>"
+		)));
+		Element creator = (Element)dom.getElementsByTagName("creator").item(0);
+
+		DoiCreator expected = new DoiCreator();
+		expected.setCreatorName("Author");
+
+		DoiNameIdentifier id1 = new DoiNameIdentifier();
+		id1.setNameIdentifierScheme(NameIdentifierSchemes.ORCID);
+		id1.setIdentifier("0123-4567-8987-789X");
+		DoiNameIdentifier id2 = new DoiNameIdentifier();
+		id2.setNameIdentifierScheme(NameIdentifierSchemes.ISNI);
+		id2.setIdentifier("9876-5432-10123-456X");
+
+		List<DoiNameIdentifier> ids = new ArrayList<>();
+		ids.add(id1);
+		ids.add(id2);
+
+		expected.setNameIdentifiers(ids);
+		// Unit under test
+		assertEquals(expected, translator.getCreator(creator));
+	}
+
+	@Test
+	public void getCreatorsTest() throws Exception {
+		DataciteTranslator translator = new DataciteTranslator();
+
+		Document dom = documentBuilder.parse(new InputSource(new StringReader("<creators><creator><creatorName>Author 1</creatorName></creator><creator><creatorName>2, Author</creatorName></creator></creators>")));
+		List<DoiCreator> expected = new ArrayList<>();
+		DoiCreator creator1 = new DoiCreator();
+		creator1.setCreatorName("Author 1");
+		DoiCreator creator2 = new DoiCreator();
+		creator2.setCreatorName("2, Author");
+		expected.add(creator1);
+		expected.add(creator2);
+
+		assertEquals(expected, translator.getCreators(dom));
+	}
+
+	@Test
+	public void getTitlesTest() throws Exception {
+		DataciteTranslator translator = new DataciteTranslator();
+
+		Document dom = documentBuilder.parse(new InputSource(new StringReader("<titles><title>Title 1</title><title>Title 2</title></titles>")));
+		List<DoiTitle> expected = new ArrayList<>();
+		DoiTitle t1 = new DoiTitle();
+		DoiTitle t2 = new DoiTitle();
+		t1.setTitle("Title 1");
+		t2.setTitle("Title 2");
+		expected.add(t1);
+		expected.add(t2);
+
+		assertEquals(expected, translator.getTitles(dom));
+	}
+
+	@Test
+	public void getPubYearTest() throws Exception {
+		DataciteTranslator translator = new DataciteTranslator();
+		Document dom = documentBuilder.parse(new InputSource(new StringReader("<publicationYear>1929</publicationYear>")));
+		long expected = 1929;
+		assertEquals(expected, translator.getPublicationYear(dom));
+	}
+
+	@Test
+	public void getResourceTypeTest() throws Exception {
+		DataciteTranslator translator = new DataciteTranslator();
+		Document dom = documentBuilder.parse(new InputSource(new StringReader("<resourceType resourceTypeGeneral=\"Dataset\"></resourceType>")));
+
+		DoiResourceType expected = new DoiResourceType();
+		expected.setResourceTypeGeneral(DoiResourceTypeGeneral.Dataset);
+		assertEquals(expected, translator.getResourceType(dom));
+	}
+
+
+	// Tests the entire class
+	@Test
+	public void translateEntireDomTest() throws Exception{
+		DoiMetadata expectedMetadata = new DoiMetadata();
+		// Set fields to match the XML resource loaded below
+		// Creators
+		DoiCreator creator1 = new DoiCreator();
+		creator1.setCreatorName("Last, First");
+		DoiNameIdentifier nameId1 = new DoiNameIdentifier();
+		nameId1.setIdentifier("0123-4567-8987-789X");
+		nameId1.setNameIdentifierScheme(NameIdentifierSchemes.ORCID);
+		DoiNameIdentifier nameId2 = new DoiNameIdentifier();
+		nameId2.setIdentifier("9876-5432-10123-456X");
+		nameId2.setNameIdentifierScheme(NameIdentifierSchemes.ISNI);
+		List<DoiNameIdentifier> nameIds = new ArrayList<>();
+		nameIds.add(nameId1);
+		nameIds.add(nameId2);
+		creator1.setNameIdentifiers(nameIds);
+		DoiCreator creator2 = new DoiCreator();
+		creator2.setCreatorName("Sample name");
+		List<DoiCreator> creators = new ArrayList<>();
+		creators.add(creator1);
+		creators.add(creator2);
+		expectedMetadata.setCreators(creators);
+		// Titles
+		DoiTitle title1 = new DoiTitle();
+		DoiTitle title2 = new DoiTitle();
+		title1.setTitle("Some title 1");
+		title2.setTitle("Some other title 2");
+		List<DoiTitle> titles = new ArrayList<>();
+		titles.add(title1);
+		titles.add(title2);
+		expectedMetadata.setTitles(titles);
+		// Publication year
+		expectedMetadata.setPublicationYear(2000L);
+		// Resource type
+		DoiResourceType resourceType = new DoiResourceType();
+		resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.Dataset);
+		expectedMetadata.setResourceType(resourceType);
+
+		// Load the resource containing XML
+		ClassLoader loader = this.getClass().getClassLoader();
+		String xml = IOUtils.toString(loader.getResourceAsStream("DataciteSample1.xml"));
+
+		DataciteTranslator translator = new DataciteTranslator();
+		// Unit under test
 		DoiMetadata metadata = translator.translate(xml);
-		assertEquals(mockMetadata.getCreators().get(0).getCreatorName(), metadata.getCreators().get(0).getCreatorName());
-		assertEquals(mockMetadata.getTitles().get(0).getTitle(), metadata.getTitles().get(0).getTitle());
-		assertEquals(mockMetadata.getPublicationYear(), metadata.getPublicationYear());
-		assertEquals(mockMetadata.getResourceType().getResourceTypeText(), metadata.getResourceType().getResourceTypeText());
-		assertEquals(DoiResourceTypeGeneral.Other, DoiResourceTypeGeneral.valueOf(metadata.getResourceType().getResourceTypeGeneral().name()));
+		assertEquals(expectedMetadata, metadata);
 	}
 
 
