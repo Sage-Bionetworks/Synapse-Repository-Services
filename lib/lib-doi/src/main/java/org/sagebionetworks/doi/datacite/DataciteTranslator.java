@@ -43,20 +43,25 @@ public class DataciteTranslator {
 		return doiMetadata;
 	}
 
+	DoiNameIdentifier getNameIdentifier(Element nameIdElement) {
+		DoiNameIdentifier id = new DoiNameIdentifier();
+		id.setIdentifier(nameIdElement.getTextContent());
+		id.setNameIdentifierScheme(NameIdentifierSchemes.valueOf(nameIdElement.getAttributes()
+				.getNamedItem("nameIdentifierScheme").getNodeValue()));
+		return id;
+	}
+
 	DoiCreator getCreator(Element creatorElement) {
 		DoiCreator creator = new DoiCreator();
 		creator.setCreatorName(creatorElement.getElementsByTagName("creatorName").item(0).getTextContent());
 
 		NodeList idNodes = creatorElement.getElementsByTagName("nameIdentifier");
-
 		if (idNodes.getLength() > 0) {
 			List<DoiNameIdentifier> ids = new ArrayList<>();
 			for (int i = 0; i < idNodes.getLength(); i++) {
-				DoiNameIdentifier id = new DoiNameIdentifier();
-				id.setIdentifier(idNodes.item(i).getTextContent());
-				id.setNameIdentifierScheme(NameIdentifierSchemes.valueOf(idNodes.item(i).getAttributes()
-						.getNamedItem("nameIdentifierScheme").getNodeValue()));
+				DoiNameIdentifier id = getNameIdentifier((Element)idNodes.item(i));
 				ids.add(id);
+
 			}
 			creator.setNameIdentifiers(ids);
 		}
