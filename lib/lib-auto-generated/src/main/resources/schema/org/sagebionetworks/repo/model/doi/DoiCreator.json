@@ -5,6 +5,14 @@
       "type":"string",
       "description":"May be a corporate/institutional or personal name (\"Family, Given\").",
       "required": true
+    },
+    "nameIdentifiers": {
+      "description": "Uniquely identifies an individual or legal entity, according to various schemas.",
+      "type": "array",
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.doi.DoiNameIdentifier"
+      },
+      "required": false
     }
   }
 }

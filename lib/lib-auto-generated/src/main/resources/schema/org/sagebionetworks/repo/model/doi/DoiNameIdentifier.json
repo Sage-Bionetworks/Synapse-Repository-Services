@@ -1,0 +1,26 @@
+{
+  "description": "Uniquely identifies an individual or legal entity, according to various schemas.",
+  "properties": {
+    "identifier":{
+      "type": "string",
+      "description": "The identifier belonging to the creator.",
+      "required": true
+    },
+    "nameIdentifierScheme": {
+      "name": "NameIdentifierSchemes",
+      "type":"string",
+      "description":"Describes the scheme of the nameIdentifier. Required if nameIdentifier is used.",
+      "enum": [
+        {
+          "name": "ORCID",
+          "description": "The associated identifier is an ORCID iD of the form XXXX-XXXX-XXXX-XXXX."
+        },
+        {
+          "name": "ISNI",
+          "description": "The associated identifier is an ISNI of the form XXXX-XXXX-XXXX-XXXX."
+        }
+      ],
+      "required": true
+    }
+  }
+}

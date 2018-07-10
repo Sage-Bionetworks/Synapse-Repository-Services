@@ -2,10 +2,6 @@
   "description": "Describes the type of media that the DOI Metadata refers to.",
   "type": "object",
   "properties": {
-    "resourceTypeText": {
-      "description": "Free text. The preferred format is a single term of some detail so that a pair can be formed with resourceTypeGeneral.",
-      "type": "string"
-    },
     "resourceTypeGeneral": {
       "description": "Describes the general type of media that DOI Metadata refers to.",
       "type": "string",
