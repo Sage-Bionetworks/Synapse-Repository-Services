@@ -194,7 +194,27 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	@Override
 	public MigratableTableTranslation<DBOTableRowChange, DBOTableRowChange> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOTableRowChange>();
+		return new MigratableTableTranslation<DBOTableRowChange, DBOTableRowChange>() {
+
+			@Override
+			public DBOTableRowChange createDatabaseObjectFromBackup(DBOTableRowChange backup) {
+				if (backup.getChangeType() == null) {
+					// PLFM-4016
+					backup.setChangeType(TableChangeType.ROW.name());
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOTableRowChange createBackupFromDatabaseObject(DBOTableRowChange dbo) {
+				return dbo;
+			}
+
+			@Override
+			public boolean ignoreOnRestore(DBOTableRowChange backup) {
+				return false;
+			}
+		};
 	}
 
 	@Override
