@@ -285,8 +285,8 @@ public class FacetRequestColumnModelTest {
 
 	@Test
 	public void testAppendValueToStringBuilderEscapeSingleQuotes(){
-		String value = "\"whomst'd've\"";
-		String expectedResult = "'\"whomst''d''ve\"'";
+		String value = "whomst'd've";
+		String expectedResult = "'whomst''d''ve'";
 		FacetRequestColumnModel.appendValueToStringBuilder(stringBuilder, value);
 		assertEquals(expectedResult, stringBuilder.toString());
 	}
