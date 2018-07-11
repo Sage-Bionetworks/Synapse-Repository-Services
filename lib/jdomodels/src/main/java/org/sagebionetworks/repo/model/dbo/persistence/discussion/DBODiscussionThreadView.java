@@ -9,6 +9,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -116,20 +117,7 @@ public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODisc
 
 	@Override
 	public MigratableTableTranslation<DBODiscussionThreadView, DBODiscussionThreadView> getTranslator() {
-		return new MigratableTableTranslation<DBODiscussionThreadView, DBODiscussionThreadView>() {
-
-			@Override
-			public DBODiscussionThreadView createDatabaseObjectFromBackup(
-					DBODiscussionThreadView backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODiscussionThreadView createBackupFromDatabaseObject(
-					DBODiscussionThreadView dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBODiscussionThreadView>();
 	}
 
 	@Override

@@ -10,6 +10,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -203,19 +204,7 @@ public class DBOSubmissionStatus implements MigratableDatabaseObject<DBOSubmissi
 
 	@Override
 	public MigratableTableTranslation<DBOSubmissionStatus, DBOSubmissionStatus> getTranslator() {
-		return new MigratableTableTranslation<DBOSubmissionStatus, DBOSubmissionStatus>(){
-
-			@Override
-			public DBOSubmissionStatus createDatabaseObjectFromBackup(DBOSubmissionStatus backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOSubmissionStatus createBackupFromDatabaseObject(DBOSubmissionStatus dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBOSubmissionStatus>();
 	}
 
 	@Override

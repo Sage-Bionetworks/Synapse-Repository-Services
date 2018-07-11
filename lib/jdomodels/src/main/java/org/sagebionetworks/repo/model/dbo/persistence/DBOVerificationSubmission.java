@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -53,21 +54,7 @@ public class DBOVerificationSubmission implements
 
 	@Override
 	public MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> getTranslator() {
-		return new MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission>() {
-
-			@Override
-			public DBOVerificationSubmission createDatabaseObjectFromBackup(
-					DBOVerificationSubmission backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOVerificationSubmission createBackupFromDatabaseObject(
-					DBOVerificationSubmission dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBOVerificationSubmission>() ;
 	}
 
 	@Override

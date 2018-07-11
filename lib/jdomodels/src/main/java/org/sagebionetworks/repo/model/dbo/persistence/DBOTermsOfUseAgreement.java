@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -54,16 +55,7 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 
 	@Override
 	public MigratableTableTranslation<DBOTermsOfUseAgreement, DBOTermsOfUseAgreement> getTranslator() {
-		return new MigratableTableTranslation<DBOTermsOfUseAgreement, DBOTermsOfUseAgreement>(){
-			@Override
-			public DBOTermsOfUseAgreement createDatabaseObjectFromBackup(DBOTermsOfUseAgreement backup) {
-				return backup;
-			}
-			@Override
-			public DBOTermsOfUseAgreement createBackupFromDatabaseObject(DBOTermsOfUseAgreement dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOTermsOfUseAgreement>();
 	}
 
 	@Override

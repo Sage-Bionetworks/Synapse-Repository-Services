@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -68,21 +69,7 @@ public class DBONotificationEmail implements MigratableDatabaseObject<DBONotific
 
 	@Override
 	public MigratableTableTranslation<DBONotificationEmail, DBONotificationEmail> getTranslator() {
-		return new MigratableTableTranslation<DBONotificationEmail, DBONotificationEmail>(){
-
-			@Override
-			public DBONotificationEmail createDatabaseObjectFromBackup(
-					DBONotificationEmail backup) {
-				return backup;
-			}
-
-			@Override
-			public DBONotificationEmail createBackupFromDatabaseObject(
-					DBONotificationEmail dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBONotificationEmail>();
 	}
 
 	@Override

@@ -26,6 +26,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -120,19 +121,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload> getTranslator() {
-		return new MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload>(){
-
-			@Override
-			public DBOMultipartUpload createDatabaseObjectFromBackup(
-					DBOMultipartUpload backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOMultipartUpload createBackupFromDatabaseObject(
-					DBOMultipartUpload dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOMultipartUpload>();
 	}
 
 	@Override

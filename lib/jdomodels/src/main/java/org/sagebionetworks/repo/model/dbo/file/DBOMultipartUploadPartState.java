@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -113,19 +114,7 @@ public class DBOMultipartUploadPartState implements MigratableDatabaseObject<DBO
 
 	@Override
 	public MigratableTableTranslation<DBOMultipartUploadPartState, DBOMultipartUploadPartState> getTranslator() {
-		return new  MigratableTableTranslation<DBOMultipartUploadPartState, DBOMultipartUploadPartState>(){
-
-			@Override
-			public DBOMultipartUploadPartState createDatabaseObjectFromBackup(
-					DBOMultipartUploadPartState backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOMultipartUploadPartState createBackupFromDatabaseObject(
-					DBOMultipartUploadPartState dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOMultipartUploadPartState>();
 	}
 
 	@Override

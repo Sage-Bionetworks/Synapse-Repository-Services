@@ -16,6 +16,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -218,19 +219,7 @@ public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEnti
 
 	@Override
 	public MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity> getTranslator() {
-		return new MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity>(){
-
-			@Override
-			public DBOTrashedEntity createDatabaseObjectFromBackup(
-					DBOTrashedEntity backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOTrashedEntity createBackupFromDatabaseObject(
-					DBOTrashedEntity dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOTrashedEntity>();
 	}
 
 	@Override

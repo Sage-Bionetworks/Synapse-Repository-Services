@@ -239,6 +239,11 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 			public SubmissionStatusDBO createBackupFromDatabaseObject(
 					SubmissionStatusDBO dbo) {
 				return dbo;
+			}
+
+			@Override
+			public boolean ignoreOnRestore(SubmissionStatusDBO backup) {
+				return false;
 			}};
 	}
 	@Override

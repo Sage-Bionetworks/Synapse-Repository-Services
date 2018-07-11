@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -94,19 +95,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 
 	@Override
 	public MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwner> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwner>(){
-			
-			@Override
-			public V2DBOWikiOwner createDatabaseObjectFromBackup(
-					V2DBOWikiOwner backup) {
-				return backup;
-			}
-	
-			@Override
-			public V2DBOWikiOwner createBackupFromDatabaseObject(V2DBOWikiOwner dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<V2DBOWikiOwner>();
 	}
 
 	@Override

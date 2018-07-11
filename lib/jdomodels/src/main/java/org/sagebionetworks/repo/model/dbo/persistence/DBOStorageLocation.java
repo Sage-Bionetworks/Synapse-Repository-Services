@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -176,19 +177,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 
 	@Override
 	public MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation>() {
-
-			@Override
-			public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOStorageLocation createBackupFromDatabaseObject(DBOStorageLocation dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOStorageLocation>();
 	}
 
 	@Override

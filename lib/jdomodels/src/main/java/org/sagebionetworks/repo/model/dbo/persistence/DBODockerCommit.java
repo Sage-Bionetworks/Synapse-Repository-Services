@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -59,21 +60,7 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 
 	@Override
 	public MigratableTableTranslation<DBODockerCommit, DBODockerCommit> getTranslator() {
-		return new MigratableTableTranslation<DBODockerCommit, DBODockerCommit>() {
-
-			@Override
-			public DBODockerCommit createDatabaseObjectFromBackup(
-					DBODockerCommit backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODockerCommit createBackupFromDatabaseObject(
-					DBODockerCommit dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBODockerCommit>();
 	}
 
 	@Override

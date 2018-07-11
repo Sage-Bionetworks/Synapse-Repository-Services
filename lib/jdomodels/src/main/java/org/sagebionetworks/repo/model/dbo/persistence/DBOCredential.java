@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -100,6 +101,13 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 				backup.setSecretKey(dbo.getSecretKey());
 				return backup;
 			}
+			
+			@Override
+			public boolean ignoreOnRestore(DBOCredentialBackup backup) {
+				// Do not migrate the admin users credentials. PLFM-5023
+				return AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()
+						.equals(backup.getPrincipalId());
+			}
 		};
 	}
 
@@ -116,6 +124,43 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((passHash == null) ? 0 : passHash.hashCode());
+		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
+		result = prime * result + ((secretKey == null) ? 0 : secretKey.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOCredential other = (DBOCredential) obj;
+		if (passHash == null) {
+			if (other.passHash != null)
+				return false;
+		} else if (!passHash.equals(other.passHash))
+			return false;
+		if (principalId == null) {
+			if (other.principalId != null)
+				return false;
+		} else if (!principalId.equals(other.principalId))
+			return false;
+		if (secretKey == null) {
+			if (other.secretKey != null)
+				return false;
+		} else if (!secretKey.equals(other.secretKey))
+			return false;
+		return true;
 	}
 
 }

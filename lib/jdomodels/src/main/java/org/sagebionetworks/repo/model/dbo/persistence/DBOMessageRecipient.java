@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -87,17 +88,7 @@ public class DBOMessageRecipient implements MigratableDatabaseObject<DBOMessageR
 
 	@Override
 	public MigratableTableTranslation<DBOMessageRecipient, DBOMessageRecipient> getTranslator() {
-		return new MigratableTableTranslation<DBOMessageRecipient, DBOMessageRecipient>() {
-			@Override
-			public DBOMessageRecipient createDatabaseObjectFromBackup(DBOMessageRecipient backup) {
-				return backup;
-			}
-			
-			@Override
-			public DBOMessageRecipient createBackupFromDatabaseObject(DBOMessageRecipient dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOMessageRecipient>();
 	}
 
 	@Override
