@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -81,7 +83,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 
 	@Override
 	public SubscriptionPagedResults getAll(UserInfo userInfo, Long limit,
-			Long offset, SubscriptionObjectType objectType) {
+			Long offset, SubscriptionObjectType objectType, SortByType sortByType, SortDirection sortDirection) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");

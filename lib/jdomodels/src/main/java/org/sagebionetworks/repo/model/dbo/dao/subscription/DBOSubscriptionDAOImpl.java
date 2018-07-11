@@ -39,6 +39,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -455,5 +456,81 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
 		return jdbcTemplate.queryForObject(SQL_GET_SUBSCRIBER_COUNT, Long.class, objectId, objectType.name());
+	}
+
+	@Override
+	public SubscriptionPagedResults listSubcriptions(SubscriptionListRequest request) {
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		if(yieldEmptyResult(request)) {
+			results.setResults(new ArrayList<Subscription>(0));
+			results.setTotalNumberOfResults(0L);
+			return results;
+		}
+		MapSqlParameterSource parameters = createParameters(request);
+		String countQuery = createCountQuery(request);
+		results.setTotalNumberOfResults(namedTemplate.queryForObject(countQuery, parameters, Long.class));
+		String query = createQuery(request);
+		results.setResults(namedTemplate.query(query, parameters, ROW_MAPPER));
+		return results;
+	}
+	
+	/**
+	 * Will the given request yield an empty result?
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public static boolean yieldEmptyResult(SubscriptionListRequest request) {
+		if(request.getProjectIds() != null) {
+			return request.getProjectIds().isEmpty();
+		}
+		if(request.getObjectIds() != null) {
+			return request.getObjectIds().isEmpty();
+		}
+		return false;
+	}
+	
+	/**
+	 * Create the parameters for the given request.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	static MapSqlParameterSource createParameters(SubscriptionListRequest request) {
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("subscriberId", request.getSubscriberId());
+		parameters.addValue("objectType", request.getObjectType());
+		if(request.getObjectIds() != null) {
+			parameters.addValue("objectIds", request.getObjectIds());
+		}
+		if(request.getProjectIds() != null) {
+			parameters.addValue("projectIds", request.getProjectIds());
+		}
+		parameters.addValue("sortByType", request.getSortByType());
+		parameters.addValue("sortDirection", request.getSortDirection());
+		parameters.addValue("limit", request.getLimit());
+		parameters.addValue("offset", request.getOffset());
+		return parameters;
+	}
+	
+	/**
+	 * Create the count query for the given request.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	static String createCountQuery(SubscriptionListRequest request) {
+		
+		return null;
+	}
+	
+	/**
+	 * Create the query for the given request.
+	 * @param request
+	 * @return
+	 */
+	static String createQuery(SubscriptionListRequest request) {
+		
+		return null;
 	}
 }

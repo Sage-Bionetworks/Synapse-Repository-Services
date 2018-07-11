@@ -91,6 +91,13 @@ public interface SubscriptionDAO {
 	 * @return
 	 */
 	public SubscriptionPagedResults listSubscriptionForThread(String subscriberId, List<String> threadIds);
+	
+	/**
+	 * Get all subscriptions for the given request.
+	 * @param request
+	 * @return
+	 */
+	public SubscriptionPagedResults listSubcriptions(SubscriptionListRequest request);
 
 	/**
 	 * Delete a subscription
