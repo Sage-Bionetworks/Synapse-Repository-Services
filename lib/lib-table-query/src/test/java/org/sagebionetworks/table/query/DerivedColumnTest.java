@@ -34,13 +34,13 @@ public class DerivedColumnTest {
 	
 	@Test
 	public void testDerivedColumnGetNameFunctionQuotes() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("count('has space')");
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("count('has 'space')");
 		assertEquals("COUNT('has space')", element.getDisplayName());
 	}
 
 	@Test
 	public void testDerivedColumnGetNameQuotes() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("'has space'");
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("'has 'space'");
 		assertEquals("has space", element.getDisplayName());
 	}
 	

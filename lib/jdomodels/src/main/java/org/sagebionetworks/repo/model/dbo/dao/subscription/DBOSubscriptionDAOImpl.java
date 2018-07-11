@@ -533,4 +533,10 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		
 		return null;
 	}
+	
+	static String createQueryCore(SubscriptionListRequest request) {
+		StringBuilder builder = new StringBuilder();
+		
+		return builder.toString();
+	}
 }
