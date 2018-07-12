@@ -97,7 +97,15 @@ public interface SubscriptionDAO {
 	 * @param request
 	 * @return
 	 */
-	public SubscriptionPagedResults listSubcriptions(SubscriptionListRequest request);
+	public List<Subscription> listSubscriptions(SubscriptionListRequest request);
+	
+	/**
+	 * Count the number of subscriptions for the given request.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public long listSubscriptionsCount(SubscriptionListRequest request);
 
 	/**
 	 * Delete a subscription

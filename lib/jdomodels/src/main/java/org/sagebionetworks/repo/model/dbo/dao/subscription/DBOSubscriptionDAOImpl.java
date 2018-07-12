@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +42,8 @@ import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -314,18 +317,23 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(ids, "ids");
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		if (ids.isEmpty()) {
-			results.setResults(new ArrayList<Subscription>(0));
-			results.setTotalNumberOfResults(0L);
-		} else {
-			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-			parameters.addValue("subscriberId", subscriberId);
-			parameters.addValue("objectType", objectType.name());
-			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_SUB_LIST, parameters, ROW_MAPPER);
-			results.setResults(subscriptions);
-			results.setTotalNumberOfResults((long) subscriptions.size());
-		}
+		SubscriptionListRequest request = new SubscriptionListRequest(subscriberId, objectType, ids);
+		List<Subscription> subscriptions = listSubscriptions(request);
+		results.setResults(subscriptions);
+		results.setTotalNumberOfResults((long)subscriptions.size());
 		return results;
+//		if (ids.isEmpty()) {
+//			results.setResults(new ArrayList<Subscription>(0));
+//			results.setTotalNumberOfResults(0L);
+//		} else {
+//			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+//			parameters.addValue("subscriberId", subscriberId);
+//			parameters.addValue("objectType", objectType.name());
+//			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_SUB_LIST, parameters, ROW_MAPPER);
+//			results.setResults(subscriptions);
+//			results.setTotalNumberOfResults((long) subscriptions.size());
+//		}
+//		return results;
 	}
 
 	@Override
@@ -333,16 +341,10 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(ids, "ids");
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		if (ids.isEmpty()) {
-			results.setResults(new ArrayList<Subscription>(0));
-			results.setTotalNumberOfResults(0L);
-		} else {
-			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-			parameters.addValue("subscriberId", subscriberId);
-			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_THREAD_SUB_LIST, parameters, ROW_MAPPER);
-			results.setResults(subscriptions);
-			results.setTotalNumberOfResults((long) subscriptions.size());
-		}
+		SubscriptionListRequest request = new SubscriptionListRequest(subscriberId, SubscriptionObjectType.THREAD, ids);
+		List<Subscription> subscriptions = listSubscriptions(request);
+		results.setResults(subscriptions);
+		results.setTotalNumberOfResults((long)subscriptions.size());
 		return results;
 	}
 
@@ -351,16 +353,10 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(ids, "ids");
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		if (ids.isEmpty()) {
-			results.setResults(new ArrayList<Subscription>(0));
-			results.setTotalNumberOfResults(0L);
-		} else {
-			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-			parameters.addValue("subscriberId", subscriberId);
-			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_FORUM_SUB_LIST, parameters, ROW_MAPPER);
-			results.setResults(subscriptions);
-			results.setTotalNumberOfResults((long) subscriptions.size());
-		}
+		SubscriptionListRequest request = new SubscriptionListRequest(subscriberId, SubscriptionObjectType.FORUM, ids);
+		List<Subscription> subscriptions = listSubscriptions(request);
+		results.setResults(subscriptions);
+		results.setTotalNumberOfResults((long)subscriptions.size());
 		return results;
 	}
 
@@ -459,19 +455,23 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	}
 
 	@Override
-	public SubscriptionPagedResults listSubcriptions(SubscriptionListRequest request) {
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
+	public List<Subscription> listSubscriptions(SubscriptionListRequest request) {
 		if(yieldEmptyResult(request)) {
-			results.setResults(new ArrayList<Subscription>(0));
-			results.setTotalNumberOfResults(0L);
-			return results;
+			return new LinkedList<>();
+		}
+		MapSqlParameterSource parameters = createParameters(request);
+		String query = createQuery(request);
+		return namedTemplate.query(query, parameters, ROW_MAPPER);
+	}
+	
+	@Override
+	public long listSubscriptionsCount(SubscriptionListRequest request) {
+		if(yieldEmptyResult(request)) {
+			return 0L;
 		}
 		MapSqlParameterSource parameters = createParameters(request);
 		String countQuery = createCountQuery(request);
-		results.setTotalNumberOfResults(namedTemplate.queryForObject(countQuery, parameters, Long.class));
-		String query = createQuery(request);
-		results.setResults(namedTemplate.query(query, parameters, ROW_MAPPER));
-		return results;
+		return namedTemplate.queryForObject(countQuery, parameters, Long.class);
 	}
 	
 	/**
@@ -499,15 +499,15 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	static MapSqlParameterSource createParameters(SubscriptionListRequest request) {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("subscriberId", request.getSubscriberId());
-		parameters.addValue("objectType", request.getObjectType());
+		parameters.addValue("objectType", request.getObjectType().name());
 		if(request.getObjectIds() != null) {
 			parameters.addValue("objectIds", request.getObjectIds());
 		}
 		if(request.getProjectIds() != null) {
 			parameters.addValue("projectIds", request.getProjectIds());
 		}
-		parameters.addValue("sortByType", request.getSortByType());
-		parameters.addValue("sortDirection", request.getSortDirection());
+		parameters.addValue("sortByType", getColunName(request.getSortByType()));
+		parameters.addValue("sortDirection", getSortDirection(request.getSortDirection()));
 		parameters.addValue("limit", request.getLimit());
 		parameters.addValue("offset", request.getOffset());
 		return parameters;
@@ -520,8 +520,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	 * @return
 	 */
 	static String createCountQuery(SubscriptionListRequest request) {
-		
-		return null;
+		StringBuilder builder = new StringBuilder("SELECT COUNT(*)");
+		createQueryCore(builder, request);
+		return builder.toString();
 	}
 	
 	/**
@@ -530,13 +531,83 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	 * @return
 	 */
 	static String createQuery(SubscriptionListRequest request) {
-		
-		return null;
+		StringBuilder builder = new StringBuilder("SELECT *");
+		createQueryCore(builder, request);
+		if(request.getSortByType() != null) {
+			builder.append(" ORDER BY :").append("sortByType").append(" :").append("sortDirection");
+		}
+		if(request.getLimit() != null) {
+			builder.append(" LIMIT :").append("limit");
+		}
+		if(request.getOffset() != null) {
+			builder.append(" OFFSET :").append("offset");
+		}
+		return builder.toString();
 	}
 	
-	static String createQueryCore(SubscriptionListRequest request) {
-		StringBuilder builder = new StringBuilder();
+	static void createQueryCore(StringBuilder builder, SubscriptionListRequest request) {
+		builder.append(" FROM ").append(TABLE_SUBSCRIPTION).append(" S");
+		if (SubscriptionObjectType.FORUM == request.getObjectType()) {
+			builder.append(" JOIN ").append(TABLE_FORUM).append(" F");
+			builder.append(" ON (S.").append(COL_SUBSCRIPTION_OBJECT_ID).append(" = F.").append(COL_FORUM_ID).append(")");
+		}
 		
-		return builder.toString();
+		if (SubscriptionObjectType.THREAD == request.getObjectType()) {
+			builder.append(" JOIN ").append(TABLE_DISCUSSION_THREAD).append(" T");
+			builder.append(" ON (S.").append(COL_SUBSCRIPTION_OBJECT_ID).append(" = T.").append(COL_DISCUSSION_THREAD_ID);
+			builder.append(" AND T.").append(COL_DISCUSSION_THREAD_IS_DELETED).append(" = FALSE )");
+		}
+		builder.append(" WHERE S.").append(COL_SUBSCRIPTION_OBJECT_TYPE).append(" = :").append("objectType");
+		builder.append(" AND S.").append(COL_SUBSCRIPTION_SUBSCRIBER_ID).append(" = :").append("subscriberId");
+		if(request.getProjectIds() != null) {
+			builder.append(" AND F.").append(COL_FORUM_PROJECT_ID).append(" IN (:").append("projectIds").append(")");
+		}
+		if(request.getObjectIds() != null) {
+			builder.append(" AND S.").append(COL_SUBSCRIPTION_OBJECT_ID).append(" IN (:").append("objectIds").append(")");
+		}
+	}
+	
+	/**
+	 * Get the column name for a sort type.
+	 * @param sortByType
+	 * @return
+	 */
+	static String getColunName(SortByType sortByType) {
+		if(sortByType == null) {
+			return null;
+		}
+		switch (sortByType) {
+		case SUBSCRIPTION_ID:
+			return COL_SUBSCRIPTION_ID;
+		case SUBSCRIBER_ID:
+			return COL_SUBSCRIPTION_SUBSCRIBER_ID;
+		case CREATED_ON:
+			return COL_SUBSCRIPTION_CREATED_ON;
+		case OBJECT_ID:
+			return COL_SUBSCRIPTION_OBJECT_ID;
+		case OBJECT_TYPE:
+			return COL_SUBSCRIPTION_OBJECT_TYPE;
+		default:
+			throw new IllegalArgumentException("Unknown sort type: " + sortByType);
+		}
+	}
+	
+	/**
+	 * Convert the sort direction to SQL.
+	 * @param direction
+	 * @return
+	 */
+	static String getSortDirection(SortDirection direction) {
+		if(direction == null) {
+			return null;
+		}
+		switch (direction) {
+		case ASC:
+			return "ASC";
+		case DESC:
+			return "DESC";
+		default:
+			throw new IllegalArgumentException("Unknown sort direction: " + direction);
+		}
 	}
 }

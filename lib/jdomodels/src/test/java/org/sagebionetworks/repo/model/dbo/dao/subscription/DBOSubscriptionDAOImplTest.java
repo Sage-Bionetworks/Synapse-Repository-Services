@@ -510,4 +510,9 @@ public class DBOSubscriptionDAOImplTest {
 		subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
 		assertEquals(1, subscriptionDao.getSubscriberCount(threadId, SubscriptionObjectType.THREAD));
 	}
+	
+	@Test
+	public void testCreateQueryCore() {
+		
+	}
 }

@@ -22,6 +22,13 @@ public class SubscriptionListRequest {
 	Long limit;
 	Long offset;
 	
+	public SubscriptionListRequest(String subscriberId, SubscriptionObjectType objectType, List<String> objectIds) {
+		super();
+		this.subscriberId = subscriberId;
+		this.objectType = objectType;
+		this.objectIds = objectIds;
+	}
+	
 	public String getSubscriberId() {
 		return subscriberId;
 	}

@@ -32,9 +32,11 @@ public interface SubscriptionService {
 	 * @param objectType
 	 * @param sortDirection 
 	 * @param sortByType 
+	 * @param sortDirection 
+	 * @param sortByType 
 	 * @return
 	 */
-	public SubscriptionPagedResults getAll(Long userId, Long limit, Long offset, SubscriptionObjectType objectType);
+	public SubscriptionPagedResults getAll(Long userId, Long limit, Long offset, SubscriptionObjectType objectType, SortByType sortByType, SortDirection sortDirection);
 
 	/**
 	 * retrieve subscriptions one has based on a list of provided topics
