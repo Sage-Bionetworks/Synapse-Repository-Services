@@ -8,7 +8,7 @@
         <creator>
             <creatorName>Last, First</creatorName>
             <nameIdentifier schemeURI="http://orcid.org/" nameIdentifierScheme="ORCID">0123-4567-8987-789X</nameIdentifier>
-            <nameIdentifier schemeURI="http://www.insi.org/" nameIdentifierScheme="ISNI">9876-5432-10123-456X</nameIdentifier>
+            <nameIdentifier schemeURI="http://www.insi.org/" nameIdentifierScheme="ISNI">9876-5432-1012-456X</nameIdentifier>
         </creator>
         <creator>
             <creatorName>Sample name</creatorName>
