@@ -4,7 +4,6 @@ import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 import org.apache.xerces.dom.DocumentImpl;
 import org.sagebionetworks.repo.model.doi.v2.*;
-import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -13,6 +12,8 @@ import java.io.StringWriter;
 import java.util.List;
 
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
+import static org.sagebionetworks.doi.datacite.DataciteUtils.generateDoiUri;
+import static org.sagebionetworks.doi.datacite.DataciteUtils.getSchemeUri;
 
 /*
  * Translates our DoiV2 object into well-formed DataCite XML.
@@ -121,16 +122,5 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		Element resourceTypeElement = dom.createElement(RESOURCE_TYPE);
 		resourceTypeElement.setAttribute(RESOURCE_TYPE_GENERAL, resourceType.getResourceTypeGeneral().name());
 		return resourceTypeElement;
-	}
-
-	static String generateDoiUri(Doi doi) {
-		String uri = "";
-		uri += DOI_URI_PREFIX;
-		uri += getPrefix(doi.getObjectType());
-		uri += doi.getObjectId();
-		if (doi.getObjectVersion() != null) {
-			uri += "." + doi.getObjectVersion();
-		}
-		return uri;
 	}
 }

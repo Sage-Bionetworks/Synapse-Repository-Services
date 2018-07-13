@@ -15,9 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.*;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
+import static org.sagebionetworks.doi.datacite.DataciteUtils.getSchemeUri;
+import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.*;
 
 public class DataciteXmlTranslatorTest {
 
@@ -141,20 +141,6 @@ public class DataciteXmlTranslatorTest {
 		assertEquals(resourceType, getResourceType(dom));
 	}
 
-	@Test
-	public void testNoUndefinedSchemes() {
-		for (NameIdentifierScheme e : NameIdentifierScheme.values()) {
-			assertNotNull(getSchemeUri(e));
-		}
-	}
-
-	@Test
-	public void testGetSchemeUri() {
-		assertEquals(ORCID_URI, getSchemeUri(NameIdentifierScheme.ORCID));
-		assertEquals(ISNI_URI, getSchemeUri(NameIdentifierScheme.ISNI));
-		// If adding a new scheme, test it with its URI pair here
-	}
-
 	// Tests the entire class
 	@Test
 	public void translateEntireDomTest() throws Exception{
@@ -167,6 +153,4 @@ public class DataciteXmlTranslatorTest {
 		Doi metadata = translator.translate(xml);
 		assertEquals(expectedDoi, metadata);
 	}
-
-
 }
