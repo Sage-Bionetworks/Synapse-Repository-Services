@@ -4,7 +4,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.doi.*;
+import org.sagebionetworks.repo.model.doi.v2.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
@@ -22,7 +22,7 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
 public class DataciteXmlTranslatorTest {
 
 	private DocumentBuilder documentBuilder;
-	private DataciteDoi expectedDoi;
+	private Doi expectedDoi;
 	private DoiCreator c1;
 	private DoiCreator c2;
 	private DoiNameIdentifier nameIdObject1;
@@ -38,7 +38,7 @@ public class DataciteXmlTranslatorTest {
 		documentBuilder = DocumentBuilderFactoryImpl.newInstance().newDocumentBuilder();
 
 		// Create expected metadata to compare to results
-		expectedDoi = new DoiV2();
+		expectedDoi = new Doi();
 
 		// Set fields to match the XML resource loaded below "DataciteSample1.xml"
 		// Creators
@@ -164,7 +164,7 @@ public class DataciteXmlTranslatorTest {
 
 		DataciteXmlTranslatorImpl translator = new DataciteXmlTranslatorImpl();
 		// Unit under test
-		DataciteDoi metadata = translator.translate(xml);
+		Doi metadata = translator.translate(xml);
 		assertEquals(expectedDoi, metadata);
 	}
 

@@ -1,7 +1,7 @@
 package org.sagebionetworks.doi.datacite;
 
 import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
-import org.sagebionetworks.repo.model.doi.*;
+import org.sagebionetworks.repo.model.doi.v2.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -23,7 +23,7 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
  */
 public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
-	public DoiV2 translate(String xml) {
+	public Doi translate(String xml) {
 		Document dom = parseXml(xml);
 		return translateUtil(dom);
 	}
@@ -32,8 +32,8 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 	 * Translates a Datacite XML String into a DoiMetadata object
 	 * Works for XML adherent to Datacite Schemas 2.2 and 4.1
 	 */
-	static DoiV2 translateUtil(Document dom) {
-		DoiV2 doi = new DoiV2();
+	static Doi translateUtil(Document dom) {
+		Doi doi = new Doi();
 
 		doi.setCreators(getCreators(dom));
 		doi.setTitles(getTitles(dom));

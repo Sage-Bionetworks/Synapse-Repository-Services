@@ -3,7 +3,8 @@ package org.sagebionetworks.doi.datacite;
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 import org.apache.xerces.dom.DocumentImpl;
-import org.sagebionetworks.repo.model.doi.*;
+import org.sagebionetworks.repo.model.doi.v2.*;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -18,11 +19,11 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
  */
 public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslator {
 
-	public String translate(DataciteDoi doi) {
+	public String translate(Doi doi) {
 		return translateUtil(doi);
 	}
 
-	static String translateUtil(DataciteDoi doi) {
+	static String translateUtil(Doi doi) {
 		Document dom = createXmlDom(doi);
 		return xmlToString(dom);
 	}
@@ -40,7 +41,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		return xml.toString();
 	}
 
-	static Document createXmlDom(DataciteDoi doi) {
+	static Document createXmlDom(Doi doi) {
 		Document dom = new DocumentImpl();
 		Element resource = dom.createElement(RESOURCE);
 		resource.setAttribute(NAMESPACE_PREFIX, NAMESPACE_PREFIX_VALUE);
@@ -48,7 +49,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		resource.setAttribute(SCHEMA_LOCATION, SCHEMA_LOCATION_VALUE);
 		dom.appendChild(resource);
 
-		resource.appendChild(createIdentifierElement(dom, doi.getDoiSymbol()));
+		resource.appendChild(createIdentifierElement(dom, generateDoiUri(doi)));
 		resource.appendChild(createCreatorsElement(dom, doi.getCreators()));
 		resource.appendChild(createTitlesElement(dom, doi.getTitles()));
 		resource.appendChild(createPublisherElement(dom));
@@ -120,5 +121,16 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		Element resourceTypeElement = dom.createElement(RESOURCE_TYPE);
 		resourceTypeElement.setAttribute(RESOURCE_TYPE_GENERAL, resourceType.getResourceTypeGeneral().name());
 		return resourceTypeElement;
+	}
+
+	static String generateDoiUri(Doi doi) {
+		String uri = "";
+		uri += DOI_URI_PREFIX;
+		uri += getPrefix(doi.getObjectType());
+		uri += doi.getObjectId();
+		if (doi.getObjectVersion() != null) {
+			uri += "." + doi.getObjectVersion();
+		}
+		return uri;
 	}
 }

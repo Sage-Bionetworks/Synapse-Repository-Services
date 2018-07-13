@@ -3,7 +3,8 @@ package org.sagebionetworks.doi.datacite;
 import org.apache.xerces.dom.DocumentImpl;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.doi.*;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.doi.v2.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -17,7 +18,7 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl.*;
 
 public class DataciteMetadataTranslatorTest {
 
-	private DataciteDoi doi;
+	private Doi doi;
 	private Document dom;
 	private List<DoiCreator> creators;
 	private DoiCreator c1;
@@ -29,7 +30,8 @@ public class DataciteMetadataTranslatorTest {
 	private DoiTitle t2;
 
 	private long publicationYear = 2000L;
-	private String id = "10.0000/SYN0000000";
+	private ObjectType objectType = ObjectType.ENTITY;
+	private String objectId = "0000000";
 
 	private DoiResourceType resourceType;
 	private DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
@@ -41,8 +43,10 @@ public class DataciteMetadataTranslatorTest {
 		dom = new DocumentImpl();
 
 		// Prepare all these objects before each test
-		doi = new DoiV2();
-		doi.setDoiSymbol(id);
+		doi = new Doi();
+		doi.setObjectId("0000000");
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectVersion(null);
 		creators = new ArrayList<>();
 		c1 = new DoiCreator();
 		c1.setCreatorName("Last, First");
@@ -80,6 +84,7 @@ public class DataciteMetadataTranslatorTest {
 
 	@Test
 	public void createIdentifierElementTest() {
+		String id = "10.7303/syn1234";
 		Element actual = createIdentifierElement(dom, id);
 		assertEquals(IDENTIFIER, actual.getTagName());
 		assertEquals(id, actual.getTextContent());
@@ -190,12 +195,26 @@ public class DataciteMetadataTranslatorTest {
 		assertEquals(1, actualResource.getElementsByTagName(PUBLICATION_YEAR).getLength());
 	}
 
-
 	@Test
 	public void xmlToStringTest() {
 		Document dom = new DocumentImpl();
 		String actual = xmlToString(dom);
 		assertNotNull(actual);
+	}
+
+	@Test
+	public void generateDoiUriTest() {
+		// No version number
+		doi.setObjectId(objectId);
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectVersion(null);
+		assertEquals(DOI_URI_PREFIX + "syn" + objectId, generateDoiUri(doi));
+
+		// With version number
+		doi.setObjectId(objectId);
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectVersion(4L);
+		assertEquals(DOI_URI_PREFIX + "syn" + objectId + "." + Long.toString(4L), generateDoiUri(doi));
 	}
 
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.doi.datacite;
 
-import org.sagebionetworks.repo.model.doi.NameIdentifierScheme;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 
 /**
  * Constants for EZID REST APIs.
@@ -12,6 +13,8 @@ class DataciteMetadataConstants {
 	 * DOI Publisher is always Synapse.
 	 */
 	static final String PUBLISHER_VALUE = "Synapse";
+
+	static final String DOI_URI_PREFIX = "10.7303/";
 
 	//XML, Datacite required attributes
 	static final String NAMESPACE = "xmlns";
@@ -58,4 +61,16 @@ class DataciteMetadataConstants {
 		return uri;
 	}
 
+	static String getPrefix(ObjectType type) {
+		String prefix = null;
+		switch (type) {
+			case ENTITY:
+				prefix = "syn";
+				break;
+			default:
+				throw new IllegalArgumentException("Could not find prefix for object type: " + type.name());
+				// Add cases for new object types if/when they we decide to support them.
+		}
+		return prefix;
+	}
 }
