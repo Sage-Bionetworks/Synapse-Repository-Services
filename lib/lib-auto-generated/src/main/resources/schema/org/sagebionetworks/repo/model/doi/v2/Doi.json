@@ -3,10 +3,10 @@
 	"type":"object",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.doi.DataciteDoi"
+			"$ref": "org.sagebionetworks.repo.model.doi.v2.DataciteMetadata"
 		},
 		{
-			"$ref": "org.sagebionetworks.repo.model.doi.DoiAssociation"
+			"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiAssociation"
 		}
 	]
 }

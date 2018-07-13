@@ -9,7 +9,7 @@
       "description": "Optional. Uniquely identifies an individual or legal entity, according to various schemas.",
       "type": "array",
       "items": {
-        "$ref": "org.sagebionetworks.repo.model.doi.DoiNameIdentifier"
+        "$ref": "org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier"
       }
     }
   }
