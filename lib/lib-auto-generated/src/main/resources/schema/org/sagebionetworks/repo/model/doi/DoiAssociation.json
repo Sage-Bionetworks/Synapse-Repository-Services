@@ -26,7 +26,7 @@
 			"description": "Optional. The version of the digital object. When null, the DOI is associated with the current version of the object.",
 			"type": "integer"
 		},
-		"mintedByUserId": {
+		"mintedBy": {
 			"description": "The ID of the user that creates this DOI.",
 			"type": "string"
 		},
