@@ -3,7 +3,7 @@
   "properties": {
     "title":{
       "type":"string",
-      "description":"Required. A name or title by which a resource is known",
+      "description":"Required. A name or title by which a resource is known"
     }
   }
 }
