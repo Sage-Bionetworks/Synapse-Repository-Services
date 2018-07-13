@@ -3,13 +3,12 @@
   "properties": {
     "identifier":{
       "type": "string",
-      "description": "The identifier belonging to the creator.",
-      "required": true
+      "description": "Required. The identifier belonging to the creator."
     },
     "nameIdentifierScheme": {
-      "name": "NameIdentifierSchemes",
+      "name": "NameIdentifierScheme",
       "type":"string",
-      "description":"Describes the scheme of the nameIdentifier. Required if nameIdentifier is used.",
+      "description":"Required. Describes the scheme of the nameIdentifier. Required if nameIdentifier is used.",
       "enum": [
         {
           "name": "ORCID",
@@ -19,8 +18,7 @@
           "name": "ISNI",
           "description": "The associated identifier is an ISNI of the form XXXX-XXXX-XXXX-XXXX."
         }
-      ],
-      "required": true
+      ]
     }
   }
 }

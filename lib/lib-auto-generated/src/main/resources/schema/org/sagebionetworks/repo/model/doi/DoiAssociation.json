@@ -1,0 +1,48 @@
+{
+	"description": "JSON schema for all fields associated with a DOI.",
+	"type":"interface",
+	"properties": {
+		"id": {
+			"description": "The unique ID of this DOI stored in Synapse.",
+			"type": "string"
+		},
+		"etag": {
+			"type": "string",
+			"description": "For Optimistic Concurrency Control (OCC)."
+		},
+		"url": {
+			"type": "string",
+			"description": "The URL that the DOI points to.  Contents of this field will be overwritten because it is determined by Synapse."
+		},
+		"objectId": {
+			"description": "The ID of the digital object in Synapse for which this DOI is created.",
+			"type": "string"
+		},
+		"objectType": {
+			"description": "The type of the digital object. Contents of this field will be overwritten because it is determined by Synapse.",
+			"$ref": "org.sagebionetworks.repo.model.ObjectType"
+		},
+		"objectVersion": {
+			"description": "Optional. The version of the digital object. When null, the DOI is associated with the current version of the object.",
+			"type": "integer"
+		},
+		"mintedByUserId": {
+			"description": "The ID of the user that creates this DOI.",
+			"type": "string"
+		},
+		"updatedBy": {
+			"description": "The ID of the user that last updated this DOI.",
+			"type": "string"
+		},
+		"mintedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date time this DOI is first created."
+		},
+		"updatedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date time this DOI is last updated."
+		}
+	}
+}

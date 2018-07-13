@@ -1,0 +1,36 @@
+{
+	"description": "JSON schema for a DOI and its metadata.",
+	"type": "interface",
+	"properties": {
+		"doiSymbol": {
+			"description": "The unique ID of this DOI to which the resource can be resolved. Contents of this field will be overwritten because it is determined by Synapse.",
+			"type": "string"
+		},
+		"creators":{
+			"type":"array",
+			"description":"Required. The main researchers involved in producing the data, or the authors of the publication, in priority order.",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.doi.DoiCreator"
+			}
+		},
+		"url": {
+			"type": "string",
+			"description": "The URL that the DOI points to. Contents of this field will be overwritten because it is determined by Synapse."
+		},
+		"titles": {
+			"description": "Required. A name or title by which a resource is known.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.doi.DoiTitle"
+			}
+		},
+		"publicationYear": {
+			"description": "Required. The year that this resource became publicly accessible. Must be in YYYY format.",
+			"type": "integer"
+		},
+		"resourceType": {
+			"description": "Required. Describes the type of media that the DOI Metadata refers to.",
+			"$ref": "org.sagebionetworks.repo.model.doi.DoiResourceType"
+		}
+	}
+}
