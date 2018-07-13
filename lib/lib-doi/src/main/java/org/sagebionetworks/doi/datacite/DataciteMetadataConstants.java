@@ -4,7 +4,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 
 /**
- * Constants for EZID REST APIs.
+ * Constants for creating DataCite metadata.
  */
 class DataciteMetadataConstants {
 
