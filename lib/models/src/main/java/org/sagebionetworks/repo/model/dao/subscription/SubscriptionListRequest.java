@@ -22,13 +22,6 @@ public class SubscriptionListRequest {
 	Long limit;
 	Long offset;
 	
-	public SubscriptionListRequest(String subscriberId, SubscriptionObjectType objectType, List<String> objectIds) {
-		super();
-		this.subscriberId = subscriberId;
-		this.objectType = objectType;
-		this.objectIds = objectIds;
-	}
-	
 	public String getSubscriberId() {
 		return subscriberId;
 	}
@@ -52,6 +45,39 @@ public class SubscriptionListRequest {
 	}
 	public Long getOffset() {
 		return offset;
+	}
+	
+	public SubscriptionListRequest withSubscriberId(String subscriberId) {
+		this.subscriberId = subscriberId;
+		return this;
+	}
+	public SubscriptionListRequest withObjectType(SubscriptionObjectType objectType) {
+		this.objectType = objectType;
+		return this;
+	}
+	public SubscriptionListRequest withObjectIds(List<String> objectIds) {
+		this.objectIds = objectIds;
+		return this;
+	}
+	public SubscriptionListRequest withProjectIds(Set<Long> projectIds) {
+		this.projectIds = projectIds;
+		return this;
+	}
+	public SubscriptionListRequest withSortByType(SortByType sortByType) {
+		this.sortByType = sortByType;
+		return this;
+	}
+	public SubscriptionListRequest withSortDirection(SortDirection sortDirection) {
+		this.sortDirection = sortDirection;
+		return this;
+	}
+	public SubscriptionListRequest withLimit(Long limit) {
+		this.limit = limit;
+		return this;
+	}
+	public SubscriptionListRequest withOffset(Long offset) {
+		this.offset = offset;
+		return this;
 	}
 	@Override
 	public int hashCode() {

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -25,17 +26,27 @@ import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -511,8 +522,372 @@ public class DBOSubscriptionDAOImplTest {
 		assertEquals(1, subscriptionDao.getSubscriberCount(threadId, SubscriptionObjectType.THREAD));
 	}
 	
+	
 	@Test
-	public void testCreateQueryCore() {
-		
+	public void testGetSortDirection() {
+		// call under test
+		assertEquals("ASC", DBOSubscriptionDAOImpl.getSortDirection(SortDirection.ASC));
+		assertEquals("DESC", DBOSubscriptionDAOImpl.getSortDirection(SortDirection.DESC));
 	}
+	
+	@Test
+	public void testGetSortDirectionAllTypes() {
+		// each type must be supported
+		for(SortDirection direction: SortDirection.values()) {
+			assertNotNull(DBOSubscriptionDAOImpl.getSortDirection(direction));
+		}
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSortDirectionNull() {
+		// call under test
+		DBOSubscriptionDAOImpl.getSortDirection(null);
+	}
+	
+	@Test
+	public void testGetColunNameForSortType() {
+		assertEquals(COL_SUBSCRIPTION_ID, DBOSubscriptionDAOImpl.getColunNameForSortType(SortByType.SUBSCRIPTION_ID));
+		assertEquals(COL_SUBSCRIPTION_SUBSCRIBER_ID, DBOSubscriptionDAOImpl.getColunNameForSortType(SortByType.SUBSCRIBER_ID));
+		assertEquals(COL_SUBSCRIPTION_CREATED_ON, DBOSubscriptionDAOImpl.getColunNameForSortType(SortByType.CREATED_ON));
+		assertEquals(COL_SUBSCRIPTION_OBJECT_ID, DBOSubscriptionDAOImpl.getColunNameForSortType(SortByType.OBJECT_ID));
+		assertEquals(COL_SUBSCRIPTION_OBJECT_TYPE, DBOSubscriptionDAOImpl.getColunNameForSortType(SortByType.OBJECT_TYPE));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetColunNameForSortTypeNull() {
+		DBOSubscriptionDAOImpl.getColunNameForSortType(null);
+	}
+	
+	@Test
+	public void testGetColumnNameForSortTypeAllTypes() {
+		// all types must be supported
+		for(SortByType type: SortByType.values()) {
+			assertNotNull(DBOSubscriptionDAOImpl.getColunNameForSortType(type));
+		}
+	}
+	
+	@Test
+	public void testAddTypeSpecificSqlForumNoProjects() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		Set<Long> projectIds = null;
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DBOSubscriptionDAOImpl.addTypeSpecificSql(builder, objectType, projectIds);
+		// join with forum to filter out deleted forums
+		assertEquals(" JOIN FORUM F ON (S.OBJECT_ID = F.ID)", builder.toString());
+	}
+	
+	@Test
+	public void testAddTypeSpecificSqlForumWithProjects() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		Set<Long> projectIds = new HashSet<>(1);
+		projectIds.add(123L);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DBOSubscriptionDAOImpl.addTypeSpecificSql(builder, objectType, projectIds);
+		assertEquals(" JOIN FORUM F ON (S.OBJECT_ID = F.ID AND F.PROJECT_ID IN (:projectIds))", builder.toString());
+	}
+	
+	@Test
+	public void testAddTypeSpecificSqlThreadNoProjects() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.THREAD;
+		Set<Long> projectIds = null;
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DBOSubscriptionDAOImpl.addTypeSpecificSql(builder, objectType, projectIds);
+		// filter deleted threads
+		assertEquals(" JOIN DISCUSSION_THREAD T ON (S.OBJECT_ID = T.ID AND T.IS_DELETED = FALSE)", builder.toString());
+	}
+	
+	@Test
+	public void testAddTypeSpecificSqlThreadWithProjects() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.THREAD;
+		Set<Long> projectIds = new HashSet<>(1);
+		projectIds.add(123L);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DBOSubscriptionDAOImpl.addTypeSpecificSql(builder, objectType, projectIds);
+		// filter deleted threads and projectIds.
+		assertEquals(" JOIN DISCUSSION_THREAD T ON (S.OBJECT_ID = T.ID AND T.IS_DELETED = FALSE)"
+					+ " JOIN FORUM F ON (T.FORUM_ID = F.ID AND F.PROJECT_ID IN (:projectIds))", builder.toString());
+	}
+	
+	@Test
+	public void testAddTypeSpecificSqlOther() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.DATA_ACCESS_SUBMISSION;
+		Set<Long> projectIds = new HashSet<>(1);
+		projectIds.add(123L);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DBOSubscriptionDAOImpl.addTypeSpecificSql(builder, objectType, projectIds);
+		assertEquals("", builder.toString());
+	}
+	
+	@Test
+	public void testCreateQueryCoreBasic() {
+		StringBuilder builder = new StringBuilder();
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION).withSubscriberId("123");
+		// call under test
+		DBOSubscriptionDAOImpl.createQueryCore(builder, request);
+		assertEquals(" FROM SUBSCRIPTION S WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId", builder.toString());
+	}
+	
+	@Test
+	public void testCreateQueryCoreWithObjectIds() {
+		StringBuilder builder = new StringBuilder();
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION).withSubscriberId("123")
+				.withObjectIds(Lists.newArrayList("123"));
+		// call under test
+		DBOSubscriptionDAOImpl.createQueryCore(builder, request);
+		assertEquals(" FROM SUBSCRIPTION S WHERE S.OBJECT_TYPE = :objectType"
+				+ " AND S.SUBSCRIBER_ID = :subscriberId AND S.OBJECT_ID IN (:objectIds)", builder.toString());
+	}
+	
+	@Test
+	public void testCreateQueryCoreThread() {
+		StringBuilder builder = new StringBuilder();
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.THREAD).withSubscriberId("123");
+		// call under test
+		DBOSubscriptionDAOImpl.createQueryCore(builder, request);
+		assertEquals(" FROM SUBSCRIPTION S"
+				+ " JOIN DISCUSSION_THREAD T ON (S.OBJECT_ID = T.ID AND T.IS_DELETED = FALSE)"
+				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId", builder.toString());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateQueryCoreNullObjectType() {
+		StringBuilder builder = new StringBuilder();
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(null).withSubscriberId("123");
+		// call under test
+		DBOSubscriptionDAOImpl.createQueryCore(builder, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateQueryCoreNullSubscriberId() {
+		StringBuilder builder = new StringBuilder();
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION).withSubscriberId(null);
+		// call under test
+		DBOSubscriptionDAOImpl.createQueryCore(builder, request);
+	}
+	
+	@Test
+	public void testcreateQueryNullSortTypeNullDirectionNullLimitNullOffset() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION)
+				.withSubscriberId("123")
+				.withSortByType(null)
+				.withSortDirection(null)
+				.withLimit(null)
+				.withOffset(null);
+		// call under test
+		String sql = DBOSubscriptionDAOImpl.createQuery(request);
+		assertEquals("SELECT * FROM SUBSCRIPTION S "
+				+ "WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId", sql);
+	}
+	
+	@Test
+	public void testcreateQueryNullDirectionNullLimitNullOffset() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION)
+				.withSubscriberId("123")
+				.withSortByType(SortByType.CREATED_ON)
+				.withSortDirection(null)
+				.withLimit(null)
+				.withOffset(null);
+		// call under test
+		String sql = DBOSubscriptionDAOImpl.createQuery(request);
+		assertEquals("SELECT * FROM SUBSCRIPTION S"
+				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId"
+				+ " ORDER BY :sortByType", sql);
+	}
+	
+	@Test
+	public void testcreateQueryNullLimitNullOffset() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION)
+				.withSubscriberId("123")
+				.withSortByType(SortByType.CREATED_ON)
+				.withSortDirection(SortDirection.DESC)
+				.withLimit(null)
+				.withOffset(null);
+		// call under test
+		String sql = DBOSubscriptionDAOImpl.createQuery(request);
+		assertEquals("SELECT * FROM SUBSCRIPTION S"
+				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId"
+				+ " ORDER BY :sortByType :sortDirection", sql);
+	}
+	
+	@Test
+	public void testcreateQueryNullSortTypeNullDirectionNullOffset() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION)
+				.withSubscriberId("123")
+				.withSortByType(null)
+				.withSortDirection(null)
+				.withLimit(101L)
+				.withOffset(null);
+		// call under test
+		String sql = DBOSubscriptionDAOImpl.createQuery(request);
+		assertEquals("SELECT * FROM SUBSCRIPTION S"
+				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId LIMIT :limit", sql);
+	}
+	
+	@Test
+	public void testcreateQueryNullSortTypeNullDirection() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION)
+				.withSubscriberId("123")
+				.withSortByType(null)
+				.withSortDirection(null)
+				.withLimit(101L)
+				.withOffset(10L);
+		// call under test
+		String sql = DBOSubscriptionDAOImpl.createQuery(request);
+		assertEquals("SELECT * FROM SUBSCRIPTION S"
+				+ " WHERE S.OBJECT_TYPE = :objectType"
+				+ " AND S.SUBSCRIBER_ID = :subscriberId LIMIT :limit OFFSET :offset", sql);
+	}
+	
+	@Test
+	public void testcreateQuery() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION)
+				.withSubscriberId("123")
+				.withSortByType(SortByType.OBJECT_ID)
+				.withSortDirection(SortDirection.ASC)
+				.withLimit(101L)
+				.withOffset(10L);
+		// call under test
+		String sql = DBOSubscriptionDAOImpl.createQuery(request);
+		assertEquals("SELECT * FROM SUBSCRIPTION S"
+				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId"
+				+ " ORDER BY :sortByType :sortDirection LIMIT :limit OFFSET :offset", sql);
+	}
+	
+	@Test
+	public void testCreateCountQuery() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION)
+				.withSubscriberId("123")
+				.withSortByType(SortByType.OBJECT_ID)
+				.withSortDirection(SortDirection.ASC)
+				.withLimit(101L)
+				.withOffset(10L);
+		// call under test
+		String sql = DBOSubscriptionDAOImpl.createCountQuery(request);
+		assertEquals("SELECT COUNT(*) FROM SUBSCRIPTION S"
+				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId", sql);
+	}
+	
+	@Test
+	public void testCreateParametersAll() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.FORUM)
+				.withSubscriberId("123")
+				.withObjectIds(Lists.newArrayList("111"))
+				.withProjectIds(Sets.newHashSet(222L))
+				.withSortByType(SortByType.OBJECT_ID)
+				.withSortDirection(SortDirection.ASC)
+				.withLimit(101L)
+				.withOffset(10L);
+		// call under test
+		MapSqlParameterSource params = DBOSubscriptionDAOImpl.createParameters(request);
+		assertNotNull(params);
+		assertEquals(request.getObjectType().name(), params.getValue(OBJECT_TYPE));
+		assertEquals(request.getSubscriberId(), params.getValue(SUBSCRIBER_ID));
+		assertEquals(request.getObjectIds(), params.getValue(OBJECT_IDS));
+		assertEquals(request.getProjectIds(), params.getValue(PROJECT_IDS));
+		assertEquals(COL_SUBSCRIPTION_OBJECT_ID, params.getValue(SORT_BY_TYPE));
+		assertEquals("ASC", params.getValue(SORT_DIRECTION));
+		assertEquals(request.getLimit(), params.getValue(LIMIT));
+		assertEquals(request.getOffset(), params.getValue(OFFSET));
+	}
+	
+	@Test
+	public void testCreateParametersMinimum() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.FORUM)
+				.withSubscriberId("123")
+				.withObjectIds(null)
+				.withProjectIds(null)
+				.withSortByType(null)
+				.withSortDirection(null)
+				.withLimit(null)
+				.withOffset(null);
+		// call under test
+		MapSqlParameterSource params = DBOSubscriptionDAOImpl.createParameters(request);
+		assertNotNull(params);
+		assertEquals(request.getObjectType().name(), params.getValue(OBJECT_TYPE));
+		assertEquals(request.getSubscriberId(), params.getValue(SUBSCRIBER_ID));
+		assertFalse(params.hasValue(OBJECT_IDS));
+		assertFalse(params.hasValue(PROJECT_IDS));
+		assertFalse(params.hasValue(SORT_BY_TYPE));
+		assertFalse(params.hasValue(SORT_DIRECTION));
+		assertFalse(params.hasValue(LIMIT));
+		assertFalse(params.hasValue(OFFSET));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateParametersNullId() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.FORUM)
+				.withSubscriberId(null);
+		// call under test
+		DBOSubscriptionDAOImpl.createParameters(request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateParametersNullType() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(null)
+				.withSubscriberId("123");
+		// call under test
+		DBOSubscriptionDAOImpl.createParameters(request);
+	}
+	
+	@Test
+	public void testYieldEmptyResultNullProjectsNullObjects() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectIds(null)
+				.withProjectIds(null);
+		assertFalse(DBOSubscriptionDAOImpl.willYieldEmptyResult(request));
+	}
+	
+	@Test
+	public void testYieldEmptyResultEmptyProjectsNullObjects() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectIds(null)
+				.withProjectIds(new HashSet<>());
+		assertTrue(DBOSubscriptionDAOImpl.willYieldEmptyResult(request));
+	}
+	
+	@Test
+	public void testYieldEmptyResultNonEmptyProjectsNullObjects() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectIds(null)
+				.withProjectIds(Sets.newHashSet(123L));
+		assertFalse(DBOSubscriptionDAOImpl.willYieldEmptyResult(request));
+	}
+	
+	@Test
+	public void testYieldEmptyResultNullProjectsEmptyObjects() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectIds(new LinkedList<>())
+				.withProjectIds(null);
+		assertTrue(DBOSubscriptionDAOImpl.willYieldEmptyResult(request));
+	}
+	
+	@Test
+	public void testYieldEmptyResultNullProjectsNonEmptyObjects() {
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectIds(Lists.newArrayList("123"))
+				.withProjectIds(null);
+		assertFalse(DBOSubscriptionDAOImpl.willYieldEmptyResult(request));
+	}
+
 }
