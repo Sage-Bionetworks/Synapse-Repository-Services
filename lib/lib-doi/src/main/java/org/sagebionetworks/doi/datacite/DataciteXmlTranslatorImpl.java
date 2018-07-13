@@ -16,13 +16,34 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DataciteTranslator {
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
+
+/*
+ * Translates DataCite metadata from XML to our DoiV2 object.
+ */
+public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
+
+	public DoiV2 translate(String xml) {
+		Document dom = parseXml(xml);
+		return translateUtil(dom);
+	}
 
 	/*
 	 * Translates a Datacite XML String into a DoiMetadata object
 	 * Works for XML adherent to Datacite Schemas 2.2 and 4.1
 	 */
-	public DoiMetadata translate(String xml) {
+	static DoiV2 translateUtil(Document dom) {
+		DoiV2 doi = new DoiV2();
+
+		doi.setCreators(getCreators(dom));
+		doi.setTitles(getTitles(dom));
+		doi.setPublicationYear(Long.valueOf(getPublicationYear(dom)));
+		doi.setResourceType(getResourceType(dom));
+
+		return doi;
+	}
+
+	static Document parseXml(String xml) {
 		Document dom = null;
 		try {
 			DocumentBuilder documentBuilder = DocumentBuilderFactoryImpl.newInstance().newDocumentBuilder();
@@ -33,29 +54,22 @@ public class DataciteTranslator {
 			throw new RuntimeException("Error occurred while parsing metadata", e);
 		}
 
-		DoiMetadata doiMetadata = new DoiMetadata();
-
-		doiMetadata.setCreators(getCreators(dom));
-		doiMetadata.setTitles(getTitles(dom));
-		doiMetadata.setPublicationYear(getPublicationYear(dom));
-		doiMetadata.setResourceType(getResourceType(dom));
-
-		return doiMetadata;
+		return dom;
 	}
 
-	DoiNameIdentifier getNameIdentifier(Element nameIdElement) {
+	static DoiNameIdentifier getNameIdentifier(Element nameIdElement) {
 		DoiNameIdentifier id = new DoiNameIdentifier();
 		id.setIdentifier(nameIdElement.getTextContent());
-		id.setNameIdentifierScheme(NameIdentifierSchemes.valueOf(nameIdElement.getAttributes()
-				.getNamedItem("nameIdentifierScheme").getNodeValue()));
+		id.setNameIdentifierScheme(NameIdentifierScheme.valueOf(nameIdElement.getAttributes()
+				.getNamedItem(NAME_IDENTIFIER_SCHEME).getNodeValue()));
 		return id;
 	}
 
-	DoiCreator getCreator(Element creatorElement) {
+	static DoiCreator getCreator(Element creatorElement) {
 		DoiCreator creator = new DoiCreator();
-		creator.setCreatorName(creatorElement.getElementsByTagName("creatorName").item(0).getTextContent());
+		creator.setCreatorName(creatorElement.getElementsByTagName(CREATOR_NAME).item(0).getTextContent());
 
-		NodeList idNodes = creatorElement.getElementsByTagName("nameIdentifier");
+		NodeList idNodes = creatorElement.getElementsByTagName(NAME_IDENTIFIER);
 		if (idNodes.getLength() > 0) {
 			List<DoiNameIdentifier> ids = new ArrayList<>();
 			for (int i = 0; i < idNodes.getLength(); i++) {
@@ -68,42 +82,42 @@ public class DataciteTranslator {
 		return creator;
 	}
 
-	List<DoiCreator> getCreators(Document dom) {
+	static List<DoiCreator> getCreators(Document dom) {
 		List<DoiCreator> creators = new ArrayList<>();
-		Element creatorsElement = (Element)dom.getElementsByTagName("creators").item(0);
-		NodeList creatorList = creatorsElement.getElementsByTagName("creator");
+		Element creatorsElement = (Element)dom.getElementsByTagName(CREATORS).item(0);
+		NodeList creatorList = creatorsElement.getElementsByTagName(CREATOR);
 		for (int i = 0; i < creatorList.getLength(); i++) {
 			creators.add(getCreator((Element)creatorList.item(i)));
 		}
 		return creators;
 	}
 
-	DoiTitle getTitle(Node titleXml) {
+	static DoiTitle getTitle(Node titleXml) {
 		DoiTitle title = new DoiTitle();
 		title.setTitle(titleXml.getTextContent());
 		return title;
 	}
 
-	List<DoiTitle> getTitles(Document dom) {
+	static List<DoiTitle> getTitles(Document dom) {
 		List<DoiTitle> titles = new ArrayList<>();
-		NodeList titleList = ((Element)dom.getElementsByTagName("titles").item(0)).getElementsByTagName("title");
+		NodeList titleList = ((Element)dom.getElementsByTagName(TITLES).item(0)).getElementsByTagName("title");
 		for (int i = 0; i < titleList.getLength(); i++) {
 			titles.add(getTitle(titleList.item(i)));
 		}
 		return titles;
 	}
 
-	long getPublicationYear(Document dom) {
-		return Long.valueOf(dom.getElementsByTagName("publicationYear").item(0).getTextContent());
+	static String getPublicationYear(Document dom) {
+		return dom.getElementsByTagName(PUBLICATION_YEAR).item(0).getTextContent();
 	}
 
-	DoiResourceType getResourceType(Document dom) {
+	static DoiResourceType getResourceType(Document dom) {
 		DoiResourceType resourceType = null;
-		Node xmlResourceType = dom.getElementsByTagName("resourceType").item(0);
+		Node xmlResourceType = dom.getElementsByTagName(RESOURCE_TYPE).item(0);
 		if (xmlResourceType != null) {
 			resourceType = new DoiResourceType();
 			resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.valueOf(xmlResourceType
-					.getAttributes().getNamedItem("resourceTypeGeneral").getNodeValue()));
+					.getAttributes().getNamedItem(RESOURCE_TYPE_GENERAL).getNodeValue()));
 		}
 		return resourceType;
 	}
