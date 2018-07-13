@@ -6,6 +6,10 @@
 			"description": "The unique ID of this DOI stored in Synapse.",
 			"type": "string"
 		},
+		"doiSymbol": {
+			"description": "The unique ID of this DOI to which the resource can be resolved. Contents of this field will be overwritten because it is determined by Synapse.",
+			"type": "string"
+		},
 		"etag": {
 			"type": "string",
 			"description": "For Optimistic Concurrency Control (OCC)."
