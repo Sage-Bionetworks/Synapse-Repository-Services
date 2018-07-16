@@ -201,20 +201,4 @@ public class DataciteMetadataTranslatorTest {
 		String actual = xmlToString(dom);
 		assertNotNull(actual);
 	}
-
-	@Test
-	public void generateDoiUriTest() {
-		// No version number
-		doi.setObjectId(objectId);
-		doi.setObjectType(ObjectType.ENTITY);
-		doi.setObjectVersion(null);
-		assertEquals(DOI_URI_PREFIX + "syn" + objectId, generateDoiUri(doi));
-
-		// With version number
-		doi.setObjectId(objectId);
-		doi.setObjectType(ObjectType.ENTITY);
-		doi.setObjectVersion(4L);
-		assertEquals(DOI_URI_PREFIX + "syn" + objectId + "." + Long.toString(4L), generateDoiUri(doi));
-	}
-
 }

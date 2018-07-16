@@ -1,8 +1,5 @@
 package org.sagebionetworks.doi.datacite;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
-
 /**
  * Constants for creating DataCite metadata.
  */
@@ -15,6 +12,8 @@ class DataciteMetadataConstants {
 	static final String PUBLISHER_VALUE = "Synapse";
 
 	static final String DOI_URI_PREFIX = "10.7303/";
+
+	static final String ENTITY_PREFIX = "syn";
 
 	//XML, Datacite required attributes
 	static final String NAMESPACE = "xmlns";
@@ -45,32 +44,4 @@ class DataciteMetadataConstants {
 	// URIs for name identifier schemes
 	static final String ORCID_URI = "http://orcid.org/";
 	static final String ISNI_URI = "http://www.isni.org/";
-
-	static String getSchemeUri(NameIdentifierScheme scheme) {
-		String uri = null;
-		switch (scheme) {
-			case ORCID:
-				uri = ORCID_URI;
-				break;
-			case ISNI:
-				uri = ISNI_URI;
-				break;
-			default:
-				throw new IllegalArgumentException("Could not resolve URI for unknown name identifier scheme: " + scheme.name());
-		}
-		return uri;
-	}
-
-	static String getPrefix(ObjectType type) {
-		String prefix = null;
-		switch (type) {
-			case ENTITY:
-				prefix = "syn";
-				break;
-			default:
-				throw new IllegalArgumentException("Could not find prefix for object type: " + type.name());
-				// Add cases for new object types if/when they we decide to support them.
-		}
-		return prefix;
-	}
 }

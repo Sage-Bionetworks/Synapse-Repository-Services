@@ -1,9 +1,9 @@
 {
 	"description": "JSON schema for all fields associated with a DOI.",
-	"type":"interface",
+	"type":"object",
 	"properties": {
-		"id": {
-			"description": "The unique ID of this DOI stored in Synapse.",
+		"associationId": {
+			"description": "The unique ID of this DOI stored in Synapse. Provided by Synapse.",
 			"type": "string"
 		},
 		"etag": {
@@ -11,19 +11,19 @@
 			"description": "For Optimistic Concurrency Control (OCC)."
 		},
 		"doiUri": {
-			"description": "The unique URI of this DOI to which the resource can be resolved. Contents of this field will be overwritten because it is determined by Synapse.",
+			"description": "The unique URI of this DOI to which the resource can be resolved. Provided by Synapse.",
 			"type": "string"
 		},
 		"doiUrl": {
 			"type": "string",
-			"description": "The DOI URL that will point to the Synapse object.  Contents of this field will be overwritten because it is determined by Synapse."
+			"description": "The DOI URL that will point to the Synapse object.  Provided by Synapse."
 		},
 		"objectId": {
-			"description": "The ID of the digital object in Synapse for which this DOI is created.",
+			"description": "Required. The ID of the digital object in Synapse for which this DOI is created.",
 			"type": "string"
 		},
 		"objectType": {
-			"description": "The type of the digital object.",
+			"description": "Required. The type of the digital object.",
 			"$ref": "org.sagebionetworks.repo.model.ObjectType"
 		},
 		"objectVersion": {
