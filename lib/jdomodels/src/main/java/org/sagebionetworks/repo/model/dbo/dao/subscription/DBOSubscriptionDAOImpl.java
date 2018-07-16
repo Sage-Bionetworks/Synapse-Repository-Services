@@ -191,101 +191,10 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		}
 	}
 
-	@Override
-	public SubscriptionPagedResults getAllSubscriptions(String subscriberId, Long limit,
-			Long offset, SubscriptionObjectType objectType) {
-		ValidateArgument.required(subscriberId, SUBSCRIBER_ID);
-		ValidateArgument.required(limit, LIMIT);
-		ValidateArgument.required(offset, OFFSET);
-		ValidateArgument.required(objectType, OBJECT_TYPE);
-		
-		SubscriptionListRequest request = new SubscriptionListRequest().withSubscriberId(subscriberId)
-				.withObjectType(objectType).withLimit(limit).withOffset(offset);
-		List<Subscription> subscriptions = listSubscriptions(request);
-		long count= listSubscriptionsCount(request);
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		results.setResults(subscriptions);
-		results.setTotalNumberOfResults(count);
-		return results;
-	}
 
-	@Override
-	public SubscriptionPagedResults getAllThreadSubscriptions(String subscriberId, Long limit,
-			Long offset, Set<Long> projectIds) {
-		ValidateArgument.required(subscriberId, SUBSCRIBER_ID);
-		ValidateArgument.required(limit, LIMIT);
-		ValidateArgument.required(offset, OFFSET);
-		ValidateArgument.required(projectIds, PROJECT_IDS);
-		SubscriptionListRequest request = new SubscriptionListRequest().withSubscriberId(subscriberId)
-				.withObjectType(SubscriptionObjectType.THREAD).withProjectIds(projectIds).withLimit(limit).withOffset(offset);
-		List<Subscription> subscriptions = listSubscriptions(request);
-		long count= listSubscriptionsCount(request);
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		results.setResults(subscriptions);
-		results.setTotalNumberOfResults(count);
-		return results;
-	}
-
-	@Override
-	public SubscriptionPagedResults getAllForumSubscriptions(String subscriberId, Long limit,
-			Long offset, Set<Long> projectIds) {
-		ValidateArgument.required(subscriberId, SUBSCRIBER_ID);
-		ValidateArgument.required(limit, LIMIT);
-		ValidateArgument.required(offset, OFFSET);
-		ValidateArgument.required(projectIds, PROJECT_IDS);
-		SubscriptionListRequest request = new SubscriptionListRequest().withSubscriberId(subscriberId)
-				.withObjectType(SubscriptionObjectType.FORUM).withProjectIds(projectIds).withLimit(limit).withOffset(offset);
-		List<Subscription> subscriptions = listSubscriptions(request);
-		long count= listSubscriptionsCount(request);
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		results.setResults(subscriptions);
-		results.setTotalNumberOfResults(count);
-		return results;
-	}
 
 	public String getCountQuery(String query) {
 		return query.replace("*", "COUNT(*)");
-	}
-
-	@Override
-	public SubscriptionPagedResults listSubscriptions(String subscriberId,
-			SubscriptionObjectType objectType, List<String> ids) {
-		ValidateArgument.required(subscriberId, SUBSCRIBER_ID);
-		ValidateArgument.required(objectType, OBJECT_TYPE);
-		ValidateArgument.required(ids, "ids");
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		SubscriptionListRequest request = new SubscriptionListRequest().withSubscriberId(subscriberId)
-				.withObjectType(objectType).withObjectIds(ids);
-		List<Subscription> subscriptions = listSubscriptions(request);
-		results.setResults(subscriptions);
-		results.setTotalNumberOfResults((long)subscriptions.size());
-		return results;
-	}
-
-	@Override
-	public SubscriptionPagedResults listSubscriptionForThread(String subscriberId, List<String> ids) {
-		ValidateArgument.required(subscriberId, SUBSCRIBER_ID);
-		ValidateArgument.required(ids, "ids");
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		SubscriptionListRequest request = new SubscriptionListRequest().withSubscriberId(subscriberId)
-				.withObjectType(SubscriptionObjectType.THREAD).withObjectIds(ids);
-		List<Subscription> subscriptions = listSubscriptions(request);
-		results.setResults(subscriptions);
-		results.setTotalNumberOfResults((long)subscriptions.size());
-		return results;
-	}
-
-	@Override
-	public SubscriptionPagedResults listSubscriptionForForum(String subscriberId, List<String> ids) {
-		ValidateArgument.required(subscriberId, SUBSCRIBER_ID);
-		ValidateArgument.required(ids, "ids");
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		SubscriptionListRequest request = new SubscriptionListRequest().withSubscriberId(subscriberId)
-				.withObjectType(SubscriptionObjectType.FORUM).withObjectIds(ids);
-		List<Subscription> subscriptions = listSubscriptions(request);
-		results.setResults(subscriptions);
-		results.setTotalNumberOfResults((long)subscriptions.size());
-		return results;
 	}
 
 	@WriteTransactionReadCommitted
@@ -393,7 +302,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	}
 	
 	@Override
-	public long listSubscriptionsCount(SubscriptionListRequest request) {
+	public Long listSubscriptionsCount(SubscriptionListRequest request) {
 		if(willYieldEmptyResult(request)) {
 			return 0L;
 		}
@@ -480,9 +389,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		}
 		if(request.getLimit() != null) {
 			builder.append(" LIMIT :").append(LIMIT);
-		}
-		if(request.getOffset() != null) {
-			builder.append(" OFFSET :").append(OFFSET);
+			if(request.getOffset() != null) {
+				builder.append(" OFFSET :").append(OFFSET);
+			}
 		}
 		return builder.toString();
 	}
