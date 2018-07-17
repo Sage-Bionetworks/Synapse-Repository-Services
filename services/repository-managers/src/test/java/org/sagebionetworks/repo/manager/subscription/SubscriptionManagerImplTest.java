@@ -35,6 +35,8 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Sets;
+
 public class SubscriptionManagerImplTest {
 
 	@Mock
@@ -150,6 +152,36 @@ public class SubscriptionManagerImplTest {
 		assertEquals(sub, manager.get(userInfo, subscriptionId.toString()));
 	}
 
+	@Test
+	public void testGetAllProjectsUserHasSubscriptionsOther() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.DATA_ACCESS_SUBMISSION;
+		// call under test
+		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		assertEquals(null, projects);
+		verifyNoMoreInteractions(mockDao);
+	}
+	
+	@Test
+	public void testGetAllProjectsUserHasSubscriptionsForum() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		Set<Long> results = Sets.newHashSet(123L);
+		when(mockDao.getAllProjectsUserHasForumSubs(any(String.class))).thenReturn(results);
+		// call under test
+		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		assertEquals(results, projects);
+		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+	}
+	
+	@Test
+	public void testGetAllProjectsUserHasSubscriptionsThread() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.THREAD;
+		Set<Long> results = Sets.newHashSet(123L);
+		when(mockDao.getAllProjectsUserHasThreadSubs(any(String.class))).thenReturn(results);
+		// call under test
+		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		assertEquals(results, projects);
+		verify(mockDao).getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
+	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidUserInfo() {

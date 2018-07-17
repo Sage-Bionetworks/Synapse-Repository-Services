@@ -90,7 +90,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(objectType, "objectType");
 		
-		// Lookup the projects for this user and type
+		// Lookup the projects for this user and type if relevant.
 		Set<Long> projectIds = getAllProjectsUserHasSubscriptions(userInfo, objectType);
 		if(projectIds != null) {
 			// filter projects the user cannot see.
@@ -120,9 +120,9 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	 */
 	Set<Long> getAllProjectsUserHasSubscriptions(UserInfo userInfo, SubscriptionObjectType objectType) {
 		switch (objectType) {
-		case THREAD:
-			return subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
 		case FORUM:
+			return subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+		case THREAD:
 			return subscriptionDao.getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
 		default:
 			// other types do not have projects
