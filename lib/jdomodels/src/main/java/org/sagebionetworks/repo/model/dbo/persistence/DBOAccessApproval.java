@@ -351,11 +351,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 					dbo.setState(ApprovalState.APPROVED.name());
 				}
 				return dbo;
-			}
-
-			@Override
-			public boolean ignoreOnRestore(DBOAccessApproval backup) {
-				return false;
 			}};
 	}
 

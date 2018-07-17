@@ -101,13 +101,6 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 				backup.setSecretKey(dbo.getSecretKey());
 				return backup;
 			}
-			
-			@Override
-			public boolean ignoreOnRestore(DBOCredentialBackup backup) {
-				// Do not migrate the admin users credentials. PLFM-5023
-				return AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()
-						.equals(backup.getPrincipalId());
-			}
 		};
 	}
 

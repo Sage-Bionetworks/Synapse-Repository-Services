@@ -20,12 +20,4 @@ public class BasicMigratableTableTranslation <D extends DatabaseObject<?>> imple
 		return dbo;
 	}
 
-	/**
-	 * By default no object should be ignored.
-	 */
-	@Override
-	public boolean ignoreOnRestore(D backup) {
-		return false;
-	}
-
 }

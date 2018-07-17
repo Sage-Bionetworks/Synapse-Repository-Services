@@ -302,11 +302,8 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		// Translate the results
 		List<MigratableDatabaseObject<?, ?>> translated = new LinkedList<>();
 		for (B backupObject : backupObjects) {
-			// Skip ignored.
-			if (!translator.ignoreOnRestore(backupObject)) {
-				D databaseObject = translator.createDatabaseObjectFromBackup(backupObject);
-				translated.add((MigratableDatabaseObject<?, ?>) databaseObject);
-			}
+			D databaseObject = translator.createDatabaseObjectFromBackup(backupObject);
+			translated.add((MigratableDatabaseObject<?, ?>) databaseObject);
 		}
 		return translated;
 	}

@@ -300,11 +300,7 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 					DBOUserProfile dbo) {
 				return dbo;
 			}
-
-			@Override
-			public boolean ignoreOnRestore(DBOUserProfile backup) {
-				return false;
-			}};
+		};
 	}
 
 

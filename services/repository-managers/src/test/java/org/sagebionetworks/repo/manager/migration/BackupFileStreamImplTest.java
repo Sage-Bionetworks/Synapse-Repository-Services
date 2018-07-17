@@ -31,12 +31,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredentialBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
@@ -510,11 +507,6 @@ public class BackupFileStreamImplTest {
 		}
 	}
 	
-	/**
-	 * Test that admin credentials are filtered out.
-	 * 
-	 * @throws Exception
-	 */
 	@Test
 	public void testReadFileFromStream() throws Exception {
 		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
@@ -529,8 +521,8 @@ public class BackupFileStreamImplTest {
 		// Call under test
 		List<MigratableDatabaseObject<?, ?>> results = backupFileStream.readFileFromStream(input, backupAliasType, fileName);
 		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertEquals(credentialTwo, results.get(0));
+		assertEquals(2, results.size());
+		assertEquals(credentialTwo, results.get(1));
 	}
 	
 }

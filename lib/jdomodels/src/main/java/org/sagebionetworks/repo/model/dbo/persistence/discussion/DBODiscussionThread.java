@@ -295,11 +295,6 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				}
 				return dbo;
 			}
-
-			@Override
-			public boolean ignoreOnRestore(DBODiscussionThread backup) {
-				return false;
-			}
 		};
 	}
 
