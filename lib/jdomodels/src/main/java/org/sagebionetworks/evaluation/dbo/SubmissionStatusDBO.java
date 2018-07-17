@@ -240,11 +240,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 					SubmissionStatusDBO dbo) {
 				return dbo;
 			}
-
-			@Override
-			public boolean ignoreOnRestore(SubmissionStatusDBO backup) {
-				return false;
-			}};
+		};
 	}
 	@Override
 	public Class<? extends SubmissionStatusDBO> getBackupClass() {

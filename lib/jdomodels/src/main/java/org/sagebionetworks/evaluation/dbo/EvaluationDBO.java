@@ -338,11 +338,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			public EvaluationBackup createBackupFromDatabaseObject(EvaluationDBO dbo) {
 				return EvaluationTranslationUtil.createBackupFromDatabaseObject(dbo);
 			}
-
-			@Override
-			public boolean ignoreOnRestore(EvaluationBackup backup) {
-				return false;
-			}};
+		};
 	}
 
 }

@@ -209,11 +209,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			public DBOTableRowChange createBackupFromDatabaseObject(DBOTableRowChange dbo) {
 				return dbo;
 			}
-
-			@Override
-			public boolean ignoreOnRestore(DBOTableRowChange backup) {
-				return false;
-			}
 		};
 	}
 
