@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.subscription.Etag;
@@ -69,16 +70,16 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getObjectType(), "SubscriptionRequest.objectType");
 		ValidateArgument.required(request.getIdList(), "SubscriptionRequest.idList");
-		switch(request.getObjectType()) {
-		case THREAD:
-			return subscriptionDao.listSubscriptionForThread(userInfo.getId().toString(), request.getIdList());
-		case FORUM:
-			return subscriptionDao.listSubscriptionForForum(userInfo.getId().toString(), request.getIdList());
-		case DATA_ACCESS_SUBMISSION_STATUS:
-			return subscriptionDao.listSubscriptions(userInfo.getId().toString(), request.getObjectType(), request.getIdList());
-		default:
-			throw new IllegalArgumentException("Do not support type "+request.getObjectType());
-		}
+		SubscriptionPagedResults result = new SubscriptionPagedResults();
+		List<Subscription> page = subscriptionDao.listSubscriptions(new SubscriptionListRequest()
+				.withSubscriberId(userInfo.getId().toString())
+				.withObjectIds(request.getIdList())
+				.withObjectType(request.getObjectType())
+				.withSortByType(request.getSortByType())
+				.withSortDirection(request.getSortDirection()));
+		result.setResults(page);
+		result.setTotalNumberOfResults((long) page.size());
+		return result;
 	}
 
 	@Override
@@ -88,38 +89,45 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(objectType, "objectType");
-		switch (objectType) {
-			case THREAD:
-				return getAllThreadSubscriptions(userInfo, limit, offset);
-			case FORUM:
-				return getAllForumSubscriptions(userInfo, limit, offset);
-			default:
-				return subscriptionDao.getAllSubscriptions(userInfo.getId().toString(), limit, offset, objectType);
+		
+		// Lookup the projects for this user and type
+		Set<Long> projectIds = getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		if(projectIds != null) {
+			// filter projects the user cannot see.
+			projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		}
+		SubscriptionListRequest request = new SubscriptionListRequest()
+		.withSubscriberId(userInfo.getId().toString())
+		.withObjectType(objectType)
+		.withSortByType(sortByType)
+		.withSortDirection(sortDirection)
+		.withLimit(limit)
+		.withOffset(offset)
+		.withProjectIds(projectIds);
+		List<Subscription> page = subscriptionDao.listSubscriptions(request);
+		Long count = subscriptionDao.listSubscriptionsCount(request);
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		results.setResults(page);
+		results.setTotalNumberOfResults(count);
+		return results;
 	}
-
+	
 	/**
+	 * Get the projects the user has subscriptions for based on the passed type.
 	 * @param userInfo
-	 * @param limit
-	 * @param offset
+	 * @param objectType
 	 * @return
 	 */
-	public SubscriptionPagedResults getAllForumSubscriptions(UserInfo userInfo, Long limit, Long offset) {
-		Set<Long> projectIds = subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
-		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		return subscriptionDao.getAllForumSubscriptions(userInfo.getId().toString(), limit, offset, projectIds);
-	}
-
-	/**
-	 * @param userInfo
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public SubscriptionPagedResults getAllThreadSubscriptions(UserInfo userInfo, Long limit, Long offset) {
-		Set<Long> projectIds = subscriptionDao.getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
-		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		return subscriptionDao.getAllThreadSubscriptions(userInfo.getId().toString(), limit, offset, projectIds);
+	Set<Long> getAllProjectsUserHasSubscriptions(UserInfo userInfo, SubscriptionObjectType objectType) {
+		switch (objectType) {
+		case THREAD:
+			return subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+		case FORUM:
+			return subscriptionDao.getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
+		default:
+			// other types do not have projects
+			return null;
+		}
 	}
 
 	@WriteTransactionReadCommitted

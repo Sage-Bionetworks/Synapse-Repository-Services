@@ -6,6 +6,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 
 /**
  * Request to list subscriptions for different object types.
