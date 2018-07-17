@@ -166,11 +166,7 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 				backup.setSubjectType(dbo.getSubjectType());
 				return backup;
 			}
-
-			@Override
-			public boolean ignoreOnRestore(DBOSubjectAccessRequirementBackup backup) {
-				return false;
-			}};
+		};
 	}
 
 	@Override

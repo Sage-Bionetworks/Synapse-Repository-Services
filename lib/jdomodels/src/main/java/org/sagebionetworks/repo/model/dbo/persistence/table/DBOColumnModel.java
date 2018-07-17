@@ -139,11 +139,6 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 			public DBOColumnModel createBackupFromDatabaseObject(DBOColumnModel dbo) {
 				return dbo;
 			}
-
-			@Override
-			public boolean ignoreOnRestore(DBOColumnModel backup) {
-				return false;
-			}
 		};
 	}
 
