@@ -1,23 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_EMAIL_NOTIFICATION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_FIRST_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_LAST_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -86,8 +73,37 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			+ COL_USER_PROFILE_PICTURE_ID + " FROM " + TABLE_USER_PROFILE
 			+ " WHERE " + COL_USER_PROFILE_ID + " = ?";
 
-	private static final RowMapper<DBOUserProfile> USER_PROFILE_ROW_MAPPER = (new DBOUserProfile())
-			.getTableMapping();
+	private static final RowMapper<DBOUserProfile> USER_PROFILE_ROW_MAPPER = new RowMapper<DBOUserProfile>() {
+
+		@Override
+		public DBOUserProfile mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOUserProfile up = new DBOUserProfile();
+			up.setOwnerId(rs.getLong(COL_USER_PROFILE_ID));
+			java.sql.Blob blob = rs.getBlob(COL_USER_PROFILE_PROPS_BLOB);
+			if(blob != null){
+				up.setProperties(blob.getBytes(1, (int) blob.length()));
+			}
+			up.seteTag(rs.getString(COL_USER_PROFILE_ETAG));
+			up.setPictureId(rs.getLong(COL_USER_PROFILE_PICTURE_ID));
+			if(rs.wasNull()){
+				up.setPictureId(null);
+			}
+			up.setEmailNotification(rs.getBoolean(COL_USER_PROFILE_EMAIL_NOTIFICATION));
+			blob = rs.getBlob(COL_USER_PROFILE_FIRST_NAME);
+			if (blob != null){
+				up.setFirstName(blob.getBytes(1, (int) blob.length()));
+			}
+			blob = rs.getBlob(COL_USER_PROFILE_LAST_NAME);
+			if (blob != null){
+				up.setLastName(blob.getBytes(1, (int) blob.length()));
+			}
+			Timestamp createdOnTimestamp = rs.getTimestamp(COL_USER_GROUP_CREATION_DATE);
+			if(createdOnTimestamp != null) {
+				up.setCreatedOn(createdOnTimestamp.getTime());
+			}
+			return up;
+		}
+	};
 	
 	private static final String SELECT_FOR_UPDATE_SQL = SQL_SELECT_USER_PROFILE + " where " + COL_USER_PROFILE_ID + "=:"
 			+ DBOUserProfile.OWNER_ID_FIELD_NAME + " for update";
