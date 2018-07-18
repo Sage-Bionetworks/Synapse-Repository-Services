@@ -55,8 +55,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private FileHandleManager fileHandleManager;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	
 
 	@Override
