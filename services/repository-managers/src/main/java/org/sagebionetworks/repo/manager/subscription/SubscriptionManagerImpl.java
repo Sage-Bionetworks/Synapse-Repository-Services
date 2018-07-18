@@ -92,10 +92,6 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		
 		// Lookup the projects for this user and type if relevant.
 		Set<Long> projectIds = getAllProjectsUserHasSubscriptions(userInfo, objectType);
-		if(projectIds != null) {
-			// filter projects the user cannot see.
-			projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		}
 		SubscriptionListRequest request = new SubscriptionListRequest()
 		.withSubscriberId(userInfo.getId().toString())
 		.withObjectType(objectType)
@@ -114,20 +110,30 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	
 	/**
 	 * Get the projects the user has subscriptions for based on the passed type.
+	 * Projects the user cannot see are filtered out.
 	 * @param userInfo
 	 * @param objectType
 	 * @return
 	 */
 	Set<Long> getAllProjectsUserHasSubscriptions(UserInfo userInfo, SubscriptionObjectType objectType) {
+		Set<Long> projectIds = null;
 		switch (objectType) {
 		case FORUM:
-			return subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+			projectIds = subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+			break;
 		case THREAD:
-			return subscriptionDao.getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
+			projectIds = subscriptionDao.getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
+			break;
 		default:
 			// other types do not have projects
-			return null;
+			projectIds = null;
 		}
+		if (projectIds != null) {
+			// filter projects the user cannot see.
+			projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY,
+					ACCESS_TYPE.READ);
+		}
+		return projectIds;
 	}
 
 	@WriteTransactionReadCommitted
