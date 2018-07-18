@@ -241,16 +241,6 @@ public class SubscriptionManagerImplTest {
 		manager.getList(userInfo, request);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetListInvalidTopicForDataAccessSubmission() {
-		SubscriptionRequest request = new SubscriptionRequest();
-		request.setObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION);
-		List<String> ids = new ArrayList<String>(1);
-		ids.add(objectId);
-		request.setIdList(ids);
-		manager.getList(userInfo, request);
-	}
-
 	@Test
 	public void testGetList() {
 		SubscriptionRequest request = new SubscriptionRequest();
