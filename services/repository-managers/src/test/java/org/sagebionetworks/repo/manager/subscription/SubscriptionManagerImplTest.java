@@ -307,6 +307,36 @@ public class SubscriptionManagerImplTest {
 		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 	
+	@Test
+	public void testGetAllNullOptional() {
+		Long limit = 9L;
+		Long offset = 8L;
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		// sort is optional
+		SortByType sortByType = null;
+		SortDirection sortDirection = null;
+		// call under test
+		SubscriptionPagedResults results = manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
+		assertNotNull(results);
+		assertEquals(subscriptions, results.getResults());
+		assertEquals(totalCount, results.getTotalNumberOfResults());
+		
+		// validate the passed parameters
+		verify(mockDao).listSubscriptions(subscriptionRequestCapture.capture());
+		SubscriptionListRequest passedRequest = subscriptionRequestCapture.getValue();
+		assertEquals(userInfo.getId().toString(), passedRequest.getSubscriberId());
+		assertEquals(projectIds, passedRequest.getProjectIds());
+		assertEquals(objectType, passedRequest.getObjectType());
+		assertEquals(null, passedRequest.getSortByType());
+		assertEquals(null, passedRequest.getSortDirection());
+		assertEquals(limit, passedRequest.getLimit());
+		assertEquals(offset, passedRequest.getOffset());
+		// count should be called
+		verify(mockDao).listSubscriptionsCount(passedRequest);
+		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetAllNullLimit() {
 		Long limit = null;
@@ -340,6 +370,17 @@ public class SubscriptionManagerImplTest {
 		 manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllNullUser() {
+		Long limit = 9L;
+		Long offset = 8L;
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		SortByType sortByType = SortByType.SUBSCRIBER_ID;
+		SortDirection sortDirection = SortDirection.ASC;
+		userInfo = null;
+		// call under test
+		 manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
+	}
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteInvalidUserInfo() {
 		manager.delete(null, "1");

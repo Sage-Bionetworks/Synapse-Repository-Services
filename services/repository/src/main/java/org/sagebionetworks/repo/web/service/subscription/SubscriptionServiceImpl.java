@@ -29,9 +29,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	}
 
 	@Override
-	public SubscriptionPagedResults getAll(Long userId, Long limit, Long offset, SubscriptionObjectType objectType) {
+	public SubscriptionPagedResults getAll(Long userId, Long limit, Long offset, SubscriptionObjectType objectType, SortByType sortByType, SortDirection sortDirection) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return subscriptionManager.getAll(userInfo, limit, offset, objectType);
+		return subscriptionManager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
 	}
 
 	@Override
