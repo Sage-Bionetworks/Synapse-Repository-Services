@@ -85,10 +85,6 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 				if (blob != null){
 					up.setLastName(blob.getBytes(1, (int) blob.length()));
 				}
-				Timestamp createdOnTimestamp = rs.getTimestamp(COL_USER_GROUP_CREATION_DATE);
-				if(createdOnTimestamp != null) {
-					up.setCreatedOn(createdOnTimestamp.getTime());
-				}
 				return up;
 			}
 
