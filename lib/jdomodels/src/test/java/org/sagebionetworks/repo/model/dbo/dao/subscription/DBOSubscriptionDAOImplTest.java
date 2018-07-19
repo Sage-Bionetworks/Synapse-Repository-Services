@@ -933,7 +933,9 @@ public class DBOSubscriptionDAOImplTest {
 	public void testListSubscriptionsNew() {
 		SubscriptionListRequest request = new SubscriptionListRequest()
 				.withObjectType(SubscriptionObjectType.FORUM)
-				.withSubscriberId("123");
+				.withSubscriberId("123")
+				.withSortByType(SortByType.CREATED_ON)
+				.withSortDirection(SortDirection.DESC);
 		// call under test
 		List<Subscription> subs = this.subscriptionDao.listSubscriptions(request);
 		assertNotNull(subs);
