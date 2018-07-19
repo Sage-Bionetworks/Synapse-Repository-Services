@@ -157,6 +157,8 @@ public class TableManagerSupportTest {
 		List<ColumnModel> columns = Lists.newArrayList(cm);
 		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(
 				columns);
+		List<String> columnIds = TableModelUtils.getIds(columns);
+		when(mockColumnModelDao.getColumnModelIdsForObject(tableId)).thenReturn(columnIds);
 		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(cm.getId()));
 
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
