@@ -310,6 +310,14 @@ public class DBOColumnModelImplTest {
 		List<ColumnModel> fetched = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(fetched);
 		assertEquals(models, fetched);
+		List<String> columnIds = columnModelDao.getColumnIdsForObject(tableId);
+		assertEquals(models.size(), columnIds.size());
+		for(int i=0; i<models.size(); i++) {
+			ColumnModel cm = models.get(i);
+			String columnId = columnIds.get(i);
+			assertEquals(cm.getId(), columnId);
+		}
+		
 		// Now if we update the columns bound to the object the order should change
 		models.remove(0);
 		Collections.shuffle(models);

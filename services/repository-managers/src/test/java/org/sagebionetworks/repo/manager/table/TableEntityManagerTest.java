@@ -130,11 +130,8 @@ public class TableEntityManagerTest {
 	TableUploadManager mockTableUploadManager;
 	@Captor
 	ArgumentCaptor<List<String>> stringListCaptor;
-	
 
-	
 	List<ColumnModel> models;
-	String schemaMD5Hex;
 	
 	TableEntityManagerImpl manager;
 	UserInfo user;
@@ -179,7 +176,6 @@ public class TableEntityManagerTest {
 		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
 		models = TableModelTestUtils.createOneOfEachType(true);
-		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(models);
 		tableId = "syn123";
 		tableIdLong = KeyFactory.stringToKey(tableId);
 		rows = TableModelTestUtils.createRows(models, 10);

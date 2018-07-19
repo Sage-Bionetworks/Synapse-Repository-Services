@@ -126,8 +126,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(tableId);
 			// Need the MD5 for the original schema.
-			List<ColumnModel> originalSchema = tableManagerSupport.getColumnModelsForTable(tableId);
-			String originalSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(originalSchema);
+			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(tableId);
 			// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
 			List<ColumnModel> expandedSchema = tableViewManager.getViewSchema(tableId);
 			

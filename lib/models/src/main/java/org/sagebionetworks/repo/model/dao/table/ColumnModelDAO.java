@@ -77,6 +77,14 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	public List<ColumnModel> getColumnModelsForObject(String tableId) throws DatastoreException;
 	
 	/**
+	 * Get the column IDs for the given Object.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public List<String> getColumnModelIdsForObject(String tableId);
+	
+	/**
 	 * Delete a column model using its ID.  Note: Only a column model that is not currently in use can be deleted.
 	 * 
 	 * @param id
