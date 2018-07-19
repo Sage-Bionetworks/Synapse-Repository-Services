@@ -234,6 +234,10 @@ public class ServiceConstants {
 
 	public static final String SUBSCRIPTION_OBJECT_TYPE_PARAM = "objectType";
 	
+	public static final String SUBSCRIPTION_SORT_TYPE_PARAM = "sortBy";
+	
+	public static final String SUBSCRIPTION_SORT_DIRECTION_PARAM = "sortDirection";
+	
 	/**
 	 * limit number of items to delete from the trash can
 	 */

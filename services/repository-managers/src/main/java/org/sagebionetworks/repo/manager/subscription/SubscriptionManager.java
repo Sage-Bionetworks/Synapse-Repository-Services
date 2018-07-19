@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.subscription;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -38,9 +40,11 @@ public interface SubscriptionManager {
 	 * @param limit
 	 * @param offset
 	 * @param objectType
+	 * @param sortDirection 
+	 * @param sortByType 
 	 * @return
 	 */
-	public SubscriptionPagedResults getAll(UserInfo userInfo, Long limit, Long offset, SubscriptionObjectType objectType);
+	public SubscriptionPagedResults getAll(UserInfo userInfo, Long limit, Long offset, SubscriptionObjectType objectType, SortByType sortByType, SortDirection sortDirection);
 
 	/**
 	 * Delete a subscription when user unsubscribe to a topic

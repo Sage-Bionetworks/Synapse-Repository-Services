@@ -26,71 +26,21 @@ public interface SubscriptionDAO {
 	 * @return
 	 */
 	public Subscription get(long subscriptionId);
-
+	
 	/**
-	 * Get all subscriptions for a given subscriber.
-	 * 
-	 * @param subscriberId
-	 * @param limit
-	 * @param offset
-	 * @param objectType
+	 * Get all subscriptions for the given request.
+	 * @param request
 	 * @return
 	 */
-	public SubscriptionPagedResults getAllSubscriptions(String subscriberId, Long limit,
-			Long offset, SubscriptionObjectType objectType);
-
+	public List<Subscription> listSubscriptions(SubscriptionListRequest request);
+	
 	/**
-	 * Get all thread subscriptions for a given subscriber.
+	 * Count the number of subscriptions for the given request.
 	 * 
-	 * @param subscriberId
-	 * @param limit
-	 * @param offset
-	 * @param projectIds
+	 * @param request
 	 * @return
 	 */
-	public SubscriptionPagedResults getAllThreadSubscriptions(String subscriberId, Long limit, Long offset,
-			Set<Long> projectIds);
-
-	/**
-	 * Get all forum subscriptions for a given subscriber.
-	 * 
-	 * @param subscriberId
-	 * @param limit
-	 * @param offset
-	 * @param projectIds
-	 * @return
-	 */
-	public SubscriptionPagedResults getAllForumSubscriptions(String subscriberId, Long limit, Long offset,
-			Set<Long> projectIds);
-
-	/**
-	 * Get subscriptions for a subscriber limited by a given list of topic.
-	 * 
-	 * @param subscriberId
-	 * @param objectType
-	 * @param objectIds
-	 * @return
-	 */
-	public SubscriptionPagedResults listSubscriptions(String subscriberId,
-			SubscriptionObjectType objectType, List<String> objectIds);
-
-	/**
-	 *  Get subscriptions for a subscriber limited by a given list of forumIds.
-	 * 
-	 * @param subscriberId
-	 * @param forumIds
-	 * @return
-	 */
-	public SubscriptionPagedResults listSubscriptionForForum(String subscriberId, List<String> forumIds);
-
-	/**
-	 *  Get subscriptions for a subscriber limited by a given list of threadIds.
-	 * 
-	 * @param subscriberId
-	 * @param threadIds
-	 * @return
-	 */
-	public SubscriptionPagedResults listSubscriptionForThread(String subscriberId, List<String> threadIds);
+	public Long listSubscriptionsCount(SubscriptionListRequest request);
 
 	/**
 	 * Delete a subscription
