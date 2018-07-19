@@ -11,7 +11,7 @@ class DataciteMetadataConstants {
 	 */
 	static final String PUBLISHER_VALUE = "Synapse";
 
-	static final String DOI_URI_PREFIX = "10.7303/";
+	static final String DOI_URI_PREFIX = "10.7303";
 
 	static final String ENTITY_PREFIX = "syn";
 

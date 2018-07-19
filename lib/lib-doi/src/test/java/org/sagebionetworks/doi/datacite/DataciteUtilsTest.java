@@ -10,12 +10,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.DOI_URI_PREFIX;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.ENTITY_PREFIX;
-import static org.sagebionetworks.doi.datacite.DataciteUtils.generateDoiUri;
-import static org.sagebionetworks.doi.datacite.DataciteUtils.getPrefix;
-import static org.sagebionetworks.doi.datacite.DataciteUtils.getSchemeUri;
+import static org.sagebionetworks.doi.datacite.DataciteUtils.*;
 
 public class DataciteUtilsTest {
-	
+
 	@Test
 	public void generateDoiUriTest() {
 		// No version number
@@ -24,18 +22,34 @@ public class DataciteUtilsTest {
 		doi.setObjectId(objectId);
 		doi.setObjectType(ObjectType.ENTITY);
 		doi.setObjectVersion(null);
-		assertEquals(DOI_URI_PREFIX + ENTITY_PREFIX + objectId, generateDoiUri(doi));
+		assertEquals(DOI_URI_PREFIX + "/" + ENTITY_PREFIX + objectId, generateDoiUri(doi));
 
 		// With version number
 		doi.setObjectId(objectId);
 		doi.setObjectType(ObjectType.ENTITY);
 		doi.setObjectVersion(4L);
-		assertEquals(DOI_URI_PREFIX + ENTITY_PREFIX + objectId + "." + Long.toString(4L), generateDoiUri(doi));
+		assertEquals(DOI_URI_PREFIX + "/" + ENTITY_PREFIX + objectId + "." + Long.toString(4L), generateDoiUri(doi));
 	}
 
 	@Test
 	public void testGetPrefix() {
-		assertEquals(ENTITY_PREFIX, getPrefix(ObjectType.ENTITY));
+		assertEquals(ENTITY_PREFIX, getObjectTypePrefix(ObjectType.ENTITY));
+	}
+
+	@Test
+	public void testGetSuffix() {
+		// No version number
+		Doi doi = new Doi();
+		String objectId = "1234";
+		doi.setObjectId(objectId);
+		doi.setObjectVersion(null);
+		assertEquals(objectId, getObjectIdVersionSuffix(doi));
+
+		// With version number
+		objectId = "4321";
+		doi.setObjectId(objectId);
+		doi.setObjectVersion(5L);
+		assertEquals(objectId + "." + String.valueOf(5), getObjectIdVersionSuffix(doi));
 	}
 
 	@Test

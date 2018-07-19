@@ -1,24 +1,12 @@
 package org.sagebionetworks.doi.datacite;
 
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.doi.v2.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
 
-public class DataciteUtils {
-
-	static String generateDoiUri(Doi doi) {
-		String uri = "";
-		uri += DOI_URI_PREFIX;
-		uri += getPrefix(doi.getObjectType());
-		uri += doi.getObjectId();
-		if (doi.getObjectVersion() != null) {
-			uri += "." + doi.getObjectVersion();
-		}
-		return uri;
-	}
-
+class DataciteUtils {
 	static String getSchemeUri(NameIdentifierScheme scheme) {
 		String uri = null;
 		switch (scheme) {
@@ -34,7 +22,22 @@ public class DataciteUtils {
 		return uri;
 	}
 
-	static String getPrefix(ObjectType type) {
+	/*
+	 * Generates a doiUri from the scheme {DOI_URI_PREFIX}/{object type prefix}{objectId}<.{version}>
+	 */
+	static String generateDoiUri(DoiAssociation association) {
+		String uri = "";
+		uri += DOI_URI_PREFIX + "/";
+		uri += getObjectTypePrefix(association.getObjectType());
+		uri += getObjectIdVersionSuffix(association);
+		return uri;
+	}
+
+	/*
+	 * Maps the object type to the DOI prefix.
+	 * For example, an Entity will give "syn", which gives the "syn" in "10.1234/syn{id}
+	 */
+	static String getObjectTypePrefix(ObjectType type) {
 		String prefix = null;
 		switch (type) {
 			case ENTITY:
@@ -42,8 +45,16 @@ public class DataciteUtils {
 				break;
 			default:
 				throw new IllegalArgumentException("Could not find prefix for object type: " + type.name());
-				// Add cases for new object types if/when they we decide to support them.
+				// Add cases for new object types if/when we decide to support them.
 		}
 		return prefix;
+	}
+
+	static String getObjectIdVersionSuffix(DoiAssociation association) {
+		String suffix = association.getObjectId();
+		if (association.getObjectVersion() != null) {
+			suffix += "." + association.getObjectVersion();
+		}
+		return suffix;
 	}
 }
