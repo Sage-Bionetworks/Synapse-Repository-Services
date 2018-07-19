@@ -22,7 +22,7 @@ import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.*;
 public class DataciteXmlTranslatorTest {
 
 	private DocumentBuilder documentBuilder;
-	private Doi expectedDoi;
+	private DataciteMetadata expectedMetadata;
 	private DoiCreator c1;
 	private DoiCreator c2;
 	private DoiNameIdentifier nameIdObject1;
@@ -38,7 +38,7 @@ public class DataciteXmlTranslatorTest {
 		documentBuilder = DocumentBuilderFactoryImpl.newInstance().newDocumentBuilder();
 
 		// Create expected metadata to compare to results
-		expectedDoi = new Doi();
+		expectedMetadata = new Doi();
 
 		// Set fields to match the XML resource loaded below "DataciteSample1.xml"
 		// Creators
@@ -60,7 +60,7 @@ public class DataciteXmlTranslatorTest {
 		List<DoiCreator> creators = new ArrayList<>();
 		creators.add(c1);
 		creators.add(c2);
-		expectedDoi.setCreators(creators);
+		expectedMetadata.setCreators(creators);
 		// Titles
 		titles = new ArrayList<>();
 		DoiTitle t1 = new DoiTitle();
@@ -69,14 +69,14 @@ public class DataciteXmlTranslatorTest {
 		t2.setTitle("Some other title 2");
 		titles.add(t1);
 		titles.add(t2);
-		expectedDoi.setTitles(titles);
+		expectedMetadata.setTitles(titles);
 		// Publication year
 		publicationYear = 2000L;
-		expectedDoi.setPublicationYear(publicationYear);
+		expectedMetadata.setPublicationYear(publicationYear);
 		// Resource type
 		resourceType = new DoiResourceType();
 		resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.Dataset);
-		expectedDoi.setResourceType(resourceType);
+		expectedMetadata.setResourceType(resourceType);
 	}
 
 	@Test
@@ -150,7 +150,7 @@ public class DataciteXmlTranslatorTest {
 
 		DataciteXmlTranslatorImpl translator = new DataciteXmlTranslatorImpl();
 		// Unit under test
-		Doi metadata = translator.translate(xml);
-		assertEquals(expectedDoi, metadata);
+		DataciteMetadata metadata = translator.translate(xml);
+		assertEquals(expectedMetadata, metadata);
 	}
 }

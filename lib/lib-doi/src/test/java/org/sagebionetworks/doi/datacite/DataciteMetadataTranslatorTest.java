@@ -18,7 +18,7 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl.*;
 
 public class DataciteMetadataTranslatorTest {
 
-	private Doi doi;
+	private DataciteMetadata metadata;
 	private Document dom;
 	private List<DoiCreator> creators;
 	private DoiCreator c1;
@@ -30,8 +30,8 @@ public class DataciteMetadataTranslatorTest {
 	private DoiTitle t2;
 
 	private long publicationYear = 2000L;
-	private ObjectType objectType = ObjectType.ENTITY;
-	private String objectId = "0000000";
+
+	private String uri = "10.1234/syn0000000";
 
 	private DoiResourceType resourceType;
 	private DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
@@ -43,10 +43,7 @@ public class DataciteMetadataTranslatorTest {
 		dom = new DocumentImpl();
 
 		// Prepare all these objects before each test
-		doi = new Doi();
-		doi.setObjectId("0000000");
-		doi.setObjectType(ObjectType.ENTITY);
-		doi.setObjectVersion(null);
+		metadata = new Doi();
 		creators = new ArrayList<>();
 		c1 = new DoiCreator();
 		c1.setCreatorName("Last, First");
@@ -64,7 +61,7 @@ public class DataciteMetadataTranslatorTest {
 		c2.setCreatorName("Sample name");
 		creators.add(c1);
 		creators.add(c2);
-		doi.setCreators(creators);
+		metadata.setCreators(creators);
 
 		titles = new ArrayList<>();
 		t1 = new DoiTitle();
@@ -73,13 +70,13 @@ public class DataciteMetadataTranslatorTest {
 		t2.setTitle("Some other title 2");
 		titles.add(t1);
 		titles.add(t2);
-		doi.setTitles(titles);
+		metadata.setTitles(titles);
 
-		doi.setPublicationYear(publicationYear);
+		metadata.setPublicationYear(publicationYear);
 
 		resourceType = new DoiResourceType();
 		resourceType.setResourceTypeGeneral(resourceTypeGeneral);
-		doi.setResourceType(resourceType);
+		metadata.setResourceType(resourceType);
 	}
 
 	@Test
@@ -178,7 +175,7 @@ public class DataciteMetadataTranslatorTest {
 	@Test
 	public void createXmlDomTest() {
 		// Ensure the DOM contains one resource tag with appropriate attributes
-		Document actualDom = createXmlDom(doi);
+		Document actualDom = createXmlDom(metadata, uri);
 		assertEquals(1, actualDom.getElementsByTagName(RESOURCE).getLength());
 
 		Element actualResource = (Element)actualDom.getElementsByTagName(RESOURCE).item(0);

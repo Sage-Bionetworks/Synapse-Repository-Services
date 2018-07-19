@@ -23,7 +23,7 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
  */
 public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
-	public Doi translate(String xml) {
+	public DataciteMetadata translate(String xml) {
 		Document dom = parseXml(xml);
 		return translateUtil(dom);
 	}
@@ -32,8 +32,8 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 	 * Translates a Datacite XML String into a DoiMetadata object
 	 * Works for XML adherent to Datacite Schemas 2.2 and 4.1
 	 */
-	static Doi translateUtil(Document dom) {
-		Doi doi = new Doi();
+	static DataciteMetadata translateUtil(Document dom) {
+		DataciteMetadata doi = new Doi();
 
 		doi.setCreators(getCreators(dom));
 		doi.setTitles(getTitles(dom));
@@ -53,7 +53,6 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 		} catch (SAXException | IOException e) {
 			throw new RuntimeException("Error occurred while parsing metadata", e);
 		}
-
 		return dom;
 	}
 
@@ -121,5 +120,4 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 		}
 		return resourceType;
 	}
-
 }
