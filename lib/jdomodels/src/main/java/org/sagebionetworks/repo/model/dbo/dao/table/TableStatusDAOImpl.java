@@ -54,7 +54,8 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
+
+
 	@Override
 	public TableStatus getTableStatus(String tableIdString) throws DatastoreException, NotFoundException {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
