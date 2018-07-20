@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 
+import java.util.Collections;
 import java.util.HashSet;
 
 import org.junit.Before;
@@ -226,7 +227,8 @@ public class FacetRequestColumnModelTest {
 	public void testEnumerationSearchConditionStringColumnNameWithQuotes() {
 		String columnName = "\"quoted\"Column";
 		facetValues.setColumnName(columnName);
-		String expectedResult = "\"\"quoted\"\"Column";
+		facetValues.setFacetValues(Collections.singleton("myValue"));
+		String expectedResult = "(\"\"\"quoted\"\"Column\"='myValue')";
 		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues);
 		assertEquals(expectedResult, searchConditionString);
 	}
@@ -276,7 +278,8 @@ public class FacetRequestColumnModelTest {
 	public void testRangeSearchConditionStringColumnNameWithQuotes() {
 		String columnName = "\"quoted\"Column";
 		facetRange.setColumnName(columnName);
-		String expectedResult = "\"\"quoted\"\"Column";
+		facetRange.setMax("42");
+		String expectedResult = "(\"\"\"quoted\"\"Column\"<='42')";
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange);
 		assertEquals(expectedResult, searchConditionString);
 	}

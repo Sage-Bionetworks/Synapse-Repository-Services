@@ -236,9 +236,9 @@ public class SQLQueryTest {
 	public void testSelectConstant() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select 'not a foo' from syn123", tableSchema).build();
 		assertEquals("SELECT 'not a foo', ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("not a foo", ColumnType.STRING, null)), translator
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("'not a foo'", ColumnType.STRING, null)), translator
 				.getSelectColumns());
-		assertEquals("not a foo", translator.getSelectColumns().get(0).getName());
+		assertEquals("'not a foo'", translator.getSelectColumns().get(0).getName());
 	}
 
 	@Test
