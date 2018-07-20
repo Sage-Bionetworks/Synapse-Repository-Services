@@ -397,6 +397,30 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
+	public void testGetSelectColumnsColumnNameWithQuotes() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("\"colWith\"\"Quotes\"\"InIt\"").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertEquals("colWith\"Quotes\"InIt", results.getName());
+		assertEquals("\"colWith\"\"Quotes\"\"InIt\"", results.getColumnSQL());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertEquals("888", results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsAliasNameWithQuotes() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("foo as \"aliasWith\"\"Quotes\"\"InIt\"").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertEquals("aliasWith\"Quotes\"InIt", results.getName());
+		assertEquals("\"aliasWith\"\"Quotes\"\"InIt\"", results.getColumnSQL());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertEquals(null, results.getId());
+	}
+
+	@Test
 	public void testGetSelectColumnsSimpleMismatch() throws ParseException{
 		DerivedColumn derivedColumn = new TableQueryParser("fo0").derivedColumn();
 		// call under test

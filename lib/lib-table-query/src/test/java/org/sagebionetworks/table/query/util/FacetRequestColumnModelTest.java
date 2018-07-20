@@ -222,6 +222,15 @@ public class FacetRequestColumnModelTest {
 		assertEquals("(\"someColumn\"='hello world')", searchConditionString);
 	}
 
+	@Test
+	public void testEnumerationSearchConditionStringColumnNameWithQuotes() {
+		String columnName = "\"quoted\"Column";
+		facetValues.setColumnName(columnName);
+		String expectedResult = "\"\"quoted\"\"Column";
+		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues);
+		assertEquals(expectedResult, searchConditionString);
+	}
+
 	//////////////////////////////////////
 	// createRangeSearchCondition() tests
 	//////////////////////////////////////
@@ -261,6 +270,15 @@ public class FacetRequestColumnModelTest {
 		facetRange.setMax(max);
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange);
 		assertEquals("(\"someColumn\" BETWEEN '123' AND '456')", searchConditionString);
+	}
+
+	@Test
+	public void testRangeSearchConditionStringColumnNameWithQuotes() {
+		String columnName = "\"quoted\"Column";
+		facetRange.setColumnName(columnName);
+		String expectedResult = "\"\"quoted\"\"Column";
+		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange);
+		assertEquals(expectedResult, searchConditionString);
 	}
 
 	//////////////////////////////////////
