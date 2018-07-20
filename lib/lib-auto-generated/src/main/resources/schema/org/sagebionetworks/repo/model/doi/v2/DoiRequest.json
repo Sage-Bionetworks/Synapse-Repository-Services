@@ -1,0 +1,18 @@
+{
+	"description": "JSON schema for the object required to request retrieval of a DOI.",
+	"type":"object",
+	"properties": {
+		"objectId": {
+			"description": "Required. The ID of the digital object in Synapse for which this DOI is created.",
+			"type": "string"
+		},
+		"objectType": {
+			"description": "The type of the digital object.",
+			"$ref": "org.sagebionetworks.repo.model.ObjectType"
+		},
+		"objectVersion": {
+			"description": "The version of the digital object. When null, the DOI is associated with the current version of the object.",
+			"type": "integer"
+		}
+	}
+}

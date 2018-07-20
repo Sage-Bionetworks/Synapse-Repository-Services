@@ -13,6 +13,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -90,20 +91,7 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 
 	@Override
 	public MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal> getTranslator() {
-		return new MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal>() {
-
-			@Override
-			public DBOBoundColumnOrdinal createDatabaseObjectFromBackup(
-					DBOBoundColumnOrdinal backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOBoundColumnOrdinal createBackupFromDatabaseObject(
-					DBOBoundColumnOrdinal dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOBoundColumnOrdinal>();
 	}
 
 	@Override

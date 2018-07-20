@@ -74,6 +74,19 @@ public class UserProfileManagerUtilsTest {
 		assertEquals("456", up.getProfilePicureFileHandleId());
 		assertNull(up.getRStudioUrl());
 	}
+	
+	/**
+	 * Test for PLFM-3925.
+	 */
+	@Test
+	public void testClearPrivateFieldsCreatedOn() {
+		UserInfo userInfo = new UserInfo(false);
+		UserProfile up = new UserProfile();
+		Date createdOn = new Date(123L);
+		up.setCreatedOn(createdOn);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
+		assertEquals(createdOn, up.getCreatedOn());
+	}
 
 	@Test
 	public void testClearPrivateFieldsAsAdmin() {

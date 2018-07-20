@@ -17,6 +17,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -166,17 +167,7 @@ public class DBOMembershipRequest implements MigratableDatabaseObject<DBOMembers
 
 	@Override
 	public MigratableTableTranslation<DBOMembershipRequest, DBOMembershipRequest> getTranslator() {
-		return new MigratableTableTranslation<DBOMembershipRequest, DBOMembershipRequest>(){
-
-			@Override
-			public DBOMembershipRequest createDatabaseObjectFromBackup(DBOMembershipRequest backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOMembershipRequest createBackupFromDatabaseObject(DBOMembershipRequest dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOMembershipRequest>();
 	}
 
 	@Override

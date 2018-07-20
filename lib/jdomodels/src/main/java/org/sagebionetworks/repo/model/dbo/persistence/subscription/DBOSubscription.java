@@ -9,6 +9,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -171,18 +172,7 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 
 	@Override
 	public MigratableTableTranslation<DBOSubscription, DBOSubscription> getTranslator() {
-		return new MigratableTableTranslation<DBOSubscription, DBOSubscription>(){
-
-			@Override
-			public DBOSubscription createDatabaseObjectFromBackup(DBOSubscription backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOSubscription createBackupFromDatabaseObject(DBOSubscription dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOSubscription>();
 	}
 
 	@Override

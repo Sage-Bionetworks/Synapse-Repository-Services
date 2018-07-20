@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 @Table(name = V2_TABLE_WIKI_ATTACHMENT_RESERVATION, constraints={"UNIQUE KEY `V2_WIKI_UNIQUE_FILE_HANDLE_ID` (`"+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+"`, `" + V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID + "`)"})
@@ -117,19 +118,7 @@ public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<
 
 	@Override
 	public MigratableTableTranslation<V2DBOWikiAttachmentReservation, V2DBOWikiAttachmentReservation> getTranslator() {
-		return new MigratableTableTranslation<V2DBOWikiAttachmentReservation, V2DBOWikiAttachmentReservation>(){
-
-			@Override
-			public V2DBOWikiAttachmentReservation createDatabaseObjectFromBackup(
-					V2DBOWikiAttachmentReservation backup) {
-				return backup;
-			}
-
-			@Override
-			public V2DBOWikiAttachmentReservation createBackupFromDatabaseObject(
-					V2DBOWikiAttachmentReservation dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<V2DBOWikiAttachmentReservation>();
 	}
 
 	@Override

@@ -212,22 +212,35 @@ public class BackupFileStreamImpl implements BackupFileStream {
 			zos.putNextEntry(entry);
 			Writer zipWriter = new OutputStreamWriter(zos, UTF_8);
 
-			MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(currentType);
-			String alias = getAlias(mdo, backupAliasType);
-			MigratableTableTranslation<D,B> translator = mdo.getTranslator();
-			
-			// translate to the backup objects
-			List<B> backupObjects = new LinkedList<>();
-			for(MigratableDatabaseObject<?,?> migrationOjbect: currentBatch) {
-				B backupObject = translator.createBackupFromDatabaseObject((D) migrationOjbect);
-				backupObjects.add(backupObject);
-			}
-
-			XStream xstream = new XStream();
-			xstream.alias(alias, mdo.getBackupClass());
-			xstream.toXML(backupObjects, zipWriter);
-			zipWriter.flush();
+			writeBatchToStream(currentBatch, currentType, backupAliasType, zipWriter);
 		}
+	}
+
+	/**
+	 * Write the given batch of object to the passed writer
+	 * @param currentBatch
+	 * @param currentType
+	 * @param backupAliasType
+	 * @param writter
+	 * @throws IOException
+	 */
+	<D extends DatabaseObject<D>, B> void writeBatchToStream(List<MigratableDatabaseObject<?, ?>> currentBatch,
+			MigrationType currentType, BackupAliasType backupAliasType, Writer writer) throws IOException {
+		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(currentType);
+		String alias = getAlias(mdo, backupAliasType);
+		MigratableTableTranslation<D,B> translator = mdo.getTranslator();
+		
+		// translate to the backup objects
+		List<B> backupObjects = new LinkedList<>();
+		for(MigratableDatabaseObject<?,?> migrationOjbect: currentBatch) {
+			B backupObject = translator.createBackupFromDatabaseObject((D) migrationOjbect);
+			backupObjects.add(backupObject);
+		}
+
+		XStream xstream = new XStream();
+		xstream.alias(alias, mdo.getBackupClass());
+		xstream.toXML(backupObjects, writer);
+		writer.flush();
 	}
 
 	/**
@@ -243,38 +256,56 @@ public class BackupFileStreamImpl implements BackupFileStream {
 			// Keep reading files until new data is found.
 			ZipEntry entry;
 			while((entry = zipStream.getNextEntry()) != null) {
-				// Read the zip entry.
-				MigrationType type = getTypeFromFileName(entry.getName());
-				// Lookup the object for the type.
-				MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
-				String alias = getAlias(mdo, backupAliasType);
-				MigratableTableTranslation<D,B> translator = mdo.getTranslator();
-
-				XStream xstream = new XStream();
-				xstream.alias(alias, mdo.getBackupClass());
-				List<B> backupObjects;
 				try {
-					backupObjects = (List<B>) xstream.fromXML(zipStream);
-				} catch (StreamException e) {
-					if (!e.getMessage().contains(INPUT_CONTAINED_NO_DATA)) {
-						throw new RuntimeException(e);
-					}
+					// Read the zip entry.
+					return readFileFromStream(zipStream, backupAliasType, entry.getName());
+				} catch (EmptyFileException e) {
 					// This file is empty so move to the next file...
 					continue;
 				}
-				// Translate the results
-				List<MigratableDatabaseObject<?,?>> translated = new LinkedList<>();
-				for(B backupObject: backupObjects) {
-					D databaseObject = translator.createDatabaseObjectFromBackup(backupObject);
-					translated.add((MigratableDatabaseObject<?, ?>) databaseObject);
-				}
-				return translated;
 			}
 			// No new data was found in the zip
 			return new LinkedList<>();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}		
+	}
+	
+	/**
+	 * Read all of the data from a single file.
+	 * @param input
+	 * @param backupAliasType
+	 * @param fileName
+	 * @return
+	 * @throws EmptyFileException if the given file contains no data.
+	 */
+	<D extends DatabaseObject<D>, B> List<MigratableDatabaseObject<?, ?>> readFileFromStream(InputStream input,
+			BackupAliasType backupAliasType, String fileName) throws EmptyFileException {
+		MigrationType type = getTypeFromFileName(fileName);
+		// Lookup the object for the type.
+		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
+		String alias = getAlias(mdo, backupAliasType);
+		MigratableTableTranslation<D, B> translator = mdo.getTranslator();
+
+		XStream xstream = new XStream();
+		xstream.alias(alias, mdo.getBackupClass());
+		List<B> backupObjects;
+		try {
+			backupObjects = (List<B>) xstream.fromXML(input);
+		} catch (StreamException e) {
+			if (!e.getMessage().contains(INPUT_CONTAINED_NO_DATA)) {
+				throw new RuntimeException(e);
+			}
+			// This file is empty so move to the next file...
+			throw new EmptyFileException();
+		}
+		// Translate the results
+		List<MigratableDatabaseObject<?, ?>> translated = new LinkedList<>();
+		for (B backupObject : backupObjects) {
+			D databaseObject = translator.createDatabaseObjectFromBackup(backupObject);
+			translated.add((MigratableDatabaseObject<?, ?>) databaseObject);
+		}
+		return translated;
 	}
 
 }

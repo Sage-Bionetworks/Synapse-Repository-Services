@@ -20,6 +20,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -171,19 +172,7 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 
 	@Override
 	public MigratableTableTranslation<DBOUserGroup, DBOUserGroup> getTranslator() {
-		return new MigratableTableTranslation<DBOUserGroup, DBOUserGroup>(){
-
-			@Override
-			public DBOUserGroup createDatabaseObjectFromBackup(
-					DBOUserGroup backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOUserGroup createBackupFromDatabaseObject(
-					DBOUserGroup dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOUserGroup>();
 	}
 
 	@Override

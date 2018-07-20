@@ -1,0 +1,11 @@
+{
+  "description": "Describes the type of media that the DOI Metadata refers to.",
+  "type": "object",
+  "properties": {
+    "resourceTypeGeneral": {
+      "description": "Required. Describes the general type of media that DOI Metadata refers to.",
+      "type": "string",
+      "$ref": "org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral"
+    }
+  }
+}

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
@@ -86,21 +87,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 
 	@Override
 	public MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> getTranslator() {
-		return new MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias>(){
-
-			@Override
-			public DBOPrincipalAlias createDatabaseObjectFromBackup(
-					DBOPrincipalAlias backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOPrincipalAlias createBackupFromDatabaseObject(
-					DBOPrincipalAlias dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBOPrincipalAlias>();
 	}
 
 	@Override

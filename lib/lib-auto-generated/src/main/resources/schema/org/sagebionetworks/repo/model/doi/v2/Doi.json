@@ -1,0 +1,12 @@
+{
+	"description": "JSON schema for all fields associated with a DOI and its metadata.",
+	"type":"object",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiAssociation"
+	},
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.doi.v2.DataciteMetadata"
+		}
+	]
+}

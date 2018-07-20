@@ -239,7 +239,8 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 			public SubmissionStatusDBO createBackupFromDatabaseObject(
 					SubmissionStatusDBO dbo) {
 				return dbo;
-			}};
+			}
+		};
 	}
 	@Override
 	public Class<? extends SubmissionStatusDBO> getBackupClass() {

@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -64,18 +65,7 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 	@Override
 	public MigratableTableTranslation<DBOChallengeTeam, DBOChallengeTeam> getTranslator() {
 		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOChallengeTeam, DBOChallengeTeam>(){
-
-			@Override
-			public DBOChallengeTeam createDatabaseObjectFromBackup(
-					DBOChallengeTeam backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOChallengeTeam createBackupFromDatabaseObject(DBOChallengeTeam dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOChallengeTeam>();
 	}
 
 

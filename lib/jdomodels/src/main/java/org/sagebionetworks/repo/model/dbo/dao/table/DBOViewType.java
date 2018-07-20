@@ -164,7 +164,8 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 			@Override
 			public DBOViewType createBackupFromDatabaseObject(DBOViewType dbo) {
 				return dbo;
-			}};
+			}
+			};
 	}
 
 	@Override

@@ -13,6 +13,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -131,19 +132,7 @@ public class DBOResourceAccess implements MigratableDatabaseObject<DBOResourceAc
 	}
 	@Override
 	public MigratableTableTranslation<DBOResourceAccess, DBOResourceAccess> getTranslator() {
-		return new MigratableTableTranslation<DBOResourceAccess, DBOResourceAccess>(){
-
-			@Override
-			public DBOResourceAccess createDatabaseObjectFromBackup(
-					DBOResourceAccess backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOResourceAccess createBackupFromDatabaseObject(
-					DBOResourceAccess dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOResourceAccess>();
 	}
 	@Override
 	public Class<? extends DBOResourceAccess> getBackupClass() {

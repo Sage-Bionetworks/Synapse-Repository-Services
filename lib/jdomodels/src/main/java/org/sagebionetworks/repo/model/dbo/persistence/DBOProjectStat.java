@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -154,19 +155,7 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 
 	@Override
 	public MigratableTableTranslation<DBOProjectStat, DBOProjectStat> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOProjectStat, DBOProjectStat>() {
-
-			@Override
-			public DBOProjectStat createDatabaseObjectFromBackup(DBOProjectStat backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOProjectStat createBackupFromDatabaseObject(DBOProjectStat dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOProjectStat>();
 	}
 
 	@Override

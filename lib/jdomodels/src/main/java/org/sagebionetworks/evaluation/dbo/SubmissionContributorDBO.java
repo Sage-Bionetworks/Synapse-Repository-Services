@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -59,19 +60,7 @@ public class SubmissionContributorDBO implements MigratableDatabaseObject<Submis
 
 	@Override
 	public MigratableTableTranslation<SubmissionContributorDBO, SubmissionContributorDBO> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<SubmissionContributorDBO, SubmissionContributorDBO>(){
-
-			@Override
-			public SubmissionContributorDBO createDatabaseObjectFromBackup(
-					SubmissionContributorDBO backup) {
-				return backup;
-			}
-
-			@Override
-			public SubmissionContributorDBO createBackupFromDatabaseObject(SubmissionContributorDBO dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<SubmissionContributorDBO>();
 	}
 
 

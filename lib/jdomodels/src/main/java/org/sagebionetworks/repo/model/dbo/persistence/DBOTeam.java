@@ -14,6 +14,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -118,17 +119,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 
 	@Override
 	public MigratableTableTranslation<DBOTeam, DBOTeam> getTranslator() {
-		return new MigratableTableTranslation<DBOTeam, DBOTeam>(){
-
-			@Override
-			public DBOTeam createDatabaseObjectFromBackup(DBOTeam backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOTeam createBackupFromDatabaseObject(DBOTeam dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOTeam>();
 	}
 
 	@Override

@@ -19,6 +19,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -174,17 +175,7 @@ public class DBOMembershipInvitation implements MigratableDatabaseObject<DBOMemb
 
 	@Override
 	public MigratableTableTranslation<DBOMembershipInvitation, DBOMembershipInvitation> getTranslator() {
-		return new MigratableTableTranslation<DBOMembershipInvitation, DBOMembershipInvitation>(){
-
-			@Override
-			public DBOMembershipInvitation createDatabaseObjectFromBackup(DBOMembershipInvitation backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOMembershipInvitation createBackupFromDatabaseObject(DBOMembershipInvitation dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOMembershipInvitation>();
 	}
 
 	@Override

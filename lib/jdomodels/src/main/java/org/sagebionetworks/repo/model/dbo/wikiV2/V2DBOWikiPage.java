@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -188,17 +189,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 
 	@Override
 	public MigratableTableTranslation<V2DBOWikiPage, V2DBOWikiPage> getTranslator() {
-		return new MigratableTableTranslation<V2DBOWikiPage, V2DBOWikiPage>(){
-
-			@Override
-			public V2DBOWikiPage createDatabaseObjectFromBackup(V2DBOWikiPage backup) {
-				return backup;
-			}
-
-			@Override
-			public V2DBOWikiPage createBackupFromDatabaseObject(V2DBOWikiPage dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<V2DBOWikiPage>();
 	}
 
 	@Override
