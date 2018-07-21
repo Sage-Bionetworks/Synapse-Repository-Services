@@ -198,4 +198,18 @@ public class DataciteMetadataTranslatorTest {
 		String actual = xmlToString(dom);
 		assertNotNull(actual);
 	}
+
+	@Test
+	public void testNoUndefinedSchemes() {
+		for (NameIdentifierScheme e : NameIdentifierScheme.values()) {
+			assertNotNull(getSchemeUri(e));
+		}
+	}
+
+	@Test
+	public void testGetSchemeUri() {
+		assertEquals(ORCID_URI, getSchemeUri(NameIdentifierScheme.ORCID));
+		assertEquals(ISNI_URI, getSchemeUri(NameIdentifierScheme.ISNI));
+		// If adding a new scheme, test it with its URI pair here
+	}
 }

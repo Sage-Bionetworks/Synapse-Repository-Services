@@ -12,7 +12,6 @@ import java.io.StringWriter;
 import java.util.List;
 
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
-import static org.sagebionetworks.doi.datacite.DataciteUtils.getSchemeUri;
 
 /*
  * Translates our DoiV2 object into well-formed DataCite XML.
@@ -121,5 +120,20 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		Element resourceTypeElement = dom.createElement(RESOURCE_TYPE);
 		resourceTypeElement.setAttribute(RESOURCE_TYPE_GENERAL, resourceType.getResourceTypeGeneral().name());
 		return resourceTypeElement;
+	}
+
+	static String getSchemeUri(NameIdentifierScheme scheme) {
+		String uri = null;
+		switch (scheme) {
+			case ORCID:
+				uri = ORCID_URI;
+				break;
+			case ISNI:
+				uri = ISNI_URI;
+				break;
+			default:
+				throw new IllegalArgumentException("Could not resolve URI for unknown name identifier scheme: " + scheme.name());
+		}
+		return uri;
 	}
 }

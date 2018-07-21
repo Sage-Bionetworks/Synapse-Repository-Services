@@ -16,7 +16,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
-import static org.sagebionetworks.doi.datacite.DataciteUtils.getSchemeUri;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl.getSchemeUri;
 import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.*;
 
 public class DataciteXmlTranslatorTest {
