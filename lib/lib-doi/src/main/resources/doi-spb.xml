@@ -17,6 +17,9 @@
 
     <bean id="metadataTranslator" class="org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl"/>
     <bean id="xmlTranslator" class="org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl"/>
-    <bean id="dataciteClient" class="org.sagebionetworks.doi.datacite.DataciteClientImpl"/>
+    <bean id="dataciteClientConfig" class="org.sagebionetworks.doi.datacite.DataciteClientConfigImpl"/>
+    <bean id="dataciteClient" class="org.sagebionetworks.doi.datacite.DataciteClientImpl">
+        <constructor-arg index="0" ref="dataciteClientConfig"/>
+    </bean>
 
 </beans>

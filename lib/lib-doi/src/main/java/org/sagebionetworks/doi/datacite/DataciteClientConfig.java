@@ -1,34 +1,37 @@
 package org.sagebionetworks.doi.datacite;
 
-/*
- * Use to configure parameters in the DataCite client
+/**
+ * Used to configure parameters in the DataCite client
  */
-public class DataciteClientConfig {
-	public void setUsername(String username){
-		this.username = username;
-	}
+public interface DataciteClientConfig {
 
-	public void setPassword(String password){
-		this.password = password;
-	}
+	/**
+	 * Set the username used to authenticate with DataCite.
+	 */
+	void setUsername(String username);
 
-	public void setDataciteUrl(String dataciteUrl){
-		this.dataciteUrl = dataciteUrl;
-	}
+	/**
+	 * Set the password used to authenticate with DataCite
+	 */
+	void setPassword(String password);
 
-	public String getUsername(){
-		return username;
-	}
+	/**
+	 * Set the domain for the DataCite API. Defaults to "mds.datacite.org".
+	 */
+	void setDataciteDomain(String domain);
 
-	public String getPassword(){
-		return password;
-	}
+	/**
+	 * Get the username used to authenticate with DataCite.
+	 */
+	String getUsername();
 
-	public String getDataciteUrl(){
-		return dataciteUrl;
-	}
+	/**
+	 * Get the password used to authenticate with DataCite
+	 */
+	String getPassword();
 
-	private String username;
-	private String password;
-	private String dataciteUrl;
+	/**
+	 * Get the domain for the DataCite API. Defaults to "mds.datacite.org"
+	 */
+	String getDataciteDomain();
 }
