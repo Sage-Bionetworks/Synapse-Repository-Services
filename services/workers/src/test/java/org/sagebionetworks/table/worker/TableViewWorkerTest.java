@@ -139,7 +139,9 @@ public class TableViewWorkerTest {
 			cm.setId(""+i);
 		}
 		
-		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(schema);
+		List<String> columnIds = TableModelUtils.getIds(schema);
+		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
+		when(tableManagerSupport.getSchemaMD5Hex(tableId)).thenReturn(schemaMD5Hex);
 		
 		rowCount = 1;
 		rows = new LinkedList<Row>();

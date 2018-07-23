@@ -264,9 +264,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public String getSchemaMD5Hex(String tableId) {
-		List<ColumnModel> truthSchema = columnModelDao
-				.getColumnModelsForObject(tableId);
-		return TableModelUtils.createSchemaMD5HexCM(truthSchema);
+		List<String> columnIds = columnModelDao.getColumnModelIdsForObject(tableId);
+		return TableModelUtils.createSchemaMD5Hex(columnIds);
 	}
 
 	/**

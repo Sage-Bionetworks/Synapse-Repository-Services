@@ -1344,17 +1344,6 @@ public class TableModelUtils {
 		return fileHandleIds;
 	}
 	
-
-	/**
-	 * Create the MD5 Hex string of the given column models.
-	 * @param schema
-	 * @return
-	 */
-	public static String createSchemaMD5HexCM(List<ColumnModel> schema){
-		List<String> ids = TableModelUtils.getIds(schema);
-		return createSchemaMD5Hex(ids);
-	}
-	
 	/**
 	 * Create the MD5 hex string of the given column model IDs.
 	 * Note: The resulting MD5 is independent of order.

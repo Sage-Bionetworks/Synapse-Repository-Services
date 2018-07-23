@@ -167,7 +167,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				tableIndexDao.truncateTable(tableId);
 			}
 			// Set the new schema MD5
-			String schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(currentSchema);
+			List<String> columnIds = TableModelUtils.getIds(currentSchema);
+			String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		}
 		return wasSchemaChanged;

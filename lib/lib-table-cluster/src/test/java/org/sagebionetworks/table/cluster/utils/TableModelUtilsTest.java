@@ -1368,12 +1368,6 @@ public class TableModelUtilsTest {
 		assertEquals("The MD5 should be the same regardless of order.",expectedMd5Hex, md5Hex);
 	}
 	
-	@Test
-	public void testCreateSchemaMD5HexCM(){
-		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
-		String md5Hex = TableModelUtils.createSchemaMD5HexCM(models);
-		assertEquals("e903d3b0a51bee1269d01669434e48ba", md5Hex);
-	}
 	
 	@Test
 	public void testGetSelectColumnsFromColumnIdsSingle(){
