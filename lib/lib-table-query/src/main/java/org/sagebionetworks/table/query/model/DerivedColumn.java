@@ -54,7 +54,7 @@ public class DerivedColumn extends SQLElement {
 		}
 	}
 
-	public String getSQLName() { //TODO: Test and better name
+	public String getColumnSQL() {
 		if(asClause != null){
 			return asClause.getFirstElementOfType(ActualIdentifier.class).toSql();
 		}else{

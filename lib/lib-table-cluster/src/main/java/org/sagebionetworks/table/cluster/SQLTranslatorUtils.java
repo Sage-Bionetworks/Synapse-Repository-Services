@@ -112,7 +112,7 @@ public class SQLTranslatorUtils {
 		// Select defines the selection
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName(displayName);
-		selectColumn.setColumnSQL(derivedColumn.getSQLName());
+		selectColumn.setColumnSQL(derivedColumn.getColumnSQL());
 		
 		ColumnModel model = null;
 		if(referencedColumn != null){

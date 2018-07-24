@@ -72,7 +72,7 @@ public class DerivedColumnTest {
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(bar) as foo");
 		assertEquals("foo", element.getDisplayName());
 	}
-	//TODO: A lot of these tests that test the 'as' clause seem unnecessary
+
 	@Test
 	public void testGetDisplayNameWithAsAndDoubleQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"bar\"\"baz\" as foo");
@@ -197,6 +197,15 @@ public class DerivedColumnTest {
 	public void testgetReferencedColumnFunctionDistinct() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(distinct bar)");
 		assertEquals("bar", element.getReferencedColumn().toSql());
+	}
+
+	////////////////////////
+	// getColumnSQL() tests
+	////////////////////////
+	@Test
+	public void testGetColumnSQLWithAsClauseQuoted() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(\"bar\") as \"foo\"\"bar\"\"baz\"");
+		assertEquals("\"foo\"\"bar\"\"baz\"", element.getColumnSQL());
 	}
 
 }
