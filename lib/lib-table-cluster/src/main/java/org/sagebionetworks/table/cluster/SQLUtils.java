@@ -1458,9 +1458,9 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
-			builder.append("`");
-			builder.append(cm.getName());
-			builder.append("`");
+			builder.append("\""); //TODO: this is duplicate everywhere
+			builder.append(cm.getName().replaceAll("\"","\"\""));
+			builder.append("\"");
 			first = false;
 		}
 		builder.append(" FROM ");
