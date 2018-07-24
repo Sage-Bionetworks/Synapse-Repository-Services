@@ -726,7 +726,8 @@ public class SqlElementUntils {
 	}
 	
 	/**
-	 * Wrap the given string in double quotes.
+	 * Wrap the given string in double quotes and escape any existing double-quotes with 2 double-quotes ""
+	 * For example: My"quoted"string => "My""quoted""string"
 	 * 
 	 * @param toWrap
 	 * @return

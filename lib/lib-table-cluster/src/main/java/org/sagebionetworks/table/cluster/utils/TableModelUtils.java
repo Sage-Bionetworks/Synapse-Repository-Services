@@ -52,6 +52,7 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -1306,7 +1307,7 @@ public class TableModelUtils {
 	}
 
 	public static SelectColumn createSelectColumn(ColumnModel model) {
-		return createSelectColumn(model.getName(), "\"" + model.getName().replaceAll("\"","\"\"") + "\"", model.getColumnType(), model.getId());
+		return createSelectColumn(model.getName(), SqlElementUntils.wrapInDoubleQuotes(model.getName()), model.getColumnType(), model.getId());
 	}
 	
 	/**
