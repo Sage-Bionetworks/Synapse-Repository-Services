@@ -11,10 +11,6 @@ class DataciteMetadataConstants {
 	 */
 	static final String PUBLISHER_VALUE = "Synapse";
 
-	static final String DOI_URI_PREFIX = "10.7303/";
-
-	static final String ENTITY_PREFIX = "syn";
-
 	//XML, Datacite required attributes
 	static final String NAMESPACE = "xmlns";
 	static final String NAMESPACE_VALUE = "http://datacite.org/schema/kernel-4";

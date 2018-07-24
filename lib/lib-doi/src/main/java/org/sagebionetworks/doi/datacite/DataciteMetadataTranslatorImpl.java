@@ -12,20 +12,18 @@ import java.io.StringWriter;
 import java.util.List;
 
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
-import static org.sagebionetworks.doi.datacite.DataciteUtils.generateDoiUri;
-import static org.sagebionetworks.doi.datacite.DataciteUtils.getSchemeUri;
 
 /*
  * Translates our DoiV2 object into well-formed DataCite XML.
  */
 public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslator {
 
-	public String translate(Doi doi) {
-		return translateUtil(doi);
+	public String translate(DataciteMetadata metadata, final String doiUri) {
+		return translateUtil(metadata, doiUri);
 	}
 
-	static String translateUtil(Doi doi) {
-		Document dom = createXmlDom(doi);
+	static String translateUtil(DataciteMetadata doi, final String doiUri) {
+		Document dom = createXmlDom(doi, doiUri);
 		return xmlToString(dom);
 	}
 
@@ -42,7 +40,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		return xml.toString();
 	}
 
-	static Document createXmlDom(Doi doi) {
+	static Document createXmlDom(DataciteMetadata doi, final String doiUri) {
 		Document dom = new DocumentImpl();
 		Element resource = dom.createElement(RESOURCE);
 		resource.setAttribute(NAMESPACE_PREFIX, NAMESPACE_PREFIX_VALUE);
@@ -50,7 +48,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		resource.setAttribute(SCHEMA_LOCATION, SCHEMA_LOCATION_VALUE);
 		dom.appendChild(resource);
 
-		resource.appendChild(createIdentifierElement(dom, generateDoiUri(doi)));
+		resource.appendChild(createIdentifierElement(dom, doiUri));
 		resource.appendChild(createCreatorsElement(dom, doi.getCreators()));
 		resource.appendChild(createTitlesElement(dom, doi.getTitles()));
 		resource.appendChild(createPublisherElement(dom));
@@ -60,10 +58,10 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 	}
 
 
-	static Element createIdentifierElement(Document dom, String doi) {
+	static Element createIdentifierElement(Document dom, String doiUri) {
 		Element identifier = dom.createElement(IDENTIFIER);
 		identifier.setAttribute(IDENTIFIER_TYPE, IDENTIFIER_TYPE_VALUE);
-		identifier.setTextContent(doi);
+		identifier.setTextContent(doiUri);
 		return identifier;
 	}
 
@@ -122,5 +120,20 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		Element resourceTypeElement = dom.createElement(RESOURCE_TYPE);
 		resourceTypeElement.setAttribute(RESOURCE_TYPE_GENERAL, resourceType.getResourceTypeGeneral().name());
 		return resourceTypeElement;
+	}
+
+	static String getSchemeUri(NameIdentifierScheme scheme) {
+		String uri = null;
+		switch (scheme) {
+			case ORCID:
+				uri = ORCID_URI;
+				break;
+			case ISNI:
+				uri = ISNI_URI;
+				break;
+			default:
+				throw new IllegalArgumentException("Could not resolve URI for unknown name identifier scheme: " + scheme.name());
+		}
+		return uri;
 	}
 }
