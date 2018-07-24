@@ -9,7 +9,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -170,7 +169,7 @@ public class DataciteClientImplTest {
 		assertEquals("doi="+ URI +"\nurl=" + URL, registerDoiRequestBody(URI, URL));
 	}
 
-	@Test(expected = NotFoundException.class)
+	@Test(expected = RuntimeException.class)
 	public void testNoContent() throws Exception {
 		handleHttpErrorCode(HttpStatus.SC_NO_CONTENT);
 	}
@@ -190,7 +189,7 @@ public class DataciteClientImplTest {
 		handleHttpErrorCode(HttpStatus.SC_NOT_FOUND);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = RuntimeException.class)
 	public void testBadRequest() throws Exception {
 		handleHttpErrorCode(HttpStatus.SC_BAD_REQUEST);
 	}
@@ -200,7 +199,7 @@ public class DataciteClientImplTest {
 		handleHttpErrorCode(HttpStatus.SC_UNSUPPORTED_MEDIA_TYPE);
 	}
 
-	@Test(expected = NotReadyException.class)
+	@Test(expected = NotFoundException.class)
 	public void testRegisterDoiPreconditionFailed() throws Exception {
 		handleHttpErrorCode(HttpStatus.SC_PRECONDITION_FAILED);
 	}

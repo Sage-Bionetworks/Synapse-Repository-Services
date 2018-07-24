@@ -136,9 +136,9 @@ public class DataciteClientImpl implements DataciteClient {
 			throws IllegalArgumentException, NotFoundException, ServiceUnavailableException, NotReadyException {
 		switch (code) {
 			case HttpStatus.SC_BAD_REQUEST:
-				throw new IllegalArgumentException("Error registering metadata for DOI with DataCite. The request body was invalid, or the DOI prefix does not belong to Synapse.");
+				throw new RuntimeException("Error registering metadata for DOI with DataCite. The request body was invalid, or the DOI prefix does not belong to Synapse.");
 			case HttpStatus.SC_NO_CONTENT:
-				throw new NotFoundException("DOI was not minted in DataCite or was not resolvable.");
+				throw new RuntimeException("DOI was not minted in DataCite or was not resolvable.");
 			case HttpStatus.SC_NOT_FOUND:
 				throw new NotFoundException("DOI was not found in DataCite");
 			case HttpStatus.SC_UNAUTHORIZED:
@@ -146,7 +146,7 @@ public class DataciteClientImpl implements DataciteClient {
 			case HttpStatus.SC_FORBIDDEN:
 				throw new RuntimeException("Error accessing DOI. It may not belong to Synapse. There may have been an error authenticating with DataCite.");
 			case HttpStatus.SC_PRECONDITION_FAILED:
-				throw new NotReadyException(new AsynchronousJobStatus()); //TODO ??? 🤷‍
+				throw new NotFoundException("Metadata was not registered with DataCite. It may not have been registered, or may be propogating throughout their service.");
 			case HttpStatus.SC_UNSUPPORTED_MEDIA_TYPE:
 				throw new ServiceUnavailableException("Error accessing DOI. The content type may not have been specified.");
 			default:
