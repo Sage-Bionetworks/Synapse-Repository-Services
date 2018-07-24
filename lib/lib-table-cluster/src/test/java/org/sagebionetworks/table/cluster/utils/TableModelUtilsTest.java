@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.amazonaws.services.dynamodbv2.model.Select;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
