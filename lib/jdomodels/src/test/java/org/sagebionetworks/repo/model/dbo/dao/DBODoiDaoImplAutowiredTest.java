@@ -77,7 +77,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
 		final String etag2 = doi.getEtag();
 		assertEquals(objectId, doi.getObjectId());
-		assertEquals((Long)(-1L), doi.getObjectVersion());
+		assertNull(doi.getObjectVersion());
 		assertEquals(objectType, doi.getObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
@@ -104,7 +104,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(doi.getEtag());
 		assertEquals(etag2, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
-		assertEquals((Long) (-1L), doi.getObjectVersion());
+		assertNull(doi.getObjectVersion());
 		assertEquals(objectType, doi.getObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
@@ -133,7 +133,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(doi.getEtag());
 		assertEquals(etag2, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
-		assertEquals((Long)(-1L), doi.getObjectVersion());
+		assertNull(doi.getObjectVersion());
 		assertEquals(objectType, doi.getObjectType());
 		assertEquals(DoiStatus.ERROR, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
