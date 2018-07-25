@@ -1420,7 +1420,7 @@ public class TableWorkerIntegrationTest {
 		}
 
 		// select a string literal
-		query.setSql("select A, 'Has Space' from " + tableId);
+		query.setSql("select A, \"Has Space\" from " + tableId);
 		query.setLimit(100L);
 		queryResult = waitForConsistentQuery(adminUserInfo, query, runQuery, runCount, returnFacets);
 		assertNotNull(queryResult.getQueryResults());

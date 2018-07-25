@@ -1994,4 +1994,20 @@ public class TableModelUtilsTest {
 		assertEquals(newModel, results.get(0));
 		assertEquals(oldModel, results.get(1));
 	}
+
+	@Test
+	public void testCreateSelectColumn_givenColumnModelWithQuotedName(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("quoted\"Name\"");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("123");
+
+		SelectColumn selectColumn = TableModelUtils.createSelectColumn(cm);
+
+		assertNotNull(selectColumn);
+		assertEquals(cm.getName(), selectColumn.getName());
+		assertEquals("\"quoted\"\"Name\"\"\"", selectColumn.getColumnSQL());
+		assertEquals(cm.getColumnType(), selectColumn.getColumnType());
+		assertEquals(cm.getId(), selectColumn.getId());
+	}
 }

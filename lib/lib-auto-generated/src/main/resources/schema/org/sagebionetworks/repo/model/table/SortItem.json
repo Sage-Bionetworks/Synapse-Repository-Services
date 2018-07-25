@@ -3,7 +3,11 @@
     "properties": {
         "column": {
             "type": "string",
-            "description": "The column to sort on."
+            "description": "DEPRECATED: Use columnSQL instead. The column to sort on."
+        },
+        "columnSQL": {
+            "type": "string",
+            "description": "The SQL representation of the column to sort. Can be easily retrieved from the SelectColumn of a previous query result."
         },
         "direction": {
             "type": "string",
