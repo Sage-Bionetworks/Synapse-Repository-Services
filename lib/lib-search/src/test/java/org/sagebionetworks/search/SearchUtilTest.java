@@ -42,10 +42,6 @@ import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.FacetSort;
-import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
-import org.sagebionetworks.repo.model.search.query.FacetTopN;
-import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
@@ -235,80 +231,6 @@ public class SearchUtilTest {
 
 		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
 				.withFilterQuery("(and disease:'[\"normal\",\"carcinoma\"]')"), searchRequest);	}
-
-	@Test
-	public void testFacets() {
-		// facets
-		query.setQueryTerm(q);
-		List<String> facets = new ArrayList<>();
-		facets.add("facet1");
-		facets.add("facet2");
-		query.setQueryTerm(q);
-		query.setFacet(facets);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"facet1\":{},\"facet2\":{}}"), searchRequest);
-	}
-
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testFacetConstraints() {
-		// facet field constraints
-		query.setQueryTerm(q);
-		List<KeyList> facetFieldConstraints = new ArrayList<>();
-		KeyList ffc1 = new KeyList();
-		ffc1.setKey("facet1");
-		ffc1.setValues(Arrays.asList("one,two\\three", "dave's", "regular"));
-		facetFieldConstraints.add(ffc1);
-		KeyList ffc2 = new KeyList();
-		ffc2.setKey("facet2");
-		ffc2.setValues(Arrays.asList("123", "4..5"));
-		facetFieldConstraints.add(ffc2);
-		query.setFacetFieldConstraints(facetFieldConstraints);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-	}
-	@Test (expected = IllegalArgumentException.class)
-	public void testFacetSort() {
-		// facet field sort
-		query.setQueryTerm(q);
-		List<FacetSort> facetFieldSorts = null;
-		FacetSort fs = null;
-
-		fs = new FacetSort();
-		fs.setFacetName("facet1");
-		fs.setSortType(FacetSortOptions.ALPHA);
-		facetFieldSorts = new ArrayList<>();
-		facetFieldSorts.add(fs);
-		query.setQueryTerm(q);
-		query.setFacetFieldSort(facetFieldSorts);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testFacetFieldTopN() {
-		// facet field top N
-		List<FacetTopN> topNList = new ArrayList<>();
-		FacetTopN topn = null;
-
-		topn = new FacetTopN();
-		topn.setKey("facet1");
-		topn.setValue(10L);
-		topNList.add(topn);
-
-		topn = new FacetTopN();
-		topn.setKey("facet2");
-		topn.setValue(20L);
-		topNList.add(topn);
-
-		query.setQueryTerm(q);
-		query.setFacetFieldTopN(topNList);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-	}
-	@Test (expected=IllegalArgumentException.class)
-	public void testRank() {
-		query.setQueryTerm(q);
-		query.setRank(Arrays.asList("rankfield1", "-rankfield2"));
-		searchRequest = SearchUtil.generateSearchRequest(query);
-	}
 
 	@Test
 	public void testReturnFields() {
