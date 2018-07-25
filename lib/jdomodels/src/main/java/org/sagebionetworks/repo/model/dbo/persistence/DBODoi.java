@@ -51,12 +51,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
 					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
-					// Object version is nullable
-					// We can't just use rs.getLong() which returns a primitive long
-					Object obj = rs.getObject(COL_DOI_OBJECT_VERSION);
-					if (obj != null) {
-						dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
-					}
+					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
 					dbo.setUpdatedOn(rs.getTimestamp(COL_DOI_UPDATED_ON));
