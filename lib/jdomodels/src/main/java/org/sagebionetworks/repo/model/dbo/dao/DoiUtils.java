@@ -25,7 +25,11 @@ public class DoiUtils {
 			dto.setObjectId(dbo.getObjectId().toString());
 		}
 		dto.setObjectType(objectType);
-		dto.setObjectVersion(dbo.getObjectVersion());
+		if (dbo.getObjectVersion().equals(-1L)) {
+			dto.setObjectVersion(null);
+		} else {
+			dto.setObjectVersion(dbo.getObjectVersion());
+		}
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(dbo.getCreatedOn());
 		dto.setUpdatedOn(dbo.getUpdatedOn());
@@ -42,7 +46,11 @@ public class DoiUtils {
 		dbo.setDoiStatus(dto.getDoiStatus());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
 		dbo.setObjectType(dto.getObjectType());
-		dbo.setObjectVersion(dto.getObjectVersion());
+		if (dto.getObjectVersion() == null) {
+			dbo.setObjectVersion(-1L);
+		} else {
+			dbo.setObjectVersion(dto.getObjectVersion());
+		}
 		dbo.setCreatedBy(Long.valueOf(dto.getCreatedBy()));
 		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		dbo.setUpdatedOn(new Timestamp(dto.getUpdatedOn().getTime()));
