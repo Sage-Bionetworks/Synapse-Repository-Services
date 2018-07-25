@@ -166,7 +166,25 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new BasicMigratableTableTranslation<DBODoi>();
+		return new BasicMigratableTableTranslation<DBODoi>() {
+			@Override
+			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
+				// Convert null object version to -1
+				if (backup.objectVersion == null) {
+					backup.setObjectVersion(-1L);
+				}
+				return backup;
+			}
+
+			@Override
+			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
+				// Convert -1 object version to null
+				if (dbo.objectVersion == -1) {
+					dbo.setObjectVersion(null);
+				}
+				return dbo;
+			}
+		};
 	}
 
 	@Override

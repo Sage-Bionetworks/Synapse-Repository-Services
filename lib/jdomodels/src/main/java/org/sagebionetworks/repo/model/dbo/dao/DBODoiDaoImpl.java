@@ -83,7 +83,11 @@ public class DBODoiDaoImpl implements DoiDao {
 		dbo.setETag(UUID.randomUUID().toString());
 		dbo.setObjectId(KeyFactory.stringToKey(objectId));
 		dbo.setObjectType(objectType);
-		dbo.setObjectVersion(versionNumber);
+		if (versionNumber == null) {
+			dbo.setObjectVersion(-1L);
+		} else {
+			dbo.setObjectVersion(versionNumber);
+		}
 		dbo.setDoiStatus(doiStatus);
 		dbo.setCreatedBy(KeyFactory.stringToKey(userGroupId));
 		DateTime dt = DateTime.now();
@@ -118,7 +122,12 @@ public class DBODoiDaoImpl implements DoiDao {
 			throw new IllegalArgumentException("DOI status cannot be null.");
 		}
 
-		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		DBODoi dbo = null;
+		if (versionNumber == null) {
+			dbo = getDbo(objectId, objectType, -1L);
+		} else {
+			dbo = getDbo(objectId, objectType, versionNumber);
+		}
 		if (!dbo.getETag().equals(etag)) {
 			throw new ConflictingUpdateException("Etags do not match.");
 		}
@@ -140,19 +149,26 @@ public class DBODoiDaoImpl implements DoiDao {
 		if (objectType == null) {
 			throw new IllegalArgumentException("Object type cannot be null.");
 		}
-		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		DBODoi dbo = null;
+		if (versionNumber == null) {
+			dbo = getDbo(objectId, objectType, -1L);
+		} else {
+			dbo = getDbo(objectId, objectType, versionNumber);
+		}
 		return DoiUtils.convertToDto(dbo);
 	}
 
 	private DBODoi getDbo (String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, DatastoreException {
 
-		String sql = (versionNumber == null ? SELECT_DOI_NULL_OBJECT_VERSION : SELECT_DOI);
+		String sql = SELECT_DOI;
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
 		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
 		if (versionNumber != null) {
 			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
+		} else {
+			paramMap.addValue(COL_DOI_OBJECT_VERSION, -1L);
 		}
 		List<DBODoi> dboList = namedJdbcTemplate.query(sql, paramMap, rowMapper);
 		if (dboList == null || dboList.size() == 0) {
