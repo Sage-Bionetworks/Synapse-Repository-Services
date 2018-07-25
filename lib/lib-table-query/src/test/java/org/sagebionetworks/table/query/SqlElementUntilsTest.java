@@ -351,6 +351,13 @@ public class SqlElementUntilsTest {
 		String result = SqlElementUntils.wrapInDoubleQuotes(toWrap);
 		assertEquals("\"foo\"", result);
 	}
+
+	@Test
+	public void testWrapInDoubleQuotes_StringContainsDoubleQuotes(){
+		String toBeWrapped = "\"Don't trust everything you read on the internet\" - Abraham Lincoln";
+		String expectedResult = "\"\"\"Don't trust everything you read on the internet\"\" - Abraham Lincoln\"";
+		assertEquals(expectedResult, SqlElementUntils.wrapInDoubleQuotes(toBeWrapped));
+	}
 	
 	@Test
 	public void testCreateSortKeyWithKeywordInName() throws ParseException{
@@ -407,5 +414,5 @@ public class SqlElementUntilsTest {
 		DerivedColumn dr = SqlElementUntils.createNonQuotedDerivedColumn("ROW_ID");
 		assertEquals("ROW_ID", dr.toSql());
 	}
-	
+
 }

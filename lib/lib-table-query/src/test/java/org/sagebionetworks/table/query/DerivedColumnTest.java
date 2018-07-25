@@ -51,19 +51,6 @@ public class DerivedColumnTest {
 	}
 
 	@Test
-	public void testGetDisplayNameWithAsAndFunction() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(bar) as foo");
-		assertEquals("foo", element.getDisplayName());
-	}
-
-	@Test
-	public void testGetDisplayNameWithAsAndDoubleQuotes() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"bar\"\"baz\" as foo");
-		assertEquals("foo", element.getDisplayName());
-	}
-
-
-	@Test
 	public void testGetReferencedColumnCountStar() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*)");
 		assertEquals(null, element.getReferencedColumn());
@@ -106,19 +93,19 @@ public class DerivedColumnTest {
 	}
 
 	@Test
-	public void testgetReferencedColumnFunctionQuotesSingle() throws ParseException{
+	public void testGetReferencedColumnFunctionQuotesSingle() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max('bar')");
 		assertEquals("'bar'", element.getReferencedColumn().toSql());
 	}
 
 	@Test
-	public void testgetReferencedColumnFunctionAs() throws ParseException{
+	public void testGetReferencedColumnFunctionAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(bar) as \"foo\"");
 		assertEquals("bar", element.getReferencedColumn().toSql());
 	}
 
 	@Test
-	public void testgetReferencedColumnFunctionDistinct() throws ParseException{
+	public void testGetReferencedColumnFunctionDistinct() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(distinct bar)");
 		assertEquals("bar", element.getReferencedColumn().toSql());
 	}
@@ -132,4 +119,9 @@ public class DerivedColumnTest {
 		assertEquals("\"foo\"\"bar\"\"baz\"", element.getColumnSQL());
 	}
 
+	@Test
+	public void testGetColumnSQLWithoutAsClauseQuoted() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"foo\"\"bar\"\"baz\"");
+		assertEquals("\"foo\"\"bar\"\"baz\"", element.getColumnSQL());
+	}
 }

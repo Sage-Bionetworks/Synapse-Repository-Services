@@ -105,7 +105,7 @@ public class ValueExpressionTest {
 	}
 
 	@Test
-	public void testGetDisplayNameWithAggregate() throws ParseException{
+	public void testGetDisplayNameWithAggregateAndNoQuotes() throws ParseException{
 		ValueExpression element = SqlElementUntils.createValueExpression("count(foo)");
 		assertEquals("COUNT(foo)", element.getDisplayName());
 	}
