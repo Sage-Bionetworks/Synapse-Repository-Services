@@ -15,27 +15,20 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class DoiUtilsTest {
 
+	private static final Long createdBy = 1L;
+	private static final Timestamp createdOn = new Timestamp((new Date()).getTime());
+	private static final ObjectType objectType = ObjectType.ENTITY;
+	private static final DoiStatus doiStatus = DoiStatus.CREATED;
+	private static final String eTag = "eTag";
+	private static final Long id = 2L;
+	private static final Long objectId = 3L;
+	private static final Long objectVersion = 4L;
+	private static final Timestamp updatedOn = new Timestamp((new Date()).getTime());
+
 	@Test
 	public void testConvertToDto() {
-		final Long createdBy = 1L;
-		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final ObjectType objectType = ObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.CREATED;
-		final String eTag = "eTag";
-		final Long id = 2L;
-		final Long objectId = 3L;
-		final Long objectVersion = 4L;
-		final Timestamp updatedOn = new Timestamp((new Date()).getTime());
-		DBODoi dbo = new DBODoi();
-		dbo.setCreatedBy(createdBy);
-		dbo.setCreatedOn(createdOn);
-		dbo.setObjectType(objectType);
-		dbo.setDoiStatus(doiStatus);
-		dbo.setETag(eTag);
-		dbo.setId(id);
-		dbo.setObjectId(objectId);
-		dbo.setObjectVersion(objectVersion);
-		dbo.setUpdatedOn(updatedOn);
+		DBODoi dbo = setUpDbo();
+		// Call under test
 		Doi dto = DoiUtils.convertToDto(dbo);
 		assertEquals(createdBy.toString(), dto.getCreatedBy());
 		assertEquals(createdOn.getTime(), dto.getCreatedOn().getTime());
@@ -50,25 +43,9 @@ public class DoiUtilsTest {
 
 	@Test
 	public void testConvertToDtoNoVersion() {
-		final Long createdBy = 1L;
-		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final ObjectType objectType = ObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.CREATED;
-		final String eTag = "eTag";
-		final Long id = 2L;
-		final Long objectId = 3L;
-		final Long objectVersion = -1L;
-		final Timestamp updatedOn = new Timestamp((new Date()).getTime());
-		DBODoi dbo = new DBODoi();
-		dbo.setCreatedBy(createdBy);
-		dbo.setCreatedOn(createdOn);
-		dbo.setObjectType(objectType);
-		dbo.setDoiStatus(doiStatus);
-		dbo.setETag(eTag);
-		dbo.setId(id);
-		dbo.setObjectId(objectId);
-		dbo.setObjectVersion(objectVersion);
-		dbo.setUpdatedOn(updatedOn);
+		DBODoi dbo = setUpDbo();
+		dbo.setObjectVersion(DBODoi.NULL_OBJECT_VERSION);
+		//Call under test
 		Doi dto = DoiUtils.convertToDto(dbo);
 		assertEquals(createdBy.toString(), dto.getCreatedBy());
 		assertEquals(createdOn.getTime(), dto.getCreatedOn().getTime());
@@ -83,25 +60,8 @@ public class DoiUtilsTest {
 
 	@Test
 	public void testConvertToDbo() {
-		final Long createdBy = 1L;
-		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final ObjectType objectType = ObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.CREATED;
-		final String eTag = "eTag";
-		final Long id = 2L;
-		final Long objectId = 3L;
-		final Long objectVersion = 4L;
-		final Timestamp updatedOn = new Timestamp((new Date()).getTime());
-		Doi dto = new Doi();
-		dto.setCreatedBy(createdBy.toString());
-		dto.setCreatedOn(createdOn);
-		dto.setObjectType(objectType);
-		dto.setDoiStatus(doiStatus);
-		dto.setEtag(eTag);
-		dto.setId(id.toString());
-		dto.setObjectId(objectId.toString());
-		dto.setObjectVersion(objectVersion);
-		dto.setUpdatedOn(updatedOn);
+		Doi dto = setUpDto();
+		// Call under test
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		assertEquals(createdBy, dbo.getCreatedBy());
 		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
@@ -116,15 +76,36 @@ public class DoiUtilsTest {
 
 	@Test
 	public void testConvertToDboNoVersion() {
-		final Long createdBy = 1L;
-		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final ObjectType objectType = ObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.CREATED;
-		final String eTag = "eTag";
-		final Long id = 2L;
-		final Long objectId = 3L;
-		final Long objectVersion = null;
-		final Timestamp updatedOn = new Timestamp((new Date()).getTime());
+		Doi dto = setUpDto();
+		dto.setObjectVersion(null);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+		assertEquals(createdBy, dbo.getCreatedBy());
+		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
+		assertEquals(objectType.name(), dbo.getObjectType());
+		assertEquals(doiStatus.name(), dbo.getDoiStatus());
+		assertEquals(eTag, dbo.getETag());
+		assertEquals(id, dbo.getId());
+		assertEquals(objectId, dbo.getObjectId());
+		assertEquals((Long)DBODoi.NULL_OBJECT_VERSION, dbo.getObjectVersion());
+		assertEquals(updatedOn.getTime(), dbo.getUpdatedOn().getTime());
+	}
+
+	private static DBODoi setUpDbo() {
+		DBODoi dbo = new DBODoi();
+		dbo.setCreatedBy(createdBy);
+		dbo.setCreatedOn(createdOn);
+		dbo.setObjectType(objectType);
+		dbo.setDoiStatus(doiStatus);
+		dbo.setETag(eTag);
+		dbo.setId(id);
+		dbo.setObjectId(objectId);
+		dbo.setObjectVersion(objectVersion);
+		dbo.setUpdatedOn(updatedOn);
+		return dbo;
+	}
+
+	private static Doi setUpDto() {
 		Doi dto = new Doi();
 		dto.setCreatedBy(createdBy.toString());
 		dto.setCreatedOn(createdOn);
@@ -135,15 +116,6 @@ public class DoiUtilsTest {
 		dto.setObjectId(objectId.toString());
 		dto.setObjectVersion(objectVersion);
 		dto.setUpdatedOn(updatedOn);
-		DBODoi dbo = DoiUtils.convertToDbo(dto);
-		assertEquals(createdBy, dbo.getCreatedBy());
-		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
-		assertEquals(objectType.name(), dbo.getObjectType());
-		assertEquals(doiStatus.name(), dbo.getDoiStatus());
-		assertEquals(eTag, dbo.getETag());
-		assertEquals(id, dbo.getId());
-		assertEquals(objectId, dbo.getObjectId());
-		assertEquals((Long)(-1L), dbo.getObjectVersion());
-		assertEquals(updatedOn.getTime(), dbo.getUpdatedOn().getTime());
+		return dto;
 	}
 }

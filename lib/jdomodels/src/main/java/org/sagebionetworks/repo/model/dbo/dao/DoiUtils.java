@@ -10,6 +10,11 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class DoiUtils {
 
+	/**
+	 * Converts a DOI DBO into a Doi DTO
+	 * @param dbo A DOI database object
+	 * @return A DOI data transfer object with all fields filled in.
+	 */
 	public static Doi convertToDto(DBODoi dbo) {
 		if (dbo == null) {
 			throw new IllegalArgumentException("DBO cannot be null.");
@@ -25,7 +30,7 @@ public class DoiUtils {
 			dto.setObjectId(dbo.getObjectId().toString());
 		}
 		dto.setObjectType(objectType);
-		if (dbo.getObjectVersion().equals(-1L)) {
+		if (dbo.getObjectVersion().equals(DBODoi.NULL_OBJECT_VERSION)) {
 			dto.setObjectVersion(null);
 		} else {
 			dto.setObjectVersion(dbo.getObjectVersion());
@@ -36,24 +41,37 @@ public class DoiUtils {
 		return dto;
 	}
 
+	/**
+	 * Converts a DOI DTO into a DOI DBO
+	 * @param dto A DOI data transfer object to convert to a DBO
+	 * @return A corresponding DOI database object.
+	 */
 	public static DBODoi convertToDbo(Doi dto) {
 		if (dto == null) {
 			throw new IllegalArgumentException("DTO cannot be null.");
 		}
 		DBODoi dbo = new DBODoi();
-		dbo.setId(Long.valueOf(dto.getId()));
+		if (dto.getId() != null) {
+			dbo.setId(Long.valueOf(dto.getId()));
+		}
 		dbo.setETag(dto.getEtag());
 		dbo.setDoiStatus(dto.getDoiStatus());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
 		dbo.setObjectType(dto.getObjectType());
 		if (dto.getObjectVersion() == null) {
-			dbo.setObjectVersion(-1L);
+			dbo.setObjectVersion(DBODoi.NULL_OBJECT_VERSION);
 		} else {
 			dbo.setObjectVersion(dto.getObjectVersion());
 		}
-		dbo.setCreatedBy(Long.valueOf(dto.getCreatedBy()));
-		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
-		dbo.setUpdatedOn(new Timestamp(dto.getUpdatedOn().getTime()));
+		if (dto.getCreatedBy() != null) {
+			dbo.setCreatedBy(Long.valueOf(dto.getCreatedBy()));
+		}
+		if (dto.getCreatedOn() != null) {
+			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
+		}
+		if (dto.getUpdatedOn() != null) {
+			dbo.setUpdatedOn(new Timestamp(dto.getUpdatedOn().getTime()));
+		}
 		return dbo;
 	}
 }

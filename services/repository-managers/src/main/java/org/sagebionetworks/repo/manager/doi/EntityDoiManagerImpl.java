@@ -36,7 +36,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	@Autowired private UserManager userManager;
 	@Autowired private AuthorizationManager authorizationManager;
 	@Autowired private DoiDao doiDao;
-	@Autowired private NodeDAO nodeDao;;
+	@Autowired private NodeDAO nodeDao;
 	private final DoiAsyncClient ezidAsyncClient;
 	private final DxAsyncClient dxAsyncClient;
 
@@ -67,11 +67,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 
-		// If it already exists with no error, no need to create again.
-		Doi doiDto = null;
-		try {
-			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
-		} catch (NotFoundException e) {
+		Doi doiDto = initializeDto(null, entityId, ObjectType.ENTITY, versionNumber, null);
+		try {		// If it already exists with no error, no need to create again.
+			doiDto = doiDao.getDoi(doiDto);
+		} catch (NotFoundException e) { // TODO: Switch behavior to not swallow exception
 			doiDto = null;
 		}
 		if (doiDto != null && !DoiStatus.ERROR.equals(doiDto.getDoiStatus())) {
@@ -84,9 +83,11 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Record the attempt. This is where we draw the transaction boundary.
 		if (doiDto == null) {
 			String userGroupId = currentUser.getId().toString();
-			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
+			doiDto = initializeDto(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
+			doiDto = doiDao.createDoi(doiDto);
 		} else {
-			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
+			doiDto.setDoiStatus(DoiStatus.IN_PROCESS);
+			doiDto = doiDao.updateDoiStatus(doiDto);
 		}
 
 		// Create DOI string
@@ -121,11 +122,9 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				assert doi != null;
 				try {
 					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getObjectType(),
-							dto.getObjectVersion(), DoiStatus.CREATED, dto.getEtag());
-				} catch (DatastoreException e) {
-					logger.error(e.getMessage(), e);
-				} catch (NotFoundException e) {
+					dto.setDoiStatus(DoiStatus.CREATED);
+					doiDao.updateDoiStatus(dto);
+				} catch (DatastoreException | NotFoundException e) {
 					logger.error(e.getMessage(), e);
 				}
 			}
@@ -136,11 +135,9 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				try {
 					logger.error(e.getMessage(), e);
 					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getObjectType(),
-							dto.getObjectVersion(), DoiStatus.ERROR, dto.getEtag());
-				} catch (DatastoreException x) {
-					logger.error(x.getMessage(), x);
-				} catch (NotFoundException x) {
+					dto.setDoiStatus(DoiStatus.ERROR);
+					doiDao.updateDoiStatus(dto);
+				} catch (DatastoreException | NotFoundException x) {
 					logger.error(x.getMessage(), x);
 				}
 			}
@@ -153,14 +150,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			public void onSuccess(EzidDoi ezidDoi) {
 				try {
 					Doi doiDto = ezidDoi.getDto();
-					doiDto = doiDao.getDoi(doiDto.getObjectId(), doiDto.getObjectType(),
-							doiDto.getObjectVersion());
-					doiDao.updateDoiStatus(doiDto.getObjectId(),
-							doiDto.getObjectType(), doiDto.getObjectVersion(),
-							DoiStatus.READY, doiDto.getEtag());
-				} catch (DatastoreException e) {
-					logger.error(e.getMessage(), e);
-				} catch (NotFoundException e) {
+					doiDto = doiDao.getDoi(doiDto);
+					doiDto.setDoiStatus(DoiStatus.READY);
+					doiDao.updateDoiStatus(doiDto);
+				} catch (DatastoreException | NotFoundException e) {
 					logger.error(e.getMessage(), e);
 				}
 			}
@@ -189,7 +182,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		UserInfo.validateUserInfo(currentUser);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
+		Doi dto = initializeDto(null, entityId, ObjectType.ENTITY, versionNumber, null);
+		return doiDao.getDoi(dto);
 	}
 
 	/** Gets the node whose information will be used in DOI metadata. */
@@ -228,9 +222,33 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		Node node = getNode(entityId, null);
 		Long versionNumber = null;
 		// Versionables such as files should have the null versionNumber converted into non-null versionNumber
-		if (node.getNodeType() == EntityType.file || node.getNodeType() == EntityType.table) {
+		if (node.getNodeType() == EntityType.file || node.getNodeType() == EntityType.table) { // TODO: Are these the only versionables?
 			versionNumber = getNode(entityId, null).getVersionNumber();
 		}
-		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
+		Doi dto = initializeDto(null, entityId, ObjectType.ENTITY, versionNumber, null);
+		return doiDao.getDoi(dto);
+	}
+
+	/**
+	 * Supply parameters to create a DTO that can be passed into the DAO.
+	 * @param createdBy User/group ID of the creator. Optional
+	 * @param objectId ID of the object to which the DOI refers
+	 * @param type Type of the object to which the DOI refers
+	 * @param version Version of the object to which the DOI refers. Optional.
+	 * @param status Status of DOI to which the DOI should refer (for update). Optional.
+	 * @return A DTO that can be used by the DAO for DOI creation/lookup.
+	 */
+	static Doi initializeDto(String createdBy, String objectId, ObjectType type, Long version, DoiStatus status) {
+		Doi dto = new Doi();
+		if (createdBy != null) {
+			dto.setCreatedBy(createdBy);
+		}
+		dto.setObjectId(objectId);
+		dto.setObjectType(type);
+		dto.setObjectVersion(version);
+		if (status != null) {
+			dto.setDoiStatus(status);
+		}
+		return dto;
 	}
 }

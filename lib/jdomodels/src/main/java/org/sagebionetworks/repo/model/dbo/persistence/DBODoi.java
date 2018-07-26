@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
+	public static final long NULL_OBJECT_VERSION = -1L;
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true).withIsBackupId(true),
 			new FieldColumn("eTag", COL_DOI_ETAG).withIsEtag(true),
@@ -166,18 +168,9 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
 				// Convert null object version to -1
 				if (backup.objectVersion == null) {
-					backup.setObjectVersion(-1L);
+					backup.setObjectVersion(NULL_OBJECT_VERSION);
 				}
 				return backup;
-			}
-
-			@Override
-			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
-				// Convert -1 object version to null
-				if (dbo.objectVersion == -1) {
-					dbo.setObjectVersion(null);
-				}
-				return dbo;
 			}
 		};
 	}

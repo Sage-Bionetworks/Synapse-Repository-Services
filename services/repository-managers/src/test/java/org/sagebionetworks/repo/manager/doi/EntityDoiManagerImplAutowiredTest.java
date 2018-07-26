@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.manager.doi;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -219,7 +219,13 @@ public class EntityDoiManagerImplAutowiredTest {
 		// Set up an error status first
 		// Test that we should be able to recreate the DOI from here
 		final String userId = testUserInfo.getId().toString();
-		doiDao.createDoi(userId, nodeId, ObjectType.ENTITY, null, DoiStatus.ERROR);
+		Doi dto = new Doi();
+		dto.setCreatedBy(userId);
+		dto.setObjectId(nodeId);
+		dto.setObjectType(ObjectType.ENTITY);
+		dto.setObjectVersion(null);
+		dto.setDoiStatus(DoiStatus.ERROR);
+		doiDao.createDoi(dto);
 
 		Doi doiCreate = entityDoiManager.createDoi(testUserId, nodeId, null);
 
@@ -265,7 +271,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	
 	@SuppressWarnings("deprecation")
 	@Test
-	public void testGetDoiForCurrentVersionProject() throws Exception {
+	public void testGetDoiForCurrentVersionProject() {
 		Node node = new Node();
 		final String nodeName = "EntityDoiManagerImplAutowiredTest.testGetDoiForCurrentVersionProject()";
 		node.setName(nodeName);
@@ -301,7 +307,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	
 	@SuppressWarnings("deprecation")
 	@Test(expected = NotFoundException.class)
-	public void testGetDoiForCurrentVersionFile() throws Exception {
+	public void testGetDoiForCurrentVersionFile() {
 		Node node = new Node();
 		final String nodeName = "EntityDoiManagerImplAutowiredTest.testGetDoiForCurrentVersionFile()";
 		node.setName(nodeName);
@@ -331,7 +337,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	
 	@SuppressWarnings("deprecation")
 	@Test
-	public void testDOIVersioning() throws Exception {
+	public void testDOIVersioning() {
 		Node node = new Node();
 		final String nodeName = "EntityDoiManagerImplAutowiredTest.testDOIVersioning()";
 		node.setName(nodeName);
@@ -357,7 +363,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode, namedToUpdate, true);
 		assertNotNull(afterUpdate);
 		assertNotNull(afterUpdate.getETag());
-		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
+		assertNotEquals(afterUpdate.getETag(), eTagBeforeUpdate);
 
 		// Create Doi for version 1
 		Doi doiCreate = entityDoiManager.createDoi(adminUserInfo.getId(), nodeId, 1L);
@@ -422,6 +428,6 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(adminUserInfo.getId().toString(), doiGetVersion.getCreatedBy());
 		assertNotNull(doiGetVersion.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiGetVersion.getDoiStatus());
-		assertFalse(doiCreate.equals(doiGetVersion));
+		assertNotEquals(doiCreate, doiGetVersion);
 	}
 }
