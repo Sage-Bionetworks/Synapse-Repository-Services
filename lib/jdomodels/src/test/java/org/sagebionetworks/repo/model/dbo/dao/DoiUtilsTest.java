@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class DoiUtilsTest {
 
@@ -74,6 +73,16 @@ public class DoiUtilsTest {
 		assertEquals(objectId, dbo.getObjectId());
 		assertEquals(objectVersion, dbo.getObjectVersion());
 		assertEquals(updatedOn.getTime(), dbo.getUpdatedOn().getTime());
+	}
+
+	@Test
+	public void testConvertToDboNotEntity() {
+		Doi dto = setUpDto();
+		dto.setId("3");
+		dto.setObjectType(ObjectType.WIKI);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+		assertEquals(dto.getId(), dbo.getId().toString());
 	}
 
 	@Test
