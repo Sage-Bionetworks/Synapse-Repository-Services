@@ -36,9 +36,19 @@ public class DoiUtilsTest {
 		assertEquals(doiStatus, dto.getDoiStatus());
 		assertEquals(eTag, dto.getEtag());
 		assertEquals(id.toString(), dto.getId());
-		assertEquals(objectId, KeyFactory.stringToKey(dto.getObjectId()));
+		assertEquals("syn" + objectId.toString(), dto.getObjectId());
 		assertEquals(objectVersion, dto.getObjectVersion());
 		assertEquals(updatedOn.getTime(), dto.getUpdatedOn().getTime());
+	}
+
+	@Test
+	public void testConvertToDtoNotEntity() {
+		DBODoi dbo = setUpDbo();
+		dbo.setObjectType(ObjectType.WIKI);
+		// Call under test
+		Doi dto = DoiUtils.convertToDto(dbo);
+		assertEquals(objectId.toString(), dto.getObjectId());
+		assertEquals(ObjectType.WIKI, dto.getObjectType());
 	}
 
 	@Test
@@ -47,15 +57,7 @@ public class DoiUtilsTest {
 		dbo.setObjectVersion(DBODoi.NULL_OBJECT_VERSION);
 		//Call under test
 		Doi dto = DoiUtils.convertToDto(dbo);
-		assertEquals(createdBy.toString(), dto.getCreatedBy());
-		assertEquals(createdOn.getTime(), dto.getCreatedOn().getTime());
-		assertEquals(objectType, dto.getObjectType());
-		assertEquals(doiStatus, dto.getDoiStatus());
-		assertEquals(eTag, dto.getEtag());
-		assertEquals(id.toString(), dto.getId());
-		assertEquals(objectId, KeyFactory.stringToKey(dto.getObjectId()));
 		assertNull(dto.getObjectVersion());
-		assertEquals(updatedOn.getTime(), dto.getUpdatedOn().getTime());
 	}
 
 	@Test
@@ -80,15 +82,7 @@ public class DoiUtilsTest {
 		dto.setObjectVersion(null);
 		// Call under test
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
-		assertEquals(createdBy, dbo.getCreatedBy());
-		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
-		assertEquals(objectType.name(), dbo.getObjectType());
-		assertEquals(doiStatus.name(), dbo.getDoiStatus());
-		assertEquals(eTag, dbo.getETag());
-		assertEquals(id, dbo.getId());
-		assertEquals(objectId, dbo.getObjectId());
 		assertEquals((Long)DBODoi.NULL_OBJECT_VERSION, dbo.getObjectVersion());
-		assertEquals(updatedOn.getTime(), dbo.getUpdatedOn().getTime());
 	}
 
 	private static DBODoi setUpDbo() {

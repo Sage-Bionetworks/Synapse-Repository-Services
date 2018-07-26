@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.EntityType;
@@ -52,7 +53,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	 */
 	@Override
 	public Doi createDoi(final Long userId, final String entityId, final Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
+			throws NotFoundException, UnauthorizedException {
 
 		if (userId == null) {
 			throw new IllegalArgumentException("User name cannot be null or empty.");
@@ -67,10 +68,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 
-		Doi doiDto = initializeDto(null, entityId, ObjectType.ENTITY, versionNumber, null);
+		Doi doiDto;
 		try {		// If it already exists with no error, no need to create again.
-			doiDto = doiDao.getDoi(doiDto);
-		} catch (NotFoundException e) { // TODO: Switch behavior to not swallow exception
+			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
+		} catch (NotFoundException e) { // TODO: Switch behavior to not swallow exception?
 			doiDto = null;
 		}
 		if (doiDto != null && !DoiStatus.ERROR.equals(doiDto.getDoiStatus())) {
@@ -81,13 +82,20 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		final Node node = getNode(entityId, versionNumber);
 
 		// Record the attempt. This is where we draw the transaction boundary.
-		if (doiDto == null) {
+		if (doiDto == null) { // Create a new entry
 			String userGroupId = currentUser.getId().toString();
-			doiDto = initializeDto(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
-			doiDto = doiDao.createDoi(doiDto);
-		} else {
+			doiDto = new Doi();
+			doiDto.setCreatedBy(userGroupId);
+			doiDto.setObjectId(entityId);
+			doiDto.setObjectType(ObjectType.ENTITY);
+			doiDto.setObjectVersion(versionNumber);
 			doiDto.setDoiStatus(DoiStatus.IN_PROCESS);
-			doiDto = doiDao.updateDoiStatus(doiDto);
+			doiDto = doiDao.createDoi(doiDto);
+		} else { // Attempt to reregister an "Error" entry.
+			if (!doiDao.getEtagForUpdate(doiDto.getId()).equals(doiDto.getEtag())) {
+				throw new ConflictingUpdateException("Etags do not match.");
+			}
+			doiDto = doiDao.updateDoiStatus(doiDto.getId(), DoiStatus.IN_PROCESS);
 		}
 
 		// Create DOI string
@@ -122,8 +130,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				assert doi != null;
 				try {
 					Doi dto = doi.getDto();
-					dto.setDoiStatus(DoiStatus.CREATED);
-					doiDao.updateDoiStatus(dto);
+					if (!doiDao.getEtagForUpdate(dto.getId()).equals(dto.getEtag())) {
+						throw new ConflictingUpdateException("Etags do not match.");
+					}
+					doiDao.updateDoiStatus(dto.getId(), DoiStatus.CREATED);
 				} catch (DatastoreException | NotFoundException e) {
 					logger.error(e.getMessage(), e);
 				}
@@ -135,8 +145,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				try {
 					logger.error(e.getMessage(), e);
 					Doi dto = doi.getDto();
-					dto.setDoiStatus(DoiStatus.ERROR);
-					doiDao.updateDoiStatus(dto);
+					if (!doiDao.getEtagForUpdate(dto.getId()).equals(dto.getEtag())) {
+						throw new ConflictingUpdateException("Etags do not match.");
+					}
+					doiDao.updateDoiStatus(dto.getId(), DoiStatus.ERROR);
 				} catch (DatastoreException | NotFoundException x) {
 					logger.error(x.getMessage(), x);
 				}
@@ -150,9 +162,11 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			public void onSuccess(EzidDoi ezidDoi) {
 				try {
 					Doi doiDto = ezidDoi.getDto();
-					doiDto = doiDao.getDoi(doiDto);
-					doiDto.setDoiStatus(DoiStatus.READY);
-					doiDao.updateDoiStatus(doiDto);
+					doiDto = doiDao.getDoi(doiDto.getId());
+					if (!doiDao.getEtagForUpdate(doiDto.getId()).equals(doiDto.getEtag())) {
+						throw new ConflictingUpdateException("Etags do not match.");
+					}
+					doiDao.updateDoiStatus(doiDto.getId(), DoiStatus.READY);
 				} catch (DatastoreException | NotFoundException e) {
 					logger.error(e.getMessage(), e);
 				}
@@ -169,7 +183,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 	@Override
 	public Doi getDoiForVersion(Long userId, String entityId, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
+			throws NotFoundException, UnauthorizedException {
 
 		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
@@ -182,8 +196,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		UserInfo.validateUserInfo(currentUser);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		Doi dto = initializeDto(null, entityId, ObjectType.ENTITY, versionNumber, null);
-		return doiDao.getDoi(dto);
+
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 	}
 
 	/** Gets the node whose information will be used in DOI metadata. */
@@ -206,7 +220,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 	@Override
 	public Doi getDoiForCurrentVersion(Long userId, String entityId)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
+			throws NotFoundException {
 
 		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
@@ -225,30 +239,6 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		if (node.getNodeType() == EntityType.file || node.getNodeType() == EntityType.table) { // TODO: Are these the only versionables?
 			versionNumber = getNode(entityId, null).getVersionNumber();
 		}
-		Doi dto = initializeDto(null, entityId, ObjectType.ENTITY, versionNumber, null);
-		return doiDao.getDoi(dto);
-	}
-
-	/**
-	 * Supply parameters to create a DTO that can be passed into the DAO.
-	 * @param createdBy User/group ID of the creator. Optional
-	 * @param objectId ID of the object to which the DOI refers
-	 * @param type Type of the object to which the DOI refers
-	 * @param version Version of the object to which the DOI refers. Optional.
-	 * @param status Status of DOI to which the DOI should refer (for update). Optional.
-	 * @return A DTO that can be used by the DAO for DOI creation/lookup.
-	 */
-	static Doi initializeDto(String createdBy, String objectId, ObjectType type, Long version, DoiStatus status) {
-		Doi dto = new Doi();
-		if (createdBy != null) {
-			dto.setCreatedBy(createdBy);
-		}
-		dto.setObjectId(objectId);
-		dto.setObjectType(type);
-		dto.setObjectVersion(version);
-		if (status != null) {
-			dto.setDoiStatus(status);
-		}
-		return dto;
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 	}
 }

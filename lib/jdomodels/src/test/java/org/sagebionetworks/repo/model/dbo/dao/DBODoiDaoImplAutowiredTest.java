@@ -11,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
-import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
@@ -68,7 +67,6 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(createdDto);
 		assertNotNull(createdDto.getId());
 		assertNotNull(createdDto.getEtag());
-		assertNotEquals(NodeConstants.ZERO_E_TAG, createdDto.getEtag());
 		assertEquals(objectId, createdDto.getObjectId());
 		assertEquals(versionNumber, createdDto.getObjectVersion());
 		assertEquals(objectType, createdDto.getObjectType());
@@ -79,7 +77,7 @@ public class DBODoiDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void testCreateTwoVersions() {
+	public void testCreateDoisOfDifferentVersions() {
 		Doi createdDto = doiDao.createDoi(dto);
 		assertNotNull(createdDto);
 		assertNotNull(createdDto.getId());
@@ -96,10 +94,10 @@ public class DBODoiDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void testGet() {
+	public void testGetFromId() {
 		Doi createdDto = doiDao.createDoi(dto);
 		// Call under test
-		Doi retrievedDto = doiDao.getDoi(dto);
+		Doi retrievedDto = doiDao.getDoi(createdDto.getId());
 		assertNotNull(retrievedDto);
 		assertEquals(createdDto.getId(), retrievedDto.getId());
 		assertEquals(createdDto.getEtag(), retrievedDto.getEtag());
@@ -113,45 +111,66 @@ public class DBODoiDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void testGetNullVersion() {
+	public void testGetFromTriple() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		Doi retrievedDto = doiDao.getDoi(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertNotNull(retrievedDto);
+		assertEquals(createdDto.getId(), retrievedDto.getId());
+	}
+
+	@Test
+	public void testGetNullVersionFromId() {
 		dto.setObjectVersion(null);
 		Doi createdDto = doiDao.createDoi(dto);
 		// Call under test
-		Doi retrievedDto = doiDao.getDoi(dto);
-		assertNotNull(retrievedDto);
+		Doi retrievedDto = doiDao.getDoi(createdDto.getId());
 		assertEquals(createdDto.getId(), retrievedDto.getId());
-		assertEquals(createdDto.getEtag(), retrievedDto.getEtag());
-		assertEquals(createdDto.getObjectId(), retrievedDto.getObjectId());
 		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
-		assertEquals(createdDto.getObjectType(), retrievedDto.getObjectType());
-		assertEquals(createdDto.getDoiStatus(), retrievedDto.getDoiStatus());
-		assertEquals(createdDto.getCreatedBy(), retrievedDto.getCreatedBy());
-		assertEquals(createdDto.getCreatedOn(), retrievedDto.getCreatedOn());
-		assertEquals(createdDto.getUpdatedOn(), retrievedDto.getUpdatedOn());
+	}
+
+	@Test
+	public void testGetNullVersionFromTriple() {
+		dto.setObjectVersion(null);
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		Doi retrievedDto = doiDao.getDoi(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertEquals(createdDto.getId(), retrievedDto.getId());
+		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
 	}
 
 	@Test
 	public void testUpdate() {
 		Doi createdDto = doiDao.createDoi(dto);
-		createdDto.setDoiStatus(DoiStatus.CREATED);
 		// Call under test
-		Doi updatedDto = doiDao.updateDoiStatus(createdDto);
-		assertNotNull(updatedDto);
+		Doi updatedDto = doiDao.updateDoiStatus(createdDto.getId(), DoiStatus.CREATED);
 		assertEquals(createdDto.getId(), updatedDto.getId());
 		assertNotEquals(createdDto.getEtag(), updatedDto.getEtag());
-		assertEquals(createdDto.getObjectId(), updatedDto.getObjectId());
-		assertEquals(createdDto.getObjectVersion(), updatedDto.getObjectVersion());
-		assertEquals(createdDto.getObjectType(), updatedDto.getObjectType());
-		assertEquals(createdDto.getDoiStatus(), updatedDto.getDoiStatus());
-		assertEquals(createdDto.getCreatedBy(), updatedDto.getCreatedBy());
-		assertEquals(createdDto.getCreatedOn(), updatedDto.getCreatedOn());
-		assertEquals(createdDto.getUpdatedOn(), updatedDto.getUpdatedOn());
+		assertNotEquals(createdDto.getDoiStatus(), updatedDto.getDoiStatus());
+		assertEquals(DoiStatus.CREATED, updatedDto.getDoiStatus());
+	}
+
+	@Test
+	public void getEtagFromId() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		String etag = doiDao.getEtagForUpdate(createdDto.getId());
+		assertEquals(createdDto.getEtag(), etag);
+	}
+
+	@Test
+	public void getEtagFromTriple() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		String etag = doiDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertEquals(createdDto.getEtag(), etag);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDuplicateVersion() {
 		doiDao.createDoi(dto);
-		// Call under test
+		// This call should attempt to create a duplicate DOI for that DTO
+		// This violates the schema, and should yield and IllegalArgumentException
 		doiDao.createDoi(dto);
 	}
 
@@ -159,14 +178,15 @@ public class DBODoiDaoImplAutowiredTest {
 	public void testCreateDuplicateNoVersion() {
 		dto.setObjectVersion(null);
 		doiDao.createDoi(dto);
-		// Call under test
+		// This call should attempt to create a duplicate DOI for that DTO
+		// This violates the schema, and should yield and IllegalArgumentException
 		doiDao.createDoi(dto);
 	}
 
 
 	@Test(expected=NotFoundException.class)
 	public void testGetNotFoundException() {
-		// Note dto is never created
-		doiDao.getDoi(dto);
+		// Note that this DOI was never created
+		doiDao.getDoi("8675309");
 	}
 }

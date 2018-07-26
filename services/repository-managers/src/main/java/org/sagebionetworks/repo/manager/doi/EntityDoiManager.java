@@ -23,7 +23,7 @@ public interface EntityDoiManager {
 	 * 								 a DOI for this object.
 	 */
 	Doi createDoi(Long userId, String objectId, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
+			throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Retrieve the DOI (if it exists) for the entity defined by the input parameters.
@@ -33,7 +33,7 @@ public interface EntityDoiManager {
 	 * @return A DOI DTO corresponding to the DOI for the given object.
 	 */
 	Doi getDoiForVersion(Long userId, String objectId, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
+			throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Retrieve the DOI (if it exists) for the current version of the entity
@@ -43,5 +43,5 @@ public interface EntityDoiManager {
 	 * @return A DOI DTO corresponding to the DOI for the given object.
 	 */
 	Doi getDoiForCurrentVersion(Long userId, String objectId)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
+			throws NotFoundException, UnauthorizedException;
 }
