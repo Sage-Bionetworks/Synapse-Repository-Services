@@ -220,7 +220,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 	@Override
 	public Doi getDoiForCurrentVersion(Long userId, String entityId)
-			throws NotFoundException {
+			throws NotFoundException, UnauthorizedException {
 
 		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
