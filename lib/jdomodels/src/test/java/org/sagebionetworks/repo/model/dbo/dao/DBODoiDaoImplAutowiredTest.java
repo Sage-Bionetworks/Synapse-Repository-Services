@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
-import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
@@ -31,14 +29,28 @@ public class DBODoiDaoImplAutowiredTest {
 	
 	@Autowired
 	private DoiAdminDao doiAdminDao;
-	
+
+	private Doi dto;
 	private String userId;
+	private final String objectId = KeyFactory.keyToString(112233L);
+	private final ObjectType objectType = ObjectType.ENTITY;
+	private final Long versionNumber = 1L;
+	private final DoiStatus doiStatus = DoiStatus.IN_PROCESS;
+
 
 	@Before
 	public void before() throws Exception {
 		assertNotNull(doiDao);
 		assertNotNull(doiAdminDao);
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+
+		// Create a DOI DTO with fields necessary to create a new one.
+		dto = new Doi();
+		dto.setCreatedBy(userId);
+		dto.setObjectId(objectId);
+		dto.setObjectType(objectType);
+		dto.setObjectVersion(versionNumber);
+		dto.setDoiStatus(doiStatus);
 	}
 
 	@After
@@ -47,102 +59,134 @@ public class DBODoiDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void test() throws Exception {
-		// Create a DOI
-		final String objectId = KeyFactory.keyToString(112233L);
-		final ObjectType objectType = ObjectType.ENTITY;
-		final Long versionNumber = 1L;
-		final DoiStatus doiStatus = DoiStatus.IN_PROCESS;
-		Doi doi = doiDao.createDoi(userId, objectId, objectType, versionNumber, doiStatus);
-		assertNotNull(doi);
-		assertNotNull(doi.getId());
-		final String id1 = doi.getId();
-		assertNotNull(doi.getEtag());
-		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
-		final String etag1 = doi.getEtag();
-		assertEquals(objectId, doi.getObjectId());
-		assertEquals(versionNumber, doi.getObjectVersion());
-		assertEquals(objectType, doi.getObjectType());
-		assertEquals(doiStatus, doi.getDoiStatus());
-		assertEquals(userId, doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
-		// Create another DOI of null object version
-		// This would be treated as a separate DOI
-		doi = doiDao.createDoi(userId, objectId, objectType, null, doiStatus);
-		assertNotNull(doi);
-		assertNotNull(doi.getId());
-		final String id2 = doi.getId();
-		assertNotNull(doi.getEtag());
-		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
-		final String etag2 = doi.getEtag();
-		assertEquals(objectId, doi.getObjectId());
-		assertNull(doi.getObjectVersion());
-		assertEquals(objectType, doi.getObjectType());
-		assertEquals(doiStatus, doi.getDoiStatus());
-		assertEquals(userId, doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
-		// Get the two DOIs back
-		doi = doiDao.getDoi(objectId, objectType, versionNumber);
-		assertNotNull(doi);
-		assertNotNull(doi.getId());
-		assertEquals(id1, doi.getId());
-		assertNotNull(doi.getEtag());
-		assertEquals(etag1, doi.getEtag());
-		assertEquals(objectId, doi.getObjectId());
-		assertEquals(versionNumber, doi.getObjectVersion());
-		assertEquals(objectType, doi.getObjectType());
-		assertEquals(doiStatus, doi.getDoiStatus());
-		assertEquals(userId, doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
-		doi = doiDao.getDoi(objectId, objectType, null);
-		assertNotNull(doi);
-		assertNotNull(doi.getId());
-		assertEquals(id2, doi.getId());
-		assertNotNull(doi.getEtag());
-		assertEquals(etag2, doi.getEtag());
-		assertEquals(objectId, doi.getObjectId());
-		assertNull(doi.getObjectVersion());
-		assertEquals(objectType, doi.getObjectType());
-		assertEquals(doiStatus, doi.getDoiStatus());
-		assertEquals(userId, doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
-		// Update status
-		doiDao.updateDoiStatus(objectId, objectType, versionNumber, DoiStatus.CREATED, etag1);
-		doi = doiDao.getDoi(objectId, objectType, versionNumber);
-		assertNotNull(doi);
-		assertNotNull(doi.getId());
-		assertEquals(id1, doi.getId());
-		assertNotNull(doi.getEtag());
-		assertEquals(etag1, doi.getEtag());
-		assertEquals(objectId, doi.getObjectId());
-		assertEquals(versionNumber, doi.getObjectVersion());
-		assertEquals(objectType, doi.getObjectType());
-		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
-		assertEquals(userId, doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
-		doiDao.updateDoiStatus(objectId, objectType, null, DoiStatus.ERROR, etag2);
-		doi = doiDao.getDoi(objectId, objectType, null);
-		assertNotNull(doi);
-		assertNotNull(doi.getId());
-		assertEquals(id2, doi.getId());
-		assertNotNull(doi.getEtag());
-		assertEquals(etag2, doi.getEtag());
-		assertEquals(objectId, doi.getObjectId());
-		assertNull(doi.getObjectVersion());
-		assertEquals(objectType, doi.getObjectType());
-		assertEquals(DoiStatus.ERROR, doi.getDoiStatus());
-		assertEquals(userId, doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
+	public void testCreateDoi() {
+		// dto is set up in before()
+		// Call under test
+		Doi createdDto = doiDao.createDoi(dto);
+
+		assertNotNull(createdDto);
+		assertNotNull(createdDto.getId());
+		assertNotNull(createdDto.getEtag());
+		assertEquals(objectId, createdDto.getObjectId());
+		assertEquals(versionNumber, createdDto.getObjectVersion());
+		assertEquals(objectType, createdDto.getObjectType());
+		assertEquals(doiStatus, createdDto.getDoiStatus());
+		assertEquals(userId, createdDto.getCreatedBy());
+		assertNotNull(createdDto.getCreatedOn());
+		assertNotNull(createdDto.getUpdatedOn());
 	}
 
+	@Test
+	public void testCreateDoisOfDifferentVersions() {
+		Doi createdDto = doiDao.createDoi(dto);
+		assertNotNull(createdDto);
+		assertNotNull(createdDto.getId());
+		final String id1 = createdDto.getId();
+		// Create another DOI of null object version
+		// This should be treated as a separate DOI
+		dto.setObjectVersion(null);
+		// Call under test
+		createdDto = doiDao.createDoi(dto);
+		assertNotNull(createdDto);
+		assertNotNull(createdDto.getId());
+		final String id2 = createdDto.getId();
+		assertNotEquals(id1, id2);
+	}
+
+	@Test
+	public void testGetFromId() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		Doi retrievedDto = doiDao.getDoi(createdDto.getId());
+		assertNotNull(retrievedDto);
+		assertEquals(createdDto.getId(), retrievedDto.getId());
+		assertEquals(createdDto.getEtag(), retrievedDto.getEtag());
+		assertEquals(createdDto.getObjectId(), retrievedDto.getObjectId());
+		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
+		assertEquals(createdDto.getObjectType(), retrievedDto.getObjectType());
+		assertEquals(createdDto.getDoiStatus(), retrievedDto.getDoiStatus());
+		assertEquals(createdDto.getCreatedBy(), retrievedDto.getCreatedBy());
+		assertEquals(createdDto.getCreatedOn(), retrievedDto.getCreatedOn());
+		assertEquals(createdDto.getUpdatedOn(), retrievedDto.getUpdatedOn());
+	}
+
+	@Test
+	public void testGetFromTriple() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		Doi retrievedDto = doiDao.getDoi(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertNotNull(retrievedDto);
+		assertEquals(createdDto.getId(), retrievedDto.getId());
+	}
+
+	@Test
+	public void testGetNullVersionFromId() {
+		dto.setObjectVersion(null);
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		Doi retrievedDto = doiDao.getDoi(createdDto.getId());
+		assertEquals(createdDto.getId(), retrievedDto.getId());
+		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
+	}
+
+	@Test
+	public void testGetNullVersionFromTriple() {
+		dto.setObjectVersion(null);
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		Doi retrievedDto = doiDao.getDoi(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertEquals(createdDto.getId(), retrievedDto.getId());
+		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
+	}
+
+	@Test
+	public void testUpdate() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		Doi updatedDto = doiDao.updateDoiStatus(createdDto.getId(), DoiStatus.CREATED);
+		assertEquals(createdDto.getId(), updatedDto.getId());
+		assertNotEquals(createdDto.getEtag(), updatedDto.getEtag());
+		assertNotEquals(createdDto.getDoiStatus(), updatedDto.getDoiStatus());
+		assertEquals(DoiStatus.CREATED, updatedDto.getDoiStatus());
+	}
+
+	@Test
+	public void getEtagFromId() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		String etag = doiDao.getEtagForUpdate(createdDto.getId());
+		assertEquals(createdDto.getEtag(), etag);
+	}
+
+	@Test
+	public void getEtagFromTriple() {
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		String etag = doiDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertEquals(createdDto.getEtag(), etag);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateDuplicateVersion() {
+		doiDao.createDoi(dto);
+		// This call should attempt to create a duplicate DOI for that DTO
+		// This violates the schema, and should yield and IllegalArgumentException
+		doiDao.createDoi(dto);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateDuplicateNoVersion() {
+		dto.setObjectVersion(null);
+		doiDao.createDoi(dto);
+		// This call should attempt to create a duplicate DOI for that DTO
+		// This violates the schema, and should yield and IllegalArgumentException
+		doiDao.createDoi(dto);
+	}
+
+
 	@Test(expected=NotFoundException.class)
-	public void testGetNotFoundException() throws Exception {
-		doiDao.getDoi("syn372861388593", ObjectType.ENTITY, null);
+	public void testGetNotFoundException() {
+		// Note that this DOI was never created
+		doiDao.getDoi("8675309");
 	}
 }

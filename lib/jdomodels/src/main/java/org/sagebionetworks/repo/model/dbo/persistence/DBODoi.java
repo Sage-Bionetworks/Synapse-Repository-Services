@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
+	public static final long NULL_OBJECT_VERSION = -1L;
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true).withIsBackupId(true),
 			new FieldColumn("eTag", COL_DOI_ETAG).withIsEtag(true),
@@ -51,12 +53,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
 					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
-					// Object version is nullable
-					// We can't just use rs.getLong() which returns a primitive long
-					Object obj = rs.getObject(COL_DOI_OBJECT_VERSION);
-					if (obj != null) {
-						dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
-					}
+					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
 					dbo.setUpdatedOn(rs.getTimestamp(COL_DOI_UPDATED_ON));
@@ -166,7 +163,16 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new BasicMigratableTableTranslation<DBODoi>();
+		return new BasicMigratableTableTranslation<DBODoi>() {
+			@Override
+			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
+				// Convert null object version to -1
+				if (backup.objectVersion == null) {
+					backup.setObjectVersion(NULL_OBJECT_VERSION);
+				}
+				return backup;
+			}
+		};
 	}
 
 	@Override

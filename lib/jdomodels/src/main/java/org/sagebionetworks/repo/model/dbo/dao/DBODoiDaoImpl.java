@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
 
 import java.sql.Timestamp;
-import java.util.List;
 import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -24,24 +23,23 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBODoiDaoImpl implements DoiDao {
 
-	private static final String SELECT_DOI =
+	private static final String SELECT_DOI_BY_ID =
 			"SELECT * FROM " + TABLE_DOI + " WHERE "
-			+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
-			+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
-			+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
+					+ COL_DOI_ID + " = :" + COL_DOI_ID;
 
-	private static final String SELECT_DOI_NULL_OBJECT_VERSION =
+	private static final String SELECT_DOI_BY_ASSOCIATED_OBJECT =
 			"SELECT * FROM " + TABLE_DOI + " WHERE "
-			+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
-			+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
-			+ COL_DOI_OBJECT_VERSION + " IS NULL";
+					+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
+					+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
+					+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
+
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
@@ -50,7 +48,7 @@ public class DBODoiDaoImpl implements DoiDao {
 
 	@Autowired
 	private DBOBasicDao basicDao;
-	
+
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
@@ -61,31 +59,11 @@ public class DBODoiDaoImpl implements DoiDao {
 	 */
 	@NewWriteTransaction
 	@Override
-	public Doi createDoi(final String userGroupId, final String objectId,
-			final ObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
-			throws DatastoreException {
-
-		if (userGroupId == null || userGroupId.isEmpty()) {
-			throw new IllegalArgumentException("User group ID cannot be null nor empty.");
-		}
-		if (objectId == null || objectId.isEmpty()) {
-			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
-		}
-		if (objectType == null) {
-			throw new IllegalArgumentException("Object type cannot be null.");
-		}
-		if (doiStatus == null) {
-			throw new IllegalArgumentException("DOI status cannot be null.");
-		}
-
-		DBODoi dbo = new DBODoi();
-		dbo.setId(idGenerator.generateNewId(IdType.DOI_ID));
+	public Doi createDoi(Doi dto) {
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+		Long newId = idGenerator.generateNewId(IdType.DOI_ID);
+		dbo.setId(newId);
 		dbo.setETag(UUID.randomUUID().toString());
-		dbo.setObjectId(KeyFactory.stringToKey(objectId));
-		dbo.setObjectType(objectType);
-		dbo.setObjectVersion(versionNumber);
-		dbo.setDoiStatus(doiStatus);
-		dbo.setCreatedBy(KeyFactory.stringToKey(userGroupId));
 		DateTime dt = DateTime.now();
 		// MySQL TIMESTAMP only keeps seconds (not ms)
 		// so for consistency we only write seconds
@@ -94,7 +72,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		dbo.setCreatedOn(now);
 		dbo.setUpdatedOn(now);
 		basicDao.createNew(dbo);
-		return DoiUtils.convertToDto(dbo);
+		return getDoi(newId.toString());
 	}
 
 	/**
@@ -104,66 +82,67 @@ public class DBODoiDaoImpl implements DoiDao {
 	 */
 	@NewWriteTransaction
 	@Override
-	public Doi updateDoiStatus(final String objectId, final ObjectType objectType,
-			final Long versionNumber, final DoiStatus doiStatus, String etag)
-			throws NotFoundException, DatastoreException, ConflictingUpdateException {
-
-		if (objectId == null || objectId.isEmpty()) {
-			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
-		}
-		if (objectType == null) {
-			throw new IllegalArgumentException("Object type cannot be null.");
-		}
-		if (doiStatus == null) {
-			throw new IllegalArgumentException("DOI status cannot be null.");
-		}
-
-		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
-		if (!dbo.getETag().equals(etag)) {
-			throw new ConflictingUpdateException("Etags do not match.");
-		}
-		dbo.setDoiStatus(doiStatus);
+	public Doi updateDoiStatus(String id, DoiStatus status) throws NotFoundException {
+		Doi dto = getDoi(id);
+		dto.setDoiStatus(status);
+		dto.setEtag(UUID.randomUUID().toString());
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		boolean success = basicDao.update(dbo);
 		if (!success) {
 			throw new DatastoreException("Update failed for " + dbo);
 		}
-		return getDoi(objectId, objectType, versionNumber);
+		return getDoi(id);
 	}
 
 	@Override
-	public Doi getDoi(final String objectId, final ObjectType objectType,
-			final Long versionNumber) throws NotFoundException, DatastoreException {
-
-		if (objectId == null || objectId.isEmpty()) {
-			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
+	public Doi getDoi(String id) throws NotFoundException {
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_DOI_ID, KeyFactory.stringToKey(id));
+		DBODoi dbo = null;
+		try {
+			dbo = namedJdbcTemplate.queryForObject(SELECT_DOI_BY_ID, paramMap, rowMapper);
+		} catch (IncorrectResultSizeDataAccessException e) {
+			handleIncorrectResultSizeException(e);
 		}
-		if (objectType == null) {
-			throw new IllegalArgumentException("Object type cannot be null.");
-		}
-		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
 		return DoiUtils.convertToDto(dbo);
 	}
 
-	private DBODoi getDbo (String objectId, ObjectType objectType, Long versionNumber)
-			throws NotFoundException, DatastoreException {
-
-		String sql = (versionNumber == null ? SELECT_DOI_NULL_OBJECT_VERSION : SELECT_DOI);
+	@Override
+	public Doi getDoi(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
 		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
-		if (versionNumber != null) {
+		if (versionNumber == null) {
+			paramMap.addValue(COL_DOI_OBJECT_VERSION, DBODoi.NULL_OBJECT_VERSION);
+		} else {
 			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
 		}
-		List<DBODoi> dboList = namedJdbcTemplate.query(sql, paramMap, rowMapper);
-		if (dboList == null || dboList.size() == 0) {
-			throw new NotFoundException("DOI not found for type " + objectType
-					+ ", ID " + objectId + ", Version " + versionNumber);
+		DBODoi dbo = null;
+		try {
+			dbo = namedJdbcTemplate.queryForObject(SELECT_DOI_BY_ASSOCIATED_OBJECT, paramMap, rowMapper);
+		} catch (IncorrectResultSizeDataAccessException e) {
+			handleIncorrectResultSizeException(e);
 		}
-		if (dboList.size() > 1) {
-			String error = "Fetched back more than 1 DOI data object where exactly 1 is expected "
-					+ " for " + sql + " and parameters " + paramMap.getValues().toString();
-			throw new DatastoreException(error);
+		return DoiUtils.convertToDto(dbo);
+	}
+
+	@Override
+	public String getEtagForUpdate(String id) throws NotFoundException {
+		Doi dto = getDoi(id);
+		return dto.getEtag();
+	}
+
+	@Override
+	public String getEtagForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
+		Doi dto = getDoi(objectId, objectType, versionNumber);
+		return dto.getEtag();
+	}
+
+	static void handleIncorrectResultSizeException(IncorrectResultSizeDataAccessException e) throws NotFoundException {
+		if (e.getActualSize() == 0) {
+			throw new NotFoundException("Retrieved 0 rows when expecting exactly 1");
+		} else {
+			throw new IllegalStateException("Retrieved 2+ rows when expecting exactly 1");
 		}
-		return (dboList.get(0));
 	}
 }
