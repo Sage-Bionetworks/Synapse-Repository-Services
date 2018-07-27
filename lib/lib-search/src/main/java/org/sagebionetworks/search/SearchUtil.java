@@ -138,40 +138,9 @@ public class SearchUtil{
 		}
 		searchRequest.setFilterQuery(filterQueryTerms.isEmpty() ? null : "(and " + String.join(" ", filterQueryTerms) + ")");
 
-		//preprocess the FacetSortConstraints
-		// facet field constraints
-		if (searchQuery.getFacetFieldConstraints() != null
-				&& searchQuery.getFacetFieldConstraints().size() > 0) {
-			throw new IllegalArgumentException("Facet field constraints are no longer supported");
-		}
-		if (searchQuery.getFacetFieldSort() != null){
-			throw new IllegalArgumentException("Sorting of facets is no longer supported");
-		}
-
-		// facets TODO: Deprecated. remove once clients stop using
-		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
-			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
-			for(String facetFieldName : searchQuery.getFacet()){
-				//no options inside {} since none are used by the webclient
-				facetStringJoiner.add("\""+ facetFieldName + "\":{}");
-			}
-			searchRequest.setFacet(facetStringJoiner.toString());
-		}
-
 		// Translate from provided FacetOption to AWS CloudSearch options
 		if (!CollectionUtils.isEmpty(searchQuery.getFacetOptions())){
 			searchRequest.setFacet(createCloudSearchFacetJSON(searchQuery.getFacetOptions()).toString());
-		}
-
-		//switch to size parameter in facet
-		// facet top n
-		if (searchQuery.getFacetFieldTopN() != null) {
-			throw new IllegalArgumentException("facet-field-top-n is no longer supported");
-		}
-
-		// rank
-		if (searchQuery.getRank() != null){
-			throw new IllegalArgumentException("Rank is no longer supported");
 		}
 
 		// return-fields

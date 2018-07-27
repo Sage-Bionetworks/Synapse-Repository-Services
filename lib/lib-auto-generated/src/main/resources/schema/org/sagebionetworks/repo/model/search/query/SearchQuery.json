@@ -32,46 +32,6 @@
 				"$ref": "org.sagebionetworks.repo.model.search.query.SearchFacetOption"
 			}
 		},
-        "facet":{
-        	"type":"array",
-        	"description":"DEPRECATED: set facetOptions instead. A list of the fields for which you want to compute facets.",
-            "uniqueItems":false,
-            "items":{
-                "type":"string"
-            }            
-        },
-        "facetFieldConstraints":{
-        	"type":"array",
-        	"description":"DEPRECATED: no replacement as it is a unused field. Specify the field values (facet constraints) that you want to count for a partifular field. Key is the facet field name, value is a list of facet constraints.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.query.KeyList"
-            }                    	
-        },
-        "facetFieldSort":{
-        	"type":"array",
-        	"description":"DEPRECATED: set facetOptions instead. Specify how you want to sort facet values for a particular field.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.query.FacetSort"
-            }                    	
-        },
-        "facetFieldTopN":{
-        	"type":"array",
-        	"description":"DEPRECATED: set facetOptions instead. Set the maximum number of facet constraints to be included for the specified field in the search results. Default is the top 40.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.query.FacetTopN"
-            }                    	        	
-        },
-        "rank":{
-        	"type":"array",
-        	"description":"A list of fields to use for ranking. Hits are ordered according to the specified rank field(s). By default, hits are ranked in ascending order.",
-            "uniqueItems":false,
-            "items":{
-                "type":"string"
-            }                    	        	        	
-        },
         "returnFields":{
         	"type":"array",
         	"description":"Specifies the document fields to include in the response. By default, only the document ids of the hits are returned.",
