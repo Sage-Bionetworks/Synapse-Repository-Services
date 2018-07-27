@@ -1,6 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.LIMIT;
+import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.OBJECT_IDS;
+import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.OFFSET;
+import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.PROJECT_IDS;
+import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.SUBSCRIBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_SUBSCRIBER_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,7 +51,6 @@ import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -45,9 +58,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -74,6 +84,7 @@ public class DBOSubscriptionDAOImplTest {
 	private String userId = null;
 	private Long userIdLong;
 	private String threadId;
+	private String threadId2;
 	private List<String> usersToDelete;
 	private List<String> subscriptionIdToDelete;
 	String projectId;
@@ -135,6 +146,8 @@ public class DBOSubscriptionDAOImplTest {
 		forumId = forumDAO.createForum(projectId).getId();
 		threadId = "123";
 		threadDAO.createThread(forumId, threadId, "title", "messageKey", Long.parseLong(userId));
+		threadId2 = "456";
+		threadDAO.createThread(forumId, threadId2, "title", "messageKeyTwo", Long.parseLong(userId));
 
 		projectIds = new HashSet<Long>();
 		projectIds.add(Long.parseLong(projectId));
@@ -727,7 +740,7 @@ public class DBOSubscriptionDAOImplTest {
 		String sql = DBOSubscriptionDAOImpl.createQuery(request);
 		assertEquals("SELECT * FROM SUBSCRIPTION S"
 				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId"
-				+ " ORDER BY :sortByType", sql);
+				+ " ORDER BY S.CREATED_ON", sql);
 	}
 	
 	@Test
@@ -743,7 +756,7 @@ public class DBOSubscriptionDAOImplTest {
 		String sql = DBOSubscriptionDAOImpl.createQuery(request);
 		assertEquals("SELECT * FROM SUBSCRIPTION S"
 				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId"
-				+ " ORDER BY :sortByType :sortDirection", sql);
+				+ " ORDER BY S.CREATED_ON DESC", sql);
 	}
 	
 	@Test
@@ -805,7 +818,7 @@ public class DBOSubscriptionDAOImplTest {
 		String sql = DBOSubscriptionDAOImpl.createQuery(request);
 		assertEquals("SELECT * FROM SUBSCRIPTION S"
 				+ " WHERE S.OBJECT_TYPE = :objectType AND S.SUBSCRIBER_ID = :subscriberId"
-				+ " ORDER BY :sortByType :sortDirection LIMIT :limit OFFSET :offset", sql);
+				+ " ORDER BY S.OBJECT_ID ASC LIMIT :limit OFFSET :offset", sql);
 	}
 	
 	@Test
@@ -841,8 +854,6 @@ public class DBOSubscriptionDAOImplTest {
 		assertEquals(request.getSubscriberId(), params.getValue(SUBSCRIBER_ID));
 		assertEquals(request.getObjectIds(), params.getValue(OBJECT_IDS));
 		assertEquals(request.getProjectIds(), params.getValue(PROJECT_IDS));
-		assertEquals(COL_SUBSCRIPTION_OBJECT_ID, params.getValue(SORT_BY_TYPE));
-		assertEquals("ASC", params.getValue(SORT_DIRECTION));
 		assertEquals(request.getLimit(), params.getValue(LIMIT));
 		assertEquals(request.getOffset(), params.getValue(OFFSET));
 	}
@@ -865,8 +876,6 @@ public class DBOSubscriptionDAOImplTest {
 		assertEquals(request.getSubscriberId(), params.getValue(SUBSCRIBER_ID));
 		assertFalse(params.hasValue(OBJECT_IDS));
 		assertFalse(params.hasValue(PROJECT_IDS));
-		assertFalse(params.hasValue(SORT_BY_TYPE));
-		assertFalse(params.hasValue(SORT_DIRECTION));
 		assertFalse(params.hasValue(LIMIT));
 		assertFalse(params.hasValue(OFFSET));
 	}
@@ -939,6 +948,42 @@ public class DBOSubscriptionDAOImplTest {
 		// call under test
 		List<Subscription> subs = this.subscriptionDao.listSubscriptions(request);
 		assertNotNull(subs);
+	}
+	
+	/**
+	 * Test that the sorting actual works with both directions.
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void testListSubscriptionsSorted() throws InterruptedException {
+		Subscription one = subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
+		Subscription two = subscriptionDao.create(userId, threadId2, SubscriptionObjectType.THREAD);
+
+		// ascending
+		SubscriptionListRequest request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.THREAD)
+				.withSubscriberId(userId)
+				.withSortByType(SortByType.SUBSCRIPTION_ID)
+				.withSortDirection(SortDirection.ASC);
+		// call under test
+		List<Subscription> subs = this.subscriptionDao.listSubscriptions(request);
+		assertNotNull(subs);
+		assertEquals(2, subs.size());
+		assertEquals(one, subs.get(0));
+		assertEquals(two, subs.get(1));
+		
+		// Descending
+		request = new SubscriptionListRequest()
+				.withObjectType(SubscriptionObjectType.THREAD)
+				.withSubscriberId(userId)
+				.withSortByType(SortByType.SUBSCRIPTION_ID)
+				.withSortDirection(SortDirection.DESC);
+		// call under test
+		subs = this.subscriptionDao.listSubscriptions(request);
+		assertNotNull(subs);
+		assertEquals(2, subs.size());
+		assertEquals(two, subs.get(0));
+		assertEquals(one, subs.get(1));
 	}
 
 }

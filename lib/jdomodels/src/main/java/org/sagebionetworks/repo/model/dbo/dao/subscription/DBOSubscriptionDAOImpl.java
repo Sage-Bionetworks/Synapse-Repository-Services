@@ -61,8 +61,6 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	public static final String OFFSET = "offset";
 	public static final String LIMIT = "limit";
-	public static final String SORT_DIRECTION = "sortDirection";
-	public static final String SORT_BY_TYPE = "sortByType";
 	public static final String PROJECT_IDS = "projectIds";
 	public static final String OBJECT_IDS = "objectIds";
 	public static final String OBJECT_TYPE = "objectType";
@@ -346,12 +344,6 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		if(request.getProjectIds() != null) {
 			parameters.addValue(PROJECT_IDS, request.getProjectIds());
 		}
-		if(request.getSortByType() != null) {
-			parameters.addValue(SORT_BY_TYPE, getColunNameForSortType(request.getSortByType()));
-		}
-		if(request.getSortDirection() != null) {
-			parameters.addValue(SORT_DIRECTION, getSortDirection(request.getSortDirection()));
-		}
 		if(request.getLimit() != null) {
 			parameters.addValue(LIMIT, request.getLimit());
 		}
@@ -382,9 +374,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		StringBuilder builder = new StringBuilder("SELECT *");
 		createQueryCore(builder, request);
 		if(request.getSortByType() != null) {
-			builder.append(" ORDER BY :").append(SORT_BY_TYPE);
+			builder.append(" ORDER BY S.").append(getColunNameForSortType(request.getSortByType()));
 			if(request.getSortDirection() != null) {
-				builder.append(" :").append(SORT_DIRECTION);
+				builder.append(" ").append(getSortDirection(request.getSortDirection()));
 			}
 		}
 		if(request.getLimit() != null) {
