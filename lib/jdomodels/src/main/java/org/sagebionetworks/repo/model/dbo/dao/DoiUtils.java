@@ -50,10 +50,33 @@ public class DoiUtils {
 		if (dto == null) {
 			throw new IllegalArgumentException("DTO cannot be null.");
 		}
-		DBODoi dbo = new DBODoi();
-		if (dto.getId() != null) {
-			dbo.setId(Long.valueOf(dto.getId()));
+		if (dto.getId() == null) {
+			throw new IllegalArgumentException("ID cannot be null.");
 		}
+		if (dto.getCreatedBy() == null) {
+			throw new IllegalArgumentException("Created By cannot be null.");
+		}
+		if (dto.getEtag() == null) {
+			throw new IllegalArgumentException("Etag cannot be null.");
+		}
+		if (dto.getDoiStatus() == null) {
+			throw new IllegalArgumentException("Status cannot be null.");
+		}
+		if (dto.getObjectId() == null) {
+			throw new IllegalArgumentException("Object ID cannot be null.");
+		}
+		if (dto.getObjectType() == null) {
+			throw new IllegalArgumentException("Object type cannot be null.");
+		}
+		if (dto.getCreatedOn() == null) {
+			throw new IllegalArgumentException("Created On cannot be null.");
+		}
+		if (dto.getUpdatedOn() == null) {
+			throw new IllegalArgumentException("Updated On cannot be null.");
+		}
+
+		DBODoi dbo = new DBODoi();
+		dbo.setId(Long.valueOf(dto.getId()));
 		dbo.setETag(dto.getEtag());
 		dbo.setDoiStatus(dto.getDoiStatus());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
@@ -63,15 +86,9 @@ public class DoiUtils {
 		} else {
 			dbo.setObjectVersion(dto.getObjectVersion());
 		}
-		if (dto.getCreatedBy() != null) {
-			dbo.setCreatedBy(Long.valueOf(dto.getCreatedBy()));
-		}
-		if (dto.getCreatedOn() != null) {
-			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
-		}
-		if (dto.getUpdatedOn() != null) {
-			dbo.setUpdatedOn(new Timestamp(dto.getUpdatedOn().getTime()));
-		}
+		dbo.setCreatedBy(Long.valueOf(dto.getCreatedBy()));
+		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
+		dbo.setUpdatedOn(new Timestamp(dto.getUpdatedOn().getTime()));
 		return dbo;
 	}
 }

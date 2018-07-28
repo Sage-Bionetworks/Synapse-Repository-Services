@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
@@ -40,6 +41,12 @@ public class DBODoiDaoImpl implements DoiDao {
 					+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
 					+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
 
+	private static final String SELECT_DOI_ETAG_FOR_UPDATE =
+			"SELECT " + COL_DOI_ETAG + " FROM " + TABLE_DOI + " WHERE "
+					+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
+					+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
+					+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION +
+					" FOR UPDATE ";
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
@@ -60,18 +67,20 @@ public class DBODoiDaoImpl implements DoiDao {
 	@NewWriteTransaction
 	@Override
 	public Doi createDoi(Doi dto) {
-		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		Long newId = idGenerator.generateNewId(IdType.DOI_ID);
-		dbo.setId(newId);
-		dbo.setETag(UUID.randomUUID().toString());
-		DateTime dt = DateTime.now();
+		dto.setId(newId.toString());
+		dto.setEtag(UUID.randomUUID().toString());
 		// MySQL TIMESTAMP only keeps seconds (not ms)
 		// so for consistency we only write seconds
+		DateTime dt = DateTime.now();
 		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
 		Timestamp now = new Timestamp(nowInSeconds);
-		dbo.setCreatedOn(now);
-		dbo.setUpdatedOn(now);
+
+		dto.setCreatedOn(now);
+		dto.setUpdatedOn(now);
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		basicDao.createNew(dbo);
+
 		return getDoi(newId.toString());
 	}
 
@@ -83,6 +92,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	@NewWriteTransaction
 	@Override
 	public Doi updateDoiStatus(String id, DoiStatus status) throws NotFoundException {
+		// Etag was checked in manager, so we just have to update the object.
 		Doi dto = getDoi(id);
 		dto.setDoiStatus(status);
 		dto.setEtag(UUID.randomUUID().toString());
@@ -126,16 +136,24 @@ public class DBODoiDaoImpl implements DoiDao {
 		return DoiUtils.convertToDto(dbo);
 	}
 
-	@Override
-	public String getEtagForUpdate(String id) throws NotFoundException {
-		Doi dto = getDoi(id);
-		return dto.getEtag();
-	}
-
+	@NewWriteTransaction
 	@Override
 	public String getEtagForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
-		Doi dto = getDoi(objectId, objectType, versionNumber);
-		return dto.getEtag();
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
+		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
+		if (versionNumber == null) {
+			paramMap.addValue(COL_DOI_OBJECT_VERSION, DBODoi.NULL_OBJECT_VERSION);
+		} else {
+			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
+		}
+		String etag = null;
+		try {
+			etag = namedJdbcTemplate.queryForObject(SELECT_DOI_ETAG_FOR_UPDATE, paramMap, String.class);
+		} catch (IncorrectResultSizeDataAccessException e) {
+			handleIncorrectResultSizeException(e);
+		}
+		return etag;
 	}
 
 	static void handleIncorrectResultSizeException(IncorrectResultSizeDataAccessException e) throws NotFoundException {

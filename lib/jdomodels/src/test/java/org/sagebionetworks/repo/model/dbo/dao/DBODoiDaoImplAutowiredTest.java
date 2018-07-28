@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -139,6 +140,19 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
 	}
 
+	@Test(expected = NotFoundException.class)
+	public void testGetZeroObjects() {
+		// This ID shouldn't exist in the database
+		doiDao.getDoi("12345");
+	}
+
+	@Test(expected = NotFoundException.class)
+	public void testGetZeroObjectFromThreeTuple() {
+		// This ID shouldn't exist in the database
+		doiDao.getDoi("12345", ObjectType.ENTITY, null);
+	}
+
+
 	@Test
 	public void testUpdate() {
 		Doi createdDto = doiDao.createDoi(dto);
@@ -151,20 +165,29 @@ public class DBODoiDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void getEtagFromId() {
-		Doi createdDto = doiDao.createDoi(dto);
-		// Call under test
-		String etag = doiDao.getEtagForUpdate(createdDto.getId());
-		assertEquals(createdDto.getEtag(), etag);
-	}
-
-	@Test
-	public void getEtagFromTriple() {
+	public void getEtag() {
 		Doi createdDto = doiDao.createDoi(dto);
 		// Call under test
 		String etag = doiDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
 		assertEquals(createdDto.getEtag(), etag);
 	}
+
+	@Test
+	public void getEtagNoObjectVersion() {
+		dto.setObjectVersion(null);
+		Doi createdDto = doiDao.createDoi(dto);
+		// Call under test
+		String etag = doiDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertEquals(createdDto.getEtag(), etag);
+	}
+
+	@Test(expected = NotFoundException.class)
+	public void getEtagNotFound() {
+		// Note the DOI is never created.
+		// Call under test
+		String etag = doiDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+	}
+
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDuplicateVersion() {
@@ -183,10 +206,22 @@ public class DBODoiDaoImplAutowiredTest {
 		doiDao.createDoi(dto);
 	}
 
-
 	@Test(expected=NotFoundException.class)
 	public void testGetNotFoundException() {
 		// Note that this DOI was never created
 		doiDao.getDoi("8675309");
+	}
+
+	@Test(expected=NotFoundException.class)
+	public void handleIncorrectResultSizeOfZero() {
+		IncorrectResultSizeDataAccessException e = new IncorrectResultSizeDataAccessException(1, 0);
+		// Call under test. If there are 0 items, we should rethrow a NotFoundException
+		DBODoiDaoImpl.handleIncorrectResultSizeException(e);
+	}
+	@Test(expected=IllegalStateException.class)
+	public void handleIncorrectResultSizeOfMoreThanOne() {
+		IncorrectResultSizeDataAccessException e = new IncorrectResultSizeDataAccessException(1, 2);
+		// Call under test. If there are 2+ items, we should rethrow an IllegalStateException.
+		DBODoiDaoImpl.handleIncorrectResultSizeException(e);
 	}
 }

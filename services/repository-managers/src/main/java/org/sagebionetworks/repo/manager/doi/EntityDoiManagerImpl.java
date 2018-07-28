@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -51,6 +52,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
 	 * avoid race conditions.
 	 */
+	@NewWriteTransaction
 	@Override
 	public Doi createDoi(final Long userId, final String entityId, final Long versionNumber)
 			throws NotFoundException, UnauthorizedException {
@@ -92,7 +94,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			doiDto.setDoiStatus(DoiStatus.IN_PROCESS);
 			doiDto = doiDao.createDoi(doiDto);
 		} else { // Attempt to reregister an "Error" entry.
-			if (!doiDao.getEtagForUpdate(doiDto.getId()).equals(doiDto.getEtag())) {
+			if (!doiDao.getEtagForUpdate(doiDto.getObjectId(), doiDto.getObjectType(), doiDto.getObjectVersion()).equals(doiDto.getEtag())) {
 				throw new ConflictingUpdateException("Etags do not match.");
 			}
 			doiDto = doiDao.updateDoiStatus(doiDto.getId(), DoiStatus.IN_PROCESS);
@@ -130,7 +132,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				assert doi != null;
 				try {
 					Doi dto = doi.getDto();
-					if (!doiDao.getEtagForUpdate(dto.getId()).equals(dto.getEtag())) {
+					if (!doiDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()).equals(dto.getEtag())) {
 						throw new ConflictingUpdateException("Etags do not match.");
 					}
 					doiDao.updateDoiStatus(dto.getId(), DoiStatus.CREATED);
@@ -145,7 +147,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				try {
 					logger.error(e.getMessage(), e);
 					Doi dto = doi.getDto();
-					if (!doiDao.getEtagForUpdate(dto.getId()).equals(dto.getEtag())) {
+					if (!doiDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()).equals(dto.getEtag())) {
 						throw new ConflictingUpdateException("Etags do not match.");
 					}
 					doiDao.updateDoiStatus(dto.getId(), DoiStatus.ERROR);
@@ -163,7 +165,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				try {
 					Doi doiDto = ezidDoi.getDto();
 					doiDto = doiDao.getDoi(doiDto.getId());
-					if (!doiDao.getEtagForUpdate(doiDto.getId()).equals(doiDto.getEtag())) {
+					if (!doiDao.getEtagForUpdate(doiDto.getObjectId(), doiDto.getObjectType(), doiDto.getObjectVersion()).equals(doiDto.getEtag())) {
 						throw new ConflictingUpdateException("Etags do not match.");
 					}
 					doiDao.updateDoiStatus(doiDto.getId(), DoiStatus.READY);

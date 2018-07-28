@@ -94,6 +94,152 @@ public class DoiUtilsTest {
 		assertEquals((Long)DBODoi.NULL_OBJECT_VERSION, dbo.getObjectVersion());
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullDto() {
+		Doi dto = null;
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	/*
+	 * Can't use the setUpDto method for these classes because
+	 * fields cannot be manually set to null values.
+	 */
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullId() {
+		Doi dto = new Doi();
+		dto.setCreatedBy(createdBy.toString());
+		dto.setCreatedOn(createdOn);
+		dto.setObjectType(objectType);
+		dto.setDoiStatus(doiStatus);
+		dto.setEtag(eTag);
+		// dto.setId(id.toString()); Omit required ID
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedOn(updatedOn);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullCreatedBy() {
+		Doi dto = new Doi();
+		// dto.setCreatedBy(createdBy.toString()); Omit required field.
+		dto.setCreatedOn(createdOn);
+		dto.setObjectType(objectType);
+		dto.setDoiStatus(doiStatus);
+		dto.setEtag(eTag);
+		dto.setId(id.toString());
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedOn(updatedOn);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullEtag() {
+		Doi dto = new Doi();
+		dto.setCreatedBy(createdBy.toString());
+		dto.setCreatedOn(createdOn);
+		dto.setObjectType(objectType);
+		dto.setDoiStatus(doiStatus);
+		// dto.setEtag(eTag); Omit required field.
+		dto.setId(id.toString());
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedOn(updatedOn);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullStatus() {
+		Doi dto = new Doi();
+		dto.setCreatedBy(createdBy.toString());
+		dto.setCreatedOn(createdOn);
+		dto.setObjectType(objectType);
+		// dto.setDoiStatus(doiStatus); Omit required field.
+		dto.setEtag(eTag);
+		dto.setId(id.toString());
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedOn(updatedOn);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullObjectId() {
+		Doi dto = new Doi();
+		dto.setCreatedBy(createdBy.toString());
+		dto.setCreatedOn(createdOn);
+		dto.setObjectType(objectType);
+		dto.setDoiStatus(doiStatus);
+		dto.setEtag(eTag);
+		dto.setId(id.toString());
+		// dto.setObjectId(objectId.toString()); Omit required field.
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedOn(updatedOn);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullObjectType() {
+		Doi dto = new Doi();
+		dto.setCreatedBy(createdBy.toString());
+		dto.setCreatedOn(createdOn);
+		// dto.setObjectType(objectType); Omit required field.
+		dto.setDoiStatus(doiStatus);
+		dto.setEtag(eTag);
+		dto.setId(id.toString());
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedOn(updatedOn);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullCreatedOn() {
+		Doi dto = new Doi();
+		dto.setCreatedBy(createdBy.toString());
+		// dto.setCreatedOn(createdOn); Omit required field.
+		dto.setObjectType(objectType);
+		dto.setDoiStatus(doiStatus);
+		dto.setEtag(eTag);
+		dto.setId(id.toString());
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedOn(updatedOn);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDboNullUpdatedOn() {
+		Doi dto = new Doi();
+		dto.setCreatedBy(createdBy.toString());
+		dto.setCreatedOn(createdOn);
+		dto.setObjectType(objectType);
+		dto.setDoiStatus(doiStatus);
+		dto.setEtag(eTag);
+		dto.setId(id.toString());
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		// dto.setUpdatedOn(updatedOn); Omit required field.
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDtoNullDbo() {
+		DBODoi dbo = null;
+		// Note DBO is null, so it should not be converted to a DTO.
+		// Call under test.
+		DoiUtils.convertToDto(dbo);
+	}
+
 	private static DBODoi setUpDbo() {
 		DBODoi dbo = new DBODoi();
 		dbo.setCreatedBy(createdBy);

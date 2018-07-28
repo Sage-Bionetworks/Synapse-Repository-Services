@@ -48,17 +48,9 @@ public interface DoiDao {
 	Doi getDoi(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException;
 
 	/**
-	 * Gets the Etag of the DOI that has the specified ID.
-	 * @param id The ID of the DOI object
-	 * @return The Etag of the specified DOI object.
-	 * @throws NotFoundException An existing DOI was not found
-	 */
-	String getEtagForUpdate(String id) throws NotFoundException;
-
-	/**
 	 * Gets the Etag of the DOI for the specified object. If version number
-	 * is null, the etag for the  DOI associated with the most recent version
-	 * will be retrieved.
+	 * is null, the etag for the DOI associated with the most recent version
+	 * will be retrieved. Uses SELECT ... FOR UPDATE
 	 * @param objectId The ID of the object to which a DOI refers
 	 * @param objectType The type of the object.
 	 * @param versionNumber The version number of the object. Null refers to
