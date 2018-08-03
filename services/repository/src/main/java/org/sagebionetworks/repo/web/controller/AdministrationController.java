@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -20,6 +19,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -225,48 +225,7 @@ public class AdministrationController extends BaseController {
 	        		throws NotFoundException {
 		serviceProvider.getAdministrationService().clearAllLocks(userId);
 	}
-	
 
-
-	/**
-	 * Wait for a while or release all waiters
-	 */
-	@RequestMapping(value = { UrlHelpers.ADMIN_WAIT }, method = RequestMethod.GET)
-	@ResponseStatus(HttpStatus.OK)
-	public void waitForTesting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = false) Boolean release) throws Exception {
-		serviceProvider.getAdministrationService().waitForTesting(userId, BooleanUtils.isTrue(release));
-	}
-
-	/**
-	 * throw an expected exception
-	 * 
-	 * @throws Throwable
-	 */
-	@RequestMapping(value = { UrlHelpers.ADMIN_EXCEPTION }, method = RequestMethod.GET)
-	@ResponseStatus(HttpStatus.OK)
-	public void throwException(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = true) String exception, @RequestParam(required = true) Boolean inTransaction,
-			@RequestParam(required = true) Boolean inBeforeCommit) throws Throwable {
-		try {
-			if (inTransaction) {
-				if (inBeforeCommit) {
-					serviceProvider.getAdministrationService().throwExceptionTransactionalBeforeCommit(exception);
-				} else {
-					serviceProvider.getAdministrationService().throwExceptionTransactional(exception);
-				}
-			} else {
-				serviceProvider.getAdministrationService().throwException(exception);
-			}
-		} catch (Throwable t) {
-			t.printStackTrace();
-			if (!t.getClass().getName().equals(exception)) {
-				// this is an error, so return 200 which will make the test fail
-				return;
-			}
-			throw t;
-		}
-	}
 	
 	/**
 	 * 
@@ -301,5 +260,23 @@ public class AdministrationController extends BaseController {
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
-
+	
+	/**
+	 * Create an export script for the ID generator database.  The script can be used to setup a new ID generator.
+	 * 
+	 * @param userId
+	 * @param jobId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_ID_GEN_EXPORT, method = RequestMethod.GET)
+	public @ResponseBody
+	IdGeneratorExport createIdGeneratorExport(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String jobId)
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
+		return serviceProvider.getAdministrationService().createIdGeneratorExport(userId);
+	}
 }

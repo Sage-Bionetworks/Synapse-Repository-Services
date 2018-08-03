@@ -184,6 +184,8 @@ public class UrlHelpers {
 	public static final String ASYNCHRONOUS_JOB_CANCEL = ASYNCHRONOUS_JOB_ID + "/cancel";
 	public static final String ADMIN_ASYNCHRONOUS_JOB = ADMIN + ASYNCHRONOUS_JOB;
 	public static final String ADMIN_ASYNCHRONOUS_JOB_ID = ADMIN + ASYNCHRONOUS_JOB_ID;
+	
+	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -1020,16 +1022,6 @@ public class UrlHelpers {
 	public static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
 	/**
-	 * API for testing throttling
-	 */
-	public static final String ADMIN_WAIT = ADMIN + "/wait";
-	
-	/**
-	 * API for testing exception handling
-	 */
-	public static final String ADMIN_EXCEPTION = ADMIN + "/exception";
-
-	/**
 	 * API for updating a file
 	 * @see PLFM-4108
 	 */
@@ -1041,18 +1033,6 @@ public class UrlHelpers {
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 	}
-
-	/**
-	 * Determine the controller URL prefix for a given model class
-	 * 
-	 * @param theModelClass
-	 * @return the URL for the model class
-	 */
-//	@SuppressWarnings("unchecked")
-//	public static String getUrlForModel(Class theModelClass) {
-//		EntityType type =  EntityType.getNodeTypeForClass(theModelClass);
-//		return type.getUrlPrefix();
-//	}
 
 	
 	/**

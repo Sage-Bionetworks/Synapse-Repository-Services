@@ -6,7 +6,6 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +47,8 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	
 	// This version sets the value to insert.  This is used to reserve the ID and all values less than the ID.
 	public static final String INSERT_SQL_INCREMENT = "INSERT INTO %1$S (ID, CREATED_ON) VALUES (?, ?)";
+	// This version is used to create a restore script.
+	public static final String INSERT_SQL_INCREMENT_EXPORT = "INSERT IGNORE INTO %1$S (ID, CREATED_ON) VALUES (%2$d, UNIX_TIMESTAMP()*1000)";
 	// Get the current max.
 	public static final String MAX_ID = "SELECT MAX(ID) FROM %1$S";
 
@@ -56,8 +57,6 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	
 	@Autowired
 	JdbcTemplate idGeneratorJdbcTemplate;
-	@Autowired
-	StackConfiguration stackConfiguration;
 
 	/**
 	 * This call occurs in its own transaction.
@@ -85,12 +84,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
 		lockOnType(type);
 		// First check if this value is greater than the last value
-		long max = 0L;
-		try {
-			max = idGeneratorJdbcTemplate.queryForObject(String.format(MAX_ID, type.name()), Long.class);
-		} catch (NullPointerException e) {
-			// max = 0
-		}
+		long max = getMaxValueForType(type);
 		if(idToLock > max){
 			final long now = System.currentTimeMillis();
 			idGeneratorJdbcTemplate.update(String.format(INSERT_SQL_INCREMENT, type.name()), new PreparedStatementSetter(){
@@ -99,6 +93,21 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 					ps.setLong(1, idToLock);
 					ps.setLong(2, now);
 				}});
+		}
+	}
+
+	/**
+	 * Lookup the max value for a given type.
+	 * @param type
+	 * @return
+	 */
+	@Override
+	public long getMaxValueForType(IdType type) {
+		try {
+			return idGeneratorJdbcTemplate.queryForObject(String.format(MAX_ID, type.name()), Long.class);
+		} catch (NullPointerException e) {
+			// max = 0
+			return 0L;
 		}
 	}
 
@@ -158,6 +167,29 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		}
 		// select for update
 		return idGeneratorJdbcTemplate.queryForObject(SELECT_TYPE_FOR_UPDATE, String.class, type.name());
+	}
+
+	@Override
+	public String createRestoreScript() {
+		StringBuilder builder = new StringBuilder();
+		for (IdType type : IdType.values()) {
+			createRestoreScript(builder, type);
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Create a restore script for the given type.
+	 * @param builder
+	 * @param type
+	 */
+	@Override
+	public void createRestoreScript(StringBuilder builder, IdType type) {
+		builder.append("# ").append(type.name()).append("\n");
+		// Add the create statement for the table
+		builder.append(String.format(CREATE_TABLE_TEMPLATE, type.name())).append(";\n");
+		long maxValue = getMaxValueForType(type);
+		builder.append(String.format(INSERT_SQL_INCREMENT_EXPORT, type.name(), maxValue)).append(";\n");
 	}
 
 }

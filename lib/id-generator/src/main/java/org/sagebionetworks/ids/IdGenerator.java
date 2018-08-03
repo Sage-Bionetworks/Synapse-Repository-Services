@@ -30,4 +30,26 @@ public interface IdGenerator {
 	 */
 	public BatchOfIds generateBatchNewIds(IdType type, int count);
 	
+	/**
+	 * Create a SQL statement that can be used to restore the entire ID generator database.
+	 * 
+	 * @return
+	 */
+	public String createRestoreScript();
+
+	/**
+	 * Create a restore script for the given type.
+	 * @param builder
+	 * @param type
+	 */
+	void createRestoreScript(StringBuilder builder, IdType type);
+
+	/**
+	 * Get the max value for the given type.
+	 * 
+	 * @param type
+	 * @return
+	 */
+	long getMaxValueForType(IdType type);
+	
 }

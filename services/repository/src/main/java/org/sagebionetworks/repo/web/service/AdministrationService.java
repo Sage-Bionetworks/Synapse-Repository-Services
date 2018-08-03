@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpHeaders;
@@ -131,16 +132,9 @@ public interface AdministrationService {
 	public void clearAllLocks(Long userId) throws NotFoundException;
 
 	/**
-	 * Wait for a long time or release the waiters
-	 * 
+	 * Create an ID generator export.
 	 * @param userId
-	 * @param release
-	 * @throws Exception
+	 * @return
 	 */
-	public void waitForTesting(Long userId, boolean release) throws Exception;
-
-	public void throwExceptionTransactional(String exception) throws Throwable;
-	public void doNothing() throws Throwable;
-	public void throwException(String exception) throws Throwable;
-	public void throwExceptionTransactionalBeforeCommit(String exception);
+	public IdGeneratorExport createIdGeneratorExport(Long userId);
 }
