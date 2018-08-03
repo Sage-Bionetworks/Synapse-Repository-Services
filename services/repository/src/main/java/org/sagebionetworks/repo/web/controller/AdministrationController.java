@@ -265,7 +265,6 @@ public class AdministrationController extends BaseController {
 	 * Create an export script for the ID generator database.  The script can be used to setup a new ID generator.
 	 * 
 	 * @param userId
-	 * @param jobId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws AsynchJobFailedException
@@ -274,8 +273,7 @@ public class AdministrationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_ID_GEN_EXPORT, method = RequestMethod.GET)
 	public @ResponseBody
-	IdGeneratorExport createIdGeneratorExport(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String jobId)
+	IdGeneratorExport createIdGeneratorExport(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAdministrationService().createIdGeneratorExport(userId);
 	}
