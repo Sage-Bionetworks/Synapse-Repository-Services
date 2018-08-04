@@ -140,4 +140,29 @@ public class IdGeneratorImplTest {
 		String[] split = export.split("\n");
 		assertEquals("Should be three rows for each type.",IdType.values().length*3, split.length);
 	}
+	
+	@Test
+	public void testCleanupType() {
+		IdType type = IdType.ACCESS_APPROVAL_ID;
+		long lastId = -1L;
+		long startCount = idGenerator.getRowCount(type);
+		// Allocate some rows
+		for(int i=0; i<5; i++) {
+			lastId = idGenerator.generateNewId(type);
+		}
+		long expectedCount = startCount+5;
+		assertEquals(expectedCount, idGenerator.getRowCount(type));
+		// Call under test
+		idGenerator.cleanupType(type, 2L);
+		expectedCount -= 2;
+		assertEquals(expectedCount, idGenerator.getRowCount(type));
+		// clear the rest
+		idGenerator.cleanupType(type, Long.MAX_VALUE);
+		// should only be one row left
+		assertEquals(1L, idGenerator.getRowCount(type));
+		// max value should not change
+		assertEquals(lastId, idGenerator.getMaxValueForType(type));
+		// cleanup should not break the sequence
+		assertEquals(new Long(lastId+1L), idGenerator.generateNewId(type));
+	}
 }

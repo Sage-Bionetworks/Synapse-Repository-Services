@@ -20,6 +20,10 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
  */
 public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	
+	private static final String SELECT_COUNT_FROM_TYPE = "SELECT COUNT(*) FROM %1$S";
+
+	private static final String DELETE_LESS_THAN_MAX = "DELETE FROM %1$S WHERE ID < %2$d LIMIT %3$d";
+
 	private static final String CREATE_ID_GENERATOR_SEMAPHORE = 
 			"CREATE TABLE IF NOT EXISTS ID_GENERATOR_SEMAPHORE ("
 			+ "TYPE_LOCK VARCHAR(100) NOT NULL,"
@@ -117,7 +121,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		DataSource ds = idGeneratorJdbcTemplate.getDataSource();
 		if(ds == null) throw new RuntimeException("Failed to get the datasource from the transaction manager");
 		Connection con = ds.getConnection();
-		if(con == null) throw new RuntimeException("Failed get a connecion from the datasource");
+		if(con == null) throw new RuntimeException("Failed get a connection from the datasource");
 		if(!con.getAutoCommit()) throw new RuntimeException("The connections from this datasources should be set to auto-commit");
 		
 		// Create the table for semaphore locks
@@ -192,4 +196,18 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		builder.append(String.format(INSERT_SQL_INCREMENT_EXPORT, type.name(), maxValue)).append(";\n");
 	}
 
+	@NewWriteTransaction
+	@Override
+	public void cleanupType(IdType type, long rowLimit) {
+		// Determine the max value
+		long maxId = getMaxValueForType(type);
+		String deleteSql = String.format(DELETE_LESS_THAN_MAX, type.name(), maxId, rowLimit);
+		this.idGeneratorJdbcTemplate.execute(deleteSql);
+	}
+
+	@Override
+	public long getRowCount(IdType type) {
+		return idGeneratorJdbcTemplate.queryForObject(String.format(SELECT_COUNT_FROM_TYPE, type.name()), Long.class);
+	}
+	
 }
