@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -170,10 +169,14 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
+		entity = new Project();
+		entity.setEntityType(Project.class.getName());
+		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+
 		// create an entity
 		evaluation = new Evaluation();
 		evaluation.setName("testCompetitionWikiCRUD");
-		evaluation.setContentSource(KeyFactory.SYN_ROOT_ID);
+		evaluation.setContentSource(entity.getId());
 		evaluation.setDescription("a test descrption");
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = entityServletHelper.createEvaluation(evaluation, adminUserId);

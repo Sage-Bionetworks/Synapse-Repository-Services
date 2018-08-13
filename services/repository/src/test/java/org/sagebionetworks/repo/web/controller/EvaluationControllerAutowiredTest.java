@@ -30,11 +30,9 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -70,16 +68,14 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
-	
-	@Autowired
-	private NodeDAO nodeDAO;
-	
+
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
 	
 	private Long testUserId;
 	private UserInfo testUserInfo;
-	
+
+	private String parentProjectId;
 	private Evaluation eval1;
 	private Evaluation eval2;
 	private Submission sub1;
@@ -90,7 +86,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	private List<String> nodesToDelete;
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException {
+	public void before() throws Exception {
 		evaluationsToDelete = new ArrayList<String>();
 		submissionsToDelete = new ArrayList<String>();
 		nodesToDelete = new ArrayList<String>();
@@ -107,17 +103,20 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 		 Collections.singletonList(testUserId.toString()));
 		testUserInfo = userManager.getUserInfo(testUserId);
-		
+
+		// Initialize project to store evaluations
+		parentProjectId = createNode("Some project name", testUserInfo);
+
 		// initialize Evaluations
 		eval1 = new Evaluation();
 		eval1.setName("name");
 		eval1.setDescription("description");
-        eval1.setContentSource(KeyFactory.SYN_ROOT_ID);
+        eval1.setContentSource(parentProjectId);
         eval1.setStatus(EvaluationStatus.PLANNED);
         eval2 = new Evaluation();
 		eval2.setName("name2");
 		eval2.setDescription("description");
-        eval2.setContentSource(KeyFactory.SYN_ROOT_ID);
+        eval2.setContentSource(parentProjectId);
         eval2.setStatus(EvaluationStatus.PLANNED);
         
         // initialize Submissions
@@ -382,7 +381,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		}
 		
 		// paginated evaluations by content source
-		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(adminUserId, KeyFactory.SYN_ROOT_ID, 10, 0);
+		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(adminUserId, parentProjectId, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults()) {
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
@@ -460,7 +459,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		toCreate.setNodeType(EntityType.project);
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("1");
-    	String id = nodeManager.createNewNode(toCreate, userInfo);
+    	String id = nodeManager.createNode(toCreate, userInfo).getId();
     	nodesToDelete.add(KeyFactory.stringToKey(id).toString());
     	return id;
 	}
