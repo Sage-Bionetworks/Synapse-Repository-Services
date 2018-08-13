@@ -70,7 +70,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 					nodeId + " in order to create a evaluation based on it.");
 		}
 
-		if (!nodeDAO.getNode(nodeId).getNodeType().equals(EntityType.project)) {
+		if (!nodeDAO.getNodeTypeById(nodeId).equals(EntityType.project)) {
 			throw new IllegalArgumentException("Evaluation " + eval.getId() +
 					" could not be created because the parent entity " + nodeId +  " is not a project.");
 		}

@@ -32,10 +32,8 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
@@ -58,7 +56,6 @@ public class EvaluationManagerTest {
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
 	private NodeDAO mockNodeDAO;
-	private Node mockContentSource;
 
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
@@ -90,8 +87,6 @@ public class EvaluationManagerTest {
     	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
 
     	mockNodeDAO = mock(NodeDAO.class);
-
-    	mockContentSource = mock(Node.class);
 
     	// UserInfo
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -140,8 +135,7 @@ public class EvaluationManagerTest {
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-    	when(mockContentSource.getNodeType()).thenReturn(EntityType.project);
-    	when(mockNodeDAO.getNode(EVALUATION_CONTENT_SOURCE)).thenReturn(mockContentSource);
+    	when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
     }
 
 	@Test
@@ -239,7 +233,7 @@ public class EvaluationManagerTest {
 	@Test
 	public void testCannotCreateEvaluationForNonProject() {
 		for (EntityType t : EntityType.values()) {
-			when(mockContentSource.getNodeType()).thenReturn(t);
+			when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(t);
 			if (t.equals(EntityType.project)) { // Should succeed
 				// Call under test, should not throw exception
 				evaluationManager.createEvaluation(ownerInfo, evalWithId);
