@@ -249,7 +249,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		try {
 			basicDao.deleteObjectByPrimaryKey(DBOUserGroup.class, param);
 		} catch (DataIntegrityViolationException e){
-			throw new IllegalArgumentException("Cannot delete userGroup "+id+".  It is referenced by another object.", e);
+			throw new IllegalArgumentException("Cannot delete user or team having id: "+id+".  It is referenced by another object.", e);
 		}
 	}
 	

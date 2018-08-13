@@ -1,16 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -20,18 +19,15 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -41,8 +37,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOUserGroupDAOImplTest {
-	
-	
+
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 
@@ -70,34 +66,34 @@ public class DBOUserGroupDAOImplTest {
 		// Order matters--user groups referenced by ACLs cannot be deleted
 		if (aclToDelete != null) aclDAO.delete(aclToDelete, ObjectType.ENTITY);
 		if (projectToDelete != null) nodeDao.delete(projectToDelete);
-		for (String todelete: groupsToDelete) {
-			userGroupDAO.delete(todelete);
+		for (String toDelete : groupsToDelete) {
+			userGroupDAO.delete(toDelete);
 		}
 	}
-	
+
 	@Test
 	public void testRoundTrip() throws Exception {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
 		// Give it an ID
 		String startingId = "123";
-		group.setId(""+startingId);
+		group.setId("" + startingId);
 		long initialCount = userGroupDAO.getCount();
 		String groupId = userGroupDAO.create(group).toString();
 		assertNotNull(groupId);
 		groupsToDelete.add(groupId);
-		assertFalse("A new ID should have been issued to the principal",groupId.equals(startingId));
+		assertFalse("A new ID should have been issued to the principal", groupId.equals(startingId));
 		UserGroup clone = userGroupDAO.get(Long.parseLong(groupId));
 		assertEquals(groupId, clone.getId());
 		assertEquals(group.getIsIndividual(), clone.getIsIndividual());
-		assertEquals(1+initialCount, userGroupDAO.getCount());
+		assertEquals(1 + initialCount, userGroupDAO.getCount());
 	}
-	
-	@Test (expected=NotFoundException.class)
-	public void testIsIndividualDoesNotExist(){
+
+	@Test(expected = NotFoundException.class)
+	public void testIsIndividualDoesNotExist() {
 		userGroupDAO.isIndividual(-1L);
 	}
-	
+
 	@Test
 	public void testIsIndividualTrue() throws Exception {
 		UserGroup group = new UserGroup();
@@ -107,7 +103,7 @@ public class DBOUserGroupDAOImplTest {
 		groupsToDelete.add(principalId.toString());
 		assertTrue(userGroupDAO.isIndividual(principalId));
 	}
-	
+
 	@Test
 	public void testIsIndividualFalse() throws Exception {
 		UserGroup group = new UserGroup();
@@ -120,100 +116,70 @@ public class DBOUserGroupDAOImplTest {
 
 
 	@Test
-	public void testBootstrapUsers() throws DatastoreException, NotFoundException{
+	public void testBootstrapUsers() throws DatastoreException, NotFoundException {
 		List<BootstrapPrincipal> boots = this.userGroupDAO.getBootstrapPrincipals();
 		assertNotNull(boots);
-		assertTrue(boots.size() >0);
+		assertTrue(boots.size() > 0);
 		// Each should exist
-		for(BootstrapPrincipal bootUg: boots){
+		for (BootstrapPrincipal bootUg : boots) {
 			assertTrue(userGroupDAO.doesIdExist(bootUg.getId()));
 			UserGroup ug = userGroupDAO.get(bootUg.getId());
 			assertEquals(bootUg.getId().toString(), ug.getId());
 		}
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testUndeletableUserGroupWithSharedProject() {
-		UserGroup group = new UserGroup();
-		group.setIsIndividual(false);
-		String startingId = "123";
-		group.setId(""+startingId);
-		String groupId = userGroupDAO.create(group).toString();
-		groupsToDelete.add(groupId); // The call under test will fail, so we must delete the group afterwards
+		Long groupId = userGroupDAO.create(UserGroupTestUtils.createGroup());
+		groupsToDelete.add(groupId.toString()); // The call under test will fail, so we must delete the group afterwards
 
-		String ownerId = createUserIdForProject();
-		String projectId = createProjectIdForAcl(ownerId);
+		Long ownerId = userGroupDAO.create(UserGroupTestUtils.createUser());
+		groupsToDelete.add(ownerId.toString());
+
+		String projectId = nodeDao.createNewNode(
+				NodeTestUtils.createNew("project shared with a team", ownerId)).getId();
+		projectToDelete = projectId;
 
 		// Add an ACL at the project
-		AccessControlList acl = createNodeAclForUserGroup(projectId, ownerId, Long.valueOf(groupId), new Date());
+		AccessControlList acl = AccessControlListUtil.createACL(projectId, new UserInfo(false, groupId),
+				Collections.singleton(ACCESS_TYPE.DOWNLOAD), new Date());
 		aclToDelete = aclDAO.create(acl, ObjectType.ENTITY);
 
 		// Call under test
-		userGroupDAO.delete(groupId);
+		try {
+			userGroupDAO.delete(groupId.toString());
+			fail("Expected IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
 	}
 
 	@Test
 	public void testCanDeleteUserGroupAfterUnsharingProject() {
-		UserGroup group = new UserGroup();
-		group.setIsIndividual(false);
-		String startingId = "123";
-		group.setId(""+startingId);
-		String groupId = userGroupDAO.create(group).toString();
+		UserGroup group = UserGroupTestUtils.createGroup();
+		Long groupId = userGroupDAO.create(group);
 		// Don't add to groupsToDelete because the delete call should succeed
 
-		String ownerId = createUserIdForProject();
-		String projectId = createProjectIdForAcl(ownerId);
+		// Need to create an owner for the project
+		Long ownerId = userGroupDAO.create(UserGroupTestUtils.createUser());
+		groupsToDelete.add(ownerId.toString());
+
+		String projectId = nodeDao.createNewNode(
+				NodeTestUtils.createNew("project shared with a team", ownerId)).getId();
+		projectToDelete = projectId;
 
 		// Add an ACL at the project
-		AccessControlList acl = createNodeAclForUserGroup(projectId, ownerId, Long.valueOf(groupId), new Date());
-		String localAclToDelete = aclDAO.create(acl, ObjectType.ENTITY);
-		aclDAO.delete(localAclToDelete, ObjectType.ENTITY);
+		AccessControlList acl = AccessControlListUtil.createACL(projectId, new UserInfo(false, groupId),
+				Collections.singleton(ACCESS_TYPE.DOWNLOAD), new Date());
+		String aclToDelete = aclDAO.create(acl, ObjectType.ENTITY);
+
+		// Not testing to see if the team is currently undeletable, there is already a test for that
+
+		// Delete the ACL; this should make the group deletable
+		aclDAO.delete(aclToDelete, ObjectType.ENTITY);
 
 		// Call under test
-		userGroupDAO.delete(groupId);
+		userGroupDAO.delete(groupId.toString());
 	}
 
-	private String createProjectIdForAcl(String ownerId) {
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias("user-name");
-		alias.setPrincipalId(Long.parseLong(ownerId));
-		alias.setType(AliasType.USER_NAME);
-		principalAliasDAO.bindAliasToPrincipal(alias);
-
-		Node project = NodeTestUtils.createNew("project", alias.getPrincipalId());
-		project.setNodeType(EntityType.project);
-		project = nodeDao.createNewNode(project);
-		projectToDelete = project.getId();
-		return project.getId();
-	}
-
-	private String createUserIdForProject() {
-		// need an arbitrary user to own the project
-		UserGroup owner = new UserGroup();
-		owner.setIsIndividual(true);
-		owner.setId(userGroupDAO.create(owner).toString());
-		groupsToDelete.add(owner.getId());
-		return owner.getId();
-	}
-
-	private static AccessControlList createNodeAclForUserGroup(
-			final String nodeId,
-			final String pid,
-			final Long ugId,
-			final Date creationDate) {
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.DOWNLOAD}));
-		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(accessSet);
-		ra.setPrincipalId(ugId);
-		raSet.add(ra);
-		AccessControlList acl = new AccessControlList();
-		acl.setId(nodeId);
-		acl.setCreatedBy(pid);
-		acl.setCreationDate(creationDate);
-		acl.setModifiedBy(pid);
-		acl.setModifiedOn(creationDate);
-		acl.setResourceAccess(raSet);
-		return acl;
-	}
 }

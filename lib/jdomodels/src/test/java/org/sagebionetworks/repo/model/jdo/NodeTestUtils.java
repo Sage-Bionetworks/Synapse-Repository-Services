@@ -38,4 +38,17 @@ public class NodeTestUtils {
 		node.setParentId(parentId);
 		return node;
 	}
+
+	public static Node createNewFolder(String name, Long creatorUserGroupId, Long modifierUserGroupId, String parentProjectId) {
+		Node folder = new Node();
+		folder.setName(name);
+		folder.setCreatedOn(new Date());
+		folder.setCreatedByPrincipalId(creatorUserGroupId);
+		folder.setModifiedOn(new Date());
+		folder.setModifiedByPrincipalId(modifierUserGroupId);
+		folder.setNodeType(EntityType.folder);
+		// use the project as the parent
+		folder.setParentId(parentProjectId);
+		return folder;
+	}
 }
