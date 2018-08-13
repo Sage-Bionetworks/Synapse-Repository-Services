@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -65,7 +64,7 @@ public class EvaluationManagerTest {
 	private final String EVALUATION_NAME = "test-evaluation";
     private final String EVALUATION_ID = "1234";
     private final Long EVALUATION_ID_LONG = Long.parseLong(EVALUATION_ID);
-    private final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
+    private final String EVALUATION_CONTENT_SOURCE = "syn12358129748";
     private final String EVALUATION_ETAG = "etag";
     
     @Before
@@ -130,7 +129,7 @@ public class EvaluationManagerTest {
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
     	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong())).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAccessibleEvaluations((List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);

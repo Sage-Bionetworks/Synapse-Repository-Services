@@ -72,7 +72,6 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -122,6 +121,7 @@ public class SubmissionManagerTest {
 	private static final String USER_ID = "56";
 	private static final String SUB_ID = "78";
 	private static final String SUB2_ID = "87";
+	private static final String PROJECT_ID = "syn56";
 	private static final String ENTITY_ID = "90";
 	private static final String ENTITY2_ID = "99";
 	private static final String DOCKER_REPO_ENTITY_ID = "11";
@@ -176,7 +176,7 @@ public class SubmissionManagerTest {
 		eval.setName("compName");
 		eval.setId(EVAL_ID);
 		eval.setOwnerId(OWNER_ID);
-        eval.setContentSource(KeyFactory.SYN_ROOT_ID);
+        eval.setContentSource(PROJECT_ID);
         eval.setStatus(EvaluationStatus.CLOSED); // deprecated, setting doesn't matter
         eval.setCreatedOn(new Date());
         eval.setEtag("compEtag");
