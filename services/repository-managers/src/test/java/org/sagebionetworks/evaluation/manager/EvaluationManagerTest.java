@@ -30,7 +30,10 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -54,7 +57,9 @@ public class EvaluationManagerTest {
 	private EvaluationDAO mockEvaluationDAO;
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
-	
+	private NodeDAO mockNodeDAO;
+	private Node mockContentSource;
+
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
 	private UserInfo ownerInfo;
@@ -83,6 +88,10 @@ public class EvaluationManagerTest {
     	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
 
     	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
+
+    	mockNodeDAO = mock(NodeDAO.class);
+
+    	mockContentSource = mock(Node.class);
 
     	// UserInfo
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -114,7 +123,8 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
-    	ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
+		ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
+		ReflectionTestUtils.setField(evaluationManager, "nodeDAO", mockNodeDAO);
 
     	// configure mocks
     	when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
@@ -130,6 +140,8 @@ public class EvaluationManagerTest {
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockContentSource.getNodeType()).thenReturn(EntityType.project);
+    	when(mockNodeDAO.getNode(EVALUATION_CONTENT_SOURCE)).thenReturn(mockContentSource);
     }
 
 	@Test
@@ -222,6 +234,24 @@ public class EvaluationManagerTest {
 			thenReturn(tse);
 		assertEquals(tse,
 				evaluationManager.getTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID));
+	}
+
+	@Test
+	public void testCannotCreateEvaluationForNonProject() {
+		for (EntityType t : EntityType.values()) {
+			when(mockContentSource.getNodeType()).thenReturn(t);
+			if (t.equals(EntityType.project)) { // Should succeed
+				// Call under test, should not throw exception
+				evaluationManager.createEvaluation(ownerInfo, evalWithId);
+			} else { // Should get IllegalArgumentException
+				try { // Call under test
+					evaluationManager.createEvaluation(ownerInfo, evalWithId);
+					fail("Expected exception");
+				} catch (IllegalArgumentException e) {
+					// As expected
+				}
+			}
+		}
 	}
 
 }
