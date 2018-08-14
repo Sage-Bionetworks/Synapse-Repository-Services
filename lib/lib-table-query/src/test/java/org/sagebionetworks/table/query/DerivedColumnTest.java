@@ -11,117 +11,192 @@ public class DerivedColumnTest {
 	@Test
 	public void testDerivedColumnToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("james");
-		assertEquals("james", element.toSql());
+		assertEquals("james", element.toString());
 	}
 	
 	@Test
 	public void testDerivedColumnWithASToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("james as bond");
-		assertEquals("james AS bond", element.toSql());
+		assertEquals("james AS bond", element.toString());
 	}
 	
 	@Test
 	public void testDerivedColumnWithFunctionToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("min(bar)");
-		assertEquals("MIN(bar)", element.toSql());
+		assertEquals("MIN(bar)", element.toString());
 	}
-
-	@Test //See ValueExpressionTest for additional testing when no as-clause present
-	public void testGetDisplayNameWithoutAsClause() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("bar");
-		assertEquals("bar", element.getDisplayName());
+	
+	@Test
+	public void testDerivedColumnGetNameFunction() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("min(bar)");
+		assertEquals("MIN(bar)", element.getDisplayName());
+	}
+	
+	@Test
+	public void testDerivedColumnGetNameFunctionQuotes() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("count('has space')");
+		assertEquals("COUNT('has space')", element.getDisplayName());
 	}
 
 	@Test
-	public void testGetDisplayNameWithAs() throws ParseException{
+	public void testDerivedColumnGetNameQuotes() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("'has space'");
+		assertEquals("has space", element.getDisplayName());
+	}
+	
+	@Test
+	public void testDerivedColumnGetNameNoQuotes() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("no_space");
+		assertEquals("no_space", element.getDisplayName());
+	}
+	
+	@Test
+	public void testDerivedColumnGetNameDouble() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("1.23");
+		assertEquals("1.23", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetNameWithAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'bar' as foo");
 		assertEquals("foo", element.getDisplayName());
 	}
-
 	@Test
-	public void testGetDisplayNameWithAsQuotes() throws ParseException{
+	public void testGetNameWithAsQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'bar' as \"foo\"");
 		assertEquals("foo", element.getDisplayName());
 	}
-
+	
 	@Test
-	public void testGetDisplayNameWithAsDoubleQuotesInsideAliasName() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("'bar' as \"fooo\"\"oooo\"");
-		assertEquals("fooo\"oooo", element.getDisplayName());
+	public void testGetNameWithAsAndFunction() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(bar) as foo");
+		assertEquals("foo", element.getDisplayName());
 	}
-
+	
+	@Test
+	public void testGetNameWithDoubleQuotes() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"has space\"");
+		assertEquals("has space", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetNameWithFunction() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("date(foo)");
+		assertEquals("DATE(foo)", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetNameWithArithmetic() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("5 div 2");
+		assertEquals("5 DIV 2", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetNameWithArithmeticColumn() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("5+foo");
+		assertEquals("5+foo", element.getDisplayName());
+	}
+	
 	@Test
 	public void testGetReferencedColumnCountStar() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*)");
-		assertEquals(null, element.getReferencedColumn());
+		assertEquals(null, element.getReferencedColumnName());
 	}
-
+	
 	@Test
 	public void testGetReferencedColumnCountStarAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*) as bar");
-		assertEquals(null, element.getReferencedColumn());
+		assertEquals(null, element.getReferencedColumnName());
 	}
-
+	
 	@Test
 	public void testGetReferencedColumnAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("foo as bar");
-		assertEquals("foo", element.getReferencedColumn().toSql());
+		assertEquals("foo", element.getReferencedColumnName());
 	}
-
+	
 	@Test
 	public void testGetReferencedColumnAsQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'foo' as \"bar\"");
-		assertEquals("'foo'", element.getReferencedColumn().toSql());
+		assertEquals("foo", element.getReferencedColumnName());
 	}
-
+	
 	@Test
 	public void testGetReferencedColumnAsQuotesDouble() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"foo\" as \"bar\"");
-		assertEquals("\"foo\"", element.getReferencedColumn().toSql());
+		assertEquals("foo", element.getReferencedColumnName());
 	}
-
+	
 	@Test
 	public void testGetReferencedColumnFunction() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(bar)");
-		assertEquals("bar", element.getReferencedColumn().toSql());
+		assertEquals("bar", element.getReferencedColumnName());
 	}
-
+	
 	@Test
 	public void testGetReferencedColumnFunctionQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(\"bar\")");
-		assertEquals("\"bar\"", element.getReferencedColumn().toSql());
+		assertEquals("bar", element.getReferencedColumnName());
 	}
-
+	
 	@Test
-	public void testGetReferencedColumnFunctionQuotesSingle() throws ParseException{
+	public void testGetReferencedColumnNameFunctionQuotesSingle() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max('bar')");
-		assertEquals("'bar'", element.getReferencedColumn().toSql());
+		assertEquals("bar", element.getReferencedColumnName());
 	}
-
+	
 	@Test
-	public void testGetReferencedColumnFunctionAs() throws ParseException{
+	public void testGetReferencedColumnNameFunctionAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(bar) as \"foo\"");
-		assertEquals("bar", element.getReferencedColumn().toSql());
+		assertEquals("bar", element.getReferencedColumnName());
 	}
 
 	@Test
-	public void testGetReferencedColumnFunctionDistinct() throws ParseException{
+	public void testGetReferencedColumnNameFunctionDistinct() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(distinct bar)");
-		assertEquals("bar", element.getReferencedColumn().toSql());
+		assertEquals("bar", element.getReferencedColumnName());
 	}
-
-	////////////////////////
-	// getColumnSQL() tests
-	////////////////////////
+	
 	@Test
-	public void testGetColumnSQLWithAsClauseQuoted() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(\"bar\") as \"foo\"\"bar\"\"baz\"");
-		assertEquals("\"foo\"\"bar\"\"baz\"", element.getColumnSQL());
+	public void testStripLeadingAndTailingQuotesSingleQuote() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("'single'quote'");
+		assertEquals("single'quote", result);
 	}
-
+	
 	@Test
-	public void testGetColumnSQLWithoutAsClauseQuoted() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"foo\"\"bar\"\"baz\"");
-		assertEquals("\"foo\"\"bar\"\"baz\"", element.getColumnSQL());
+	public void testStripLeadingAndTailingQuotesDouble() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("\"double\"quote\"");
+		assertEquals("double\"quote", result);
 	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesBacktick() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("`back`tick`");
+		assertEquals("back`tick", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesNoQuotes() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("count('foo')");
+		assertEquals("count('foo')", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesEmptyk() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("");
+		assertEquals("", result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesNull() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes(null);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testStripLeadingAndTailingQuotesJustQuotes() {
+		String result = DerivedColumn.stripLeadingAndTailingQuotes("''");
+		assertEquals("", result);
+	}
+	
 }
