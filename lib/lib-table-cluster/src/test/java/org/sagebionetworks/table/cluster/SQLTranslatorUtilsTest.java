@@ -68,7 +68,6 @@ public class SQLTranslatorUtilsTest {
 	ColumnModel columnSpecial;
 	ColumnModel columnDouble;
 	ColumnModel columnDate;
-	ColumnModel columnQuoted;
 	
 	List<ColumnModel> schema;
 	
@@ -90,9 +89,8 @@ public class SQLTranslatorUtilsTest {
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
 		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
 		columnDate = TableModelTestUtils.createColumn(888L, "aDate", ColumnType.DATE);
-		columnQuoted = TableModelTestUtils.createColumn(888L, "colWith\"Quotes\"InIt", ColumnType.STRING);
-
-		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, columnQuoted);
+		
+		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble);
 		// setup the map
 		columnMap = new HashMap<String, ColumnModel>(schema.size());
 		for(ColumnModel cm: schema){
@@ -194,8 +192,7 @@ public class SQLTranslatorUtilsTest {
 		// call under test
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
-		assertEquals("'constant'", results.getName());
-		assertEquals("'constant'", results.getColumnSQL());
+		assertEquals("constant", results.getName());
 		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -207,7 +204,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("1.23", results.getName());
-		assertEquals("1.23", results.getColumnSQL());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -219,7 +215,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("row_id", results.getName());
-		assertEquals("row_id", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 
@@ -232,7 +227,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("ROW_ID", results.getName());
-		assertEquals("ROW_ID", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -244,7 +238,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("COUNT(row_id)", results.getName());
-		assertEquals("COUNT(row_id)", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -256,7 +249,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("row_version", results.getName());
-		assertEquals("row_version", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -268,7 +260,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("ROW_VERSION", results.getName());
-		assertEquals("ROW_VERSION", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -280,7 +271,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("COUNT(*)", results.getName());
-		assertEquals("COUNT(*)", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -292,7 +282,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("has space", results.getName());
-		assertEquals("\"has space\"", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -304,19 +293,17 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("COUNT(no_match)", results.getName());
-		assertEquals("COUNT(no_match)", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
 	
 	@Test
 	public void testGetSelectColumnsCountMatch() throws ParseException{
-		DerivedColumn derivedColumn = new TableQueryParser("count(\"has space\")").derivedColumn();
+		DerivedColumn derivedColumn = new TableQueryParser("count('has space')").derivedColumn();
 		// call under test
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
-		assertEquals("COUNT(\"has space\")", results.getName());
-		assertEquals("COUNT(\"has space\")", results.getColumnSQL());
+		assertEquals("COUNT('has space')", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -328,7 +315,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("bar", results.getName());
-		assertEquals("bar", results.getColumnSQL());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -340,7 +326,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("foo", results.getName());
-		assertEquals("foo", results.getColumnSQL());
 		assertEquals(columnFoo.getColumnType(), results.getColumnType());
 		assertEquals(columnFoo.getId(), results.getId());
 	}
@@ -352,7 +337,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("foo", results.getName());
-		assertEquals("foo", results.getColumnSQL());
 		assertEquals(columnBar.getColumnType(), results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -364,7 +348,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("SUM(id)", results.getName());
-		assertEquals("SUM(id)", results.getColumnSQL());
 		assertEquals(columnId.getColumnType(), results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -376,7 +359,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("MAX(bar)", results.getName());
-		assertEquals("MAX(bar)", results.getColumnSQL());
 		assertEquals(columnBar.getColumnType(), results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -388,7 +370,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("AVG(id)", results.getName());
-		assertEquals("AVG(id)", results.getColumnSQL());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -400,7 +381,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals(columnSpecial.getName(), results.getName());
-		assertEquals("\""+columnSpecial.getName()+"\"", results.getColumnSQL());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(columnSpecial.getId(), results.getId());
 	}
@@ -412,30 +392,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("FROM_UNIXTIME(foo)", results.getName());
-		assertEquals(ColumnType.STRING, results.getColumnType());
-		assertEquals(null, results.getId());
-	}
-
-	@Test
-	public void testGetSelectColumnsColumnNameWithQuotes() throws ParseException{
-		DerivedColumn derivedColumn = new TableQueryParser("\"colWith\"\"Quotes\"\"InIt\"").derivedColumn();
-		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
-		assertNotNull(results);
-		assertEquals("colWith\"Quotes\"InIt", results.getName());
-		assertEquals("\"colWith\"\"Quotes\"\"InIt\"", results.getColumnSQL());
-		assertEquals(ColumnType.STRING, results.getColumnType());
-		assertEquals("888", results.getId());
-	}
-
-	@Test
-	public void testGetSelectColumnsAliasNameWithQuotes() throws ParseException{
-		DerivedColumn derivedColumn = new TableQueryParser("foo as \"aliasWith\"\"Quotes\"\"InIt\"").derivedColumn();
-		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
-		assertNotNull(results);
-		assertEquals("aliasWith\"Quotes\"InIt", results.getName());
-		assertEquals("\"aliasWith\"\"Quotes\"\"InIt\"", results.getColumnSQL());
 		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
