@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,7 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -33,7 +31,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
-import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ResponseMessage;
@@ -95,12 +92,14 @@ public class TeamServiceTest {
 	}
 	
 	@Test
-	public void testGetTeamsByFragment() throws Exception {
-		boolean isIndividual = false;
-		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix("foo", isIndividual, 1L, 0L)).thenReturn(Arrays.asList(99L));
-		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix("ba", isIndividual, 1L, 0L)).thenReturn(Arrays.asList(99L));
-		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix("bas", isIndividual, 1L, 0L)).thenReturn(new LinkedList<Long>());
-		
+	public void testGetTeamsByFragment() {
+		List<Long> listWithTeam = Arrays.asList(99L);
+		List<Long> emptyList = new LinkedList<>();
+
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix("foo", 1L, 0L)).thenReturn(listWithTeam);
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix("ba", 1L, 0L)).thenReturn(listWithTeam);
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix("bas", 1L, 0L)).thenReturn(emptyList);
+
 		List<Team> expected = new ArrayList<Team>(); expected.add(team);
 		ListWrapper<Team> wrapped = new ListWrapper<Team>();
 		wrapped.setList(expected);

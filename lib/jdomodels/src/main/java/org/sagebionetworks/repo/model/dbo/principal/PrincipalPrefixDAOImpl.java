@@ -48,7 +48,7 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ " WHERE "
 			+ COL_PRINCIPAL_PREFIX_TOKEN
 			+ " LIKE ? LIMIT ? OFFSET ?";
-	
+
 	private static final String SQL_LIST_PRINCIPALS_FOR_PREFIX_BY_TYPE =
 			"SELECT DISTINCT P."+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
 			+ " FROM "
@@ -57,6 +57,16 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 					+" AND U."+COL_USER_GROUP_IS_INDIVIDUAL+" = ?)"
 			+ " WHERE"
 			+ " P.TOKEN LIKE ? LIMIT ? OFFSET ?";
+
+	private static final String SQL_LIST_TEAMS_FOR_PREFIX =
+			"SELECT DISTINCT P." + COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
+					+ " FROM "
+					+ TABLE_PRINCIPAL_PREFIX + " P JOIN " + TABLE_USER_GROUP + " U ON P."
+					+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID + " = U." + COL_USER_GROUP_ID
+					+ " JOIN " + TABLE_TEAM + " T ON U." + COL_USER_GROUP_ID + " = T."
+					+ COL_TEAM_ID + " WHERE P." + COL_PRINCIPAL_PREFIX_TOKEN
+					+ " LIKE ? LIMIT ? OFFSET ?";
+
 
 	private static final String SQL_CLEAR_PRINCIPAL = "DELETE FROM "
 			+ TABLE_PRINCIPAL_PREFIX + " WHERE "
@@ -173,6 +183,17 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			Long offset) {
 		String processed = preProcessToken(prefix);
 		return jdbcTemplate.queryForList(SQL_LIST_PRINCIPALS_FOR_PREFIX,
+				Long.class, processed + WILDCARD, limit, offset);
+	}
+
+	/**
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#listTeamsForPrefix(java.lang.String, java.lang.Long, java.lang.Long)
+	 */
+	@Override
+	public List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset) {
+		String processed = preProcessToken(prefix);
+		return jdbcTemplate.queryForList(SQL_LIST_TEAMS_FOR_PREFIX,
 				Long.class, processed + WILDCARD, limit, offset);
 	}
 	
