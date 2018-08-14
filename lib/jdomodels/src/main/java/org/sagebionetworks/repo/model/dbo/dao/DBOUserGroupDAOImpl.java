@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -245,7 +246,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		basicDao.deleteObjectByPrimaryKey(DBOUserGroup.class, param);
+		try {
+			basicDao.deleteObjectByPrimaryKey(DBOUserGroup.class, param);
+		} catch (DataIntegrityViolationException e){
+			throw new IllegalArgumentException("Cannot delete user or team having id: "+id+".  It is referenced by another object.", e);
+		}
 	}
 	
 	/**

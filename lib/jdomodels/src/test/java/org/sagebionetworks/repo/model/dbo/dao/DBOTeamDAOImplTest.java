@@ -12,10 +12,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -28,7 +26,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
@@ -37,11 +34,13 @@ import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -288,7 +287,7 @@ public class DBOTeamDAOImplTest {
 		assertTrue(teamIds.isEmpty());
 
 		// now make the member an admin
-		AccessControlList acl = createAdminAcl(user.getId(), updated.getId(), new Date());
+		AccessControlList acl = AccessControlListUtil.createACL(updated.getId(), new UserInfo(true, user.getId()), Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE), new Date());
 		aclToDelete = aclDAO.create(acl, ObjectType.TEAM);
 
 		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
@@ -314,25 +313,6 @@ public class DBOTeamDAOImplTest {
 		assertEquals(member, listedMembers.getList().get(0));
 	}
 
-	public static AccessControlList createAdminAcl(
-			final String pid,
-			final String teamId,
-			final Date creationDate) {
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
-		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(accessSet);
-		ra.setPrincipalId(Long.parseLong(pid));
-		raSet.add(ra);
-		AccessControlList acl = new AccessControlList();
-		acl.setId(teamId);
-		acl.setCreatedBy(pid);
-		acl.setCreationDate(creationDate);
-		acl.setModifiedBy(pid);
-		acl.setModifiedOn(creationDate);
-		acl.setResourceAccess(raSet);
-		return acl;
-	}
 
 	private UserGroup user;
 	private Team aTeam;
