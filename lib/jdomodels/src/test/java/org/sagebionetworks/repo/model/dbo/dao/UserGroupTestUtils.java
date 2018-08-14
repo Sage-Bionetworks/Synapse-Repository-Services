@@ -11,7 +11,6 @@ public class UserGroupTestUtils {
 	}
 
 	public static UserGroup createGroup() {
-		// need an arbitrary user to own the project
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
 		return group;
