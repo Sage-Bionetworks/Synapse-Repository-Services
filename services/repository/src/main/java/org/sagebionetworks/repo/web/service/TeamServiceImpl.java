@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.web.service;
 
 import java.util.Arrays;
@@ -109,8 +106,7 @@ public class TeamServiceImpl implements TeamService {
 		if (fragment==null || fragment.trim().length()==0) {
 			return teamManager.list(limit, offset);
 		}
-		boolean isIndividual = false;
-		List<Long> teamIds = principalPrefixDAO.listPrincipalsForPrefix(fragment, isIndividual, limit, offset);
+		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(teams, limit, offset);
 	}
@@ -140,10 +136,10 @@ public class TeamServiceImpl implements TeamService {
 		List<TeamMember> members = listTeamMembers(Arrays.asList(teamIdLong), memberIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(members, limit, offset);
 	}
-	
+
 	/**
-	 * 
-	 * @param id
+	 *
+	 * @param teamId
 	 * @param fragment
 	 * @return
 	 */
