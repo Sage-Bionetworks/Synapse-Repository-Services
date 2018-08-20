@@ -30,4 +30,48 @@ public interface IdGenerator {
 	 */
 	public BatchOfIds generateBatchNewIds(IdType type, int count);
 	
+	/**
+	 * Create a SQL statement that can be used to restore the entire ID generator database.
+	 * 
+	 * @return
+	 */
+	public String createRestoreScript();
+
+	/**
+	 * Create a restore script for the given type.
+	 * @param builder
+	 * @param type
+	 */
+	void createRestoreScript(StringBuilder builder, IdType type);
+
+	/**
+	 * Get the max value for the given type.
+	 * 
+	 * @param type
+	 * @return
+	 */
+	long getMaxValueForType(IdType type);
+	
+	
+	/**
+	 * Each ID issued inserts a row into the database. However, only the last row is
+	 * needed to issue new IDs. Therefore, previous rows can be safely deleted from
+	 * the database to keep the database size to a minimum.
+	 * 
+	 * When called this method will delete old rows for the given type up to the
+	 * provided row limit.
+	 * 
+	 * @param rowLimit Limit the number of rows deleted per call.
+	 * @param type
+	 * @param rowLimit
+	 */
+	public void cleanupType(IdType type, long rowLimit);
+	
+	/**
+	 * Get the row count for this type.
+	 * @param type
+	 * @return
+	 */
+	long getRowCount(IdType type);
+	
 }

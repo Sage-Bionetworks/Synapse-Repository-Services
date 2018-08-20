@@ -38,7 +38,5 @@
 	</bean>
 
 	<bean id="idGenerator" class="org.sagebionetworks.ids.IdGeneratorImpl"></bean>
-	
-	<bean id="namedIdGenerator" class="org.sagebionetworks.ids.NamedIdGeneratorImpl" init-method="initialize"/>
 
 </beans>
