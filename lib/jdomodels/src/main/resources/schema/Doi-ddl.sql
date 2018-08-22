@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `DOI` (
 	`OBJECT_VERSION`  bigint(20)                           NOT NULL,
 	`CREATED_BY`      bigint(20)                           NOT NULL,
 	`CREATED_ON`      TIMESTAMP                            NOT NULL,
+  `UPDATED_BY`      bigint(20)                           NOT NULL,
 	`UPDATED_ON`      TIMESTAMP                            NOT NULL,
 	PRIMARY KEY (`ID`),
 	UNIQUE INDEX (OBJECT_ID, OBJECT_TYPE, OBJECT_VERSION)

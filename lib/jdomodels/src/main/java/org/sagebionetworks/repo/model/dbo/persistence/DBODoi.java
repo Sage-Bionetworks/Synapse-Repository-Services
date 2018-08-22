@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_UPDATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_DOI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
@@ -39,6 +40,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			new FieldColumn("objectVersion", COL_DOI_OBJECT_VERSION),
 			new FieldColumn("createdBy", COL_DOI_CREATED_BY),
 			new FieldColumn("createdOn", COL_DOI_CREATED_ON),
+			new FieldColumn("updatedBy", COL_DOI_UPDATED_BY),
 			new FieldColumn("updatedOn", COL_DOI_UPDATED_ON)
 	};
 
@@ -56,6 +58,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
+					dbo.setUpdatedBy(rs.getLong(COL_DOI_UPDATED_BY));
 					dbo.setUpdatedOn(rs.getTimestamp(COL_DOI_UPDATED_ON));
 					return dbo;
 				}
@@ -130,6 +133,12 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public void setCreatedOn(Timestamp createdOn) {
 		this.createdOn = createdOn;
 	}
+	public Long getUpdatedBy() {
+		return updatedBy;
+	}
+	public void setUpdatedBy(Long updatedBy) {
+		this.updatedBy = updatedBy;
+	}
 	public Timestamp getUpdatedOn() {
 		return updatedOn;
 	}
@@ -143,7 +152,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 				+ doiStatus + ", objectId=" + objectId + ", objectType="
 				+ doiObjectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", updatedOn=" + updatedOn + "]";
+				+ ", updatedBy=" + updatedBy + ", updatedOn=" + updatedOn +"]";
 	}
 
 	private Long id;
@@ -154,6 +163,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
+	private Long updatedBy;
 	private Timestamp updatedOn;
 
 	@Override
@@ -166,9 +176,9 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		return new BasicMigratableTableTranslation<DBODoi>() {
 			@Override
 			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-				// Convert null object version to -1
-				if (backup.objectVersion == null) {
-					backup.setObjectVersion(NULL_OBJECT_VERSION);
+				// Initialize updated fields to match the created fields
+				if (updatedBy == null) {
+					backup.setUpdatedBy(createdBy);
 				}
 				return backup;
 			}

@@ -13,15 +13,14 @@ import java.util.UUID;
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DoiDao;
+import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
-import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiStatus;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -29,8 +28,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-@Deprecated
-public class DBODoiDaoImpl implements DoiDao {
+/**
+ * Implementation of the DAO for the DOI Association objects (DOI v2)
+ */
+public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 
 	private static final String SELECT_DOI_BY_ID =
 			"SELECT * FROM " + TABLE_DOI + " WHERE "
@@ -67,9 +68,9 @@ public class DBODoiDaoImpl implements DoiDao {
 	 */
 	@NewWriteTransaction
 	@Override
-	public Doi createDoi(Doi dto) {
+	public DoiAssociation createDoiAssociation(DoiAssociation dto) {
 		Long newId = idGenerator.generateNewId(IdType.DOI_ID);
-		dto.setId(newId.toString());
+		dto.setAssociationId(newId.toString());
 		dto.setEtag(UUID.randomUUID().toString());
 		// MySQL TIMESTAMP only keeps seconds (not ms)
 		// so for consistency we only write seconds
@@ -77,36 +78,34 @@ public class DBODoiDaoImpl implements DoiDao {
 		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
 		Timestamp now = new Timestamp(nowInSeconds);
 
-		dto.setCreatedOn(now);
+		dto.setAssociatedOn(now);
 		dto.setUpdatedOn(now);
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		basicDao.createNew(dbo);
 
-		return getDoi(newId.toString());
+		return getDoiAssociation(newId.toString());
 	}
 
-	/**
-	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
-	 * DOI client updating the DOI is an asynchronous call and must happen outside the transaction to
-	 * avoid race conditions.
-	 */
-	@NewWriteTransaction
+	@WriteTransaction
 	@Override
-	public Doi updateDoiStatus(String id, DoiStatus status) throws NotFoundException {
-		// Etag was checked in manager, so we just have to update the object.
-		Doi dto = getDoi(id);
-		dto.setDoiStatus(status);
+	public DoiAssociation updateDoiAssociation(DoiAssociation dto) {
+		// MySQL TIMESTAMP only keeps seconds (not ms)
+		// so for consistency we only write seconds
+		DateTime dt = DateTime.now();
+		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
+		Timestamp now = new Timestamp(nowInSeconds);
+
 		dto.setEtag(UUID.randomUUID().toString());
+		dto.setUpdatedOn(now);
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
-		boolean success = basicDao.update(dbo);
-		if (!success) {
-			throw new DatastoreException("Update failed for " + dbo);
-		}
-		return getDoi(id);
+
+		basicDao.update(dbo);
+
+		return getDoiAssociation(dto.getAssociationId());
 	}
 
 	@Override
-	public Doi getDoi(String id) throws NotFoundException {
+	public DoiAssociation getDoiAssociation(String id) throws NotFoundException {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_DOI_ID, KeyFactory.stringToKey(id));
 		DBODoi dbo = null;
@@ -115,11 +114,11 @@ public class DBODoiDaoImpl implements DoiDao {
 		} catch (IncorrectResultSizeDataAccessException e) {
 			handleIncorrectResultSizeException(e);
 		}
-		return DoiUtils.convertToDto(dbo);
+		return DoiUtils.convertToDtoV2(dbo);
 	}
 
 	@Override
-	public Doi getDoi(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
+	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
 		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
@@ -134,7 +133,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		} catch (IncorrectResultSizeDataAccessException e) {
 			handleIncorrectResultSizeException(e);
 		}
-		return DoiUtils.convertToDto(dbo);
+		return DoiUtils.convertToDtoV2(dbo);
 	}
 
 	@NewWriteTransaction

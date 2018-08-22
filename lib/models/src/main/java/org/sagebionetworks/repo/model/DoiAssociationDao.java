@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiStatus;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Data operations for DOIs.
  */
-@Deprecated
-public interface DoiDao {
+public interface DoiAssociationDao {
 
 	/**
 	 * Creates a DOI for the specified entity version. If the version number is null,
@@ -17,16 +15,17 @@ public interface DoiDao {
 	 *            object type, object version (if applicable), and createdBy.
 	 * @return A DTO that corresponds to the new database entry matching the input DTO.
 	 */
-	Doi createDoi(Doi dto);
+	DoiAssociation createDoiAssociation(DoiAssociation dto);
 
 	/**
-	 * Updates a DOI status. The DTO must have an ID.
-	 * @param id The ID of an existing DOI object in the database.
- 	 * @param status The new status of the DOI.
-	 * @return A DTO that corresponds to the updated database entry.
-	 * @throws NotFoundException An existing DOI was not found
+	 * Updates a DOI for the specified entity version. If the version number is null,
+	 * the DOI will be associated with the most recent version if applicable.
+	 * @param dto The DTO for the existing DOI entry to update, containing object id,
+	 *            object type, object version (if applicable), and createdBy.
+	 * @return A DTO that corresponds to the updated database entry matching the input DTO.
 	 */
-	Doi updateDoiStatus(String id, DoiStatus status) throws NotFoundException;
+	DoiAssociation updateDoiAssociation(DoiAssociation dto);
+
 
 	/**
 	 * Gets the DOI that has the specified ID.
@@ -34,7 +33,7 @@ public interface DoiDao {
 	 * @return The DTO for the specified DOI.
 	 * @throws NotFoundException An existing DOI was not found
 	 */
-	Doi getDoi(String id) throws NotFoundException;
+	DoiAssociation getDoiAssociation(String id) throws NotFoundException;
 
 	/**
 	 * Gets the DOI for the specified object. If version number is null,
@@ -46,7 +45,7 @@ public interface DoiDao {
 	 * @return The DTO for the specified DOI.
 	 * @throws NotFoundException An existing DOI was not found
 	 */
-	Doi getDoi(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException;
+	DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException;
 
 	/**
 	 * Gets the Etag of the DOI for the specified object. If version number
