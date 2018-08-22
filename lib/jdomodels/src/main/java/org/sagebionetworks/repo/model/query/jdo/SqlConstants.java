@@ -559,6 +559,7 @@ public class SqlConstants {
 	public static final String COL_DOI_OBJECT_VERSION   = "OBJECT_VERSION";
 	public static final String COL_DOI_CREATED_BY       = "CREATED_BY";
 	public static final String COL_DOI_CREATED_ON       = "CREATED_ON";
+	public static final String COL_DOI_UPDATED_BY       = "UPDATED_BY";
 	public static final String COL_DOI_UPDATED_ON       = "UPDATED_ON";
 	public static final String DDL_FILE_DOI = "schema/Doi-ddl.sql";
 

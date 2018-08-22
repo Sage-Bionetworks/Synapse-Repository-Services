@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -11,10 +12,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 
 public class DoiUtilsTest {
 
 	private static final Long createdBy = 1L;
+	private static final Long updatedBy = 7L;
 	private static final Timestamp createdOn = new Timestamp((new Date()).getTime());
 	private static final ObjectType objectType = ObjectType.ENTITY;
 	private static final DoiStatus doiStatus = DoiStatus.CREATED;
@@ -41,11 +44,38 @@ public class DoiUtilsTest {
 	}
 
 	@Test
+	public void testConvertToDtoV2() {
+		DBODoi dbo = setUpDbo();
+		// Call under test
+		DoiAssociation dto = DoiUtils.convertToDtoV2(dbo);
+		assertEquals(createdBy.toString(), dto.getAssociatedBy());
+		assertEquals(createdOn.getTime(), dto.getAssociatedOn().getTime());
+		assertEquals(updatedBy.toString(), dto.getUpdatedBy());
+		assertEquals(objectType, dto.getObjectType());
+		assertEquals(doiStatus, doiStatus);
+		assertEquals(eTag, dto.getEtag());
+		assertEquals(id.toString(), dto.getAssociationId());
+		assertEquals("syn" + objectId.toString(), dto.getObjectId());
+		assertEquals(objectVersion, dto.getObjectVersion());
+		assertEquals(updatedOn.getTime(), dto.getUpdatedOn().getTime());
+	}
+
+	@Test
 	public void testConvertToDtoNotEntity() {
 		DBODoi dbo = setUpDbo();
 		dbo.setObjectType(ObjectType.WIKI);
 		// Call under test
 		Doi dto = DoiUtils.convertToDto(dbo);
+		assertEquals(objectId.toString(), dto.getObjectId());
+		assertEquals(ObjectType.WIKI, dto.getObjectType());
+	}
+
+	@Test
+	public void testConvertToDtoV2NotEntity() {
+		DBODoi dbo = setUpDbo();
+		dbo.setObjectType(ObjectType.WIKI);
+		// Call under test
+		DoiAssociation dto = DoiUtils.convertToDtoV2(dbo);
 		assertEquals(objectId.toString(), dto.getObjectId());
 		assertEquals(ObjectType.WIKI, dto.getObjectType());
 	}
@@ -60,11 +90,22 @@ public class DoiUtilsTest {
 	}
 
 	@Test
+	public void testConvertToDtoV2NoVersion() {
+		DBODoi dbo = setUpDbo();
+		dbo.setObjectVersion(DBODoi.NULL_OBJECT_VERSION);
+		//Call under test
+		DoiAssociation dto = DoiUtils.convertToDtoV2(dbo);
+		assertNull(dto.getObjectVersion());
+	}
+
+	@Test
 	public void testConvertToDbo() {
 		Doi dto = setUpDto();
 		// Call under test
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		assertEquals(createdBy, dbo.getCreatedBy());
+		// NOTE that the old DTO does not support updatedBy, so it will always match createdBy in the DBO
+		assertEquals(createdBy, dbo.getUpdatedBy());
 		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
 		assertEquals(objectType.name(), dbo.getObjectType());
 		assertEquals(doiStatus.name(), dbo.getDoiStatus());
@@ -74,6 +115,25 @@ public class DoiUtilsTest {
 		assertEquals(objectVersion, dbo.getObjectVersion());
 		assertEquals(updatedOn.getTime(), dbo.getUpdatedOn().getTime());
 	}
+
+	@Test
+	public void testConvertV2ToDbo() {
+		DoiAssociation dto = setUpDtoV2();
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+		assertEquals(createdBy, dbo.getCreatedBy());
+		assertEquals(updatedBy, dbo.getUpdatedBy());
+		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
+		assertEquals(objectType.name(), dbo.getObjectType());
+		// NOTE the new DTO does not support DoiStatus, so it will always be 'READY' in the DBO
+		assertEquals(DoiStatus.READY.name(), dbo.getDoiStatus());
+		assertEquals(eTag, dbo.getETag());
+		assertEquals(id, dbo.getId());
+		assertEquals(objectId, dbo.getObjectId());
+		assertEquals(objectVersion, dbo.getObjectVersion());
+		assertEquals(updatedOn.getTime(), dbo.getUpdatedOn().getTime());
+	}
+
 
 	@Test
 	public void testConvertToDboNotEntity() {
@@ -88,6 +148,15 @@ public class DoiUtilsTest {
 	@Test
 	public void testConvertToDboNoVersion() {
 		Doi dto = setUpDto();
+		dto.setObjectVersion(null);
+		// Call under test
+		DBODoi dbo = DoiUtils.convertToDbo(dto);
+		assertEquals((Long)DBODoi.NULL_OBJECT_VERSION, dbo.getObjectVersion());
+	}
+
+	@Test
+	public void testConvertV2ToDboNoVersion() {
+		DoiAssociation dto = setUpDtoV2();
 		dto.setObjectVersion(null);
 		// Call under test
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
@@ -240,9 +309,103 @@ public class DoiUtilsTest {
 		DoiUtils.convertToDto(dbo);
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testConvertToDtoV2NullDbo() {
+		DBODoi dbo = null;
+		// Note DBO is null, so it should not be converted to a DTO.
+		// Call under test.
+		DoiUtils.convertToDtoV2(dbo);
+	}
+	
+	@Test
+	public void testIllegalArgExceptionOnMissingValue() {
+		DoiAssociation dto = null;
+		DBODoi dbo;
+
+		// Call under test is DoiUtils.convertToDbo
+
+		try {	// Test missing DTO entirely
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected.
+		}
+
+		try { // Test null association ID
+			dto = setUpDtoV2();
+			dto.setAssociationId(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+		try { // Test null associatedBy
+			dto = setUpDtoV2();
+			dto.setAssociatedBy(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+		try { // Test null associated on
+			dto = setUpDtoV2();
+			dto.setAssociatedOn(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+
+		try { // Test null etag
+			dto = setUpDtoV2();
+			dto.setEtag(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+
+		try { // Test null updated by
+			dto = setUpDtoV2();
+			dto.setUpdatedBy(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+
+		try { // Test null updated on
+			dto = setUpDtoV2();
+			dto.setUpdatedOn(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+
+		try { // Test null object ID
+			dto = setUpDtoV2();
+			dto.setObjectId(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+
+		try { // Test null Object type
+			dto = setUpDtoV2();
+			dto.setObjectType(null);
+			dbo = DoiUtils.convertToDbo(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+	}
+
 	private static DBODoi setUpDbo() {
 		DBODoi dbo = new DBODoi();
 		dbo.setCreatedBy(createdBy);
+		dbo.setUpdatedBy(updatedBy);
 		dbo.setCreatedOn(createdOn);
 		dbo.setObjectType(objectType);
 		dbo.setDoiStatus(doiStatus);
@@ -267,4 +430,19 @@ public class DoiUtilsTest {
 		dto.setUpdatedOn(updatedOn);
 		return dto;
 	}
+
+	private static DoiAssociation setUpDtoV2() {
+		DoiAssociation dto = new DoiAssociation();
+		dto.setAssociatedBy(createdBy.toString());
+		dto.setAssociatedOn(createdOn);
+		dto.setObjectType(objectType);
+		dto.setEtag(eTag);
+		dto.setAssociationId(id.toString());
+		dto.setObjectId(objectId.toString());
+		dto.setObjectVersion(objectVersion);
+		dto.setUpdatedBy(updatedBy.toString());
+		dto.setUpdatedOn(updatedOn);
+		return dto;
+	}
+
 }
