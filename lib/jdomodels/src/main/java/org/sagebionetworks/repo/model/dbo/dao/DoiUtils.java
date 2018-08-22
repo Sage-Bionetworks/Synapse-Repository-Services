@@ -16,6 +16,7 @@ public class DoiUtils {
 	 * @param dbo A DOI database object
 	 * @return A DOI data transfer object with all fields filled in.
 	 */
+	@Deprecated
 	public static Doi convertToDto(DBODoi dbo) {
 		if (dbo == null) {
 			throw new IllegalArgumentException("DBO cannot be null.");
@@ -47,6 +48,7 @@ public class DoiUtils {
 	 * @param dto A DOI data transfer object to convert to a DBO
 	 * @return A corresponding DOI database object.
 	 */
+	@Deprecated
 	public static DBODoi convertToDbo(Doi dto) {
 		if (dto == null) {
 			throw new IllegalArgumentException("DTO cannot be null.");

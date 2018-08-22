@@ -177,7 +177,9 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			@Override
 			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
 				// Initialize updated fields to match the created fields
-				backup.setUpdatedBy(createdBy);
+				if (updatedBy == null) {
+					backup.setUpdatedBy(createdBy);
+				}
 				return backup;
 			}
 		};

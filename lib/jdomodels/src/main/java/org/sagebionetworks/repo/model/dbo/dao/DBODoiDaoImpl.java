@@ -29,6 +29,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+@Deprecated
 public class DBODoiDaoImpl implements DoiDao {
 
 	private static final String SELECT_DOI_BY_ID =

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 /**
  * Data operations for DOIs.
  */
+@Deprecated
 public interface DoiDao {
 
 	/**
