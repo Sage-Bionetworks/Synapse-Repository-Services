@@ -11,21 +11,24 @@ import org.sagebionetworks.repo.model.doi.DoiStatus;
 public class DBODoiTest {
 
 	@Test
-	public void translateToNonNullVersion() {
+	public void setNullUpdatedByToCreatedBy() {
 		DBODoi doi = new DBODoi();
 		doi.setId(1000L);
 		doi.setCreatedOn(Timestamp.valueOf(LocalDateTime.now()));
 		doi.setUpdatedOn(Timestamp.valueOf(LocalDateTime.now()));
+		doi.setUpdatedBy(null);
 		doi.setCreatedBy(0L);
 		doi.setETag("some etag");
 		doi.setDoiStatus(DoiStatus.IN_PROCESS);
 		doi.setObjectId(1234L);
 		doi.setObjectType(ObjectType.ENTITY);
-		doi.setObjectVersion(null);
+		doi.setObjectVersion(-1L);
 
 		// Method under test
 		DBODoi newDoi = doi.getTranslator().createDatabaseObjectFromBackup(doi);
-		assertEquals((Long) (-1L), newDoi.getObjectVersion());
+
+		assertEquals(doi.getCreatedBy(), newDoi.getUpdatedBy());
+		assertEquals(doi.getObjectVersion(), newDoi.getObjectVersion());
 		assertEquals(doi.getCreatedBy(), newDoi.getCreatedBy());
 		assertEquals(doi.getObjectId(), newDoi.getObjectId());
 		assertEquals(doi.getObjectType(), newDoi.getObjectType());
