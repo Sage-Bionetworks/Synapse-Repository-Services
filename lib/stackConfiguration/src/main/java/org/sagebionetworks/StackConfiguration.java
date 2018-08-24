@@ -493,6 +493,26 @@ public interface StackConfiguration {
 	public String getEzidDoiPrefix();
 
 	/**
+	 * DataCite user name.
+	 */
+	public String getDataciteUsername();
+
+	/**
+	 * DataCite password.
+	 */
+	public String getDatacitePassword();
+
+	/**
+	 * Endpoint for DataCite's DOI minting API
+	 */
+	public String getDataciteAPIEndpoint();
+
+	/**
+	 * Prefix under which DOIs should be registered. DOI prefix.
+	 */
+	public String getDoiPrefix();
+
+	/**
 	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
 	 */
 	public String getEzidTargetUrlPrefix();

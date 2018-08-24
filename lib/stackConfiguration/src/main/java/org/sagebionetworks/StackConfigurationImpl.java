@@ -780,10 +780,38 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
+	 * Prefix under which DOIs should be registered.
+	 */
+	public String getDoiPrefix() {
+		return configuration.getProperty("org.sagebionetworks.doi.prefix");
+	}
+
+	/**
 	 * EZID DOI prefix.
 	 */
 	public String getEzidDoiPrefix() {
 		return configuration.getProperty("org.sagebionetworks.ezid.doi.prefix");
+	}
+
+	/**
+	 * Datacite user name.
+	 */
+	public String getDataciteUsername() {
+		return configuration.getProperty("org.sagebionetworks.doi.datacite.username");
+	}
+
+	/**
+	 * Datacite password.
+	 */
+	public String getDatacitePassword() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.doi.datacite.password");
+	}
+
+	/**
+	 * Endpoint for DataCite's DOI minting API
+	 */
+	public String getDataciteAPIEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.doi.datacite.api.endpoint");
 	}
 
 	/**
