@@ -281,4 +281,14 @@
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
 	</filter-mapping>
+
+	<!-- appends a new sessionId cookie to the response if the user did not provide one in their request -->
+	<filter>
+		<filter-name>sessionIdCookieSetterFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.SessionIdCookieSetterFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>sessionIdCookieSetterFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
 </web-app>
