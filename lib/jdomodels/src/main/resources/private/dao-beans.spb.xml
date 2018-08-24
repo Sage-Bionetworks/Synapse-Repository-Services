@@ -314,5 +314,8 @@
 		
 	<bean id="tableExceptionTranslator"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslatorImpl"/>
+		
+	<bean id="bulkDownloadDao"
+		class="org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAOImpl"/>
 	
 </beans>

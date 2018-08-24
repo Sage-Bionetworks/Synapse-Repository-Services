@@ -54,4 +54,10 @@ public interface BulkDownloadDAO {
 	 */
 	public long getDownloadListFileCount(String ownerPrincipalId);
 
+	/**
+	 * Bump the etag and updatedOn of the given user's download list.
+	 * 
+	 * @param principalId
+	 */
+	public void touchUsersDownloadList(long principalId) ;
 }

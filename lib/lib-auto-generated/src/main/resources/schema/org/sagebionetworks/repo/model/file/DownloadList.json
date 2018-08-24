@@ -10,6 +10,10 @@
 			"format": "date-time",
 			"description": "The date-time when the list was last updated."
 		},
+		"etag": {
+			"type": "string",
+			"description": "The UUID assigned to a user's download list upon each change to the list."
+		},
 		"filesToDownload": {
 			"description": "The list of files to download.",
 			"type": "array",

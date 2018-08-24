@@ -19,20 +19,19 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBODownloadListItem implements MigratableDatabaseObject<DBODownloadListItem, DBODownloadListItem>{
+public class DBODownloadListItem implements MigratableDatabaseObject<DBODownloadListItem, DBODownloadListItem> {
 
 	private Long principalId;
 	private Long associatedObjectId;
-	private FileHandleAssociateType assocaitedObjectType;
+	private String associatedObjectType;
 	private Long fileHandleId;
-	
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("principalId", COL_DOWNLOAD_LIST_ITEM_PRINCIPAL_ID, true).withIsBackupId(true),
 			new FieldColumn("associatedObjectId", COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_ID),
-			new FieldColumn("assocaitedObjectType", COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_TYPE),
-			new FieldColumn("fileHandleId", COL_DOWNLOAD_LIST_ITEM_FILE_HANDLE_ID)
-			};
-	
+			new FieldColumn("associatedObjectType", COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_TYPE),
+			new FieldColumn("fileHandleId", COL_DOWNLOAD_LIST_ITEM_FILE_HANDLE_ID) };
+
 	@Override
 	public TableMapping<DBODownloadListItem> getTableMapping() {
 		return new TableMapping<DBODownloadListItem>() {
@@ -41,8 +40,8 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 			public DBODownloadListItem mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBODownloadListItem dbo = new DBODownloadListItem();
 				dbo.setPrincipalId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_PRINCIPAL_ID));
-				dbo.setAssocaitedObjectId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_ID));
-				dbo.setAssocaitedObjectType(FileHandleAssociateType.valueOf(rs.getString(COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_TYPE)));
+				dbo.setAssociatedObjectId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_ID));
+				dbo.setAssociatedObjectType(rs.getString(COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_TYPE));
 				dbo.setFileHandleId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_FILE_HANDLE_ID));
 				return dbo;
 			}
@@ -65,7 +64,8 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 			@Override
 			public Class<? extends DBODownloadListItem> getDBOClass() {
 				return DBODownloadListItem.class;
-			}};
+			}
+		};
 	}
 
 	@Override
@@ -81,6 +81,14 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 	@Override
 	public Class<? extends DBODownloadListItem> getBackupClass() {
 		return DBODownloadListItem.class;
+	}
+
+	public Long getAssociatedObjectId() {
+		return associatedObjectId;
+	}
+
+	public void setAssociatedObjectId(Long associatedObjectId) {
+		this.associatedObjectId = associatedObjectId;
 	}
 
 	@Override
@@ -101,20 +109,12 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 		this.principalId = principalId;
 	}
 
-	public Long getAssocaitedObjectId() {
-		return associatedObjectId;
+	public String getAssociatedObjectType() {
+		return associatedObjectType;
 	}
 
-	public void setAssocaitedObjectId(Long assocaitedObjectId) {
-		this.associatedObjectId = assocaitedObjectId;
-	}
-
-	public FileHandleAssociateType getAssocaitedObjectType() {
-		return assocaitedObjectType;
-	}
-
-	public void setAssocaitedObjectType(FileHandleAssociateType assocaitedObjectType) {
-		this.assocaitedObjectType = assocaitedObjectType;
+	public void setAssociatedObjectType(String associatedObjectType) {
+		this.associatedObjectType = associatedObjectType;
 	}
 
 	public Long getFileHandleId() {
@@ -130,7 +130,7 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((associatedObjectId == null) ? 0 : associatedObjectId.hashCode());
-		result = prime * result + ((assocaitedObjectType == null) ? 0 : assocaitedObjectType.hashCode());
+		result = prime * result + ((associatedObjectType == null) ? 0 : associatedObjectType.hashCode());
 		result = prime * result + ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
 		return result;
@@ -150,7 +150,7 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 				return false;
 		} else if (!associatedObjectId.equals(other.associatedObjectId))
 			return false;
-		if (assocaitedObjectType != other.assocaitedObjectType)
+		if (associatedObjectType != other.associatedObjectType)
 			return false;
 		if (fileHandleId == null) {
 			if (other.fileHandleId != null)
@@ -168,7 +168,7 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 	@Override
 	public String toString() {
 		return "DBODownloadListItem [principalId=" + principalId + ", assocaitedObjectId=" + associatedObjectId
-				+ ", assocaitedObjectType=" + assocaitedObjectType + ", fileHandleId=" + fileHandleId + "]";
+				+ ", assocaitedObjectType=" + associatedObjectType + ", fileHandleId=" + fileHandleId + "]";
 	}
 
 }
