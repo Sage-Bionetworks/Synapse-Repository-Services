@@ -1,0 +1,25 @@
+{
+	"description": "User's list of files they wish to download.",
+	"properties": {
+		"ownerId": {
+			"description": "The ID of the user that owns this download list.",
+			"type": "string"
+		},
+		"updatedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the list was last updated."
+		},
+		"etag": {
+			"type": "string",
+			"description": "The UUID assigned to a user's download list upon each change to the list."
+		},
+		"filesToDownload": {
+			"description": "The list of files to download.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation"
+			}
+		}
+	}
+}
