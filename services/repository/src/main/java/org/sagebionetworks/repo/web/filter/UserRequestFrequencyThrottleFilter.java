@@ -29,7 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * It will throw an unavailable exception when exceeded.
  * 
  */
-public class UserRequestFrequencyThrottleFilter implements Filter {
+public class UserRequestFrequencyThrottleFilter extends AbstractRequestThrottleFilter {
 	//From usage data in redash, normal users would not be affected with an average send 1 request per 1 second
 	//Set to 600 requests / 60 seconds so that the filter could tolerate infrequent high bursts of request from users
 	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  60; //60 seconds
@@ -45,35 +45,18 @@ public class UserRequestFrequencyThrottleFilter implements Filter {
 	
 	@Autowired
 	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
-	
-	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-	}
 
-	@Override
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-			throws IOException, ServletException {
-		
-		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		long userIdLong = Long.parseLong(userId);
-		if (AuthorizationUtils.isUserAnonymous(userIdLong) || isMigrationAdmin(userIdLong) ) {
-			//do not throttle anonymous users nor the admin responsible for migration.
+
+	protected void throttle(ServletRequest request, ServletResponse response, FilterChain chain, String userId) throws IOException, ServletException {
+		boolean frequencyLockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+		if(frequencyLockAcquired){
+			//acquired lock. proceed to next filter
 			chain.doFilter(request, response);
-		} else{
-			boolean frequencyLockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
-			if(frequencyLockAcquired){
-				//acquired lock. proceed to next filter
-				chain.doFilter(request, response);
-			}else{
-				ProfileData report = generateCloudwatchProfiledata(CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
-				consumer.addProfileData(report);
-				setResponseError(response, THROTTLED_HTTP_STATUS, REASON_USER_THROTTLED_FREQ);
-			}
+		}else{
+			ProfileData report = generateCloudwatchProfiledata(CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
+			consumer.addProfileData(report);
+			setResponseError(response, THROTTLED_HTTP_STATUS, REASON_USER_THROTTLED_FREQ);
 		}
-	}
-
-	@Override
-	public void destroy() {
 	}
 
 }

@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * requests for one user to a fixed number and will throw an unavailable exception when exceeded.
  * 
  */
-public class UserConcurrentConnectionThrottleFilter implements Filter {
+public class UserConcurrentConnectionThrottleFilter extends AbstractRequestThrottleFilter {
 	
 	public static final long CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC = 60*10; // 10 MINS
 	// The maximum number of concurrent locks a user can have per machine.
@@ -49,51 +49,34 @@ public class UserConcurrentConnectionThrottleFilter implements Filter {
 	@Autowired
 	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
 
-	@Override
-	public void destroy() {
-	}
+	protected void throttle(ServletRequest request, ServletResponse response, FilterChain chain, String userId) throws IOException, ServletException {
+		String concurrentLockToken = null;
+		try {
+			concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 
-	public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain) throws IOException,
-			ServletException {
-
-		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		long userIdLong = Long.parseLong(userId);
-		if (AuthorizationUtils.isUserAnonymous(userIdLong) || isMigrationAdmin(userIdLong) ) {
-			//do not throttle anonymous users nor the admin responsible for migration.
-			chain.doFilter(request, response);
-		} else {
-			String concurrentLockToken = null;
-			try {
-				concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-				
-				if(concurrentLockToken != null){
-					chain.doFilter(request, response);
-				}else{
-					ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
-					consumer.addProfileData(report);
-					setResponseError(response, THROTTLED_HTTP_STATUS, REASON_USER_THROTTLED_CONCURRENT);
-				}
-			} catch (IOException | ServletException e) {
-				throw e;
-			} catch (Exception e) {
-				throw new ServletException(e.getMessage(), e);
-			}finally {
-				//clean up by releasing concurrent lock regardless if frequency lock was acquired
-				if(concurrentLockToken != null){
-					try {
-						userThrottleMemoryCountingSemaphore.releaseLock(userId, concurrentLockToken);
-					} catch (LockReleaseFailedException e) {
-						// This happens when test force the release of all locks.
-						log.info(e.getMessage());
-					}
+			if(concurrentLockToken != null){
+				chain.doFilter(request, response);
+			}else{
+				ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
+				consumer.addProfileData(report);
+				setResponseError(response, THROTTLED_HTTP_STATUS, REASON_USER_THROTTLED_CONCURRENT);
+			}
+		} catch (IOException | ServletException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new ServletException(e.getMessage(), e);
+		}finally {
+			//clean up by releasing concurrent lock regardless if frequency lock was acquired
+			if(concurrentLockToken != null){
+				try {
+					userThrottleMemoryCountingSemaphore.releaseLock(userId, concurrentLockToken);
+				} catch (LockReleaseFailedException e) {
+					// This happens when test force the release of all locks.
+					log.info(e.getMessage());
 				}
 			}
 		}
 	}
-	
-	
-	@Override
-	public void init(FilterConfig arg0) throws ServletException {
-	}
+
 
 }
