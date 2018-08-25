@@ -16,6 +16,7 @@ import java.io.IOException;
 //TODO: test
 //TODO: make this not abstract and
 //TODO: use Composition where it contains an interface throttler class. Make that interface also implement AutoCloseable so that locks can be released after response is sent(if necessary)
+//TODO: thow an exception if not able to acquire lock and catch it in this class. make the execption contain the cloudwatch report and also the http error reason
 public abstract class AbstractRequestThrottleFilter implements Filter {
 
 	@Override
