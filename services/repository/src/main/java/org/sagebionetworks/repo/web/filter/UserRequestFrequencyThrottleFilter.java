@@ -46,7 +46,7 @@ public class UserRequestFrequencyThrottleFilter extends AbstractRequestThrottleF
 	@Autowired
 	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
 
-
+	@Override
 	protected void throttle(ServletRequest request, ServletResponse response, FilterChain chain, String userId) throws IOException, ServletException {
 		boolean frequencyLockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 		if(frequencyLockAcquired){

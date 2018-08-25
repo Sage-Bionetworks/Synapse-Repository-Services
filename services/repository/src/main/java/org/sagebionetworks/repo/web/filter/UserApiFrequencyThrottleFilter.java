@@ -43,8 +43,8 @@ public class UserApiFrequencyThrottleFilter extends AbstractRequestThrottleFilte
 	
 	@Autowired
 	MemoryTimeBlockCountingSemaphore userApiThrottleMemoryTimeBlockSemaphore;
-	
 
+	@Override
 	protected void throttle(ServletRequest request, ServletResponse response, FilterChain chain, String userId) throws IOException, ServletException {
 		HttpServletRequest httpServletRequest = (HttpServletRequest) request;
 		String normalizedPath = PathNormalizer.normalizeMethodSignature(httpServletRequest.getRequestURI());

@@ -49,6 +49,7 @@ public class UserConcurrentConnectionThrottleFilter extends AbstractRequestThrot
 	@Autowired
 	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
 
+	@Override
 	protected void throttle(ServletRequest request, ServletResponse response, FilterChain chain, String userId) throws IOException, ServletException {
 		String concurrentLockToken = null;
 		try {
@@ -61,10 +62,10 @@ public class UserConcurrentConnectionThrottleFilter extends AbstractRequestThrot
 				consumer.addProfileData(report);
 				setResponseError(response, THROTTLED_HTTP_STATUS, REASON_USER_THROTTLED_CONCURRENT);
 			}
-		} catch (IOException | ServletException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new ServletException(e.getMessage(), e);
+//		} catch (IOException | ServletException e) {
+//			throw e;
+//		} catch (Exception e) {
+//			throw new ServletException(e.getMessage(), e);
 		}finally {
 			//clean up by releasing concurrent lock regardless if frequency lock was acquired
 			if(concurrentLockToken != null){

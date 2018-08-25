@@ -5,6 +5,8 @@ import java.util.StringJoiner;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.tuple.Triple;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 public class HttpRequestIdentifierUtils {
@@ -24,12 +26,13 @@ public class HttpRequestIdentifierUtils {
 		return null;
 	}
 
-	public static String getRequestIdentifier(ServletRequest request){
+
+	public static HttpRequestIdentifier getRequestIdentifier(ServletRequest request){
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-		String userId = httpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
+		Long userId = Long.parseLong(httpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM));
 		String sessionId = getSessionId(httpRequest);
 		String ipAddress = IpAddressUtil.getIpAddress(httpRequest);
-		return String.join(":", userId, sessionId, ipAddress); //TODO: test null
+		return new HttpRequestIdentifier(userId, sessionId, ipAddress); //TODO: test null
 	}
 
 }
