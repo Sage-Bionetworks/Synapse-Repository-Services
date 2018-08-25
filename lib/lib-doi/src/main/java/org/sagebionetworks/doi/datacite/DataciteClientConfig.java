@@ -6,21 +6,6 @@ package org.sagebionetworks.doi.datacite;
 public interface DataciteClientConfig {
 
 	/**
-	 * Set the username used to authenticate with DataCite.
-	 */
-	void setUsername(String username);
-
-	/**
-	 * Set the password used to authenticate with DataCite
-	 */
-	void setPassword(String password);
-
-	/**
-	 * Set the domain for the DataCite API. Defaults to "mds.datacite.org".
-	 */
-	void setDataciteDomain(String domain);
-
-	/**
 	 * Get the username used to authenticate with DataCite.
 	 */
 	String getUsername();

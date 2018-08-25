@@ -1,5 +1,16 @@
 package org.sagebionetworks.doi.datacite;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.doi.datacite.DataciteClientImpl.handleHttpErrorCode;
+import static org.sagebionetworks.doi.datacite.DataciteClientImpl.registerDoiRequestBody;
+
+import java.io.IOException;
+
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
@@ -8,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -16,25 +27,14 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
-import static org.sagebionetworks.doi.datacite.DataciteClientImpl.handleHttpErrorCode;
-import static org.sagebionetworks.doi.datacite.DataciteClientImpl.registerDoiRequestBody;
-
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 @ContextConfiguration(locations = {"classpath:doi-test-spb.xml"})
 public class DataciteClientImplTest {
 
-	@Autowired
+	@Mock
 	private DataciteClientConfig config;
 	@Mock
 	private SimpleHttpClient mockHttpClient;
@@ -61,10 +61,9 @@ public class DataciteClientImplTest {
 
 	@Before
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-		config.setDataciteDomain(CONFIG_URL);
-		config.setUsername(CONFIG_USR);
-		config.setPassword(CONFIG_PWD);
+		when(config.getUsername()).thenReturn(CONFIG_USR);
+		when(config.getPassword()).thenReturn(CONFIG_PWD);
+		when(config.getDataciteDomain()).thenReturn(CONFIG_URL);
 		dataciteClient = new DataciteClientImpl(config);
 		ReflectionTestUtils.setField(dataciteClient, "client", mockHttpClient);
 		ReflectionTestUtils.setField(dataciteClient, "xmlTranslator", mockXmlTranslator);
