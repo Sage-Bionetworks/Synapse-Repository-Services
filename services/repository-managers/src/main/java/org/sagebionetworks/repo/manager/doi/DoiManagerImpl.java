@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -94,22 +93,6 @@ public class DoiManagerImpl implements DoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
 
-		/*
-		 * If either the association creation fails or the metadata registration fails, we rollback the entire transaction,
-		 *  and either
-		 *  - throw an exception indicates the DOI has already been created (ConflictingUpdateException on eTag mismatch)
-		 *  - throw an exception that suggests retrying the call (RecoverableMessageException)
-		 *
-		 * We do this to avoid a scenario where we register a DOI association, but the metadata is never registered, and
-		 * to avoid certain race conditions, such as
-		 * - the creation of a duplicate association in between retrieval and creation
-		 * - the creation of an association where the external metadata registration fails, and then another association
-		 * 		is created.
-		 *
-		 * In both cases, retrying the original call will succeed if the other caller fails, or fail on a
-		 *  ConflictingUpdateException that indicates that another call successfully minted the DOI.
-		 * Ultimately, we avoid telling the caller that a DOI has been minted when it hasn't.
-		 */
 		DoiAssociation association = createOrUpdateAssociation(dto);
 		dto.setDoiUri(generateDoiUri(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
 		dto.setDoiUrl(generateLocationRequestUrl(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
@@ -129,12 +112,11 @@ public class DoiManagerImpl implements DoiManager {
 		} catch (NotFoundException e1) { // The DOI does not already exist (exception was thrown by getEtag)
 			try {
 				association = doiAssociationDao.createDoiAssociation(dto); // Create
-			} catch (DatastoreException e2) {
+			} catch (IllegalArgumentException e2) {
 				/*
-				 * If the create method fails after encountering the NotFoundException, it is possible that a separate
-				 * client was able to create a database entry, resulting in a DataStoreException.
-				 * We suggest that the client retry calling the method, which will either lead to a successful update
-				 * call, or attempt will to create the DOI once more (if another caller failed).
+				 * This exception indicates there was a race condition where two callers attempted to create a DOI on the
+				 * same object at the same time. The loser of this race will see this exception. However, since the
+				 * winner might also fail before completion, we send this caller back to the beginning to retry.
 				 */
 				throw new RecoverableMessageException(e2);
 			}
@@ -149,6 +131,9 @@ public class DoiManagerImpl implements DoiManager {
 		if (dto.getDoiUrl() == null) {
 			throw new IllegalArgumentException("DOI URL cannot be null");
 		}
+		if (dto.getStatus() == null) { // null status defaults to FINDABLE
+			dto.setStatus(DataciteRegistrationStatus.FINDABLE);
+		}
 
 		try {
 			dataciteClient.registerMetadata(dto, dto.getDoiUri());
@@ -159,8 +144,8 @@ public class DoiManagerImpl implements DoiManager {
 			return dataciteClient.get(dto.getDoiUri());
 		} catch (NotReadyException | ServiceUnavailableException e) {
 			/*
-			 * If the client to the external receives one of these exceptions, the external API may be temporarily down.
-			 * The client may decide to retry minting the DOI.
+			 * The second call to DataCite may fail because the calls are "eventually consistent". It may also be the
+			 * case that the external API is temporarily down. The client may decide to retry minting the DOI.
 			 */
 			throw new RecoverableMessageException(e);
 		}

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.doi;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,7 +24,6 @@ import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -106,7 +106,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
 		DoiAssociation actualResponse = doiManager.getDoiAssociation(USER_ID, entityId, entityType, version);
-		verify(mockDoiDao, times(1)).getDoiAssociation(entityId, entityType, version);
+		verify(mockDoiDao).getDoiAssociation(entityId, entityType, version);
 		assertEquals(outputDto.getObjectId(), actualResponse.getObjectId());
 		assertEquals(outputDto.getObjectType(), actualResponse.getObjectType());
 		assertEquals(outputDto.getObjectVersion(), actualResponse.getObjectVersion());
@@ -124,8 +124,8 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
 		doiManager.getDoiAssociation(USER_ID, entityId, entityType, version);
-		verify(mockUserManager, times(1)).getUserInfo(USER_ID);
-		verify(mockAuthorizationManager, times(1)).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ);
+		verify(mockUserManager).getUserInfo(USER_ID);
+		verify(mockAuthorizationManager).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ);
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -162,7 +162,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, null)).thenReturn(outputDto);
 		// Call under test
 		doiManager.getDoiAssociation(USER_ID, entityId, entityType, null);
-		verify(mockDoiDao, times(1)).getDoiAssociation(entityId, entityType, null);
+		verify(mockDoiDao).getDoiAssociation(entityId, entityType, null);
 	}
 
 
@@ -208,8 +208,8 @@ public class DoiManagerImplTest {
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
 		doiManager.createOrUpdateDoi(USER_ID, inputDto);
-		verify(mockUserManager, times(1)).getUserInfo(USER_ID);
-		verify(mockAuthorizationManager, times(1)).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE);
+		verify(mockUserManager).getUserInfo(USER_ID);
+		verify(mockAuthorizationManager).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE);
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -231,10 +231,10 @@ public class DoiManagerImplTest {
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 
 		doiManager.createOrUpdateDoi(USER_ID, inputDto);
-		verify(mockDoiDao, times(1)).createDoiAssociation(inputDto);
-		verify(mockDataciteClient, times(1)).registerMetadata(any(DataciteMetadata.class), any(String.class));
-		verify(mockDataciteClient, times(1)).registerDoi(any(String.class), any(String.class));
-		verify(mockDataciteClient, times(0)).deactivate(any(String.class));
+		verify(mockDoiDao).createDoiAssociation(inputDto);
+		verify(mockDataciteClient).registerMetadata(any(DataciteMetadata.class), any(String.class));
+		verify(mockDataciteClient).registerDoi(any(String.class), any(String.class));
+		verify(mockDataciteClient, never()).deactivate(any(String.class));
 	}
 
 	@Test
@@ -248,10 +248,10 @@ public class DoiManagerImplTest {
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
 		doiManager.createOrUpdateDoi(USER_ID, inputDto);
-		verify(mockDoiDao, times(1)).updateDoiAssociation(inputDto);
-		verify(mockDataciteClient, times(1)).registerMetadata(any(DataciteMetadata.class), any(String.class));
-		verify(mockDataciteClient, times(1)).registerDoi(any(String.class), any(String.class));
-		verify(mockDataciteClient, times(0)).deactivate(any(String.class));
+		verify(mockDoiDao).updateDoiAssociation(inputDto);
+		verify(mockDataciteClient).registerMetadata(any(DataciteMetadata.class), any(String.class));
+		verify(mockDataciteClient).registerDoi(any(String.class), any(String.class));
+		verify(mockDataciteClient, never()).deactivate(any(String.class));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -289,7 +289,7 @@ public class DoiManagerImplTest {
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
 		doiManager.createOrUpdateDoi(USER_ID, inputDto);
-		verify(mockDoiDao, times(1)).createDoiAssociation(inputDto);
+		verify(mockDoiDao).createDoiAssociation(inputDto);
 	}
 
 	@Test
@@ -322,10 +322,10 @@ public class DoiManagerImplTest {
 	}
 
 	@Test(expected = RecoverableMessageException.class)
-	public void testCreateAssociationFailureOnDatastoreException() throws Exception {
+	public void testCreateAssociationFailureOnIllegalArgumentException() throws Exception {
 		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenThrow(new NotFoundException());
 
-		when(mockDoiDao.createDoiAssociation(inputDto)).thenThrow(new DatastoreException());
+		when(mockDoiDao.createDoiAssociation(inputDto)).thenThrow(new IllegalArgumentException());
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
 	}
@@ -337,9 +337,21 @@ public class DoiManagerImplTest {
 		inputDto.setStatus(DataciteRegistrationStatus.FINDABLE);
 		// Call under test
 		doiManager.createOrUpdateDataciteMetadata(inputDto);
-		verify(mockDataciteClient, times(1)).registerMetadata(inputDto, doiUri);
-		verify(mockDataciteClient, times(1)).registerDoi(doiUri, doiUrl);
-		verify(mockDataciteClient, times(0)).deactivate(any(String.class));
+		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
+		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
+		verify(mockDataciteClient, never()).deactivate(any(String.class));
+	}
+
+	@Test
+	public void testCreateOrUpdateMetadataNullStatus() throws Exception {
+		inputDto.setDoiUri(doiUri);
+		inputDto.setDoiUrl(doiUrl);
+		inputDto.setStatus(null);
+		// Call under test
+		doiManager.createOrUpdateDataciteMetadata(inputDto);
+		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
+		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
+		verify(mockDataciteClient, never()).deactivate(any(String.class));
 	}
 
 	@Test
@@ -349,9 +361,9 @@ public class DoiManagerImplTest {
 		inputDto.setStatus(DataciteRegistrationStatus.REGISTERED);
 		// Call under test
 		doiManager.createOrUpdateDataciteMetadata(inputDto);
-		verify(mockDataciteClient, times(1)).registerMetadata(inputDto, doiUri);
-		verify(mockDataciteClient, times(1)).registerDoi(doiUri, doiUrl);
-		verify(mockDataciteClient, times(1)).deactivate(doiUri);
+		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
+		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
+		verify(mockDataciteClient).deactivate(doiUri);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -395,7 +407,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(association);
 		// Call under test
 		doiManager.deactivateDoi(USER_ID, entityId, entityType, version);
-		verify(mockDataciteClient, times(1)).deactivate(any(String.class));
+		verify(mockDataciteClient).deactivate(any(String.class));
 	}
 
 	@Test(expected = RecoverableMessageException.class)
@@ -423,8 +435,8 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
 		doiManager.deactivateDoi(USER_ID, entityId, entityType, version);
-		verify(mockUserManager, times(1)).getUserInfo(USER_ID);
-		verify(mockAuthorizationManager, times(1)).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE);
+		verify(mockUserManager).getUserInfo(USER_ID);
+		verify(mockAuthorizationManager).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE);
 	}
 
 	@Test(expected = UnauthorizedException.class)
