@@ -797,7 +797,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * Datacite user name.
 	 */
 	public String getDataciteUsername() {
-		return configuration.getProperty("org.sagebionetworks.doi.datacite.username");
+		return configuration.getDecryptedProperty("org.sagebionetworks.doi.datacite.username");
 	}
 
 	/**
