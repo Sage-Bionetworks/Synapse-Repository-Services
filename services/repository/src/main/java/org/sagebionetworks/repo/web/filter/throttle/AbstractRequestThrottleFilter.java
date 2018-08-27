@@ -32,6 +32,7 @@ public abstract class AbstractRequestThrottleFilter implements Filter {
 			if (!isMigrationAdmin(userIdLong) && !AuthorizationUtils.isUserAnonymous(userIdLong) ) {   //do not throttle the admin responsible for migration.
 				throttle(request, userId);
 			}
+			chain.doFilter(request, response);
 		} catch (RequestThrottledException e){
 			consumer.addProfileData(e.getProfileData());
 			ThrottleUtils.setResponseError(response,THROTTLED_HTTP_STATUS,e.getMessage());
@@ -40,7 +41,6 @@ public abstract class AbstractRequestThrottleFilter implements Filter {
 		}
 
 		//proceed to next filter
-		chain.doFilter(request, response);
 	}
 
 	protected abstract void throttle(ServletRequest request, String userId) throws RequestThrottledException;
