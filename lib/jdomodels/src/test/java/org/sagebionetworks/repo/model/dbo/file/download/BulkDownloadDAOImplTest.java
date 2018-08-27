@@ -43,8 +43,11 @@ public class BulkDownloadDAOImplTest {
 	@Autowired
 	BulkDownloadDAO bulkDownlaodDao;
 	
-	Long userId;
-	String userIdString;
+	Long userOneIdLong;
+	String userOneId;
+	
+	Long userTwoIdLong;
+	String userTwoId;
 	
 	List<FileHandle> fileHandles;
 	List<FileHandleAssociation> fileHandleAssociations;
@@ -54,15 +57,21 @@ public class BulkDownloadDAOImplTest {
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
 		ug.setIsIndividual(true);
-		userId = userGroupDao.create(ug);
-		userIdString = ""+userId;
+		userOneIdLong = userGroupDao.create(ug);
+		userOneId = ""+userOneIdLong;
+		// second user
+		ug = new UserGroup();
+		ug.setCreationDate(new Date(System.currentTimeMillis()));
+		ug.setIsIndividual(true);
+		userTwoIdLong = userGroupDao.create(ug);
+		userTwoId = ""+userTwoIdLong;
 		
 		fileHandles = new LinkedList<>();
 		for(int i=0; i<4; i++) {
 			S3FileHandle fileHandle = new S3FileHandle();
 			fileHandle.setBucketName("someBucket");
 			fileHandle.setContentMd5("MD5");
-			fileHandle.setCreatedBy(""+userId);
+			fileHandle.setCreatedBy(""+userOneIdLong);
 			fileHandle.setCreatedOn(new Date(System.currentTimeMillis()) );
 			fileHandle.setKey("key-"+i);
 			fileHandle.setFileName("name-"+i);
@@ -86,8 +95,11 @@ public class BulkDownloadDAOImplTest {
 
 	@After
 	public void after() {
-		if(userId != null) {
-			userGroupDao.delete(""+userId);
+		if(userOneId != null) {
+			userGroupDao.delete(userOneId);
+		}
+		if(userTwoId != null) {
+			userGroupDao.delete(userTwoId);
 		}
 		
 		if(fileHandles != null) {
@@ -100,12 +112,12 @@ public class BulkDownloadDAOImplTest {
 	@Test
 	public void testCreateFromDBOFileAssociation() {
 		DBODownloadListItem item = new DBODownloadListItem();
-		item.setPrincipalId(userId);
+		item.setPrincipalId(userOneIdLong);
 		item.setAssociatedObjectId(123L);
 		item.setAssociatedObjectType(FileHandleAssociateType.FileEntity.name());
 		item.setFileHandleId(456L);
 		// call under test
-		FileHandleAssociation fha = BulkDownloadDAOImpl.createFromDBO(item);
+		FileHandleAssociation fha = BulkDownloadDAOImpl.translateFromDBOtoDTO(item);
 		assertNotNull(fha);
 		assertEquals(""+item.getAssociatedObjectId(), fha.getAssociateObjectId());
 		assertEquals(item.getAssociatedObjectType(), fha.getAssociateObjectType().name());
@@ -115,12 +127,12 @@ public class BulkDownloadDAOImplTest {
 	@Test
 	public void testCreateFromDBOFileAssociationList() {
 		DBODownloadListItem item = new DBODownloadListItem();
-		item.setPrincipalId(userId);
+		item.setPrincipalId(userOneIdLong);
 		item.setAssociatedObjectId(123L);
 		item.setAssociatedObjectType(FileHandleAssociateType.FileEntity.name());
 		item.setFileHandleId(456L);
 		// call under test
-		List<FileHandleAssociation> list = BulkDownloadDAOImpl.createFromDBO(Lists.newArrayList(item));
+		List<FileHandleAssociation> list = BulkDownloadDAOImpl.translateFromDBOtoDTO(Lists.newArrayList(item));
 		assertNotNull(list);
 		assertEquals(1, list.size());
 		FileHandleAssociation fha = list.get(0);
@@ -133,7 +145,7 @@ public class BulkDownloadDAOImplTest {
 	public void testCreateFromDBOFileAssociationListNull() {
 		List<DBODownloadListItem> items = null;
 		// call under test
-		List<FileHandleAssociation> list = BulkDownloadDAOImpl.createFromDBO(items);
+		List<FileHandleAssociation> list = BulkDownloadDAOImpl.translateFromDBOtoDTO(items);
 		assertEquals(null, list);
 	}
 	
@@ -141,7 +153,7 @@ public class BulkDownloadDAOImplTest {
 	public void testCraeteFromDBODownloadList() {
 		DBODownloadList list = new DBODownloadList();
 		list.setEtag("etag");
-		list.setPrincipalId(userId);
+		list.setPrincipalId(userOneIdLong);
 		list.setUpdatedOn(System.currentTimeMillis());
 		DBODownloadListItem item = new DBODownloadListItem();
 		item.setAssociatedObjectId(123L);
@@ -149,9 +161,9 @@ public class BulkDownloadDAOImplTest {
 		item.setFileHandleId(456L);
 		List<DBODownloadListItem> items = Lists.newArrayList(item);
 		// call under test
-		DownloadList result = BulkDownloadDAOImpl.createFromDBO(list, items);
+		DownloadList result = BulkDownloadDAOImpl.translateFromDBOtoDTO(list, items);
 		assertNotNull(result);
-		assertEquals(userIdString, result.getOwnerId());
+		assertEquals(userOneId, result.getOwnerId());
 		assertEquals(new Date(list.getUpdatedOn()), result.getUpdatedOn());
 		assertNotNull(result.getFilesToDownload());
 		assertEquals(1, result.getFilesToDownload().size());
@@ -162,7 +174,7 @@ public class BulkDownloadDAOImplTest {
 	public void testCraeteFromDBODownloadListNullItems() {
 		DBODownloadList list = new DBODownloadList();
 		list.setEtag("etag");
-		list.setPrincipalId(userId);
+		list.setPrincipalId(userOneIdLong);
 		list.setUpdatedOn(System.currentTimeMillis());
 		DBODownloadListItem item = new DBODownloadListItem();
 		item.setAssociatedObjectId(123L);
@@ -170,9 +182,9 @@ public class BulkDownloadDAOImplTest {
 		item.setFileHandleId(456L);
 		List<DBODownloadListItem> items = null;
 		// call under test
-		DownloadList result = BulkDownloadDAOImpl.createFromDBO(list, items);
+		DownloadList result = BulkDownloadDAOImpl.translateFromDBOtoDTO(list, items);
 		assertNotNull(result);
-		assertEquals(userIdString, result.getOwnerId());
+		assertEquals(userOneId, result.getOwnerId());
 		assertEquals(new Date(list.getUpdatedOn()), result.getUpdatedOn());
 		assertEquals(null, result.getFilesToDownload());
 		assertEquals("etag", result.getEtag());
@@ -182,16 +194,16 @@ public class BulkDownloadDAOImplTest {
 	public void testGetUsersDownloadListNeverCreated() {
 		// There is no data for this user yet.
 		// call under test
-		DownloadList list = bulkDownlaodDao.getUsersDownloadList(userIdString);
+		DownloadList list = bulkDownlaodDao.getUsersDownloadList(userOneId);
 		assertNotNull(list);
 		assertNotNull(list.getUpdatedOn());
 		assertNotNull(list.getEtag());
 		assertEquals(null, list.getFilesToDownload());
-		assertEquals(this.userIdString, list.getOwnerId());
+		assertEquals(this.userOneId, list.getOwnerId());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetUsersDownloadListNullUserer() {
+	public void testGetUsersDownloadListNullUser() {
 		// call under test
 		bulkDownlaodDao.getUsersDownloadList(null);
 	}
@@ -203,12 +215,12 @@ public class BulkDownloadDAOImplTest {
 		fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		fha.setFileHandleId("456");
 		// call under test
-		DBODownloadListItem item = BulkDownloadDAOImpl.createDBO(userId, fha);
+		DBODownloadListItem item = BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, fha);
 		assertNotNull(item);
 		assertEquals(new Long(123), item.getAssociatedObjectId());
 		assertEquals(FileHandleAssociateType.FileEntity.name(), item.getAssociatedObjectType());
 		assertEquals(new Long(456), item.getFileHandleId());
-		assertEquals(userId, item.getPrincipalId());
+		assertEquals(userOneIdLong, item.getPrincipalId());
 	}
 	
 
@@ -217,7 +229,7 @@ public class BulkDownloadDAOImplTest {
 	public void testCreateDBOFileHandleAssociationNull() {
 		FileHandleAssociation fha = null;
 		// call under test
-		BulkDownloadDAOImpl.createDBO(userId, fha);
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, fha);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -227,7 +239,7 @@ public class BulkDownloadDAOImplTest {
 		fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		fha.setFileHandleId("456");
 		// call under test
-		BulkDownloadDAOImpl.createDBO(userId, fha);
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, fha);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -237,7 +249,7 @@ public class BulkDownloadDAOImplTest {
 		fha.setAssociateObjectType(null);
 		fha.setFileHandleId("456");
 		// call under test
-		BulkDownloadDAOImpl.createDBO(userId, fha);
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, fha);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -247,7 +259,7 @@ public class BulkDownloadDAOImplTest {
 		fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		fha.setFileHandleId(null);
 		// call under test
-		BulkDownloadDAOImpl.createDBO(userId, fha);
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, fha);
 	}
 
 	@Test
@@ -258,39 +270,48 @@ public class BulkDownloadDAOImplTest {
 		fha.setFileHandleId("456");
 		List<FileHandleAssociation> list = Lists.newArrayList(fha);
 		// call under test
-		List<DBODownloadListItem> items = BulkDownloadDAOImpl.createDBO(userId, list);
+		List<DBODownloadListItem> items = BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, list);
 		assertNotNull(items);
 		assertEquals(1, items.size());
 		DBODownloadListItem item = items.get(0);
 		assertEquals(new Long(123), item.getAssociatedObjectId());
 		assertEquals(FileHandleAssociateType.FileEntity.name(), item.getAssociatedObjectType());
 		assertEquals(new Long(456), item.getFileHandleId());
-		assertEquals(userId, item.getPrincipalId());
+		assertEquals(userOneIdLong, item.getPrincipalId());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateDBOFileHandleAssociationListNullList() {
 		List<FileHandleAssociation> list = null;
 		// call under test
-		BulkDownloadDAOImpl.createDBO(userId, list);
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, list);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateDBOFileHandleAssociationListEmpty() {
 		List<FileHandleAssociation> list = new LinkedList<>();
 		// call under test
-		BulkDownloadDAOImpl.createDBO(userId, list);
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, list);
 	}
 	
 	@Test
 	public void testTouchUsersDownloadList() throws InterruptedException {
-		DownloadList old = bulkDownlaodDao.getUsersDownloadList(userIdString);
+		DownloadList old = bulkDownlaodDao.getUsersDownloadList(userOneId);
 		Thread.sleep(10L);
 		assertNotNull(old);
 		// call under test
-		bulkDownlaodDao.touchUsersDownloadList(userId);
+		bulkDownlaodDao.touchUsersDownloadList(userOneIdLong);
 		
-		DownloadList updated = bulkDownlaodDao.getUsersDownloadList(userIdString);
+		DownloadList updated = bulkDownlaodDao.getUsersDownloadList(userOneId);
+		assertNotNull(updated.getEtag());
+		assertNotNull(updated.getUpdatedOn());
+		assertFalse(updated.getEtag().equals(old.getEtag()));
+		assertTrue(updated.getUpdatedOn().getTime() > old.getUpdatedOn().getTime());
+		
+		// touch again should update again
+		// call under test
+		bulkDownlaodDao.touchUsersDownloadList(userOneIdLong);
+		updated = bulkDownlaodDao.getUsersDownloadList(userOneId);
 		assertNotNull(updated.getEtag());
 		assertNotNull(updated.getUpdatedOn());
 		assertFalse(updated.getEtag().equals(old.getEtag()));
@@ -302,11 +323,39 @@ public class BulkDownloadDAOImplTest {
 		// Add a few files to a user's list
 		List<FileHandleAssociation> toAdd = fileHandleAssociations.subList(1, 3);
 		// call under test
-		DownloadList result = bulkDownlaodDao.addFilesToDownloadList(userIdString, toAdd);
+		DownloadList result = bulkDownlaodDao.addFilesToDownloadList(userOneId, toAdd);
 		assertNotNull(result);
-		assertEquals(userIdString, result.getOwnerId());
+		assertEquals(userOneId, result.getOwnerId());
 		assertNotNull(result.getEtag());
 		assertNotNull(result.getUpdatedOn());
 		assertEquals(toAdd, result.getFilesToDownload());
+	}
+	
+	@Test
+	public void testAddFilesOverlapSameUser() {
+		// add 1-3
+		List<FileHandleAssociation> toAdd = fileHandleAssociations.subList(1, 3);
+		// call under test
+		DownloadList result = bulkDownlaodDao.addFilesToDownloadList(userOneId, toAdd);
+		// add overlap
+		toAdd = fileHandleAssociations.subList(2, 4);
+		// add 2-4
+		result = bulkDownlaodDao.addFilesToDownloadList(userOneId, toAdd);
+		assertEquals(fileHandleAssociations.subList(1, 4), result.getFilesToDownload());
+	}
+	
+	@Test
+	public void testAddFilesOverLapMultipleUsers() {
+		// 0-2 added user one
+		List<FileHandleAssociation> oneFiles = fileHandleAssociations.subList(0, 2);
+		// call under test
+		DownloadList resultOne = bulkDownlaodDao.addFilesToDownloadList(userOneId, oneFiles);
+		assertEquals(fileHandleAssociations.subList(0, 2), resultOne.getFilesToDownload());
+		// 1-3 added to user two
+		List<FileHandleAssociation> twoFiles = fileHandleAssociations.subList(1, 3);
+		// call under test
+		DownloadList resultTwo = bulkDownlaodDao.addFilesToDownloadList(userTwoId, twoFiles);
+		assertEquals(fileHandleAssociations.subList(1, 3), resultTwo.getFilesToDownload());
+
 	}
 }

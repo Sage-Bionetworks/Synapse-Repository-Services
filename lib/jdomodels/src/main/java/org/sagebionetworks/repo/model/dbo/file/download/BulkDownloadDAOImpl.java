@@ -37,7 +37,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		long principalId = Long.parseLong(ownerId);
 		// touch the main row
 		touchUsersDownloadList(principalId);
-		List<DBODownloadListItem> itemDBOs = createDBO(principalId, toAdd);
+		List<DBODownloadListItem> itemDBOs = translateFromDTOtoDBO(principalId, toAdd);
 		basicDao.createOrUpdateBatch(itemDBOs);
 		return getUsersDownloadList(ownerId);
 	}
@@ -74,7 +74,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			DBODownloadList dbo = basicDao.getObjectByPrimaryKey(DBODownloadList.class, param);
 			// load the items
 			List<DBODownloadListItem> items = jdbcTemplate.query(SQL_SELECT_DOWNLOAD_LIST_ITEMS, new DBODownloadListItem().getTableMapping(), ownerPrincipalId);
-			return createFromDBO(dbo, items);
+			return translateFromDBOtoDTO(dbo, items);
 		} catch (NotFoundException e) {
 			DownloadList list = new DownloadList();
 			list.setOwnerId(ownerPrincipalId);
@@ -104,12 +104,12 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	 * @param dbo
 	 * @return
 	 */
-	static DownloadList createFromDBO(DBODownloadList dbo, List<DBODownloadListItem> items) {
+	static DownloadList translateFromDBOtoDTO(DBODownloadList dbo, List<DBODownloadListItem> items) {
 		DownloadList dto = new DownloadList();
 		dto.setOwnerId(""+dbo.getPrincipalId());
 		dto.setUpdatedOn(new Date(dbo.getUpdatedOn()));
 		dto.setEtag(dbo.getEtag());
-		dto.setFilesToDownload(createFromDBO(items));
+		dto.setFilesToDownload(translateFromDBOtoDTO(items));
 		return dto;
 	}
 	
@@ -118,13 +118,13 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	 * @param items
 	 * @return
 	 */
-	static List<FileHandleAssociation> createFromDBO(List<DBODownloadListItem> items){
+	static List<FileHandleAssociation> translateFromDBOtoDTO(List<DBODownloadListItem> items){
 		if(items == null) {
 			return null;
 		}
 		List<FileHandleAssociation> dtos = new LinkedList<>();
 		for(DBODownloadListItem item: items) {
-			FileHandleAssociation dto = createFromDBO(item);
+			FileHandleAssociation dto = translateFromDBOtoDTO(item);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -135,7 +135,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	 * @param item
 	 * @return
 	 */
-	static FileHandleAssociation createFromDBO(DBODownloadListItem item) {
+	static FileHandleAssociation translateFromDBOtoDTO(DBODownloadListItem item) {
 		FileHandleAssociation dto = new FileHandleAssociation();
 		dto.setAssociateObjectId(""+item.getAssociatedObjectId());
 		dto.setAssociateObjectType(FileHandleAssociateType.valueOf(item.getAssociatedObjectType()));
@@ -149,14 +149,14 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	 * @param toAdd
 	 * @return
 	 */
-	static List<DBODownloadListItem> createDBO(long principalId, List<FileHandleAssociation> toAdd) {
+	static List<DBODownloadListItem> translateFromDTOtoDBO(long principalId, List<FileHandleAssociation> toAdd) {
 		ValidateArgument.required(toAdd, "toAdd");
 		if(toAdd.isEmpty()) {
 			throw new IllegalArgumentException("Must include at least one file to add");
 		}
 		List<DBODownloadListItem> items = new LinkedList<>();
 		for(FileHandleAssociation fha: toAdd) {
-			DBODownloadListItem item = createDBO(principalId, fha);
+			DBODownloadListItem item = translateFromDTOtoDBO(principalId, fha);
 			items.add(item);
 		}
 		return items;
@@ -170,7 +170,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	 * @param fha
 	 * @return
 	 */
-	static DBODownloadListItem createDBO(long principalId, FileHandleAssociation fha) {
+	static DBODownloadListItem translateFromDTOtoDBO(long principalId, FileHandleAssociation fha) {
 		ValidateArgument.required(fha, "FileHandleAssociation");
 		ValidateArgument.required(fha.getAssociateObjectId(), "FileHandleAssociation.associateObjectId");
 		ValidateArgument.required(fha.getAssociateObjectType(), "FileHandleAssociation.ssociateObjectType");
