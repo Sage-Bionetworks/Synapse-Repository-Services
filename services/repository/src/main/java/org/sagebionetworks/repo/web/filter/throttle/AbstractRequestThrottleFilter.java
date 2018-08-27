@@ -1,9 +1,12 @@
-package org.sagebionetworks.repo.web.filter;
+package org.sagebionetworks.repo.web.filter.throttle;
 
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin;
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTLED_HTTP_STATUS;
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.isMigrationAdmin;
 
+import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -16,25 +19,31 @@ import java.io.IOException;
 //TODO: test
 //TODO: make this not abstract and
 //TODO: use Composition where it contains an interface throttler class. Make that interface also implement AutoCloseable so that locks can be released after response is sent(if necessary)
-//TODO: thow an exception if not able to acquire lock and catch it in this class. make the execption contain the cloudwatch report and also the http error reason
 public abstract class AbstractRequestThrottleFilter implements Filter {
+
+	@Autowired
+	private Consumer consumer;
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		long userIdLong = Long.parseLong(userId);
-		if (AuthorizationUtils.isUserAnonymous(userIdLong) || isMigrationAdmin(userIdLong) ) {
-			//do not throttle anonymous users nor the admin responsible for migration.
-			chain.doFilter(request, response);
-		} else {
-
-			throttle(request, response, chain, userId);
+		try {
+			if (!isMigrationAdmin(userIdLong) && !AuthorizationUtils.isUserAnonymous(userIdLong) ) {   //do not throttle the admin responsible for migration.
+				throttle(request, userId);
+			}
+		} catch (RequestThrottledException e){
+			consumer.addProfileData(e.getProfileData());
+			ThrottleUtils.setResponseError(response,THROTTLED_HTTP_STATUS,e.getMessage());
+		} catch (Exception e){
+			throw new ServletException(e);
 		}
+
+		//proceed to next filter
+		chain.doFilter(request, response);
 	}
 
-	protected abstract void throttle(ServletRequest request, ServletResponse response, FilterChain chain, String userId) throws IOException, ServletException;
-
-	protected abstract String getCloudwatchEventName();
+	protected abstract void throttle(ServletRequest request, String userId) throws RequestThrottledException;
 
 	@Override
 	public void init(FilterConfig filterConfig) {

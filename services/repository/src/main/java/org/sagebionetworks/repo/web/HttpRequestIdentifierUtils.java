@@ -7,6 +7,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.tuple.Triple;
+import org.sagebionetworks.common.util.PathNormalizer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 public class HttpRequestIdentifierUtils {
@@ -32,7 +33,8 @@ public class HttpRequestIdentifierUtils {
 		Long userId = Long.parseLong(httpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM));
 		String sessionId = getSessionId(httpRequest);
 		String ipAddress = IpAddressUtil.getIpAddress(httpRequest);
-		return new HttpRequestIdentifier(userId, sessionId, ipAddress); //TODO: test null
+		String normalizedPath = PathNormalizer.normalizeMethodSignature(httpRequest.getRequestURI());
+		return new HttpRequestIdentifier(userId, sessionId, ipAddress, normalizedPath); //TODO: test null
 	}
 
 }

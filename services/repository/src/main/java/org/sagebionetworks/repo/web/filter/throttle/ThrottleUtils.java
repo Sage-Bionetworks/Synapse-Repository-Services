@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.filter;
+package org.sagebionetworks.repo.web.filter.throttle;
 
 import java.io.IOException;
 import java.util.Date;

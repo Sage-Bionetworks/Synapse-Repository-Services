@@ -1,17 +1,14 @@
-package org.sagebionetworks.repo.web.filter;
+package org.sagebionetworks.repo.web.filter.throttle;
 
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.generateCloudwatchProfiledata;
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin;
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.setResponseError;
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.THROTTLED_HTTP_STATUS;
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.generateCloudwatchProfiledata;
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.setResponseError;
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTLED_HTTP_STATUS;
 
 
 import java.io.IOException;
 import java.util.Collections;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -19,8 +16,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,30 +37,20 @@ public class UserConcurrentConnectionThrottleFilter extends AbstractRequestThrot
 	public static final String CLOUDWATCH_EVENT_NAME = "ConcurrentConnectionsLockUnavailable";
 	
 	private static Logger log = LogManager.getLogger(UserConcurrentConnectionThrottleFilter.class);
-
-	@Autowired
-	private Consumer consumer;
 	
 	@Autowired
 	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
 
 	@Override
-	protected void throttle(ServletRequest request, ServletResponse response, FilterChain chain, String userId) throws IOException, ServletException {
+	protected void throttle(ServletRequest request, String userId) throws RequestThrottledException{
 		String concurrentLockToken = null;
 		try {
 			concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 
-			if(concurrentLockToken != null){
-				chain.doFilter(request, response);
-			}else{
+			if(concurrentLockToken == null){
 				ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
-				consumer.addProfileData(report);
-				setResponseError(response, THROTTLED_HTTP_STATUS, REASON_USER_THROTTLED_CONCURRENT);
+				throw new RequestThrottledException(REASON_USER_THROTTLED_CONCURRENT, report);
 			}
-//		} catch (IOException | ServletException e) {
-//			throw e;
-//		} catch (Exception e) {
-//			throw new ServletException(e.getMessage(), e);
 		}finally {
 			//clean up by releasing concurrent lock regardless if frequency lock was acquired
 			if(concurrentLockToken != null){
