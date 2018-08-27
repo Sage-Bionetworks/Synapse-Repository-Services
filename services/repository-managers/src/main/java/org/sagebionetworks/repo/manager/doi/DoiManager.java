@@ -31,7 +31,7 @@ public interface DoiManager {
 	DoiAssociation getDoiAssociation(final Long userId, final String objectId, final ObjectType objectType, final Long versionNumber);
 
 	/**
-	 * Retrieves a DOI with all associated metadata.
+	 * Mints or updates a DOI with all associated metadata. This method is idempotent.
 	 * Note that this method calls an external API, which may affect responsiveness.
 	 * @param userId The ID of the user making the call.
 	 * @param dto A Doi object containing data needed to both mint a DOI and set the required metadata.
@@ -43,6 +43,7 @@ public interface DoiManager {
 	/**
 	 * Deactivates an existing DOI. Note that this does not delete the DOI and the DOI will still be resolvable.
 	 * The DOI will no longer be visible to users of external APIs, but it will still be visible to Synapse users.
+	 * To reactivate, update the DOI and set the status to FINDABLE.
 	 * Note that this method calls an external API, which may affect responsiveness.
 	 * @param userId The ID of the user making the call.
 	 * @param objectId The ID of the object in Synapse
