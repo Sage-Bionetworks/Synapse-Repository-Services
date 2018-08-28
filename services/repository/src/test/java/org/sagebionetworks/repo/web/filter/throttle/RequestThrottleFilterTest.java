@@ -45,6 +45,8 @@ public class RequestThrottleFilterTest {
 	private static final String ipAddress = "192.168.1.1";
 	private static final String sessionId = "69203fe7-a9ea-434b-a420-61294402072b";
 	private static final String path ="/some/Path";
+
+	//class being tested
 	private RequestThrottleFilter filter;
 
 	@Before
@@ -61,6 +63,8 @@ public class RequestThrottleFilterTest {
 		mockRequest.setCookies(new Cookie(SESSION_ID_COOKIE_NAME, sessionId));
 
 		ReflectionTestUtils.setField(filter, "requestThrottler", mockRequestThrottler);
+		ReflectionTestUtils.setField(filter, "consumer", mockConsumer);
+
 	}
 
 	@Test
@@ -73,8 +77,6 @@ public class RequestThrottleFilterTest {
 		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
 		verifyZeroInteractions(mockRequestThrottler);
 		verifyZeroInteractions(mockRequestThrottlerCleanup);
-		verifyNoMoreInteractions(mockRequest);
-		verifyNoMoreInteractions(mockResponse);
 		verifyNoMoreInteractions(mockFilterChain);
 	}
 
@@ -92,7 +94,7 @@ public class RequestThrottleFilterTest {
 		verify(mockRequestThrottler).doThrottle(any(HttpRequestIdentifier.class));
 		verify(mockConsumer).addProfileData(profileData);
 		assertEquals(THROTTLED_HTTP_STATUS, mockResponse.getStatus());
-		assertEquals(throttleMessage, mockResponse.getContentAsString());
+		assertEquals(throttleMessage, mockResponse.getContentAsString().trim());
 
 		verifyZeroInteractions(mockRequestThrottlerCleanup);
 		verifyZeroInteractions(mockFilterChain);

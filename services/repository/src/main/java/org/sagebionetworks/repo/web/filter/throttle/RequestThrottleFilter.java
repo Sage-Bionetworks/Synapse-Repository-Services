@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTL
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.isMigrationAdmin;
 
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.web.HttpRequestIdentifier;
 import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +16,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.IOException;
 
-//TODO: test
 public class RequestThrottleFilter implements Filter {
 
 	@Autowired
@@ -36,7 +34,7 @@ public class RequestThrottleFilter implements Filter {
 			return;
 		}
 
-		try (RequestThrottlerCleanup requestThrottlerCleanup = requestThrottler.doThrottle(httpRequestIdentifier);){
+		try (RequestThrottlerCleanup requestThrottlerCleanup = requestThrottler.doThrottle(httpRequestIdentifier)){
 			chain.doFilter(request, response); //proceed to next filter
 		} catch(RequestThrottledException e){
 			//The request needs to be throttled. log throttling in CloudWatch and return HTTP response
