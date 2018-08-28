@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-
 public class DoiManagerImpl implements DoiManager {
 
 	@Autowired
@@ -47,7 +46,7 @@ public class DoiManagerImpl implements DoiManager {
 		DataciteMetadata metadata = null;
 		try {
 			metadata = dataciteClient.get(association.getDoiUri());
-		} catch (NotReadyException | ServiceUnavailableException e) {
+		} catch (NotReadyException e) {
 			throw new ServiceUnavailableException(e);
 		}
 		return mergeMetadataAndAssociation(metadata, association);
@@ -84,7 +83,7 @@ public class DoiManagerImpl implements DoiManager {
 		if (dto.getObjectId() == null) {
 			throw new IllegalArgumentException("Object ID cannot be null");
 		}
-		if (!dto.getObjectType().equals(ObjectType.ENTITY)) {
+		if (dto.getObjectType() == null || !dto.getObjectType().equals(ObjectType.ENTITY)) {
 			throw new IllegalArgumentException("Object must be an entity.");
 		}
 
@@ -94,35 +93,63 @@ public class DoiManagerImpl implements DoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
 
-		// Check if the DOI exists, and if so, check to make sure eTags match.
+		DoiAssociation association = createOrUpdateAssociation(dto);
+		dto.setDoiUri(generateDoiUri(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
+		dto.setDoiUrl(generateLocationRequestUrl(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
+		DataciteMetadata metadata = createOrUpdateDataciteMetadata(dto);
+		return mergeMetadataAndAssociation(metadata, association);
+	}
+
+	DoiAssociation createOrUpdateAssociation(DoiAssociation dto) throws RecoverableMessageException {
+		DoiAssociation association;
 		try {
+			// Check if the DOI exists by checking to make sure eTags match
+			// (We will get a NotFoundException if it doesn't exist).
 			if (!doiAssociationDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()).equals(dto.getEtag())) {
 				throw new ConflictingUpdateException("eTags do not match.");
 			}
-			doiAssociationDao.updateDoiAssociation(dto);
-		} catch (NotFoundException e1) {
+			association = doiAssociationDao.updateDoiAssociation(dto);
+		} catch (NotFoundException e1) { // The DOI does not already exist (exception was thrown by getEtag)
 			try {
-				doiAssociationDao.createDoiAssociation(dto); //retry on fail
-			} catch (Exception e2) {
+				association = doiAssociationDao.createDoiAssociation(dto); // Create
+			} catch (IllegalArgumentException e2) {
+				/*
+				 * This exception indicates there was a race condition where two callers attempted to create a DOI on the
+				 * same object at the same time. The loser of this race will see this exception. However, since the
+				 * winner might also fail before completion, we send this caller back to the beginning to retry.
+				 */
 				throw new RecoverableMessageException(e2);
 			}
 		}
-
-		String uri = generateDoiUri(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
-		String url = generateLocationRequestUrl(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
-		try {
-			dataciteClient.registerMetadata(dto, uri);
-			dataciteClient.registerDoi(uri, url);
-			if (dto.getStatus() == DataciteRegistrationStatus.REGISTERED) {
-				dataciteClient.deactivate(uri);
-			}
-		} catch (NotReadyException | ServiceUnavailableException e) {
-			throw new RecoverableMessageException(e);
-		}
-
-		return dto;
+		return association;
 	}
 
+	DataciteMetadata createOrUpdateDataciteMetadata(Doi dto) throws RecoverableMessageException {
+		if (dto.getDoiUri() == null) {
+			throw new IllegalArgumentException("DOI URI cannot be null");
+		}
+		if (dto.getDoiUrl() == null) {
+			throw new IllegalArgumentException("DOI URL cannot be null");
+		}
+		if (dto.getStatus() == null) { // null status defaults to FINDABLE
+			dto.setStatus(DataciteRegistrationStatus.FINDABLE);
+		}
+
+		try {
+			dataciteClient.registerMetadata(dto, dto.getDoiUri());
+			dataciteClient.registerDoi(dto.getDoiUri(), dto.getDoiUrl());
+			if (dto.getStatus() == DataciteRegistrationStatus.REGISTERED) {
+				dataciteClient.deactivate(dto.getDoiUri());
+			}
+			return dataciteClient.get(dto.getDoiUri());
+		} catch (NotReadyException | ServiceUnavailableException e) {
+			/*
+			 * The second call to DataCite may fail because the calls are "eventually consistent". It may also be the
+			 * case that the external API is temporarily down. The client may decide to retry minting the DOI.
+			 */
+			throw new RecoverableMessageException(e);
+		}
+	}
 
 	public void deactivateDoi(final Long userId, final String objectId, final ObjectType objectType, final Long versionNumber) throws RecoverableMessageException {
 		if (userId == null) {
@@ -131,8 +158,8 @@ public class DoiManagerImpl implements DoiManager {
 		if (objectId == null) {
 			throw new IllegalArgumentException("Object ID cannot be null");
 		}
-		if (objectType == null) {
-			throw new IllegalArgumentException("Object type cannot be null.");
+		if (objectType == null || !objectType.equals(ObjectType.ENTITY)) {
+			throw new IllegalArgumentException("Object type must be entity.");
 		}
 
 		// Ensure the user is authorized to update the object with the DOI (should verify that the object exists)
@@ -142,7 +169,7 @@ public class DoiManagerImpl implements DoiManager {
 				authorizationManager.canAccess(currentUser, objectId, objectType, ACCESS_TYPE.UPDATE));
 
 		// Retrieve the DOI (verify that it has been minted)
-		DoiAssociation doi = getDoiAssociation(userId, objectId, objectType, versionNumber);
+		DoiAssociation doi = doiAssociationDao.getDoiAssociation(objectId, objectType, versionNumber);
 
 		try {
 			dataciteClient.deactivate(doi.getDoiUri());
@@ -185,8 +212,11 @@ public class DoiManagerImpl implements DoiManager {
 	 * @return A well-formatted DOI URI that should refer to the input object.
 	 */
 	String generateDoiUri(final String objectId, final ObjectType objectType, final Long versionNumber) {
-		if (!objectType.equals(ObjectType.ENTITY)) {
-			throw new IllegalArgumentException("DOIs currently only support Entity");
+		if (objectId == null) {
+			throw new IllegalArgumentException("Object ID cannot be null");
+		}
+		if (objectType == null || !objectType.equals(ObjectType.ENTITY)) {
+			throw new IllegalArgumentException("Object type must be entity.");
 		}
 		String uri = "";
 		uri += stackConfiguration.getDoiPrefix() + "/";
