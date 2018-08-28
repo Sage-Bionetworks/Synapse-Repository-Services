@@ -2,13 +2,12 @@ package org.sagebionetworks.repo.web.filter.throttle;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTLED_HTTP_STATUS;
 import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler.CLOUDWATCH_EVENT_NAME;
 import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler.MAX_REQUEST_FREQUENCY_LOCKS;
 import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
@@ -18,95 +17,64 @@ import javax.servlet.FilterChain;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.sagebionetworks.repo.web.HttpRequestIdentifier;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UserRequestFrequencyThrottlerTest {
-	
-	UserRequestFrequencyThrottler filter;
-	
+
+	UserRequestFrequencyThrottler throttler;
+
 	@Mock
 	private MemoryTimeBlockCountingSemaphore userFrequencyThrottleGate;
-	
+
 	@Mock
 	private FilterChain filterChain;
-	
-	private MockHttpServletRequest request;
-	private MockHttpServletResponse response;
-	
+
 	private static final String userId = "111";
-	
+	private static final String sessionId = "session-id";
+	private static final String ipAddress = "123.123.123.123";
+
+	HttpRequestIdentifier requestIdentifier;
+
+
 	@Before
 	public void setUp() throws Exception {
-		filter = new UserRequestFrequencyThrottler();
-		request = new MockHttpServletRequest();
-		response = new MockHttpServletResponse();
-		
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		ReflectionTestUtils.setField(filter, "userThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
+		throttler = new UserRequestFrequencyThrottler();
+
+		ReflectionTestUtils.setField(throttler, "userThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
 		assertNotNull(userFrequencyThrottleGate);
-	}
-	
-	@Test
-	public void testAnonymous() throws Exception {
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 
-		filter.doFilter(request, response, filterChain);
-
-		verify(filterChain).doFilter(request, response);
-		verifyZeroInteractions(userFrequencyThrottleGate);
-		verifyNoMoreInteractions(filterChain);
+		requestIdentifier = new HttpRequestIdentifier(Long.valueOf(userId), sessionId, ipAddress, "/fakePath");
 	}
-	
-	@Test
-	public void testMigrationAdmin() throws Exception{
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
-		
-		filter.doFilter(request, response, filterChain);
 
-		verify(filterChain).doFilter(request, response);
-		verifyZeroInteractions(userFrequencyThrottleGate);
-		verifyNoMoreInteractions(filterChain);
-	}
-	
 	@Test
-	public void testRegularUser() throws Exception {
+	public void testNotThrottled() throws Exception {
 		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
 
-		filter.doFilter(request, response, filterChain);
+		RequestThrottlerCleanup cleanup = throttler.doThrottle(requestIdentifier);
 
-		verify(filterChain).doFilter(request, response);
 		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate);
+		assertEquals(RequestThrottlerCleanupNoOpImpl.class, cleanup.getClass());
+
 	}
-	
+
 	@Test
 	public void testNoEmptyRequestFrequencySlots() throws Exception {
-		Consumer consumer = mock(Consumer.class);
-		ReflectionTestUtils.setField(filter, "consumer", consumer);
-		
 		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(false);
 
-		filter.doFilter(request, response, filterChain);
+		try {
+			//method under test
+			throttler.doThrottle(requestIdentifier);
+			fail("Expected RequestThrottledException to be thrown");
+		} catch (RequestThrottledException e){ //expected
+			assertEquals(CLOUDWATCH_EVENT_NAME, e.getProfileData().getName());
+		}
 
-		assertEquals(THROTTLED_HTTP_STATUS, response.getStatus());
-		
-		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
-		verify(consumer).addProfileData(profileDataArgument.capture());
-		assertEquals(CLOUDWATCH_EVENT_NAME, profileDataArgument.getValue().getName());
-		
 		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
-		verify(consumer).addProfileData(any(ProfileData.class));
-		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate, consumer);
 	}
 }

@@ -19,6 +19,7 @@ public class UserApiFrequencyThrottler implements RequestThrottler {
 	public static final String CLOUDWATCH_EVENT_NAME = "apiFrequencyLockUnavaliable";
 	private static final String REASON_USER_THROTTLED_API_FORMAT = 
 	"{\"reason\": \"Requests are too frequent for API call: %s. Allowed %d requests every %d seconds.\"}";
+	static final RequestThrottlerCleanup NO_OP_THROTTLER_CLEANUP = new RequestThrottlerCleanupNoOpImpl();
 	
 	@Autowired
 	ThrottleRulesCache throttleRulesCache;
@@ -27,7 +28,7 @@ public class UserApiFrequencyThrottler implements RequestThrottler {
 	MemoryTimeBlockCountingSemaphore userApiThrottleMemoryTimeBlockSemaphore;
 
 
-	RequestThrottlerCleanup noOpRequestThrottlerCleanup = new RequestThrottlerCleanupNoOpImpl(); //TODO: Autowire?
+
 
 	@Override
 	public RequestThrottlerCleanup doThrottle(HttpRequestIdentifier httpRequestIdentifier) throws RequestThrottledException {
@@ -37,7 +38,7 @@ public class UserApiFrequencyThrottler implements RequestThrottler {
 		ThrottleLimit limit = throttleRulesCache.getThrottleLimit(normalizedPath);
 		if(limit == null){
 			//no throttle exists for this URI
-			return noOpRequestThrottlerCleanup;
+			return NO_OP_THROTTLER_CLEANUP;
 		}
 		boolean lockAcquired = userApiThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + ":" + normalizedPath, limit.getCallPeriodSec(), limit.getMaxCallsPerUserPerPeriod());
 		if(!lockAcquired){
@@ -51,7 +52,7 @@ public class UserApiFrequencyThrottler implements RequestThrottler {
 												report);
 		}
 
-		return noOpRequestThrottlerCleanup;
+		return NO_OP_THROTTLER_CLEANUP;
 	}
 
 

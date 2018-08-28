@@ -24,10 +24,9 @@ public class UserRequestFrequencyThrottler implements RequestThrottler {
 	
 	public static final String REASON_USER_THROTTLED_FREQ = 
 			"{\"reason\": \"Requests are too frequent. Allowed "+MAX_REQUEST_FREQUENCY_LOCKS+" requests every "+REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC+" seconds.\"}";
-	
-	public static String CLOUDWATCH_EVENT_NAME = "RequestFrequencyLockUnavailable";
+	static final RequestThrottlerCleanup NO_OP_THROTTLER_CLEANUP = new RequestThrottlerCleanupNoOpImpl();
 
-	RequestThrottlerCleanup noOpRequestThrottlerCleanup = new RequestThrottlerCleanupNoOpImpl(); //TODO: autowire?
+	public static final String CLOUDWATCH_EVENT_NAME = "RequestFrequencyLockUnavailable";
 
 	@Autowired
 	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
@@ -42,7 +41,7 @@ public class UserRequestFrequencyThrottler implements RequestThrottler {
 			throw new RequestThrottledException(REASON_USER_THROTTLED_FREQ, report);
 		}
 
-		return noOpRequestThrottlerCleanup;
+		return NO_OP_THROTTLER_CLEANUP;
 	}
 
 }

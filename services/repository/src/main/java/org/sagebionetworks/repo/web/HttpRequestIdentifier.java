@@ -31,6 +31,10 @@ public class HttpRequestIdentifier {
 		return requestPath;
 	}
 
+	public String getUserMachineIdentifierString(){
+		return userId + "|" + sessionId + "|" + ipAddress;
+	}
+
 	@Override
 	public boolean equals(Object o) { //auto-generated
 		if (this == o) return true;

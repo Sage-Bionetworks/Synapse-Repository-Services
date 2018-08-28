@@ -38,6 +38,7 @@ public class UserConcurrentConnectionThrottler implements RequestThrottler {
 		String userId = httpRequestIdentifier.getUserId().toString();
 		final String concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 
+		//lock could not be acquired. generate cloudwatch report and throw error
 		if(concurrentLockToken == null){
 			ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
 			throw new RequestThrottledException(REASON_USER_THROTTLED_CONCURRENT, report);
