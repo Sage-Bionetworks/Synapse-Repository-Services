@@ -59,5 +59,11 @@ public interface BulkDownloadDAO {
 	 * 
 	 * @param principalId
 	 */
-	public void touchUsersDownloadList(long principalId) ;
+	public void touchUsersDownloadList(long principalId);
+	
+	/**
+	 * Truncate the download lists for all users.
+	 * 
+	 */
+	public void truncateAllDownloadListsForAllUsers();
 }

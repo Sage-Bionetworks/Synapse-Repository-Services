@@ -92,9 +92,9 @@ public class BulkDownloadDAOImplTest {
 		}
 	}
 	
-
 	@After
 	public void after() {
+		bulkDownlaodDao.truncateAllDownloadListsForAllUsers();
 		if(userOneId != null) {
 			userGroupDao.delete(userOneId);
 		}
@@ -356,6 +356,130 @@ public class BulkDownloadDAOImplTest {
 		// call under test
 		DownloadList resultTwo = bulkDownlaodDao.addFilesToDownloadList(userTwoId, twoFiles);
 		assertEquals(fileHandleAssociations.subList(1, 3), resultTwo.getFilesToDownload());
-
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAddFilesNullUser() {
+		userOneId = null;
+		// call under test
+		bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAddFilesNullList() {
+		fileHandleAssociations = null;
+		// call under test
+		bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations);
+	}
+	
+	@Test
+	public void testCreateDeleteSQL() {
+		// call under test
+		String sql = BulkDownloadDAOImpl.createDeleteSQL(2);
+		assertEquals("DELETE FROM DOWNLOAD_LIST_ITEM "
+				+ "WHERE (PRINCIPAL_ID,ASSOCIATED_OBJECT_ID,ASSOCIATED_OBJECT_TYPE,FILE_HANDLE_ID)"
+				+ " IN ((?,?,?,?),(?,?,?,?)) LIMIT 2", sql);
+	}
+	
+	@Test
+	public void testRemoveFilesFromDownloadList() throws InterruptedException {
+		// Add all of the files to this users
+		DownloadList start = bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations);
+		// remove first and last
+		List<FileHandleAssociation> toRemove = Lists.newArrayList(fileHandleAssociations.get(0), fileHandleAssociations.get(3));
+		DownloadList result = bulkDownlaodDao.removeFilesFromDownloadList(userOneId, toRemove);
+		assertNotNull(result);
+		// validate the etag and updated are changed
+		assertNotNull(result.getEtag());
+		assertNotNull(result.getUpdatedOn());
+		assertFalse(start.getEtag().equals(result.getEtag()));
+		assertEquals(fileHandleAssociations.subList(1, 3), result.getFilesToDownload());
+	}
+	
+	@Test
+	public void testRemoveFilesFromDownloadListMulitpleUsers() {
+		// 0-2 added to user one
+		List<FileHandleAssociation> oneFiles = fileHandleAssociations.subList(0, 2);
+		bulkDownlaodDao.addFilesToDownloadList(userOneId, oneFiles);
+		// 1-3 added to user two
+		List<FileHandleAssociation> twoFiles = fileHandleAssociations.subList(1, 3);
+		bulkDownlaodDao.addFilesToDownloadList(userTwoId, twoFiles);
+		
+		// remove the second set of files from user one.
+		// call under test
+		DownloadList results = bulkDownlaodDao.removeFilesFromDownloadList(userOneId, twoFiles);
+		assertNotNull(results);
+		// only the first file should remain on user one.
+		assertEquals(fileHandleAssociations.subList(0,1), results.getFilesToDownload());
+		// user two's data should be unchanged
+		DownloadList userTwosList = bulkDownlaodDao.getUsersDownloadList(userTwoId);
+		assertEquals(twoFiles, userTwosList.getFilesToDownload());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRemoveFilesFromDownloadListUserNull() {
+		userOneId = null;
+		// call under test
+		bulkDownlaodDao.removeFilesFromDownloadList(userOneId, fileHandleAssociations);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRemoveFilesFromDownloadListUserListNull() {
+		fileHandleAssociations = null;
+		// call under test
+		bulkDownlaodDao.removeFilesFromDownloadList(userOneId, fileHandleAssociations);
+	}
+	
+	@Test
+	public void testClearDownloadList() throws InterruptedException {
+		// add all of the files to a user's list
+		DownloadList start = bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations);
+		// call under test
+		DownloadList result = bulkDownlaodDao.clearDownloadList(userOneId);
+		assertNotNull(result);
+		assertNotNull(result.getEtag());
+		assertNotNull(result.getUpdatedOn());
+		assertFalse(start.getEtag().equals(result.getEtag()));
+		assertEquals(new LinkedList<>(), result.getFilesToDownload());
+	}
+	
+	@Test
+	public void testClearDownloadListMultipleUsers() throws InterruptedException {
+		// add all files to both users
+		bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations);
+		bulkDownlaodDao.addFilesToDownloadList(userTwoId, fileHandleAssociations);
+		// call under test
+		DownloadList result = bulkDownlaodDao.clearDownloadList(userOneId);
+		assertNotNull(result);
+		assertEquals(new LinkedList<>(), result.getFilesToDownload());
+		// user two's list should remain unchanged
+		DownloadList userTwosList = bulkDownlaodDao.getUsersDownloadList(userTwoId);
+		assertEquals(fileHandleAssociations, userTwosList.getFilesToDownload());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testClearDownloadListNull() throws InterruptedException {
+		// call under test
+		bulkDownlaodDao.clearDownloadList(null);
+	}
+	
+	@Test
+	public void testGetDownloadListFileCount() {
+		// call under test
+		long count = bulkDownlaodDao.getDownloadListFileCount(userOneId);
+		assertEquals(0L, count);
+		// add files to both users.
+		bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations.subList(0, 2));
+		bulkDownlaodDao.addFilesToDownloadList(userTwoId, fileHandleAssociations);
+		// call under test
+		assertEquals(2, bulkDownlaodDao.getDownloadListFileCount(userOneId));
+		// call under test
+		assertEquals(fileHandleAssociations.size(), bulkDownlaodDao.getDownloadListFileCount(userTwoId));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDownloadListFileCountNull() {
+		// call under test
+		bulkDownlaodDao.getDownloadListFileCount(null);
 	}
 }
