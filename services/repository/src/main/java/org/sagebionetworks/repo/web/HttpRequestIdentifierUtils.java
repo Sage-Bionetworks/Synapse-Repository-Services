@@ -30,11 +30,13 @@ public class HttpRequestIdentifierUtils {
 
 	public static HttpRequestIdentifier getRequestIdentifier(ServletRequest request){
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
+
 		Long userId = Long.parseLong(httpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM));
 		String sessionId = getSessionId(httpRequest);
 		String ipAddress = IpAddressUtil.getIpAddress(httpRequest);
-		String normalizedPath = PathNormalizer.normalizeMethodSignature(httpRequest.getRequestURI());
-		return new HttpRequestIdentifier(userId, sessionId, ipAddress, normalizedPath); //TODO: test null
+		String requestPath = httpRequest.getRequestURI();
+
+		return new HttpRequestIdentifier(userId, sessionId, ipAddress, requestPath); //TODO: test null
 	}
 
 }

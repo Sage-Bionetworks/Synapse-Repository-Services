@@ -4,8 +4,9 @@ import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTL
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.isMigrationAdmin;
 
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.web.HttpRequestIdentifier;
+import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.Filter;
@@ -17,33 +18,34 @@ import javax.servlet.ServletResponse;
 import java.io.IOException;
 
 //TODO: test
-//TODO: make this not abstract and
-//TODO: use Composition where it contains an interface throttler class. Make that interface also implement AutoCloseable so that locks can be released after response is sent(if necessary)
-public abstract class AbstractRequestThrottleFilter implements Filter {
+public class RequestThrottleFilter implements Filter {
 
 	@Autowired
 	private Consumer consumer;
 
+	@Autowired
+	RequestThrottler requestThrottler;
+
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		long userIdLong = Long.parseLong(userId);
-		try {
-			if (!isMigrationAdmin(userIdLong) && !AuthorizationUtils.isUserAnonymous(userIdLong) ) {   //do not throttle the admin responsible for migration.
-				throttle(request, userId);
-			}
+		HttpRequestIdentifier httpRequestIdentifier = HttpRequestIdentifierUtils.getRequestIdentifier(request);
+
+		if ( isMigrationAdmin(httpRequestIdentifier.getUserId()) ) { //do not throttle the admin responsible for migration.
+			//proceed to next filter and exit early
 			chain.doFilter(request, response);
-		} catch (RequestThrottledException e){
-			consumer.addProfileData(e.getProfileData());
-			ThrottleUtils.setResponseError(response,THROTTLED_HTTP_STATUS,e.getMessage());
-		} catch (Exception e){
-			throw new ServletException(e);
+			return;
 		}
 
-		//proceed to next filter
+		try (RequestThrottlerCleanup requestThrottlerCleanup = requestThrottler.doThrottle(httpRequestIdentifier);){
+			chain.doFilter(request, response); //proceed to next filter
+		} catch(RequestThrottledException e){
+			//The request needs to be throttled. log throttling in CloudWatch and return HTTP response
+			consumer.addProfileData(e.getProfileData());
+			ThrottleUtils.setResponseError(response, THROTTLED_HTTP_STATUS, e.getMessage());
+		} catch(Exception e){
+			throw new ServletException(e);
+		}
 	}
-
-	protected abstract void throttle(ServletRequest request, String userId) throws RequestThrottledException;
 
 	@Override
 	public void init(FilterConfig filterConfig) {

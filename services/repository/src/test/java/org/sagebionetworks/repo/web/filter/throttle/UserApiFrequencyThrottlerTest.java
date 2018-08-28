@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTLED_HTTP_STATUS;
-import static org.sagebionetworks.repo.web.filter.throttle.UserApiFrequencyThrottleFilter.CLOUDWATCH_EVENT_NAME;
+import static org.sagebionetworks.repo.web.filter.throttle.UserApiFrequencyThrottler.CLOUDWATCH_EVENT_NAME;
 
 import javax.servlet.FilterChain;
 
@@ -32,9 +32,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 
 @RunWith(MockitoJUnitRunner.class)
-public class UserApiFrequencyThrottleFilterTest {
+public class UserApiFrequencyThrottlerTest {
 	
-	private UserApiFrequencyThrottleFilter filter;
+	private UserApiFrequencyThrottler filter;
 	
 	@Mock
 	ThrottleRulesCache throttleRulesCache;
@@ -59,7 +59,7 @@ public class UserApiFrequencyThrottleFilterTest {
 	
 	@Before
 	public void setupFilter() throws Exception {
-		filter = new UserApiFrequencyThrottleFilter();
+		filter = new UserApiFrequencyThrottler();
 		ReflectionTestUtils.setField(filter, "userApiThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
 		ReflectionTestUtils.setField(filter, "throttleRulesCache", throttleRulesCache);
 		
@@ -74,7 +74,7 @@ public class UserApiFrequencyThrottleFilterTest {
 	public void testAnonymous() throws Exception {
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 
-		filter.doFilter(request, response, filterChain);
+		filter.doThrottle(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
 		verifyZeroInteractions(userFrequencyThrottleGate);
@@ -85,7 +85,7 @@ public class UserApiFrequencyThrottleFilterTest {
 	public void testMigrationAdmin() throws Exception{
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		
-		filter.doFilter(request, response, filterChain);
+		filter.doThrottle(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
 		verifyZeroInteractions(userFrequencyThrottleGate);
@@ -96,7 +96,7 @@ public class UserApiFrequencyThrottleFilterTest {
 	public void testNoThrottleForPath() throws Exception{
 		when(throttleRulesCache.getThrottleLimit(normalizedPath)).thenReturn(null);
 		
-		filter.doFilter(request, response, filterChain);
+		filter.doThrottle(request, response, filterChain);
 		
 		verify(throttleRulesCache).getThrottleLimit(normalizedPath);
 		verify(filterChain).doFilter(request, response);
@@ -110,7 +110,7 @@ public class UserApiFrequencyThrottleFilterTest {
 		when(throttleRulesCache.getThrottleLimit(normalizedPath)).thenReturn(throttleLimit);
 		when(userFrequencyThrottleGate.attemptToAcquireLock(keyForSemaphore, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(true);
 
-		filter.doFilter(request, response, filterChain);
+		filter.doThrottle(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
 		verify(userFrequencyThrottleGate).attemptToAcquireLock(keyForSemaphore, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod());
@@ -125,7 +125,7 @@ public class UserApiFrequencyThrottleFilterTest {
 		when(throttleRulesCache.getThrottleLimit(normalizedPath)).thenReturn(throttleLimit);
 		when(userFrequencyThrottleGate.attemptToAcquireLock(keyForSemaphore, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(false);
 
-		filter.doFilter(request, response, filterChain);
+		filter.doThrottle(request, response, filterChain);
 		assertEquals(THROTTLED_HTTP_STATUS, response.getStatus());
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
