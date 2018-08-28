@@ -17,6 +17,8 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -251,5 +253,17 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	@Override
 	public void truncateAllDownloadListsForAllUsers() {
 		this.jdbcTemplate.update(SQL_TRUNCATE_ALL_DOWNLOAD_LISTS_FOR_ALL_USERS);
+	}
+
+	@Override
+	public DownloadOrder createDownloadOrder(String ownerPrincipalId, List<FileHandleAssociation> toOrder) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<DownloadOrderSummary> getUsersDownloadOrders(String ownerPrincipalId, Long limit, Long offest) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

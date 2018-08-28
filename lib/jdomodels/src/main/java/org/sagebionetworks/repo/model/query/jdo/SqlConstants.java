@@ -550,6 +550,17 @@ public class SqlConstants {
 	public static final String COL_DOWNLOAD_LIST_ITEM_FILE_HANDLE_ID 			= "FILE_HANDLE_ID";
 	public static final String DDL_DOWNLOAD_LIST_ITEM							= "schema/DownloadListItem-ddl.sql";
 	
+	// Download order
+	public static final String TABLE_DOWNLOAD_ORDER					= "DOWNLOAD_ORDER";
+	public static final String COL_DOWNLOAD_ORDER_ID				= "ORDER_ID";
+	public static final String COL_DOWNLOAD_ORDER_CREATED_BY		= "CREATED_BY";
+	public static final String COL_DOWNLOAD_ORDER_CREATED_ON 		= "CREATED_ON";
+	public static final String COL_DOWNLOAD_ORDER_FILE_NAME			= "FILE_NAME";
+	public static final String COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB 	= "TOTAL_SIZE_MB";
+	public static final String COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES	= "TOTAL_NUM_FILES";
+	public static final String COL_DOWNLOAD_ORDER_FILES_BLOB		= "FILES_BLOB";
+	public static final String DDL_DOWNLOAD_ORDER					= "schema/DownloadOrder-ddl.sql";
+	
 	// The alias used for the dataset table.
 	public static final String NODE_ALIAS					= "nod";
 	public static final String REVISION_ALIAS				= "rev";

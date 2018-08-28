@@ -1,0 +1,30 @@
+{
+	"description": "Summary of files included in a download order.",
+	"properties": {
+		"orderId": {
+			"description": "The ID of this order.",
+			"type": "string"
+		},
+		"createdBy": {
+			"description": "The ID of the user that created this order.",
+			"type": "string"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the order was created."
+		},
+		"zipFileName": {
+			"type": "string",
+			"description": "The name of the file containing this order."
+		},
+		"totalSizeMB": {
+			"type": "integer",
+			"description": "The total size of all files in this order in MB (uncompressed)."
+		},
+		"totalNumberOfFiles": {
+			"type": "integer",
+			"description": "The total number of files in this download order."
+		}
+	}
+}

@@ -311,6 +311,10 @@
 			"description": "The items of a user's download list."
 		},
 		{
+			"name": "DOWNLOAD_ORDER",
+			"description": "Historical record of files download by users."
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}
