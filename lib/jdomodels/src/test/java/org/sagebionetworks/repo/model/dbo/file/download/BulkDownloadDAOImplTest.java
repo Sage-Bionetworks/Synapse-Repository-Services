@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.sql.Date;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -51,6 +53,8 @@ public class BulkDownloadDAOImplTest {
 	
 	List<FileHandle> fileHandles;
 	List<FileHandleAssociation> fileHandleAssociations;
+	
+	DownloadOrder downloadOrder;
 	
 	@Before
 	public void before() {
@@ -90,11 +94,20 @@ public class BulkDownloadDAOImplTest {
 			fha.setFileHandleId(file.getId());
 			fileHandleAssociations.add(fha);
 		}
+		
+		downloadOrder = new DownloadOrder();
+		downloadOrder.setCreatedBy(userOneId);
+		downloadOrder.setCreatedOn(new Date());
+		downloadOrder.setFiles(fileHandleAssociations);
+		downloadOrder.setOrderId("123");
+		downloadOrder.setTotalNumberOfFiles(new Long(fileHandleAssociations.size()));
+		downloadOrder.setTotalSizeMB(8888L);
+		downloadOrder.setZipFileName("SomeFileName");
 	}
 	
 	@After
 	public void after() {
-		bulkDownlaodDao.truncateAllDownloadListsForAllUsers();
+		bulkDownlaodDao.truncateAllDownloadDataForAllUsers();
 		if(userOneId != null) {
 			userGroupDao.delete(userOneId);
 		}
@@ -481,5 +494,232 @@ public class BulkDownloadDAOImplTest {
 	public void testGetDownloadListFileCountNull() {
 		// call under test
 		bulkDownlaodDao.getDownloadListFileCount(null);
+	}
+	
+	@Test
+	public void testTranslateFilesRoundTrip() {
+		List<FileHandleAssociation> files = fileHandleAssociations;
+		// call under test
+		byte[] bytes = BulkDownloadDAOImpl.translateFilesToBytes(files);
+		assertNotNull(bytes);
+		assertTrue(bytes.length > 0);
+		// call under test
+		List<FileHandleAssociation> clone = BulkDownloadDAOImpl.translateBytesToFiles(bytes);
+		assertEquals(fileHandleAssociations, clone);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFilesNullList() {
+		List<FileHandleAssociation> files = null;
+		// call under test
+		BulkDownloadDAOImpl.translateFilesToBytes(files);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFilesEmptyList() {
+		List<FileHandleAssociation> files = new LinkedList<>();
+		// call under test
+		BulkDownloadDAOImpl.translateFilesToBytes(files);
+	}
+	
+	@Test
+	public void testTranslateDownloadOrderRoundTrip() {
+		DownloadOrder dto = downloadOrder;
+		// call under test
+		DBODownloadOrder dbo = BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+		// call under test
+		DownloadOrder clone = BulkDownloadDAOImpl.translateFromDBOtoDTO(dbo);
+		assertEquals(downloadOrder, clone);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONull() {
+		DownloadOrder dto = null;
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONullCreatedBy() {
+		DownloadOrder dto = downloadOrder;
+		dto.setCreatedBy(null);
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONullCreatedOn() {
+		DownloadOrder dto = downloadOrder;
+		dto.setCreatedOn(null);
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONullFile() {
+		DownloadOrder dto = downloadOrder;
+		dto.setFiles(null);
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONullOrderId() {
+		DownloadOrder dto = downloadOrder;
+		dto.setOrderId(null);
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONullTotalNumberFiles() {
+		DownloadOrder dto = downloadOrder;
+		dto.setTotalNumberOfFiles(null);
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONullTotalSize() {
+		DownloadOrder dto = downloadOrder;
+		dto.setTotalSizeMB(null);
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBONullFileName() {
+		DownloadOrder dto = downloadOrder;
+		dto.setZipFileName(null);
+		// call under test
+		BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+	}
+	
+	@Test
+	public void testTranslateFromDTOtoDBOFileNameMax() {
+		DownloadOrder dto = downloadOrder;
+		dto.setZipFileName(createStringOfSize(BulkDownloadDAOImpl.MAX_NAME_CHARS));
+		// call under test
+		DBODownloadOrder result =  BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+		assertNotNull(result);
+		assertEquals(dto.getZipFileName(), result.getZipFileName());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateFromDTOtoDBOFileNameOverMax() {
+		DownloadOrder dto = downloadOrder;
+		dto.setZipFileName(createStringOfSize(BulkDownloadDAOImpl.MAX_NAME_CHARS+1));
+		// call under test
+		DBODownloadOrder result =  BulkDownloadDAOImpl.translateFromDTOtoDBO(dto);
+		assertNotNull(result);
+		assertEquals(dto.getZipFileName(), result.getZipFileName());
+	}
+	
+	@Test
+	public void testCreateAndGetDownloadOrder() {
+		// use largest possible name.
+		downloadOrder.setZipFileName(createStringOfSize(BulkDownloadDAOImpl.MAX_NAME_CHARS));
+		// call under test
+		DownloadOrder created = this.bulkDownlaodDao.createDownloadOrder(downloadOrder);
+		assertNotNull(created);
+		assertNotNull(created.getOrderId());
+		assertEquals(downloadOrder.getCreatedBy(), created.getCreatedBy());
+		assertEquals(downloadOrder.getCreatedOn(), created.getCreatedOn());
+		assertEquals(downloadOrder.getFiles(), created.getFiles());
+		assertEquals(downloadOrder.getTotalNumberOfFiles(), created.getTotalNumberOfFiles());
+		assertEquals(downloadOrder.getTotalSizeMB(), created.getTotalSizeMB());
+		assertEquals(downloadOrder.getZipFileName(), created.getZipFileName());
+		
+		// Fetch the same order again
+		// call under test
+		DownloadOrder fetched = this.bulkDownlaodDao.getDownloadOrder(created.getOrderId());
+		assertEquals(created, fetched);
+	}
+	
+	@Test
+	public void testGetUsersDownloadOrders() {
+		DownloadOrder order = createDownloadOrder(userOneId, "one", fileHandleAssociations);
+		long limit = Long.MAX_VALUE;
+		long offset = 0L;
+		// call under test
+		List<DownloadOrderSummary> summaries = this.bulkDownlaodDao.getUsersDownloadOrders(userOneId, limit, offset);
+		assertNotNull(summaries);
+		assertEquals(1, summaries.size());
+		DownloadOrderSummary summary = summaries.get(0);
+		assertEquals(order.getOrderId(), summary.getOrderId());
+		assertEquals(order.getCreatedBy(), summary.getCreatedBy());
+		assertEquals(order.getCreatedOn(), summary.getCreatedOn());
+		assertEquals(order.getTotalNumberOfFiles(), summary.getTotalNumberOfFiles());
+		assertEquals(order.getTotalSizeMB(), summary.getTotalSizeMB());
+		assertEquals(order.getZipFileName(), summary.getZipFileName());
+	}
+	
+	@Test
+	public void testGetUsersDownloadOrdersMultiples() throws InterruptedException {
+		// one
+		List<DownloadOrder> onesOrders = new LinkedList<>();
+		for(int i=0; i<4; i++) {
+			Thread.sleep(10L);
+			DownloadOrder order = createDownloadOrder(userOneId, "one"+i, fileHandleAssociations);
+			onesOrders.add(order);
+		}
+		// two
+		List<DownloadOrder> twosOrders = new LinkedList<>();
+		for(int i=0; i<4; i++) {
+			Thread.sleep(10L);
+			DownloadOrder order = createDownloadOrder(userTwoId, "two"+i, fileHandleAssociations);
+			twosOrders.add(order);
+		}
+		
+		long limit = 2;
+		long offset = 0L;
+		// call under test
+		List<DownloadOrderSummary> summaries = this.bulkDownlaodDao.getUsersDownloadOrders(userOneId, limit, offset);
+		assertNotNull(summaries);
+		assertEquals(2, summaries.size());
+		// last added should be the first listed
+		assertEquals(onesOrders.get(3).getOrderId(), summaries.get(0).getOrderId());
+		assertEquals(onesOrders.get(2).getOrderId(), summaries.get(1).getOrderId());
+		
+		offset = 1;
+		// call under test
+		summaries = this.bulkDownlaodDao.getUsersDownloadOrders(userTwoId, limit, offset);
+		assertNotNull(summaries);
+		assertEquals(2, summaries.size());
+		// first should be skipped.
+		assertEquals(twosOrders.get(2).getOrderId(), summaries.get(0).getOrderId());
+		assertEquals(twosOrders.get(1).getOrderId(), summaries.get(1).getOrderId());
+	}
+	
+	
+	/**
+	 * Helper to create a quick download order.
+	 * @param userId
+	 * @param name
+	 * @param toOrder
+	 * @return
+	 */
+	DownloadOrder createDownloadOrder(String userId, String name, List<FileHandleAssociation> toOrder) {
+		DownloadOrder order = new DownloadOrder();
+		order.setCreatedBy(userId);
+		order.setCreatedOn(new Date());
+		order.setFiles(toOrder);
+		order.setTotalNumberOfFiles(new Long(toOrder.size()));
+		order.setTotalSizeMB(order.getTotalNumberOfFiles()+10L);
+		order.setZipFileName(name);
+		return this.bulkDownlaodDao.createDownloadOrder(order);
+	}
+	
+	/**
+	 * Helper to create a test string of the given size.
+	 * @param size
+	 * @return
+	 */
+	static String createStringOfSize(int size) {
+		char[] chars = new char[size];
+		for(int i=0;i<chars.length; i++) {
+			chars[i] = 'a';
+		}
+		return new String(chars);
 	}
 }

@@ -67,22 +67,31 @@ public interface BulkDownloadDAO {
 	 * Truncate the download lists for all users.
 	 * 
 	 */
-	public void truncateAllDownloadListsForAllUsers();
+	public void truncateAllDownloadDataForAllUsers();
 	
 	/**
-	 * Create a download order including the given files.
-	 * @param ownerPrincipalId
-	 * @param toOrder
+	 * Create a download order.
+	 * @param toCreate
 	 * @return
 	 */
-	DownloadOrder createDownloadOrder(String ownerPrincipalId, List<FileHandleAssociation> toOrder);
+	public DownloadOrder createDownloadOrder(DownloadOrder toCreate);
 	
 	/**
 	 * Get the history of a user's download orders in reverse chronological order.
 	 * @param ownerPrincipalId
 	 * @param limit
-	 * @param offest
+	 * @param offset
 	 * @return
 	 */
-	List<DownloadOrderSummary> getUsersDownloadOrders(String ownerPrincipalId, Long limit, Long offest);
+	public List<DownloadOrderSummary> getUsersDownloadOrders(String ownerPrincipalId, Long limit, Long offset);
+	
+	
+	/**
+	 * Get a Download order from its ID.
+	 * @param orderId
+	 * @return
+	 */
+	public DownloadOrder getDownloadOrder(String orderId);
+	
+
 }
