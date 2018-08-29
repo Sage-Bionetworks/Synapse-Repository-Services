@@ -19,7 +19,7 @@ public class UserApiFrequencyThrottler implements RequestThrottler {
 	public static final String CLOUDWATCH_EVENT_NAME = "apiFrequencyLockUnavaliable";
 	private static final String REASON_USER_THROTTLED_API_FORMAT = 
 	"{\"reason\": \"Requests are too frequent for API call: %s. Allowed %d requests every %d seconds.\"}";
-	static final RequestThrottlerCleanup NO_OP_THROTTLER_CLEANUP = new RequestThrottlerCleanupNoOpImpl();
+	private static final RequestThrottlerCleanup NO_OP_THROTTLER_CLEANUP = new RequestThrottlerCleanupNoOpImpl();
 	
 	@Autowired
 	ThrottleRulesCache throttleRulesCache;
@@ -32,7 +32,7 @@ public class UserApiFrequencyThrottler implements RequestThrottler {
 
 	@Override
 	public RequestThrottlerCleanup doThrottle(HttpRequestIdentifier httpRequestIdentifier) throws RequestThrottledException {
-		String userId = httpRequestIdentifier.getUserId().toString();
+		String userMachineIdentifierString = httpRequestIdentifier.getUserMachineIdentifierString();
 		String normalizedPath = PathNormalizer.normalizeMethodSignature(httpRequestIdentifier.getRequestPath());
 
 		ThrottleLimit limit = throttleRulesCache.getThrottleLimit(normalizedPath);
@@ -40,11 +40,13 @@ public class UserApiFrequencyThrottler implements RequestThrottler {
 			//no throttle exists for this URI
 			return NO_OP_THROTTLER_CLEANUP;
 		}
-		boolean lockAcquired = userApiThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + ":" + normalizedPath, limit.getCallPeriodSec(), limit.getMaxCallsPerUserPerPeriod());
+		boolean lockAcquired = userApiThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userMachineIdentifierString + ":" + normalizedPath, limit.getCallPeriodSec(), limit.getMaxCallsPerUserPerPeriod());
 		if(!lockAcquired){
 			//add extra dimensions for recording the throttled API
 			Map<String, String> dimensions = new HashMap<>();
-			dimensions.put("UserId", userId);
+			dimensions.put("UserId", String.valueOf(httpRequestIdentifier.getUserId()));
+			dimensions.put("IpAddress", httpRequestIdentifier.getIpAddress());
+			dimensions.put("sessionId", httpRequestIdentifier.getSessionId());
 			dimensions.put("ThrottledAPI", normalizedPath);
 			ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.unmodifiableMap(dimensions));
 

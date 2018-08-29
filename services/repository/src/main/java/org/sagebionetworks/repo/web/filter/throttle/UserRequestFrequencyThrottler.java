@@ -4,6 +4,8 @@ import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.generat
 
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
@@ -24,20 +26,22 @@ public class UserRequestFrequencyThrottler implements RequestThrottler {
 	
 	public static final String REASON_USER_THROTTLED_FREQ = 
 			"{\"reason\": \"Requests are too frequent. Allowed "+MAX_REQUEST_FREQUENCY_LOCKS+" requests every "+REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC+" seconds.\"}";
-	static final RequestThrottlerCleanup NO_OP_THROTTLER_CLEANUP = new RequestThrottlerCleanupNoOpImpl();
-
 	public static final String CLOUDWATCH_EVENT_NAME = "RequestFrequencyLockUnavailable";
+
+	private static final RequestThrottlerCleanup NO_OP_THROTTLER_CLEANUP = new RequestThrottlerCleanupNoOpImpl();
 
 	@Autowired
 	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
 
 	@Override
 	public RequestThrottlerCleanup doThrottle(HttpRequestIdentifier httpRequestIdentifier) throws RequestThrottledException {
-		String userId = httpRequestIdentifier.getUserId().toString();
-
-		boolean frequencyLockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+		boolean frequencyLockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(httpRequestIdentifier.getUserMachineIdentifierString(), REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 		if(!frequencyLockAcquired){
-			ProfileData report = generateCloudwatchProfiledata(CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
+			Map<String, String> dimensions = new HashMap<>();
+			dimensions.put("UserId", String.valueOf(httpRequestIdentifier.getUserId()));
+			dimensions.put("IpAddress", httpRequestIdentifier.getIpAddress());
+			dimensions.put("sessionId", httpRequestIdentifier.getSessionId());
+			ProfileData report = generateCloudwatchProfiledata(CLOUDWATCH_EVENT_NAME, this.getClass().getName(), dimensions);
 			throw new RequestThrottledException(REASON_USER_THROTTLED_FREQ, report);
 		}
 

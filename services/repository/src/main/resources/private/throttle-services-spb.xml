@@ -11,8 +11,24 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	<bean id="throttleRulesCache" class="org.sagebionetworks.repo.web.filter.throttle.ThrottleRulesCache" scope="singleton"/>
-	<bean id="userApiFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.throttle.UserApiFrequencyThrottler"/>
-	<bean id="userConcurrentConnectionThrottleFilter" class="org.sagebionetworks.repo.web.filter.throttle.UserConcurrentConnectionThrottler"/>
-	<bean id="userRequestFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler"/>
+
+
+	<bean id="userApiFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.throttle.RequestThrottleFilter">
+		<property name="requestThrottler">
+			<bean class="org.sagebionetworks.repo.web.filter.throttle.UserApiFrequencyThrottler"/>
+		</property>
+	</bean>
+	<bean id="userConcurrentConnectionThrottleFilter"
+		  class="org.sagebionetworks.repo.web.filter.throttle.RequestThrottleFilter">
+		<property name="requestThrottler">
+			<bean class="org.sagebionetworks.repo.web.filter.throttle.UserConcurrentConnectionThrottler"/>
+		</property>
+	</bean>
+	<bean id="userRequestFrequencyThrottleFilter"
+		  class="org.sagebionetworks.repo.web.filter.throttle.RequestThrottleFilter">
+		<property name="requestThrottler">
+			<bean class="org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler"/>
+		</property>
+	</bean>
 	
 </beans>

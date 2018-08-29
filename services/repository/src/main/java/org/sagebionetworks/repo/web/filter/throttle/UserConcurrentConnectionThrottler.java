@@ -4,6 +4,8 @@ import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.generat
 
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,16 +37,20 @@ public class UserConcurrentConnectionThrottler implements RequestThrottler {
 
 	@Override
 	public RequestThrottlerCleanup doThrottle(HttpRequestIdentifier httpRequestIdentifier) throws RequestThrottledException{
-		String userId = httpRequestIdentifier.getUserId().toString();
-		final String concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+		String userMachineIdentifierString = httpRequestIdentifier.getUserMachineIdentifierString();
+		final String concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userMachineIdentifierString, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 
 		//lock could not be acquired. generate cloudwatch report and throw error
 		if(concurrentLockToken == null){
-			ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
+			Map<String, String> dimensions = new HashMap<>();
+			dimensions.put("UserId", String.valueOf(httpRequestIdentifier.getUserId()));
+			dimensions.put("IpAddress", httpRequestIdentifier.getIpAddress());
+			dimensions.put("sessionId", httpRequestIdentifier.getSessionId());
+			ProfileData report = generateCloudwatchProfiledata(CLOUDWATCH_EVENT_NAME, this.getClass().getName(), dimensions);
 			throw new RequestThrottledException(REASON_USER_THROTTLED_CONCURRENT, report);
 		}
 
-		return () -> userThrottleMemoryCountingSemaphore.releaseLock(userId, concurrentLockToken);
+		return () -> userThrottleMemoryCountingSemaphore.releaseLock(userMachineIdentifierString, concurrentLockToken);
 	}
 
 

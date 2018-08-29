@@ -22,11 +22,6 @@ import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
 public class SessionIdCookieSetterFilter implements Filter {
 
 	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-		///do nothing
-	}
-
-	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		//sessionId is either the session ID that came in with the request or a newly generated sessionId
 		String requestSessionId = HttpRequestIdentifierUtils.getSessionId((HttpServletRequest) request);
@@ -39,6 +34,11 @@ public class SessionIdCookieSetterFilter implements Filter {
 		}
 
 		chain.doFilter(request, response);
+	}
+
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		///do nothing
 	}
 
 	@Override

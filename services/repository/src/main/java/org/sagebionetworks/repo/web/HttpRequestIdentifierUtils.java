@@ -14,7 +14,6 @@ public class HttpRequestIdentifierUtils {
 
 	public static final String SESSION_ID_COOKIE_NAME = "sessionID";
 
-	//TODO: maybe merge w/ IpAddressUtils?
 	public static String getSessionId(HttpServletRequest request){
 		if (request.getCookies() == null){
 			return null;

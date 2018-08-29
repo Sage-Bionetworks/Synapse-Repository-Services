@@ -21,7 +21,6 @@ public class RequestThrottleFilter implements Filter {
 	@Autowired
 	private Consumer consumer;
 
-	@Autowired
 	RequestThrottler requestThrottler;
 
 	@Override
@@ -43,6 +42,10 @@ public class RequestThrottleFilter implements Filter {
 		} catch(Exception e){
 			throw new ServletException(e);
 		}
+	}
+
+	public void setRequestThrottler(RequestThrottler requestThrottler) {
+		this.requestThrottler =  requestThrottler;
 	}
 
 	@Override
