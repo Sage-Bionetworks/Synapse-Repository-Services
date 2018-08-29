@@ -177,10 +177,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			@Override
 			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
 				// Initialize updated fields to match the created fields
-				if (updatedBy == null) {
-					backup.setUpdatedBy(createdBy);
-				}
-				return backup;
+				return DBODoi.createDatabaseObjectFromBackup(backup);
 			}
 		};
 	}
@@ -198,6 +195,13 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
+	}
+
+	private static DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
+		if (backup.updatedBy == null) {
+			backup.setUpdatedBy(backup.createdBy);
+		}
+		return backup;
 	}
 }
 
