@@ -36,14 +36,12 @@ public class UserConcurrentConnectionThrottlerTest {
 	private static final String ipAddress = "123.123.123.123";
 	private static final String concurrentSemaphoreToken = "concurrentToken";
 
-	HttpRequestIdentifier requestIdentifier;
+	private HttpRequestIdentifier requestIdentifier = new HttpRequestIdentifier(Long.valueOf(userId), sessionId, ipAddress, "/fakePath");
+	private final String userMachineIdentifierString = requestIdentifier.getUserMachineIdentifierString();
 
 	@Before
 	public void setup() throws Exception {
 		throttler = new UserConcurrentConnectionThrottler();
-
-
-		requestIdentifier = new HttpRequestIdentifier(Long.valueOf(userId), sessionId, ipAddress, "/fakePath");
 
 		ReflectionTestUtils.setField(throttler, "userThrottleMemoryCountingSemaphore", userThrottleGate);
 		assertNotNull(userThrottleGate);
@@ -51,22 +49,22 @@ public class UserConcurrentConnectionThrottlerTest {
 
 	@Test
 	public void testNotThrottled() throws Exception {
-		when(userThrottleGate.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(concurrentSemaphoreToken);
+		when(userThrottleGate.attemptToAcquireLock(userMachineIdentifierString, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(concurrentSemaphoreToken);
 
 		//method under test
 		RequestThrottlerCleanup cleanup = throttler.doThrottle(requestIdentifier);
 
-		verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+		verify(userThrottleGate).attemptToAcquireLock(userMachineIdentifierString, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 
 		//check that returned clean object will call release lock
 		cleanup.close();
-		verify(userThrottleGate).releaseLock(userId,concurrentSemaphoreToken);
+		verify(userThrottleGate).releaseLock(userMachineIdentifierString,concurrentSemaphoreToken);
 	}
 
 	@Test
 	public void testNoEmptyConcurrentConnectionSlots() throws Exception {
 
-		when(userThrottleGate.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(null);
+		when(userThrottleGate.attemptToAcquireLock(userMachineIdentifierString, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(null);
 
 		try {
 			//method under test
@@ -76,7 +74,7 @@ public class UserConcurrentConnectionThrottlerTest {
 			assertEquals(CLOUDWATCH_EVENT_NAME, e.getProfileData().getName());
 		}
 
-		verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+		verify(userThrottleGate).attemptToAcquireLock(userMachineIdentifierString, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 		verify(userThrottleGate, never()).releaseLock(anyString(),anyString());
 	}
 

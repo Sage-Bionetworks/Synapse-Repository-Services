@@ -38,7 +38,9 @@ public class UserRequestFrequencyThrottlerTest {
 	private static final String sessionId = "session-id";
 	private static final String ipAddress = "123.123.123.123";
 
-	HttpRequestIdentifier requestIdentifier;
+	private HttpRequestIdentifier requestIdentifier = new HttpRequestIdentifier(Long.valueOf(userId), sessionId, ipAddress, "/fakePath");
+	private final String userMachineIdentifierString = requestIdentifier.getUserMachineIdentifierString();
+
 
 
 	@Before
@@ -47,17 +49,15 @@ public class UserRequestFrequencyThrottlerTest {
 
 		ReflectionTestUtils.setField(throttler, "userThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
 		assertNotNull(userFrequencyThrottleGate);
-
-		requestIdentifier = new HttpRequestIdentifier(Long.valueOf(userId), sessionId, ipAddress, "/fakePath");
 	}
 
 	@Test
 	public void testNotThrottled() throws Exception {
-		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userMachineIdentifierString, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
 
 		RequestThrottlerCleanup cleanup = throttler.doThrottle(requestIdentifier);
 
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(userMachineIdentifierString, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate);
 		assertEquals(RequestThrottlerCleanupNoOpImpl.class, cleanup.getClass());
 
@@ -65,7 +65,7 @@ public class UserRequestFrequencyThrottlerTest {
 
 	@Test
 	public void testNoEmptyRequestFrequencySlots() throws Exception {
-		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(false);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userMachineIdentifierString, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(false);
 
 		try {
 			//method under test
@@ -75,6 +75,6 @@ public class UserRequestFrequencyThrottlerTest {
 			assertEquals(CLOUDWATCH_EVENT_NAME, e.getProfileData().getName());
 		}
 
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(userMachineIdentifierString, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 	}
 }

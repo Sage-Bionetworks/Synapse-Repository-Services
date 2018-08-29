@@ -43,10 +43,12 @@ public class UserApiFrequencyThrottlerTest {
 	private static final String path = "/repo/v1/the/path/is/a/lie/12345/";
 	private static final String normalizedPath = PathNormalizer.normalizeMethodSignature(path);
 	private static final ThrottleLimit throttleLimit = new ThrottleLimit(123, 456);
-	private static final String keyForSemaphore = userId + ":" + normalizedPath;
 
 
-	HttpRequestIdentifier requestIdentifier;
+	private HttpRequestIdentifier requestIdentifier = new HttpRequestIdentifier(Long.valueOf(userId), sessionId, ipAddress, path);
+	private final String userMachineIdentifierString = requestIdentifier.getUserMachineIdentifierString();
+	private final String keyForSemaphore = userMachineIdentifierString + ":" + normalizedPath;
+
 
 	@Before
 	public void setupFilter() throws Exception {
@@ -54,7 +56,6 @@ public class UserApiFrequencyThrottlerTest {
 		ReflectionTestUtils.setField(throttler, "userApiThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
 		ReflectionTestUtils.setField(throttler, "throttleRulesCache", throttleRulesCache);
 
-		requestIdentifier = new HttpRequestIdentifier(Long.valueOf(userId), sessionId, ipAddress, path);
 	}
 
 	@Test
