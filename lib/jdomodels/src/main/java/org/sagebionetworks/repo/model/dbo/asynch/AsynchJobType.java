@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.table.UploadToTableResult;
  * @author jmhill
  *
  */
-public enum AsynchJobType {
+public enum AsynchJobType  {
 	
 	TABLE_UPDATE_TRANSACTION(TableUpdateTransactionRequest.class, TableUpdateTransactionResponse.class),
 	

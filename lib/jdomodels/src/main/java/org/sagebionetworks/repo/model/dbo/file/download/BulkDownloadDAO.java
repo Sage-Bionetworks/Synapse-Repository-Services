@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.file.download;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 
 /**
@@ -59,5 +61,37 @@ public interface BulkDownloadDAO {
 	 * 
 	 * @param principalId
 	 */
-	public void touchUsersDownloadList(long principalId) ;
+	public void touchUsersDownloadList(long principalId);
+	
+	/**
+	 * Truncate the download lists for all users.
+	 * 
+	 */
+	public void truncateAllDownloadDataForAllUsers();
+	
+	/**
+	 * Create a download order.
+	 * @param toCreate
+	 * @return
+	 */
+	public DownloadOrder createDownloadOrder(DownloadOrder toCreate);
+	
+	/**
+	 * Get the history of a user's download orders in reverse chronological order.
+	 * @param ownerPrincipalId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<DownloadOrderSummary> getUsersDownloadOrders(String ownerPrincipalId, Long limit, Long offset);
+	
+	
+	/**
+	 * Get a Download order from its ID.
+	 * @param orderId
+	 * @return
+	 */
+	public DownloadOrder getDownloadOrder(String orderId);
+	
+
 }

@@ -1,0 +1,15 @@
+{
+	"description": "The files of a download order.",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.file.DownloadOrderSummary"
+	},
+	"properties": {
+		"files": {
+			"description": "The list of files included in this order.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation"
+			}
+		}
+	}
+}
