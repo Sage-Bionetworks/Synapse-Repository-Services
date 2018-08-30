@@ -10,6 +10,7 @@ import static org.sagebionetworks.doi.datacite.DataciteClientImpl.handleHttpErro
 import static org.sagebionetworks.doi.datacite.DataciteClientImpl.registerDoiRequestBody;
 
 import java.io.IOException;
+import java.util.Base64;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -28,8 +29,6 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import com.amazonaws.util.Base64;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DataciteClientImplTest {
@@ -57,7 +56,7 @@ public class DataciteClientImplTest {
 	private final String CONFIG_URL = "url.com";
 	private final String CONFIG_USR = "usr";
 	private final String CONFIG_PWD = "pwd";
-	private final String ENCODED_AUTH = "Basic " + Base64.encodeAsString((CONFIG_USR + ":" + CONFIG_PWD).getBytes());
+	private final String ENCODED_AUTH = "Basic " + Base64.getEncoder().encodeToString((CONFIG_USR + ":" + CONFIG_PWD).getBytes());
 
 
 	@Before
