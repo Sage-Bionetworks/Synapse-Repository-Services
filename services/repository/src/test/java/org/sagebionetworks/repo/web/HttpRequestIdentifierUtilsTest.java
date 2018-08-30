@@ -5,12 +5,20 @@ import static org.junit.Assert.assertNull;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.servlet.http.Cookie;
 
 public class HttpRequestIdentifierUtilsTest {
 	MockHttpServletRequest request;
+
+	private final String sessionId = "SESSION ID";
+	private final Cookie irrelevantCookie = new Cookie("IrrelevantCookie", "IrrlevantValue");
+	private final Cookie sessionIdCookie = new Cookie(HttpRequestIdentifierUtils.SESSION_ID_COOKIE_NAME, sessionId);
+	private Long userId = 123L;
+	private String ipAddress = "192.168.1.1";
+	private String requestPath = "/pathy/mcPathFace";
 
 	@Before
 	public void setUp(){
@@ -26,18 +34,27 @@ public class HttpRequestIdentifierUtilsTest {
 
 	@Test
 	public void testGetSessionId_SessionCookieFound(){
-		String sessionId = "SESSION ID";
-		request.setCookies(new Cookie("IrrelevantCookie", "IrrlevantValue"),
-				new Cookie(HttpRequestIdentifierUtils.SESSION_ID_COOKIE_NAME, sessionId));
+		request.setCookies(irrelevantCookie,sessionIdCookie);
 
 		assertEquals(sessionId, HttpRequestIdentifierUtils.getSessionId(request));
 	}
 
 	@Test
 	public void testGetSessionId_SessionCookieNotFound(){
-		String sessionId = "SESSION ID";
-		request.setCookies(new Cookie("IrrelevantCookie", "IrrlevantValue"));
+		request.setCookies(irrelevantCookie);
 
 		assertNull(HttpRequestIdentifierUtils.getSessionId(request));
+	}
+
+	@Test
+	public void testGetRequestIdentifier(){
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
+		request.setCookies(sessionIdCookie);
+		request.setRequestURI(requestPath);
+		request.setRemoteAddr(ipAddress);
+
+
+		HttpRequestIdentifier expected = new HttpRequestIdentifier(userId,sessionId,ipAddress,requestPath);
+		assertEquals(expected, HttpRequestIdentifierUtils.getRequestIdentifier(request));
 	}
 }

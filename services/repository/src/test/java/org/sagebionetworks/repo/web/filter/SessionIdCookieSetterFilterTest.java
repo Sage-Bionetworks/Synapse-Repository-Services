@@ -19,7 +19,7 @@ import javax.servlet.http.Cookie;
 import java.io.IOException;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SessionCookieSetterFilterTest {
+public class SessionIdCookieSetterFilterTest {
 
 	@Mock
 	FilterChain mockFilterChain;

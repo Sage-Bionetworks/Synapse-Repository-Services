@@ -51,7 +51,7 @@ public class RequestThrottleFilterTest {
 
 	@Before
 	public void setUp() throws Exception{
-		filter = new RequestThrottleFilter();
+		filter = new RequestThrottleFilter(mockRequestThrottler);
 
 		mockRequest = new MockHttpServletRequest();
 		mockResponse = new MockHttpServletResponse();
@@ -62,14 +62,25 @@ public class RequestThrottleFilterTest {
 		mockRequest.setRequestURI(path);
 		mockRequest.setCookies(new Cookie(SESSION_ID_COOKIE_NAME, sessionId));
 
-		ReflectionTestUtils.setField(filter, "requestThrottler", mockRequestThrottler);
 		ReflectionTestUtils.setField(filter, "consumer", mockConsumer);
-
 	}
 
 	@Test
 	public void testMigrationAdmin() throws Exception{
 		mockRequest.setParameter(AuthorizationConstants.USER_ID_PARAM, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+
+		//method under test
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
+		verifyZeroInteractions(mockRequestThrottler);
+		verifyZeroInteractions(mockRequestThrottlerCleanup);
+		verifyNoMoreInteractions(mockFilterChain);
+	}
+
+	@Test
+	public void testAnonymousUser() throws Exception{ //TODO: remove once java client has a way to get session id from cookies
+		mockRequest.setParameter(AuthorizationConstants.USER_ID_PARAM, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 
 		//method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
@@ -111,5 +122,6 @@ public class RequestThrottleFilterTest {
 		verify(mockRequestThrottler).doThrottle(any(HttpRequestIdentifier.class));
 		verify(mockRequestThrottlerCleanup).close();
 		verifyNoMoreInteractions(mockFilterChain);
+		verifyZeroInteractions(mockConsumer);
 	}
 }

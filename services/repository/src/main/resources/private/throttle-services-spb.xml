@@ -14,21 +14,21 @@
 
 
 	<bean id="userApiFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.throttle.RequestThrottleFilter">
-		<property name="requestThrottler">
+		<constructor-arg>
 			<bean class="org.sagebionetworks.repo.web.filter.throttle.UserApiFrequencyThrottler"/>
-		</property>
+		</constructor-arg>
 	</bean>
 	<bean id="userConcurrentConnectionThrottleFilter"
 		  class="org.sagebionetworks.repo.web.filter.throttle.RequestThrottleFilter">
-		<property name="requestThrottler">
+		<constructor-arg>
 			<bean class="org.sagebionetworks.repo.web.filter.throttle.UserConcurrentConnectionThrottler"/>
-		</property>
+		</constructor-arg>
 	</bean>
 	<bean id="userRequestFrequencyThrottleFilter"
 		  class="org.sagebionetworks.repo.web.filter.throttle.RequestThrottleFilter">
-		<property name="requestThrottler">
+		<constructor-arg>
 			<bean class="org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler"/>
-		</property>
+		</constructor-arg>
 	</bean>
 	
 </beans>

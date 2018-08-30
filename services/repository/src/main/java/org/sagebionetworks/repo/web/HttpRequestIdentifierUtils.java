@@ -35,7 +35,7 @@ public class HttpRequestIdentifierUtils {
 		String ipAddress = IpAddressUtil.getIpAddress(httpRequest);
 		String requestPath = httpRequest.getRequestURI();
 
-		return new HttpRequestIdentifier(userId, sessionId, ipAddress, requestPath); //TODO: test null
+		return new HttpRequestIdentifier(userId, sessionId, ipAddress, requestPath);
 	}
 
 }
