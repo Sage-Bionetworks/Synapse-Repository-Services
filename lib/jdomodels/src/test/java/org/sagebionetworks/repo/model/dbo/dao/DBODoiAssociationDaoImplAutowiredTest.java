@@ -206,7 +206,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		}
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateNullVersion() {
 		dto.setObjectVersion(null);
 		doiAssociationDao.createDoiAssociation(dto);

@@ -4,6 +4,8 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
+import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
@@ -47,7 +49,9 @@ public enum AsynchJobType  {
 	
 	BULK_FILE_DOWNLOAD(BulkFileDownloadRequest.class, BulkFileDownloadResponse.class),
 	
-	MIGRATION(AsyncMigrationRequest.class, AsyncMigrationResponse.class);
+	MIGRATION(AsyncMigrationRequest.class, AsyncMigrationResponse.class),
+
+	DOI(DoiRequest.class, DoiResponse.class);
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;

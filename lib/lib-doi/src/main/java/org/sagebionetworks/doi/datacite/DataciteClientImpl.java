@@ -1,19 +1,24 @@
 package org.sagebionetworks.doi.datacite;
 
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.sagebionetworks.repo.model.NotReadyException;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.simpleHttpClient.*;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class DataciteClientImpl implements DataciteClient {
 
@@ -77,10 +82,10 @@ public class DataciteClientImpl implements DataciteClient {
 	@Override
 	public void registerMetadata(final DataciteMetadata metadata, final String doiUri)
 			throws IllegalArgumentException, NotFoundException, ServiceUnavailableException, NotReadyException {
-		SimpleHttpRequest request = createRequest("metadata/", null, "application/xml;charset=UTF-8");
+		SimpleHttpRequest request = createRequest("metadata/", doiUri, "application/xml;charset=UTF-8");
 		SimpleHttpResponse response = null;
 		try {
-			response = client.post(request, metadataTranslator.translate(metadata, doiUri));
+			response = client.put(request, metadataTranslator.translate(metadata, doiUri));
 		} catch (IOException e) {
 			throw new ServiceUnavailableException("Error occurred while issuing request to register metadata", e);
 		}
@@ -123,7 +128,11 @@ public class DataciteClientImpl implements DataciteClient {
 			request.setUri(DATACITE_URL + path + doiUri);
 		}
 		Map<String, String> headers = new HashMap<>();
-		headers.put(HttpHeaders.AUTHORIZATION, USERNAME + ":" + PASSWORD);
+		try {
+			headers.put(HttpHeaders.AUTHORIZATION, "Basic " + Base64.getEncoder().encodeToString((USERNAME + ":" + PASSWORD).getBytes("utf-8")));
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException("Error encoding DataCite credentials");
+		}
 		if (contentType != null) {
 			headers.put(HttpHeaders.CONTENT_TYPE, contentType);
 		}

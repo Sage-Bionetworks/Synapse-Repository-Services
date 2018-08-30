@@ -27,11 +27,11 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.util.Base64;
+
 @RunWith(MockitoJUnitRunner.class)
-@ContextConfiguration(locations = {"classpath:doi-test-spb.xml"})
 public class DataciteClientImplTest {
 
 	@Mock
@@ -57,6 +57,7 @@ public class DataciteClientImplTest {
 	private final String CONFIG_URL = "url.com";
 	private final String CONFIG_USR = "usr";
 	private final String CONFIG_PWD = "pwd";
+	private final String ENCODED_AUTH = "Basic " + Base64.encodeAsString((CONFIG_USR + ":" + CONFIG_PWD).getBytes());
 
 
 	@Before
@@ -85,7 +86,7 @@ public class DataciteClientImplTest {
 		// Ensure the client made a get call, retrieved the content of that call, and translated it.
 		verify(mockHttpClient).get(requestCaptor.capture());
 		assertEquals("Synapse", requestCaptor.getValue().getHeaders().get(HttpHeaders.USER_AGENT));
-		assertEquals(CONFIG_USR + ":" + CONFIG_PWD, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
+		assertEquals(ENCODED_AUTH, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
 		assertEquals("https://" + CONFIG_URL + "/metadata/"+ URI, requestCaptor.getValue().getUri());
 		verify(mockResponse, times(1)).getContent();
 		verify(mockXmlTranslator, times(1)).translate("test string");
@@ -99,18 +100,18 @@ public class DataciteClientImplTest {
 
 	@Test
 	public void registerMetadataSuccessTest() throws Exception {
-		when(mockHttpClient.post(any(SimpleHttpRequest.class), any(String.class))).thenReturn(mockResponse);
+		when(mockHttpClient.put(any(SimpleHttpRequest.class), any(String.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
 		when(mockMetadataTranslator.translate(any(DataciteMetadata.class), any(String.class))).thenReturn("test xml");
 
 		dataciteClient.registerMetadata(metadata, URI);
 
 		// Ensure the client made a post call with translated xml.
-		verify(mockHttpClient).post(requestCaptor.capture(), stringCaptor.capture());
+		verify(mockHttpClient).put(requestCaptor.capture(), stringCaptor.capture());
 		assertEquals("Synapse", requestCaptor.getValue().getHeaders().get(HttpHeaders.USER_AGENT));
-		assertEquals(CONFIG_USR + ":" + CONFIG_PWD, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
+		assertEquals(ENCODED_AUTH, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
 		assertEquals("application/xml;charset=UTF-8", requestCaptor.getValue().getHeaders().get(HttpHeaders.CONTENT_TYPE));
-		assertEquals("https://" + CONFIG_URL+"/metadata/", requestCaptor.getValue().getUri());
+		assertEquals("https://" + CONFIG_URL+"/metadata/"+URI, requestCaptor.getValue().getUri());
 		assertEquals("test xml", stringCaptor.getValue());
 		verify(mockMetadataTranslator, times(1)).translate(any(DataciteMetadata.class), eq(URI));
 	}
@@ -118,7 +119,7 @@ public class DataciteClientImplTest {
 	@Test(expected = ServiceUnavailableException.class)
 	public void testRegisterMetadataIoException() throws Exception {
 		when(mockMetadataTranslator.translate(any(Doi.class), any(String.class))).thenReturn("<test xml>");
-		when(mockHttpClient.post(any(SimpleHttpRequest.class), any(String.class))).thenThrow(new IOException());
+		when(mockHttpClient.put(any(SimpleHttpRequest.class), any(String.class))).thenThrow(new IOException());
 		dataciteClient.registerMetadata(metadata, URI);
 	}
 
@@ -132,7 +133,7 @@ public class DataciteClientImplTest {
 		// Ensure the client made a put call.
 		verify(mockHttpClient).put(requestCaptor.capture(), any(String.class));
 		assertEquals("Synapse", requestCaptor.getValue().getHeaders().get(HttpHeaders.USER_AGENT));
-		assertEquals(CONFIG_USR + ":" + CONFIG_PWD, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
+		assertEquals(ENCODED_AUTH, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
 		assertEquals("text/plain;charset=UTF-8", requestCaptor.getValue().getHeaders().get(HttpHeaders.CONTENT_TYPE));
 		assertEquals("https://" + CONFIG_URL + "/doi/" + URI, requestCaptor.getValue().getUri());
 	}
@@ -153,7 +154,7 @@ public class DataciteClientImplTest {
 		// Ensure the client made a put call.
 		verify(mockHttpClient).delete(requestCaptor.capture());
 		assertEquals("Synapse", requestCaptor.getValue().getHeaders().get(HttpHeaders.USER_AGENT));
-		assertEquals(CONFIG_USR + ":" + CONFIG_PWD, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
+		assertEquals(ENCODED_AUTH, requestCaptor.getValue().getHeaders().get(HttpHeaders.AUTHORIZATION));
 		assertEquals("https://" + CONFIG_URL+ "/metadata/" + URI, requestCaptor.getValue().getUri());
 	}
 

@@ -94,6 +94,7 @@
 
 	<!-- The DOI Service -->
 	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
+	<bean id="doiServiceV2" class="org.sagebionetworks.repo.web.service.DoiServiceV2Impl" />
 
 	<bean id="certifiedUserService" class="org.sagebionetworks.repo.web.service.CertifiedUserServiceImpl" />
 	
