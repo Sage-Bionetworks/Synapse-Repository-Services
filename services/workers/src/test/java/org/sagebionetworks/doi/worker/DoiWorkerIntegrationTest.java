@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -45,8 +44,6 @@ public class DoiWorkerIntegrationTest {
 	
 	@Autowired
 	StackConfiguration config;
-	@Autowired
-	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	UserManager userManager;
 	@Autowired
@@ -70,6 +67,7 @@ public class DoiWorkerIntegrationTest {
 
 	@Before
 	public void before(){
+		Assume.assumeTrue(config.getDoiDataciteEnabled());
 		project = new Project();
 		project.setName("Some project that needs a DOI");
 		adminUser = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -85,7 +83,6 @@ public class DoiWorkerIntegrationTest {
 
 	@Test
 	public void testCreateDoi() throws Exception {
-		Assume.assumeTrue(config.getDoiDataciteEnabled());
 		DoiRequest request = new DoiRequest();
 		request.setDoi(submissionDoi);
 		DoiResponse response = startAndWaitForJob(userManager.getUserInfo(adminUser), request, DoiResponse.class);

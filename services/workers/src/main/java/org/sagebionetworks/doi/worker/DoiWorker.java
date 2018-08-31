@@ -3,6 +3,7 @@ package org.sagebionetworks.doi.worker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
@@ -24,6 +25,9 @@ public class DoiWorker implements MessageDrivenRunner {
 	private DoiManager doiManager;
 
 	@Autowired
+	private UserManager userManager;
+
+	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 
 	@Override
@@ -35,7 +39,7 @@ public class DoiWorker implements MessageDrivenRunner {
 			ValidateArgument.required(request, "DoiRequest");
 			// The manager does the rest of the work.
 			DoiResponse responseBody = new DoiResponse();
-			responseBody.setDoi(doiManager.createOrUpdateDoi(status.getStartedByUserId(), request.getDoi()));
+			responseBody.setDoi(doiManager.createOrUpdateDoi(userManager.getUserInfo(status.getStartedByUserId()), request.getDoi()));
 			// Set the job complete.
 			asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
 			log.info("JobId: "+status.getJobId()+" complete");
