@@ -169,4 +169,12 @@ public class AsynchJobTypeTest {
 		String expected = "/table/transaction/async/get/abcdefgh";
 		assertEquals(actual, expected);
 	}
+
+	@Test
+	public void testDoi(){
+		AsynchJobType type = AsynchJobType.Doi;
+		String actual = type.getResultUrl(token, (String) null);
+		String expected = "/doi/async/get/abcdefgh";
+		assertEquals(actual, expected);
+	}
 }

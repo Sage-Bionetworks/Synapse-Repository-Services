@@ -450,6 +450,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.doi.enabled"));
 	}
 
+	public boolean getDoiDataciteEnabled() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.doi.datacite.enabled"));
+	}
+
+
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable data
 	 * migration across a stack.

@@ -93,6 +93,7 @@ public class DoiManagerImpl implements DoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
 
+		dto.setUpdatedBy(userId.toString());
 		DoiAssociation association = createOrUpdateAssociation(dto);
 		dto.setDoiUri(generateDoiUri(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
 		dto.setDoiUrl(generateLocationRequestUrl(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
@@ -111,6 +112,7 @@ public class DoiManagerImpl implements DoiManager {
 			association = doiAssociationDao.updateDoiAssociation(dto);
 		} catch (NotFoundException e1) { // The DOI does not already exist (exception was thrown by getEtag)
 			try {
+				dto.setAssociatedBy(dto.getUpdatedBy());
 				association = doiAssociationDao.createDoiAssociation(dto); // Create
 			} catch (IllegalArgumentException e2) {
 				/*
