@@ -73,6 +73,7 @@ public class BaseClientImpl implements BaseClient {
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
+	private static final String SESSION_ID_COOKIE = "sessionID";
 
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 
@@ -245,6 +246,27 @@ public class BaseClientImpl implements BaseClient {
 		}
 		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
+	}
+
+	@Override
+	public void setSessionId(String sessionId){
+		try {
+			URL url = new URL(getRepoEndpoint());
+			simpleHttpClient.addCookie(url.getHost(), SESSION_ID_COOKIE, sessionId);
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("The repoEndpoint being used is malformed", e);
+		}
+	}
+
+
+	@Override
+	public String getSessionId(){
+		try {
+			URL url = new URL(getRepoEndpoint());
+			return simpleHttpClient.getFirstCookieValue(url.getHost(), SESSION_ID_COOKIE);
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("The repoEndpoint being used is malformed", e);
+		}
 	}
 
 	protected String getUserAgent() {
