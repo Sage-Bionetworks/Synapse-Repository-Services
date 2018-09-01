@@ -335,19 +335,6 @@ public class EntityReplicationReconciliationWorkerTest {
 	}
 	
 	@Test
-	public void testRunMessageCountOverLimit(){
-		// call under test
-		worker.run(mockProgressCallback, message);
-		// The expiration should be set for the first parent
-		long expectedExpires = nowMS + EntityReplicationReconciliationWorker.SYNCHRONIZATION_FEQUENCY_MS;
-		verify(mockIndexDao).setContainerSynchronizationExpiration(Lists.newArrayList(firstParentId), expectedExpires);
-		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
-		
-		// no exceptions should occur.
-		verifyZeroInteractions(mockWorkerLog);
-	}
-	
-	@Test
 	public void testRunFailure(){
 		Exception exception = new RuntimeException("Something went wrong");
 		when(mockIndexDao.getExpiredContainerIds(anyListOf(Long.class))).thenThrow(exception);
