@@ -60,7 +60,7 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 	/**
 	 * Each container can only be re-synchronized at this frequency.
 	 */
-	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 1000; // 100 minutes.
+	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 1000; // 1000 minutes.
 
 	/**
 	 * The frequency that progress events will propagate to out of this worker.
