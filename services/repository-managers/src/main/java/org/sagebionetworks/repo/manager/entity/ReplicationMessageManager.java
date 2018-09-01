@@ -29,5 +29,11 @@ public interface ReplicationMessageManager {
 	 * @param scopeIds
 	 */
 	void pushContainerIdsToReconciliationQueue(List<Long> scopeIds);
+	
+	/**
+	 * Get the approximate age of the oldest message on the queue.
+	 * @return
+	 */
+	long getApproximateNumberOfMessageOnReplicationQueue();
 
 }
