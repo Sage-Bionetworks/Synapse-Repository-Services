@@ -389,7 +389,7 @@ public class UploadPreviewBuilderTest {
 			builder.buildResult();
 			fail();
 		} catch (IllegalArgumentException e) {
-			assertEquals("Row number 1 has 4 column(s).  Expected each row to have 3 or less.", e.getMessage());
+			assertEquals("Row number 3 has 4 column(s).  Expected each row to have 3 columns or less.", e.getMessage());
 		}
 	}
 	
