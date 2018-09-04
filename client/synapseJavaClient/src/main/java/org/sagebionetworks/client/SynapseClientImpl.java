@@ -417,7 +417,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String LOG = "/log";
 
-	private static final String DOI = "/doi";
+	protected static final String DOI = "/doi";
 
 	private static final String ETAG = "etag";
 

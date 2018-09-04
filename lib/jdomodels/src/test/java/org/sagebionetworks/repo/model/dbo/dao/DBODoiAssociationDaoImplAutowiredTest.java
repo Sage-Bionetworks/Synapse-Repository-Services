@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import org.junit.After;
 import org.junit.Before;
@@ -191,21 +192,23 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		String etag = doiAssociationDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
 	}
 
-
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateDuplicateVersion() {
 		doiAssociationDao.createDoiAssociation(dto);
 		// This call should attempt to create a duplicate DOI for that DTO
 		// This violates the schema, and should yield and IllegalArgumentException
-		doiAssociationDao.createDoiAssociation(dto);
+		try {
+			// Call under test
+			doiAssociationDao.createDoiAssociation(dto);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
 	}
 
-	@Test(expected=IllegalArgumentException.class)
-	public void testCreateDuplicateNoVersion() {
+	@Test
+	public void testCreateNullVersion() {
 		dto.setObjectVersion(null);
-		doiAssociationDao.createDoiAssociation(dto);
-		// This call should attempt to create a duplicate DOI for that DTO
-		// This violates the schema, and should yield and IllegalArgumentException
 		doiAssociationDao.createDoiAssociation(dto);
 	}
 

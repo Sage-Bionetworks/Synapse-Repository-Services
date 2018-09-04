@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
+import static org.sagebionetworks.client.SynapseClientImpl.DOI;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_APPEND;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_DOWNLOAD_CSV;
@@ -14,6 +15,7 @@ import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREV
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.HasEntityId;
@@ -39,7 +41,8 @@ public enum AsynchJobType {
 	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class, RestEndpointType.repo),
 	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class, RestEndpointType.repo), 
 	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class, RestEndpointType.file),
-	TableTransaction(TABLE_TRANSACTION, TableUpdateTransactionResponse.class, RestEndpointType.repo);
+	TableTransaction(TABLE_TRANSACTION, TableUpdateTransactionResponse.class, RestEndpointType.repo),
+	Doi(DOI, DoiResponse .class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;

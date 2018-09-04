@@ -271,6 +271,8 @@ public interface StackConfiguration {
 	 */
 	public boolean getDoiEnabled();
 
+	public boolean getDoiDataciteEnabled();
+
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable data
 	 * migration across a stack.

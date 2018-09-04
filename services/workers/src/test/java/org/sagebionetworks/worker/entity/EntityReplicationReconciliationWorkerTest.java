@@ -97,6 +97,9 @@ public class EntityReplicationReconciliationWorkerTest {
 		ReflectionTestUtils.setField(worker, "clock", mockClock);
 		
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
+		// default to under the max messages.
+		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
+				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
 		
 		// truth
 		Map<Long, Long> truthCRCs = new HashMap<Long, Long>();
@@ -310,6 +313,22 @@ public class EntityReplicationReconciliationWorkerTest {
 		// The expiration should be set for the first parent
 		long expectedExpires = nowMS + EntityReplicationReconciliationWorker.SYNCHRONIZATION_FEQUENCY_MS;
 		verify(mockIndexDao).setContainerSynchronizationExpiration(Lists.newArrayList(firstParentId), expectedExpires);
+		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
+		
+		// no exceptions should occur.
+		verifyZeroInteractions(mockWorkerLog);
+	}
+	
+	@Test
+	public void testRunMessageCountOverMax(){
+		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
+		.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION + 1L);
+		// call under test
+		worker.run(mockProgressCallback, message);
+		// no work should occur when over the max.
+		verifyZeroInteractions(mockIndexDao);
+		verifyZeroInteractions(mockNodeDao);
+		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
 		
 		// no exceptions should occur.
 		verifyZeroInteractions(mockWorkerLog);
