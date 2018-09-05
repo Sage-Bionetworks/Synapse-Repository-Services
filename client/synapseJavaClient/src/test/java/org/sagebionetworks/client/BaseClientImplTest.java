@@ -808,23 +808,6 @@ public class BaseClientImplTest {
 	}
 
 	@Test
-	public void testSetSessionId_malformedRepoEndpoint(){
-		//set a bad endpoint
-		baseClient.setRepositoryEndpoint("asdf.asdf.asdf...");
-
-		//method under test
-		try {
-			baseClient.setSessionId(sessionIdVal);
-			fail("Expected IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e){
-			//expected
-			assertEquals(MalformedURLException.class, e.getCause().getClass());
-		}
-
-		verify(mockClient, never()).addCookie(anyString(), anyString(), anyString());
-	}
-
-	@Test
 	public void testGetSessionId(){
 		when(mockClient.getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID")).thenReturn(sessionIdVal);
 
@@ -835,20 +818,19 @@ public class BaseClientImplTest {
 		verify(mockClient).getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID");
 	}
 
-	@Test
-	public void testGetSessionId_malformedRepoEndpoint(){
+	@Test (expected = IllegalArgumentException.class)
+	public void testSetRepositoryEndpoint_malformedRepoEndpoint(){
 		//set a bad endpoint
 		baseClient.setRepositoryEndpoint("asdf.asdf.asdf...");
+	}
 
-		//method under test
-		try {
-			baseClient.getSessionId();
-			fail("Expected IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e){
-			//expected
-			assertEquals(MalformedURLException.class, e.getCause().getClass());
-		}
+	@Test
+	public void testSetRepositoryEndpoint(){
+		String repoEndpoint = "https://my.test.endpoint.com/some/path";
 
-		verify(mockClient, never()).getFirstCookieValue(anyString(), anyString());
+		baseClient.setRepositoryEndpoint(repoEndpoint);
+
+		assertEquals(repoEndpoint, baseClient.getRepoEndpoint());
+		assertEquals("my.test.endpoint.com", baseClient.repoEndpointBaseDomain);
 	}
 }
