@@ -176,8 +176,11 @@ public class UploadPreviewBuilder {
 			if (schema == null) {
 				schema = new ColumnModel[row.length];
 			}
-			if(row.length > schema.length) {
-				throw new IllegalArgumentException("Row number "+(rowsScanned+2)+" has "+row.length+" column(s).  Expected each row to have "+schema.length+" columns or less.");
+			if (row.length > schema.length) {
+				// The rowsScanned is a zero based index that does not include the header row,
+				// therefore we add two when communicating this row to the caller.
+				throw new IllegalArgumentException("Row number " + (rowsScanned + 2) + " has " + row.length
+						+ " column(s).  Expected each row to have " + schema.length + " columns or less.");
 			}
 			// Check the schema from this row
 			CSVUtils.checkTypes(row, schema);
@@ -300,14 +303,15 @@ public class UploadPreviewBuilder {
 		String filePath = args[0];
 		File toRead = new File(filePath);
 		System.out.println("Reading: " + toRead.getAbsolutePath());
-		try (FileInputStream fis = new FileInputStream(toRead); InputStreamReader isr = new InputStreamReader(fis, "UTF-8");) {
+		try (FileInputStream fis = new FileInputStream(toRead);
+				InputStreamReader isr = new InputStreamReader(fis, "UTF-8");) {
 			CsvTableDescriptor csvTableDescriptor = new CsvTableDescriptor();
 			UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
 			request.setDoFullFileScan(true);
 			request.setCsvTableDescriptor(csvTableDescriptor);
-			
+
 			CSVReader reader = CSVUtils.createCSVReader(isr, csvTableDescriptor, request.getLinesToSkip());
-			
+
 			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, null, request);
 			UploadToTablePreviewResult result = builder.buildResult();
 			System.out.println(result);
