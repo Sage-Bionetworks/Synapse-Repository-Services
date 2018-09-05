@@ -23,6 +23,8 @@ import com.google.common.collect.Lists;
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
 	
+	public static final int MAX_FILES_PER_DOWNLOAD_LIST = 100;
+
 	@Autowired
 	EntityManager entityManager;
 	
@@ -56,8 +58,12 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 					toAdd.add(association);
 				}
 			}
+			
 			if(!toAdd.isEmpty()) {
 				DownloadList list = bulkDownloadDao.addFilesToDownloadList(""+user.getId(), toAdd);
+				if(list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
+					throw new IllegalArgumentException("Exceeded the maximum number of "+MAX_FILES_PER_DOWNLOAD_LIST+" files.");
+				}
 			}
 		
 			// use the token to get the next page.
