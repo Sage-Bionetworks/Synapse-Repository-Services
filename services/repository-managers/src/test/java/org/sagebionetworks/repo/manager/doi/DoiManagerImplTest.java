@@ -33,9 +33,11 @@ import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -59,7 +61,6 @@ public class DoiManagerImplTest {
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 
-
 	private static final String baseUrl = "https://syn.org/test/";
 	private static final String repoEndpoint = "https://prod-base.sagetest.gov/repo/v3";
 
@@ -78,6 +79,7 @@ public class DoiManagerImplTest {
 	private static final String author = "Washington, George";
 	private static final Long publicationYear = 1787L;
 	private static final DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
+	private static final String orcid = "123-456-0000";
 
 	@Before
 	public void before() {
@@ -586,6 +588,10 @@ public class DoiManagerImplTest {
 			// Required metadata fields
 			DoiCreator doiCreator = new DoiCreator();
 			doiCreator.setCreatorName(author);
+			DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
+			nameIdentifier.setIdentifier(orcid);
+			nameIdentifier.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
+			doiCreator.setNameIdentifiers(Collections.singletonList(nameIdentifier));
 			dto.setCreators(Collections.singletonList(doiCreator));
 
 			DoiTitle doiTitle = new DoiTitle();

@@ -24,7 +24,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 	}
 
 	static String translateUtil(DataciteMetadata doi, final String doiUri) {
-		verifyAllRequiredFields(doi);
+		validateAdherenceToDataciteSchema(doi);
 		Document dom = createXmlDom(doi, doiUri);
 		return xmlToString(dom);
 	}
@@ -138,52 +138,106 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		}
 		return uri;
 	}
+	
+	public static void validateAdherenceToDataciteSchema(DataciteMetadata doi) throws IllegalArgumentException {
+		validateDoiCreators(doi.getCreators());
+		validateDoiTitles(doi.getTitles());
+		validateDoiPublicationYear(doi.getPublicationYear());
+		validateDoiResourceType(doi.getResourceType());
+	}
 
-	static void verifyAllRequiredFields(DataciteMetadata doi) throws IllegalArgumentException {
-		boolean missingField = false;
-		String message = "Missing fields in DOI:\n";
-		if (doi.getCreators() == null) {
-			message += "\tDOI must have property \"Creators\"\n";
-			missingField = true;
-		} else if (doi.getCreators().size() == 0) {
-			message += "\tDOI Creators must have at least one \"Creator\"\n";
-			missingField = true;
-		} else if (doi.getCreators().stream().anyMatch(creator -> creator.getCreatorName() == null)) {
-			message += "\tDOI Creators must have property \"Creator Name\"\n";
-			missingField = true;
-		} else if (doi.getCreators().stream().anyMatch(creator -> creator.getCreatorName().length() == 0)) {
-			message += "\tCreator names must be at least 1 character long.\n";
-			missingField = true;
+	static void validateDoiCreators(List<DoiCreator> creators) {
+		if (creators == null) {
+			throw new IllegalArgumentException("DOI metadata must have property \"Creators\"");
+		} else if (creators.size() == 0) {
+			throw new IllegalArgumentException("DOI creators must include at least one \"DoiCreator\"");
 		}
-		if (doi.getTitles() == null) {
-			message += "\tDOI must have property \"Titles\"\n";
-			missingField = true;
-		} else if (doi.getTitles().size() == 0) {
-			message += "\tDOI Titles must have at least one \"Title\"\n";
-			missingField = true;
-		} else if (doi.getTitles().stream().anyMatch(title -> title.getTitle() == null)) {
-			message += "\tDOI Titles must have property \"Title\"\n";
-			missingField = true;
-		} else if (doi.getTitles().stream().anyMatch(title -> title.getTitle().length() == 0)) {
-			message += "\tTitles must be at least 1 character long.\n";
-			missingField = true;
+		creators.forEach(DataciteMetadataTranslatorImpl::validateDoiCreator);
+	}
+
+	static void validateDoiCreator(DoiCreator creator) {
+		if (creator.getCreatorName() == null) {
+			throw new IllegalArgumentException("DoiCreators must have property \"Creator Name\"");
 		}
-		if (doi.getPublicationYear() == null) {
-			message += "\tDOI must have property \"Publication Year\"\n";
-			missingField = true;
-		} else if (doi.getPublicationYear() < 1000 || doi.getPublicationYear() > (Calendar.getInstance().get(Calendar.YEAR) + 1)) {
-			message += "\tDOI publication year must be between \"1000\" and \"" + (Calendar.getInstance().get(Calendar.YEAR) + 1) + "\"\n";
-			missingField = true;
+		if (creator.getCreatorName().length() == 0) {
+			throw new IllegalArgumentException("Creator names must be at least 1 character long.");
 		}
-		if (doi.getResourceType() == null) {
-			message += "\tDOI must have property \"ResourceType\"\n";
-			missingField = true;
-		} else if (doi.getResourceType().getResourceTypeGeneral() == null) {
-			message += "\tDOI Resource Type must have property \"ResourceTypeGeneral\"\n";
-			missingField = true;
+		if (creator.getNameIdentifiers() != null) {
+			creator.getNameIdentifiers().forEach(DataciteMetadataTranslatorImpl::validateDoiNameIdentifier);
 		}
-		if (missingField) {
-			throw new IllegalArgumentException(message);
+	}
+
+	static void validateDoiNameIdentifier(DoiNameIdentifier identifier) {
+		if (identifier.getNameIdentifierScheme() == null) {
+			throw new IllegalArgumentException("Name identifiers must have an included schema");
+		}
+		if (identifier.getNameIdentifierScheme() == NameIdentifierScheme.ORCID) {
+			validateOrcidId(identifier.getIdentifier());
+		}
+	}
+
+	static void validateOrcidId(String orcidId) {
+		if (!orcidId.matches("[0-9]{4}\\-[0-9]{4}\\-[0-9]{4}-[0-9]{3}[0-9, X]")) {
+			throw new IllegalArgumentException("ORCID IDs must be 16 digits, separated into 4 chunks of 4 digits by dashes.");
+		}
+		String strippedOrcidId = orcidId.replaceAll("\\-", "");
+		String actualCheckDigit = strippedOrcidId.substring(15,16);
+		strippedOrcidId = strippedOrcidId.substring(0,15);
+		String expectedCheckDigit = generateOrcidCheckDigit(strippedOrcidId);
+		if (!expectedCheckDigit.equals(actualCheckDigit)) {
+			throw new IllegalArgumentException("The provided ORCID ID " + orcidId + " is invalid. The input check digit value did not match the expected value.");
+		}
+	}
+
+	/**
+	 * Generates check digit as per ISO 7064 11,2.
+	 * @author orcid.org
+	 * see https://support.orcid.org/knowledgebase/articles/116780-structure-of-the-orcid-identifier
+	 */
+	static String generateOrcidCheckDigit(String baseDigits) {
+		int total = 0;
+		for (int i = 0; i < baseDigits.length(); i++) {
+			int digit = Character.getNumericValue(baseDigits.charAt(i));
+			total = (total + digit) * 2;
+		}
+		int remainder = total % 11;
+		int result = (12 - remainder) % 11;
+		return result == 10 ? "X" : String.valueOf(result);
+	}
+
+	static void validateDoiTitles(List<DoiTitle> titles) {
+		if (titles == null) {
+			throw new IllegalArgumentException("DOI metadata must have property \"Titles\"");
+		} else if (titles.size() == 0) {
+			throw new IllegalArgumentException("DOI titles must include at least one \"DoiTitle\"");
+		}
+		titles.forEach(DataciteMetadataTranslatorImpl::validateDoiTitle);
+	}
+
+	static void validateDoiTitle(DoiTitle title) {
+		if (title.getTitle() == null) {
+			throw new IllegalArgumentException("DOI Titles must have property \"Title\"");
+		}
+		if (title.getTitle().length() == 0) {
+			throw new IllegalArgumentException("Titles must be at least 1 character long.");
+		}
+	}
+
+	static void validateDoiPublicationYear(Long publicationYear) {
+		if (publicationYear == null) {
+			throw new IllegalArgumentException("DOI must have property \"publicationYear\"");
+		}
+		if (publicationYear < 1000 || publicationYear > (Calendar.getInstance().get(Calendar.YEAR) + 1)) {
+			throw new IllegalArgumentException("DOI publication year must be between \"1000\" and \"" + (Calendar.getInstance().get(Calendar.YEAR) + 1) + "\"");
+		}
+	}
+
+	static void validateDoiResourceType(DoiResourceType resourceType) {
+		if (resourceType == null) {
+			throw new IllegalArgumentException("DOI must have property \"ResourceType\"");
+		}
+		if (resourceType.getResourceTypeGeneral() == null) {
+			throw new IllegalArgumentException("DOI Resource Type must have property \"ResourceTypeGeneral\"");
 		}
 	}
 }
