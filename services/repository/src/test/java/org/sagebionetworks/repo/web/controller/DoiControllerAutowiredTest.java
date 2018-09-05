@@ -10,18 +10,16 @@ import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import junit.framework.Assert;
 
 public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
@@ -30,10 +28,7 @@ public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestB
 	
 	@Autowired
 	private DoiAdminDao doiAdminDao;
-	
-	@Autowired
-	private UserManager userManager;
-	
+
 	@Autowired
 	StackConfiguration stackConfiguration;
 	
@@ -44,26 +39,28 @@ public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestB
 	@Before
 	public void before() throws Exception {
 
-		Assume.assumeTrue(stackConfiguration.getDoiEnabled());
+		Assume.assumeTrue(stackConfiguration.getDoiEnabled() || stackConfiguration.getDoiDataciteEnabled());
 
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		entity = new Project();
 		entity.setName("DoiControllerAutowiredTest");
 		entity = servletTestHelper.createEntity(dispatchServlet, entity, adminUserId);
-		Assert.assertNotNull(entity);
+		assertNotNull(entity);
 	}
 
 	@After
 	public void after() throws Exception {
-		if (stackConfiguration.getDoiEnabled()) {
+		if (stackConfiguration.getDoiEnabled() || stackConfiguration.getDoiDataciteEnabled()) {
 			entityService.deleteEntity(adminUserId, entity.getId());
 			doiAdminDao.clear();
 		}
 	}
 
+	@Deprecated
 	@Test
 	public void testPutGet() throws Exception {
+		Assume.assumeTrue(stackConfiguration.getDoiEnabled());
 
 		// Skip the test if the EZID server is down
 		DoiClient doiClient = new EzidClient();
@@ -108,8 +105,10 @@ public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestB
 		assertEquals(doiPut.getUpdatedOn(), doiGet.getUpdatedOn());
 	}
 
+	@Deprecated
 	@Test
 	public void testPutGetWithNonExistingNode() throws Exception {
+		Assume.assumeTrue(stackConfiguration.getDoiEnabled());
 
 		// Skip the test if the EZID server is down
 		DoiClient doiClient = new EzidClient();

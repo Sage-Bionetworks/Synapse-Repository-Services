@@ -12,24 +12,22 @@ public interface DoiManager {
 	/**
 	 * Retrieves a DOI with all associated metadata.
 	 * Note that this method calls an external API, which may affect responsiveness.
-	 * @param user The UserInfo of the user making the call.
 	 * @param objectId The ID of the object in Synapse
 	 * @param objectType The type of the object
 	 * @param versionNumber The version of the object. If null, refers to the most recent version.
 	 * @return A DOI with all associated metadata.
 	 * @throws RecoverableMessageException if the external API call failed. Consider retrying.
 	 */
-	Doi getDoi(final UserInfo user, final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException;
+	Doi getDoi(final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException;
 
 	/**
 	 * Retrieves the data referring to the association of a DOI with an object in Synapse.
-	 * @param user The UserInfo of the user making the call.
 	 * @param objectId The ID of the object in Synapse
 	 * @param objectType The type of the object
 	 * @param versionNumber The version of the object. If null, refers to the most recent version.
 	 * @return The data transfer object for the DOI association.
 	 */
-	DoiAssociation getDoiAssociation(final UserInfo user, final String objectId, final ObjectType objectType, final Long versionNumber);
+	DoiAssociation getDoiAssociation(final String objectId, final ObjectType objectType, final Long versionNumber);
 
 	/**
 	 * Mints or updates a DOI with all associated metadata. This method is idempotent.

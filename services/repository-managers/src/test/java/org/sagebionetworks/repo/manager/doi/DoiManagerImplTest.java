@@ -100,7 +100,7 @@ public class DoiManagerImplTest {
 	public void testGetAssociationSuccess() throws Exception {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
-		DoiAssociation actualResponse = doiManager.getDoiAssociation(adminInfo, entityId, entityType, version);
+		DoiAssociation actualResponse = doiManager.getDoiAssociation(entityId, entityType, version);
 		verify(mockDoiDao).getDoiAssociation(entityId, entityType, version);
 		assertEquals(outputDto.getObjectId(), actualResponse.getObjectId());
 		assertEquals(outputDto.getObjectType(), actualResponse.getObjectType());
@@ -109,51 +109,23 @@ public class DoiManagerImplTest {
 		assertEquals(doiManager.generateLocationRequestUrl(outputDto.getObjectId(), outputDto.getObjectType(), outputDto.getObjectVersion()), actualResponse.getDoiUrl());
 	}
 
-	@Test
-	public void testGetAssociationAuthorization() {
-		// Undo the convenience authorization set in @Before
-		UserInfo testInfo = new UserInfo(false);
-		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
-		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
-		// Call under test
-		doiManager.getDoiAssociation(testInfo, entityId, entityType, version);
-		verify(mockAuthorizationManager).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ);
-	}
-
-	@Test(expected = UnauthorizedException.class)
-	public void testGetAssociationUnauthorized() {
-		// Undo the convenience authorization set in @Before
-		UserInfo testInfo = new UserInfo(false);
-		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ))
-				.thenReturn(new AuthorizationStatus(false, "mock"));
-		// Call under test
-		doiManager.getDoiAssociation(testInfo, entityId, entityType, version);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAssociationNoUserId() {
-		// Call under test
-		doiManager.getDoiAssociation( null, entityId, entityType, version);
-	}
-
 	@Test(expected = IllegalArgumentException.class)
 	public void testGetAssociationNoObjectId() {
 		// Call under test
-		doiManager.getDoiAssociation(adminInfo, null, entityType, version);
+		doiManager.getDoiAssociation(null, entityType, version);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testGetAssociationNoObjectType() {
 		// Call under test
-		doiManager.getDoiAssociation(adminInfo, entityId, null, version);
+		doiManager.getDoiAssociation(entityId, null, version);
 	}
 
 	@Test
 	public void testGetAssociationNullObjectVersion() {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, null)).thenReturn(outputDto);
 		// Call under test
-		doiManager.getDoiAssociation(adminInfo, entityId, entityType, null);
+		doiManager.getDoiAssociation(entityId, entityType, null);
 		verify(mockDoiDao).getDoiAssociation(entityId, entityType, null);
 	}
 
@@ -165,7 +137,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(mockAssociation);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(metadata);
 		// Call under test
-		Doi actualResponse = doiManager.getDoi(adminInfo, entityId, entityType, version);
+		Doi actualResponse = doiManager.getDoi(entityId, entityType, version);
 		assertEquals(mockAssociation.getObjectId(), actualResponse.getObjectId());
 		assertEquals(mockAssociation.getObjectType(), actualResponse.getObjectType());
 		assertEquals(mockAssociation.getObjectVersion(), actualResponse.getObjectVersion());
@@ -185,7 +157,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(mockAssociation);
 		when(mockDataciteClient.get(any(String.class))).thenThrow(new NotReadyException(new AsynchronousJobStatus()));
 		// Call under test
-		doiManager.getDoi(adminInfo, entityId, entityType, version);
+		doiManager.getDoi(entityId, entityType, version);
 	}
 
 	@Test

@@ -35,10 +35,9 @@ public class DoiManagerImpl implements DoiManager {
 	public static final String ENTITY_URL_PREFIX = "#!Synapse:";
 	public static final String RESOURCE_PATH = "/doi/locate";
 
-	public Doi getDoi(final UserInfo user, final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException {
+	public Doi getDoi(final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException {
 		// Retrieve our record of the DOI/object association.
-		// Authorization is determined in the retrieval method
-		DoiAssociation association = getDoiAssociation(user, objectId, objectType, versionNumber);
+		DoiAssociation association = getDoiAssociation(objectId, objectType, versionNumber);
 
 		// Get the metadata from DataCite. If their API is down, this may fail with NotReadyException/ServiceUnavailableException
 		DataciteMetadata metadata = null;
@@ -50,7 +49,7 @@ public class DoiManagerImpl implements DoiManager {
 		return mergeMetadataAndAssociation(metadata, association);
 	}
 
-	public DoiAssociation getDoiAssociation(final UserInfo user, final String objectId, final ObjectType objectType, final Long versionNumber) {
+	public DoiAssociation getDoiAssociation(final String objectId, final ObjectType objectType, final Long versionNumber) {
 		if (objectId == null) {
 			throw new IllegalArgumentException("Object ID cannot be null or empty.");
 		}
@@ -58,11 +57,7 @@ public class DoiManagerImpl implements DoiManager {
 			throw new IllegalArgumentException("Object type cannot be null or empty.");
 		}
 
-		// Ensure the user is authorized to view the object that we are retrieving
-		UserInfo.validateUserInfo(user);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.READ));
-
+		// No need to check authorization, DOIs are public
 		DoiAssociation association = doiAssociationDao.getDoiAssociation(objectId, objectType, versionNumber);
 		association.setDoiUri(generateDoiUri(objectId, objectType, versionNumber));
 		association.setDoiUrl(generateLocationRequestUrl(objectId, objectType, versionNumber));

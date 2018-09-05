@@ -9,6 +9,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -211,5 +212,103 @@ public class DataciteMetadataTranslatorTest {
 		assertEquals(ORCID_URI, getSchemeUri(NameIdentifierScheme.ORCID));
 		assertEquals(ISNI_URI, getSchemeUri(NameIdentifierScheme.ISNI));
 		// If adding a new scheme, test it with its URI pair here
+	}
+
+	@Test
+	public void testNoMissingFields() {
+		// all fields should be set in @Before
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullCreatorsList() {
+		metadata.setCreators(null);
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testEmptyCreatorsList() {
+		metadata.setCreators(new ArrayList<>());
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullCreatorName() {
+		metadata.getCreators().get(0).setCreatorName(null);
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testEmptyCreatorName() {
+		metadata.getCreators().get(0).setCreatorName("");
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullTitlesList() {
+		metadata.setTitles(null);
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testEmptyTitlesList() {
+		metadata.setTitles(new ArrayList<>());
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullTitleName() {
+		metadata.getTitles().get(0).setTitle(null);
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testEmptyTitleName() {
+		metadata.getTitles().get(0).setTitle("");
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullPublicationYear() {
+		metadata.setPublicationYear(null);
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testAncientPublicationYear() {
+		metadata.setPublicationYear(30L); // 30 CE...
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testFuturePublicationYear() {
+		// Can't mint a DOI more than 1 year in the future
+		metadata.setPublicationYear((((long) Calendar.getInstance().get(Calendar.YEAR)) + 2L));
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullResourceType() {
+		metadata.setResourceType(null);
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullResourceTypeGeneral() {
+		metadata.getResourceType().setResourceTypeGeneral(null);
+		// Call under test
+		verifyAllRequiredFields(metadata);
 	}
 }

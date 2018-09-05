@@ -39,7 +39,9 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 		doi.setTitles(getTitles(dom));
 		doi.setPublicationYear(Long.valueOf(getPublicationYear(dom)));
 		doi.setResourceType(getResourceType(dom));
-
+		// TODO: report the correct status to the client
+		// This information is not available in the XML, so it will require a separate API call
+		doi.setStatus(DataciteRegistrationStatus.FINDABLE);
 		return doi;
 	}
 

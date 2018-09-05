@@ -97,12 +97,7 @@ public class DoiWorkerTest {
 		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
 		when(mockDoiManager.createOrUpdateDoi(adminUser, request.getDoi())).thenThrow(new IllegalArgumentException());
-		try {
-			doiWorker.run(null, message);
-			fail();
-		} catch(Throwable e) {
-			// As expected.
-			assert(e.getCause() instanceof IllegalArgumentException);
-		}
+		doiWorker.run(null, message);
+		verify(mockAsyncMgr).setJobFailed(any(String.class), any(Throwable.class));
 	}
 }

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -15,26 +14,16 @@ public class DoiServiceV2Impl implements DoiServiceV2 {
 	@Autowired
 	private DoiManager doiManager;
 
-	@Autowired
-	private UserManager userManager;
-
 	@Override
 	public Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, ServiceUnavailableException {
-
-		return doiManager.getDoi(userManager.getUserInfo(userId), objectId, objectType, versionNumber);
+		return doiManager.getDoi(objectId, objectType, versionNumber);
 	}
 	
 	@Override
 	public DoiAssociation getDoiAssociation(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException {
-		if (objectId == null) {
-			throw new IllegalArgumentException("Object ID cannot be null.");
-		}
-		if (objectType == null) {
-			throw new IllegalArgumentException("Object type cannot be null.");
-		}
-		return doiManager.getDoiAssociation(userManager.getUserInfo(userId), objectId, objectType, versionNumber);
+		return doiManager.getDoiAssociation(objectId, objectType, versionNumber);
 	}
 
 	/**

@@ -77,6 +77,8 @@ public class DataciteXmlTranslatorTest {
 		resourceType = new DoiResourceType();
 		resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.Dataset);
 		expectedMetadata.setResourceType(resourceType);
+
+		expectedMetadata.setStatus(DataciteRegistrationStatus.FINDABLE);
 	}
 
 	@Test
