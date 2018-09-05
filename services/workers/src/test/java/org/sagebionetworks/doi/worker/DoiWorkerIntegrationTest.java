@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
@@ -32,7 +33,6 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -46,8 +46,6 @@ public class DoiWorkerIntegrationTest {
 	@Autowired
 	StackConfiguration config;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
-	@Autowired
 	UserManager userManager;
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
@@ -59,6 +57,7 @@ public class DoiWorkerIntegrationTest {
 	EntityManager entityManager;
 
 	Long adminUser;
+	UserInfo adminUserInfo;
 	Project project;
 	String projectId;
 	Doi submissionDoi;
@@ -70,25 +69,28 @@ public class DoiWorkerIntegrationTest {
 
 	@Before
 	public void before(){
+		Assume.assumeTrue(config.getDoiDataciteEnabled());
+		adminUser = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUser);
 		project = new Project();
 		project.setName("Some project that needs a DOI");
-		adminUser = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		projectId = entityManager.createEntity(userManager.getUserInfo(adminUser), project, null);
+		projectId = entityManager.createEntity(adminUserInfo, project, null);
 		submissionDoi = setUpRequestBody();
 	}
 	
 	@After
 	public void after(){
-		doiAdminDao.clear(); // Remove all DOI associations
-		entityManager.deleteEntity(userManager.getUserInfo(adminUser), projectId);
+		if (config.getDoiDataciteEnabled()) {
+			doiAdminDao.clear(); // Remove all DOI associations
+			entityManager.deleteEntity(adminUserInfo, projectId);
+		}
 	}
 
 	@Test
 	public void testCreateDoi() throws Exception {
-		Assume.assumeTrue(config.getDoiDataciteEnabled());
 		DoiRequest request = new DoiRequest();
 		request.setDoi(submissionDoi);
-		DoiResponse response = startAndWaitForJob(userManager.getUserInfo(adminUser), request, DoiResponse.class);
+		DoiResponse response = startAndWaitForJob(adminUserInfo, request, DoiResponse.class);
 		assertNotNull(response);
 		assertNotNull(response.getDoi());
 		Doi responseDoi = response.getDoi();
@@ -127,6 +129,8 @@ public class DoiWorkerIntegrationTest {
 		DoiResourceType doiResourceType = new DoiResourceType();
 		doiResourceType.setResourceTypeGeneral(resourceTypeGeneral);
 		body.setResourceType(doiResourceType);
+
+		body.setStatus(DataciteRegistrationStatus.FINDABLE);
 		return body;
 	}
 

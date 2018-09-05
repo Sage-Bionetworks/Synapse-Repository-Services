@@ -4,7 +4,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
@@ -20,13 +19,12 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 
 public class DoiManagerImpl implements DoiManager {
 
 	@Autowired
 	private StackConfiguration stackConfiguration;
-	@Autowired
-	private UserManager userManager;
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
@@ -37,10 +35,9 @@ public class DoiManagerImpl implements DoiManager {
 	public static final String ENTITY_URL_PREFIX = "#!Synapse:";
 	public static final String RESOURCE_PATH = "/doi/locate";
 
-	public Doi getDoi(final Long userId, final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException {
+	public Doi getDoi(final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException {
 		// Retrieve our record of the DOI/object association.
-		// Authorization is determined in the retrieval method
-		DoiAssociation association = getDoiAssociation(userId, objectId, objectType, versionNumber);
+		DoiAssociation association = getDoiAssociation(objectId, objectType, versionNumber);
 
 		// Get the metadata from DataCite. If their API is down, this may fail with NotReadyException/ServiceUnavailableException
 		DataciteMetadata metadata = null;
@@ -52,10 +49,7 @@ public class DoiManagerImpl implements DoiManager {
 		return mergeMetadataAndAssociation(metadata, association);
 	}
 
-	public DoiAssociation getDoiAssociation(final Long userId, final String objectId, final ObjectType objectType, final Long versionNumber) {
-		if (userId == null) {
-			throw new IllegalArgumentException("User ID cannot be null or empty.");
-		}
+	public DoiAssociation getDoiAssociation(final String objectId, final ObjectType objectType, final Long versionNumber) {
 		if (objectId == null) {
 			throw new IllegalArgumentException("Object ID cannot be null or empty.");
 		}
@@ -63,12 +57,7 @@ public class DoiManagerImpl implements DoiManager {
 			throw new IllegalArgumentException("Object type cannot be null or empty.");
 		}
 
-		// Ensure the user is authorized to view the object that we are retrieving
-		UserInfo currentUser = userManager.getUserInfo(userId);
-		UserInfo.validateUserInfo(currentUser);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(currentUser, objectId, objectType, ACCESS_TYPE.READ));
-
+		// No need to check authorization, DOIs are public
 		DoiAssociation association = doiAssociationDao.getDoiAssociation(objectId, objectType, versionNumber);
 		association.setDoiUri(generateDoiUri(objectId, objectType, versionNumber));
 		association.setDoiUrl(generateLocationRequestUrl(objectId, objectType, versionNumber));
@@ -76,10 +65,7 @@ public class DoiManagerImpl implements DoiManager {
 	}
 
 	@WriteTransactionReadCommitted
-	public Doi createOrUpdateDoi(final Long userId, final Doi dto) throws RecoverableMessageException {
-		if (userId == null) {
-			throw new IllegalArgumentException("User name cannot be null or empty.");
-		}
+	public Doi createOrUpdateDoi(final UserInfo user, final Doi dto) throws RecoverableMessageException {
 		if (dto.getObjectId() == null) {
 			throw new IllegalArgumentException("Object ID cannot be null");
 		}
@@ -88,12 +74,11 @@ public class DoiManagerImpl implements DoiManager {
 		}
 
 		// Ensure the user is authorized to update the object that we are minting a DOI for
-		UserInfo currentUser = userManager.getUserInfo(userId);
-		UserInfo.validateUserInfo(currentUser);
+		UserInfo.validateUserInfo(user);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(currentUser, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
+				authorizationManager.canAccess(user, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
 
-		dto.setUpdatedBy(userId.toString());
+		dto.setUpdatedBy(user.getId().toString());
 		DoiAssociation association = createOrUpdateAssociation(dto);
 		dto.setDoiUri(generateDoiUri(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
 		dto.setDoiUrl(generateLocationRequestUrl(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
@@ -114,13 +99,13 @@ public class DoiManagerImpl implements DoiManager {
 			try {
 				dto.setAssociatedBy(dto.getUpdatedBy());
 				association = doiAssociationDao.createDoiAssociation(dto); // Create
-			} catch (IllegalArgumentException e2) {
-				/*
-				 * This exception indicates there was a race condition where two callers attempted to create a DOI on the
-				 * same object at the same time. The loser of this race will see this exception. However, since the
-				 * winner might also fail before completion, we send this caller back to the beginning to retry.
-				 */
-				throw new RecoverableMessageException(e2);
+			} catch (DuplicateKeyException e2) {
+					/*
+					 * This exception indicates there was a race condition where two callers attempted to create a DOI on the
+					 * same object at the same time. The loser of this race will see this exception. However, since the
+					 * winner might also fail before completion, we send this caller back to the beginning to retry.
+					 */
+					throw new RecoverableMessageException(e2);
 			}
 		}
 		return association;
@@ -153,10 +138,7 @@ public class DoiManagerImpl implements DoiManager {
 		}
 	}
 
-	public void deactivateDoi(final Long userId, final String objectId, final ObjectType objectType, final Long versionNumber) throws RecoverableMessageException {
-		if (userId == null) {
-			throw new IllegalArgumentException("User name cannot be null or empty.");
-		}
+	public void deactivateDoi(final UserInfo user, final String objectId, final ObjectType objectType, final Long versionNumber) throws RecoverableMessageException {
 		if (objectId == null) {
 			throw new IllegalArgumentException("Object ID cannot be null");
 		}
@@ -165,10 +147,9 @@ public class DoiManagerImpl implements DoiManager {
 		}
 
 		// Ensure the user is authorized to update the object with the DOI (should verify that the object exists)
-		UserInfo currentUser = userManager.getUserInfo(userId);
-		UserInfo.validateUserInfo(currentUser);
+		UserInfo.validateUserInfo(user);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(currentUser, objectId, objectType, ACCESS_TYPE.UPDATE));
+				authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.UPDATE));
 
 		// Retrieve the DOI (verify that it has been minted)
 		DoiAssociation doi = doiAssociationDao.getDoiAssociation(objectId, objectType, versionNumber);

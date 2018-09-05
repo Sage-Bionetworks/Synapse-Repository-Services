@@ -320,6 +320,10 @@ public class UrlHelpers {
 	 * DOI (Digital Object Identifier).
 	 */
 	public static final String DOI = "/doi";
+	public static final String DOI_ASSOCIATION = DOI + "/association";
+	public static final String DOI_LOCATE = DOI + "/locate";
+	public static final String DOI_ASYNC_START = DOI + ASYNC_START_REQUEST;
+	public static final String DOI_ASYNC_GET = DOI + ASYNC_GET_REQUEST;
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).

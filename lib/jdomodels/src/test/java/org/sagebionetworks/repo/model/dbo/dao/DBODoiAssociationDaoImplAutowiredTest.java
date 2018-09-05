@@ -13,11 +13,11 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -195,11 +195,22 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	@Test
 	public void testCreateDuplicateVersion() {
 		doiAssociationDao.createDoiAssociation(dto);
-		// This call should attempt to create a duplicate DOI for that DTO
-		// This violates the schema, and should yield and IllegalArgumentException
+		// This call should attempt to create a duplicate DOI for that DTO, and result in a DuplicateKeyException
 		try {
 			// Call under test
 			doiAssociationDao.createDoiAssociation(dto);
+			fail();
+		} catch (DuplicateKeyException e) {
+			// As expected
+		}
+	}
+
+	@Test
+	public void testCreateSomeOtherError() {
+		// This call violates the schema, and should yield an IllegalArgumentException
+		try {
+			// Call under test
+			doiAssociationDao.createDoiAssociation(new DoiAssociation());
 			fail();
 		} catch (IllegalArgumentException e) {
 			// As expected

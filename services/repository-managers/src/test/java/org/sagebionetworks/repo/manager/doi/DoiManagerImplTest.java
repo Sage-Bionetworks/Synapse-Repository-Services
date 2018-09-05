@@ -4,10 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import java.util.Collections;
 import java.util.Date;
@@ -21,8 +19,8 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.NotReadyException;
@@ -41,6 +39,7 @@ import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -58,16 +57,13 @@ public class DoiManagerImplTest {
 	private DoiAssociationDao mockDoiDao;
 
 	@Mock
-	private UserManager mockUserManager;
-
-	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 
 
 	private static final String baseUrl = "https://syn.org/test/";
 	private static final String repoEndpoint = "https://prod-base.sagetest.gov/repo/v3";
 
-	private static final long USER_ID = 12345L;
+	private static final UserInfo adminInfo = new UserInfo(true);
 	private static final String entityId = "syn584322";
 	private static final ObjectType entityType = ObjectType.ENTITY;
 	private static final Long version = 4L;
@@ -85,6 +81,7 @@ public class DoiManagerImplTest {
 
 	@Before
 	public void before() {
+		adminInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		doiManager = new DoiManagerImpl();
 		ReflectionTestUtils.setField(doiManager, "stackConfiguration", mockConfig);
 		when(mockConfig.getSynapseBaseUrl()).thenReturn(baseUrl);
@@ -92,8 +89,6 @@ public class DoiManagerImplTest {
 		when(mockConfig.getDoiPrefix()).thenReturn(mockPrefix);
 		ReflectionTestUtils.setField(doiManager, "dataciteClient", mockDataciteClient);
 		ReflectionTestUtils.setField(doiManager, "doiAssociationDao", mockDoiDao);
-		ReflectionTestUtils.setField(doiManager, "userManager", mockUserManager);
-		when(mockUserManager.getUserInfo(any(Long.class))).thenReturn(new UserInfo(true));
 		ReflectionTestUtils.setField(doiManager, "authorizationManager", mockAuthorizationManager);
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(new AuthorizationStatus(true, "mock"));
@@ -105,7 +100,7 @@ public class DoiManagerImplTest {
 	public void testGetAssociationSuccess() throws Exception {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
-		DoiAssociation actualResponse = doiManager.getDoiAssociation(USER_ID, entityId, entityType, version);
+		DoiAssociation actualResponse = doiManager.getDoiAssociation(entityId, entityType, version);
 		verify(mockDoiDao).getDoiAssociation(entityId, entityType, version);
 		assertEquals(outputDto.getObjectId(), actualResponse.getObjectId());
 		assertEquals(outputDto.getObjectType(), actualResponse.getObjectType());
@@ -114,54 +109,23 @@ public class DoiManagerImplTest {
 		assertEquals(doiManager.generateLocationRequestUrl(outputDto.getObjectId(), outputDto.getObjectType(), outputDto.getObjectVersion()), actualResponse.getDoiUrl());
 	}
 
-	@Test
-	public void testGetAssociationAuthorization() {
-		reset(mockUserManager, mockAuthorizationManager); // Undo the convenience authorization set in @Before
-		UserInfo testInfo = new UserInfo(false);
-		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(testInfo);
-		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
-		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
-		// Call under test
-		doiManager.getDoiAssociation(USER_ID, entityId, entityType, version);
-		verify(mockUserManager).getUserInfo(USER_ID);
-		verify(mockAuthorizationManager).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ);
-	}
-
-	@Test(expected = UnauthorizedException.class)
-	public void testGetAssociationUnauthorized() {
-		reset(mockUserManager, mockAuthorizationManager); // Undo the convenience authorization set in @Before
-		UserInfo testInfo = new UserInfo(false);
-		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(testInfo);
-		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.READ))
-				.thenReturn(new AuthorizationStatus(false, "mock"));
-		// Call under test
-		doiManager.getDoiAssociation(USER_ID, entityId, entityType, version);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAssociationNoUserId() {
-		// Call under test
-		doiManager.getDoiAssociation( null, entityId, entityType, version);
-	}
-
 	@Test(expected = IllegalArgumentException.class)
 	public void testGetAssociationNoObjectId() {
 		// Call under test
-		doiManager.getDoiAssociation(USER_ID, null, entityType, version);
+		doiManager.getDoiAssociation(null, entityType, version);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testGetAssociationNoObjectType() {
 		// Call under test
-		doiManager.getDoiAssociation(USER_ID, entityId, null, version);
+		doiManager.getDoiAssociation(entityId, null, version);
 	}
 
 	@Test
 	public void testGetAssociationNullObjectVersion() {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, null)).thenReturn(outputDto);
 		// Call under test
-		doiManager.getDoiAssociation(USER_ID, entityId, entityType, null);
+		doiManager.getDoiAssociation(entityId, entityType, null);
 		verify(mockDoiDao).getDoiAssociation(entityId, entityType, null);
 	}
 
@@ -173,7 +137,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(mockAssociation);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(metadata);
 		// Call under test
-		Doi actualResponse = doiManager.getDoi(USER_ID, entityId, entityType, version);
+		Doi actualResponse = doiManager.getDoi(entityId, entityType, version);
 		assertEquals(mockAssociation.getObjectId(), actualResponse.getObjectId());
 		assertEquals(mockAssociation.getObjectType(), actualResponse.getObjectType());
 		assertEquals(mockAssociation.getObjectVersion(), actualResponse.getObjectVersion());
@@ -193,13 +157,13 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(mockAssociation);
 		when(mockDataciteClient.get(any(String.class))).thenThrow(new NotReadyException(new AsynchronousJobStatus()));
 		// Call under test
-		doiManager.getDoi(USER_ID, entityId, entityType, version);
+		doiManager.getDoi(entityId, entityType, version);
 	}
 
 	@Test
 	public void testCreateOrUpdateAuthorization() throws Exception{
 		UserInfo testInfo = new UserInfo(false);
-		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(testInfo);
+		testInfo.setId(12345L); // Arbitrary user ID, doesn't matter, just need to avoid a NPE
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(true, "mock"));
 		// The following mocks are necessary for the rest of the method to succeed on a "create"
@@ -207,20 +171,18 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
-		verify(mockUserManager).getUserInfo(USER_ID);
+		doiManager.createOrUpdateDoi(testInfo, inputDto);
 		verify(mockAuthorizationManager).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE);
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testCreateOrUpdateUnauthorized() throws Exception {
 		UserInfo testInfo = new UserInfo(false);
-		reset(mockUserManager, mockAuthorizationManager); // Undo the convenience authorization set in @Before
-		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(testInfo);
+		// Undo the convenience authorization set in @Before
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(false, "mock"));
 		// Call under test
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
+		doiManager.createOrUpdateDoi(testInfo, inputDto);
 	}
 
 	@Test
@@ -230,7 +192,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
+		doiManager.createOrUpdateDoi(adminInfo, inputDto);
 		verify(mockDoiDao).createDoiAssociation(inputDto);
 		verify(mockDataciteClient).registerMetadata(any(DataciteMetadata.class), any(String.class));
 		verify(mockDataciteClient).registerDoi(any(String.class), any(String.class));
@@ -247,7 +209,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.updateDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
+		doiManager.createOrUpdateDoi(adminInfo, inputDto);
 		verify(mockDoiDao).updateDoiAssociation(inputDto);
 		verify(mockDataciteClient).registerMetadata(any(DataciteMetadata.class), any(String.class));
 		verify(mockDataciteClient).registerDoi(any(String.class), any(String.class));
@@ -255,30 +217,24 @@ public class DoiManagerImplTest {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testCreateOrUpdateNullUserId() throws Exception {
-		// Call under test
-		doiManager.createOrUpdateDoi(null, inputDto);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
 	public void testCreateOrUpdateNullObjectId() throws Exception {
 		inputDto.setObjectId(null);
 		// Call under test
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
+		doiManager.createOrUpdateDoi(adminInfo, inputDto);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testCreateOrUpdateNullObjectType() throws Exception {
 		inputDto.setObjectType(null);
 		// Call under test
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
+		doiManager.createOrUpdateDoi(adminInfo, inputDto);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testCreateOrUpdateNonEntityObjectType() throws Exception {
 		inputDto.setObjectType(ObjectType.PRINCIPAL);
 		// Call under test
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
+		doiManager.createOrUpdateDoi(adminInfo, inputDto);
 	}
 
 	@Test
@@ -288,7 +244,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
-		doiManager.createOrUpdateDoi(USER_ID, inputDto);
+		doiManager.createOrUpdateDoi(adminInfo, inputDto);
 		verify(mockDoiDao).createDoiAssociation(inputDto);
 	}
 
@@ -322,10 +278,10 @@ public class DoiManagerImplTest {
 	}
 
 	@Test(expected = RecoverableMessageException.class)
-	public void testCreateAssociationFailureOnIllegalArgumentException() throws Exception {
+	public void testThrowRecoverableOnDuplicateKeyException() throws Exception {
 		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenThrow(new NotFoundException());
 
-		when(mockDoiDao.createDoiAssociation(inputDto)).thenThrow(new IllegalArgumentException());
+		when(mockDoiDao.createDoiAssociation(inputDto)).thenThrow(new DuplicateKeyException(""));
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
 	}
@@ -406,7 +362,7 @@ public class DoiManagerImplTest {
 		DoiAssociation association = setUpDto(false);
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(association);
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, entityId, entityType, version);
+		doiManager.deactivateDoi(adminInfo, entityId, entityType, version);
 		verify(mockDataciteClient).deactivate(any(String.class));
 	}
 
@@ -415,7 +371,7 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		doThrow(new NotReadyException(new AsynchronousJobStatus())).when(mockDataciteClient).deactivate(any(String.class));
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, entityId, entityType, version);
+		doiManager.deactivateDoi(adminInfo, entityId, entityType, version);
 	}
 
 	@Test(expected = RecoverableMessageException.class)
@@ -423,36 +379,33 @@ public class DoiManagerImplTest {
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		doThrow(new ServiceUnavailableException()).when(mockDataciteClient).deactivate(any(String.class));
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, entityId, entityType, version);
+		doiManager.deactivateDoi(adminInfo, entityId, entityType, version);
 	}
 
 	@Test
 	public void testDeactivateAuthorization() throws Exception{
 		UserInfo testInfo = new UserInfo(false);
-		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(testInfo);
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(true, "mock"));
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, entityId, entityType, version);
-		verify(mockUserManager).getUserInfo(USER_ID);
+		doiManager.deactivateDoi(testInfo, entityId, entityType, version);
 		verify(mockAuthorizationManager).canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE);
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testDeactivateUnauthorized() throws Exception {
 		UserInfo testInfo = new UserInfo(false);
-		reset(mockUserManager, mockAuthorizationManager); // Undo the convenience authorization set in @Before
-		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(testInfo);
+		// Undo the convenience authorization set in @Before
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(false, "mock"));
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, entityId, entityType, version);
+		doiManager.deactivateDoi(testInfo, entityId, entityType, version);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testDeactivateDoiNoUserId() throws Exception {
+	public void testDeactivateDoiNoUserInfo() throws Exception {
 		// Call under test
 		doiManager.deactivateDoi( null, entityId, entityType, version);
 	}
@@ -460,19 +413,19 @@ public class DoiManagerImplTest {
 	@Test(expected = IllegalArgumentException.class)
 	public void testDeactivateDoiNoObjectId() throws Exception {
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, null, entityType, version);
+		doiManager.deactivateDoi(adminInfo, null, entityType, version);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testDeactivateDoiNullObjectType() throws Exception {
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, entityId, null, version);
+		doiManager.deactivateDoi(adminInfo, entityId, null, version);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testDeactivateDoiNotEntity() throws Exception {
 		// Call under test
-		doiManager.deactivateDoi(USER_ID, entityId, ObjectType.PRINCIPAL, version);
+		doiManager.deactivateDoi(adminInfo, entityId, ObjectType.PRINCIPAL, version);
 	}
 
 	@Test

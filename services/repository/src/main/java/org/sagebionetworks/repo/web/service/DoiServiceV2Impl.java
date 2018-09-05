@@ -17,25 +17,13 @@ public class DoiServiceV2Impl implements DoiServiceV2 {
 	@Override
 	public Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, ServiceUnavailableException {
-		if (objectId == null) {
-			throw new IllegalArgumentException("Object ID cannot be null.");
-		}
-		if (objectType == null) {
-			throw new IllegalArgumentException("Object type cannot be null.");
-		}
-		return doiManager.getDoi(userId, objectId, objectType, versionNumber);
+		return doiManager.getDoi(objectId, objectType, versionNumber);
 	}
 	
 	@Override
 	public DoiAssociation getDoiAssociation(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException {
-		if (objectId == null) {
-			throw new IllegalArgumentException("Object ID cannot be null.");
-		}
-		if (objectType == null) {
-			throw new IllegalArgumentException("Object type cannot be null.");
-		}
-		return doiManager.getDoiAssociation(userId, objectId, objectType, versionNumber);
+		return doiManager.getDoiAssociation(objectId, objectType, versionNumber);
 	}
 
 	/**

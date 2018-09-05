@@ -9,6 +9,7 @@ import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Calendar;
 import java.util.List;
 
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
@@ -23,6 +24,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 	}
 
 	static String translateUtil(DataciteMetadata doi, final String doiUri) {
+		verifyAllRequiredFields(doi);
 		Document dom = createXmlDom(doi, doiUri);
 		return xmlToString(dom);
 	}
@@ -135,5 +137,53 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 				throw new IllegalArgumentException("Could not resolve URI for unknown name identifier scheme: " + scheme.name());
 		}
 		return uri;
+	}
+
+	static void verifyAllRequiredFields(DataciteMetadata doi) throws IllegalArgumentException {
+		boolean missingField = false;
+		String message = "Missing fields in DOI:\n";
+		if (doi.getCreators() == null) {
+			message += "\tDOI must have property \"Creators\"\n";
+			missingField = true;
+		} else if (doi.getCreators().size() == 0) {
+			message += "\tDOI Creators must have at least one \"Creator\"\n";
+			missingField = true;
+		} else if (doi.getCreators().stream().anyMatch(creator -> creator.getCreatorName() == null)) {
+			message += "\tDOI Creators must have property \"Creator Name\"\n";
+			missingField = true;
+		} else if (doi.getCreators().stream().anyMatch(creator -> creator.getCreatorName().length() == 0)) {
+			message += "\tCreator names must be at least 1 character long.\n";
+			missingField = true;
+		}
+		if (doi.getTitles() == null) {
+			message += "\tDOI must have property \"Titles\"\n";
+			missingField = true;
+		} else if (doi.getTitles().size() == 0) {
+			message += "\tDOI Titles must have at least one \"Title\"\n";
+			missingField = true;
+		} else if (doi.getTitles().stream().anyMatch(title -> title.getTitle() == null)) {
+			message += "\tDOI Titles must have property \"Title\"\n";
+			missingField = true;
+		} else if (doi.getTitles().stream().anyMatch(title -> title.getTitle().length() == 0)) {
+			message += "\tTitles must be at least 1 character long.\n";
+			missingField = true;
+		}
+		if (doi.getPublicationYear() == null) {
+			message += "\tDOI must have property \"Publication Year\"\n";
+			missingField = true;
+		} else if (doi.getPublicationYear() < 1000 || doi.getPublicationYear() > (Calendar.getInstance().get(Calendar.YEAR) + 1)) {
+			message += "\tDOI publication year must be between \"1000\" and \"" + (Calendar.getInstance().get(Calendar.YEAR) + 1) + "\"\n";
+			missingField = true;
+		}
+		if (doi.getResourceType() == null) {
+			message += "\tDOI must have property \"ResourceType\"\n";
+			missingField = true;
+		} else if (doi.getResourceType().getResourceTypeGeneral() == null) {
+			message += "\tDOI Resource Type must have property \"ResourceTypeGeneral\"\n";
+			missingField = true;
+		}
+		if (missingField) {
+			throw new IllegalArgumentException(message);
+		}
 	}
 }

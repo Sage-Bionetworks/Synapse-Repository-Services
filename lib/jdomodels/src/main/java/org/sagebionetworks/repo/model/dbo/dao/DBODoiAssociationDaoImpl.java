@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -68,7 +69,7 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 	 */
 	@NewWriteTransaction
 	@Override
-	public DoiAssociation createDoiAssociation(DoiAssociation dto) {
+	public DoiAssociation createDoiAssociation(DoiAssociation dto) throws DuplicateKeyException {
 		Long newId = idGenerator.generateNewId(IdType.DOI_ID);
 		dto.setAssociationId(newId.toString());
 		dto.setEtag(UUID.randomUUID().toString());
@@ -81,7 +82,15 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 		dto.setAssociatedOn(now);
 		dto.setUpdatedOn(now);
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
-		basicDao.createNew(dbo);
+		try {
+			basicDao.createNew(dbo);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw (DuplicateKeyException) e.getCause();
+			} else {
+				throw e;
+			}
+		}
 
 		return getDoiAssociation(newId.toString());
 	}
