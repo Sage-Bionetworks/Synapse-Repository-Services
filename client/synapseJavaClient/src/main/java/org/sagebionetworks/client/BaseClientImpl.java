@@ -190,7 +190,7 @@ public class BaseClientImpl implements BaseClient {
 
 			this.repoEndpoint = repoEndpoint;
 		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException("The repoEndpoint being is malformed", e);
+			throw new IllegalArgumentException("repoEndpoint is malformed", e);
 		}
 	}
 

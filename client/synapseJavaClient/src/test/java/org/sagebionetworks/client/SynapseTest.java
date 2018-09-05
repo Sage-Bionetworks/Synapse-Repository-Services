@@ -474,8 +474,8 @@ public class SynapseTest {
 	
 	@Test
 	public void testEndpointForTypeRepo(){
-		synapse.setRepositoryEndpoint("repo-endpoint");
-		assertEquals("repo-endpoint", synapse.getEndpointForType(RestEndpointType.repo));
+		synapse.setRepositoryEndpoint("https://repo-endpoint.com");
+		assertEquals("https://repo-endpoint.com", synapse.getEndpointForType(RestEndpointType.repo));
 	}
 	
 	@Test
