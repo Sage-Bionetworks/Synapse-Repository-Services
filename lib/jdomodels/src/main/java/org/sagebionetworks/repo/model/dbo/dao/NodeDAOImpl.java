@@ -56,7 +56,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.NotImplementedException;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -715,14 +714,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-	}
-	
-	@Override
-	public Set<String> getChildrenIds(String id) throws NotFoundException, DatastoreException {
-		if(id == null) throw new IllegalArgumentException("Id cannot be null");
-		// Get all of the children of this node
-		List<String> ids = this.getChildrenIdsAsList(id);
-		return new HashSet<String>(ids);
 	}
 	
 	@Override

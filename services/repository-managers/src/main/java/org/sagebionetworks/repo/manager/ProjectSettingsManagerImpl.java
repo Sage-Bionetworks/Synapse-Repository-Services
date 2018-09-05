@@ -282,7 +282,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ValidateArgument.required(setting.getAutoSync(), "ExternalSyncSetting.autoSync");
 		ValidateArgument.required(setting.getLocationId(), "ExternalSyncSetting.locationId");
 		// check for empty node
-		if (!nodeDAO.getChildrenIds(setting.getProjectId()).isEmpty()) {
+		if (!(nodeDAO.getChildCount(setting.getProjectId()) > 1L)) {
 			throw new IllegalArgumentException("You cannot apply autosync to a folder or project that has any children in it");
 		}
 	}

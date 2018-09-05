@@ -125,15 +125,6 @@ public interface NodeDAO {
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException;
 	
 	/**
-	 * Get all of the IDs for a given node's children
-	 * @param id
-	 * @return the set of child ids
-	 * @throws NotFoundException
-	 * @throws DatastoreException 
-	 */
-	public Set<String> getChildrenIds(String id) throws NotFoundException, DatastoreException;
-	
-	/**
 	 * Look at the current eTag without locking or changing anything.
 	 * @param id
 	 * @return the current etag
