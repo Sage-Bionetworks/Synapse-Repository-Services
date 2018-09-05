@@ -14,6 +14,10 @@ import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -31,6 +35,8 @@ public class DoiManagerImpl implements DoiManager {
 	private DoiAssociationDao doiAssociationDao;
 	@Autowired
 	private DataciteClient dataciteClient;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 
 	public static final String ENTITY_URL_PREFIX = "#!Synapse:";
 	public static final String RESOURCE_PATH = "/doi/locate";
@@ -122,6 +128,8 @@ public class DoiManagerImpl implements DoiManager {
 			dto.setStatus(DataciteRegistrationStatus.FINDABLE);
 		}
 
+		validateMetadata(dto);
+
 		try {
 			dataciteClient.registerMetadata(dto, dto.getDoiUri());
 			dataciteClient.registerDoi(dto.getDoiUri(), dto.getDoiUrl());
@@ -208,6 +216,32 @@ public class DoiManagerImpl implements DoiManager {
 			uri += "." + versionNumber;
 		}
 		return uri;
+	}
+
+	/*
+	 * Ensures that the submitted metadata adheres Synapse's conventions
+	 * Checking that the metadata matches DataCite's schema occurs in the translator.
+	 */
+	void validateMetadata(DataciteMetadata metadata) {
+		if (metadata.getCreators() == null) {
+			throw new IllegalArgumentException("DOI must have property \"Creators\"");
+		}   else if (metadata.getCreators().stream().filter(
+				c -> c.getNameIdentifiers() != null).anyMatch(
+						c -> c.getNameIdentifiers().stream().filter(
+								nameId -> nameId.getNameIdentifierScheme().equals(NameIdentifierScheme.ORCID)).anyMatch(
+										nameId -> !isKnownToSynapse(nameId.getIdentifier()) //
+						))) {
+			/*
+			 * Get those name identifiers that are ORCIDs and make sure that that ORCID
+			 * belongs to a Synapse user.
+			 */
+			throw new IllegalArgumentException("\tORCIDs must belong to a registered Synapse user.\n");
+		}
+	}
+
+	boolean isKnownToSynapse(String orcid) {
+		PrincipalAlias id = principalAliasDAO.findPrincipalWithAlias(orcid);
+		return id != null && id.getType().equals(AliasType.USER_ORCID);
 	}
 
 	static Doi mergeMetadataAndAssociation(DataciteMetadata metadata, DoiAssociation association) {

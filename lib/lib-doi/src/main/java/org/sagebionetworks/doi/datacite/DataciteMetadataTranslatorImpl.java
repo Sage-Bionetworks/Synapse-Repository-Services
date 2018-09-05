@@ -154,7 +154,18 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		} else if (doi.getCreators().stream().anyMatch(creator -> creator.getCreatorName().length() == 0)) {
 			message += "\tCreator names must be at least 1 character long.\n";
 			missingField = true;
+		} else if (doi.getCreators().stream().filter(
+				c -> c.getNameIdentifiers() != null).anyMatch(
+				c -> c.getNameIdentifiers().stream().anyMatch(
+						nameId -> nameId.getNameIdentifierScheme() == null))) {
+			/*
+			 * Filter select each creator that has name identifiers, and then
+			 * make sure the name identifiers have a schema
+			 */
+			message += "\tName identifiers must have an included schema\n";
+			missingField = true;
 		}
+
 		if (doi.getTitles() == null) {
 			message += "\tDOI must have property \"Titles\"\n";
 			missingField = true;
