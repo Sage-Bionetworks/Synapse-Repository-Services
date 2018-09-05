@@ -7,6 +7,7 @@ import static org.sagebionetworks.client.Method.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -43,6 +44,8 @@ public class BaseClientImplTest {
 	Header mockHeader;
 
 	BaseClientImpl baseClient;
+	private final String sessionIdVal = "mySessionIdValue";
+
 
 	@Before
 	public void before(){
@@ -794,5 +797,40 @@ public class BaseClientImplTest {
 		}
 		verify(mockClient, times(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT))
 				.get(any(SimpleHttpRequest.class));
+	}
+
+	@Test
+	public void testSetSessionId(){
+		//method under test
+		baseClient.setSessionId(sessionIdVal);
+
+		verify(mockClient).addCookie("repo-prod.prod.sagebase.org", "sessionID", sessionIdVal);
+	}
+
+	@Test
+	public void testGetSessionId(){
+		when(mockClient.getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID")).thenReturn(sessionIdVal);
+
+		//method under test
+		String result = baseClient.getSessionId();
+
+		assertEquals(sessionIdVal, result);
+		verify(mockClient).getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testSetRepositoryEndpoint_malformedRepoEndpoint(){
+		//set a bad endpoint
+		baseClient.setRepositoryEndpoint("asdf.asdf.asdf...");
+	}
+
+	@Test
+	public void testSetRepositoryEndpoint(){
+		String repoEndpoint = "https://my.test.endpoint.com/some/path";
+
+		baseClient.setRepositoryEndpoint(repoEndpoint);
+
+		assertEquals(repoEndpoint, baseClient.getRepoEndpoint());
+		assertEquals("my.test.endpoint.com", baseClient.repoEndpointBaseDomain);
 	}
 }

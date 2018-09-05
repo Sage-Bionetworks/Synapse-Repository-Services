@@ -73,6 +73,7 @@ public class BaseClientImpl implements BaseClient {
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
+	private static final String SESSION_ID_COOKIE = "sessionID";
 
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 
@@ -84,6 +85,9 @@ public class BaseClientImpl implements BaseClient {
 	private String repoEndpoint;
 	private String authEndpoint;
 	private String fileEndpoint;
+
+	//cached value that is derived from repoEndpoint
+	String repoEndpointBaseDomain;
 
 	private Map<String, String> defaultGETDELETEHeaders;
 	private Map<String, String> defaultPOSTPUTHeaders;
@@ -97,7 +101,7 @@ public class BaseClientImpl implements BaseClient {
 		this.simpleHttpClient = new SimpleHttpClientImpl(config);
 
 		this.authEndpoint = DEFAULT_AUTH_ENDPOINT;
-		this.repoEndpoint = DEFAULT_REPO_ENDPOINT;
+		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		this.fileEndpoint = DEFAULT_FILE_ENDPOINT;
 		this.defaultGETDELETEHeaders = new HashMap<String, String>();
 		this.defaultGETDELETEHeaders.put(ACCEPT, APPLICATION_JSON_CHARSET_UTF8);
@@ -179,7 +183,15 @@ public class BaseClientImpl implements BaseClient {
 
 	@Override
 	public void setRepositoryEndpoint(String repoEndpoint) {
-		this.repoEndpoint = repoEndpoint;
+
+		try {
+			URL url = new URL(repoEndpoint);
+			this.repoEndpointBaseDomain = url.getHost();
+
+			this.repoEndpoint = repoEndpoint;
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("repoEndpoint is malformed", e);
+		}
 	}
 
 	@Override
@@ -245,6 +257,17 @@ public class BaseClientImpl implements BaseClient {
 		}
 		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
+	}
+
+	@Override
+	public void setSessionId(String sessionId){
+		simpleHttpClient.addCookie(this.repoEndpointBaseDomain, SESSION_ID_COOKIE, sessionId);
+	}
+
+
+	@Override
+	public String getSessionId(){
+		return simpleHttpClient.getFirstCookieValue(this.repoEndpointBaseDomain, SESSION_ID_COOKIE);
 	}
 
 	protected String getUserAgent() {
