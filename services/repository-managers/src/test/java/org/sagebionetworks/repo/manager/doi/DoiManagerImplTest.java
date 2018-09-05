@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.doi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -33,9 +35,14 @@ import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -59,6 +66,8 @@ public class DoiManagerImplTest {
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDao;
 
 	private static final String baseUrl = "https://syn.org/test/";
 	private static final String repoEndpoint = "https://prod-base.sagetest.gov/repo/v3";
@@ -69,6 +78,7 @@ public class DoiManagerImplTest {
 	private static final Long version = 4L;
 	private static Doi inputDto = null;
 	private static Doi outputDto = null;
+	private static PrincipalAlias principalOrcid;
 
 	private static final String mockPrefix = "10.1234";
 	private static final String doiUri = "10.1234/someuri";
@@ -78,18 +88,24 @@ public class DoiManagerImplTest {
 	private static final String author = "Washington, George";
 	private static final Long publicationYear = 1787L;
 	private static final DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
+	private static final String orcid = "123-456-0000";
 
 	@Before
 	public void before() {
 		adminInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		doiManager = new DoiManagerImpl();
+		principalOrcid = new PrincipalAlias();
+		principalOrcid.setType(AliasType.USER_ORCID);
+		principalOrcid.setAlias(orcid);
 		ReflectionTestUtils.setField(doiManager, "stackConfiguration", mockConfig);
 		when(mockConfig.getSynapseBaseUrl()).thenReturn(baseUrl);
 		when(mockConfig.getRepositoryServiceEndpoint()).thenReturn(repoEndpoint);
 		when(mockConfig.getDoiPrefix()).thenReturn(mockPrefix);
+		when(mockPrincipalAliasDao.findPrincipalWithAlias(orcid)).thenReturn(principalOrcid);
 		ReflectionTestUtils.setField(doiManager, "dataciteClient", mockDataciteClient);
 		ReflectionTestUtils.setField(doiManager, "doiAssociationDao", mockDoiDao);
 		ReflectionTestUtils.setField(doiManager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(doiManager, "principalAliasDAO", mockPrincipalAliasDao);
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(new AuthorizationStatus(true, "mock"));
 		inputDto = setUpDto(true);
@@ -570,6 +586,40 @@ public class DoiManagerImplTest {
 
 	}
 
+	@Test
+	public void testValidateMetadataPass() {
+		doiManager.validateMetadata(setUpDto(true));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateMetadataNullCreators() {
+		Doi metadata = setUpDto(true);
+		metadata.setCreators(null);
+		// Call under test
+		doiManager.validateMetadata(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateMetadataUnknownOrcid() {
+		when(mockPrincipalAliasDao.findPrincipalWithAlias(orcid)).thenReturn(null);
+		// Call under test
+		doiManager.validateMetadata(setUpDto(true));
+	}
+
+	@Test
+	public void testIsOrcidKnownToSynapsePass() {
+		// Should have been set up in @Before
+		assertTrue(doiManager.isKnownToSynapse(orcid));
+	}
+
+	@Test
+	public void testIsOrcidKnownToSynapseFail() {
+		// If the ORCID isn't known to Synapse, it returns null
+		when(mockPrincipalAliasDao.findPrincipalWithAlias(orcid)).thenReturn(null);
+		assertFalse(doiManager.isKnownToSynapse(orcid));
+
+	}
+
 	/**
 	 * Create a DTO with all fields we expect the user to enter.
 	 * @return A DTO with data in all required client-specified fields.
@@ -586,6 +636,10 @@ public class DoiManagerImplTest {
 			// Required metadata fields
 			DoiCreator doiCreator = new DoiCreator();
 			doiCreator.setCreatorName(author);
+			DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
+			nameIdentifier.setIdentifier(orcid);
+			nameIdentifier.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
+			doiCreator.setNameIdentifiers(Collections.singletonList(nameIdentifier));
 			dto.setCreators(Collections.singletonList(doiCreator));
 
 			DoiTitle doiTitle = new DoiTitle();

@@ -10,6 +10,7 @@ import org.w3c.dom.Element;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -244,6 +245,15 @@ public class DataciteMetadataTranslatorTest {
 	@Test(expected = IllegalArgumentException.class)
 	public void testEmptyCreatorName() {
 		metadata.getCreators().get(0).setCreatorName("");
+		// Call under test
+		verifyAllRequiredFields(metadata);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNameIdWithoutSchema() {
+		DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
+		nameIdentifier.setIdentifier("123-456-0000");
+		metadata.getCreators().get(0).setNameIdentifiers(Collections.singletonList(nameIdentifier));
 		// Call under test
 		verifyAllRequiredFields(metadata);
 	}
