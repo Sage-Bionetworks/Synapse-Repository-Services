@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
-import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
@@ -150,7 +149,6 @@ public class DoiManagerImplTest {
 		assertEquals(actualResponse.getTitles(), metadata.getTitles());
 		assertEquals(actualResponse.getPublicationYear(), metadata.getPublicationYear());
 		assertEquals(actualResponse.getResourceType(), metadata.getResourceType());
-		assertEquals(actualResponse.getStatus(), metadata.getStatus());
 	}
 
 	@Test(expected = ServiceUnavailableException.class)
@@ -292,36 +290,11 @@ public class DoiManagerImplTest {
 	public void testCreateOrUpdateMetadata() throws Exception {
 		inputDto.setDoiUri(doiUri);
 		inputDto.setDoiUrl(doiUrl);
-		inputDto.setStatus(DataciteRegistrationStatus.FINDABLE);
 		// Call under test
 		doiManager.createOrUpdateDataciteMetadata(inputDto);
 		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
 		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
 		verify(mockDataciteClient, never()).deactivate(any(String.class));
-	}
-
-	@Test
-	public void testCreateOrUpdateMetadataNullStatus() throws Exception {
-		inputDto.setDoiUri(doiUri);
-		inputDto.setDoiUrl(doiUrl);
-		inputDto.setStatus(null);
-		// Call under test
-		doiManager.createOrUpdateDataciteMetadata(inputDto);
-		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
-		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
-		verify(mockDataciteClient, never()).deactivate(any(String.class));
-	}
-
-	@Test
-	public void testCreateMetadataAndDeactivate() throws Exception {
-		inputDto.setDoiUri(doiUri);
-		inputDto.setDoiUrl(doiUrl);
-		inputDto.setStatus(DataciteRegistrationStatus.REGISTERED);
-		// Call under test
-		doiManager.createOrUpdateDataciteMetadata(inputDto);
-		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
-		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
-		verify(mockDataciteClient).deactivate(doiUri);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -535,7 +508,6 @@ public class DoiManagerImplTest {
 		DoiResourceType doiResourceType = new DoiResourceType();
 		doiResourceType.setResourceTypeGeneral(resourceTypeGeneral);
 		metadata.setResourceType(doiResourceType);
-		metadata.setStatus(DataciteRegistrationStatus.FINDABLE);
 
 		DoiAssociation doi = new Doi();
 		doi.setAssociationId("43210");
@@ -568,8 +540,6 @@ public class DoiManagerImplTest {
 		assertEquals(metadata.getTitles(), expected.getTitles());
 		assertEquals(metadata.getResourceType(), expected.getResourceType());
 		assertEquals(metadata.getPublicationYear(), expected.getPublicationYear());
-		assertEquals(metadata.getStatus(), expected.getStatus());
-
 	}
 
 	/**

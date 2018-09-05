@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
@@ -103,7 +102,6 @@ public class DoiWorkerIntegrationTest {
 		// Make sure all of the metadata we get back matches the metadata we enter
 		assertEquals(responseDoi.getCreators(), submissionDoi.getCreators());
 		assertEquals(responseDoi.getTitles(), submissionDoi.getTitles());
-		assertEquals(responseDoi.getStatus(), submissionDoi.getStatus());
 		assertEquals(responseDoi.getPublicationYear(), submissionDoi.getPublicationYear());
 		assertEquals(responseDoi.getResourceType(), submissionDoi.getResourceType());
 	}
@@ -130,7 +128,6 @@ public class DoiWorkerIntegrationTest {
 		doiResourceType.setResourceTypeGeneral(resourceTypeGeneral);
 		body.setResourceType(doiResourceType);
 
-		body.setStatus(DataciteRegistrationStatus.FINDABLE);
 		return body;
 	}
 

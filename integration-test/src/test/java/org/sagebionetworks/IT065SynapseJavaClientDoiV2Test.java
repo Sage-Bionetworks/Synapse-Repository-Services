@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
@@ -115,7 +114,6 @@ public class IT065SynapseJavaClientDoiV2Test {
 		doi.setObjectType(ObjectType.ENTITY);
 		doi.setObjectVersion(1L);
 
-		doi.setStatus(DataciteRegistrationStatus.FINDABLE);
 		doi.setPublicationYear(2018L);
 		DoiTitle title = new DoiTitle();
 		title.setTitle("A DOI for a Synapse integration test.");
@@ -152,7 +150,6 @@ public class IT065SynapseJavaClientDoiV2Test {
 		assertEquals(doiRetrieved.getObjectVersion(), doiToMint.getObjectVersion());
 		assertEquals(doiRetrieved.getTitles(), doiToMint.getTitles());
 		assertEquals(doiRetrieved.getCreators(), doiToMint.getCreators());
-		assertEquals(doiRetrieved.getStatus(), doiToMint.getStatus());
 		assertEquals(doiRetrieved.getResourceType(), doiToMint.getResourceType());
 		assertEquals(doiRetrieved.getPublicationYear(), doiToMint.getPublicationYear());
 		assertEquals(doiRetrieved.getAssociatedBy(), userToDelete.toString());

@@ -1,23 +1,37 @@
 package org.sagebionetworks.doi.datacite;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
-import org.junit.Before;
-import org.junit.Test;
-import org.sagebionetworks.repo.model.doi.v2.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.InputSource;
+import static org.junit.Assert.assertEquals;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl.getSchemeUri;
+import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.getCreator;
+import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.getCreators;
+import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.getNameIdentifier;
+import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.getPublicationYear;
+import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.getResourceType;
+import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.getTitles;
 
-import javax.xml.parsers.DocumentBuilder;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
-import static org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl.getSchemeUri;
-import static org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl.*;
+import javax.xml.parsers.DocumentBuilder;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
+import org.junit.Before;
+import org.junit.Test;
+import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
+import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
 
 public class DataciteXmlTranslatorTest {
 
@@ -77,8 +91,6 @@ public class DataciteXmlTranslatorTest {
 		resourceType = new DoiResourceType();
 		resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.Dataset);
 		expectedMetadata.setResourceType(resourceType);
-
-		expectedMetadata.setStatus(DataciteRegistrationStatus.FINDABLE);
 	}
 
 	@Test
