@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -56,6 +58,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
@@ -77,6 +80,8 @@ public class EntityBundleServiceImplTest {
 	private WikiService mockWikiService;
 	@Mock
 	private DoiService mockDoiService;
+	@Mock
+	private DoiServiceV2 mockDoiServiceV2;
 	@Mock
 	private DiscussionService mockDiscussionService;
 	@Mock
@@ -106,6 +111,7 @@ public class EntityBundleServiceImplTest {
 		when(mockServiceProvider.getWikiService()).thenReturn(mockWikiService);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		when(mockServiceProvider.getDoiService()).thenReturn(mockDoiService);
+		when(mockServiceProvider.getDoiServiceV2()).thenReturn(mockDoiServiceV2);
 		when(mockServiceProvider.getDiscussionService()).thenReturn(mockDiscussionService);
 		when(mockServiceProvider.getDataAccessService()).thenReturn(mockDataAccessService);
 		
@@ -260,6 +266,51 @@ public class EntityBundleServiceImplTest {
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoi());
+	}
+
+	@Test
+	public void testDoiAssociation() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.DOI;
+		DoiAssociation doi = new DoiAssociation();
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectId(entityId);
+		doi.setObjectVersion(null);
+		// The getDoi call needs to yield a ServiceUnavailableException to get a DOI Association
+		when(mockDoiServiceV2.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenThrow(new ServiceUnavailableException());
+		when(mockDoiServiceV2.getDoiAssociation(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenReturn(doi);
+		// Call under test
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(doi, bundle.getDoiAssociation());
+		assertNull(bundle.getDoiMetadata());
+	}
+
+	@Test
+	public void testDoiMetadata() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.DOI;
+		org.sagebionetworks.repo.model.doi.v2.Doi doi = new org.sagebionetworks.repo.model.doi.v2.Doi();
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectId(entityId);
+		doi.setObjectVersion(null);
+		when(mockDoiServiceV2.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenReturn(doi);
+		// Call under test
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(doi, bundle.getDoiMetadata());
+	}
+
+	@Test
+	public void testDoiV2NotFound() throws Exception {
+		int mask = EntityBundle.DOI;
+		String entityId = "ID that has no object";
+		when(mockDoiServiceV2.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenThrow(new NotFoundException());
+		// Call under test
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertNull(bundle.getDoiAssociation());
+		assertNull(bundle.getDoiMetadata());
 	}
 	
 	@Test
