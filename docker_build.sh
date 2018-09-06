@@ -108,6 +108,7 @@ bash -c "mvn clean ${MVN_GOAL} \
 -Dorg.sagebionetworks.table.cluster.endpoint.0=${rds_container_name} \
 -Dorg.sagebionetworks.table.cluster.schema.0=${tables_schema_name} \
 -Dorg.sagebionetworks.search.enabled=${org_sagebionetworks_search_enabled} \
+-Dorg.sagebionetworks.doi.datacite.enabled=${org_sagebionetworks_datacite_enabled} \
 -Duser.home=/root"
 
 clean_up_container ${build_container_name}
