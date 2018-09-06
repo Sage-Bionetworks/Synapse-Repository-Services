@@ -22,54 +22,55 @@ import com.google.common.collect.Lists;
 
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
-	
 	public static final int MAX_FILES_PER_DOWNLOAD_LIST = 100;
 
 	@Autowired
 	EntityManager entityManager;
-	
+
 	@Autowired
 	NodeDAO nodeDoa;
-	
+
 	@Autowired
 	BulkDownloadDAO bulkDownloadDao;
-	
+
 	@WriteTransactionReadCommitted
-	@Override	
-	public void addFilesFromFolder(UserInfo user, String folderId) {
+	@Override
+	public DownloadList addFilesFromFolder(UserInfo user, String folderId) {
 		ValidateArgument.required(user, "UserInfo");
-		EntityChildrenRequest entityChildrenRequest = new EntityChildrenRequest();
-		entityChildrenRequest.setIncludeTypes(Lists.newArrayList(EntityType.file));
-		entityChildrenRequest.setParentId(folderId);
-		
-		EntityChildrenResponse entityChildrenResponse = null;
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		String nextPageToken = null;
 		do {
+			EntityChildrenRequest entityChildrenRequest = new EntityChildrenRequest();
+			entityChildrenRequest.setIncludeTypes(includeTypes);
+			entityChildrenRequest.setParentId(folderId);
+			entityChildrenRequest.setNextPageToken(nextPageToken);
 			// page through the children of the given container.
-			entityChildrenResponse = entityManager.getChildren(user, entityChildrenRequest);
+			EntityChildrenResponse entityChildrenResponse = entityManager.getChildren(user, entityChildrenRequest);
 			List<FileHandleAssociation> toAdd = new LinkedList<>();
 			// get the files handles for the resulting files
-			if(entityChildrenResponse.getPage() != null) {
-				for(EntityHeader header: entityChildrenResponse.getPage()) {
-					String fileHandleId = nodeDoa.getFileHandleIdForVersion(header.getId(), header.getVersionNumber());
-					FileHandleAssociation association = new FileHandleAssociation();
-					association.setAssociateObjectId(header.getId());
-					association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
-					association.setFileHandleId(fileHandleId);
-					toAdd.add(association);
+			for (EntityHeader header : entityChildrenResponse.getPage()) {
+				String fileHandleId = nodeDoa.getFileHandleIdForVersion(header.getId(), header.getVersionNumber());
+				FileHandleAssociation association = new FileHandleAssociation();
+				association.setAssociateObjectId(header.getId());
+				association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+				association.setFileHandleId(fileHandleId);
+				toAdd.add(association);
+			}
+
+			if (!toAdd.isEmpty()) {
+				DownloadList list = bulkDownloadDao.addFilesToDownloadList("" + user.getId(), toAdd);
+				if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
+					throw new IllegalArgumentException(
+							"Exceeded the maximum number of " + MAX_FILES_PER_DOWNLOAD_LIST + " files.");
 				}
 			}
-			
-			if(!toAdd.isEmpty()) {
-				DownloadList list = bulkDownloadDao.addFilesToDownloadList(""+user.getId(), toAdd);
-				if(list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
-					throw new IllegalArgumentException("Exceeded the maximum number of "+MAX_FILES_PER_DOWNLOAD_LIST+" files.");
-				}
-			}
-		
+
 			// use the token to get the next page.
-			entityChildrenRequest.setNextPageToken(entityChildrenResponse.getNextPageToken());
-		}while(entityChildrenRequest.getNextPageToken() != null);
-		
+			nextPageToken = entityChildrenResponse.getNextPageToken();
+			// continue as long as we have a next page token.
+		} while (nextPageToken != null);
+		// return the final state of the download list.
+		return bulkDownloadDao.getUsersDownloadList("" + user.getId());
 	}
 
 }

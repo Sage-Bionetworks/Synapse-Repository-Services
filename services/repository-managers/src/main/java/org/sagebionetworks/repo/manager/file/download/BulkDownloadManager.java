@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.file.download;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.DownloadList;
 
 public interface BulkDownloadManager {
 
@@ -10,6 +11,6 @@ public interface BulkDownloadManager {
 	 * @param user
 	 * @param folderId
 	 */
-	public void addFilesFromFolder(UserInfo user, String folderId);
+	public DownloadList addFilesFromFolder(UserInfo user, String folderId);
 
 }
