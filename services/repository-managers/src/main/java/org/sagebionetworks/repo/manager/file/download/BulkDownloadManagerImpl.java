@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAO;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,9 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
 	@Autowired
 	BulkDownloadDAO bulkDownloadDao;
+	
+	@Autowired
+	TableQueryManager tableQueryManager;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -71,6 +76,13 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		} while (nextPageToken != null);
 		// return the final state of the download list.
 		return bulkDownloadDao.getUsersDownloadList("" + user.getId());
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public DownloadList addFilesFromQuery(UserInfo user, Query query) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

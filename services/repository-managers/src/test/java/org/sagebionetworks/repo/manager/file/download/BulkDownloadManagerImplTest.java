@@ -190,7 +190,13 @@ public class BulkDownloadManagerImplTest {
 		}
 	}
 	
-	List<FileHandleAssociation> createResultsOfSize(int size){
+	/**
+	 * Test helper.
+	 * 
+	 * @param size
+	 * @return
+	 */
+	static List<FileHandleAssociation> createResultsOfSize(int size){
 		List<FileHandleAssociation> result = new LinkedList<>();
 		for(int i=0; i<size; i++) {
 			FileHandleAssociation fha = new FileHandleAssociation();
