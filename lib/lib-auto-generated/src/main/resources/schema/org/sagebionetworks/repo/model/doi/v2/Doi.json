@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for all fields associated with a DOI and its metadata.",
+	"description": "JSON schema for all fields associated with a DOI and its metadata. This object contains fields from both <a href=\"${org.sagebionetworks.repo.model.doi.v2.DoiAssociation}\">DoiAssociation</a> and <a href=\"${org.sagebionetworks.repo.model.doi.v2.DataciteMetadata}\">DataciteMetadata</a>",
 	"type":"object",
 	"extends": {
 		"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiAssociation"

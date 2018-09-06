@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for a DOI and its metadata.",
+	"description": "JSON schema for metadata that is submitted to DataCite and can later be retrieved via DOI in Synapse, with the DataCite REST API, or with external citation services.",
 	"type": "interface",
 	"properties": {
 		"creators":{
