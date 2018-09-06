@@ -399,8 +399,9 @@ public class TeamManagerImpl implements TeamManager {
 	@WriteTransaction
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
+		Team teamToDelete = null;
 		try {
-			teamDAO.get(id);
+			teamToDelete = teamDAO.get(id);
 		} catch (NotFoundException e) {
 			return;
 		}
@@ -410,8 +411,13 @@ public class TeamManagerImpl implements TeamManager {
 		aclDAO.delete(id, ObjectType.TEAM);
 		// delete Team
 		teamDAO.delete(id);
-		// delete userGroup
-		userGroupDAO.delete(id);
+		try {
+			userGroupDAO.delete(id);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Can't delete the team " + teamToDelete.getName() +
+					" (ID: " + id + ") because it is referenced by a submission, or an entity is shared with it. " +
+					"Remove the reference or unshare the entity to delete the team." , e);
+		}
 	}
 	
 	
