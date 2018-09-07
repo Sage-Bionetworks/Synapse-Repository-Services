@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.manager.file.download;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -13,11 +15,19 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAO;
 import org.sagebionetworks.repo.model.file.DownloadList;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -25,6 +35,10 @@ import com.google.common.collect.Lists;
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
 	public static final int MAX_FILES_PER_DOWNLOAD_LIST = 100;
+	public static final long QUERY_ONLY_PART_MASK = 0x1;
+
+	public static final String EXCEEDED_MAX_NUMBER_ROWS = "Exceeded the maximum number of "
+			+ MAX_FILES_PER_DOWNLOAD_LIST + " files.";
 
 	@Autowired
 	EntityManager entityManager;
@@ -34,7 +48,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
 	@Autowired
 	BulkDownloadDAO bulkDownloadDao;
-	
+
 	@Autowired
 	TableQueryManager tableQueryManager;
 
@@ -51,24 +65,14 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			entityChildrenRequest.setNextPageToken(nextPageToken);
 			// page through the children of the given container.
 			EntityChildrenResponse entityChildrenResponse = entityManager.getChildren(user, entityChildrenRequest);
-			List<FileHandleAssociation> toAdd = new LinkedList<>();
 			// get the files handles for the resulting files
+			List<String> entityIds = new LinkedList<>();
 			for (EntityHeader header : entityChildrenResponse.getPage()) {
-				String fileHandleId = nodeDoa.getFileHandleIdForVersion(header.getId(), header.getVersionNumber());
-				FileHandleAssociation association = new FileHandleAssociation();
-				association.setAssociateObjectId(header.getId());
-				association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
-				association.setFileHandleId(fileHandleId);
-				toAdd.add(association);
+				entityIds.add(header.getId());
 			}
-
-			if (!toAdd.isEmpty()) {
-				DownloadList list = bulkDownloadDao.addFilesToDownloadList("" + user.getId(), toAdd);
-				if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
-					throw new IllegalArgumentException(
-							"Exceeded the maximum number of " + MAX_FILES_PER_DOWNLOAD_LIST + " files.");
-				}
-			}
+			// get the files handle associations for each file.
+			List<FileHandleAssociation> toAdd = nodeDoa.getFileHandleAssociationsForCurrentVersion(entityIds);
+			attemptToAddFilesToUsersDownloadList(user, toAdd);
 
 			// use the token to get the next page.
 			nextPageToken = entityChildrenResponse.getNextPageToken();
@@ -78,11 +82,62 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		return bulkDownloadDao.getUsersDownloadList("" + user.getId());
 	}
 
+	/**
+	 * Attempt to add the given files to the user's download list.
+	 * 
+	 * @param user
+	 * @param toAdd
+	 * @throws IllegalArgumentException If the resulting total number of files
+	 *                                  exceeds the limit.
+	 * 
+	 */
+	void attemptToAddFilesToUsersDownloadList(UserInfo user, List<FileHandleAssociation> toAdd) {
+		if (!toAdd.isEmpty()) {
+			DownloadList list = bulkDownloadDao.addFilesToDownloadList("" + user.getId(), toAdd);
+			if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
+				throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
+			}
+		}
+	}
+
 	@WriteTransactionReadCommitted
 	@Override
-	public DownloadList addFilesFromQuery(UserInfo user, Query query) {
-		// TODO Auto-generated method stub
-		return null;
+	public DownloadList addFilesFromQuery(UserInfo user, Query query)
+			throws DatastoreException, NotFoundException, TableFailedException, RecoverableMessageException {
+		try {
+			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
+			QueryBundleRequest queryBundle = new QueryBundleRequest();
+			queryBundle.setPartMask(QUERY_ONLY_PART_MASK);
+			queryBundle.setQuery(query);
+			/*
+			 * Setting a limit ensures we never read too many rows. Using a limit of max
+			 * plus one provides a mechanism for detecting a query result that would yield
+			 * too many rows.
+			 */
+			query.setLimit(MAX_FILES_PER_DOWNLOAD_LIST + 1L);
+			QueryResultBundle queryResult = this.tableQueryManager.queryBundle(callback, user, queryBundle);
+			List<Row> rows = queryResult.getQueryResult().getQueryResults().getRows();
+			if (rows.size() > MAX_FILES_PER_DOWNLOAD_LIST) {
+				throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
+			}
+			// get the files handles for the resulting files
+			List<String> entityIds = new LinkedList<>();
+			for (Row row : rows) {
+				entityIds.add("" + row.getRowId());
+			}
+			// get the files handle associations for each file.
+			List<FileHandleAssociation> toAdd = nodeDoa.getFileHandleAssociationsForCurrentVersion(entityIds);
+			attemptToAddFilesToUsersDownloadList(user, toAdd);
+
+			// return the final state of the download list.
+			return bulkDownloadDao.getUsersDownloadList("" + user.getId());
+
+		} catch (LockUnavilableException | TableUnavailableException e) {
+			// can re-try when the view becomes available.
+			throw new RecoverableMessageException();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 
 }
