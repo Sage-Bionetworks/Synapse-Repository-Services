@@ -8,6 +8,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -123,15 +124,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Get all of the IDs for a given node's children
-	 * @param id
-	 * @return the set of child ids
-	 * @throws NotFoundException
-	 * @throws DatastoreException 
-	 */
-	public Set<String> getChildrenIds(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Look at the current eTag without locking or changing anything.
@@ -392,6 +384,17 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String getFileHandleIdForVersion(String id, Long versionNumber);
+	
+	/**
+	 * Get the FileHandleAssociation for the current version of the given entity IDs.
+	 * 
+	 * Note: If any of the provided entity IDs are not files or do not have a file handle ID,
+	 * then a result will not be included for that entity.
+	 * 
+	 * @param entityIds
+	 * @return
+	 */
+	public List<FileHandleAssociation> getFileHandleAssociationsForCurrentVersion(List<String> entityIds);
 
 	/**
 	 * Get a reference for the current version of the given node ids

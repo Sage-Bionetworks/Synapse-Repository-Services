@@ -56,7 +56,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.NotImplementedException;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -88,6 +87,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -268,6 +269,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
+	
+	private static final String SELECT_CURRENT_VERSION_FILE_HANDLES = "SELECT N." + COL_NODE_ID + ", R."
+			+ COL_REVISION_FILE_HANDLE_ID + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON (N."
+			+ COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_CURRENT_REV + " = R."
+			+ COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_TYPE + " = '" + EntityType.file + "' AND N." + COL_NODE_ID
+			+ " IN (:" + NODE_IDS_LIST_PARAM_NAME + ")";
 	
 	public static final String BENEFACTOR_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+")";
 	public static final String PROJECT_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_PROJECT_ID+"(N."+COL_NODE_ID+")";
@@ -715,14 +722,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-	}
-	
-	@Override
-	public Set<String> getChildrenIds(String id) throws NotFoundException, DatastoreException {
-		if(id == null) throw new IllegalArgumentException("Id cannot be null");
-		// Get all of the children of this node
-		List<String> ids = this.getChildrenIdsAsList(id);
-		return new HashSet<String>(ids);
 	}
 	
 	@Override
@@ -1372,15 +1371,34 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return null;
 		}
 	}
+	
+	public List<FileHandleAssociation> getFileHandleAssociationsForCurrentVersion(List<String> entityIds){
+		if(entityIds.isEmpty()) {
+			return new LinkedList<>();
+		}
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue(NODE_IDS_LIST_PARAM_NAME, KeyFactory.stringToKey(entityIds));
+		return namedParameterJdbcTemplate.query(
+				SELECT_CURRENT_VERSION_FILE_HANDLES,
+				parameters, new RowMapper<FileHandleAssociation>() {
+
+			@Override
+			public FileHandleAssociation mapRow(ResultSet rs, int rowNum) throws SQLException {
+				FileHandleAssociation fha = new FileHandleAssociation();
+				fha.setAssociateObjectId(rs.getString(1));
+				fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+				fha.setFileHandleId(rs.getString(2));
+				return fha;
+			}
+		});
+	}
+	
+	
 
 	@Override
 	public List<Reference> getCurrentRevisionNumbers(List<String> nodeIds) {
-		List<Long> longIds = new ArrayList<Long>();
-		for(String nodeId : nodeIds) {
-			longIds.add(KeyFactory.stringToKey(nodeId));
-		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters.addValue(NODE_IDS_LIST_PARAM_NAME, longIds);
+		parameters.addValue(NODE_IDS_LIST_PARAM_NAME, KeyFactory.stringToKey(nodeIds));
 		List<Reference> refs = this.namedParameterJdbcTemplate.query(SQL_GET_CURRENT_VERSIONS, parameters, new RowMapper<Reference>() {
 			@Override
 			public Reference mapRow(ResultSet rs, int rowNum)

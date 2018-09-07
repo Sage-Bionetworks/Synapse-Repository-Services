@@ -515,4 +515,8 @@
 		<property name="reconciliationQueueName" ref="stackConfiguration.workerQueueName[EntityReplicationReconciliationWorker]" />
 	</bean>
 
+	<bean id="bulkDownloadManager"
+		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"
+		scope="singleton" />
+
 </beans>

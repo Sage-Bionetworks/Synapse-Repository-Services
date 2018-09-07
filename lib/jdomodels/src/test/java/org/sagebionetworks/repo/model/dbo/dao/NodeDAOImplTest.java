@@ -70,6 +70,8 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -2675,6 +2677,62 @@ public class NodeDAOImplTest {
 
 		nodeDao.delete(id);
 		fileHandleDao.delete(fileHandle.getId());
+	}
+	
+	@Test
+	public void testGetFileHandleAssociationsForCurrentVersion(){
+		Node node = NodeTestUtils.createNew("getFileHandleAssociationsForCurrentVersion", creatorUserGroupId);
+		node.setFileHandleId(fileHandle.getId());
+		node.setNodeType(EntityType.file);
+		String id = nodeDao.createNew(node);
+		Long idLong = KeyFactory.stringToKey(id);
+		toDelete.add(id);
+		// call under test
+		List<FileHandleAssociation> associations = nodeDao.getFileHandleAssociationsForCurrentVersion(Lists.newArrayList(id));
+		assertNotNull(associations);
+		assertEquals(1, associations.size());
+		FileHandleAssociation association = associations.get(0);
+		assertEquals(idLong.toString(), association.getAssociateObjectId());
+		assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
+		assertEquals(fileHandle.getId(), association.getFileHandleId());
+		
+		// create a new version with file two
+		node = nodeDao.getNode(id);
+		node.setVersionNumber(2L);
+		node.setFileHandleId(fileHandle2.getId());
+		node.setVersionLabel("v-2");
+		nodeDao.createNewVersion(node);
+		
+		// call under test
+		associations = nodeDao.getFileHandleAssociationsForCurrentVersion(Lists.newArrayList(id));
+		assertEquals(1, associations.size());
+		association = associations.get(0);
+		assertEquals(idLong.toString(), association.getAssociateObjectId());
+		assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
+		assertEquals(fileHandle2.getId(), association.getFileHandleId());
+	}
+	
+	@Test
+	public void testGetFileHandleAssociationsForCurrentVersionNonFile(){
+		Node node = NodeTestUtils.createNew("getFileHandleAssociationsForCurrentVersion", creatorUserGroupId);
+		// create a project without a file.
+		node.setNodeType(EntityType.project);
+		node.setFileHandleId(null);
+		String id = nodeDao.createNew(node);
+		Long idLong = KeyFactory.stringToKey(id);
+		toDelete.add(id);
+		// call under test
+		List<FileHandleAssociation> associations = nodeDao.getFileHandleAssociationsForCurrentVersion(Lists.newArrayList(id));
+		assertNotNull(associations);
+		assertTrue(associations.isEmpty());
+	}
+	
+	@Test
+	public void testGetFileHandleAssociationsForCurrentVersionEmptyList(){
+		// call under test
+		List<FileHandleAssociation> associations = nodeDao.getFileHandleAssociationsForCurrentVersion(new LinkedList());
+		assertNotNull(associations);
+		assertTrue(associations.isEmpty());
 	}
 	
 	@Test

@@ -179,6 +179,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			list.setOwnerId(ownerPrincipalId);
 			list.setUpdatedOn(new Date(System.currentTimeMillis()));
 			list.setEtag(UUID.randomUUID().toString());
+			list.setFilesToDownload(new LinkedList<>());
 			return list;
 		}
 	}
