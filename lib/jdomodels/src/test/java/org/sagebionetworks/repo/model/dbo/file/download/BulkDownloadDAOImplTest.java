@@ -212,6 +212,7 @@ public class BulkDownloadDAOImplTest {
 		assertNotNull(list.getUpdatedOn());
 		assertNotNull(list.getEtag());
 		assertNotNull(list.getFilesToDownload());
+		assertTrue(list.getFilesToDownload().isEmpty());
 		assertEquals(this.userOneId, list.getOwnerId());
 	}
 	
