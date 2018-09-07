@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAO;
 import org.sagebionetworks.repo.model.file.DownloadList;
@@ -116,6 +117,7 @@ public class BulkDownloadManagerImplTest {
 		addedFiles.setFilesToDownload(new LinkedList<>());
 		when(mockBulkDownloadDao.addFilesToDownloadList(any(String.class), anyListOf(FileHandleAssociation.class)))
 				.thenReturn(addedFiles);
+		when(mockBulkDownloadDao.clearDownloadList(any(String.class))).thenReturn(addedFiles);
 
 		when(mockBulkDownloadDao.getUsersDownloadList(any(String.class))).thenReturn(addedFiles);
 		List<FileHandleAssociation> associations = createResultsOfSize(4);
@@ -130,7 +132,7 @@ public class BulkDownloadManagerImplTest {
 		queryResult.setQueryResult(qr);
 		when(mockTableQueryManager.queryBundle(any(ProgressCallback.class), any(UserInfo.class),
 				any(QueryBundleRequest.class))).thenReturn(queryResult);
-		
+
 		query = new Query();
 		query.setSql("select * from syn123");
 
@@ -227,6 +229,20 @@ public class BulkDownloadManagerImplTest {
 		}
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testAddFilesFromFolderNullUser() {
+		userInfo = null;
+		// call under test
+		manager.addFilesFromFolder(userInfo, folderId);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testAddFilesFromFolderNullFolder() {
+		folderId = null;
+		// call under test
+		manager.addFilesFromFolder(userInfo, folderId);
+	}
+
 	@Test
 	public void testAttemptToAddFilesToUsersDownloadList() {
 		List<FileHandleAssociation> toAdd = createResultsOfSize(2);
@@ -288,7 +304,7 @@ public class BulkDownloadManagerImplTest {
 		}
 	}
 
-	@Test (expected=RecoverableMessageException.class)
+	@Test(expected = RecoverableMessageException.class)
 	public void testAddFilesFromQueryLockUnavilableException() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException();
 		when(mockTableQueryManager.queryBundle(any(ProgressCallback.class), any(UserInfo.class),
@@ -296,8 +312,8 @@ public class BulkDownloadManagerImplTest {
 		// call under test
 		manager.addFilesFromQuery(userInfo, query);
 	}
-	
-	@Test (expected=RecoverableMessageException.class)
+
+	@Test(expected = RecoverableMessageException.class)
 	public void testAddFilesFromQueryTableUnavailableException() throws Exception {
 		TableUnavailableException exception = new TableUnavailableException(null);
 		when(mockTableQueryManager.queryBundle(any(ProgressCallback.class), any(UserInfo.class),
@@ -305,14 +321,154 @@ public class BulkDownloadManagerImplTest {
 		// call under test
 		manager.addFilesFromQuery(userInfo, query);
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test(expected = IllegalArgumentException.class)
 	public void testAddFilesFromQueryParseException() throws Exception {
 		ParseException exception = new ParseException();
 		when(mockTableQueryManager.queryBundle(any(ProgressCallback.class), any(UserInfo.class),
 				any(QueryBundleRequest.class))).thenThrow(exception);
 		// call under test
 		manager.addFilesFromQuery(userInfo, query);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testAddFilesFromQueryNullUser() throws Exception {
+		userInfo = null;
+		// call under test
+		manager.addFilesFromQuery(userInfo, query);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testAddFilesFromQueryNullQuery() throws Exception {
+		query = null;
+		// call under test
+		manager.addFilesFromQuery(userInfo, query);
+	}
+	
+	@Test
+	public void testAddFileHandleAssociations() {
+		List<FileHandleAssociation> toAdd = createResultsOfSize(10);
+		// call under test
+		manager.addFileHandleAssociations(userInfo, toAdd);
+		verify(mockBulkDownloadDao).addFilesToDownloadList(userInfo.getId().toString(), toAdd);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAddFileHandleAssociationsEmpty() {
+		List<FileHandleAssociation> toAdd = new LinkedList<>();
+		// call under test
+		manager.addFileHandleAssociations(userInfo, toAdd);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAddFileHandleAssociationsNullUser() {
+		List<FileHandleAssociation> toAdd = createResultsOfSize(10);
+		userInfo = null;
+		// call under test
+		manager.addFileHandleAssociations(userInfo, toAdd);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testAddFileHandleAssociationsNullList() {
+		List<FileHandleAssociation> toAdd = null;
+		// call under test
+		manager.addFileHandleAssociations(userInfo, toAdd);
+	}
+	
+	@Test
+	public void testAddFileHandleAssociationsOverLimit() {
+		List<FileHandleAssociation> toAdd = createResultsOfSize(BulkDownloadManagerImpl.MAX_FILES_PER_DOWNLOAD_LIST+1);
+		DownloadList results = new DownloadList();
+		results.setFilesToDownload(toAdd);
+		when(mockBulkDownloadDao.addFilesToDownloadList(userInfo.getId().toString(), toAdd)).thenReturn(results);
+		try {
+			// call under test
+			manager.addFileHandleAssociations(userInfo, toAdd);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals(BulkDownloadManagerImpl.EXCEEDED_MAX_NUMBER_ROWS, e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testRemoveFileHandleAssociations() {
+		List<FileHandleAssociation> toRemove = createResultsOfSize(2);
+		// call under test
+		manager.removeFileHandleAssociations(userInfo, toRemove);
+		verify(mockBulkDownloadDao).removeFilesFromDownloadList(userInfo.getId().toString(), toRemove);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRemoveFileHandleAssociationsEmpty() {
+		List<FileHandleAssociation> toRemove = new LinkedList<>();
+		// call under test
+		manager.removeFileHandleAssociations(userInfo, toRemove);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRemoveFileHandleAssociationsNullUser() {
+		List<FileHandleAssociation> toRemove = createResultsOfSize(2);
+		userInfo = null;
+		// call under test
+		manager.removeFileHandleAssociations(userInfo, toRemove);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRemoveFileHandleAssociationsNullList() {
+		List<FileHandleAssociation> toRemove = null;
+		// call under test
+		manager.removeFileHandleAssociations(userInfo, toRemove);
+	}
+	
+	@Test
+	public void testGetDownloadList() {
+		// call under test
+		DownloadList list = manager.getDownloadList(userInfo);
+		assertNotNull(list);
+		verify(mockBulkDownloadDao).getUsersDownloadList(userInfo.getId().toString());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDownloadListNullUser() {
+		userInfo = null;
+		// call under test
+		manager.getDownloadList(userInfo);
+	}
+	
+	@Test
+	public void testClearDownloadList() {
+		// call under test
+		DownloadList list = manager.clearDownloadList(userInfo);
+		assertNotNull(list);
+		verify(mockBulkDownloadDao).clearDownloadList(userInfo.getId().toString());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testClearDownloadListNullUser() {
+		userInfo = null;
+		// call under test
+		manager.clearDownloadList(userInfo);
+	}
+	
+	@Test
+	public void truncateAllDownloadDataForAllUsersAdmin() {
+		boolean isAdmin = true;
+		// call under test
+		manager.truncateAllDownloadDataForAllUsers(new UserInfo(isAdmin));
+		verify(mockBulkDownloadDao).truncateAllDownloadDataForAllUsers();
+	}
+
+	@Test
+	public void truncateAllDownloadDataForAllUsersNonAdmin() {
+		boolean isAdmin = false;
+		try {
+			// call under test
+			manager.truncateAllDownloadDataForAllUsers(new UserInfo(isAdmin));
+			fail();
+		} catch (UnauthorizedException e) {
+			// expected
+		}
+		verify(mockBulkDownloadDao, never()).truncateAllDownloadDataForAllUsers();
 	}
 
 	/**

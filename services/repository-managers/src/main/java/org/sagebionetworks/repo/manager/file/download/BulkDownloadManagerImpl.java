@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAO;
 import org.sagebionetworks.repo.model.file.DownloadList;
@@ -56,6 +57,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	@Override
 	public DownloadList addFilesFromFolder(UserInfo user, String folderId) {
 		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(folderId, "Folder ID");
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
 		String nextPageToken = null;
 		do {
@@ -79,7 +81,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			// continue as long as we have a next page token.
 		} while (nextPageToken != null);
 		// return the final state of the download list.
-		return bulkDownloadDao.getUsersDownloadList("" + user.getId());
+		return bulkDownloadDao.getUsersDownloadList(user.getId().toString());
 	}
 
 	/**
@@ -93,7 +95,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	 */
 	void attemptToAddFilesToUsersDownloadList(UserInfo user, List<FileHandleAssociation> toAdd) {
 		if (!toAdd.isEmpty()) {
-			DownloadList list = bulkDownloadDao.addFilesToDownloadList("" + user.getId(), toAdd);
+			DownloadList list = bulkDownloadDao.addFilesToDownloadList(user.getId().toString(), toAdd);
 			if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
 				throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
 			}
@@ -104,6 +106,8 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	@Override
 	public DownloadList addFilesFromQuery(UserInfo user, Query query)
 			throws DatastoreException, NotFoundException, TableFailedException, RecoverableMessageException {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(query, "Query");
 		try {
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
 			QueryBundleRequest queryBundle = new QueryBundleRequest();
@@ -130,7 +134,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			attemptToAddFilesToUsersDownloadList(user, toAdd);
 
 			// return the final state of the download list.
-			return bulkDownloadDao.getUsersDownloadList("" + user.getId());
+			return bulkDownloadDao.getUsersDownloadList(user.getId().toString());
 
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			// can re-try when the view becomes available.
@@ -138,6 +142,54 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public DownloadList addFileHandleAssociations(UserInfo user, List<FileHandleAssociation> toAdd) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(toAdd, "List<FileHandleAssociation>");
+		if (toAdd.isEmpty()) {
+			throw new IllegalArgumentException("Cannot add an empty list of Files.");
+		}
+		DownloadList list = bulkDownloadDao.addFilesToDownloadList(user.getId().toString(), toAdd);
+		if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
+			throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
+		}
+		return list;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public DownloadList removeFileHandleAssociations(UserInfo user, List<FileHandleAssociation> toRemove) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(toRemove, "List<FileHandleAssociation>");
+		if (toRemove.isEmpty()) {
+			throw new IllegalArgumentException("Cannot remove an empty list of Files.");
+		}
+		return bulkDownloadDao.removeFilesFromDownloadList(user.getId().toString(), toRemove);
+	}
+
+	@Override
+	public DownloadList getDownloadList(UserInfo user) {
+		ValidateArgument.required(user, "UserInfo");
+		return bulkDownloadDao.getUsersDownloadList(user.getId().toString());
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public DownloadList clearDownloadList(UserInfo user) {
+		ValidateArgument.required(user, "UserInfo");
+		return bulkDownloadDao.clearDownloadList(user.getId().toString());
+	}
+
+	@Override
+	public void truncateAllDownloadDataForAllUsers(UserInfo admin) {
+		ValidateArgument.required(admin, "UserInfo");
+		if(!admin.isAdmin()) {
+			throw new UnauthorizedException("Only an administrator may call this method");
+		}
+		this.bulkDownloadDao.truncateAllDownloadDataForAllUsers();
 	}
 
 }
