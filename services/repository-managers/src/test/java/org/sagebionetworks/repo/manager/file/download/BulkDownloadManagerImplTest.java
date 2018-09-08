@@ -24,6 +24,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -41,7 +42,9 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -82,6 +85,7 @@ public class BulkDownloadManagerImplTest {
 	EntityChildrenResponse pageOne;
 	EntityChildrenResponse pageTwo;
 
+	String tableId;
 	RowSet rowset;
 	QueryResultBundle queryResult;
 	Query query;
@@ -124,8 +128,10 @@ public class BulkDownloadManagerImplTest {
 		when(mockNodeDao.getFileHandleAssociationsForCurrentVersion(anyListOf(String.class)))
 				.thenReturn(associations.subList(0, 2), associations.subList(2, 4));
 
+		tableId = "syn123";
 		rowset = new RowSet();
 		rowset.setRows(createRows(2));
+		rowset.setTableId(tableId);
 		QueryResult qr = new QueryResult();
 		qr.setQueryResults(rowset);
 		queryResult = new QueryResultBundle();
@@ -134,7 +140,9 @@ public class BulkDownloadManagerImplTest {
 				any(QueryBundleRequest.class))).thenReturn(queryResult);
 
 		query = new Query();
-		query.setSql("select * from syn123");
+		query.setSql("select * from "+tableId);
+		
+		when(mockEntityManager.getEntityType(userInfo, tableId)).thenReturn(EntityType.entityview);
 
 	}
 
@@ -209,7 +217,7 @@ public class BulkDownloadManagerImplTest {
 		assertNotNull(list);
 		verify(mockEntityManager).getChildren(any(UserInfo.class), any(EntityChildrenRequest.class));
 		verify(mockNodeDao).getFileHandleAssociationsForCurrentVersion(anyListOf(String.class));
-		verify(mockBulkDownloadDao, never()).addFilesToDownloadList(any(String.class),
+		verify(mockBulkDownloadDao).addFilesToDownloadList(any(String.class),
 				anyListOf(FileHandleAssociation.class));
 	}
 
@@ -256,7 +264,7 @@ public class BulkDownloadManagerImplTest {
 		List<FileHandleAssociation> toAdd = new LinkedList<>();
 		// call under test
 		manager.attemptToAddFilesToUsersDownloadList(userInfo, toAdd);
-		verify(mockBulkDownloadDao, never()).addFilesToDownloadList(any(String.class),
+		verify(mockBulkDownloadDao).addFilesToDownloadList(any(String.class),
 				anyListOf(FileHandleAssociation.class));
 	}
 
@@ -289,6 +297,22 @@ public class BulkDownloadManagerImplTest {
 		assertEquals("0", association.getAssociateObjectId());
 		assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
 		assertEquals("000", association.getFileHandleId());
+	}
+	
+	@Test
+	public void testAddFilesFromQueryNotAview() throws Exception {
+		// case where the table is not a view
+		when(mockEntityManager.getEntityType(userInfo, tableId)).thenReturn(EntityType.table);
+		try {
+			// call under test
+			manager.addFilesFromQuery(userInfo, query);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals(BulkDownloadManagerImpl.FILES_CAN_ONLY_BE_ADDED_FROM_A_FILE_VIEW_QUERY, e.getMessage());
+		}
+		verify(mockTableQueryManager).queryBundle(any(ProgressCallback.class), any(UserInfo.class), any(QueryBundleRequest.class));
+		verify(mockNodeDao, never()).getFileHandleAssociationsForCurrentVersion(anyListOf(String.class));
+		verify(mockBulkDownloadDao, never()).addFilesToDownloadList(any(String.class), anyListOf(FileHandleAssociation.class));
 	}
 
 	@Test
@@ -353,11 +377,12 @@ public class BulkDownloadManagerImplTest {
 		verify(mockBulkDownloadDao).addFilesToDownloadList(userInfo.getId().toString(), toAdd);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testAddFileHandleAssociationsEmpty() {
 		List<FileHandleAssociation> toAdd = new LinkedList<>();
 		// call under test
 		manager.addFileHandleAssociations(userInfo, toAdd);
+		verify(mockBulkDownloadDao).addFilesToDownloadList(userInfo.getId().toString(), toAdd);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -398,11 +423,12 @@ public class BulkDownloadManagerImplTest {
 		verify(mockBulkDownloadDao).removeFilesFromDownloadList(userInfo.getId().toString(), toRemove);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testRemoveFileHandleAssociationsEmpty() {
 		List<FileHandleAssociation> toRemove = new LinkedList<>();
 		// call under test
 		manager.removeFileHandleAssociations(userInfo, toRemove);
+		verify(mockBulkDownloadDao).removeFilesFromDownloadList(userInfo.getId().toString(), toRemove);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

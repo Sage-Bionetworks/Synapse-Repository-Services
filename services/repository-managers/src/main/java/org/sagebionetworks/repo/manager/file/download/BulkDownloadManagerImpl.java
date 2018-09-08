@@ -35,6 +35,7 @@ import com.google.common.collect.Lists;
 
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
+	public static final String FILES_CAN_ONLY_BE_ADDED_FROM_A_FILE_VIEW_QUERY = "Files can only be added from a file view query.";
 	public static final int MAX_FILES_PER_DOWNLOAD_LIST = 100;
 	public static final long QUERY_ONLY_PART_MASK = 0x1;
 
@@ -93,13 +94,12 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	 *                                  exceeds the limit.
 	 * 
 	 */
-	void attemptToAddFilesToUsersDownloadList(UserInfo user, List<FileHandleAssociation> toAdd) {
-		if (!toAdd.isEmpty()) {
-			DownloadList list = bulkDownloadDao.addFilesToDownloadList(user.getId().toString(), toAdd);
-			if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
-				throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
-			}
+	DownloadList attemptToAddFilesToUsersDownloadList(UserInfo user, List<FileHandleAssociation> toAdd) {
+		DownloadList list = bulkDownloadDao.addFilesToDownloadList(user.getId().toString(), toAdd);
+		if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
+			throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
 		}
+		return list;
 	}
 
 	@WriteTransactionReadCommitted
@@ -120,6 +120,12 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			 */
 			query.setLimit(MAX_FILES_PER_DOWNLOAD_LIST + 1L);
 			QueryResultBundle queryResult = this.tableQueryManager.queryBundle(callback, user, queryBundle);
+			// validate this is query against a file view.
+			String tableId = queryResult.getQueryResult().getQueryResults().getTableId();
+			EntityType tableType = entityManager.getEntityType(user, tableId);
+			if (!EntityType.entityview.equals(tableType)) {
+				throw new IllegalArgumentException(FILES_CAN_ONLY_BE_ADDED_FROM_A_FILE_VIEW_QUERY);
+			}
 			List<Row> rows = queryResult.getQueryResult().getQueryResults().getRows();
 			if (rows.size() > MAX_FILES_PER_DOWNLOAD_LIST) {
 				throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
@@ -127,14 +133,11 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			// get the files handles for the resulting files
 			List<String> entityIds = new LinkedList<>();
 			for (Row row : rows) {
-				entityIds.add("" + row.getRowId());
+				entityIds.add(row.getRowId().toString());
 			}
 			// get the files handle associations for each file.
 			List<FileHandleAssociation> toAdd = nodeDoa.getFileHandleAssociationsForCurrentVersion(entityIds);
-			attemptToAddFilesToUsersDownloadList(user, toAdd);
-
-			// return the final state of the download list.
-			return bulkDownloadDao.getUsersDownloadList(user.getId().toString());
+			return attemptToAddFilesToUsersDownloadList(user, toAdd);
 
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			// can re-try when the view becomes available.
@@ -149,14 +152,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	public DownloadList addFileHandleAssociations(UserInfo user, List<FileHandleAssociation> toAdd) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(toAdd, "List<FileHandleAssociation>");
-		if (toAdd.isEmpty()) {
-			throw new IllegalArgumentException("Cannot add an empty list of Files.");
-		}
-		DownloadList list = bulkDownloadDao.addFilesToDownloadList(user.getId().toString(), toAdd);
-		if (list.getFilesToDownload().size() > MAX_FILES_PER_DOWNLOAD_LIST) {
-			throw new IllegalArgumentException(EXCEEDED_MAX_NUMBER_ROWS);
-		}
-		return list;
+		return attemptToAddFilesToUsersDownloadList(user, toAdd);
 	}
 
 	@WriteTransactionReadCommitted
@@ -164,9 +160,6 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	public DownloadList removeFileHandleAssociations(UserInfo user, List<FileHandleAssociation> toRemove) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(toRemove, "List<FileHandleAssociation>");
-		if (toRemove.isEmpty()) {
-			throw new IllegalArgumentException("Cannot remove an empty list of Files.");
-		}
 		return bulkDownloadDao.removeFilesFromDownloadList(user.getId().toString(), toRemove);
 	}
 
@@ -186,7 +179,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	@Override
 	public void truncateAllDownloadDataForAllUsers(UserInfo admin) {
 		ValidateArgument.required(admin, "UserInfo");
-		if(!admin.isAdmin()) {
+		if (!admin.isAdmin()) {
 			throw new UnauthorizedException("Only an administrator may call this method");
 		}
 		this.bulkDownloadDao.truncateAllDownloadDataForAllUsers();

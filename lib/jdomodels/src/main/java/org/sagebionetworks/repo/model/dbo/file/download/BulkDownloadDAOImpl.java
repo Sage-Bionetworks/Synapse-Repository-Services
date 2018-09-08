@@ -48,11 +48,12 @@ import com.thoughtworks.xstream.XStream;
 
 public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 
-	private static final String SQL_TRUNCATE_DOWNLOAD_ORDERS = "DELETE FROM "+TABLE_DOWNLOAD_ORDER+" WHERE "+COL_DOWNLOAD_ORDER_ID+" > 0";
+	private static final String SQL_TRUNCATE_DOWNLOAD_ORDERS = "DELETE FROM " + TABLE_DOWNLOAD_ORDER + " WHERE "
+			+ COL_DOWNLOAD_ORDER_ID + " > 0";
 
-	private static final String SQL_SELECT_DOWNLOAD_ORDER_SUMMARY = "SELECT " + COL_DOWNLOAD_ORDER_CREATED_BY + ", " + COL_DOWNLOAD_ORDER_CREATED_ON + ", "
-			+ COL_DOWNLOAD_ORDER_ID + ", " + COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES + ", "
-			+ COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB + ", " + COL_DOWNLOAD_ORDER_FILE_NAME + " FROM "
+	private static final String SQL_SELECT_DOWNLOAD_ORDER_SUMMARY = "SELECT " + COL_DOWNLOAD_ORDER_CREATED_BY + ", "
+			+ COL_DOWNLOAD_ORDER_CREATED_ON + ", " + COL_DOWNLOAD_ORDER_ID + ", " + COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES
+			+ ", " + COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB + ", " + COL_DOWNLOAD_ORDER_FILE_NAME + " FROM "
 			+ TABLE_DOWNLOAD_ORDER + " WHERE " + COL_DOWNLOAD_ORDER_CREATED_BY + " = ? ORDER BY "
 			+ COL_DOWNLOAD_ORDER_CREATED_ON + " DESC LIMIT ? OFFSET ?";
 
@@ -91,11 +92,14 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	@Override
 	public DownloadList addFilesToDownloadList(String ownerId, List<FileHandleAssociation> toAdd) {
 		ValidateArgument.required(ownerId, "ownerId");
+		ValidateArgument.required(toAdd, "ownerId");
 		long principalId = Long.parseLong(ownerId);
 		// touch the main row
 		touchUsersDownloadList(principalId);
-		List<DBODownloadListItem> itemDBOs = translateFromDTOtoDBO(principalId, toAdd);
-		basicDao.createOrUpdateBatch(itemDBOs);
+		if(!toAdd.isEmpty()) {
+			List<DBODownloadListItem> itemDBOs = translateFromDTOtoDBO(principalId, toAdd);
+			basicDao.createOrUpdateBatch(itemDBOs);
+		}
 		return getUsersDownloadList(ownerId);
 	}
 
@@ -107,21 +111,22 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		final Long ownerIdLong = Long.parseLong(ownerId);
 		// touch the main row
 		touchUsersDownloadList(ownerIdLong);
-		String deleteSQL = createDeleteSQL(toRemove.size());
-		this.jdbcTemplate.update(deleteSQL, new PreparedStatementSetter() {
+		if(!toRemove.isEmpty()) {
+			String deleteSQL = createDeleteSQL(toRemove.size());
+			this.jdbcTemplate.update(deleteSQL, new PreparedStatementSetter() {
 
-			@Override
-			public void setValues(PreparedStatement ps) throws SQLException {
-				int parameterIndex = 1;
-				for (FileHandleAssociation fas : toRemove) {
-					ps.setLong(parameterIndex++, ownerIdLong);
-					ps.setLong(parameterIndex++, Long.parseLong(fas.getAssociateObjectId()));
-					ps.setString(parameterIndex++, fas.getAssociateObjectType().name());
-					ps.setLong(parameterIndex++, Long.parseLong(fas.getFileHandleId()));
+				@Override
+				public void setValues(PreparedStatement ps) throws SQLException {
+					int parameterIndex = 1;
+					for (FileHandleAssociation fas : toRemove) {
+						ps.setLong(parameterIndex++, ownerIdLong);
+						ps.setLong(parameterIndex++, Long.parseLong(fas.getAssociateObjectId()));
+						ps.setString(parameterIndex++, fas.getAssociateObjectType().name());
+						ps.setLong(parameterIndex++, Long.parseLong(fas.getFileHandleId()));
+					}
 				}
-			}
-		});
-
+			});
+		}
 		return getUsersDownloadList(ownerId);
 	}
 
@@ -410,22 +415,20 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		ValidateArgument.required(ownerPrincipalId, "ownerPrincipalId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		return jdbcTemplate.query(
-				SQL_SELECT_DOWNLOAD_ORDER_SUMMARY,
-				new RowMapper<DownloadOrderSummary>() {
+		return jdbcTemplate.query(SQL_SELECT_DOWNLOAD_ORDER_SUMMARY, new RowMapper<DownloadOrderSummary>() {
 
-					@Override
-					public DownloadOrderSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-						DownloadOrderSummary summary = new DownloadOrderSummary();
-						summary.setCreatedBy("" + rs.getLong(COL_DOWNLOAD_ORDER_CREATED_BY));
-						summary.setCreatedOn(new Date(rs.getLong(COL_DOWNLOAD_ORDER_CREATED_ON)));
-						summary.setOrderId("" + rs.getLong(COL_DOWNLOAD_ORDER_ID));
-						summary.setTotalNumberOfFiles(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES));
-						summary.setTotalSizeMB(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB));
-						summary.setZipFileName(rs.getString(COL_DOWNLOAD_ORDER_FILE_NAME));
-						return summary;
-					}
-				}, ownerPrincipalId, limit, offset);
+			@Override
+			public DownloadOrderSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DownloadOrderSummary summary = new DownloadOrderSummary();
+				summary.setCreatedBy("" + rs.getLong(COL_DOWNLOAD_ORDER_CREATED_BY));
+				summary.setCreatedOn(new Date(rs.getLong(COL_DOWNLOAD_ORDER_CREATED_ON)));
+				summary.setOrderId("" + rs.getLong(COL_DOWNLOAD_ORDER_ID));
+				summary.setTotalNumberOfFiles(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES));
+				summary.setTotalSizeMB(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB));
+				summary.setZipFileName(rs.getString(COL_DOWNLOAD_ORDER_FILE_NAME));
+				return summary;
+			}
+		}, ownerPrincipalId, limit, offset);
 	}
 
 }

@@ -387,6 +387,22 @@ public class BulkDownloadDAOImplTest {
 	}
 	
 	@Test
+	public void testAddFilesEmptyList() {
+		// Add all of the files to this users
+		DownloadList start = bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations);
+		
+		List<FileHandleAssociation> toAdd = new LinkedList<>();
+		// call under test
+		DownloadList result = bulkDownlaodDao.addFilesToDownloadList(userOneId, toAdd);
+		assertNotNull(result);
+		assertEquals(userOneId, result.getOwnerId());
+		// etag should change even though no rows were added.
+		assertFalse(start.getEtag().equals(result.getEtag()));
+		assertNotNull(result.getUpdatedOn());
+		assertEquals(start.getFilesToDownload(), result.getFilesToDownload());
+	}
+	
+	@Test
 	public void testCreateDeleteSQL() {
 		// call under test
 		String sql = BulkDownloadDAOImpl.createDeleteSQL(2);
@@ -442,6 +458,22 @@ public class BulkDownloadDAOImplTest {
 		fileHandleAssociations = null;
 		// call under test
 		bulkDownlaodDao.removeFilesFromDownloadList(userOneId, fileHandleAssociations);
+	}
+	
+	@Test
+	public void testRemoveFilesFromDownloadListEmpty() throws InterruptedException {
+		// Add all of the files to this users
+		DownloadList start = bulkDownlaodDao.addFilesToDownloadList(userOneId, fileHandleAssociations);
+		// remove empty list.
+		List<FileHandleAssociation> toRemove = new LinkedList<>();
+		// call under test
+		DownloadList result = bulkDownlaodDao.removeFilesFromDownloadList(userOneId, toRemove);
+		assertNotNull(result);
+		// validate the etag and updated are changed
+		assertNotNull(result.getEtag());
+		assertNotNull(result.getUpdatedOn());
+		assertFalse(start.getEtag().equals(result.getEtag()));
+		assertEquals(fileHandleAssociations, result.getFilesToDownload());
 	}
 	
 	@Test
