@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Calendar;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
 
@@ -18,6 +19,10 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
  * Translates our DoiV2 object into well-formed DataCite XML.
  */
 public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslator {
+
+	private static final String VALID_ORCID_REGEX = "[0-9]{4}\\-[0-9]{4}\\-[0-9]{4}-[0-9]{3}[0-9, X]";
+	private static final String VALID_ORCID_DESCRIPTION = "ORCID IDs must be 16 digits, separated into 4 chunks of 4 digits by dashes.";
+	static Pattern ORCID_PARSER = Pattern.compile(VALID_ORCID_REGEX);
 
 	public String translate(DataciteMetadata metadata, final String doiUri) {
 		return translateUtil(metadata, doiUri);
@@ -177,8 +182,8 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 	}
 
 	static void validateOrcidId(String orcidId) {
-		if (!orcidId.matches("[0-9]{4}\\-[0-9]{4}\\-[0-9]{4}-[0-9]{3}[0-9, X]")) {
-			throw new IllegalArgumentException("ORCID IDs must be 16 digits, separated into 4 chunks of 4 digits by dashes.");
+		if (!ORCID_PARSER.matcher(orcidId).matches()) {
+			throw new IllegalArgumentException(VALID_ORCID_DESCRIPTION);
 		}
 		String strippedOrcidId = orcidId.replaceAll("\\-", "");
 		String actualCheckDigit = strippedOrcidId.substring(15,16);
