@@ -14,7 +14,6 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
-import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -75,15 +74,6 @@ public class EntityBundleTest {
 		DoiAssociation retrieved = entityBundle.getDoiAssociation();
 		assertNotNull("Doi was set / should not be null", retrieved);
 		assertTrue("Set/Retrieved doi do not match original", retrieved.equals(doi));
-	}
-
-	@Test
-	public void testAddDoiMetadata() {
-		DataciteMetadata metadata = new org.sagebionetworks.repo.model.doi.v2.Doi();
-		entityBundle.setDoiMetadata(metadata);
-		DoiAssociation retrieved = entityBundle.getDoiAssociation();
-		assertNotNull("Doi was set / should not be null", retrieved);
-		assertTrue("Set/Retrieved doi do not match original", retrieved.equals(metadata));
 	}
 	
 	@Test
@@ -206,9 +196,6 @@ public class EntityBundleTest {
 		doiAssociation.setObjectId("syn456");
 		doiAssociation.setObjectId("1");
 
-		DataciteMetadata doiMetadata = new org.sagebionetworks.repo.model.doi.v2.Doi();
-		doiMetadata.setPublicationYear(2000L);
-
 		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
 		entityBundle.setPermissions(permissions);
@@ -224,7 +211,6 @@ public class EntityBundleTest {
 		entityBundle.setRootWikiId("9876");
 		entityBundle.setDoi(doi);
 		entityBundle.setDoiAssociation(doiAssociation);
-		entityBundle.setDoiMetadata(doiMetadata);
 		entityBundle.setFileName("foo.txt");
 		
 		return entityBundle;

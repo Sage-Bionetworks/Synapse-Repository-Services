@@ -283,22 +283,6 @@ public class EntityBundleServiceImplTest {
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoiAssociation());
-		assertNull(bundle.getDoiMetadata());
-	}
-
-	@Test
-	public void testDoiMetadata() throws Exception {
-		String entityId = "syn123";
-		int mask = EntityBundle.DOI;
-		org.sagebionetworks.repo.model.doi.v2.Doi doi = new org.sagebionetworks.repo.model.doi.v2.Doi();
-		doi.setObjectType(ObjectType.ENTITY);
-		doi.setObjectId(entityId);
-		doi.setObjectVersion(null);
-		when(mockDoiServiceV2.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenReturn(doi);
-		// Call under test
-		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
-		assertNotNull(bundle);
-		assertEquals(doi, bundle.getDoiMetadata());
 	}
 
 	@Test
@@ -310,7 +294,6 @@ public class EntityBundleServiceImplTest {
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertNull(bundle.getDoiAssociation());
-		assertNull(bundle.getDoiMetadata());
 	}
 	
 	@Test

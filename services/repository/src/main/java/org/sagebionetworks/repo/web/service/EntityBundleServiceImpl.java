@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -40,7 +39,6 @@ import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EntityBundleServiceImpl implements EntityBundleService {
@@ -189,22 +187,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if((mask & EntityBundle.DOI) > 0 ){
 			try {
-				org.sagebionetworks.repo.model.doi.v2.Doi doi = null;
-				try {
-					doi = serviceProvider.getDoiServiceV2().getDoi(userId, entityId, ObjectType.ENTITY, versionNumber);
-					// Able to retrieve the association and the metadata (all data is in this object)
-					eb.setDoiAssociation(doi);
-					eb.setDoiMetadata(doi);
-				} catch (ServiceUnavailableException e) {
-					DoiAssociation association = serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, versionNumber);
-					// Able to retrieve the association but not the metadata
-					eb.setDoiAssociation(association);
-					eb.setDoiMetadata(null);
-				}
+				eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, versionNumber));
 			} catch (NotFoundException e) {
 				// does not exist
 				eb.setDoiAssociation(null);
-				eb.setDoiMetadata(null);
 			}
 		}
 		if((mask & EntityBundle.FILE_NAME) > 0 && (entity instanceof FileEntity)){

@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleInstanceFactory;
@@ -66,7 +65,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_ROOT_WIKI_ID = "rootWikiId";
 	public static final String JSON_DOI = "doi";
 	public static final String JSON_DOI_ASSOCIATION = "doiAssociation";
-	public static final String JSON_DOI_METADATA = "doiMetadata";
 	public static final String JSON_FILE_NAME = "fileName";
 	public static final String JSON_THREAD_COUNT = "threadCount";
 	public static final String JSON_RESTRICTION_INFORMATION = "restrictionInformation";
@@ -87,7 +85,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private AccessControlList benefactorAcl;
 	private Doi doi;
 	private DoiAssociation doiAssociation;
-	private DataciteMetadata doiMetadata;
 	private String fileName;
 	private Long threadCount;
 	private RestrictionInformationResponse restrictionInformation;
@@ -217,12 +214,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (doiAssociation == null)
 				doiAssociation = new DoiAssociation();
 			doiAssociation.initializeFromJSONObject(joa);
-		}
-		if(toInitFrom.has(JSON_DOI_METADATA)){
-			JSONObjectAdapter joa = toInitFrom.getJSONObject(JSON_DOI_METADATA);
-			if (doiMetadata == null)
-				doiMetadata = new org.sagebionetworks.repo.model.doi.v2.Doi();
-			doiMetadata.initializeFromJSONObject(joa);
 		}
 		if(toInitFrom.has(JSON_FILE_NAME)){
 			fileName = toInitFrom.getString(JSON_FILE_NAME);
@@ -453,14 +444,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 
 	/**
 	 *
-	 * Get the DOI Metadata associated with this entity.
-	 */
-	public DataciteMetadata getDoiMetadata() {
-		return doiMetadata;
-	}
-
-	/**
-	 *
 	 * Set the doi associated with this entity.
 	 */
 	@Deprecated
@@ -474,14 +457,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 	 */
 	public void setDoiAssociation(org.sagebionetworks.repo.model.doi.v2.DoiAssociation doiAssociation) {
 		this.doiAssociation = doiAssociation;
-	}
-
-	/**
-	 *
-	 * Set the DOI Metadata associated with this entity.
-	 */
-	public void setDoiMetadata(DataciteMetadata doiMetadata) {
-		this.doiMetadata = doiMetadata;
 	}
 
 	/**
