@@ -29,10 +29,10 @@ public class ITUnsupportedMethodTest {
 	}
 
 	@Test
-	public void testUnsupportedMethodResponse() throws Exception {
+	public void testUnsupportedMethodWrongVerb() throws Exception {
 		// For more info, see PLFM-3574
 		SimpleHttpRequest invalidMethodRequest = new SimpleHttpRequest();
-		// Create a request that doesn't exist (POST /version)
+		// Create a request that exists, but use the wrong verb (POST /version)
 		invalidMethodRequest.setUri(synapse.getRepoEndpoint() + UrlHelpers.VERSION);
 
 		// Call under test
@@ -40,4 +40,14 @@ public class ITUnsupportedMethodTest {
 		assertEquals(HttpStatus.METHOD_NOT_ALLOWED.value(), response.getStatusCode());
 	}
 
+	@Test
+	public void testUnsupportedMethodCallUnknownUri() throws Exception {
+		SimpleHttpRequest invalidMethodRequest = new SimpleHttpRequest();
+		// Create a request that doesn't exist with any verb
+		invalidMethodRequest.setUri(synapse.getRepoEndpoint() + "nonsenserequest");
+
+		// Call under test
+		SimpleHttpResponse response = simpleHttpClient.get(invalidMethodRequest);
+		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatusCode());
+	}
 }
