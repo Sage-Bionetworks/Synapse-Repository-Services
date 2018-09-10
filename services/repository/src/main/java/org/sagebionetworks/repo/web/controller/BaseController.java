@@ -46,6 +46,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -804,6 +805,14 @@ public abstract class BaseController {
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);
+	}
+
+	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+	@ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+	public @ResponseBody
+	ErrorResponse handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
+													HttpServletRequest request) {
+		return handleException(ex.getCause(), request, true);
 	}
 
 	@ExceptionHandler(UnexpectedRollbackException.class)
