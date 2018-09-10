@@ -6,7 +6,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -33,7 +32,7 @@ public class ITUnsupportedMethodTest {
 		// For more info, see PLFM-3574
 		SimpleHttpRequest invalidMethodRequest = new SimpleHttpRequest();
 		// Create a request that exists, but use the wrong verb (POST /version)
-		invalidMethodRequest.setUri(synapse.getRepoEndpoint() + UrlHelpers.VERSION);
+		invalidMethodRequest.setUri(synapse.getRepoEndpoint() + "/version");
 
 		// Call under test
 		SimpleHttpResponse response = simpleHttpClient.post(invalidMethodRequest, "body");
