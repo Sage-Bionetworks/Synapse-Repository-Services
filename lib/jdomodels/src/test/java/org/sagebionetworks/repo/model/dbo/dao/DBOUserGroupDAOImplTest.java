@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -148,8 +149,8 @@ public class DBOUserGroupDAOImplTest {
 		// Call under test
 		try {
 			userGroupDAO.delete(groupId.toString());
-			fail("Expected IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
+			fail("Expected DataIntegrityViolationException");
+		} catch (DataIntegrityViolationException  e) {
 			// as expected
 		}
 	}

@@ -76,6 +76,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 
 
 /**
@@ -413,10 +414,10 @@ public class TeamManagerImpl implements TeamManager {
 		teamDAO.delete(id);
 		try {
 			userGroupDAO.delete(id);
-		} catch (IllegalArgumentException e) {
+		} catch (DataIntegrityViolationException e) {
 			throw new IllegalArgumentException("Can't delete the team " + teamToDelete.getName() +
-					" (ID: " + id + ") because it is referenced by a submission, or an entity is shared with it. " +
-					"Remove the reference or unshare the entity to delete the team." , e);
+					" (ID: " + id + "), most likely because it is referenced by a submission, or an entity is shared with it. " +
+					"Contact the administrator of the submission queue to delete the submission, or unshare the entity." , e);
 		}
 	}
 	
