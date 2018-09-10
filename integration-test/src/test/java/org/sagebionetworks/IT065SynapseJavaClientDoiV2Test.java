@@ -53,6 +53,7 @@ public class IT065SynapseJavaClientDoiV2Test {
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		SynapseClientHelper.setEndpoints(synapse);
 
 		entity = new Project();
 		entity.setName("IT065SynapseJavaClientDoiV2Test" + UUID.randomUUID());
