@@ -19,10 +19,10 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
+import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**
  * This table tracks alias that uniquely identify principals.
@@ -87,7 +87,29 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 
 	@Override
 	public MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOPrincipalAlias>();
+		return new MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias>() {
+			@Override
+			public DBOPrincipalAlias createDatabaseObjectFromBackup(DBOPrincipalAlias backup) {
+				DBOPrincipalAlias dbo = new DBOPrincipalAlias();
+				if (backup.getAliasType().equals(AliasEnum.USER_ORCID) && backup.getAliasDisplay().toLowerCase().startsWith("http:")) {
+					dbo.setAliasDisplay("https:"+backup.getAliasDisplay().substring("http:".length()));
+					dbo.setAliasUnique(AliasUtils.getUniqueAliasName(dbo.getAliasDisplay()));
+				} else {
+					dbo.setAliasDisplay(backup.getAliasDisplay());
+					dbo.setAliasUnique(backup.getAliasUnique());
+				}
+				dbo.setAliasType(backup.getAliasType()); 
+				dbo.setEtag(backup.getEtag());
+				dbo.setId(backup.getId());
+				dbo.setPrincipalId(backup.getPrincipalId());
+				dbo.setValidated(backup.getValidated());
+				return dbo;
+			}
+			@Override
+			public DBOPrincipalAlias createBackupFromDatabaseObject(DBOPrincipalAlias dbo) {
+				return dbo;
+			}
+		};
 	}
 
 	@Override
