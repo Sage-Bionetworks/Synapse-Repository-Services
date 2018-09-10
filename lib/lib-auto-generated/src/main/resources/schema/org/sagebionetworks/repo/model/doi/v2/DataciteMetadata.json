@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for a DOI and its metadata.",
+	"description": "JSON schema for metadata that is submitted to DataCite and can later be retrieved via DOI in Synapse, with the DataCite REST API, or with external citation services.",
 	"type": "interface",
 	"properties": {
 		"creators":{
@@ -23,21 +23,6 @@
 		"resourceType": {
 			"description": "Required. Describes the type of media that the DOI Metadata refers to.",
 			"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiResourceType"
-		},
-		"status": {
-			"name": "DataciteRegistrationStatus",
-			"type":"string",
-			"description":"Optional. If \"FINDABLE\", the resource will be catalogued by DataCite. If \"REGISTERED\", the resource will be accessible only via the DOI. Default: FINDABLE",
-			"enum": [
-				{
-					"name": "FINDABLE",
-					"description": "Findable DOIs are registered with the global handle system just like Registered DOIs, but they are also indexed in DataCite Search. Findable DOIs may be updated to Registered DOIs. This means that they will no longer be indexed by DataCite Search."
-				},
-				{
-					"name": "REGISTERED",
-					"description": "Registered DOIs are registered with the global handle system, but they are not indexed in DataCite Search. Registered DOIs may be updated to Findable DOIs, at which point they will be indexed in DataCite Search."
-				}
-			]
 		}
 	}
 }

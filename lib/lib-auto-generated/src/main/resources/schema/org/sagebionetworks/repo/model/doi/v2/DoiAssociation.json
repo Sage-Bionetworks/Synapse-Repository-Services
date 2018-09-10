@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for all fields associated with a DOI.",
+	"description": "JSON schema for all fields that associate a Synapse object with a DOI. The objectId and objectType are required to create or mint a DOI in all circumstances.",
 	"type":"object",
 	"properties": {
 		"associationId": {
@@ -8,7 +8,7 @@
 		},
 		"etag": {
 			"type": "string",
-			"description": "For Optimistic Concurrency Control (OCC)."
+			"description": "For Optimistic Concurrency Control (OCC). Required to successfully update a DOI."
 		},
 		"doiUri": {
 			"description": "The unique URI of this DOI to which the resource can be resolved. Provided by Synapse.",
@@ -31,22 +31,22 @@
 			"type": "integer"
 		},
 		"associatedBy": {
-			"description": "The ID of the user that creates this DOI.",
+			"description": "The ID of the user that creates this DOI. Provided by Synapse.",
 			"type": "string"
 		},
 		"associatedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date time this DOI is first created."
+			"description": "The date time this DOI is first created. Provided by Synapse."
 		},
 		"updatedBy": {
-			"description": "The ID of the user that last updated this DOI.",
+			"description": "The ID of the user that last updated this DOI. Provided by Synapse.",
 			"type": "string"
 		},
 		"updatedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date time this DOI is last updated."
+			"description": "The date time this DOI is last updated. Provided by Synapse."
 		}
 	}
 }

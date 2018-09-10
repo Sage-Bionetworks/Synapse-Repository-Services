@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleInstanceFactory;
 import org.sagebionetworks.repo.model.table.TableBundle;
@@ -63,6 +64,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_TABLE_DATA = "tableBundle";
 	public static final String JSON_ROOT_WIKI_ID = "rootWikiId";
 	public static final String JSON_DOI = "doi";
+	public static final String JSON_DOI_ASSOCIATION = "doiAssociation";
 	public static final String JSON_FILE_NAME = "fileName";
 	public static final String JSON_THREAD_COUNT = "threadCount";
 	public static final String JSON_RESTRICTION_INFORMATION = "restrictionInformation";
@@ -82,6 +84,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private String rootWikiId;
 	private AccessControlList benefactorAcl;
 	private Doi doi;
+	private DoiAssociation doiAssociation;
 	private String fileName;
 	private Long threadCount;
 	private RestrictionInformationResponse restrictionInformation;
@@ -205,6 +208,12 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (doi == null) 
 				doi = new Doi();
 			doi.initializeFromJSONObject(joa);
+		}
+		if(toInitFrom.has(JSON_DOI_ASSOCIATION)){
+			JSONObjectAdapter joa = toInitFrom.getJSONObject(JSON_DOI_ASSOCIATION);
+			if (doiAssociation == null)
+				doiAssociation = new DoiAssociation();
+			doiAssociation.initializeFromJSONObject(joa);
 		}
 		if(toInitFrom.has(JSON_FILE_NAME)){
 			fileName = toInitFrom.getString(JSON_FILE_NAME);
@@ -419,16 +428,35 @@ public class EntityBundle implements JSONEntity, Serializable {
 	 * 
 	 * Get the doi associated with this entity.
 	 */
+	@Deprecated
 	public Doi getDoi() {
 		return doi;
 	}
 
+
 	/**
-	 * 
+	 *
+	 * Get the DOI Association associated with this entity.
+	 */
+	public org.sagebionetworks.repo.model.doi.v2.DoiAssociation getDoiAssociation() {
+		return doiAssociation;
+	}
+
+	/**
+	 *
 	 * Set the doi associated with this entity.
 	 */
+	@Deprecated
 	public void setDoi(Doi doi) {
 		this.doi = doi;
+	}
+
+	/**
+	 *
+	 * Set the DOI association associated with this entity.
+	 */
+	public void setDoiAssociation(org.sagebionetworks.repo.model.doi.v2.DoiAssociation doiAssociation) {
+		this.doiAssociation = doiAssociation;
 	}
 
 	/**

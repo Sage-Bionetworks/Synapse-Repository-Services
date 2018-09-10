@@ -29,13 +29,14 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
-import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -59,7 +60,6 @@ public class DoiManagerImplTest {
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 
-
 	private static final String baseUrl = "https://syn.org/test/";
 	private static final String repoEndpoint = "https://prod-base.sagetest.gov/repo/v3";
 
@@ -78,6 +78,7 @@ public class DoiManagerImplTest {
 	private static final String author = "Washington, George";
 	private static final Long publicationYear = 1787L;
 	private static final DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
+	private static final String orcid = "123-456-0000";
 
 	@Before
 	public void before() {
@@ -148,7 +149,6 @@ public class DoiManagerImplTest {
 		assertEquals(actualResponse.getTitles(), metadata.getTitles());
 		assertEquals(actualResponse.getPublicationYear(), metadata.getPublicationYear());
 		assertEquals(actualResponse.getResourceType(), metadata.getResourceType());
-		assertEquals(actualResponse.getStatus(), metadata.getStatus());
 	}
 
 	@Test(expected = ServiceUnavailableException.class)
@@ -290,36 +290,11 @@ public class DoiManagerImplTest {
 	public void testCreateOrUpdateMetadata() throws Exception {
 		inputDto.setDoiUri(doiUri);
 		inputDto.setDoiUrl(doiUrl);
-		inputDto.setStatus(DataciteRegistrationStatus.FINDABLE);
 		// Call under test
 		doiManager.createOrUpdateDataciteMetadata(inputDto);
 		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
 		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
 		verify(mockDataciteClient, never()).deactivate(any(String.class));
-	}
-
-	@Test
-	public void testCreateOrUpdateMetadataNullStatus() throws Exception {
-		inputDto.setDoiUri(doiUri);
-		inputDto.setDoiUrl(doiUrl);
-		inputDto.setStatus(null);
-		// Call under test
-		doiManager.createOrUpdateDataciteMetadata(inputDto);
-		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
-		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
-		verify(mockDataciteClient, never()).deactivate(any(String.class));
-	}
-
-	@Test
-	public void testCreateMetadataAndDeactivate() throws Exception {
-		inputDto.setDoiUri(doiUri);
-		inputDto.setDoiUrl(doiUrl);
-		inputDto.setStatus(DataciteRegistrationStatus.REGISTERED);
-		// Call under test
-		doiManager.createOrUpdateDataciteMetadata(inputDto);
-		verify(mockDataciteClient).registerMetadata(inputDto, doiUri);
-		verify(mockDataciteClient).registerDoi(doiUri, doiUrl);
-		verify(mockDataciteClient).deactivate(doiUri);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -533,7 +508,6 @@ public class DoiManagerImplTest {
 		DoiResourceType doiResourceType = new DoiResourceType();
 		doiResourceType.setResourceTypeGeneral(resourceTypeGeneral);
 		metadata.setResourceType(doiResourceType);
-		metadata.setStatus(DataciteRegistrationStatus.FINDABLE);
 
 		DoiAssociation doi = new Doi();
 		doi.setAssociationId("43210");
@@ -566,8 +540,6 @@ public class DoiManagerImplTest {
 		assertEquals(metadata.getTitles(), expected.getTitles());
 		assertEquals(metadata.getResourceType(), expected.getResourceType());
 		assertEquals(metadata.getPublicationYear(), expected.getPublicationYear());
-		assertEquals(metadata.getStatus(), expected.getStatus());
-
 	}
 
 	/**
@@ -586,6 +558,10 @@ public class DoiManagerImplTest {
 			// Required metadata fields
 			DoiCreator doiCreator = new DoiCreator();
 			doiCreator.setCreatorName(author);
+			DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
+			nameIdentifier.setIdentifier(orcid);
+			nameIdentifier.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
+			doiCreator.setNameIdentifiers(Collections.singletonList(nameIdentifier));
 			dto.setCreators(Collections.singletonList(doiCreator));
 
 			DoiTitle doiTitle = new DoiTitle();

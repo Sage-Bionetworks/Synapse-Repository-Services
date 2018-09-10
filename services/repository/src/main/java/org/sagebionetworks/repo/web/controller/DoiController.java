@@ -116,7 +116,7 @@ public class DoiController extends BaseController {
 	/**
 	 * Retrieves the DOI for the object and its associated DOI metadata.
 	 * Note: this call calls an external API, which may impact performance
-	 * To just retrieve the DOI, see {@link #getDoiAssociation}
+	 * To just retrieve the DOI association, see: <a href="${GET.doi.association}">GET /doi/association</a>
 	 * @param userId The ID of the user making the call
 	 * @param objectId The ID of the object to retrieve
 	 * @param objectType The type of the object
@@ -139,7 +139,7 @@ public class DoiController extends BaseController {
 	/**
 	 * Retrieves the DOI for the object.
 	 * Note: this call only retrieves the DOI association, if it exists. To retrieve the metadata for the object,
-	 * see {@link #getDoiV2 }
+	 * see <a href="${GET.doi}">GET /doi</a>
 	 * @param userId The ID of the user making the call
 	 * @param objectId The ID of the object to retrieve
 	 * @param objectType The type of the object
@@ -160,7 +160,9 @@ public class DoiController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously creates or updates a DOI in Synapse, with input metadata.
+	 * Asynchronously creates or updates a DOI in Synapse, with input metadata. Retrieve the results with
+	 * <a href="${GET.doi.async.get.asyncToken}">GET /doi/async/get/{asyncToken}</a>. This call may fail if the external
+	 * DataCite API is down. If the failure is recoverable, it will retry automatically.
 	 * @param userId The ID of the user making the call
 	 * @param request A request containing a DOI and its metadata to associate with a Synapse object
 	 * @return The asynchronous job ID
@@ -181,7 +183,7 @@ public class DoiController extends BaseController {
 	}
 
 	/**
-	 * Get the results of a call to {@link #startCreateOrUpdateDoi}
+	 * Get the results of a call to <a href="${POST.doi.async.start}">POST /doi/async/start</a>
 	 * @param userId The ID of the user making the call
 	 * @param asyncToken The async job token from the create/update call
 	 * @return The results of the call

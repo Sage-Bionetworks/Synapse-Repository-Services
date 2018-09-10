@@ -6,7 +6,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -184,6 +183,14 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			} catch (NotFoundException e) {
 				// does not exist
 				eb.setDoi(null);
+			}
+		}
+		if((mask & EntityBundle.DOI) > 0 ){
+			try {
+				eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, versionNumber));
+			} catch (NotFoundException e) {
+				// does not exist
+				eb.setDoiAssociation(null);
 			}
 		}
 		if((mask & EntityBundle.FILE_NAME) > 0 && (entity instanceof FileEntity)){

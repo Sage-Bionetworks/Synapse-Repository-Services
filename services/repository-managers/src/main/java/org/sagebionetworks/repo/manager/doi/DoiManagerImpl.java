@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
-import org.sagebionetworks.repo.model.doi.v2.DataciteRegistrationStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -118,16 +117,10 @@ public class DoiManagerImpl implements DoiManager {
 		if (dto.getDoiUrl() == null) {
 			throw new IllegalArgumentException("DOI URL cannot be null");
 		}
-		if (dto.getStatus() == null) { // null status defaults to FINDABLE
-			dto.setStatus(DataciteRegistrationStatus.FINDABLE);
-		}
 
 		try {
 			dataciteClient.registerMetadata(dto, dto.getDoiUri());
 			dataciteClient.registerDoi(dto.getDoiUri(), dto.getDoiUrl());
-			if (dto.getStatus() == DataciteRegistrationStatus.REGISTERED) {
-				dataciteClient.deactivate(dto.getDoiUri());
-			}
 			return dataciteClient.get(dto.getDoiUri());
 		} catch (NotReadyException | ServiceUnavailableException e) {
 			/*
@@ -216,7 +209,6 @@ public class DoiManagerImpl implements DoiManager {
 		doi.setCreators(metadata.getCreators());
 		doi.setPublicationYear(metadata.getPublicationYear());
 		doi.setResourceType(metadata.getResourceType());
-		doi.setStatus(metadata.getStatus());
 		doi.setTitles(metadata.getTitles());
 		// Copy from association
 		doi.setAssociationId(association.getAssociationId());

@@ -2,6 +2,7 @@ package org.sagebionetworks.doi.worker;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -82,12 +83,14 @@ public class DoiWorkerTest {
 		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
 		when(mockDoiManager.createOrUpdateDoi(adminUser, request.getDoi())).thenThrow(new RecoverableMessageException());
-		try {
+		try { // Call under test
 			doiWorker.run(null, message);
 			fail();
 		} catch(RecoverableMessageException e) {
 			// As expected.
 		}
+		verify(mockAsyncMgr, never()).setJobFailed(any(String.class), any(Throwable.class));
+		verify(mockAsyncMgr, never()).setComplete(any(String.class), any(DoiResponse.class));
 	}
 
 	@Test
