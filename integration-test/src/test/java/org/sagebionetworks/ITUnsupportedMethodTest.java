@@ -37,7 +37,7 @@ public class ITUnsupportedMethodTest {
 
 		// Call under test
 		SimpleHttpResponse response = simpleHttpClient.post(invalidMethodRequest, "body");
-		assertEquals(response.getStatusCode(), HttpStatus.METHOD_NOT_ALLOWED.value());
+		assertEquals(HttpStatus.METHOD_NOT_ALLOWED.value(), response.getStatusCode());
 	}
 
 }

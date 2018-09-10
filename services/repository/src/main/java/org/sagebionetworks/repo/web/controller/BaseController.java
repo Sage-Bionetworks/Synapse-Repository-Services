@@ -465,6 +465,24 @@ public abstract class BaseController {
 		return handleException(ex, request, false);
 	}
 
+
+	/**
+	 * PLFM-3574 -- throw a 400-level error when a client uses the wrong verb on
+	 * an existing call
+	 * @param ex the exception thrown by Spring when a method is called that isn't supported
+	 * @param request the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+	@ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+	public @ResponseBody
+	ErrorResponse handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
+															   HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
+
+
 	/**
 	 * Haven't been able to get this one to happen yet
 	 * 
@@ -807,13 +825,6 @@ public abstract class BaseController {
 		return handleException(ex, request, false);
 	}
 
-	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-	@ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
-	public @ResponseBody
-	ErrorResponse handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
-													HttpServletRequest request) {
-		return handleException(ex.getCause(), request, true);
-	}
 
 	@ExceptionHandler(UnexpectedRollbackException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
