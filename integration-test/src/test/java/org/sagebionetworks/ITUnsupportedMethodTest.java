@@ -24,6 +24,7 @@ public class ITUnsupportedMethodTest {
 	@BeforeClass
 	public static void beforeClass() {
 		synapse = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapse);
 		simpleHttpClient = new SimpleHttpClientImpl();
 	}
 
