@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -23,6 +24,9 @@ import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileResult;
@@ -45,6 +49,7 @@ import com.google.common.collect.Lists;
 
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
+	public static final String ONLY_THE_OWNER_MAY_GET_A_DOWNLOAD_ORDER = "Only the owner may get a DownloadOrder";
 	public static final String COULD_NOT_DOWNLOAD_ANY_FILES_FROM_THE_DOWNLOAD_LIST = "Could not download any files from the download list.";
 	public static final String THE_DOWNLOAD_LIST_IS_EMPTY = "The download list is empty";
 	public static final String FILES_CAN_ONLY_BE_ADDED_FROM_A_FILE_VIEW_QUERY = "Files can only be added from a file view query.";
@@ -208,6 +213,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	@Override
 	public DownloadOrder createDownloadOrder(UserInfo user, String zipFileName) {
 		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(zipFileName, "zipFileName");
 		// get the user's current download using the blocking 'FOR UPDATE'.
 		DownloadList downloadList = this.bulkDownloadDao.getUsersDownloadListForUpdate(user.getId().toString());
 		if (downloadList.getFilesToDownload().isEmpty()) {
@@ -229,14 +235,14 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	}
 
 	/**
-	 * Helper to build a Download from the full list of files on the user's
-	 * and the file sizes of the files the user has permission to download.
+	 * Helper to build a Download from the full list of files on the user's and the
+	 * file sizes of the files the user has permission to download.
 	 * 
 	 * @param user
 	 * @param fullList              All of the files on the user's download list.
 	 * @param downloadableFileSizes The sizes of the files the user has permission
 	 *                              to download.
-	 * @param zipFileName The name of the resulting ZIP file.
+	 * @param zipFileName           The name of the resulting ZIP file.
 	 * @return
 	 */
 	static DownloadOrder buildDownloadOrderUnderSizeLimit(UserInfo user, List<FileHandleAssociation> fullList,
@@ -300,6 +306,30 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			}
 		}
 		return downloadableFileSizes;
+	}
+
+	@Override
+	public DownloadOrderSummaryResponse getDownloadHistory(UserInfo user, DownloadOrderSummaryRequest request) {
+		ValidateArgument.required(user, "User");
+		ValidateArgument.required(request, "DownloadOrderSummaryRequest");
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		List<DownloadOrderSummary> page = this.bulkDownloadDao.getUsersDownloadOrders(user.getId().toString(),
+				token.getLimit(), token.getOffset());
+		DownloadOrderSummaryResponse response = new DownloadOrderSummaryResponse();
+		response.setPage(page);
+		response.setNextPageToken(token.getNextPageTokenForCurrentResults(page));
+		return response;
+	}
+
+	@Override
+	public DownloadOrder getDownloadOrder(UserInfo user, String orderId) {
+		ValidateArgument.required(user, "User");
+		ValidateArgument.required(orderId, "OrderId");
+		DownloadOrder order = this.bulkDownloadDao.getDownloadOrder(orderId);
+		if(!user.getId().toString().equals(order.getCreatedBy())) {
+			throw new UnauthorizedException(ONLY_THE_OWNER_MAY_GET_A_DOWNLOAD_ORDER);
+		}
+		return order;
 	}
 
 }

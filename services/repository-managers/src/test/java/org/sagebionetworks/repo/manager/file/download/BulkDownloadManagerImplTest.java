@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -39,6 +40,9 @@ import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -111,6 +115,8 @@ public class BulkDownloadManagerImplTest {
 
 	List<FileHandleAssociation> fullList;
 	String zipFileName;
+	
+	DownloadOrder downloadOrder;
 
 	@Before
 	public void before() throws Exception {
@@ -188,6 +194,11 @@ public class BulkDownloadManagerImplTest {
 		zipFileName = "theZip.zip";
 		
 		when(mockBulkDownloadDao.createDownloadOrder(any(DownloadOrder.class))).thenReturn(new DownloadOrder());
+		
+		downloadOrder = new DownloadOrder();
+		downloadOrder.setCreatedBy(userInfo.getId().toString());
+		downloadOrder.setOrderId("123");
+		when(mockBulkDownloadDao.getDownloadOrder(any(String.class))).thenReturn(downloadOrder);
 	}
 
 	@Test
@@ -748,6 +759,99 @@ public class BulkDownloadManagerImplTest {
 		}
 		verify(mockBulkDownloadDao, never()).removeFilesFromDownloadList(any(String.class), anyListOf(FileHandleAssociation.class));
 		verify(mockBulkDownloadDao, never()).createDownloadOrder(any(DownloadOrder.class));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateDownloadOrderNullUser() {
+		userInfo = null;
+		// call under test
+		manager.createDownloadOrder(userInfo, zipFileName);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateDownloadOrderNullFileName() {
+		zipFileName = null;
+		// call under test
+		manager.createDownloadOrder(userInfo, zipFileName);
+	}
+	
+	@Test
+	public void testGetDownloadHistory() {
+		int pageSize = (int)NextPageToken.DEFAULT_LIMIT+1;
+		List<DownloadOrderSummary> page = buildSummary(pageSize);
+		when(mockBulkDownloadDao.getUsersDownloadOrders(any(String.class), any(Long.class), any(Long.class))).thenReturn(page);
+		DownloadOrderSummaryRequest request = new DownloadOrderSummaryRequest();
+		request.setNextPageToken(null);
+		// call under test
+		DownloadOrderSummaryResponse response = manager.getDownloadHistory(userInfo, request);
+		assertNotNull(response);
+		assertNotNull(response.getNextPageToken());
+		assertNotNull(response.getPage());
+		// last row is removed to single a next page token.
+		assertEquals(pageSize-1, response.getPage().size());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDownloadHistoryNullUser() {
+		DownloadOrderSummaryRequest request = new DownloadOrderSummaryRequest();
+		userInfo = null;
+		// call under test
+		manager.getDownloadHistory(userInfo, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDownloadHistoryNullRequest() {
+		DownloadOrderSummaryRequest request = null;
+		// call under test
+		manager.getDownloadHistory(userInfo, request);
+	}
+	
+	@Test
+	public void testGetDownloadOrder() {
+		String orderId = "123";
+		// call under test
+		DownloadOrder result = manager.getDownloadOrder(userInfo, orderId);
+		assertEquals(downloadOrder, result);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetDownloadOrderUnauthorized() {
+		// order created by another.
+		downloadOrder.setCreatedBy(userInfo.getId().toString()+"1");
+		String orderId = "123";
+		// call under test
+		manager.getDownloadOrder(userInfo, orderId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDownloadOrderNullOrderId() {
+		String orderId = null;
+		// call under test
+		manager.getDownloadOrder(userInfo, orderId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDownloadOrderNullUser() {
+		String orderId = "123";
+		userInfo = null;
+		// call under test
+		manager.getDownloadOrder(userInfo, orderId);
+	}
+	
+	/**
+	 * Helper to build List<DownloadOrderSummary> of a given size.
+	 * 
+	 * @param size
+	 * @return
+	 */
+	static List<DownloadOrderSummary> buildSummary(int size){
+		List<DownloadOrderSummary> result = new LinkedList<>();
+		for(int i=0; i<size; i++) {
+			DownloadOrderSummary summary = new DownloadOrderSummary();
+			summary.setOrderId(""+i);
+			result.add(summary);
+		}
+		return result;
 	}
 
 	/**
