@@ -8,8 +8,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +19,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -39,7 +38,6 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.sqs.model.Message;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -124,8 +122,7 @@ public class TableCSVDownloadWorkerTest {
 		
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setId("8888");
-		when(mockFileHandleManager.multipartUploadLocalFile(any(UserInfo.class), any(File.class), any(String.class),
-				any(ProgressListener.class))).thenReturn(fileHandle);
+		when(mockFileHandleManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(fileHandle);
 
 	}
 

@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -130,13 +131,13 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			if(fileIdsInZip.size() > 0){
 				// upload the result file to S3
 				S3FileHandle resultHandle = bulkDownloadManager
-						.multipartUploadLocalFile(user, tempResultFile,
-								APPLICATION_ZIP, new ProgressListener() {
+						.multipartUploadLocalFile(new LocalFileUploadRequest().withFileName(request.getZipFileName())
+								.withUserId(user.getId().toString()).withFileToUpload(tempResultFile)
+								.withContentType(APPLICATION_ZIP).withListener(new ProgressListener() {
 									@Override
-									public void progressChanged(
-											ProgressEvent progressEvent) {
+									public void progressChanged(ProgressEvent progressEvent) {
 									}
-								});
+								}));
 				resultFileHandleId = resultHandle.getId();
 			}
 
