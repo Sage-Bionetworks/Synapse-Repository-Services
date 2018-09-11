@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager.file.download;
 
+import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -15,8 +19,14 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAO;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -35,9 +45,15 @@ import com.google.common.collect.Lists;
 
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
+	public static final String COULD_NOT_DOWNLOAD_ANY_FILES_FROM_THE_DOWNLOAD_LIST = "Could not download any files from the download list.";
+	public static final String THE_DOWNLOAD_LIST_IS_EMPTY = "The download list is empty";
 	public static final String FILES_CAN_ONLY_BE_ADDED_FROM_A_FILE_VIEW_QUERY = "Files can only be added from a file view query.";
 	public static final int MAX_FILES_PER_DOWNLOAD_LIST = 100;
 	public static final long QUERY_ONLY_PART_MASK = 0x1;
+
+	public static final long MAX_BYTES_PER_DOWNLOAD = (long) Math.pow(1024, 3) * 2; // 2 GB
+
+	public static final double ONE_MB = Math.pow(1024, 2);
 
 	public static final String EXCEEDED_MAX_NUMBER_ROWS = "Exceeded the maximum number of "
 			+ MAX_FILES_PER_DOWNLOAD_LIST + " files.";
@@ -53,6 +69,9 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
 	@Autowired
 	TableQueryManager tableQueryManager;
+
+	@Autowired
+	FileHandleManager fileHandleManager;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -183,6 +202,104 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			throw new UnauthorizedException("Only an administrator may call this method");
 		}
 		this.bulkDownloadDao.truncateAllDownloadDataForAllUsers();
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public DownloadOrder createDownloadOrder(UserInfo user, String zipFileName) {
+		ValidateArgument.required(user, "UserInfo");
+		// get the user's current download using the blocking 'FOR UPDATE'.
+		DownloadList downloadList = this.bulkDownloadDao.getUsersDownloadListForUpdate(user.getId().toString());
+		if (downloadList.getFilesToDownload().isEmpty()) {
+			throw new IllegalArgumentException(THE_DOWNLOAD_LIST_IS_EMPTY);
+		}
+		// Get the sizes of the files the user has permission to download.
+		Map<String, Long> downloadableFileSizes = getSizesOfDownloadableFiles(user, downloadList.getFilesToDownload());
+		// Build a download order that is under the size limit.
+		DownloadOrder order = BulkDownloadManagerImpl.buildDownloadOrderUnderSizeLimit(user,
+				downloadList.getFilesToDownload(), downloadableFileSizes, zipFileName);
+
+		if (order.getFiles().isEmpty()) {
+			throw new IllegalArgumentException(COULD_NOT_DOWNLOAD_ANY_FILES_FROM_THE_DOWNLOAD_LIST);
+		}
+		// remove the files of the order from the user's download list.
+		this.bulkDownloadDao.removeFilesFromDownloadList(user.getId().toString(), order.getFiles());
+		// save and return the new download order.
+		return this.bulkDownloadDao.createDownloadOrder(order);
+	}
+
+	/**
+	 * Helper to build a Download from the full list of files on the user's
+	 * and the file sizes of the files the user has permission to download.
+	 * 
+	 * @param user
+	 * @param fullList              All of the files on the user's download list.
+	 * @param downloadableFileSizes The sizes of the files the user has permission
+	 *                              to download.
+	 * @param zipFileName The name of the resulting ZIP file.
+	 * @return
+	 */
+	static DownloadOrder buildDownloadOrderUnderSizeLimit(UserInfo user, List<FileHandleAssociation> fullList,
+			Map<String, Long> downloadableFileSizes, String zipFileName) {
+		// build up a list of files to download up to the size limit.
+		long totalSizeBytes = 0L;
+		List<FileHandleAssociation> toDownload = new LinkedList<>();
+		for (FileHandleAssociation association : fullList) {
+			Long fileSizeBytes = downloadableFileSizes.get(association.getFileHandleId());
+			if (fileSizeBytes != null) {
+				if (totalSizeBytes + fileSizeBytes <= MAX_BYTES_PER_DOWNLOAD) {
+					totalSizeBytes += fileSizeBytes;
+					toDownload.add(association);
+				}
+			}
+		}
+
+		// create the new download order
+		DownloadOrder order = new DownloadOrder();
+		order.setCreatedBy(user.getId().toString());
+		order.setCreatedOn(new Date());
+		order.setFiles(toDownload);
+		order.setTotalNumberOfFiles((long) toDownload.size());
+		order.setTotalSizeBytes(totalSizeBytes);
+		order.setZipFileName(zipFileName);
+		return order;
+	}
+
+	/**
+	 * For the given list of FileHandleAssociations, get the size of each file that
+	 * meets the following criteria:
+	 * <ul>
+	 * <li>The user has permission to download the file</li>
+	 * <li>The file is an S3FileHandle</li>
+	 * </ul>
+	 * Any file that does not meet this criteria will be excluded from the results.
+	 * 
+	 * @param user
+	 * @param list
+	 * @return
+	 */
+	Map<String, Long> getSizesOfDownloadableFiles(UserInfo user, List<FileHandleAssociation> list) {
+		Map<String, Long> downloadableFileSizes = new HashMap<>(list.size());
+		// Get the sub-set of files that the user can actually download
+		BatchFileRequest request = new BatchFileRequest();
+		request.setIncludeFileHandles(true);
+		request.setIncludePreSignedURLs(false);
+		request.setIncludePreviewPreSignedURLs(false);
+		request.setRequestedFiles(list);
+		// get the sub-set of files that the user will be able to download.
+		BatchFileResult result = fileHandleManager.getFileHandleAndUrlBatch(user, request);
+		for (FileResult fileResult : result.getRequestedFiles()) {
+			// only files without failure codes.
+			if (fileResult.getFailureCode() == null) {
+				// only S3 Files.
+				FileHandle fileHandle = fileResult.getFileHandle();
+				if (fileHandle instanceof S3FileHandle) {
+					S3FileHandle s3FileHandle = (S3FileHandle) fileHandle;
+					downloadableFileSizes.put(s3FileHandle.getId(), s3FileHandle.getContentSize());
+				}
+			}
+		}
+		return downloadableFileSizes;
 	}
 
 }

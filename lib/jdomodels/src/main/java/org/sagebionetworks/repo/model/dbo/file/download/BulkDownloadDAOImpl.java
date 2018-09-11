@@ -53,7 +53,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 
 	private static final String SQL_SELECT_DOWNLOAD_ORDER_SUMMARY = "SELECT " + COL_DOWNLOAD_ORDER_CREATED_BY + ", "
 			+ COL_DOWNLOAD_ORDER_CREATED_ON + ", " + COL_DOWNLOAD_ORDER_ID + ", " + COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES
-			+ ", " + COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB + ", " + COL_DOWNLOAD_ORDER_FILE_NAME + " FROM "
+			+ ", " + COL_DOWNLOAD_ORDER_TOTAL_SIZE_BYTES + ", " + COL_DOWNLOAD_ORDER_FILE_NAME + " FROM "
 			+ TABLE_DOWNLOAD_ORDER + " WHERE " + COL_DOWNLOAD_ORDER_CREATED_BY + " = ? ORDER BY "
 			+ COL_DOWNLOAD_ORDER_CREATED_ON + " DESC LIMIT ? OFFSET ?";
 
@@ -166,15 +166,39 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		final Long ownerIdLong = Long.parseLong(ownerId);
 		return jdbcTemplate.queryForObject(SQL_COUNT_USERS_DOWNLOAD_LIST_ITEMS, Long.class, ownerIdLong);
 	}
-
+	
 	@Override
 	public DownloadList getUsersDownloadList(String ownerPrincipalId) {
+		// The default call is non-blocking, non-transactional.
+		boolean forUpdate = false;
+		return getUsersDownloadList(ownerPrincipalId, forUpdate);
+	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public DownloadList getUsersDownloadListForUpdate(String ownerPrincipalId) {
+		boolean forUpdate = true;
+		return getUsersDownloadList(ownerPrincipalId, forUpdate);
+	}
+
+	/**
+	 * 
+	 * @param ownerPrincipalId
+	 * @param forUpdate When true, 'SELECT FOR UPDATE' will be used 
+	 * @return
+	 */
+	private DownloadList getUsersDownloadList(String ownerPrincipalId, boolean forUpdate) {
 		ValidateArgument.required(ownerPrincipalId, "ownerPrincipalId");
 		try {
 			// load the main row
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue("principalId", ownerPrincipalId);
-			DBODownloadList dbo = basicDao.getObjectByPrimaryKey(DBODownloadList.class, param);
+			DBODownloadList dbo;
+			if(forUpdate) {
+				dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBODownloadList.class, param);
+			}else {
+				dbo = basicDao.getObjectByPrimaryKey(DBODownloadList.class, param);
+			}
 			// load the items
 			List<DBODownloadListItem> items = jdbcTemplate.query(SQL_SELECT_DOWNLOAD_LIST_ITEMS,
 					new DBODownloadListItem().getTableMapping(), ownerPrincipalId);
@@ -331,7 +355,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		dto.setFiles(translateBytesToFiles(dbo.getFiles()));
 		dto.setOrderId("" + dbo.getOrdeId());
 		dto.setTotalNumberOfFiles(dbo.getTotalNumberOfFiles());
-		dto.setTotalSizeMB(dbo.getTotalSizeMB());
+		dto.setTotalSizeBytes(dbo.getTotalSizeBytes());
 		dto.setZipFileName(dbo.getZipFileName());
 		return dto;
 	}
@@ -349,7 +373,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		ValidateArgument.required(order.getFiles(), "downloadOrder.files");
 		ValidateArgument.required(order.getOrderId(), "downloadOrder.orderId");
 		ValidateArgument.required(order.getTotalNumberOfFiles(), "order.totalNumberOfFiles");
-		ValidateArgument.required(order.getTotalSizeMB(), "order.totalSizeMB");
+		ValidateArgument.required(order.getTotalSizeBytes(), "order.totalSizeBytes");
 		ValidateArgument.required(order.getZipFileName(), "order.zipFileName");
 		if (order.getZipFileName().length() > MAX_NAME_CHARS) {
 			throw new IllegalArgumentException(MAX_NAME_MESSAGE);
@@ -360,7 +384,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		dbo.setFiles(translateFilesToBytes(order.getFiles()));
 		dbo.setOrdeId(Long.parseLong(order.getOrderId()));
 		dbo.setTotalNumberOfFiles(order.getTotalNumberOfFiles());
-		dbo.setTotalSizeMB(order.getTotalSizeMB());
+		dbo.setTotalSizeBytes(order.getTotalSizeBytes());
 		dbo.setZipFileName(order.getZipFileName());
 		return dbo;
 	}
@@ -424,7 +448,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 				summary.setCreatedOn(new Date(rs.getLong(COL_DOWNLOAD_ORDER_CREATED_ON)));
 				summary.setOrderId("" + rs.getLong(COL_DOWNLOAD_ORDER_ID));
 				summary.setTotalNumberOfFiles(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES));
-				summary.setTotalSizeMB(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB));
+				summary.setTotalSizeBytes(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_SIZE_BYTES));
 				summary.setZipFileName(rs.getString(COL_DOWNLOAD_ORDER_FILE_NAME));
 				return summary;
 			}
