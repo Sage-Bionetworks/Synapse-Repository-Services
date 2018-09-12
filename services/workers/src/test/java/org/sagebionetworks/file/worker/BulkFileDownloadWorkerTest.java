@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
@@ -414,7 +415,7 @@ public class BulkFileDownloadWorkerTest {
 	 */
 	@Test
 	public void testRunFileTooLarge() throws Exception {
-		fileHandle1.setContentSize(BulkFileDownloadWorker.MAX_TOTAL_FILE_SIZE_BYTES+1);
+		fileHandle1.setContentSize(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES+1);
 		// call under test
 		worker.run(mockProgress, message);
 
@@ -446,7 +447,7 @@ public class BulkFileDownloadWorkerTest {
 		// temp file for the zip should be created
 		File mockZip = Mockito.mock(File.class);
 		when(mockBulkDownloadManager.createTempFile(anyString(), anyString())).thenReturn(mockZip);
-		when(mockZip.length()).thenReturn(BulkFileDownloadWorker.MAX_TOTAL_FILE_SIZE_BYTES+1);
+		when(mockZip.length()).thenReturn(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES+1);
 		fileHandle1.setContentSize(1L);
 		// call under test
 		worker.run(mockProgress, message);

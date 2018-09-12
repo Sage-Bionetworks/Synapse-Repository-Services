@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileResult;
@@ -55,10 +56,6 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	public static final String FILES_CAN_ONLY_BE_ADDED_FROM_A_FILE_VIEW_QUERY = "Files can only be added from a file view query.";
 	public static final int MAX_FILES_PER_DOWNLOAD_LIST = 100;
 	public static final long QUERY_ONLY_PART_MASK = 0x1;
-
-	public static final long MAX_BYTES_PER_DOWNLOAD = (long) Math.pow(1024, 3) * 2; // 2 GB
-
-	public static final double ONE_MB = Math.pow(1024, 2);
 
 	public static final String EXCEEDED_MAX_NUMBER_ROWS = "Exceeded the maximum number of "
 			+ MAX_FILES_PER_DOWNLOAD_LIST + " files.";
@@ -253,7 +250,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		for (FileHandleAssociation association : fullList) {
 			Long fileSizeBytes = downloadableFileSizes.get(association.getFileHandleId());
 			if (fileSizeBytes != null) {
-				if (totalSizeBytes + fileSizeBytes <= MAX_BYTES_PER_DOWNLOAD) {
+				if (totalSizeBytes + fileSizeBytes <= FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 					totalSizeBytes += fileSizeBytes;
 					toDownload.add(association);
 				}

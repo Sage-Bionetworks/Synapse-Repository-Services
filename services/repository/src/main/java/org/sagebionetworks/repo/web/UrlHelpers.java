@@ -224,6 +224,11 @@ public class UrlHelpers {
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_GET = BULK_FILE_DOWNLOAD + ASYNC_GET_REQUEST;
 	public static final String FILE_DOWNLOAD = FILE+ID;
 	
+	public static final String DOWNLOAD_LIST = "/download/list";
+	public static final String DOWNLOAD_LIST_ADD = DOWNLOAD_LIST+"/add";
+	public static final String DOWNLOAD_LIST_ADD_START_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_START_REQUEST;
+	public static final String DOWNLOAD_LIST_ADD_GET_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_GET_REQUEST;
+	
 	// multipart upload v2
 	public static final String FILE_MULTIPART = FILE+"/multipart";
 	public static final String FILE_MULTIPART_UPLOAD_ID = FILE_MULTIPART+"/{uploadId}";

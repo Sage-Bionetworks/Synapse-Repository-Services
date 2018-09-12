@@ -1,0 +1,9 @@
+{
+	"description": "Request for a bulk file download.",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	]
+}

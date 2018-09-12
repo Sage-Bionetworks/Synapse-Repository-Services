@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
@@ -59,11 +60,6 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager
 			.getLogger(BulkFileDownloadWorker.class);
-
-	/**
-	 * The maximum total size in bytes of generated zip files.
-	 */
-	public static final long MAX_TOTAL_FILE_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB.
 
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
@@ -237,7 +233,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 					FileDownloadCode.DUPLICATE);
 		}
 		// Each file must be less than the max.
-		if (zipFileSize > MAX_TOTAL_FILE_SIZE_BYTES) {
+		if (zipFileSize > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 			throw new BulkFileException(
 					RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE,
 					FileDownloadCode.EXCEEDS_SIZE_LIMIT);
@@ -245,7 +241,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 		// Get this filehandle.
 		S3FileHandle s3Handle = bulkDownloadManager.getS3FileHandle(fileHandleId);
 		// Each file must be under the max.s
-		if (s3Handle.getContentSize() > MAX_TOTAL_FILE_SIZE_BYTES) {
+		if (s3Handle.getContentSize() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 			throw new BulkFileException(FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT,
 					FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		}

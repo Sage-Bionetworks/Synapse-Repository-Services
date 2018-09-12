@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileResult;
@@ -657,7 +658,7 @@ public class BulkDownloadManagerImplTest {
 		Map<String, Long> downloadableFileSizes = new HashMap<>();
 		for (FileHandleAssociation association : fullList) {
 			downloadableFileSizes.put(association.getFileHandleId(),
-					BulkDownloadManagerImpl.MAX_BYTES_PER_DOWNLOAD / 10);
+					FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES / 10);
 		}
 		// call under test
 		DownloadOrder order = BulkDownloadManagerImpl.buildDownloadOrderUnderSizeLimit(userInfo, fullList,
@@ -667,7 +668,7 @@ public class BulkDownloadManagerImplTest {
 		assertEquals(userInfo.getId().toString(), order.getCreatedBy());
 		assertNotNull(order.getCreatedOn());
 		assertEquals(new Long(10), order.getTotalNumberOfFiles());
-		assertEquals(new Long(BulkDownloadManagerImpl.MAX_BYTES_PER_DOWNLOAD - 8), order.getTotalSizeBytes());
+		assertEquals(new Long(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES - 8), order.getTotalSizeBytes());
 		assertNotNull(order.getFiles());
 		assertEquals(10, order.getFiles().size());
 		assertEquals(fullList.subList(0, 10), order.getFiles());
@@ -689,7 +690,7 @@ public class BulkDownloadManagerImplTest {
 	public void testBuildDownloadOrderUnderSizeLimitAtLimit() {
 		List<FileHandleAssociation> fullList = createResultsOfSize(1);
 		Map<String, Long> downloadableFileSizes = new HashMap<>();
-		downloadableFileSizes.put(fullList.get(0).getFileHandleId(), BulkDownloadManagerImpl.MAX_BYTES_PER_DOWNLOAD);
+		downloadableFileSizes.put(fullList.get(0).getFileHandleId(), FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES);
 		// call under test
 		DownloadOrder order = BulkDownloadManagerImpl.buildDownloadOrderUnderSizeLimit(userInfo, fullList,
 				downloadableFileSizes, zipFileName);
@@ -703,7 +704,7 @@ public class BulkDownloadManagerImplTest {
 		List<FileHandleAssociation> fullList = createResultsOfSize(1);
 		Map<String, Long> downloadableFileSizes = new HashMap<>();
 		downloadableFileSizes.put(fullList.get(0).getFileHandleId(),
-				BulkDownloadManagerImpl.MAX_BYTES_PER_DOWNLOAD + 1);
+				FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES + 1);
 		// call under test
 		DownloadOrder order = BulkDownloadManagerImpl.buildDownloadOrderUnderSizeLimit(userInfo, fullList,
 				downloadableFileSizes, zipFileName);

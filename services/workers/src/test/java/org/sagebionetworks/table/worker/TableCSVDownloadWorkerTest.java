@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -11,6 +13,9 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -58,7 +63,11 @@ public class TableCSVDownloadWorkerTest {
 
 	@Mock
 	ProgressCallback mockProgressCallback;
+	
+	@Captor
+	ArgumentCaptor<LocalFileUploadRequest> fileUploadCaptor;
 
+	@InjectMocks
 	TableCSVDownloadWorker worker;
 
 	Long userId;
@@ -74,14 +83,6 @@ public class TableCSVDownloadWorkerTest {
 
 	@Before
 	public void before() throws Exception {
-		worker = new TableCSVDownloadWorker();
-		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAsynchJobStatusManager);
-		ReflectionTestUtils.setField(worker, "tableQueryManager", mockTableQueryManager);
-		ReflectionTestUtils.setField(worker, "userManger", mockUserManger);
-		ReflectionTestUtils.setField(worker, "fileHandleManager", mockFileHandleManager);
-		ReflectionTestUtils.setField(worker, "clock", mockClock);
-		ReflectionTestUtils.setField(worker, "tableExceptionTranslator", mockTableExceptionTranslator);
-
 		userId = 987L;
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
@@ -131,6 +132,12 @@ public class TableCSVDownloadWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, message);
 		verify(mockAsynchJobStatusManager).setComplete(jobId, results);
+		verify(mockFileHandleManager).multipartUploadLocalFile(fileUploadCaptor.capture());
+		LocalFileUploadRequest request = fileUploadCaptor.getValue();
+		assertNotNull(request);
+		assertEquals(userInfo.getId().toString(), request.getUserId());
+		assertEquals("text/csv", request.getContentType());
+		assertEquals(null, request.getFileName());
 	}
 
 	@Test
