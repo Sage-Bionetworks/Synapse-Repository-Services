@@ -32,6 +32,7 @@
 	<bean name="stackConfiguration.asyncQueueName[THREAD_STATS]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[MIGRATION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[DOI]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[ADD_FILES_TO_DOWNLOAD_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[SyncFolderWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

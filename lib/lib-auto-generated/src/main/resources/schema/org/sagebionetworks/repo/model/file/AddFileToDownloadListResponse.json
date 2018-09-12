@@ -8,7 +8,7 @@
 	"properties": {
 		"downloadList": {
 			"$ref":"org.sagebionetworks.repo.model.file.DownloadList",
-			"description": ""
+			"description": "The resulting DownloadList after the files are added."
 		}
 	}
 }

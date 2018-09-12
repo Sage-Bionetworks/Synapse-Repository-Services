@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.file.download;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
@@ -668,7 +669,7 @@ public class BulkDownloadManagerImplTest {
 		assertEquals(userInfo.getId().toString(), order.getCreatedBy());
 		assertNotNull(order.getCreatedOn());
 		assertEquals(new Long(10), order.getTotalNumberOfFiles());
-		assertEquals(new Long(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES - 8), order.getTotalSizeBytes());
+		assertTrue(order.getTotalSizeBytes() < FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES);
 		assertNotNull(order.getFiles());
 		assertEquals(10, order.getFiles().size());
 		assertEquals(fullList.subList(0, 10), order.getFiles());
