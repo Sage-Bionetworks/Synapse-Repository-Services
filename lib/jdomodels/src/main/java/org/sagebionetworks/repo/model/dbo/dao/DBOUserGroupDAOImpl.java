@@ -243,14 +243,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
 	@WriteTransaction
 	@Override
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	public void delete(String id) throws DatastoreException, NotFoundException, DataIntegrityViolationException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		try {
-			basicDao.deleteObjectByPrimaryKey(DBOUserGroup.class, param);
-		} catch (DataIntegrityViolationException e){
-			throw new IllegalArgumentException("Cannot delete user or team having id: "+id+".  It is referenced by another object.", e);
-		}
+		basicDao.deleteObjectByPrimaryKey(DBOUserGroup.class, param);
 	}
 	
 	/**

@@ -76,6 +76,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 
 
 /**
@@ -399,8 +400,9 @@ public class TeamManagerImpl implements TeamManager {
 	@WriteTransaction
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
+		Team teamToDelete = null;
 		try {
-			teamDAO.get(id);
+			teamToDelete = teamDAO.get(id);
 		} catch (NotFoundException e) {
 			return;
 		}
@@ -410,8 +412,13 @@ public class TeamManagerImpl implements TeamManager {
 		aclDAO.delete(id, ObjectType.TEAM);
 		// delete Team
 		teamDAO.delete(id);
-		// delete userGroup
-		userGroupDAO.delete(id);
+		try {
+			userGroupDAO.delete(id);
+		} catch (DataIntegrityViolationException e) {
+			throw new IllegalArgumentException("Can't delete the team " + teamToDelete.getName() +
+					" (ID: " + id + "), most likely because it is referenced by a submission, or an entity is shared with it. " +
+					"Contact the administrator of the submission queue to delete the submission, or unshare the entity." , e);
+		}
 	}
 	
 	

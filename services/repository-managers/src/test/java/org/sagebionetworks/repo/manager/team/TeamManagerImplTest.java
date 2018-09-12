@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -78,6 +79,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -488,6 +490,10 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testDelete() throws Exception {
+		Team retrievedTeam = new Team();
+		retrievedTeam.setName("Some name");
+		retrievedTeam.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(retrievedTeam);
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		teamManagerImpl.delete(userInfo, TEAM_ID);
 		verify(mockTeamDAO).delete(TEAM_ID);
@@ -1116,4 +1122,27 @@ public class TeamManagerImplTest {
 		assertEquals(expected, teamManagerImpl.countMembers(TEAM_ID));
 		verify(mockTeamDAO).getMembersCount(TEAM_ID);
 	}
+
+	@Test
+	public void testAttemptTeamDeleteWithUserGroupThatCannotBeDeleted() {
+		Team retrievedTeam = new Team();
+		retrievedTeam.setName("Some name");
+		retrievedTeam.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(retrievedTeam);
+		doThrow(new DataIntegrityViolationException("")).when(mockUserGroupDAO).delete(TEAM_ID);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// call under test
+		try {
+			teamManagerImpl.delete(userInfo, TEAM_ID);
+			fail("Expected exception");
+		} catch (IllegalArgumentException e) {
+			// Verify that the illegal argument exception was the cause (Occurred in the userGroupDao)
+			assertTrue(e.getCause() instanceof DataIntegrityViolationException);
+		}
+		verify(mockTeamDAO).delete(TEAM_ID);
+		verify(mockAclDAO).delete(TEAM_ID, ObjectType.TEAM);
+		verify(mockUserGroupDAO).delete(TEAM_ID);
+
+	}
+
 }
