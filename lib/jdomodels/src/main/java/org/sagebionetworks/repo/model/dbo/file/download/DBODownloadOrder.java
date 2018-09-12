@@ -6,7 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_FILE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_TOTAL_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DOWNLOAD_ORDER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_ORDER;
 
@@ -28,7 +28,7 @@ public class DBODownloadOrder implements MigratableDatabaseObject<DBODownloadOrd
 	private Long createdBy;
 	private Long createdOn;
 	private String zipFileName;
-	private Long totalSizeMB;
+	private Long totalSizeBytes;
 	private Long totalNumberOfFiles;
 	private byte[] files;
 	
@@ -37,7 +37,7 @@ public class DBODownloadOrder implements MigratableDatabaseObject<DBODownloadOrd
 			new FieldColumn("createdBy", COL_DOWNLOAD_ORDER_CREATED_BY),
 			new FieldColumn("createdOn", COL_DOWNLOAD_ORDER_CREATED_ON),
 			new FieldColumn("zipFileName", COL_DOWNLOAD_ORDER_FILE_NAME),
-			new FieldColumn("totalSizeMB", COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB),
+			new FieldColumn("totalSizeBytes", COL_DOWNLOAD_ORDER_TOTAL_SIZE_BYTES),
 			new FieldColumn("totalNumberOfFiles", COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES),
 			new FieldColumn("files", COL_DOWNLOAD_ORDER_FILES_BLOB),
 	};
@@ -53,7 +53,7 @@ public class DBODownloadOrder implements MigratableDatabaseObject<DBODownloadOrd
 				order.setCreatedBy(rs.getLong(COL_DOWNLOAD_ORDER_CREATED_BY));
 				order.setCreatedOn(rs.getLong(COL_DOWNLOAD_ORDER_CREATED_ON));
 				order.setZipFileName(rs.getString(COL_DOWNLOAD_ORDER_FILE_NAME));
-				order.setTotalSizeMB(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB));
+				order.setTotalSizeBytes(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_SIZE_BYTES));
 				order.setTotalNumberOfFiles(rs.getLong(COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES));
 				java.sql.Blob blob = rs.getBlob(COL_DOWNLOAD_ORDER_FILES_BLOB);
 				if(blob != null){
@@ -116,12 +116,12 @@ public class DBODownloadOrder implements MigratableDatabaseObject<DBODownloadOrd
 		this.zipFileName = zipFileName;
 	}
 
-	public Long getTotalSizeMB() {
-		return totalSizeMB;
+	public Long getTotalSizeBytes() {
+		return totalSizeBytes;
 	}
 
-	public void setTotalSizeMB(Long totalSizeMB) {
-		this.totalSizeMB = totalSizeMB;
+	public void setTotalSizeBytes(Long totalSizeBytes) {
+		this.totalSizeBytes = totalSizeBytes;
 	}
 
 	public Long getTotalNumberOfFiles() {
@@ -174,7 +174,7 @@ public class DBODownloadOrder implements MigratableDatabaseObject<DBODownloadOrd
 		result = prime * result + Arrays.hashCode(files);
 		result = prime * result + ((ordeId == null) ? 0 : ordeId.hashCode());
 		result = prime * result + ((totalNumberOfFiles == null) ? 0 : totalNumberOfFiles.hashCode());
-		result = prime * result + ((totalSizeMB == null) ? 0 : totalSizeMB.hashCode());
+		result = prime * result + ((totalSizeBytes == null) ? 0 : totalSizeBytes.hashCode());
 		result = prime * result + ((zipFileName == null) ? 0 : zipFileName.hashCode());
 		return result;
 	}
@@ -210,10 +210,10 @@ public class DBODownloadOrder implements MigratableDatabaseObject<DBODownloadOrd
 				return false;
 		} else if (!totalNumberOfFiles.equals(other.totalNumberOfFiles))
 			return false;
-		if (totalSizeMB == null) {
-			if (other.totalSizeMB != null)
+		if (totalSizeBytes == null) {
+			if (other.totalSizeBytes != null)
 				return false;
-		} else if (!totalSizeMB.equals(other.totalSizeMB))
+		} else if (!totalSizeBytes.equals(other.totalSizeBytes))
 			return false;
 		if (zipFileName == null) {
 			if (other.zipFileName != null)
@@ -226,8 +226,8 @@ public class DBODownloadOrder implements MigratableDatabaseObject<DBODownloadOrd
 	@Override
 	public String toString() {
 		return "DBODownloadOrder [ordeId=" + ordeId + ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", zipFileName=" + zipFileName + ", totalSizeMB=" + totalSizeMB + ", totalNumberOfFiles="
+				+ ", zipFileName=" + zipFileName + ", totalSizeBytes=" + totalSizeBytes + ", totalNumberOfFiles="
 				+ totalNumberOfFiles + ", files=" + Arrays.toString(files) + "]";
 	}
-
+	
 }

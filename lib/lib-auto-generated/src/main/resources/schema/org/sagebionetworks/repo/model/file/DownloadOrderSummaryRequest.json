@@ -1,0 +1,9 @@
+{
+	"description": "Request for a single page of DownloadOrderSummary objects.",
+	"properties": {
+		"nextPageToken": {
+			"type": "string",
+			"description": "To recieve the next page, forward the nextPageToken returned with the pevious reponse."
+		}
+	}
+}

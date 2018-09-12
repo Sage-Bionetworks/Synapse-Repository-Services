@@ -1,0 +1,16 @@
+{
+	"description": "Response for a DownloadOrderSummaryRequest.",
+	"properties": {
+		"page": {
+			"type": "array",
+			"description": "A single page of DownloadOrderSummary objects.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.DownloadOrderSummary"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward this token in the next request to recieve the next page."
+		}
+	}
+}

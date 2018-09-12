@@ -556,7 +556,7 @@ public class SqlConstants {
 	public static final String COL_DOWNLOAD_ORDER_CREATED_BY		= "CREATED_BY";
 	public static final String COL_DOWNLOAD_ORDER_CREATED_ON 		= "CREATED_ON";
 	public static final String COL_DOWNLOAD_ORDER_FILE_NAME			= "FILE_NAME";
-	public static final String COL_DOWNLOAD_ORDER_TOTAL_SIZE_MB 	= "TOTAL_SIZE_MB";
+	public static final String COL_DOWNLOAD_ORDER_TOTAL_SIZE_BYTES 	= "TOTAL_SIZE_BYTES";
 	public static final String COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES	= "TOTAL_NUM_FILES";
 	public static final String COL_DOWNLOAD_ORDER_FILES_BLOB		= "FILES_BLOB";
 	public static final String DDL_DOWNLOAD_ORDER					= "schema/DownloadOrder-ddl.sql";

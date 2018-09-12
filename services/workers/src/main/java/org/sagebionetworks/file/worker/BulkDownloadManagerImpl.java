@@ -13,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -66,9 +67,8 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager{
 	 * @see org.sagebionetworks.file.worker.BulkDownloadDao#multipartUploadLocalFile(org.sagebionetworks.repo.model.UserInfo, java.io.File, java.lang.String, com.amazonaws.event.ProgressListener)
 	 */
 	@Override
-	public S3FileHandle multipartUploadLocalFile(UserInfo userInfo,
-			File fileToUpload, String contentType, ProgressListener listener) {
-		return fileHandleManager.multipartUploadLocalFile(userInfo, fileToUpload, contentType, listener);
+	public S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request) {
+		return fileHandleManager.multipartUploadLocalFile(request);
 	}
 
 	/*

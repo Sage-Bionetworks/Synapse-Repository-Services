@@ -18,9 +18,9 @@
 			"type": "string",
 			"description": "The name of the file containing this order."
 		},
-		"totalSizeMB": {
+		"totalSizeBytes": {
 			"type": "integer",
-			"description": "The total size of all files in this order in MB (uncompressed)."
+			"description": "The total size of all files in this order in bytes (uncompressed)."
 		},
 		"totalNumberOfFiles": {
 			"type": "integer",

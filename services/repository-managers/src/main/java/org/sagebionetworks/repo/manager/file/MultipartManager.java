@@ -89,14 +89,10 @@ public interface MultipartManager {
 	String getChunkPartKey(ChunkedFileToken token, int partNumber);
 
 	/**
+	 * Upload local file to S3.
 	 * 
-	 * @param bucket
-	 * @param userId
-	 * @param fileToUpload
-	 * @param contentType
-	 * @param listener
+	 * @param request
 	 * @return
 	 */
-	S3FileHandle multipartUploadLocalFile(Long storageLocationId, String userId, File fileToUpload, String contentType,
-			ProgressListener listener);
+	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
 }

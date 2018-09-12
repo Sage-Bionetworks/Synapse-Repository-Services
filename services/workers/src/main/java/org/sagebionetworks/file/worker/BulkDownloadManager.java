@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.zip.ZipOutputStream;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -57,7 +58,7 @@ public interface BulkDownloadManager {
 	 * @param listener
 	 * @return
 	 */
-	S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload,	String contentType, ProgressListener listener);
+	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
 	
 	/**
 	 * Get the S3FileHandle for the given FileHandle.id.
