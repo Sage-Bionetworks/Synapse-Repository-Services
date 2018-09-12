@@ -25,7 +25,7 @@ import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
-public class BulkDownloadManagerImpl implements BulkDownloadManager{
+public class FileHandleSupportImpl implements FileHandleSupport {
 	
 	private static final String ONLY_S3_FILE_HANDLES_CAN_BE_DOWNLOADED = "Only S3FileHandles can be downloaded.";
 	

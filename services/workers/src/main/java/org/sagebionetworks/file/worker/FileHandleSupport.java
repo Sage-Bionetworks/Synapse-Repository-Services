@@ -19,7 +19,7 @@ import com.amazonaws.event.ProgressListener;
  * @author John
  *
  */
-public interface BulkDownloadManager {
+public interface FileHandleSupport {
 	
 	/**
 	 * Given a mixed list of FileHandleAssociation determine if the user is authorized to download each file.

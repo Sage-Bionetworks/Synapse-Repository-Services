@@ -4,7 +4,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
-import org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl;
+import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
@@ -28,7 +28,7 @@ public class AddFilesToDownloadListWorker implements MessageDrivenRunner {
 	UserManager userManager;
 	
 	@Autowired
-	BulkDownloadManagerImpl bulkDownloadManager;
+	BulkDownloadManager bulkDownloadManager;
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {

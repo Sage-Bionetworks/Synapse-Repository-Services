@@ -60,7 +60,7 @@ public class BulkFileDownloadWorkerTest {
 	@Mock
 	UserManager mockUserManger;
 	@Mock
-	BulkDownloadManager mockBulkDownloadManager;
+	FileHandleSupport mockBulkDownloadManager;
 	@Mock
 	ProgressCallback mockProgress;
 
