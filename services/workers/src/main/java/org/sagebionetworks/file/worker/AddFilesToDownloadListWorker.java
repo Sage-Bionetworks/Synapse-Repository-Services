@@ -34,16 +34,10 @@ public class AddFilesToDownloadListWorker implements MessageDrivenRunner {
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try {
-
-			if (!(status.getRequestBody() instanceof AddFileToDownloadListRequest)) {
-				throw new IllegalArgumentException("Unexpected request body: "
-						+ status.getRequestBody());
-			}
 			AddFileToDownloadListRequest request = AsynchJobUtils.extractRequestBody(status, AddFileToDownloadListRequest.class);
 			ValidateArgument.required(request, "AddFileToDownloadListRequest");
-			ValidateArgument.required(request.getUserId(), "AddFileToDownloadListRequest.userId");
 			// Lookup the user.
-			UserInfo user = userManager.getUserInfo(Long.parseLong(request.getUserId()));
+			UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
 			DownloadList resultList;;
 			if(request instanceof AddFolderToDownloadListRequest) {
 				AddFolderToDownloadListRequest addFolder = (AddFolderToDownloadListRequest) request;

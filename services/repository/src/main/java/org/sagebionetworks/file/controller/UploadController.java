@@ -859,8 +859,6 @@ public class UploadController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AddFileToDownloadListRequest request)
 			throws DatastoreException, NotFoundException, IOException {
-		// users can only add files to their own download list.
-		request.setUserId(userId.toString());
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();

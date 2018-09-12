@@ -5,11 +5,5 @@
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
 		}
-	],
-	"properties": {
-		"userId": {
-			"type": "string",
-			"description": "The ID of the user that owns the download list."
-		}
-	}
+	]
 }
