@@ -167,7 +167,8 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 
 	static void handleIncorrectResultSizeException(IncorrectResultSizeDataAccessException e) throws NotFoundException {
 		if (e.getActualSize() == 0) {
-			throw new NotFoundException("Retrieved 0 rows when expecting exactly 1");
+			// Retrieved 0 rows when expecting exactly 1
+			throw new NotFoundException("DOI association does not exist.");
 		} else {
 			throw new IllegalStateException("Retrieved 2+ rows when expecting exactly 1");
 		}

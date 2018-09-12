@@ -36,6 +36,7 @@ public class IT065SynapseJavaClientDoiV2Test {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
+	private static final long RETRY_TIME = 1000L;
 
 	private static Entity entity;
 
@@ -133,6 +134,7 @@ public class IT065SynapseJavaClientDoiV2Test {
 		DoiResponse response =  null;
 		boolean succesfullyMinted = false;
 		while (!succesfullyMinted) {
+			Thread.sleep(RETRY_TIME);
 			try {
 				response = synapse.createOrUpdateDoiAsyncGet(jobToken);
 				if (response.getDoi() != null) {
@@ -140,7 +142,6 @@ public class IT065SynapseJavaClientDoiV2Test {
 				}
 			} catch (SynapseResultNotReadyException e) {
 				assertNotEquals(e.getJobStatus().getJobState(), AsynchJobState.FAILED);
-				sleep(1000);
 			}
 		}
 		Doi doiRetrieved = response.getDoi();
