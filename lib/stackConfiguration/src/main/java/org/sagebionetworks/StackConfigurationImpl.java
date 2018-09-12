@@ -788,7 +788,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * Prefix under which DOIs should be registered.
 	 */
 	public String getDoiPrefix() {
-		return configuration.getProperty("org.sagebionetworks.doi.prefix");
+		if (isProductionStack()) {
+			return configuration.getProperty("org.sagebionetworks.doi.prefix");
+		} else {
+			return configuration.getProperty("org.sagebionetworks.doi.demo.prefix") + "/" + getStackInstance();
+		}
 	}
 
 	/**
