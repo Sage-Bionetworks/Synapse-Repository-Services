@@ -1,5 +1,6 @@
 package org.sagebionetworks.file.worker;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
@@ -9,6 +10,8 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -20,9 +23,8 @@ import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
-import org.sagebionetworks.repo.model.file.AddFolderToDownloadListRequest;
-import org.sagebionetworks.repo.model.file.AddQueryToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -44,17 +46,20 @@ public class AddFilesToDownloadListWorkerTest {
 	@Mock
 	ProgressCallback mockProgressCallback;
 	
+	@Captor
+	ArgumentCaptor<Throwable> exceptionCaptor; 
+	
 	@InjectMocks
 	AddFilesToDownloadListWorker worker;
 	
 	UserInfo user;
 	
-	AddFolderToDownloadListRequest addFolderRequest;
+	AddFileToDownloadListRequest addFolderRequest;
 	AsynchronousJobStatus addFolderJobStatus;
 	Message addFolderMessage;
 	DownloadList addFolderDownloadList;
 	
-	AddQueryToDownloadListRequest addQueryRequest;
+	AddFileToDownloadListRequest addQueryRequest;
 	AsynchronousJobStatus addQueryJobStatus;
 	Message addQueryMessage;
 	DownloadList addQueryDownloadList;
@@ -67,7 +72,7 @@ public class AddFilesToDownloadListWorkerTest {
 		when(mockUserManager.getUserInfo(user.getId())).thenReturn(user);
 		
 		// add folder
-		addFolderRequest = new AddFolderToDownloadListRequest();
+		addFolderRequest = new AddFileToDownloadListRequest();
 		addFolderRequest.setFolderId("syn123");
 		addFolderJobStatus = new AsynchronousJobStatus();
 		addFolderJobStatus.setJobId("9999");
@@ -82,7 +87,7 @@ public class AddFilesToDownloadListWorkerTest {
 		when(mockBulkDownloadManager.addFilesFromFolder(user, addFolderRequest.getFolderId())).thenReturn(addFolderDownloadList);
 		
 		// add query
-		addQueryRequest = new AddQueryToDownloadListRequest();
+		addQueryRequest = new AddFileToDownloadListRequest();
 		Query query = new Query();
 		query.setSql("select * from syn123");
 		addQueryRequest.setQuery(query);
@@ -124,6 +129,33 @@ public class AddFilesToDownloadListWorkerTest {
 		expectedResponse.setDownloadList(addQueryDownloadList);
 		verify(mockAsynchJobStatusManager).setComplete(addQueryJobStatus.getJobId(), expectedResponse);
 		verify(mockAsynchJobStatusManager, never()).setJobFailed(any(String.class), any(Throwable.class));
+	}
+	
+	@Test
+	public void testRunBothFolderAndQuery() throws RecoverableMessageException, Exception {
+		// the folder and query should not be set
+		addQueryRequest.setFolderId("syn123");
+		addQueryRequest.setQuery(new Query());
+
+		// call under test
+		worker.run(mockProgressCallback, addQueryMessage);
+		verify(mockAsynchJobStatusManager, never()).setComplete(any(String.class), any(AsynchronousResponseBody.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(any(String.class), exceptionCaptor.capture());
+		assertEquals(AddFilesToDownloadListWorker.SET_EITHER_FOLDER_ID_OR_QUERY_BUT_NOT_BOTH,
+				exceptionCaptor.getValue().getMessage());
+	}
+	
+	@Test
+	public void testRunBothFolderAndQueryNull() throws RecoverableMessageException, Exception {
+		// the folder and query should not be set
+		addQueryRequest.setFolderId(null);
+		addQueryRequest.setQuery(null);;
+		// call under test
+		worker.run(mockProgressCallback, addQueryMessage);
+		verify(mockAsynchJobStatusManager, never()).setComplete(any(String.class), any(AsynchronousResponseBody.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(any(String.class), exceptionCaptor.capture());
+		assertEquals(AddFilesToDownloadListWorker.MUST_PROVIDE_EITHER_FOLDER_ID_OR_QUERY,
+				exceptionCaptor.getValue().getMessage());
 	}
 	
 	@Test
