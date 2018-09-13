@@ -426,9 +426,9 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testGenerateRequestUrl() {
-		String expected = repoEndpoint + DoiManagerImpl.RESOURCE_PATH
+		String expected = repoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
-				+ "&objectType=" + entityType.name()
+				+ "&type=" + entityType.name()
 				+ "&version=" + version;
 
 		// Call under test
@@ -437,9 +437,9 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testGenerateRequestUrlNullVersion() {
-		String expected = repoEndpoint + DoiManagerImpl.RESOURCE_PATH
+		String expected = repoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
-				+ "&objectType=" + entityType.name();
+				+ "&type=" + entityType.name();
 
 		// Call under test
 		assertEquals(expected, doiManager.generateLocationRequestUrl(entityId, entityType, null));
@@ -447,9 +447,9 @@ public class DoiManagerImplTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testGenerateRequestUrlFailOnNonentity() {
-		String expected = repoEndpoint + DoiManagerImpl.RESOURCE_PATH
+		String expected = repoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
-				+ "&objectType=" + ObjectType.TEAM.name()
+				+ "&type=" + ObjectType.TEAM.name()
 				+ "&version=" + version;
 
 		// Call under test

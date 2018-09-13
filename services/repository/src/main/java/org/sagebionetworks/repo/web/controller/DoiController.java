@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.manager.doi.DoiManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -213,12 +214,12 @@ public class DoiController extends BaseController {
 	 * @return The URL of the object in Synapse.
 	 * @throws IOException
 	 */
-	@RequestMapping(value = {UrlHelpers.DOI_LOCATE}, method = RequestMethod.GET)
+	@RequestMapping(value = {DoiManagerImpl.LOCATE_RESOURCE_PATH}, method = RequestMethod.GET)
 	public @ResponseBody
 	void locate(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-		   @RequestParam(value = "id") String objectId,
-		   @RequestParam(value = "type") ObjectType objectType,
-		   @RequestParam(value = "version", required = false) Long versionNumber,
+		   @RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
+		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM) ObjectType objectType,
+		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM, required = false) Long versionNumber,
 		   @RequestParam(value = "redirect", required = false, defaultValue = "true") Boolean redirect,
 				HttpServletResponse response) throws IOException {
 		RedirectUtils.handleRedirect(redirect, serviceProvider.getDoiServiceV2().locate(userId, objectId, objectType, versionNumber), response);

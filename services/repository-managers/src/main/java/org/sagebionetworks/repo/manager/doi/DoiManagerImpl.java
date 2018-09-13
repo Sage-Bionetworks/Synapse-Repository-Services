@@ -32,7 +32,10 @@ public class DoiManagerImpl implements DoiManager {
 	private DataciteClient dataciteClient;
 
 	public static final String ENTITY_URL_PREFIX = "#!Synapse:";
-	public static final String RESOURCE_PATH = "/doi/locate";
+	public static final String LOCATE_RESOURCE_PATH = "/doi/locate";
+	public static final String OBJECT_ID_PATH_PARAM = "id";
+	public static final String OBJECT_TYPE_PATH_PARAM = "type";
+	public static final String OBJECT_VERSION_PATH_PARAM = "version";
 
 	public Doi getDoi(final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException {
 		// Retrieve our record of the DOI/object association.
@@ -172,10 +175,10 @@ public class DoiManagerImpl implements DoiManager {
 		if (!objectType.equals(ObjectType.ENTITY)) {
 			throw new IllegalArgumentException("Generating a location request currently only supports entities");
 		}
-		String request = stackConfiguration.getRepositoryServiceEndpoint() + RESOURCE_PATH;
-		request += "?id=" + objectId + "&objectType=" + objectType.name();
+		String request = stackConfiguration.getRepositoryServiceEndpoint() + LOCATE_RESOURCE_PATH;
+		request += "?" + OBJECT_ID_PATH_PARAM + "=" + objectId + "&" + OBJECT_TYPE_PATH_PARAM + "=" + objectType.name();
 		if (versionNumber != null) {
-			request += "&version=" + versionNumber;
+			request += "&" + OBJECT_VERSION_PATH_PARAM + "=" + versionNumber;
 		}
 		return request;
 	}
