@@ -684,11 +684,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public S3FileHandle multipartUploadLocalFile(UserInfo userInfo,
-			File fileToUpload, String contentType, ProgressListener listener) {
-		String userId = getUserId(userInfo);
-		return multipartManager.multipartUploadLocalFile(null, userId,
-				fileToUpload, contentType, listener);
+	public S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request) {
+		return multipartManager.multipartUploadLocalFile(request);
 	}
 
 	@Override

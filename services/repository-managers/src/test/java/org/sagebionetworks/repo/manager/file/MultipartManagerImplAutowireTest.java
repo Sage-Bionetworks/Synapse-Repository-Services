@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -65,22 +66,25 @@ public class MultipartManagerImplAutowireTest {
 	 * @throws IOException 
 	 */
 	@Test
-	public void testMultipartUploadLocalFile() throws IOException{
-		File temp  = File.createTempFile("testMultipartUploadLocalFile", ".txt");
-		try{
+	public void testMultipartUploadLocalFileNullFileName() throws IOException {
+		File temp = File.createTempFile("testMultipartUploadLocalFile", ".txt");
+		try {
 			String fileBody = "This is the body of the file!!!!!";
 			byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
 			String md5 = TransferUtils.createMD5(fileBodyBytes);
 			FileUtils.writeStringToFile(temp, fileBody);
 			String contentType = "text/plain";
 			// Now upload the file to S3
-			S3FileHandle handle = multipartManager.multipartUploadLocalFile(null, adminUserInfo.getId().toString(), temp, contentType,
-					new ProgressListener() {
-				@Override
-				public void progressChanged(ProgressEvent progressEvent) {
-					System.out.println("FileUpload bytesTransfered: : "+progressEvent.getBytesTransferred());
-					
-				}});
+			S3FileHandle handle = multipartManager.multipartUploadLocalFile(
+					new LocalFileUploadRequest().withFileName(null).withUserId(adminUserInfo.getId().toString())
+							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
+								@Override
+								public void progressChanged(ProgressEvent progressEvent) {
+									System.out.println(
+											"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+
+								}
+							}));
 			assertNotNull(handle);
 			fileHandlesToDelete.add(handle.getId());
 			assertEquals(md5, handle.getContentMd5());
@@ -90,8 +94,46 @@ public class MultipartManagerImplAutowireTest {
 			assertEquals(adminUserInfo.getId().toString(), handle.getCreatedBy());
 			assertNotNull(handle.getBucketName());
 			assertNotNull(handle.getKey());
+			assertTrue(handle.getKey().contains(temp.getName()));
 			assertNotNull(handle.getContentSize());
-		}finally{
+		} finally {
+			temp.delete();
+		}
+	}
+	
+	@Test
+	public void testMultipartUploadLocalFileWithName() throws IOException {
+		File temp = File.createTempFile("testMultipartUploadLocalFile", ".txt");
+		try {
+			String fileBody = "This is the body of the file!!!!!";
+			byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
+			String md5 = TransferUtils.createMD5(fileBodyBytes);
+			FileUtils.writeStringToFile(temp, fileBody);
+			String contentType = "text/plain";
+			String fileName = "aRealFileName";
+			// Now upload the file to S3
+			S3FileHandle handle = multipartManager.multipartUploadLocalFile(
+					new LocalFileUploadRequest().withFileName(fileName).withUserId(adminUserInfo.getId().toString())
+							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
+								@Override
+								public void progressChanged(ProgressEvent progressEvent) {
+									System.out.println(
+											"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+
+								}
+							}));
+			assertNotNull(handle);
+			fileHandlesToDelete.add(handle.getId());
+			assertEquals(md5, handle.getContentMd5());
+			assertEquals(fileName, handle.getFileName());
+			assertEquals(contentType, handle.getContentType());
+			assertEquals(new Long(temp.length()), handle.getContentSize());
+			assertEquals(adminUserInfo.getId().toString(), handle.getCreatedBy());
+			assertNotNull(handle.getBucketName());
+			assertNotNull(handle.getKey());
+			assertTrue(handle.getKey().contains(fileName));
+			assertNotNull(handle.getContentSize());
+		} finally {
 			temp.delete();
 		}
 	}

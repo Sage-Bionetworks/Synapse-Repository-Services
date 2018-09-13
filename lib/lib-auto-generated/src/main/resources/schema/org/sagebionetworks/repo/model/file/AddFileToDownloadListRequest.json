@@ -1,0 +1,9 @@
+{
+	"description": "Interface to for adding files to a user's download list.",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	]
+}

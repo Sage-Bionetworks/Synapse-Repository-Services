@@ -14,10 +14,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
@@ -59,17 +61,12 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	static private Logger log = LogManager
 			.getLogger(BulkFileDownloadWorker.class);
 
-	/**
-	 * The maximum total size in bytes of generated zip files.
-	 */
-	public static final long MAX_TOTAL_FILE_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB.
-
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
 	UserManager userManger;
 	@Autowired
-	BulkDownloadManager bulkDownloadManager; 
+	FileHandleSupport fileHandleSupport; 
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message)
@@ -106,9 +103,9 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			final Message message, AsynchronousJobStatus status,
 			BulkFileDownloadRequest request) throws IOException {
 		// The generated zip will be written to this temp file.
-		File tempResultFile = bulkDownloadManager.createTempFile("Job"
+		File tempResultFile = fileHandleSupport.createTempFile("Job"
 				+ status.getJobId(), ".zip");
-		ZipOutputStream zipOut = bulkDownloadManager.createZipOutputStream(tempResultFile);
+		ZipOutputStream zipOut = fileHandleSupport.createZipOutputStream(tempResultFile);
 		try {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			/*
@@ -116,7 +113,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			 * download each requested file. The authorization check is
 			 * normalized around the associated object.
 			 */
-			List<FileHandleAssociationAuthorizationStatus> authResults = bulkDownloadManager
+			List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleSupport
 					.canDownLoadFile(user, request.getRequestedFiles());
 			// Track the files added to the zip.
 			Set<String> fileIdsInZip = Sets.newHashSet();
@@ -129,14 +126,14 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			String resultFileHandleId = null;
 			if(fileIdsInZip.size() > 0){
 				// upload the result file to S3
-				S3FileHandle resultHandle = bulkDownloadManager
-						.multipartUploadLocalFile(user, tempResultFile,
-								APPLICATION_ZIP, new ProgressListener() {
+				S3FileHandle resultHandle = fileHandleSupport
+						.multipartUploadLocalFile(new LocalFileUploadRequest().withFileName(request.getZipFileName())
+								.withUserId(user.getId().toString()).withFileToUpload(tempResultFile)
+								.withContentType(APPLICATION_ZIP).withListener(new ProgressListener() {
 									@Override
-									public void progressChanged(
-											ProgressEvent progressEvent) {
+									public void progressChanged(ProgressEvent progressEvent) {
 									}
-								});
+								}));
 				resultFileHandleId = resultHandle.getId();
 			}
 
@@ -236,26 +233,26 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 					FileDownloadCode.DUPLICATE);
 		}
 		// Each file must be less than the max.
-		if (zipFileSize > MAX_TOTAL_FILE_SIZE_BYTES) {
+		if (zipFileSize > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 			throw new BulkFileException(
 					RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE,
 					FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		}
 		// Get this filehandle.
-		S3FileHandle s3Handle = bulkDownloadManager.getS3FileHandle(fileHandleId);
+		S3FileHandle s3Handle = fileHandleSupport.getS3FileHandle(fileHandleId);
 		// Each file must be under the max.s
-		if (s3Handle.getContentSize() > MAX_TOTAL_FILE_SIZE_BYTES) {
+		if (s3Handle.getContentSize() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 			throw new BulkFileException(FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT,
 					FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		}
 		// This file will be downloaded to this temp.
-		File downloadTemp = bulkDownloadManager.downloadToTempFile(s3Handle);
+		File downloadTemp = fileHandleSupport.downloadToTempFile(s3Handle);
 		try {
 			// The entry name is the path plus file name.
 			String zipEntryName = createZipEntryName(s3Handle.getFileName(),
 					Long.parseLong(s3Handle.getId()));
 			// write the file to the zip.
-			bulkDownloadManager.addFileToZip(zipOut, downloadTemp, zipEntryName);
+			fileHandleSupport.addFileToZip(zipOut, downloadTemp, zipEntryName);
 			return zipEntryName;
 		} finally {
 			downloadTemp.delete();

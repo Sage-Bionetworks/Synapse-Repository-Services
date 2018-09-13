@@ -1,0 +1,14 @@
+{
+	"description": "Response for a request to add files to a user's download list.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"downloadList": {
+			"$ref":"org.sagebionetworks.repo.model.file.DownloadList",
+			"description": "The resulting DownloadList after the files are added."
+		}
+	}
+}

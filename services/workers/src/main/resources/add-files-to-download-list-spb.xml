@@ -10,10 +10,8 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
-	<bean id="fileHandleSupport" class="org.sagebionetworks.file.worker.FileHandleSupportImpl" />
 
-	<bean id="fileBulkDownloadMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+	<bean id="addFilesToDownloadListMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -28,12 +26,12 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.file.worker.BulkFileDownloadWorker" />
+									<bean class="org.sagebionetworks.file.worker.AddFilesToDownloadListWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="fileBulkDownload" />
-								<property name="semaphoreMaxLockCount" value="4" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
-								<property name="queueName" ref="stackConfiguration.asyncQueueName[BULK_FILE_DOWNLOAD]"/>
+								<property name="semaphoreLockKey" value="addFilesToDownloadList" />
+								<property name="semaphoreMaxLockCount" value="8" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
+								<property name="queueName" ref="stackConfiguration.asyncQueueName[ADD_FILES_TO_DOWNLOAD_LIST]"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>
@@ -46,9 +44,9 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<!-- We stagger the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="154" />
-		<property name="repeatInterval" value="2027" />
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="215" />
+		<property name="repeatInterval" value="3087" />
 	</bean>
 
 </beans>

@@ -27,14 +27,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
-public class BulkDownloadDaoImpTest {
+public class FileHandleSupportImplTest {
 	
 	FileHandleDao mockFileHandleDao;
 	AmazonS3 mockS3client;
 	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
 	FileHandleManager mockFileHandleManager;
 	
-	BulkDownloadManager bulkDownloadDao;
+	FileHandleSupport bulkDownloadDao;
 	
 	
 	@Before
@@ -44,7 +44,7 @@ public class BulkDownloadDaoImpTest {
 		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
 		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
 		
-		bulkDownloadDao = new BulkDownloadManagerImpl();
+		bulkDownloadDao = new FileHandleSupportImpl();
 		ReflectionTestUtils.setField(bulkDownloadDao, "fileHandleDao", mockFileHandleDao);
 		ReflectionTestUtils.setField(bulkDownloadDao, "s3client", mockS3client);
 		ReflectionTestUtils.setField(bulkDownloadDao, "fileHandleAuthorizationManager", mockFileHandleAuthorizationManager);

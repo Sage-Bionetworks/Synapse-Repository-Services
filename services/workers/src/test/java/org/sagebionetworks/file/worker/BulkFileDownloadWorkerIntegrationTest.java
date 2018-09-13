@@ -60,7 +60,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	BulkDownloadManager bulkDownloadManager;
+	FileHandleSupport bulkDownloadManager;
 	@Autowired
 	EntityManager entityManager;
 	

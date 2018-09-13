@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -99,8 +100,9 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			double bytesPerRow = rowCount == 0 ? 1 : temp.length() / rowCount;
 			// This will keep the progress updated as the file is uploaded.
 			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
-			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp, CSVUtils.guessContentType(request
-					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()), uploadListener);
+			String contentType = CSVUtils.guessContentType(request
+					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator());
+			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
 			result.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle
