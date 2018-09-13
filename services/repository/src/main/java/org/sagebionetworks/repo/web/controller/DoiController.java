@@ -218,8 +218,8 @@ public class DoiController extends BaseController {
 	public @ResponseBody
 	void locate(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
-		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM) ObjectType objectType,
-		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM, required = false) Long versionNumber,
+		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM) ObjectType objectType,
+		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM, required = false) Long versionNumber,
 		   @RequestParam(value = "redirect", required = false, defaultValue = "true") Boolean redirect,
 				HttpServletResponse response) throws IOException {
 		RedirectUtils.handleRedirect(redirect, serviceProvider.getDoiServiceV2().locate(userId, objectId, objectType, versionNumber), response);

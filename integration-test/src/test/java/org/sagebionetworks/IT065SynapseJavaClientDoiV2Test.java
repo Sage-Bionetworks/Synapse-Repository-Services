@@ -106,7 +106,7 @@ public class IT065SynapseJavaClientDoiV2Test {
 	}
 
 	@Test
-	public void testGetPortalLocation() throws SynapseException {
+	public void testGetPortalUrl() throws SynapseException {
 		assertNotNull(synapse.getPortalUrl("syn1236464", ObjectType.ENTITY, 5L));
 	}
 

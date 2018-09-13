@@ -3525,7 +3525,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public String getPortalUrl(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
-		String requestUrl = DOI_LOCATE + "?id=" + objectId + "&type=" + objectType.toString();
+		String requestUrl = DOI_LOCATE + "?id=" + objectId + "&type=" + objectType;
 		if (objectVersion != null) {
 			requestUrl += "&version=" + objectVersion;
 		}
