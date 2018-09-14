@@ -118,6 +118,8 @@ public class IT054FileEntityTest {
 		association.setAssociateObjectId(KeyFactory.stringToKey(file.getId()).toString());
 		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		association.setFileHandleId(file.getDataFileHandleId());
+		
+		synapse.clearDownloadList();
 	}
 
 	@After
@@ -143,14 +145,6 @@ public class IT054FileEntityTest {
 	public void testFileEntityRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		// Before we start the test wait for the preview to be created
 		PreviewFileHandle previewFileHandle = waitForPreviewToBeCreated(fileHandle);
-		// Now create a FileEntity
-		FileEntity file = new FileEntity();
-		file.setName("IT054FileEntityTest.testFileEntityRoundTrip");
-		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandle.getId());
-		// Create it
-		file = synapse.createEntity(file);
-		assertNotNull(file);
 		// Get the file handles
 		FileHandleResults fhr = synapse.getEntityFileHandlesForCurrentVersion(file.getId());
 		assertNotNull(fhr);
@@ -277,13 +271,6 @@ public class IT054FileEntityTest {
 		List<EntityHeader> results = synapse.getEntityHeaderByMd5(md5);
 		assertNotNull(results);
 		assertEquals(0, results.size());
-
-		FileEntity file = new FileEntity();
-		file.setName("IT054FileEntityTest.testGetEntityHeaderByMd5");
-		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandle.getId());
-		file = synapse.createEntity(file);
-		assertNotNull(file);
 
 		md5 = fileHandle.getContentMd5();
 		results = synapse.getEntityHeaderByMd5(md5);
