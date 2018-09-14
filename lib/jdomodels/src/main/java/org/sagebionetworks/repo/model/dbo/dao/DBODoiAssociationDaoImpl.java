@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -96,7 +96,7 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 		return getDoiAssociation(newId.toString());
 	}
 
-	@WriteTransaction
+	@RequiresNewReadCommitted
 	@Override
 	public DoiAssociation updateDoiAssociation(DoiAssociation dto) throws NotFoundException, ConflictingUpdateException {
 		// Fill in the fields from the existing object that required for the DBO that the client may not pass in
@@ -162,7 +162,6 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 		return DoiUtils.convertToDtoV2(dbo);
 	}
 
-	@NewWriteTransaction
 	@Override
 	public String getEtagForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
