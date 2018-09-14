@@ -4,7 +4,7 @@ package org.sagebionetworks.client;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
 import static org.sagebionetworks.client.SynapseClientImpl.DOI;
-import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST;
+import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_ADD;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_APPEND;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_DOWNLOAD_CSV;
@@ -45,7 +45,7 @@ public enum AsynchJobType {
 	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class, RestEndpointType.file),
 	TableTransaction(TABLE_TRANSACTION, TableUpdateTransactionResponse.class, RestEndpointType.repo),
 	Doi(DOI, DoiResponse .class, RestEndpointType.repo),
-	AddFileToDownloadList(DOWNLOAD_LIST, AddFileToDownloadListResponse.class,  RestEndpointType.file);
+	AddFileToDownloadList(DOWNLOAD_LIST_ADD, AddFileToDownloadListResponse.class,  RestEndpointType.file);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
