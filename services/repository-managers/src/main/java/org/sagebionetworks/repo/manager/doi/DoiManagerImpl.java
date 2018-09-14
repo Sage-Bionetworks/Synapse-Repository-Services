@@ -91,13 +91,11 @@ public class DoiManagerImpl implements DoiManager {
 	DoiAssociation createOrUpdateAssociation(DoiAssociation dto) throws RecoverableMessageException {
 		DoiAssociation association;
 		try {
-			// Check if the DOI exists by checking to make sure eTags match
-			// (We will get a NotFoundException if it doesn't exist).
-			if (!doiAssociationDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()).equals(dto.getEtag())) {
-				throw new ConflictingUpdateException("Cannot create or update the DOI because the submitted eTag does not match the existing eTag.");
-			}
+			// Try to update
+			// We will get a NotFoundException if it doesn't exist.
+			// We will get an unchecked ConflictingUpdateException if the eTags do not match
 			association = doiAssociationDao.updateDoiAssociation(dto);
-		} catch (NotFoundException e1) { // The DOI does not already exist (exception was thrown by getEtag)
+		} catch (NotFoundException e1) { // The DOI does not already exist
 			try {
 				dto.setAssociatedBy(dto.getUpdatedBy());
 				association = doiAssociationDao.createDoiAssociation(dto); // Create

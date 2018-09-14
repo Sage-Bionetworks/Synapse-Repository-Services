@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -97,12 +98,23 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 
 	@WriteTransaction
 	@Override
-	public DoiAssociation updateDoiAssociation(DoiAssociation dto) {
+	public DoiAssociation updateDoiAssociation(DoiAssociation dto) throws NotFoundException, ConflictingUpdateException {
 		// Fill in the fields from the existing object that required for the DBO that the client may not pass in
 		DoiAssociation existing = getDoiAssociation(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		if (!existing.getEtag().equals(dto.getEtag())) {
+			/*
+			 * We say "cannot create" because of the race condition where the client tries to create
+			 * a DOI but another user creates a DOI before that call is made. The first client thinks they
+			 * called create but they ended up calling update.
+			 */
+			throw new ConflictingUpdateException("Cannot create or update the DOI because the submitted eTag does not match the existing eTag.");
+		}
+
+		// Set fields that the client cannot change
 		dto.setAssociationId(existing.getAssociationId());
 		dto.setAssociatedBy(existing.getAssociatedBy());
 		dto.setAssociatedOn(existing.getAssociatedOn());
+
 		// MySQL TIMESTAMP only keeps seconds (not ms)
 		// so for consistency we only write seconds
 		DateTime dt = DateTime.now();

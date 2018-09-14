@@ -5,11 +5,15 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.time.Instant;
+import java.util.Date;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -49,7 +53,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		// Create a DOI DTO with fields necessary to create a new one.
 		dto = new DoiAssociation();
 		dto.setAssociatedBy(associatedById);
-		dto.setUpdatedBy(updatedById);
+		dto.setUpdatedBy(associatedById);
 		dto.setObjectId(objectId);
 		dto.setObjectType(objectType);
 		dto.setObjectVersion(versionNumber);
@@ -73,7 +77,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertEquals(versionNumber, createdDto.getObjectVersion());
 		assertEquals(objectType, createdDto.getObjectType());
 		assertEquals(associatedById, createdDto.getAssociatedBy());
-		assertEquals(updatedById, createdDto.getUpdatedBy());
+		assertEquals(associatedById, createdDto.getUpdatedBy());
 		assertNotNull(createdDto.getAssociatedOn());
 		assertNotNull(createdDto.getUpdatedOn());
 	}
@@ -156,16 +160,51 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 
 	@Test
 	public void testUpdate() {
-		dto.setUpdatedBy(associatedById);
+		// Create a DoiAssociation to update
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
-		String oldEtag = createdDto.getEtag();
+
+		// Save some fields to check if they changed/stayed the same later
+		// Should change (assertNotEquals with the updated DTO)
 		String oldUpdatedBy = createdDto.getUpdatedBy();
+		String oldEtag = createdDto.getEtag();
+
+		// Should not change (assertEquals with the updated DTO)
+		String oldAssociationId = createdDto.getAssociationId();
+		String oldAssociatedBy = createdDto.getAssociatedBy();
+		Date oldAssociatedOn = createdDto.getAssociatedOn();
+
+		// Set a new user ID as the updater
 		createdDto.setUpdatedBy(updatedById);
+
+		// Try to change fields that the client cannot change
+		createdDto.setAssociationId("999999");
+		createdDto.setAssociatedBy("88888");
+		createdDto.setAssociatedOn(Date.from(Instant.EPOCH));
+
 		// Call under test
 		DoiAssociation updatedDto = doiAssociationDao.updateDoiAssociation(createdDto);
-		assertEquals(createdDto.getAssociationId(), updatedDto.getAssociationId());
+
 		assertNotEquals(oldEtag, updatedDto.getEtag());
 		assertNotEquals(oldUpdatedBy, updatedDto.getUpdatedBy());
+
+		assertEquals(oldAssociationId, updatedDto.getAssociationId());
+		assertEquals(oldAssociatedBy, updatedDto.getAssociatedBy());
+		assertEquals(oldAssociatedOn, updatedDto.getAssociatedOn());
+
+	}
+
+	@Test
+	public void testUpdateConflictingEtags() {
+		dto.setUpdatedBy(associatedById);
+		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
+		createdDto.setEtag("mismatched etag");
+		// Call under test
+		try {
+			doiAssociationDao.updateDoiAssociation(createdDto);
+			fail("Expected ConflictingUpdateException");
+		} catch (ConflictingUpdateException e) {
+			// As expected
+		}
 	}
 
 	@Test

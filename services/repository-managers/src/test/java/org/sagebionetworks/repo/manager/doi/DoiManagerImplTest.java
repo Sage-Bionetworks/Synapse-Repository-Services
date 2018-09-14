@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -167,7 +166,7 @@ public class DoiManagerImplTest {
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(true, "mock"));
 		// The following mocks are necessary for the rest of the method to succeed on a "create"
-		when(mockDoiDao.getEtagForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.updateDoiAssociation(inputDto)).thenThrow(new NotFoundException());
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
@@ -188,7 +187,7 @@ public class DoiManagerImplTest {
 	@Test
 	public void testCreateSuccess() throws Exception {
 		// Test the entire create call
-		when(mockDoiDao.getEtagForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.updateDoiAssociation(inputDto)).thenThrow(new NotFoundException());
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 
@@ -202,10 +201,6 @@ public class DoiManagerImplTest {
 	@Test
 	public void testUpdateSuccess() throws Exception {
 		// Test the entire update call
-		inputDto.setEtag("a matching etag");
-		when(mockDoiDao.getEtagForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion()))
-				.thenReturn("a matching etag");
-
 		when(mockDoiDao.updateDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
@@ -239,8 +234,8 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testCreateOrUpdateNullObjectVersion() throws Exception {
+		when(mockDoiDao.updateDoiAssociation(inputDto)).thenThrow(new NotFoundException());
 		inputDto.setObjectVersion(null);
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, null)).thenThrow(new NotFoundException());
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
@@ -250,37 +245,27 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testCreateAssociation() throws Exception {
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenThrow(new NotFoundException());
+		when(mockDoiDao.updateDoiAssociation(inputDto)).thenThrow(new NotFoundException());
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
 
-		verify(mockDoiDao).getEtagForUpdate(entityId, entityType, version);
+		verify(mockDoiDao).updateDoiAssociation(inputDto);
 		verify(mockDoiDao).createDoiAssociation(inputDto);
 	}
 
 	@Test
 	public void testUpdateAssociation() throws Exception {
 		inputDto.setEtag("matching etag");
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenReturn("matching etag");
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
 
-		verify(mockDoiDao).getEtagForUpdate(entityId, entityType, version);
 		verify(mockDoiDao).updateDoiAssociation(inputDto);
-	}
-
-	@Test(expected = ConflictingUpdateException.class)
-	public void testUpdateAssociationMismatchedEtag() throws Exception {
-		inputDto.setEtag("nonmatching etag 1");
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenReturn("nonmatching etag2");
-		// Call under test
-		doiManager.createOrUpdateAssociation(inputDto);
+		verify(mockDoiDao).updateDoiAssociation(inputDto);
 	}
 
 	@Test(expected = RecoverableMessageException.class)
 	public void testThrowRecoverableOnDuplicateKeyException() throws Exception {
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenThrow(new NotFoundException());
-
+		when(mockDoiDao.updateDoiAssociation(inputDto)).thenThrow(new NotFoundException());
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenThrow(new DuplicateKeyException(""));
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
