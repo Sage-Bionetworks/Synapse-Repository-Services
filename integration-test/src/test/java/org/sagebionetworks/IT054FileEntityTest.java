@@ -36,6 +36,9 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -46,6 +49,7 @@ import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -65,6 +69,9 @@ public class IT054FileEntityTest {
 	private File imageFile;
 	private S3FileHandle fileHandle;
 	private Project project;
+	private Folder folder;
+	private FileEntity file;
+	private FileHandleAssociation association;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
 	
 	@BeforeClass
@@ -93,6 +100,24 @@ public class IT054FileEntityTest {
 
 		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
 		fileHandlesToDelete.add(fileHandle.getId());
+		
+		// create a folder
+		folder = new Folder();
+		folder.setName("someFolder");
+		folder.setParentId(project.getId());
+		folder = this.synapse.createEntity(folder);
+		// Add a file to the folder
+		file = new FileEntity();
+		file.setName("someFile");
+		file.setParentId(folder.getId());
+		file.setDataFileHandleId(this.fileHandle.getId());
+		file = this.synapse.createEntity(file);
+		
+		// Association for this file.
+		association = new FileHandleAssociation();
+		association.setAssociateObjectId(KeyFactory.stringToKey(file.getId()).toString());
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setFileHandleId(file.getDataFileHandleId());
 	}
 
 	@After
@@ -268,18 +293,6 @@ public class IT054FileEntityTest {
 	
 	@Test
 	public void testAddFilesToDownloadListAsynch() throws Exception {
-		// create a folder
-		Folder folder = new Folder();
-		folder.setName("someFolder");
-		folder.setParentId(project.getId());
-		folder = this.synapse.createEntity(folder);
-		// Add a file to the folder
-		FileEntity file = new FileEntity();
-		file.setName("someFile");
-		file.setParentId(folder.getId());
-		file.setDataFileHandleId(this.fileHandle.getId());
-		file = this.synapse.createEntity(file);
-		
 		// Start a job to add this file to the user's download list
 		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
 		request.setFolderId(folder.getId());
@@ -290,6 +303,66 @@ public class IT054FileEntityTest {
 		assertNotNull(list.getFilesToDownload());
 		assertEquals(1, list.getFilesToDownload().size());
 	}
+	
+	@Test
+	public void testDownloadListAddRemoveClearGet() throws Exception {
+		// call under test
+		DownloadList list = synapse.addFilesToDownloadList(Lists.newArrayList(association));
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(1, list.getFilesToDownload().size());
+		// call under test
+		DownloadList fromGet = synapse.getDownloadList();
+		assertEquals(list, fromGet);
+		
+		// call under test
+		list = synapse.removeFilesFromDownloadList(Lists.newArrayList(association));
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(0, list.getFilesToDownload().size());
+		
+		// add it back
+		list = synapse.addFilesToDownloadList(Lists.newArrayList(association));
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(1, list.getFilesToDownload().size());
+		
+		// call under test
+		synapse.clearDownloadList();
+		list = synapse.getDownloadList();
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(0, list.getFilesToDownload().size());
+		
+	}
+	
+	@Test
+	public void testCreateDownloadOrder() throws Exception {
+		DownloadList list = synapse.addFilesToDownloadList(Lists.newArrayList(association));
+		String zipName = "theNameOfTheZip.zip";
+		// call under test
+		DownloadOrder order = synapse.createDownloadOrderFromUsersDownloadList(zipName);
+		assertNotNull(order);
+		assertNotNull(order.getFiles());
+		assertEquals(1, order.getFiles().size());
+		// the dowload list should be empty
+		list = synapse.getDownloadList();
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(0, list.getFilesToDownload().size());
+		
+		// call under test
+		DownloadOrder fromGet = synapse.getDownloadOrder(order.getOrderId());
+		assertEquals(order, fromGet);
+		
+		// call under test
+		DownloadOrderSummaryResponse summary = synapse.getDownloadOrderHistory(new DownloadOrderSummaryRequest());
+		assertNotNull(summary);
+		assertNotNull(summary.getPage());
+		assertEquals(1, summary.getPage().size());
+		assertEquals(order.getOrderId(), summary.getPage().get(0).getOrderId());
+	}
+	
 	
 	/**
 	 * Helper to start and wait for an asynch job to add files to a user's download list.
