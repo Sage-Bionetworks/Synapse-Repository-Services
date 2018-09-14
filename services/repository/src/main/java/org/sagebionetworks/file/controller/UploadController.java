@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.PathParam;
 
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.logging.Log;
@@ -33,10 +34,15 @@ import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -842,6 +848,10 @@ public class UploadController extends BaseController {
 	/**
 	 * Start an asynchronous job to add files to a user's download list.
 	 * 
+	 * <p>
+	 * Note: There is a limit of 100 files on a user's download list.
+	 * </p>
+	 * 
 	 * Use <a href="${GET.download.list.add.async.get.asyncToken}">GET
 	 * /download/list/add/async/get/{asyncToken}</a> to get both the job status and
 	 * job results.
@@ -859,8 +869,7 @@ public class UploadController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AddFileToDownloadListRequest request)
 			throws DatastoreException, NotFoundException, IOException {
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, request);
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
 		return asyncJobId;
@@ -890,5 +899,132 @@ public class UploadController extends BaseController {
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
 		return (AddFileToDownloadListResponse) jobStatus.getResponseBody();
+	}
+	
+	/**
+	 * Add the given list of FileHandleAssociations to the caller's download list.
+	 * 
+	 * <p>
+	 * Note: There is a limit of 100 files on a user's download list.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD, method = RequestMethod.POST)
+	public @ResponseBody DownloadList addFilesToDownloadList(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody FileHandleAssociationList request) throws Throwable {
+		return this.fileService.addFilesToDownloadList(userId, request);
+	}
+	
+	/**
+	 * Remove the given list of FileHandleAssociations to the caller's download list.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_REMOVE, method = RequestMethod.POST)
+	public @ResponseBody DownloadList removeFilesFromDownloadList(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody FileHandleAssociationList request) throws Throwable {
+		return this.fileService.removeFilesFromDownloadList(userId, request);
+	}
+	
+	/**
+	 * Clear the caller's download list.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.DELETE)
+	public @ResponseBody void clearUsersDownloadList(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws Throwable {
+		this.fileService.clearDownloadList(userId);
+	}
+	
+	/**
+	 * Get the user's current download list.
+	 * 
+	 * @param userId
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.GET)
+	public @ResponseBody DownloadList getDownloadList(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws Throwable {
+		return this.fileService.getDownloadList(userId);
+	}
+	
+	/**
+	 * Create a download Order from the user's current download list. Only files that
+	 * the user has permission to download will be added to the download order. Any
+	 * file that cannot be added to the order will remain in the user's download
+	 * list.
+	 * <p>
+	 * The resulting download order can then be downloaded using
+	 * <a href="${POST.file.bulk.async.start}">POST /file/bulk/async/start</a>.
+	 * </p>
+	 * 
+	 * <p>
+	 * Note: A single download order is limited to 1 GB of uncompressed file data.
+	 * This method will attempt to create the largest possible order that is within
+	 * the limit. Any file that cannot be added to the order will remain in the
+	 * user's download list.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param zipFileName The name to given to the resulting zip file.
+	 * @return
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER, method = RequestMethod.POST)
+	public @ResponseBody DownloadOrder createDownloadOrder(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = "zipFileName") String zipFileName) throws Throwable {
+		return this.fileService.createDownloadOrder(userId, zipFileName);
+	}
+	
+	/**
+	 * Get a download order given its orderId. Only the user that created the
+	 * order can get it.
+	 * 
+	 * @param userId
+	 * @param orderId The ID of the download order to fetch.
+	 * @return
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER_ID, method = RequestMethod.GET)
+	public @ResponseBody DownloadOrder getDownloadOrder(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "orderId") String orderId) throws Throwable {
+		return this.fileService.getDownloadOrder(userId, orderId);
+	}
+	
+	/**
+	 * Get the caller's download order history in reverse chronological order. This
+	 * is a paginated call.
+	 * 
+	 * @param userId
+	 * @param orderId
+	 * @return A single page of download order summaries.
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER_HISTORY, method = RequestMethod.POST)
+	public @ResponseBody DownloadOrderSummaryResponse getDownloadOrderHistory(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody DownloadOrderSummaryRequest request) throws Throwable {
+		return this.fileService.getDownloadOrderHistory(userId, request);
 	}
 }

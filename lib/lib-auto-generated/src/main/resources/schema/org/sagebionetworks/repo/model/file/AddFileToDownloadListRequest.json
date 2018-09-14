@@ -11,8 +11,8 @@
 			"description": "The ID of the folder containing the files to add to the user's download list. Note: Only the files in this folder will be added to the download list, files in sub-folders will not be added. Should be null if setting a 'query'."
 		},
 		"query": {
-			"$ref": "org.sagebionetworks.repo.model.table.Query",
-			"description": "A view query that lists the files to be added to a user's download list. Should be null if setting a 'folderId'."
+			"description": "A view query that lists the files to be added to a user's download list. Should be null if setting a 'folderId'.",
+			"$ref": "org.sagebionetworks.repo.model.table.Query"
 		}
 	}
 }

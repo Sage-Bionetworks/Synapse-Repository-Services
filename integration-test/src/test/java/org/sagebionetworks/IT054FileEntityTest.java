@@ -23,14 +23,19 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -260,6 +265,53 @@ public class IT054FileEntityTest {
 		assertNotNull(results);
 		assertEquals(1, results.size());
 	}
+	
+	@Test
+	public void testAddFilesToDownloadListAsynch() throws Exception {
+		// create a folder
+		Folder folder = new Folder();
+		folder.setName("someFolder");
+		folder.setParentId(project.getId());
+		folder = this.synapse.createEntity(folder);
+		// Add a file to the folder
+		FileEntity file = new FileEntity();
+		file.setName("someFile");
+		file.setParentId(folder.getId());
+		file.setDataFileHandleId(this.fileHandle.getId());
+		file = this.synapse.createEntity(file);
+		
+		// Start a job to add this file to the user's download list
+		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
+		request.setFolderId(folder.getId());
+		AddFileToDownloadListResponse response = startAndWaitForAddfileJob(request);
+		assertNotNull(response);
+		assertNotNull(response.getDownloadList());
+		DownloadList list = response.getDownloadList();
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(1, list.getFilesToDownload().size());
+	}
+	
+	/**
+	 * Helper to start and wait for an asynch job to add files to a user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	private AddFileToDownloadListResponse startAndWaitForAddfileJob(AddFileToDownloadListRequest request) throws SynapseException, InterruptedException {
+		String jobId = this.synapse.startAddFilesToDownloadList(request);
+		long start = System.currentTimeMillis();
+		while(true) {
+			try {
+				return this.synapse.getAddFilesToDownloadListResponse(jobId);
+			} catch (SynapseResultNotReadyException e) {
+				long elapse = start -System.currentTimeMillis();
+				assertTrue("Timed out waiting for AddFileToDownloadListRequest", elapse < MAX_WAIT_MS*2);
+				Thread.sleep(1000);
+			}
+		}
+	}
+	
 
 	/**
 	 * Wait for a preview to be generated for the given file handle.
