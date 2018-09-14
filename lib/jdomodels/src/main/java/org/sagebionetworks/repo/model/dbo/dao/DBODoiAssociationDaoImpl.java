@@ -98,6 +98,11 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 	@WriteTransaction
 	@Override
 	public DoiAssociation updateDoiAssociation(DoiAssociation dto) {
+		// Fill in the fields from the existing object that required for the DBO that the client may not pass in
+		DoiAssociation existing = getDoiAssociation(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		dto.setAssociationId(existing.getAssociationId());
+		dto.setAssociatedBy(existing.getAssociatedBy());
+		dto.setAssociatedOn(existing.getAssociatedOn());
 		// MySQL TIMESTAMP only keeps seconds (not ms)
 		// so for consistency we only write seconds
 		DateTime dt = DateTime.now();
