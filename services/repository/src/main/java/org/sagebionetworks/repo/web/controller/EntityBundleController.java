@@ -50,6 +50,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li> Unmet Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x400 </li>
  * <li> File Handles <i>(List&lt;FileHandle&gt;)</i> = 0x800 </li>
  * <li> TableEntity Metadata <i>(TableBundle)</i> = 0x1000</li>
+ * <li> Root Wiki ID <i>(String)</i> = 0x2000</li>
+ * <li> Benefactor ACL <i>(AccessControlList)</i> = 0x4000</li>
+ * <li> DOI Association <i>(DoiAssociation)</i> = 0x8000</li>
+ * <li> File Name <i>(String)</i> = 0x10000</li>
+ * <li> Thread Count <i>(Long)</i> = 0x20000</li>
+ * <li> Restriction Information <i>(RestrictionInformationResponse)</i> = 0x40000</li>
  * </ul>
  * </p>
  * <p>
