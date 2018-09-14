@@ -144,6 +144,8 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -153,10 +155,15 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -527,6 +534,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String RESEARCH_PROJECT = "/researchProject";
 	private static final String DATA_ACCESS_REQUEST = "/dataAccessRequest";
 	private static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
+	
+	public static final String DOWNLOAD_LIST = "/download/list";
+	public static final String DOWNLOAD_LIST_ADD = DOWNLOAD_LIST+"/add";
+	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
+	public static final String DOWNLOAD_LIST_CLEAR = DOWNLOAD_LIST+"/clear";
+	
+	public static final String DOWNLOAD_ORDER = "/download/order";
+	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
+	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -5195,4 +5211,64 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		return getJSONEntity(getRepoEndpoint(), uri, RestrictableObjectDescriptorResponse.class);
 	}
+
+	@Override
+	public String startAddFilesToDownloadList(AddFileToDownloadListRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return startAsynchJob(AsynchJobType.AddFileToDownloadList, request);
+	}
+
+	@Override
+	public AddFileToDownloadListResponse getAddFilesToDownloadListResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		ValidateArgument.required(asyncJobToken, "asyncJobToken");
+		return (AddFileToDownloadListResponse) getAsyncResult(AsynchJobType.AddFileToDownloadList, asyncJobToken, (String) null);
+	}
+
+	@Override
+	public DownloadList addFilesToDownloadList(List<FileHandleAssociation> toAdd) throws SynapseException {
+		ValidateArgument.required(toAdd, "toAdd");
+		FileHandleAssociationList request = new FileHandleAssociationList();
+		request.setList(toAdd);
+		return postJSONEntity(getFileEndpoint(), DOWNLOAD_LIST_ADD, request, DownloadList.class);
+	}
+
+	@Override
+	public DownloadList removeFilesFromDownloadList(List<FileHandleAssociation> toRemove) throws SynapseException {
+		ValidateArgument.required(toRemove, "toRemove");
+		FileHandleAssociationList request = new FileHandleAssociationList();
+		request.setList(toRemove);
+		return postJSONEntity(getFileEndpoint(), DOWNLOAD_LIST_REMOVE, request, DownloadList.class);
+	}
+
+	@Override
+	public void clearDownloadList() throws SynapseException {
+		deleteUri(getFileEndpoint(), DOWNLOAD_LIST);
+	}
+	
+	@Override
+	public DownloadList getDownloadList() throws SynapseException {
+		return getJSONEntity(getFileEndpoint(), DOWNLOAD_LIST, DownloadList.class);
+	}
+
+	@Override
+	public DownloadOrder createDownloadOrderFromUsersDownloadList(String zipFileName) throws SynapseException {
+		ValidateArgument.required(zipFileName, "zipFileName");
+		String url = DOWNLOAD_ORDER+"?zipFileName="+zipFileName;
+		return postJSONEntity(getFileEndpoint(), url, null, DownloadOrder.class);
+	}
+
+	@Override
+	public DownloadOrder getDownloadOrder(String orderId) throws SynapseException {
+		ValidateArgument.required(orderId, "orderId");
+		String url = DOWNLOAD_ORDER+"/"+orderId;
+		return getJSONEntity(getFileEndpoint(), url, DownloadOrder.class);
+	}
+
+	@Override
+	public DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getFileEndpoint(), DOWNLOAD_ORDER_HISTORY, request, DownloadOrderSummaryResponse.class);
+	}
+
 }

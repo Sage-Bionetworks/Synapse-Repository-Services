@@ -92,7 +92,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	@Override
 	public DownloadList addFilesToDownloadList(String ownerId, List<FileHandleAssociation> toAdd) {
 		ValidateArgument.required(ownerId, "ownerId");
-		ValidateArgument.required(toAdd, "ownerId");
+		ValidateArgument.required(toAdd, "toAdd");
 		long principalId = Long.parseLong(ownerId);
 		// touch the main row
 		touchUsersDownloadList(principalId);

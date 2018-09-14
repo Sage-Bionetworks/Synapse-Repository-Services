@@ -572,7 +572,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, nextPageToken.getLimit()+1, nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	
@@ -638,7 +638,7 @@ public class TableIndexManagerImplTest {
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		// should default to file view.
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), nextPageToken.getLimit()+1, nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

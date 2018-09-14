@@ -115,6 +115,8 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -124,6 +126,10 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -2979,4 +2985,97 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken) throws SynapseException;
+	
+	/**
+	 * Start an asynchronous job to add files to a user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startAddFilesToDownloadList(AddFileToDownloadListRequest request)
+			throws SynapseException;
+
+
+	/**
+	 * Get the results of the asynchronous job to add files to a user's download list.
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	AddFileToDownloadListResponse getAddFilesToDownloadListResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Add the given list of files to the user's download list.
+	 * 
+	 * @param toAdd
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList addFilesToDownloadList(List<FileHandleAssociation> toAdd) throws SynapseException;
+	
+	/**
+	 * Remove the given list of files from the user's download list.
+	 * 
+	 * @param toRemove
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList removeFilesFromDownloadList(List<FileHandleAssociation> toRemove) throws SynapseException;
+	
+	/**
+	 * Clear the user's download list.
+	 * 
+	 * @return
+	 * @throws SynapseException 
+	 */
+	void clearDownloadList() throws SynapseException;
+	
+	/**
+	 * Get a user's download list.
+	 * 
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList getDownloadList() throws SynapseException;
+	
+	/**
+	 * Create a download Order from the user's current download list. Only files that
+	 * the user has permission to download will be added to the download order. Any
+	 * file that cannot be added to the order will remain in the user's download
+	 * list.
+	 * <p>
+	 * The resulting download order can then be downloaded using
+	 * {@link #startBulkFileDownload(BulkFileDownloadRequest)}.
+	 * </p>
+	 * 
+	 * <p>
+	 * Note: A single download order is limited to 1 GB of uncompressed file data.
+	 * This method will attempt to create the largest possible order that is within
+	 * the limit. Any file that cannot be added to the order will remain in the
+	 * user's download list.
+	 * </p>
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrder createDownloadOrderFromUsersDownloadList(String zipFileName) throws SynapseException;
+	
+	/**
+	 * Get a download order given the order's ID
+	 * @param orderId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrder getDownloadOrder(String orderId) throws SynapseException;
+	
+	/**
+	 * Get the download order history for a user in reverse chronological order.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException;
 }
