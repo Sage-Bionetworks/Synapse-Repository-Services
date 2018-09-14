@@ -2514,7 +2514,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public String getSynapseTermsOfUse() throws SynapseException {
-		return getStringDirect(getAuthEndpoint(), "/synapseTermsOfUse.html");
+		return getStringDirect("https://s3.amazonaws.com/static.synapse.org/governance/SageBionetworksSynapseTermsandConditionsofUse.pdf");
 	}
 
 	/**
