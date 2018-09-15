@@ -60,7 +60,8 @@ public enum ViewTypeMask {
 	 */
 	public static long getViewTypeMask(ViewType viewType, Long viewTypeMask) {
 		if(viewType != null && viewTypeMask != null) {
-			throw new IllegalArgumentException("Do not provide both 'viewType' and 'viewTypeMask', provide one or the other.");
+			// Per PLFM-5126 ignore the type and use the mask for this case.
+			viewType = null;
 		}
 		if(viewType != null) {
 			return getMaskForDepricatedType(viewType);

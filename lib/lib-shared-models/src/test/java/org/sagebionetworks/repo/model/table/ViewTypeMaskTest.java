@@ -33,12 +33,14 @@ public class ViewTypeMaskTest {
 		ViewTypeMask.getViewTypeMask(viewType, viewTypeMask);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetViewTypeMaskBothNotNull() {
-		ViewType viewType = ViewType.file;
+		ViewType viewType = ViewType.file_and_table;
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		// call under test
-		ViewTypeMask.getViewTypeMask(viewType, viewTypeMask);
+		long result = ViewTypeMask.getViewTypeMask(viewType, viewTypeMask);
+		// for this case 
+		assertEquals(ViewTypeMask.File.getMask(), result);
 	}
 	
 	@Test
