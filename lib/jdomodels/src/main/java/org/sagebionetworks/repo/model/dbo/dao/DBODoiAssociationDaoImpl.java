@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
@@ -20,8 +19,8 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -39,18 +38,13 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 			"SELECT * FROM " + TABLE_DOI + " WHERE "
 					+ COL_DOI_ID + " = :" + COL_DOI_ID;
 
-	private static final String SELECT_DOI_BY_ASSOCIATED_OBJECT =
+	static final String SELECT_DOI_BY_ASSOCIATED_OBJECT =
 			"SELECT * FROM " + TABLE_DOI + " WHERE "
 					+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
 					+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
 					+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
 
-	private static final String SELECT_DOI_ETAG_FOR_UPDATE =
-			"SELECT " + COL_DOI_ETAG + " FROM " + TABLE_DOI + " WHERE "
-					+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
-					+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
-					+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION +
-					" FOR UPDATE ";
+	private static final String FOR_UPDATE = " FOR UPDATE ";
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
@@ -96,25 +90,9 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 		return getDoiAssociation(newId.toString());
 	}
 
-	@RequiresNewReadCommitted
+	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public DoiAssociation updateDoiAssociation(DoiAssociation dto) throws NotFoundException, ConflictingUpdateException {
-		// Fill in the fields from the existing object that required for the DBO that the client may not pass in
-		DoiAssociation existing = getDoiAssociation(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
-		if (!existing.getEtag().equals(dto.getEtag())) {
-			/*
-			 * We say "cannot create" because of the race condition where the client tries to create
-			 * a DOI but another user creates a DOI before that call is made. The first client thinks they
-			 * called create but they ended up calling update.
-			 */
-			throw new ConflictingUpdateException("Cannot create or update the DOI because the submitted eTag does not match the existing eTag.");
-		}
-
-		// Set fields that the client cannot change
-		dto.setAssociationId(existing.getAssociationId());
-		dto.setAssociatedBy(existing.getAssociatedBy());
-		dto.setAssociatedOn(existing.getAssociatedOn());
-
 		// MySQL TIMESTAMP only keeps seconds (not ms)
 		// so for consistency we only write seconds
 		DateTime dt = DateTime.now();
@@ -145,6 +123,16 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 
 	@Override
 	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
+		return getDoiAssociation(objectId, objectType, versionNumber, false);
+	}
+
+	@MandatoryWriteReadCommittedTransaction
+	@Override
+	public DoiAssociation getDoiAssociationForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
+		return getDoiAssociation(objectId, objectType, versionNumber, false);
+	}
+
+	DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber, boolean forUpdate) throws NotFoundException {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
 		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
@@ -154,31 +142,16 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
 		}
 		DBODoi dbo = null;
+		String query = SELECT_DOI_BY_ASSOCIATED_OBJECT;
+		if (forUpdate) {
+			query += FOR_UPDATE;
+		}
 		try {
-			dbo = namedJdbcTemplate.queryForObject(SELECT_DOI_BY_ASSOCIATED_OBJECT, paramMap, rowMapper);
+			dbo = namedJdbcTemplate.queryForObject(query, paramMap, rowMapper);
 		} catch (IncorrectResultSizeDataAccessException e) {
 			handleIncorrectResultSizeException(e);
 		}
 		return DoiUtils.convertToDtoV2(dbo);
-	}
-
-	@Override
-	public String getEtagForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
-		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
-		if (versionNumber == null) {
-			paramMap.addValue(COL_DOI_OBJECT_VERSION, DBODoi.NULL_OBJECT_VERSION);
-		} else {
-			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
-		}
-		String etag = null;
-		try {
-			etag = namedJdbcTemplate.queryForObject(SELECT_DOI_ETAG_FOR_UPDATE, paramMap, String.class);
-		} catch (IncorrectResultSizeDataAccessException e) {
-			handleIncorrectResultSizeException(e);
-		}
-		return etag;
 	}
 
 	static void handleIncorrectResultSizeException(IncorrectResultSizeDataAccessException e) throws NotFoundException {

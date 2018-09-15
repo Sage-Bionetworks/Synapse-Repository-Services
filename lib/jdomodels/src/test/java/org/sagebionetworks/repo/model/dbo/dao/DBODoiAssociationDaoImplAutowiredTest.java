@@ -25,6 +25,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -208,27 +209,23 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void getEtag() {
+	public void getDoiAssociationForUpdateNotInTransaction() {
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
-		// Call under test
-		String etag = doiAssociationDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
-		assertEquals(createdDto.getEtag(), etag);
+		try {
+			// Call under test
+			doiAssociationDao.getDoiAssociationForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		} catch (IllegalTransactionStateException e) {
+			// expected IllegalTransactionStateException since we are not in a read committed transaction
+		}
 	}
 
 	@Test
-	public void getEtagNoObjectVersion() {
+	public void getDoiAssociation() {
 		dto.setObjectVersion(null);
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
 		// Call under test
-		String etag = doiAssociationDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
-		assertEquals(createdDto.getEtag(), etag);
-	}
-
-	@Test(expected = NotFoundException.class)
-	public void getEtagNotFound() {
-		// Note the DOI is never created.
-		// Call under test
-		String etag = doiAssociationDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertEquals(createdDto, retrievedDto);
 	}
 
 	@Test

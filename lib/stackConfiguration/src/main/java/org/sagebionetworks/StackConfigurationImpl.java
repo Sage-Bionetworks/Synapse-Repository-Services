@@ -791,7 +791,8 @@ public class StackConfigurationImpl implements StackConfiguration {
 		if (isProductionStack()) {
 			return configuration.getProperty("org.sagebionetworks.doi.prefix");
 		} else {
-			return configuration.getProperty("org.sagebionetworks.doi.demo.prefix") + "/" + getStackInstance();
+			// We change the prefix to prevent collisions (separate developer builds may have objects with the same DOI)
+			return configuration.getProperty("org.sagebionetworks.doi.prefix") + "/" + getStackInstance();
 		}
 	}
 
