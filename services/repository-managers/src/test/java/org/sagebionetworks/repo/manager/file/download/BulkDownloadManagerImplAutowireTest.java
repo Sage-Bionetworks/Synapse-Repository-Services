@@ -13,6 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -32,6 +33,9 @@ public class BulkDownloadManagerImplAutowireTest {
 	
 	@Autowired
 	BulkDownloadManager bulkDownloadManager;
+	
+	@Autowired
+	EntityManager entityManager;
 	
 	Long userOneIdLong;
 	String userOneId;
@@ -98,5 +102,5 @@ public class BulkDownloadManagerImplAutowireTest {
 		}
 		return result;
 	}
-	
+
 }
