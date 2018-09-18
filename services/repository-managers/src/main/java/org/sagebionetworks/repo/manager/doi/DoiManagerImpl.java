@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.manager.doi;
 
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -80,7 +84,11 @@ public class DoiManagerImpl implements DoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(user, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
 
+		// Set updated fields
 		dto.setUpdatedBy(user.getId().toString());
+		// MySQL TIMESTAMP only keeps seconds (not ms)
+		dto.setUpdatedOn(new Timestamp(DateTime.now().getMillis() / 1000L * 1000L));
+
 		DoiAssociation association = createOrUpdateAssociation(dto);
 		dto.setDoiUri(generateDoiUri(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
 		dto.setDoiUrl(generateLocationRequestUrl(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
@@ -98,14 +106,17 @@ public class DoiManagerImpl implements DoiManager {
 				throw new ConflictingUpdateException("Cannot create or update the DOI because the submitted eTag does not match the existing eTag.");
 			}
 
-			// Set fields that the client cannot change
+			// Set fields from the old object that the client cannot change
 			dto.setAssociationId(existing.getAssociationId());
 			dto.setAssociatedBy(existing.getAssociatedBy());
 			dto.setAssociatedOn(existing.getAssociatedOn());
+			dto.setEtag(UUID.randomUUID().toString());
 			association = doiAssociationDao.updateDoiAssociation(dto);
 		} catch (NotFoundException e1) { // The DOI does not already exist
 			try {
 				dto.setAssociatedBy(dto.getUpdatedBy());
+				dto.setAssociatedOn(dto.getUpdatedOn());
+				dto.setEtag(UUID.randomUUID().toString());
 				association = doiAssociationDao.createDoiAssociation(dto); // Create
 			} catch (DuplicateKeyException e2) {
 					/*

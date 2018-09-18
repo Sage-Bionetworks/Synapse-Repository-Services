@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-import java.time.Instant;
 import java.util.Date;
 
 import org.junit.After;
@@ -13,7 +12,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -26,6 +24,7 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -43,6 +42,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	private final String objectId = KeyFactory.keyToString(112233L);
 	private final ObjectType objectType = ObjectType.ENTITY;
 	private final Long versionNumber = 1L;
+	private final String etag = "etag";
 
 
 	@Before
@@ -58,6 +58,9 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		dto.setObjectId(objectId);
 		dto.setObjectType(objectType);
 		dto.setObjectVersion(versionNumber);
+		dto.setEtag(etag);
+		dto.setAssociatedOn(new Date());
+		dto.setUpdatedOn(new Date());
 	}
 
 	@After
@@ -73,7 +76,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 
 		assertNotNull(createdDto);
 		assertNotNull(createdDto.getAssociationId());
-		assertNotNull(createdDto.getEtag());
+		assertEquals(etag, createdDto.getEtag());
 		assertEquals(objectId, createdDto.getObjectId());
 		assertEquals(versionNumber, createdDto.getObjectVersion());
 		assertEquals(objectType, createdDto.getObjectType());
@@ -159,53 +162,23 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	}
 
 
+	@Transactional
 	@Test
 	public void testUpdate() {
 		// Create a DoiAssociation to update
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
 
-		// Save some fields to check if they changed/stayed the same later
-		// Should change (assertNotEquals with the updated DTO)
-		String oldUpdatedBy = createdDto.getUpdatedBy();
+		// Save a field to check if it changes later
+		// The manager is in charge of what the new value actually is
 		String oldEtag = createdDto.getEtag();
-
-		// Should not change (assertEquals with the updated DTO)
-		String oldAssociationId = createdDto.getAssociationId();
-		String oldAssociatedBy = createdDto.getAssociatedBy();
-		Date oldAssociatedOn = createdDto.getAssociatedOn();
-
-		// Set a new user ID as the updater
-		createdDto.setUpdatedBy(updatedById);
-
-		// Try to change fields that the client cannot change
-		createdDto.setAssociationId("999999");
-		createdDto.setAssociatedBy("88888");
-		createdDto.setAssociatedOn(Date.from(Instant.EPOCH));
+		String newEtag = "new etag";
+		createdDto.setEtag(newEtag);
 
 		// Call under test
 		DoiAssociation updatedDto = doiAssociationDao.updateDoiAssociation(createdDto);
 
 		assertNotEquals(oldEtag, updatedDto.getEtag());
-		assertNotEquals(oldUpdatedBy, updatedDto.getUpdatedBy());
-
-		assertEquals(oldAssociationId, updatedDto.getAssociationId());
-		assertEquals(oldAssociatedBy, updatedDto.getAssociatedBy());
-		assertEquals(oldAssociatedOn, updatedDto.getAssociatedOn());
-
-	}
-
-	@Test
-	public void testUpdateConflictingEtags() {
-		dto.setUpdatedBy(associatedById);
-		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
-		createdDto.setEtag("mismatched etag");
-		// Call under test
-		try {
-			doiAssociationDao.updateDoiAssociation(createdDto);
-			fail("Expected ConflictingUpdateException");
-		} catch (ConflictingUpdateException e) {
-			// As expected
-		}
+		assertEquals(newEtag, updatedDto.getEtag());
 	}
 
 	@Test

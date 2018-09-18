@@ -67,15 +67,6 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 	public DoiAssociation createDoiAssociation(DoiAssociation dto) throws DuplicateKeyException {
 		Long newId = idGenerator.generateNewId(IdType.DOI_ID);
 		dto.setAssociationId(newId.toString());
-		dto.setEtag(UUID.randomUUID().toString());
-		// MySQL TIMESTAMP only keeps seconds (not ms)
-		// so for consistency we only write seconds
-		DateTime dt = DateTime.now();
-		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
-		Timestamp now = new Timestamp(nowInSeconds);
-
-		dto.setAssociatedOn(now);
-		dto.setUpdatedOn(now);
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		try {
 			basicDao.createNew(dbo);
@@ -86,25 +77,14 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 				throw e;
 			}
 		}
-
 		return getDoiAssociation(newId.toString());
 	}
 
 	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public DoiAssociation updateDoiAssociation(DoiAssociation dto) throws NotFoundException, ConflictingUpdateException {
-		// MySQL TIMESTAMP only keeps seconds (not ms)
-		// so for consistency we only write seconds
-		DateTime dt = DateTime.now();
-		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
-		Timestamp now = new Timestamp(nowInSeconds);
-
-		dto.setEtag(UUID.randomUUID().toString());
-		dto.setUpdatedOn(now);
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
-
 		basicDao.update(dbo);
-
 		return getDoiAssociation(dto.getAssociationId());
 	}
 
