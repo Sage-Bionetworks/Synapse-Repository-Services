@@ -169,7 +169,7 @@ public class DoiManagerImplTest {
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(true, "mock"));
 		// The following mocks are necessary for the rest of the method to succeed on a "create"
-		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
@@ -190,7 +190,7 @@ public class DoiManagerImplTest {
 	@Test
 	public void testCreateSuccess() throws Exception {
 		// Test the entire create call
-		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 
@@ -249,7 +249,7 @@ public class DoiManagerImplTest {
 	@Test
 	public void testCreateOrUpdateNullObjectVersion() throws Exception {
 		inputDto.setObjectVersion(null);
-		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
@@ -259,7 +259,7 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testCreateAssociation() throws Exception {
-		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
 
@@ -282,7 +282,7 @@ public class DoiManagerImplTest {
 
 	@Test(expected = RecoverableMessageException.class)
 	public void testThrowRecoverableOnDuplicateKeyException() throws Exception {
-		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenThrow(new DuplicateKeyException(""));
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);

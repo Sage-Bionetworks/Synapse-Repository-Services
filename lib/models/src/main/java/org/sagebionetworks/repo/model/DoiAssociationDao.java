@@ -38,6 +38,8 @@ public interface DoiAssociationDao {
 	/**
 	 * Gets the DOI for the specified object. If version number is null,
 	 * the DOI associated with the most recent version will be retrieved.
+	 *
+	 * Note that this method throws NotFoundException if the association does not exist
 	 * @param objectId The ID of the object to which a DOI refers
 	 * @param objectType The type of the object.
 	 * @param versionNumber The version number of the object. Null refers to
@@ -50,12 +52,13 @@ public interface DoiAssociationDao {
 	/**
 	 * Gets the DOI for the specified object for update. If version number is null,
 	 * the DOI associated with the most recent version will be retrieved.
+	 *
+	 * Note that this method returns null if the association does not exist
 	 * @param objectId The ID of the object to which a DOI refers
 	 * @param objectType The type of the object.
 	 * @param versionNumber The version number of the object. Null refers to
 	 *                      the most recent version
-	 * @return The DTO for the specified DOI.
-	 * @throws NotFoundException An existing DOI was not found
+	 * @return The DTO for the specified DOI, or null if it does not exist.
 	 */
 	DoiAssociation getDoiAssociationForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException;
 }

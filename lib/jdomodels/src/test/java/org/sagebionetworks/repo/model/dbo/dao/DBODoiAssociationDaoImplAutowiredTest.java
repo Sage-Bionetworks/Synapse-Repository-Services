@@ -68,6 +68,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		doiAdminDao.clear();
 	}
 
+	@Transactional
 	@Test
 	public void testCreateDoi() {
 		// dto is set up in before()
@@ -86,6 +87,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertNotNull(createdDto.getUpdatedOn());
 	}
 
+	@Transactional
 	@Test
 	public void testCreateDoisOfDifferentVersions() {
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
@@ -103,6 +105,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertNotEquals(id1, id2);
 	}
 
+	@Transactional
 	@Test
 	public void testGetFromId() {
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
@@ -120,6 +123,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertEquals(createdDto.getUpdatedOn(), retrievedDto.getUpdatedOn());
 	}
 
+	@Transactional
 	@Test
 	public void testGetFromTriple() {
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
@@ -129,6 +133,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertEquals(createdDto.getAssociationId(), retrievedDto.getAssociationId());
 	}
 
+	@Transactional
 	@Test
 	public void testGetNullVersionFromId() {
 		dto.setObjectVersion(null);
@@ -139,6 +144,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
 	}
 
+	@Transactional
 	@Test
 	public void testGetNullVersionFromTriple() {
 		dto.setObjectVersion(null);
@@ -182,16 +188,36 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void getDoiAssociationForUpdateNotInTransaction() {
-		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
+	public void createNotInTransaction() {
 		try {
 			// Call under test
-			doiAssociationDao.getDoiAssociationForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+			doiAssociationDao.createDoiAssociation(dto);
 		} catch (IllegalTransactionStateException e) {
 			// expected IllegalTransactionStateException since we are not in a read committed transaction
 		}
 	}
 
+	@Test
+	public void updateNotInTransaction() {
+		try {
+			// Call under test
+			doiAssociationDao.updateDoiAssociation(dto);
+		} catch (IllegalTransactionStateException e) {
+			// expected IllegalTransactionStateException since we are not in a read committed transaction
+		}
+	}
+
+	@Test
+	public void getDoiAssociationForUpdateNotInTransaction() {
+		try {
+			// Call under test
+			doiAssociationDao.getDoiAssociationForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		} catch (IllegalTransactionStateException e) {
+			// expected IllegalTransactionStateException since we are not in a read committed transaction
+		}
+	}
+
+	@Transactional
 	@Test
 	public void getDoiAssociation() {
 		dto.setObjectVersion(null);
@@ -201,6 +227,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertEquals(createdDto, retrievedDto);
 	}
 
+	@Transactional
 	@Test
 	public void testCreateDuplicateVersion() {
 		doiAssociationDao.createDoiAssociation(dto);
@@ -214,6 +241,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		}
 	}
 
+	@Transactional
 	@Test
 	public void testCreateSomeOtherError() {
 		// This call violates the schema, and should yield an IllegalArgumentException
@@ -226,6 +254,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		}
 	}
 
+	@Transactional
 	@Test
 	public void testCreateNullVersion() {
 		dto.setObjectVersion(null);
@@ -244,6 +273,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		// Call under test. If there are 0 items, we should rethrow a NotFoundException
 		DBODoiAssociationDaoImpl.handleIncorrectResultSizeException(e);
 	}
+
 	@Test(expected=IllegalStateException.class)
 	public void handleIncorrectResultSizeOfMoreThanOne() {
 		IncorrectResultSizeDataAccessException e = new IncorrectResultSizeDataAccessException(1, 2);

@@ -98,8 +98,8 @@ public class DoiManagerImpl implements DoiManager {
 
 	DoiAssociation createOrUpdateAssociation(DoiAssociation dto) throws RecoverableMessageException {
 		DoiAssociation association;
-		try {
-			DoiAssociation existing = doiAssociationDao.getDoiAssociationForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		DoiAssociation existing = doiAssociationDao.getDoiAssociationForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		if (existing != null) {
 			if (!existing.getEtag().equals(dto.getEtag())) {
 				// We say "cannot create" because the client may have called "createOrUpdate" before discovering that
 				// another client created a DOI
@@ -112,7 +112,7 @@ public class DoiManagerImpl implements DoiManager {
 			dto.setAssociatedOn(existing.getAssociatedOn());
 			dto.setEtag(UUID.randomUUID().toString());
 			association = doiAssociationDao.updateDoiAssociation(dto);
-		} catch (NotFoundException e1) { // The DOI does not already exist
+		} else { // The DOI does not already exist
 			try {
 				dto.setAssociatedBy(dto.getUpdatedBy());
 				dto.setAssociatedOn(dto.getUpdatedOn());

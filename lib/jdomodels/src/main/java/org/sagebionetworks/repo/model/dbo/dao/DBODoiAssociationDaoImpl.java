@@ -62,7 +62,7 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
 	 * avoid race conditions.
 	 */
-	@NewWriteTransaction
+	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public DoiAssociation createDoiAssociation(DoiAssociation dto) throws DuplicateKeyException {
 		Long newId = idGenerator.generateNewId(IdType.DOI_ID);
@@ -109,7 +109,12 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public DoiAssociation getDoiAssociationForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
-		return getDoiAssociation(objectId, objectType, versionNumber, false);
+		try {
+			return getDoiAssociation(objectId, objectType, versionNumber, false);
+		} catch (NotFoundException e) {
+			// We have to catch this exception and return null to avoid a transaction rollback
+			return null;
+		}
 	}
 
 	DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber, boolean forUpdate) throws NotFoundException {
