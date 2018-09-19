@@ -673,28 +673,6 @@ public class NodeManagerImplUnitTest {
 	}
 
 	@Test
-	public void testPromoteVersionAuthorized() throws Exception {
-		String nodeId = "123";
-		long versionNumber = 1L;
-		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Node mockNode = mock(Node.class);
-		when(mockNodeDao.getNodeForVersion(nodeId, versionNumber)).thenReturn(mockNode);
-		List<VersionInfo> versionInfoList = new ArrayList<VersionInfo>();
-		versionInfoList.add(mock(VersionInfo.class));
-		when(mockNodeDao.getVersionsOfEntity(nodeId, 0, 1)).thenReturn(versionInfoList);
-		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, versionNumber);
-		verify(mockNodeDao, times(1)).lockNodeAndIncrementEtag(eq(nodeId), anyString());
-		verify(mockNodeDao, times(1)).createNewVersion(mockNode);
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testPromoteVersionUnauthorized() throws Exception {
-		String nodeId = "123";
-		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
-	}
-
-	@Test
 	public void testGetNodeHeaderByMd5() throws Exception {
 
 		// Test empty results

@@ -665,24 +665,6 @@ public class NodeManagerImpl implements NodeManager {
 		}
 	}
 
-	@WriteTransaction
-	@Override
-	public VersionInfo promoteEntityVersion(UserInfo userInfo, String nodeId, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		Long currentVersion = nodeDao.getCurrentRevisionNumber(nodeId);
-		if (!currentVersion.equals(versionNumber)) {
-			String currentETag = nodeDao.peekCurrentEtag(nodeId);
-			nodeDao.lockNodeAndIncrementEtag(nodeId, currentETag);
-			Node nodeToPromote = nodeDao.getNodeForVersion(nodeId, versionNumber);
-			nodeToPromote.setVersionLabel(null); // To get a new version label
-			nodeDao.createNewVersion(nodeToPromote);
-		}
-		List<VersionInfo> versions = nodeDao.getVersionsOfEntity(nodeId, 0, 1);
-		return versions.get(0);
-	}
-
 	@Override
 	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
 			throws NotFoundException, UnauthorizedException {

@@ -300,11 +300,6 @@ public interface NodeManager {
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
-	/**
-	 * Copies the given version to be the current version.
-	 */
-	public VersionInfo promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
 	 * Get the FileHandleId of the file associated with a given version of the entity. The caller must have permission
