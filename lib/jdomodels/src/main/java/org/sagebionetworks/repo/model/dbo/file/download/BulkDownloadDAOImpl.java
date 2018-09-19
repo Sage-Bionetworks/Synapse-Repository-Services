@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -120,7 +121,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 					int parameterIndex = 1;
 					for (FileHandleAssociation fas : toRemove) {
 						ps.setLong(parameterIndex++, ownerIdLong);
-						ps.setLong(parameterIndex++, Long.parseLong(fas.getAssociateObjectId()));
+						ps.setLong(parameterIndex++, KeyFactory.stringToKey(fas.getAssociateObjectId()));
 						ps.setString(parameterIndex++, fas.getAssociateObjectType().name());
 						ps.setLong(parameterIndex++, Long.parseLong(fas.getFileHandleId()));
 					}
@@ -268,9 +269,17 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	 */
 	static FileHandleAssociation translateFromDBOtoDTO(DBODownloadListItem item) {
 		FileHandleAssociation dto = new FileHandleAssociation();
-		dto.setAssociateObjectId("" + item.getAssociatedObjectId());
+
 		dto.setAssociateObjectType(FileHandleAssociateType.valueOf(item.getAssociatedObjectType()));
-		dto.setFileHandleId("" + item.getFileHandleId());
+		switch (dto.getAssociateObjectType()) {
+		case FileEntity:
+		case TableEntity:
+			dto.setAssociateObjectId(KeyFactory.keyToString(item.getAssociatedObjectId()));
+			break;
+		default:
+			dto.setAssociateObjectId(item.getAssociatedObjectId().toString());
+		}
+		dto.setFileHandleId(item.getFileHandleId().toString());
 		return dto;
 	}
 
@@ -308,7 +317,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		ValidateArgument.required(fha.getFileHandleId(), "FileHandleAssociation.fileHandleId");
 		DBODownloadListItem item = new DBODownloadListItem();
 		item.setPrincipalId(principalId);
-		item.setAssociatedObjectId(Long.parseLong(fha.getAssociateObjectId()));
+		item.setAssociatedObjectId(KeyFactory.stringToKey(fha.getAssociateObjectId()));
 		item.setAssociatedObjectType(fha.getAssociateObjectType().name());
 		item.setFileHandleId(Long.parseLong(fha.getFileHandleId()));
 		return item;

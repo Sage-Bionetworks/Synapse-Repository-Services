@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -89,7 +90,7 @@ public class BulkDownloadDAOImplTest {
 		long index = 0;
 		for (FileHandle file : fileHandles) {
 			FileHandleAssociation fha = new FileHandleAssociation();
-			fha.setAssociateObjectId("" + index++);
+			fha.setAssociateObjectId(KeyFactory.keyToString(index++));
 			fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 			fha.setFileHandleId(file.getId());
 			fileHandleAssociations.add(fha);
@@ -127,15 +128,46 @@ public class BulkDownloadDAOImplTest {
 		DBODownloadListItem item = new DBODownloadListItem();
 		item.setPrincipalId(userOneIdLong);
 		item.setAssociatedObjectId(123L);
+		item.setAssociatedObjectType(FileHandleAssociateType.TeamAttachment.name());
+		item.setFileHandleId(456L);
+		// call under test
+		FileHandleAssociation fha = BulkDownloadDAOImpl.translateFromDBOtoDTO(item);
+		assertNotNull(fha);
+		assertEquals(item.getAssociatedObjectId().toString(), fha.getAssociateObjectId());
+		assertEquals(item.getAssociatedObjectType(), fha.getAssociateObjectType().name());
+		assertEquals("" + item.getFileHandleId(), fha.getFileHandleId());
+	}
+	
+	@Test
+	public void testTranslateFromDBOtoDTOFileAssociationFileEntity() {
+		DBODownloadListItem item = new DBODownloadListItem();
+		item.setPrincipalId(userOneIdLong);
+		item.setAssociatedObjectId(123L);
 		item.setAssociatedObjectType(FileHandleAssociateType.FileEntity.name());
 		item.setFileHandleId(456L);
 		// call under test
 		FileHandleAssociation fha = BulkDownloadDAOImpl.translateFromDBOtoDTO(item);
 		assertNotNull(fha);
-		assertEquals("" + item.getAssociatedObjectId(), fha.getAssociateObjectId());
+		assertEquals(KeyFactory.keyToString(item.getAssociatedObjectId()), fha.getAssociateObjectId());
 		assertEquals(item.getAssociatedObjectType(), fha.getAssociateObjectType().name());
-		assertEquals("" + item.getFileHandleId(), fha.getFileHandleId());
+		assertEquals(item.getFileHandleId().toString(), fha.getFileHandleId());
 	}
+	
+	@Test
+	public void testTranslateFromDBOtoDTOFileAssociationTable() {
+		DBODownloadListItem item = new DBODownloadListItem();
+		item.setPrincipalId(userOneIdLong);
+		item.setAssociatedObjectId(123L);
+		item.setAssociatedObjectType(FileHandleAssociateType.TableEntity.name());
+		item.setFileHandleId(456L);
+		// call under test
+		FileHandleAssociation fha = BulkDownloadDAOImpl.translateFromDBOtoDTO(item);
+		assertNotNull(fha);
+		assertEquals(KeyFactory.keyToString(item.getAssociatedObjectId()), fha.getAssociateObjectId());
+		assertEquals(item.getAssociatedObjectType(), fha.getAssociateObjectType().name());
+		assertEquals(item.getFileHandleId().toString(), fha.getFileHandleId());
+	}
+
 
 	@Test
 	public void testTranslateFromDBOtoDTOFileAssociationList() {
@@ -149,7 +181,7 @@ public class BulkDownloadDAOImplTest {
 		assertNotNull(list);
 		assertEquals(1, list.size());
 		FileHandleAssociation fha = list.get(0);
-		assertEquals("" + item.getAssociatedObjectId(), fha.getAssociateObjectId());
+		assertEquals(KeyFactory.keyToString(item.getAssociatedObjectId()), fha.getAssociateObjectId());
 		assertEquals(item.getAssociatedObjectType(), fha.getAssociateObjectType().name());
 		assertEquals("" + item.getFileHandleId(), fha.getFileHandleId());
 	}
@@ -248,6 +280,21 @@ public class BulkDownloadDAOImplTest {
 	public void testCreateDBOFileHandleAssociation() {
 		FileHandleAssociation fha = new FileHandleAssociation();
 		fha.setAssociateObjectId("123");
+		fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		fha.setFileHandleId("456");
+		// call under test
+		DBODownloadListItem item = BulkDownloadDAOImpl.translateFromDTOtoDBO(userOneIdLong, fha);
+		assertNotNull(item);
+		assertEquals(new Long(123), item.getAssociatedObjectId());
+		assertEquals(FileHandleAssociateType.FileEntity.name(), item.getAssociatedObjectType());
+		assertEquals(new Long(456), item.getFileHandleId());
+		assertEquals(userOneIdLong, item.getPrincipalId());
+	}
+	
+	@Test
+	public void testCreateDBOFileHandleAssociationPLFM_5135() {
+		FileHandleAssociation fha = new FileHandleAssociation();
+		fha.setAssociateObjectId("syn123");
 		fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		fha.setFileHandleId("456");
 		// call under test
@@ -364,6 +411,21 @@ public class BulkDownloadDAOImplTest {
 		assertNotNull(result.getUpdatedOn());
 		assertEquals(toAdd, result.getFilesToDownload());
 	}
+	
+	@Test
+	public void testAddFilesPLFM_5135File() {
+		FileHandleAssociation association = new FileHandleAssociation();
+		association.setAssociateObjectId("syn123");
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setFileHandleId("567");
+		
+		DownloadList result = bulkDownlaodDao.addFilesToDownloadList(userOneId, Lists.newArrayList(association));
+		assertNotNull(result);
+		assertNotNull(result.getFilesToDownload());
+		assertEquals(1, result.getFilesToDownload().size());
+		FileHandleAssociation returned = result.getFilesToDownload().get(0);
+		assertEquals("syn123", returned.getAssociateObjectId());
+	}
 
 	@Test
 	public void testAddFilesOverlapSameUser() {
@@ -445,6 +507,19 @@ public class BulkDownloadDAOImplTest {
 		assertNotNull(result.getUpdatedOn());
 		assertFalse(start.getEtag().equals(result.getEtag()));
 		assertEquals(fileHandleAssociations.subList(1, 3), result.getFilesToDownload());
+	}
+	
+	@Test
+	public void testRemoveFilesPLFM_5135() {
+		FileHandleAssociation association = new FileHandleAssociation();
+		association.setAssociateObjectId("syn123");
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setFileHandleId("567");
+		
+		DownloadList result = bulkDownlaodDao.removeFilesFromDownloadList(userOneId, Lists.newArrayList(association));
+		assertNotNull(result);
+		assertNotNull(result.getFilesToDownload());
+		assertEquals(0, result.getFilesToDownload().size());
 	}
 
 	@Test
