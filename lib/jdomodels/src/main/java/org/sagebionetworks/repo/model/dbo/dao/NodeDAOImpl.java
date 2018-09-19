@@ -850,30 +850,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return list;
 	}
-
-	@WriteTransaction
-	@Override
-	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId)
-			throws NotFoundException, DatastoreException {
-		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
-		DBORevision rev = getNodeRevisionById(nodeIdLong, versionNumber);
-		// now update the annotations from the passed values.
-		try {
-			// Compress the annotations.
-			byte[] newAnnos = JDOSecondaryPropertyUtils.compressAnnotations(updatedAnnos);
-			rev.setAnnotations(newAnnos);
-			if(fileHandleId != null){
-				rev.setFileHandleId(Long.parseLong(fileHandleId));
-			}else{
-				rev.setFileHandleId(null);
-			}
-			// Save the change
-			dboBasicDao.update(rev);
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		} 
-		
-	}
 	
 	@Override
 	public long getVersionCount(String entityId) throws NotFoundException,

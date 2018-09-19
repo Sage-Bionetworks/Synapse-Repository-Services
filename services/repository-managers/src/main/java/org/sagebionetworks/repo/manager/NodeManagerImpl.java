@@ -505,17 +505,6 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public List<Long> getAllVersionNumbersForNode(UserInfo userInfo,
-			String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
-		// Validate that the user can do what they are trying to do.
-		UserInfo.validateUserInfo(userInfo);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		// If they are allowed to read a node then get the list.
-		return nodeDao.getVersionNumbers(nodeId);
-	}
-
-	@Override
 	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);

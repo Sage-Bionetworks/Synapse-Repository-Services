@@ -178,19 +178,6 @@ public interface NodeDAO {
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException;
 	
 	/**
-	 * Replace the annotations and fileHandle ID of a specific version of a node.
-	 * This is used to convert one entity type to another.
-	 * @param nodeId
-	 * @param versionNumber
-	 * @param updatedAnnos
-	 * @param fileHandleId
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId) throws NotFoundException, DatastoreException;
-
-	
-	/**
 	 * Does a given node exist?
 	 * Note: If a node is in the trash, this will still return true.
 	 * Use {@link #isNodeAvailable()} to find nodes that exist and are not
