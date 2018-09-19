@@ -257,7 +257,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						+ " ORDER BY "+COL_NODE_ID+" ASC LIMIT :"+BIND_LIMIT;
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
-	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REF_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
 	private static final String SELECT_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R."+COL_REVISION_ANNOS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER;
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
@@ -384,9 +383,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	// Used to determine if a node id already exists
 	private static final String SQL_COUNT_NODE_ID = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID +" = :"+BIND_ID_KEY;
 	private static final String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
-	private static final String SQL_COUNT_REVISONS = "SELECT COUNT("
-			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
-			+ COL_REVISION_OWNER_NODE + " = ?";
 
 	private static final String SQL_GET_FILE_HANDLE_IDS =
 			"SELECT DISTINCT "+COL_REVISION_FILE_HANDLE_ID
@@ -699,32 +695,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public Reference getNodeReference(String nodeId)	throws NotFoundException, DatastoreException {
-		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
-		// Select just the references, not the entire node.
-		try{
-			return jdbcTemplate.queryForObject(SELECT_REVISIONS_ONLY, new RowMapper<Reference>() {
-				@Override
-				public Reference mapRow(ResultSet rs, int rowNum)	throws SQLException {
-					Blob blob = rs.getBlob(COL_REVISION_REF_BLOB);
-					if(blob != null){
-						byte[] bytes = blob.getBytes(1, (int) blob.length());
-						try {
-							return JDOSecondaryPropertyUtils.decompressedReference(bytes);
-						} catch (IOException e) {
-							throw new DatastoreException(e);
-						}
-					}
-					return null;
-				}
-			}, KeyFactory.stringToKey(nodeId));
-		}catch (EmptyResultDataAccessException e){
-			// Occurs if there are no results
-			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
-		}
-	}
-	
-	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
 		try{
 			return jdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
@@ -849,12 +819,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			list.add(revId);
 		}
 		return list;
-	}
-	
-	@Override
-	public long getVersionCount(String entityId) throws NotFoundException,
-			DatastoreException {
-		return jdbcTemplate.queryForObject(SQL_COUNT_REVISONS, Long.class, KeyFactory.stringToKey(entityId));
 	}
 
 	@Override

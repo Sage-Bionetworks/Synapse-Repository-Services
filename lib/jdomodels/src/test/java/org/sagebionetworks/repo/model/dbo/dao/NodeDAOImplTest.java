@@ -1123,16 +1123,6 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testVersionCount() throws Exception {
-		// Create a number of versions
-		int numberVersions = 10;
-		String id = createNodeWithMultipleVersions(numberVersions);
-		// Now list the versions
-		long numVersions = nodeDao.getVersionCount(id);
-		assertEquals(numberVersions, numVersions);
-	}
-
-	@Test
 	public void testDeleteCurrentVersion() throws Exception {
 		// Create a number of versions
 		int numberVersions = 2;
@@ -1620,60 +1610,6 @@ public class NodeDAOImplTest {
 		assertEquals(childIds, fromDao);
 	}
 	
-	@Test (expected=NotFoundException.class)
-	public void testGetRefrenceDoesNotExist() throws DatastoreException, InvalidModelException, NotFoundException{
-		// This should throw a not found exception.
-		nodeDao.getNodeReference("syn123");
-	}
-	
-	@Test
-	public void testGetRefrenceNull() throws DatastoreException, InvalidModelException, NotFoundException{
-		// Create a new node
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		// This should be empty but not null
-		Reference ref = nodeDao.getNodeReference(id);
-		assertNull(ref);
-	}
-	
-	@Test
-	public void testGetRefrence() throws DatastoreException, InvalidModelException, NotFoundException{
-		// Create a new node
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(node);
-		toDelete.add(parentId);
-		// Create a child with a reference to the parent
-		node = privateCreateNew("child");
-		node.setParentId(parentId);
-		node.setNodeType(EntityType.folder);
-		// Add a reference
-		
-		Reference ref = new Reference();
-		ref.setTargetId(parentId);
-		node.setReference(ref);
-		String id = nodeDao.createNew(node);
-		// This should be empty but not null
-		Reference expectedRef = nodeDao.getNodeReference(id);
-		assertNotNull(expectedRef);
-		assertEquals(node.getReference(), expectedRef);
-		
-		// Now create a new revision and make sure we get the latest only
-		node = nodeDao.getNode(id);
-		ref = new Reference();
-		ref.setTargetId(id);
-		ref.setTargetVersionNumber(node.getVersionNumber());
-		node.setReference(ref);
-		node.setVersionLabel("v2");
-		nodeDao.createNewVersion(node);
-		// Now get the current references
-		expectedRef = nodeDao.getNodeReference(id);
-		assertNotNull(expectedRef);
-		assertEquals(node.getReference(), expectedRef);
-	}
-
 	@Test
 	public void testAddReferenceNoVersionSpecified() throws Exception {
 		String deleteMeNode = null;

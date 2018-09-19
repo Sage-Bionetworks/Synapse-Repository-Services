@@ -445,14 +445,6 @@ public class NodeManagerAuthorizationTest {
 	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testUnauthorizedetGetAllVersionNumbersForNode() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
-		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		// Should fail
-		nodeManager.getAllVersionNumbersForNode(mockUserInfo, id);
-	}
-	
-	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetGetNodeType() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);

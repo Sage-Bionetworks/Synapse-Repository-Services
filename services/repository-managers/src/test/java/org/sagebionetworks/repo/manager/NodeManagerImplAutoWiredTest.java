@@ -322,13 +322,6 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		
-		// There should be one version for this node
-		List<Long> versions = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versions);
-		assertEquals(1, versions.size());
-		assertEquals(new Long(1), versions.get(0));
-		
-		
 		// Add some annotations to this version
 		NamedAnnotations named = nodeManager.getAnnotations(userInfo, id);
 		Annotations annos = named.getAdditionalAnnotations();
@@ -363,9 +356,6 @@ public class NodeManagerImplAutoWiredTest {
 		annosToUpdate = namedToUpdate.getAdditionalAnnotations();
 		assertEquals("The version comment should have rolled back to its origianl value on a failure.",newNode.getVersionComment(), updatedNode.getVersionComment());
 		assertEquals("The annoations should have rolled back to its origianl value on a failure.",null, annosToUpdate.getSingleValue("longKey"));
-		versions = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versions);
-		assertEquals(1, versions.size());
 		
 		// Now try the update again but with a new version label so the update should take.
 		updatedNode.setVersionComment("This this comment should get applied this time.");
@@ -388,12 +378,6 @@ public class NodeManagerImplAutoWiredTest {
 		// The version number should have incremented
 		assertEquals(new Long(2), currentNode.getVersionNumber());
 		assertEquals(annosToUpdate, currentAnnos);
-		// There should be two versions
-		versions = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versions);
-		assertEquals(2, versions.size());
-		// The first on the list should be the current
-		assertEquals(new Long(2), versions.get(0));
 		
 		// Now get the first version of the node and annotations
 		Node nodeZero = nodeManager.getNodeForVersionNumber(userInfo, id, new Long(1));
@@ -411,16 +395,6 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(annosZero.getStringAnnotations());
 		assertEquals(1, annosZero.getStringAnnotations().size());
 		assertEquals(firstVersionValue, annosZero.getSingleValue("stringKey"));
-		
-		// Finally, make sure we can fetch each version of the node and annotations
-		for(Long versionNumber: versions){
-			Node thisNodeVersion = nodeManager.getNodeForVersionNumber(userInfo, id, versionNumber);
-			assertNotNull(thisNodeVersion);
-			assertEquals(versionNumber,thisNodeVersion.getVersionNumber());
-			NamedAnnotations thisNamedVersion = nodeManager.getAnnotationsForVersion(userInfo, id, versionNumber);
-			Annotations thisAnnosVersoin = thisNamedVersion.getAdditionalAnnotations();
-			assertNotNull(thisAnnosVersoin);
-		}
 	}
 	
 	@Test
@@ -444,10 +418,6 @@ public class NodeManagerImplAutoWiredTest {
 			node.setVersionLabel("0.0."+i+1);
 			nodeManager.update(userInfo, node, null, true);
 		}
-		// List the versions
-		List<Long> versionNumbers = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versionNumbers);
-		assertEquals(numberVersions+1, versionNumbers.size());
 		// Get the eTag before the delete
 		Node beforeDelete = nodeManager.get(userInfo, id);
 		assertNotNull(beforeDelete);

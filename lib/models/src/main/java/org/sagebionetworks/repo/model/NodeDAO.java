@@ -352,17 +352,6 @@ public interface NodeDAO {
 	public List<VersionInfo> getVersionsOfEntity(String entityId, long offset,
 			long limit) throws NotFoundException, DatastoreException;
 
-	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Get a node's reference.
-	 * @param nodeId - The id of the node.
-	 * @return
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws DatastoreException - Thrown if there is a database error.
-	 */
-	public Reference getNodeReference(String nodeId) throws NotFoundException, DatastoreException;
-
 	/**
 	 * Get the FileHandle Id for a given version number.
 	 * 
