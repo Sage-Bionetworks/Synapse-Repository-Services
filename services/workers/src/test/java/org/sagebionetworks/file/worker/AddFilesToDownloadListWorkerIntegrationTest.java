@@ -97,7 +97,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		file = entityManager.getEntity(adminUserInfo, id, FileEntity.class);
 		
 		expectedAssociation = new FileHandleAssociation();
-		expectedAssociation.setAssociateObjectId(KeyFactory.stringToKey(file.getId()).toString());
+		expectedAssociation.setAssociateObjectId(file.getId());
 		expectedAssociation.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		expectedAssociation.setFileHandleId(fileHandle.getId());
 		
