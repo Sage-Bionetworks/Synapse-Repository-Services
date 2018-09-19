@@ -67,6 +67,7 @@ public class DBODoiAssociationDaoImplTest {
 
 	@Test
 	public void testGetDoiNotForUpdate() {
+		boolean forUpdate = false;
 		when(mockNamedJdbcTemplate.queryForObject(
 				Mockito.any(String.class),
 				Mockito.any(MapSqlParameterSource.class),
@@ -74,7 +75,7 @@ public class DBODoiAssociationDaoImplTest {
 
 		// Call under test
 		doiAssociationDao.getDoiAssociation(objectId,
-					objectType, versionNumber, false);
+					objectType, versionNumber, forUpdate);
 
 		verify(mockNamedJdbcTemplate).queryForObject(sqlQueryCaptor.capture(),
 				paramMapCaptor.capture(),
@@ -85,6 +86,7 @@ public class DBODoiAssociationDaoImplTest {
 
 	@Test
 	public void testGetDoiForUpdate() {
+		boolean forUpdate = true;
 		when(mockNamedJdbcTemplate.queryForObject(
 				Mockito.any(String.class),
 				Mockito.any(MapSqlParameterSource.class),
@@ -92,7 +94,7 @@ public class DBODoiAssociationDaoImplTest {
 
 		// Call under test
 		doiAssociationDao.getDoiAssociation(objectId,
-				objectType, versionNumber, true);
+				objectType, versionNumber, forUpdate);
 
 		verify(mockNamedJdbcTemplate).queryForObject(sqlQueryCaptor.capture(),
 				paramMapCaptor.capture(),
