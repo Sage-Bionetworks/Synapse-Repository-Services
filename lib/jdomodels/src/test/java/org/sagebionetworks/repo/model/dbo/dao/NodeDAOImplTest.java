@@ -3344,4 +3344,28 @@ public class NodeDAOImplTest {
 		assertFalse(availableIds.contains(twoId));
 		assertFalse(availableIds.contains(doesNotExist));
 	}
+	
+	@Test
+	public void testTouch() throws InterruptedException {
+		Long user1Id = Long.parseLong(user1);
+		Long user2Id = Long.parseLong(user2);
+		// created by user 1.
+		Node start = NodeTestUtils.createNew("one",  user1Id);
+		start = nodeDao.createNewNode(start);
+		Long oneId = KeyFactory.stringToKey(start.getId());
+		toDelete.add(start.getId());
+		// sleep to change updatedOn
+		Thread.sleep(10);
+		
+		// call under test (updated by user 2).
+		String newEtag = nodeDao.touch(user2Id, start.getId());
+		assertNotNull(newEtag);
+		// etag must change
+		assertFalse(start.getETag().equals(newEtag));
+		Node afterTouch = nodeDao.getNode(start.getId());
+		assertEquals(afterTouch.getETag(), newEtag);
+		assertTrue(afterTouch.getModifiedOn().getTime() > start.getModifiedOn().getTime());
+		assertEquals(user2Id, afterTouch.getModifiedByPrincipalId());
+		assertEquals(user1Id, start.getCreatedByPrincipalId());
+	}
 }

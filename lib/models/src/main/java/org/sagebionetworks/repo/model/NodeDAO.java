@@ -535,4 +535,13 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<IdAndEtag> getChildren(long parentId);
+	
+	/**
+	 * Touch the node and change the etag, modified on, and modified by.
+	 * 
+	 * @param userId
+	 * @param nodeId
+	 * @return
+	 */
+	public String touch(Long userId, String nodeId);
 }

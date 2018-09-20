@@ -123,6 +123,10 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SQL_TOUCH_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_MODIFIED_BY
+			+ " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND "
+			+ COL_REVISION_NUMBER + " = ?";
+	private static final String SQL_TOUCH_ETAG = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String MAXIMUM_NUMBER_OF_IDS_EXCEEDED = "Maximum number of IDs exceeded";
 	private static final String SQL_SELECT_GET_ENTITY_BENEFACTOR_ID = "SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)";
 	private static final String BIND_NODE_IDS =  "bNodeIds";
@@ -264,7 +268,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String GET_NODE_TYPE_SQL = "SELECT "+COL_NODE_TYPE+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
-	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
+	private static final String UPDATE_ETAG_SQL = SQL_TOUCH_ETAG;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
@@ -1789,6 +1793,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				}
 			}});
 		return results;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public String touch(Long userId, String nodeIdString) {
+		ValidateArgument.required(userId, "UserId");
+		ValidateArgument.required(nodeIdString, "nodeId");
+		String newEtag = UUID.randomUUID().toString();
+		long nodeId = KeyFactory.stringToKey(nodeIdString);
+		// change the etag first to lock the node row.
+		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, nodeId);
+		// update the latest revision.
+		long revisionNumber = this.getCurrentRevisionNumber(nodeIdString);
+		long currentTime = System.currentTimeMillis();
+		this.jdbcTemplate.update(SQL_TOUCH_REVISION, userId, currentTime, nodeId, revisionNumber);
+		transactionalMessenger.sendMessageAfterCommit(nodeIdString, ObjectType.ENTITY, newEtag, ChangeType.UPDATE, userId);
+		return newEtag;
 	}
 
 }
