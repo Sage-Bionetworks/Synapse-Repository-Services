@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.util.Date;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +23,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -38,6 +41,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	private final String objectId = KeyFactory.keyToString(112233L);
 	private final ObjectType objectType = ObjectType.ENTITY;
 	private final Long versionNumber = 1L;
+	private final String etag = "etag";
 
 
 	@Before
@@ -49,10 +53,13 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		// Create a DOI DTO with fields necessary to create a new one.
 		dto = new DoiAssociation();
 		dto.setAssociatedBy(associatedById);
-		dto.setUpdatedBy(updatedById);
+		dto.setUpdatedBy(associatedById);
 		dto.setObjectId(objectId);
 		dto.setObjectType(objectType);
 		dto.setObjectVersion(versionNumber);
+		dto.setEtag(etag);
+		dto.setAssociatedOn(new Date());
+		dto.setUpdatedOn(new Date());
 	}
 
 	@After
@@ -68,12 +75,12 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 
 		assertNotNull(createdDto);
 		assertNotNull(createdDto.getAssociationId());
-		assertNotNull(createdDto.getEtag());
+		assertEquals(etag, createdDto.getEtag());
 		assertEquals(objectId, createdDto.getObjectId());
 		assertEquals(versionNumber, createdDto.getObjectVersion());
 		assertEquals(objectType, createdDto.getObjectType());
 		assertEquals(associatedById, createdDto.getAssociatedBy());
-		assertEquals(updatedById, createdDto.getUpdatedBy());
+		assertEquals(associatedById, createdDto.getUpdatedBy());
 		assertNotNull(createdDto.getAssociatedOn());
 		assertNotNull(createdDto.getUpdatedOn());
 	}
@@ -156,40 +163,40 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 
 	@Test
 	public void testUpdate() {
-		dto.setUpdatedBy(associatedById);
+		// Create a DoiAssociation to update
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
+
+		// Save a field to check if it changes later
+		// The manager is in charge of what the new value actually is
 		String oldEtag = createdDto.getEtag();
-		String oldUpdatedBy = createdDto.getUpdatedBy();
-		createdDto.setUpdatedBy(updatedById);
+		String newEtag = "new etag";
+		createdDto.setEtag(newEtag);
+
 		// Call under test
 		DoiAssociation updatedDto = doiAssociationDao.updateDoiAssociation(createdDto);
-		assertEquals(createdDto.getAssociationId(), updatedDto.getAssociationId());
+
 		assertNotEquals(oldEtag, updatedDto.getEtag());
-		assertNotEquals(oldUpdatedBy, updatedDto.getUpdatedBy());
+		assertEquals(newEtag, updatedDto.getEtag());
 	}
 
 	@Test
-	public void getEtag() {
-		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
-		// Call under test
-		String etag = doiAssociationDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
-		assertEquals(createdDto.getEtag(), etag);
+	public void getDoiAssociationForUpdateNotInTransaction() {
+		try {
+			// Call under test
+			doiAssociationDao.getDoiAssociationForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+			fail("Expected IllegalTransactionStateException");
+		} catch (IllegalTransactionStateException e) {
+			// expected IllegalTransactionStateException since we are not in a read committed transaction
+		}
 	}
 
 	@Test
-	public void getEtagNoObjectVersion() {
+	public void getDoiAssociation() {
 		dto.setObjectVersion(null);
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
 		// Call under test
-		String etag = doiAssociationDao.getEtagForUpdate(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
-		assertEquals(createdDto.getEtag(), etag);
-	}
-
-	@Test(expected = NotFoundException.class)
-	public void getEtagNotFound() {
-		// Note the DOI is never created.
-		// Call under test
-		String etag = doiAssociationDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		assertEquals(createdDto, retrievedDto);
 	}
 
 	@Test
@@ -235,6 +242,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		// Call under test. If there are 0 items, we should rethrow a NotFoundException
 		DBODoiAssociationDaoImpl.handleIncorrectResultSizeException(e);
 	}
+
 	@Test(expected=IllegalStateException.class)
 	public void handleIncorrectResultSizeOfMoreThanOne() {
 		IncorrectResultSizeDataAccessException e = new IncorrectResultSizeDataAccessException(1, 2);

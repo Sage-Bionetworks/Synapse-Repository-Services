@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -106,7 +105,7 @@ public class IT065SynapseJavaClientDoiV2Test {
 	}
 
 	@Test
-	public void testGetPortalLocation() throws SynapseException {
+	public void testGetPortalUrl() throws SynapseException {
 		assertNotNull(synapse.getPortalUrl("syn1236464", ObjectType.ENTITY, 5L));
 	}
 

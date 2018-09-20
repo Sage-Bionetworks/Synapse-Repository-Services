@@ -319,6 +319,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			doi.writeToJSONObject(joa);
 			writeTo.put(JSON_DOI, joa);
 		}
+		if (doiAssociation != null){
+			JSONObjectAdapter joa = writeTo.createNew();
+			doiAssociation.writeToJSONObject(joa);
+			writeTo.put(JSON_DOI_ASSOCIATION, joa);
+		}
 		if (fileName != null){
 			writeTo.put(JSON_FILE_NAME, fileName);
 		}

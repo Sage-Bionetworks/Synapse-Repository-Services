@@ -255,6 +255,33 @@ public class TransactionSettingsTest {
 	}
 
 	@Test
+	public void validateMandatoryReadCommittedTransaction() throws Exception {
+		assertEquals("done", transactionValidator.required(new Callable<String>() {
+			@Override
+			public String call() throws Exception {
+				return transactionValidator.mandatoryReadCommitted(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						return "done";
+					}
+				});
+			}
+		}));
+
+		try {
+			transactionValidator.mandatoryReadCommitted(new Callable<String>() {
+				@Override
+				public String call() throws Exception {
+					fail("Should not get here");
+					return "done";
+				}
+			});
+			fail("Should have failed");
+		} catch (IllegalTransactionStateException e) {
+		}
+	}
+
+	@Test
 	public void validateTransactionIsolationIsRepeatableRead() {
 		final Long id = 2l;
 		final ThreadStepper stepper = new ThreadStepper(10);

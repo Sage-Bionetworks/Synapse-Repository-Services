@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
+import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
@@ -71,7 +72,13 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	public String requiresNew(Callable<String> callable) throws Exception {
 		return callable.call();
 	}
-	
+
+	@MandatoryWriteReadCommittedTransaction
+	@Override
+	public String mandatoryReadCommitted(Callable<String> callable) throws Exception {
+		return callable.call();
+	}
+
 
 	@Override
 	public void setStringNoTransaction(Long id, String value) {
