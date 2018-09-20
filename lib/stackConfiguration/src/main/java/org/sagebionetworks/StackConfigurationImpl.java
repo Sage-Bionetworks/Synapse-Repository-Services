@@ -505,7 +505,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getAsyncQueueName(String baseName) {
-		return String.format(StackConstants.ASYNC_QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
+		return String.format(StackConstants.QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
 	}
 
 	/**
@@ -513,34 +513,20 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public Map<String, String> getAsyncQueueName() {
+	public String getQueueName(String baseName) {
+		return String.format(StackConstants.QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
+	}
+
+	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public Map<String, String> getQueueName() {
 		return new DynamicMap<String, String>() {
 			@Override
 			protected String create(Object key) {
-				return getAsyncQueueName(key.toString());
-			}
-		};
-	}
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public String getWorkerQueueName(String baseName) {
-		return String.format(StackConstants.WORKER_QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
-	}
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getWorkerQueueName() {
-		return new DynamicMap<String, String>() {
-			@Override
-			protected String create(Object key) {
-				return getWorkerQueueName(key.toString());
+				return getQueueName(key.toString());
 			}
 		};
 	}
@@ -590,7 +576,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The name of the AWS SQS where search updates are pushed.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getSearchUpdateQueueName() {

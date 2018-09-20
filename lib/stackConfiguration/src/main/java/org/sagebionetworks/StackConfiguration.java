@@ -317,21 +317,14 @@ public interface StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public Map<String, String> getAsyncQueueName();
+	public String getQueueName(String baseName);
 
 	/**
 	 * The name of the async queue
 	 * 
 	 * @return
 	 */
-	public String getWorkerQueueName(String baseName);
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getWorkerQueueName();
+	public Map<String, String> getQueueName();
 
 	/**
 	 * The name of the AWS topic where repository changes messages are published.
