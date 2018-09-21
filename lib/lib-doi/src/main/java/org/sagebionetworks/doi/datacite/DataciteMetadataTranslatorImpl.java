@@ -1,11 +1,30 @@
 package org.sagebionetworks.doi.datacite;
 
-import com.sun.org.apache.xml.internal.serialize.OutputFormat;
-import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
-import org.apache.xerces.dom.DocumentImpl;
-import org.sagebionetworks.repo.model.doi.v2.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATORS;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR_NAME;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.IDENTIFIER;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.IDENTIFIER_TYPE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.IDENTIFIER_TYPE_VALUE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.ISNI_URI;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAMESPACE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAMESPACE_PREFIX;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAMESPACE_PREFIX_VALUE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAMESPACE_VALUE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER_SCHEME;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.ORCID_URI;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLICATION_YEAR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER_VALUE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE_GENERAL;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.SCHEMA_LOCATION;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.SCHEMA_LOCATION_VALUE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.SCHEME_URI;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.TITLE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.TITLES;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -13,7 +32,18 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
+import org.apache.xerces.dom.DocumentImpl;
+import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
+import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
+import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import com.sun.org.apache.xml.internal.serialize.OutputFormat;
+import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
 /*
  * Translates our DoiV2 object into well-formed DataCite XML.
@@ -168,7 +198,9 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 			throw new IllegalArgumentException("Creator names must be at least 1 character long.");
 		}
 		if (creator.getNameIdentifiers() != null) {
-			creator.getNameIdentifiers().forEach(DataciteMetadataTranslatorImpl::validateDoiNameIdentifier);
+			throw new UnsupportedOperationException("Synapse does not currently support name identifiers.");
+			// TODO: support name identifiers, see PLFM-5145
+			//creator.getNameIdentifiers().forEach(DataciteMetadataTranslatorImpl::validateDoiNameIdentifier);
 		}
 	}
 

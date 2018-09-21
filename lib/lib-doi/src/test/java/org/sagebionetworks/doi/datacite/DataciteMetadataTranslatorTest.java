@@ -96,16 +96,17 @@ public class DataciteMetadataTranslatorTest {
 		creators = new ArrayList<>();
 		c1 = new DoiCreator();
 		c1.setCreatorName("Last, First");
-		nameId1 = new DoiNameIdentifier();
-		nameId1.setIdentifier(validOrcid);
-		nameId1.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
-		nameId2 = new DoiNameIdentifier();
-		nameId2.setIdentifier(validOrcid);
-		nameId2.setNameIdentifierScheme(NameIdentifierScheme.ISNI);
-		List<DoiNameIdentifier> ids = new ArrayList<>();
-		ids.add(nameId1);
-		ids.add(nameId2);
-		c1.setNameIdentifiers(ids);
+		// Uncomment the following lines upon supporting nameIdentifiers
+//		nameId1 = new DoiNameIdentifier();
+//		nameId1.setIdentifier(validOrcid);
+//		nameId1.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
+//		nameId2 = new DoiNameIdentifier();
+//		nameId2.setIdentifier(validOrcid);
+//		nameId2.setNameIdentifierScheme(NameIdentifierScheme.ISNI);
+//		List<DoiNameIdentifier> ids = new ArrayList<>();
+//		ids.add(nameId1);
+//		ids.add(nameId2);
+//		c1.setNameIdentifiers(ids);
 		c2 = new DoiCreator();
 		c2.setCreatorName("Sample name");
 		creators.add(c1);
@@ -147,14 +148,14 @@ public class DataciteMetadataTranslatorTest {
 		assertEquals(c1.getCreatorName(), creatorNameActual.getTextContent());
 
 		// Test the name identifiers
-		assertEquals(2, actual.getElementsByTagName(NAME_IDENTIFIER).getLength());
-		Element nameIdActual = (Element) actual.getElementsByTagName(NAME_IDENTIFIER).item(0);
-		assertEquals(nameId1.getNameIdentifierScheme().name(), nameIdActual.getAttribute(NAME_IDENTIFIER_SCHEME));
-		assertEquals(nameId1.getIdentifier(), nameIdActual.getTextContent());
-
-		nameIdActual = (Element) actual.getElementsByTagName(NAME_IDENTIFIER).item(1);
-		assertEquals(nameId2.getNameIdentifierScheme().name(), nameIdActual.getAttribute(NAME_IDENTIFIER_SCHEME));
-		assertEquals(nameId2.getIdentifier(), nameIdActual.getTextContent());
+//		assertEquals(2, actual.getElementsByTagName(NAME_IDENTIFIER).getLength());
+//		Element nameIdActual = (Element) actual.getElementsByTagName(NAME_IDENTIFIER).item(0);
+//		assertEquals(nameId1.getNameIdentifierScheme().name(), nameIdActual.getAttribute(NAME_IDENTIFIER_SCHEME));
+//		assertEquals(nameId1.getIdentifier(), nameIdActual.getTextContent());
+//
+//		nameIdActual = (Element) actual.getElementsByTagName(NAME_IDENTIFIER).item(1);
+//		assertEquals(nameId2.getNameIdentifierScheme().name(), nameIdActual.getAttribute(NAME_IDENTIFIER_SCHEME));
+//		assertEquals(nameId2.getIdentifier(), nameIdActual.getTextContent());
 
 		// Test the second creator that has no name identifiers
 		actual = createCreatorElement(dom, c2);
@@ -306,6 +307,15 @@ public class DataciteMetadataTranslatorTest {
 	public void testEmptyCreatorName() {
 		DoiCreator creator = new DoiCreator();
 		creator.setCreatorName("");
+		// Call under test
+		validateDoiCreator(creator);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testHasNonNullNameIdentifiers() {
+		DoiCreator creator = new DoiCreator();
+		creator.setCreatorName("");
+		creator.setNameIdentifiers(new ArrayList<>());
 		// Call under test
 		validateDoiCreator(creator);
 	}
