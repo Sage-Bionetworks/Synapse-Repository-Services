@@ -231,11 +231,6 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	}
 
 	@Override
-	public String getParentIdString() {
-		return null;
-	}
-
-	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.ACTIVITY;
 	}

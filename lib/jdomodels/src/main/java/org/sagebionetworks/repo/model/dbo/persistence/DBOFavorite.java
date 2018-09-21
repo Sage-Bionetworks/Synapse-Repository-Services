@@ -89,11 +89,6 @@ public class DBOFavorite implements MigratableDatabaseObject<DBOFavorite, DBOFav
 	}
 
 	@Override
-	public String getParentIdString() {
-		return null;
-	}
-
-	@Override
 	public String getEtag() {
 		return null;
 	}

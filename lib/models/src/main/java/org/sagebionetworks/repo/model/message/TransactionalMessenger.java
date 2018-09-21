@@ -24,23 +24,32 @@ public interface TransactionalMessenger {
 	 * Send a change message after the current thread's transaction commits.
 	 * Note: The ChangeMessage.userId will be set from the thread local context for this case.
 	 * 
+	 * @Deprecated Use: {@link TransactionalMessenger#sendMessageAfterCommit(MessageToSend)}
 	 * @param objectId
 	 * @param objectType
 	 * @param etag
 	 * @param changeType
 	 */
+	@Deprecated
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType);
 	
 	/**
 	 * Send a change message after the current thread's transaction commits.
-	 * 
+	 * @Deprecated Use: {@link TransactionalMessenger#sendMessageAfterCommit(MessageToSend)}
 	 * @param objectId
 	 * @param objectType
 	 * @param etag
 	 * @param changeType
 	 * @param userId
 	 */
+	@Deprecated
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType, Long userId);
+	
+	/**
+	 * Send a message after a commit.
+	 * @param toSend
+	 */
+	public void sendMessageAfterCommit(MessageToSend toSend);
 
 	/**
 	 * Send a change message fashioned after the passed entity

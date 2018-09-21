@@ -130,6 +130,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
+		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 		
 		Annotations a3 = eb.getAnnotations();
@@ -203,6 +204,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
+		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 		
 		Annotations a3 = eb.getAnnotations();

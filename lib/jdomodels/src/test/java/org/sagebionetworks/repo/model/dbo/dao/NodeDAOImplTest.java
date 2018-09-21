@@ -625,98 +625,6 @@ public class NodeDAOImplTest {
 		assertEquals(null, id);
 	}
 	
- 	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
-	@Test(expected=IllegalTransactionStateException.class)
-	public void testGetETagForUpdate1() throws Exception {
-		Node toCreate = privateCreateNew("testGetETagForUpdate");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		String eTag = nodeDao.peekCurrentEtag(id);
-		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag);
-		fail("Should have thrown an IllegalTransactionStateException");
-	}
-
- 	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
-	@Test(expected=IllegalTransactionStateException.class)
-	public void testGetETagForUpdate2() throws Exception {
-		Node toCreate = privateCreateNew("testGetETagForUpdate");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		String eTag = nodeDao.peekCurrentEtag(id);
-		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag, ChangeType.DELETE);
-		fail("Should have thrown an IllegalTransactionStateException");
-	}
-	
-	@Test(expected=IllegalTransactionStateException.class)
-	public void testLockNodesNoTransaction(){
-		// must call must be made from within a transaction.
-		nodeDao.lockNodes(new LinkedList<String>());
-	}
-	
-	@Test
-	public void testLockNodes(){
-		// one
-		Node toCreate = privateCreateNew("testOne");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		final Node one = nodeDao.getNode(id);
-
-		// two
-		toCreate = privateCreateNew("testTwo");
-		id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		final Node two = nodeDao.getNode(id);
-
-		// attempt to lock both within a transaction.
-		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
-			@Override
-			public List<String> doInTransaction(TransactionStatus status) {
-				// Try to lock both nodes out of order
-				List<String> etags = nodeDao.lockNodes(Lists.newArrayList(two.getId(), one.getId()));
-				return etags;
-			}
-		});
-		assertNotNull(lockedEtags);
-		assertEquals(2, lockedEtags.size());
-		// The first etag should be first
-		assertEquals(one.getETag(), lockedEtags.get(0));
-		assertEquals(two.getETag(), lockedEtags.get(1));
-	}
-	
-	@Test
-	public void testLockNodesEmpty(){
-		// attempt to lock both within a transaction.
-		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
-			@Override
-			public List<String> doInTransaction(TransactionStatus status) {
-				// Empty list should result in an empty return.
-				List<String> etags = nodeDao.lockNodes(new LinkedList<String>());
-				return etags;
-			}
-		});
-		assertNotNull(lockedEtags);
-		assertEquals(0, lockedEtags.size());
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testLockNodesEmptyNull(){
-		// attempt to lock both within a transaction.
-		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
-			@Override
-			public List<String> doInTransaction(TransactionStatus status) {
-				// Empty list should result in an empty return.
-				List<String> etags = nodeDao.lockNodes(null);
-				return etags;
-			}
-		});
-		assertNotNull(lockedEtags);
-		assertEquals(0, lockedEtags.size());
-	}
-	
 
 	@Test
 	public void testUpdateNode() throws Exception{
@@ -1120,16 +1028,6 @@ public class NodeDAOImplTest {
 			Date modDate = nodeVersion.getModifiedOn();
 			assertEquals(modDate, vi.getModifiedOn());
 		}
-	}
-
-	@Test
-	public void testVersionCount() throws Exception {
-		// Create a number of versions
-		int numberVersions = 10;
-		String id = createNodeWithMultipleVersions(numberVersions);
-		// Now list the versions
-		long numVersions = nodeDao.getVersionCount(id);
-		assertEquals(numberVersions, numVersions);
 	}
 
 	@Test
@@ -1620,60 +1518,6 @@ public class NodeDAOImplTest {
 		assertEquals(childIds, fromDao);
 	}
 	
-	@Test (expected=NotFoundException.class)
-	public void testGetRefrenceDoesNotExist() throws DatastoreException, InvalidModelException, NotFoundException{
-		// This should throw a not found exception.
-		nodeDao.getNodeReference("syn123");
-	}
-	
-	@Test
-	public void testGetRefrenceNull() throws DatastoreException, InvalidModelException, NotFoundException{
-		// Create a new node
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		// This should be empty but not null
-		Reference ref = nodeDao.getNodeReference(id);
-		assertNull(ref);
-	}
-	
-	@Test
-	public void testGetRefrence() throws DatastoreException, InvalidModelException, NotFoundException{
-		// Create a new node
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(node);
-		toDelete.add(parentId);
-		// Create a child with a reference to the parent
-		node = privateCreateNew("child");
-		node.setParentId(parentId);
-		node.setNodeType(EntityType.folder);
-		// Add a reference
-		
-		Reference ref = new Reference();
-		ref.setTargetId(parentId);
-		node.setReference(ref);
-		String id = nodeDao.createNew(node);
-		// This should be empty but not null
-		Reference expectedRef = nodeDao.getNodeReference(id);
-		assertNotNull(expectedRef);
-		assertEquals(node.getReference(), expectedRef);
-		
-		// Now create a new revision and make sure we get the latest only
-		node = nodeDao.getNode(id);
-		ref = new Reference();
-		ref.setTargetId(id);
-		ref.setTargetVersionNumber(node.getVersionNumber());
-		node.setReference(ref);
-		node.setVersionLabel("v2");
-		nodeDao.createNewVersion(node);
-		// Now get the current references
-		expectedRef = nodeDao.getNodeReference(id);
-		assertNotNull(expectedRef);
-		assertEquals(node.getReference(), expectedRef);
-	}
-
 	@Test
 	public void testAddReferenceNoVersionSpecified() throws Exception {
 		String deleteMeNode = null;
@@ -3407,5 +3251,29 @@ public class NodeDAOImplTest {
 		assertTrue(availableIds.contains(oneId));
 		assertFalse(availableIds.contains(twoId));
 		assertFalse(availableIds.contains(doesNotExist));
+	}
+	
+	@Test
+	public void testTouch() throws InterruptedException {
+		Long user1Id = Long.parseLong(user1);
+		Long user2Id = Long.parseLong(user2);
+		// created by user 1.
+		Node start = NodeTestUtils.createNew("one",  user1Id);
+		start = nodeDao.createNewNode(start);
+		Long oneId = KeyFactory.stringToKey(start.getId());
+		toDelete.add(start.getId());
+		// sleep to change updatedOn
+		Thread.sleep(10);
+		
+		// call under test (updated by user 2).
+		String newEtag = nodeDao.touch(user2Id, start.getId());
+		assertNotNull(newEtag);
+		// etag must change
+		assertFalse(start.getETag().equals(newEtag));
+		Node afterTouch = nodeDao.getNode(start.getId());
+		assertEquals(afterTouch.getETag(), newEtag);
+		assertTrue(afterTouch.getModifiedOn().getTime() > start.getModifiedOn().getTime());
+		assertEquals(user2Id, afterTouch.getModifiedByPrincipalId());
+		assertEquals(user1Id, start.getCreatedByPrincipalId());
 	}
 }

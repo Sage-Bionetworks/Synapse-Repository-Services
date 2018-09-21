@@ -454,14 +454,6 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo,
-			String entityId) throws NotFoundException, DatastoreException,
-			UnauthorizedException {
-		// pass through
-		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
-	}
-
-	@Override
 	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId,
 			long offset, long limit) throws DatastoreException,
 			UnauthorizedException, NotFoundException {

@@ -133,32 +133,6 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 */
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Lock the given node using 'SELECT FOR UPDATE', and increment the etag.
-	 * @param id
-	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
-	 * eTag, then ConflictingUpdateException will be thrown.
-	 * @return the new etag
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
-	 * This exception indicates that the node has changed since the last time the user fetched it.
-	 * @throws DatastoreException 
-	 */
-	public String lockNodeAndIncrementEtag(String id, String eTag) throws NotFoundException, ConflictingUpdateException, DatastoreException;
-
-	/**
-	 * Lock the given node using 'SELECT FOR UPDATE', and increment the etag.
-	 * @param id
-	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
-	 * eTag, then ConflictingUpdateException will be thrown.
-	 * @return the new etag
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
-	 * This exception indicates that the node has changed since the last time the user fetched it.
-	 * @throws DatastoreException 
-	 */
-	public String lockNodeAndIncrementEtag(String id, String eTag, ChangeType changeType) throws NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
 	 * Make changes to an existing node.
@@ -176,19 +150,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Replace the annotations and fileHandle ID of a specific version of a node.
-	 * This is used to convert one entity type to another.
-	 * @param nodeId
-	 * @param versionNumber
-	 * @param updatedAnnos
-	 * @param fileHandleId
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId) throws NotFoundException, DatastoreException;
-
 	
 	/**
 	 * Does a given node exist?
@@ -365,17 +326,6 @@ public interface NodeDAO {
 	public List<VersionInfo> getVersionsOfEntity(String entityId, long offset,
 			long limit) throws NotFoundException, DatastoreException;
 
-	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Get a node's reference.
-	 * @param nodeId - The id of the node.
-	 * @return
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws DatastoreException - Thrown if there is a database error.
-	 */
-	public Reference getNodeReference(String nodeId) throws NotFoundException, DatastoreException;
-
 	/**
 	 * Get the FileHandle Id for a given version number.
 	 * 
@@ -408,15 +358,7 @@ public interface NodeDAO {
 	 * @param longId
 	 * @return
 	 */
-	public String lockNode(Long longId);
-	
-	/**
-	 * Lock on a list of node IDs.
-	 * Note: The locks will be acquired in the numeric order of the entity IDs to prevent deadlock.
-	 * @param longIds
-	 * @return
-	 */
-	public List<String> lockNodes(List<String> nodeIds);
+	public String lockNode(String nodeId);
 
 	/**
 	 * get a list of projects
@@ -559,4 +501,23 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<IdAndEtag> getChildren(long parentId);
+	
+	/**
+	 * Touch the node and change the etag, modified on, and modified by.
+	 * 
+	 * @param userId
+	 * @param nodeId
+	 * @return
+	 */
+	public String touch(Long userId, String nodeId);
+	
+	/**
+	 * Touch the node and change the etag, modifiedOn, and modifiedBy.
+	 * 
+	 * @param userId
+	 * @param nodeId
+	 * @param changeType The type of change that triggered this update.
+	 * @return
+	 */
+	public String touch(Long userId, String nodeId, ChangeType changeType);
 }

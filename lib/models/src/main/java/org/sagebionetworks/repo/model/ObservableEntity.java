@@ -11,11 +11,6 @@ public interface ObservableEntity {
 	 * The id of the object.
 	 */
 	public String getIdString();
-
-	/**
-	 * The id of its parent.
-	 */
-	public String getParentIdString();
 	
 	/**
 	 * Get the etag of this object

@@ -241,17 +241,6 @@ public interface EntityManager {
 	public <T extends Entity> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
 	
 	/**
-	 * List all version numbers for an entity.
-	 * @param userInfo
-	 * @param entityId
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
 	 * Get a specific version of an entity.
 	 * @param <T>
 	 * @param userInfo

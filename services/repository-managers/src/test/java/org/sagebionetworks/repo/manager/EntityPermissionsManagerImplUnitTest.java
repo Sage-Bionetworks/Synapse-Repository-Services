@@ -181,7 +181,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		
 		newEtag = "newEtag";
-		when(mockNodeDao.lockNodeAndIncrementEtag(anyString(), anyString())).thenReturn(newEtag);
+		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 	}
 
 	@Test

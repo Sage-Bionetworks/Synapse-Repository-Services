@@ -189,7 +189,7 @@ public class TrashManagerImplTest {
 		
 		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 		newEtag = "newEtag";
-		when(mockNodeDAO.lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class))).thenReturn(newEtag);
+		when(mockNodeDAO.touch(any(Long.class), anyString(), any(ChangeType.class))).thenReturn(newEtag);
 	}
 	
 	@Test
@@ -201,17 +201,13 @@ public class TrashManagerImplTest {
 		ChangeType changeType = ChangeType.DELETE;
 		// call under test
 		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
-		verify(mockNodeDAO).lockNodeAndIncrementEtag(testNode.getId(), testNode.getETag(), changeType);
+		verify(mockNodeDAO).touch(userInfo.getId(), testNode.getId(), changeType);
 		// the entity is not a container so a message should not be sent.
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
 		verify(mockNodeDAO).updateNode(nodeCapture.capture());
 		Node capturedNode = nodeCapture.getValue();
 		assertNotNull(capturedNode);
 		assertNotNull(capturedNode.getModifiedOn());
-		// modified on should be set be set
-		assertTrue(capturedNode.getModifiedOn().getTime() > 0);
-		// modified by should be set
-		assertEquals(userInfo.getId(), capturedNode.getModifiedByPrincipalId());
 	}
 	
 	@Test
@@ -222,7 +218,7 @@ public class TrashManagerImplTest {
 		ChangeType changeType = ChangeType.DELETE;
 		// call under test
 		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
-		verify(mockNodeDAO).lockNodeAndIncrementEtag(testNode.getId(), testNode.getETag(), changeType);
+		verify(mockNodeDAO).touch(userInfo.getId(), testNode.getId(), changeType);
 		// the entity is a container so a container event should be generated.
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(testNode.getId(), ObjectType.ENTITY_CONTAINER, newEtag, changeType);
 	}
