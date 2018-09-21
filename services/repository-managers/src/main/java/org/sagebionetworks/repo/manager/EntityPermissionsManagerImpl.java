@@ -155,7 +155,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// validate the Entity owners will still have access.
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
 		// Before we can update the ACL we must grab the lock on the node.
-		String newEtag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		String newEtag = nodeDao.touch(userInfo.getId(), entityId);
 		// persist acl and return
 		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
@@ -170,8 +170,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@WriteTransaction
 	@Override
 	public AccessControlList restoreInheritance(String entityId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
-		// Before we can update the ACL we must grab the lock on the node.
-		Node node = nodeDao.getNode(entityId);
 		String benefactorId = nodeDao.getBenefactor(entityId);
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -182,8 +180,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		// if parent is root, than can't inherit, must have own ACL
 		if (nodeDao.isNodesParentRoot(entityId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
-		
-		String newEtag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		// lock and update the entity owner of this acl.
+		String newEtag = nodeDao.touch(userInfo.getId(), entityId);
 		
 		// delete access control list
 		aclDAO.delete(entityId, ObjectType.ENTITY);
@@ -191,8 +189,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// now find the newly governing ACL
 		String benefactor = nodeDao.getBenefactor(entityId);
 		
+		EntityType entityType = nodeDao.getNodeTypeById(entityId);
+		
 		// Send a container message for projects or folders.
-		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
+		if(NodeUtils.isProjectOrFolder(entityType)){
 			/*
 			 *  Notify listeners of the hierarchy change to this container.
 			 *  See PLFM-4410.
@@ -211,8 +211,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 				hasAccess(parentId,CHANGE_PERMISSIONS, userInfo));
 		
 		// Before we can update the ACL we must grab the lock on the node.
-		Node node = nodeDao.getNode(parentId);
-		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		nodeDao.touch(userInfo.getId(), parentId);
 
 		String benefactorId = nodeDao.getBenefactor(parentId);
 		applyInheritanceToChildrenHelper(parentId, benefactorId, userInfo);
@@ -233,9 +232,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			if (hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo).getAuthorized()) {
 				// delete child ACL, if present
 				if (hasLocalACL(idToChange)) {
-					// Before we can update the ACL we must grab the lock on the node.
-					Node node = nodeDao.getNode(idToChange);
-					nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+					// Touch and lock the owner node before updating the ACL.
+					nodeDao.touch(userInfo.getId(), idToChange);
 					
 					// delete ACL
 					aclDAO.delete(idToChange, ObjectType.ENTITY);

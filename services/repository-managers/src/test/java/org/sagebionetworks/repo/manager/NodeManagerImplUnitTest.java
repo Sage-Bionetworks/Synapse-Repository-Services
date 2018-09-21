@@ -129,7 +129,7 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccessActivity(any(UserInfo.class), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockActivityManager.doesActivityExist(anyString())).thenReturn(true);
 		
-		when(mockNodeDao.lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class))).thenReturn(newEtag);
+		when(mockNodeDao.lockNode(anyString())).thenReturn(newEtag);
 		
 		annos = new Annotations();
 		annos.setEtag("etag");

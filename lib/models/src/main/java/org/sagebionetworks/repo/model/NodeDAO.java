@@ -133,32 +133,6 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 */
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Lock the given node using 'SELECT FOR UPDATE', and increment the etag.
-	 * @param id
-	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
-	 * eTag, then ConflictingUpdateException will be thrown.
-	 * @return the new etag
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
-	 * This exception indicates that the node has changed since the last time the user fetched it.
-	 * @throws DatastoreException 
-	 */
-	public String lockNodeAndIncrementEtag(String id, String eTag) throws NotFoundException, ConflictingUpdateException, DatastoreException;
-
-	/**
-	 * Lock the given node using 'SELECT FOR UPDATE', and increment the etag.
-	 * @param id
-	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
-	 * eTag, then ConflictingUpdateException will be thrown.
-	 * @return the new etag
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
-	 * This exception indicates that the node has changed since the last time the user fetched it.
-	 * @throws DatastoreException 
-	 */
-	public String lockNodeAndIncrementEtag(String id, String eTag, ChangeType changeType) throws NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
 	 * Make changes to an existing node.
@@ -384,15 +358,7 @@ public interface NodeDAO {
 	 * @param longId
 	 * @return
 	 */
-	public String lockNode(Long longId);
-	
-	/**
-	 * Lock on a list of node IDs.
-	 * Note: The locks will be acquired in the numeric order of the entity IDs to prevent deadlock.
-	 * @param longIds
-	 * @return
-	 */
-	public List<String> lockNodes(List<String> nodeIds);
+	public String lockNode(String nodeId);
 
 	/**
 	 * get a list of projects
@@ -544,4 +510,14 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String touch(Long userId, String nodeId);
+	
+	/**
+	 * Touch the node and change the etag, modifiedOn, and modifiedBy.
+	 * 
+	 * @param userId
+	 * @param nodeId
+	 * @param changeType The type of change that triggered this update.
+	 * @return
+	 */
+	public String touch(Long userId, String nodeId, ChangeType changeType);
 }

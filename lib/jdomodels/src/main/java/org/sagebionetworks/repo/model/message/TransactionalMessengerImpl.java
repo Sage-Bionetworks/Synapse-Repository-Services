@@ -127,6 +127,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setUserId(userId);
 		sendMessageAfterCommit(message);
 	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public void sendMessageAfterCommit(MessageToSend toSend) {
+		sendMessageAfterCommit(toSend.buildChangeMessage());
+	}
 
 	private <T extends Message> void appendToBoundMessages(T message) {
 		// Make sure we are in a transaction.
