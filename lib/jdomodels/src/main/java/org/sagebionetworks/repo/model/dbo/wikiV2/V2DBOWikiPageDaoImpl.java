@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -288,7 +289,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		basicDao.createNew(markdownDbo);
 		
 		// Send the create message
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(dbo).withChangeType(ChangeType.CREATE).withUserId(dbo.getModifiedBy()));
 		
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
 	}
