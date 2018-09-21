@@ -12,8 +12,11 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -42,14 +45,15 @@ import org.springframework.test.util.ReflectionTestUtils;
  * @author jmhill
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class NodeManagerAuthorizationTest {
 	
 	@Mock
-	private NodeDAO mockNodeDao = null;
+	private NodeDAO mockNodeDao;
 	@Mock
-	private AuthorizationManager mockAuthDao = null;
+	private AuthorizationManager mockAuthDao;
 	@Mock
-	private AccessControlListDAO mockAclDao = null;
+	private AccessControlListDAO mockAclDao;
 	@Mock
 	private Node mockNode;
 	@Mock
@@ -65,25 +69,18 @@ public class NodeManagerAuthorizationTest {
 	@Mock
 	private ActivityManager mockActivityManager;
 	@Mock
-	private ProjectSettingsManager mockProjectSettingsManager;;
-	
-	private NodeManagerImpl nodeManager = null;
+	private ProjectSettingsManager mockProjectSettingsManager;
+	@InjectMocks
+	private NodeManagerImpl nodeManager;
 
 	@Before
 	public void before() throws NotFoundException, DatastoreException{
-		MockitoAnnotations.initMocks(this);
-		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl();
-		ReflectionTestUtils.setField(nodeManager, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(nodeManager, "authorizationManager", mockAuthDao);
-		ReflectionTestUtils.setField(nodeManager, "aclDAO", mockAclDao);
-		ReflectionTestUtils.setField(nodeManager, "entityBootstrapper", mockEntityBootstrapper);
-		ReflectionTestUtils.setField(nodeManager, "activityManager", mockActivityManager);
-		ReflectionTestUtils.setField(nodeManager, "projectSettingsManager", mockProjectSettingsManager);
+		String startEtag = "startEtag";
 		// The mocks user for tests
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("BobTheNode");
-		when(mockAnnotations.getEtag()).thenReturn("12");
+		when(mockNode.getETag()).thenReturn(startEtag);
+		when(mockAnnotations.getEtag()).thenReturn(startEtag);
 		when(mockNode.getParentId()).thenReturn("syn456");
 		when(mockNamed.getEtag()).thenReturn("12");
 
@@ -91,6 +88,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockUserGroup.getId()).thenReturn("123");
 		mockUserInfo = new UserInfo(false, 123L);
 		
+		when(mockNodeDao.lockNode(any(String.class))).thenReturn(startEtag);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

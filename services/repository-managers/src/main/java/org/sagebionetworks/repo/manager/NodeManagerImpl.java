@@ -380,10 +380,6 @@ public class NodeManagerImpl implements NodeManager {
 		// Clear node creation data to make sure NodeDAO does not change the fields
 		NodeManagerImpl.clearNodeCreationDataForUpdate(updatedNode);
 
-		// Clear the modified data and fill it in with the new data
-//		Long userIndividualGroupId = userInfo.getId();
-//		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, updatedNode);
-
 		// If this is a new version then we need to create a new version before the update
 		if (newVersion) {
 			// This will create a new version and set the new version to 
@@ -474,7 +470,7 @@ public class NodeManagerImpl implements NodeManager {
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 		// Validate that the annotations
 		validateAnnotations(updated);
-		// Now lock the node if we can
+		// Lock the node and check the etag.
 		lockAndCheckEtag(nodeId, updated.getEtag());
 		// update etag, modifedOn, and modifiedBy
 		nodeDao.touch(userInfo.getId(), nodeId);

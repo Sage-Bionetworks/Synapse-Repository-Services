@@ -255,13 +255,14 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testUpdateAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+	public void testUpdateAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException, InterruptedException{
 		// Create a node
-		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(EntityType.project);
+		Node startNode = new Node();
+		startNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
+		startNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
-		String id = nodeManager.createNewNode(newNode, userInfo);
+		String id = nodeManager.createNewNode(startNode, userInfo);
+		startNode = nodeManager.get(userInfo, id);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// First get the annotations for this node
@@ -272,6 +273,8 @@ public class NodeManagerImplAutoWiredTest {
 		String eTagBeforeUpdate = annos.getEtag();
 		// Add some values
 		annos.addAnnotation("longKey", new Long(1));
+		// sleep to ensure modifiedOn changes.
+		Thread.sleep(10);
 		// Now update the node
 		Annotations updated = nodeManager.updateAnnotations(userInfo,id, annos, AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(updated);
@@ -286,6 +289,8 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(nodeCopy);
 		assertNotNull(nodeCopy.getETag());
 		assertEquals(updated.getEtag(), nodeCopy.getETag());
+		assertFalse(startNode.getETag().equals(nodeCopy.getETag()));
+		assertTrue(nodeCopy.getModifiedOn().getTime() > startNode.getModifiedOn().getTime());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
