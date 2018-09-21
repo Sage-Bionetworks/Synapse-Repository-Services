@@ -745,8 +745,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
-	
-	public String getSynapseTermsOfUse() throws SynapseException;
 
 	/**
 	 * Sends a message to another user

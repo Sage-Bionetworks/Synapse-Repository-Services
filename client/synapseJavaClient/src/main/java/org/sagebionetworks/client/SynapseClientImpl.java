@@ -2528,11 +2528,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return postJSONEntity(getRepoEndpoint(), "/search", searchQuery, SearchResults.class);
 	}
 
-	@Override
-	public String getSynapseTermsOfUse() throws SynapseException {
-		return getStringDirect("https://s3.amazonaws.com/static.synapse.org", "/governance/SageBionetworksSynapseTermsandConditionsofUse.pdf");
-	}
-
 	/**
 	 * Helper for pagination of messages
 	 */
