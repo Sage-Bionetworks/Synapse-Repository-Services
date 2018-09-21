@@ -208,10 +208,6 @@ public class TrashManagerImplTest {
 		Node capturedNode = nodeCapture.getValue();
 		assertNotNull(capturedNode);
 		assertNotNull(capturedNode.getModifiedOn());
-		// modified on should be set be set
-		assertTrue(capturedNode.getModifiedOn().getTime() > 0);
-		// modified by should be set
-		assertEquals(userInfo.getId(), capturedNode.getModifiedByPrincipalId());
 	}
 	
 	@Test
