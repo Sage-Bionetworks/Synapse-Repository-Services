@@ -836,13 +836,6 @@ public class IT500SynapseJavaClient {
 		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
 	}
 
-	@Test
-	public void testRetrieveSynapseTOU() throws Exception {
-		String termsOfUse = synapseOne.getSynapseTermsOfUse();
-		assertNotNull(termsOfUse);
-		assertTrue(termsOfUse.length()>100);
-	}
-
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
 	 * @throws Exception 
