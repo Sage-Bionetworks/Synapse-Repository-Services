@@ -77,12 +77,6 @@ public class IT960TermsOfUse {
 		adminSynapse.deleteAndPurgeEntity(project);
 		adminSynapse.deleteUser(userToDelete);
 	}
-
-	@Test
-	public void testGetTermsOfUse() throws Exception {
-		String responseBody = synapse.getSynapseTermsOfUse();
-		assertTrue(responseBody.length()>100);
-	}
 	
 	@Test
 	public void testRepoSvcWithTermsOfUse() throws Exception {

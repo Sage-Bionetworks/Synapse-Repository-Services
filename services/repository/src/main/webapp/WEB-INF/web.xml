@@ -225,18 +225,6 @@
 		<url-pattern>/*</url-pattern>
 	</servlet-mapping>
 
-	<servlet>
-		<servlet-name>tomcatDefaultServlet</servlet-name>
-		<servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
-	</servlet>
-
-
-	<servlet-mapping>
-		<servlet-name>tomcatDefaultServlet</servlet-name>
-		<url-pattern>/auth/v1/synapseTermsOfUse.html</url-pattern>
-	</servlet-mapping>
-
-
 	<!-- This filter will look for the session token as a cookie, if it finds 
 		it, the token will be added to the header of the request -->
 	<filter>
