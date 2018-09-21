@@ -22,6 +22,11 @@ if [ ! ${JOB_NAME} ]; then
 	JOB_NAME=${stack}${user}
 fi
 
+AWS_CREDS=""
+if [ -n "${org_sagebionetworks_stack_iam_id}" ]  && [ -n "${org_sagebionetworks_stack_iam_key}" ]; then
+	AWS_CREDS="-Dorg.sagebionetworks.stack.iam.id=${org_sagebionetworks_stack_iam_id} -Dorg.sagebionetworks.stack.iam.key=${org_sagebionetworks_stack_iam_key} "
+fi
+
 MVN_GOAL=install
 if [ ${build_deploy} ]; then
 	MVN_GOAL=deploy
@@ -99,8 +104,7 @@ bash -c "mvn clean ${MVN_GOAL} \
 -Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
--Dorg.sagebionetworks.stack.iam.id=${org_sagebionetworks_stack_iam_id} \
--Dorg.sagebionetworks.stack.iam.key=${org_sagebionetworks_stack_iam_key} \
+${AWS_CREDS} \
 -Dorg.sagebionetworks.stack.instance=${user} \
 -Dorg.sagebionetworks.developer=${user} \
 -Dorg.sagebionetworks.stack=${stack} \

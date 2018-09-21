@@ -226,8 +226,13 @@ public class UrlHelpers {
 	
 	public static final String DOWNLOAD_LIST = "/download/list";
 	public static final String DOWNLOAD_LIST_ADD = DOWNLOAD_LIST+"/add";
+	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
 	public static final String DOWNLOAD_LIST_ADD_START_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_START_REQUEST;
 	public static final String DOWNLOAD_LIST_ADD_GET_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_GET_REQUEST;
+	
+	public static final String DOWNLOAD_ORDER = "/download/order";
+	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
+	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
 	
 	// multipart upload v2
 	public static final String FILE_MULTIPART = FILE+"/multipart";

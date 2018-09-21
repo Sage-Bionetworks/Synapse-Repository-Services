@@ -311,7 +311,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		ValidateArgument.required(request, "DownloadOrderSummaryRequest");
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
 		List<DownloadOrderSummary> page = this.bulkDownloadDao.getUsersDownloadOrders(user.getId().toString(),
-				token.getLimit(), token.getOffset());
+				token.getLimitForQuery(), token.getOffset());
 		DownloadOrderSummaryResponse response = new DownloadOrderSummaryResponse();
 		response.setPage(page);
 		response.setNextPageToken(token.getNextPageTokenForCurrentResults(page));
