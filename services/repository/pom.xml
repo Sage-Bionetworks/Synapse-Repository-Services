@@ -13,6 +13,10 @@
 	<artifactId>services-repository</artifactId>
 	<packaging>war</packaging>
 	<name>Platform Repository Service</name>
+	
+	<properties>
+		<spring.security.version>5.0.8.RELEASE</spring.security.version>
+	</properties>
 
 	<dependencies>
 
@@ -80,7 +84,26 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context-support</artifactId>
-		</dependency>			
+		</dependency>	
+		
+		
+        <!-- Spring Security -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+            <version>${spring.security.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-config</artifactId>
+            <version>${spring.security.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security.oauth</groupId>
+            <artifactId>spring-security-oauth2</artifactId>
+            <version>1.0.0.RELEASE</version>
+        </dependency>
+ 		
 		<!-- ATOM -->
 		<dependency>
 			<groupId>rome</groupId>

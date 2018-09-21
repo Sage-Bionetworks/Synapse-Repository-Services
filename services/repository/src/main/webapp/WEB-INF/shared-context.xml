@@ -35,5 +35,8 @@
 	<import resource="classpath:repository-triggers-import.xml" />
 
 	<import resource="classpath:repository-scheduler.xml" />
+	
+	<import resource="classpath:repository-security.xml" />
+	
 
 </beans>
