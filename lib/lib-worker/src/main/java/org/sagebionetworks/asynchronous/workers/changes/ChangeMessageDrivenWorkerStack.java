@@ -19,8 +19,8 @@ public class ChangeMessageDrivenWorkerStack implements Runnable {
 	MessageDrivenWorkerStack stack;
 
 	public ChangeMessageDrivenWorkerStack(CountingSemaphore semaphore,
-			AmazonSQS awsSQSClient, AmazonSNS awsSNSClient,
-			ChangeMessageDrivenWorkerStackConfig config) {
+										  AmazonSQS awsSQSClient,
+										  ChangeMessageDrivenWorkerStackConfig config) {
 		// Get the configured runner.
 		ChangeMessageRunner changeRunner = config.getRunner();
 		if(changeRunner instanceof LockTimeoutAware){
@@ -34,8 +34,7 @@ public class ChangeMessageDrivenWorkerStack implements Runnable {
 				awsSQSClient, config.getConfig().getMessageQueueConfiguration()
 						.getQueueName(), changeRunner);
 		config.getConfig().setRunner(batchProcessor);
-		stack = new MessageDrivenWorkerStack(semaphore, (AmazonSQSClient) awsSQSClient,
-				(AmazonSNSClient) awsSNSClient, config.getConfig());
+		stack = new MessageDrivenWorkerStack(semaphore, (AmazonSQSClient) awsSQSClient, config.getConfig());
 	}
 
 	@Override

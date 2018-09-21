@@ -527,7 +527,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.0.26</version>
+				<version>1.0.28</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
