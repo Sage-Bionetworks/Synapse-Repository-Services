@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.Validate;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -897,4 +898,24 @@ public class TableManagerSupportTest {
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	
+	@Test
+	public void testTouch() {
+		// call under test
+		manager.touchTable(userInfo, tableId);
+		verify(mockNodeDao).touch(userInfo.getId(), tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTouchNullUser() {
+		userInfo = null;
+		// call under test
+		manager.touchTable(userInfo, tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTouchNullTable() {
+		tableId = null;
+		// call under test
+		manager.touchTable(userInfo, tableId);
+	}
 }

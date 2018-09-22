@@ -593,6 +593,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public String touchTable(UserInfo user, String tableId) {
 		ValidateArgument.required(user, "user");
+		ValidateArgument.required(tableId, "tableId");
 		return nodeDao.touch(user.getId(), tableId);
 	}
 
