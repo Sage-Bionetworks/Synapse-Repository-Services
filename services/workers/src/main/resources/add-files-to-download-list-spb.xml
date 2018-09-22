@@ -30,7 +30,7 @@
 								<property name="semaphoreLockKey" value="addFilesToDownloadList" />
 								<property name="semaphoreMaxLockCount" value="8" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
-								<property name="queueName" ref="stackConfiguration.asyncQueueName[ADD_FILES_TO_DOWNLOAD_LIST]"/>
+								<property name="queueName" ref="stackConfiguration.queueName[ADD_FILES_TO_DOWNLOAD_LIST]"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>

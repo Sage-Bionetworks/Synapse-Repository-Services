@@ -63,7 +63,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		projectId = nodeDao.createNew(project);
 
 		type = UploadDestinationListSetting.class.getSimpleName().toLowerCase();
-		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getAsyncQueueName(QUEUE_NAME));
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getQueueName(QUEUE_NAME));
 	}
 
 	@After

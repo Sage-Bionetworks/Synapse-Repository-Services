@@ -310,13 +310,6 @@ public interface StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getAsyncQueueName(String baseName);
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
 	public String getQueueName(String baseName);
 
 	/**
@@ -362,13 +355,6 @@ public interface StackConfiguration {
 	 */
 	public String getSearchUpdateQueueName();
 
-	public String getSearchUpdateDeadLetterQueueName();
-
-	/**
-	 * The name of the AWS SQS where dynamo updates are pushed.
-	 */
-	public String getDynamoUpdateQueueName();
-
 	/**
 	 * The name of the AWS SQS where rds updates are pushed.
 	 * 
@@ -377,25 +363,11 @@ public interface StackConfiguration {
 	public String getEntityAnnotationsUpdateQueueName();
 
 	/**
-	 * The name of the AWS SQS where message (to user) updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getMessageUpdateQueueName();
-
-	/**
 	 * The name of the AWS SQS where file updates are pushed.
 	 * 
 	 * @return
 	 */
 	public String getFileUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateDeadLetterQueueName();
 
 	/**
 	 * The name of the AWS SQS where file updates are pushed.

@@ -31,7 +31,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="20" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[THREAD_STATS]" />
+									ref="stackConfiguration.queueName[THREAD_STATS]" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

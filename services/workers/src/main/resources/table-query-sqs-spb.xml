@@ -33,7 +33,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[QUERY]" />
+									ref="stackConfiguration.queueName[QUERY]" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
@@ -72,7 +72,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" />
+									ref="stackConfiguration.queueName[QUERY_NEXT_PAGE]" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

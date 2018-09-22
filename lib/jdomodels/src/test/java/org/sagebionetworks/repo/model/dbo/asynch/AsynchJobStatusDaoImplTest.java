@@ -70,7 +70,7 @@ public class AsynchJobStatusDaoImplTest {
 		BeanFactory factory = (BeanFactory) appContext;
 
 		for (AsynchJobType asynchJobType : AsynchJobType.values()) {
-			assertEquals(asynchJobType.getQueueName(), factory.getBean("stackConfiguration.asyncQueueName[" + asynchJobType.name() + "]"));
+			assertEquals(asynchJobType.getQueueName(), factory.getBean("stackConfiguration.queueName[" + asynchJobType.name() + "]"));
 		}
 		appContext.close();
 	}

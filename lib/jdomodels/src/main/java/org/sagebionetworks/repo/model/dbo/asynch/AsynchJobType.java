@@ -94,6 +94,6 @@ public enum AsynchJobType  {
 	 * @return
 	 */
 	public String getQueueName(){
-		return StackConfigurationSingleton.singleton().getAsyncQueueName(this.name());
+		return StackConfigurationSingleton.singleton().getQueueName(this.name());
 	}
 }

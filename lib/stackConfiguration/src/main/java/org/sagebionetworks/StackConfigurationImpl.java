@@ -500,16 +500,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public String getAsyncQueueName(String baseName) {
-		return String.format(StackConstants.QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
-	}
-
-	/**
-	 * The name of the async queue
+	 * The name of the queue
 	 * 
 	 * @return
 	 */
@@ -533,7 +524,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The name of the AWS topic where repository changes messages are published.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRepositoryChangeTopicPrefix() {
@@ -583,17 +574,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return String.format(StackConstants.SEARCH_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
 	}
 
-	public String getSearchUpdateDeadLetterQueueName() {
-		return String.format(StackConstants.SEARCH_DEAD_LETTER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where dynamo updates are pushed.
-	 */
-	public String getDynamoUpdateQueueName() {
-		return String.format(StackConstants.DYNAMO_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
 	/**
 	 * The name of the AWS SQS where rds updates are pushed.
 	 * 
@@ -604,30 +584,12 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The name of the AWS SQS where message (to user) updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getMessageUpdateQueueName() {
-		return String.format(StackConstants.MESSAGE_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
 	 * The name of the AWS SQS where file updates are pushed.
 	 * 
 	 * @return
 	 */
 	public String getFileUpdateQueueName() {
 		return String.format(StackConstants.FILE_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateDeadLetterQueueName() {
-		return String.format(StackConstants.FILE_DEAD_LETTER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
 	}
 
 	/**
