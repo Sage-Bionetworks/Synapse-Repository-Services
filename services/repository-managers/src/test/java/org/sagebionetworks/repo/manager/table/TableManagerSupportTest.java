@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang.Validate;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
