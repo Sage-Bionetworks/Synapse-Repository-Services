@@ -114,11 +114,9 @@ public class ReplicationMessageManagerImpl implements ReplicationMessageManager 
 			throw new IllegalStateException("SQS client cannot be null");
 		}
 		// replication
-		CreateQueueResult result = this.sqsClient.createQueue(replicationQueueName);
-		this.replicationQueueUrl = result.getQueueUrl();
+		this.replicationQueueUrl = this.sqsClient.getQueueUrl(replicationQueueName).getQueueUrl();
 		// delta
-		result = this.sqsClient.createQueue(reconciliationQueueName);
-		this.reconciliationQueueUrl = result.getQueueUrl();
+		this.reconciliationQueueUrl = this.sqsClient.getQueueUrl(reconciliationQueueName).getQueueUrl();
 	}
 
 	/**

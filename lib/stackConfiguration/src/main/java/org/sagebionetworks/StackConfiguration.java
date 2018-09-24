@@ -349,50 +349,6 @@ public interface StackConfiguration {
 	public String getRepositoryModificationTopicName();
 
 	/**
-	 * The name of the AWS SQS where search updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getSearchUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where rds updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getEntityAnnotationsUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getSubmissionAnnotationsUpdateQueueName();
-
-	/**
-	 * @return The name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public String getUnsentMessagesQueueName();
-
-	/**
-	 * @return The name of the AWS SQS where user identifier updates are pushed
-	 */
-	public String getPrincipalHeaderQueueName();
-
-	public String getTableUpdateQueueName();
-
-	public String getTableUpdateDeadLetterQueueName();
-
-	public String getTableCurrentCacheUpdateQueueName();
-
-	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a
 	 * multi-part upload this value cannot be less 5 MB. Currently defaults to 5 MB.

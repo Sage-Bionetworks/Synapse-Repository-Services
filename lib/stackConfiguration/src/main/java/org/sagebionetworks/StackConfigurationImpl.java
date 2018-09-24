@@ -566,69 +566,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The name of the AWS SQS where search updates are pushed.
-	 *
-	 * @return
-	 */
-	public String getSearchUpdateQueueName() {
-		return String.format(StackConstants.SEARCH_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where rds updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getEntityAnnotationsUpdateQueueName() {
-		return String.format(StackConstants.ENTITY_ANNOTATIONS_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateQueueName() {
-		return String.format(StackConstants.FILE_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getSubmissionAnnotationsUpdateQueueName() {
-		return String.format(StackConstants.SUBMISSION_ANNOTATIONS_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * @return The name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public String getUnsentMessagesQueueName() {
-		return String.format(StackConstants.UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * @return The name of the AWS SQS where user identifier updates are pushed
-	 */
-	public String getPrincipalHeaderQueueName() {
-		return String.format(StackConstants.PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	public String getTableUpdateQueueName() {
-		return String.format(StackConstants.TABLE_CLUSTER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	public String getTableUpdateDeadLetterQueueName() {
-		return String.format(StackConstants.TABLE_CLUSTER_DEAD_LETTER_QUEUE_NAME_TEMPLATE, getStack(),
-				getStackInstance());
-	}
-
-	public String getTableCurrentCacheUpdateQueueName() {
-		return String.format(StackConstants.TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a
 	 * multi-part upload this value cannot be less 5 MB. Currently defaults to 5 MB.

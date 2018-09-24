@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 import java.util.Arrays;
 import java.util.List;
 
+import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -59,8 +60,8 @@ public class ChangeMessageBatchProcessorTest {
 		MockitoAnnotations.initMocks(this);
 		queueName = "someQueue";
 		queueUrl = "someQueueUrl";
-		when(mockAwsSQSClient.createQueue(queueName)).thenReturn(
-				new CreateQueueResult().withQueueUrl(queueUrl));
+		when(mockAwsSQSClient.getQueueUrl(queueName)).thenReturn(
+				new GetQueueUrlResult().withQueueUrl(queueUrl));
 		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
 				queueName, mockRunner);
 

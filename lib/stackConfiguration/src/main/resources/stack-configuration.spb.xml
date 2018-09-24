@@ -84,14 +84,7 @@
 
 	<bean id="stackConfiguration.repositoryChangeTopicPrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryModificationTopicName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.searchUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.entityAnnotationsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.fileUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.fileUpdateDeadLetterQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.submissionAnnotationsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.unsentMessagesQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-    <bean id="stackConfiguration.principalHeaderQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	
+
 	<!-- user connection throttling -->
 	<bean id="stackConfiguration.maxConcurrentRepoConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
@@ -107,9 +100,6 @@
 	<!-- TableEntity -->
 	<bean id="stackConfiguration.tableRowChangeBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableUpdateDeadLetterQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />				
-	<bean id="stackConfiguration.tableCurrentCacheUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.tableReadTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableMaxBytesPerChangeSet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			
 		
