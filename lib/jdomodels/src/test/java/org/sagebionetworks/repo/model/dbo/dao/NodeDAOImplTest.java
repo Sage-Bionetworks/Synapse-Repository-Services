@@ -1490,6 +1490,10 @@ public class NodeDAOImplTest {
 			array[i].setVersionLabel(null);
 			array[i].setVersionNumber(null);
 			array[i].setBenefactorId(null);
+			array[i].setCreatedBy(null);
+			array[i].setCreatedOn(null);
+			array[i].setModifiedBy(null);
+			array[i].setModifiedOn(null);
 		}
 		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
 		assertNotNull(path);
