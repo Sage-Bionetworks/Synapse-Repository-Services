@@ -83,7 +83,6 @@
 	<bean id="stackConfiguration.workflowExecutionRetentionPeriodInDays" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean id="stackConfiguration.repositoryChangeTopicPrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.repositoryModificationTopicName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<!-- user connection throttling -->
 	<bean id="stackConfiguration.maxConcurrentRepoConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

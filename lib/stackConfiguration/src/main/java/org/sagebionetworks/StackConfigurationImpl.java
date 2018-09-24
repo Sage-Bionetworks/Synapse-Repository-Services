@@ -556,16 +556,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The name of the AWS topic where repository changes messages are published.
-	 * 
-	 * @return
-	 */
-	public String getRepositoryModificationTopicName() {
-		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX, getStack(), getStackInstance())
-				+ "modifications";
-	}
-
-	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a
 	 * multi-part upload this value cannot be less 5 MB. Currently defaults to 5 MB.
