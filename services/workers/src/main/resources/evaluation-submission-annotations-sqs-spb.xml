@@ -35,7 +35,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="300" />
 								<property name="queueName"
-									ref="stackConfiguration.queueName[EVALUATION_SUBMISSION_UPDATE]" />
+									value="#{stackConfiguration.getQueueName('EVALUATION_SUBMISSION_UPDATE')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

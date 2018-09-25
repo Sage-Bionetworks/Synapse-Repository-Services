@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
@@ -506,20 +505,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 */
 	public String getQueueName(String baseName) {
 		return String.format(StackConstants.QUEUE_AND_TOPIC_NAME_TEMPLATE, getStack(), getStackInstance(), baseName);
-	}
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getQueueName() {
-		return new DynamicMap<String, String>() {
-			@Override
-			protected String create(Object key) {
-				return getQueueName(key.toString());
-			}
-		};
 	}
 
 	/**

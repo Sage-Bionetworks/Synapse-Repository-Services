@@ -30,7 +30,7 @@
 								<property name="semaphoreLockKey" value="tableCSVDownloader" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
-								<property name="queueName" ref="stackConfiguration.queueName[DOWNLOAD_CSV_FROM_TABLE]"/>
+								<property name="queueName" value="#{stackConfiguration.getQueueName('DOWNLOAD_CSV_FROM_TABLE')}"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>

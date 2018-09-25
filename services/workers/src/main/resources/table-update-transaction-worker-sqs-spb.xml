@@ -32,7 +32,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="300" />
 								<property name="queueName"
-									ref="stackConfiguration.queueName[TABLE_UPDATE_TRANSACTION]" />
+									value="#{stackConfiguration.getQueueName('TABLE_UPDATE_TRANSACTION')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

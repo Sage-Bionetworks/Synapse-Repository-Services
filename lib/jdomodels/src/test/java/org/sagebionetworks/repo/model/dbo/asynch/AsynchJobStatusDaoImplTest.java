@@ -80,18 +80,6 @@ public class AsynchJobStatusDaoImplTest {
 	public void after(){
 		asynchJobStatusDao.truncateAllAsynchTableJobStatus();
 	}
-	
-	@Test
-	public void testQueueNameBeans() {
-		ClassPathXmlApplicationContext appContext = new ClassPathXmlApplicationContext(new String[] { "stack-configuration.spb.xml" });
-		// of course, an ApplicationContext is just a BeanFactory
-		BeanFactory factory = (BeanFactory) appContext;
-
-		for (AsynchJobType asynchJobType : AsynchJobType.values()) {
-			assertEquals(asynchJobType.getQueueName(), factory.getBean("stackConfiguration.queueName[" + asynchJobType.name() + "]"));
-		}
-		appContext.close();
-	}
 
 	@Test
 	public void testUploadCreateGet() throws DatastoreException, NotFoundException{

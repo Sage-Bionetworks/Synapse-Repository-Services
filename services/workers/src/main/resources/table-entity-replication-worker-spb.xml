@@ -30,7 +30,7 @@
 								<property name="semaphoreLockKey" value="tableEntityReplication" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
-								<property name="queueName" ref="stackConfiguration.queueName[TABLE_ENTITY_REPLICATION]"/>
+								<property name="queueName" value="#{stackConfiguration.getQueueName('TABLE_ENTITY_REPLICATION')}"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>

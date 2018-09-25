@@ -33,7 +33,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="60" />
 								<property name="queueName"
-									ref="stackConfiguration.queueName[PRINCIPAL_PREFIX]" />
+									value="#{stackConfiguration.getQueueName('PRINCIPAL_PREFIX')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

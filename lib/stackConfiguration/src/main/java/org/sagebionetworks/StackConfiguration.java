@@ -313,13 +313,6 @@ public interface StackConfiguration {
 	public String getQueueName(String baseName);
 
 	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getQueueName();
-
-	/**
 	 * Get the full topic name for a given object type.
 	 * 
 	 * @param objectType
