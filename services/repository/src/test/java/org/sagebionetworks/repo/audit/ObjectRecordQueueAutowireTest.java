@@ -55,7 +55,7 @@ public class ObjectRecordQueueAutowireTest {
 		batch = new ObjectRecordBatch(records, type);
 		// start clean
 		objectRecordDAO.deleteAllStackInstanceBatches(type);
-		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getAsyncQueueName(QUEUE_NAME));
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getQueueName(QUEUE_NAME));
 	}
 	
 	@Test (timeout=1000*60*2)

@@ -49,13 +49,10 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	// The prefix applied to each topic.
 	private final String topicPrefix;
 
-	// The name for the modification topic.
-	private final String modificationTopicName;
-	
 	// Maps each object type to its topic
 	Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();;
 
-	private TopicInfo modificationTopic;
+	private ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
 
 	/**
 	 * This is injected from spring.
@@ -67,21 +64,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		this.shouldMessagesBePublishedToTopic = shouldMessagesBePublishedToTopic;
 	}
 
-	/**
-	 * IoC constructor.
-	 * @param transactionalMessanger
-	 * @param awsSNSClient
-	 * @param topicArn
-	 * @param topicName
-	 * @param messageQueue
-	 */
-	public RepositoryMessagePublisherImpl(String topicPrefix, String modificationTopicName, TransactionalMessenger transactionalMessanger,
-			AmazonSNS awsSNSClient) {
-		this.topicPrefix = topicPrefix;
-		this.modificationTopicName = modificationTopicName;
-		this.transactionalMessanger = transactionalMessanger;
-		this.awsSNSClient = awsSNSClient;
-	}
 
 	/**
 	 * Used by tests to inject a mock client.
@@ -92,13 +74,9 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 
-	private ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
-
-	public RepositoryMessagePublisherImpl(final String topicPrefix, final String modificationTopicName) {
-		ValidateArgument.required(modificationTopicName, "modificationTopicName");
+	public RepositoryMessagePublisherImpl(final String topicPrefix) {
 		ValidateArgument.required(topicPrefix, "topicPrefix");
 		this.topicPrefix = topicPrefix;
-		this.modificationTopicName = modificationTopicName;
 	}
 
 	/**
@@ -200,21 +178,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			this.typeToTopicMap.put(type, info);
 		}
 		return info;
-	}
-
-	/**
-	 * Get the topic info for modifications (lazy loaded).
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private TopicInfo getModificationTopicInfoLazy() {
-		if (this.modificationTopic == null) {
-			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(this.modificationTopicName));
-			String arn = result.getTopicArn();
-			this.modificationTopic = new TopicInfo(this.modificationTopicName, arn);
-		}
-		return this.modificationTopic;
 	}
 
 	/**

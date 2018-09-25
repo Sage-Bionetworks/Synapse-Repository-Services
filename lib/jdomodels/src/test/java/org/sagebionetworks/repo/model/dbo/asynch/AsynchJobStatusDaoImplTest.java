@@ -7,7 +7,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,6 +27,8 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -52,8 +57,24 @@ public class AsynchJobStatusDaoImplTest {
 
 	private Long creatorUserGroupId;
 
+	TableUpdateTransactionRequest body;
+
+	TableUpdateTransactionResponse response;
+
 	@Before
 	public void before(){
+		UploadToTableRequest uploadToTableRequest = new UploadToTableRequest();
+		uploadToTableRequest.setTableId("syn456");
+		uploadToTableRequest.setUploadFileHandleId("123");
+		body = new TableUpdateTransactionRequest();
+		body.setEntityId("syn456");
+		body.setChanges(Collections.singletonList(uploadToTableRequest));
+
+		response = new TableUpdateTransactionResponse();
+		UploadToTableResult uploadToTableResult = new UploadToTableResult();
+		uploadToTableResult.setRowsProcessed(7L);
+		response.setResults(Collections.singletonList(uploadToTableResult));
+
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		assertNotNull(creatorUserGroupId);
 	}
@@ -70,16 +91,13 @@ public class AsynchJobStatusDaoImplTest {
 		BeanFactory factory = (BeanFactory) appContext;
 
 		for (AsynchJobType asynchJobType : AsynchJobType.values()) {
-			assertEquals(asynchJobType.getQueueName(), factory.getBean("stackConfiguration.asyncQueueName[" + asynchJobType.name() + "]"));
+			assertEquals(asynchJobType.getQueueName(), factory.getBean("stackConfiguration.queueName[" + asynchJobType.name() + "]"));
 		}
 		appContext.close();
 	}
 
 	@Test
 	public void testUploadCreateGet() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status.getJobId());
 		assertNotNull(status.getEtag());
@@ -103,9 +121,6 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgress() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -121,9 +136,6 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgressNotProcessing() throws DatastoreException, NotFoundException {
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -133,8 +145,6 @@ public class AsynchJobStatusDaoImplTest {
 		assertEquals("A MESSAGE", clone.getProgressMessage());
 		assertEquals(AsynchJobState.PROCESSING, status.getJobState());
 
-		UploadToTableResult response = new UploadToTableResult();
-		response.setRowsProcessed(7L);
 		String requestHash = null;
 		asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
 		clone = asynchJobStatusDao.getJobStatus(status.getJobId());
@@ -166,9 +176,6 @@ public class AsynchJobStatusDaoImplTest {
 						@Override
 						public String doInTransaction(TransactionStatus tStatus) {
 							try {
-								UploadToTableRequest body = new UploadToTableRequest();
-								body.setTableId("syn456");
-								body.setUploadFileHandleId("123");
 								AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 								assertNotNull(status);
 								assertNotNull(status.getEtag());
@@ -187,8 +194,6 @@ public class AsynchJobStatusDaoImplTest {
 								stepper.stepDone("progress reported 2");
 								stepper.waitForStepDone("get status 2");
 
-								UploadToTableResult response = new UploadToTableResult();
-								response.setRowsProcessed(7L);
 								String requestHash = null;
 								asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
 
@@ -258,9 +263,6 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testUpdateProgressTooBig() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -278,9 +280,6 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetFailed() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -305,9 +304,6 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetFailedNonStringConstructor() throws DatastoreException, NotFoundException {
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		// update the progress
 		Throwable error = new TermsOfUseException();
@@ -318,9 +314,6 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testSetCanceling() throws DatastoreException, NotFoundException {
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertFalse(status.getJobCanceling());
 		// update the progress
@@ -333,9 +326,6 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testSetComplete() throws DatastoreException, NotFoundException, InterruptedException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -345,8 +335,6 @@ public class AsynchJobStatusDaoImplTest {
 		// Now set it complete
 		// Make sure at at least some time has passed before me set it complete
 		Thread.sleep(10);
-		UploadToTableResult response = new UploadToTableResult();
-		response.setRowsProcessed(7L);
 		String requestHash = null;
 		String newEtag = asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
 		assertNotNull(newEtag);
@@ -370,14 +358,11 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testFindCompletedJobStatusCompleted() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		String requestHash = "sd1zQvpC67saUigIElscOgHash";
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
-		asynchJobStatusDao.setComplete(status.getJobId(), new UploadToTableResult(), requestHash);
+		asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
 		status = asynchJobStatusDao.getJobStatus(status.getJobId());
 		// Find the job with the hash, etag, and user id.
 		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, creatorUserGroupId);
@@ -388,21 +373,18 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testFindCompletedJobStatusMultiple() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn456");
-		body.setUploadFileHandleId("123");
 		String requestHash = "sd1zQvpC67saUigIElscOgHash";
 		AsynchronousJobStatus one = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(one);
 		assertNotNull(one.getEtag());
-		asynchJobStatusDao.setComplete(one.getJobId(), new UploadToTableResult(), requestHash);
+		asynchJobStatusDao.setComplete(one.getJobId(), response, requestHash);
 		one = asynchJobStatusDao.getJobStatus(one.getJobId());
 		
 		// create another with the same data
 		AsynchronousJobStatus two = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(two);
 		assertNotNull(two.getEtag());
-		asynchJobStatusDao.setComplete(two.getJobId(), new UploadToTableResult(), requestHash);
+		asynchJobStatusDao.setComplete(two.getJobId(), response, requestHash);
 		two = asynchJobStatusDao.getJobStatus(two.getJobId());
 		
 		// Find the job with the hash, etag, and user id.

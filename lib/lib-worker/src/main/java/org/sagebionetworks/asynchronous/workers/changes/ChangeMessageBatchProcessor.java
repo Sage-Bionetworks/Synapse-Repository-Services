@@ -35,9 +35,7 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	public ChangeMessageBatchProcessor(AmazonSQS awsSQSClient,
 			String queueName, ChangeMessageRunner runner) {
 		this.awsSQSClient = awsSQSClient;
-		// create the queue if it does not exist.
-		CreateQueueResult result = awsSQSClient.createQueue(queueName);
-		this.queueUrl = result.getQueueUrl();
+		this.queueUrl = awsSQSClient.getQueueUrl(queueName).getQueueUrl();
 		this.runner = runner;
 	}
 

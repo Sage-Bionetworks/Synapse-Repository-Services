@@ -500,12 +500,12 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The name of the async queue
+	 * The name of the queue
 	 * 
 	 * @return
 	 */
-	public String getAsyncQueueName(String baseName) {
-		return String.format(StackConstants.ASYNC_QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
+	public String getQueueName(String baseName) {
+		return String.format(StackConstants.QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
 	}
 
 	/**
@@ -513,41 +513,18 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public Map<String, String> getAsyncQueueName() {
+	public Map<String, String> getQueueName() {
 		return new DynamicMap<String, String>() {
 			@Override
 			protected String create(Object key) {
-				return getAsyncQueueName(key.toString());
-			}
-		};
-	}
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public String getWorkerQueueName(String baseName) {
-		return String.format(StackConstants.WORKER_QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
-	}
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getWorkerQueueName() {
-		return new DynamicMap<String, String>() {
-			@Override
-			protected String create(Object key) {
-				return getWorkerQueueName(key.toString());
+				return getQueueName(key.toString());
 			}
 		};
 	}
 
 	/**
 	 * The name of the AWS topic where repository changes messages are published.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRepositoryChangeTopicPrefix() {
@@ -576,108 +553,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 				return getRepositoryChangeTopic(key.toString());
 			}
 		};
-	}
-
-	/**
-	 * The name of the AWS topic where repository changes messages are published.
-	 * 
-	 * @return
-	 */
-	public String getRepositoryModificationTopicName() {
-		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX, getStack(), getStackInstance())
-				+ "modifications";
-	}
-
-	/**
-	 * The name of the AWS SQS where search updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getSearchUpdateQueueName() {
-		return String.format(StackConstants.SEARCH_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	public String getSearchUpdateDeadLetterQueueName() {
-		return String.format(StackConstants.SEARCH_DEAD_LETTER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where dynamo updates are pushed.
-	 */
-	public String getDynamoUpdateQueueName() {
-		return String.format(StackConstants.DYNAMO_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where rds updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getEntityAnnotationsUpdateQueueName() {
-		return String.format(StackConstants.ENTITY_ANNOTATIONS_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where message (to user) updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getMessageUpdateQueueName() {
-		return String.format(StackConstants.MESSAGE_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateQueueName() {
-		return String.format(StackConstants.FILE_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateDeadLetterQueueName() {
-		return String.format(StackConstants.FILE_DEAD_LETTER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getSubmissionAnnotationsUpdateQueueName() {
-		return String.format(StackConstants.SUBMISSION_ANNOTATIONS_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * @return The name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public String getUnsentMessagesQueueName() {
-		return String.format(StackConstants.UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	/**
-	 * @return The name of the AWS SQS where user identifier updates are pushed
-	 */
-	public String getPrincipalHeaderQueueName() {
-		return String.format(StackConstants.PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	public String getTableUpdateQueueName() {
-		return String.format(StackConstants.TABLE_CLUSTER_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
-	}
-
-	public String getTableUpdateDeadLetterQueueName() {
-		return String.format(StackConstants.TABLE_CLUSTER_DEAD_LETTER_QUEUE_NAME_TEMPLATE, getStack(),
-				getStackInstance());
-	}
-
-	public String getTableCurrentCacheUpdateQueueName() {
-		return String.format(StackConstants.TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE, getStack(), getStackInstance());
 	}
 
 	/**

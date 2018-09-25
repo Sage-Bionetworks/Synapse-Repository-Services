@@ -61,46 +61,6 @@ public class ChangeMessageDrivenWorkerStackConfig {
 	public void setGate(Gate gate) {
 		config.setGate(gate);
 	}
-	
-	/**
-	 * An optional parameter used to subscribe the queue to receive messages
-	 * from each topic named in the list.
-	 * 
-	 * @param topicNamesToSubscribe
-	 */
-	public void setTopicNamesToSubscribe(List<String> topicNamesToSubscribe){
-		config.setTopicNamesToSubscribe(topicNamesToSubscribe);
-	}
-	
-	/**
-	 * Optional parameter used to configure this queue to use setup a dead
-	 * letter queue for failed messages.
-	 * 
-	 * If this is set, then {@link #setDeadLetterMaxFailureCount(Integer)} must also be
-	 * set.
-	 * 
-	 * @param deadLetterQueueName
-	 *            The name of the dead letter queue where failed messages should
-	 *            be pushed when the max failure count is exceeded.
-	 */
-	public void setDeadLetterQueueName(String deadLetterQueueName) {
-		config.setDeadLetterQueueName(deadLetterQueueName);
-	}
-	
-	/**
-	 * An optional parameter used to configure this queue to forward failed
-	 * messages to a dead letter queue.
-	 * 
-	 * If this is set then the {@link #setDeadLetterQueueName(Integer)} must
-	 * also be set.
-	 * 
-	 * @param maxFailureCount
-	 *            The maximum number of times a message should be retried before
-	 *            before being pushed to the dead letter queue.
-	 */
-	public void setDeadLetterMaxFailureCount(Integer maxFailureCount) {
-		config.setDeadLetterMaxFailureCount(maxFailureCount);
-	}
 
 	public ChangeMessageRunner getRunner() {
 		return runner;

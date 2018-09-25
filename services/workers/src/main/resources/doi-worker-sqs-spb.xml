@@ -20,8 +20,7 @@
 						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
@@ -30,7 +29,7 @@
 								<property name="semaphoreLockKey" value="doiWorker" />
 								<property name="semaphoreMaxLockCount" value="8" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
-								<property name="queueName" ref="stackConfiguration.asyncQueueName[DOI]" />
+								<property name="queueName" ref="stackConfiguration.queueName[DOI]" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

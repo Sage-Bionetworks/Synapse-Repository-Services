@@ -36,10 +36,6 @@ public enum AsynchJobType  {
 	
 	TABLE_UPDATE_TRANSACTION(TableUpdateTransactionRequest.class, TableUpdateTransactionResponse.class),
 	
-	APPEND_ROW_SET_TO_TABLE(AppendableRowSetRequest.class, RowReferenceSetResults.class),
-
-	UPLOAD_CSV_TO_TABLE(UploadToTableRequest.class, UploadToTableResult.class),
-	
 	UPLOAD_CSV_TO_TABLE_PREVIEW(UploadToTablePreviewRequest.class, UploadToTablePreviewResult.class),
 
 	DOWNLOAD_CSV_FROM_TABLE(DownloadFromTableRequest.class, DownloadFromTableResult.class),
@@ -94,6 +90,6 @@ public enum AsynchJobType  {
 	 * @return
 	 */
 	public String getQueueName(){
-		return StackConfigurationSingleton.singleton().getAsyncQueueName(this.name());
+		return StackConfigurationSingleton.singleton().getQueueName(this.name());
 	}
 }

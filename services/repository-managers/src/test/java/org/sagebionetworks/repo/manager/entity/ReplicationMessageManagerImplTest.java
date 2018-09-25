@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,11 +61,11 @@ public class ReplicationMessageManagerImplTest {
 		reconciliationQueueName = "reconciliationQueueName";
 		reconciliationQueueUrl = "reconciliationQueueUrl";
 
-		when(mockSqsClient.createQueue(replicationQueueName)).thenReturn(
-				new CreateQueueResult().withQueueUrl(replicationQueueUrl));
+		when(mockSqsClient.getQueueUrl(replicationQueueName)).thenReturn(
+				new GetQueueUrlResult().withQueueUrl(replicationQueueUrl));
 		
-		when(mockSqsClient.createQueue(reconciliationQueueName)).thenReturn(
-				new CreateQueueResult().withQueueUrl(reconciliationQueueUrl));
+		when(mockSqsClient.getQueueUrl(reconciliationQueueName)).thenReturn(
+				new GetQueueUrlResult().withQueueUrl(reconciliationQueueUrl));
 
 		manager.setReplicationQueueName(replicationQueueName);
 		manager.setReconciliationQueueName(reconciliationQueueName);

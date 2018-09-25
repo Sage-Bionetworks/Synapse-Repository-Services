@@ -310,28 +310,14 @@ public interface StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getAsyncQueueName(String baseName);
+	public String getQueueName(String baseName);
 
 	/**
 	 * The name of the async queue
 	 * 
 	 * @return
 	 */
-	public Map<String, String> getAsyncQueueName();
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public String getWorkerQueueName(String baseName);
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getWorkerQueueName();
+	public Map<String, String> getQueueName();
 
 	/**
 	 * The name of the AWS topic where repository changes messages are published.
@@ -354,78 +340,6 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public Map<String, String> getRepositoryChangeTopic();
-
-	/**
-	 * The name of the AWS topic where repository changes messages are published.
-	 * 
-	 * @return
-	 */
-	public String getRepositoryModificationTopicName();
-
-	/**
-	 * The name of the AWS SQS where search updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getSearchUpdateQueueName();
-
-	public String getSearchUpdateDeadLetterQueueName();
-
-	/**
-	 * The name of the AWS SQS where dynamo updates are pushed.
-	 */
-	public String getDynamoUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where rds updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getEntityAnnotationsUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where message (to user) updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getMessageUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateQueueName();
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getFileUpdateDeadLetterQueueName();
-
-	/**
-	 * The name of the AWS SQS where file updates are pushed.
-	 * 
-	 * @return
-	 */
-	public String getSubmissionAnnotationsUpdateQueueName();
-
-	/**
-	 * @return The name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public String getUnsentMessagesQueueName();
-
-	/**
-	 * @return The name of the AWS SQS where user identifier updates are pushed
-	 */
-	public String getPrincipalHeaderQueueName();
-
-	public String getTableUpdateQueueName();
-
-	public String getTableUpdateDeadLetterQueueName();
-
-	public String getTableCurrentCacheUpdateQueueName();
 
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
