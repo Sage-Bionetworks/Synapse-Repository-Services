@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.asynch;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,8 +57,12 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		// Map each type to its queue;
 		toTypeToQueueURLMap = new HashMap<AsynchJobType, String>(AsynchJobType.values().length);
 		for(AsynchJobType type: AsynchJobType.values()){
-			String qUrl = this.awsSQSClient.getQueueUrl(type.getQueueName()).getQueueUrl();
-			toTypeToQueueURLMap.put(type, qUrl);
+			try {
+				String qUrl = this.awsSQSClient.getQueueUrl(type.getQueueName()).getQueueUrl();
+				toTypeToQueueURLMap.put(type, qUrl);
+			}catch (QueueDoesNotExistException e){
+				throw new IllegalStateException("The queue "+ type.getQueueName()+" does not exist.", e);
+			}
 		}
 	}
 	
