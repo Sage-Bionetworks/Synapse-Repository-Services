@@ -38,12 +38,10 @@ public class RepositoryMessagePublisherImplTest {
 	AmazonSNS mockAwsSNSClient;
 
 	@InjectMocks
-	RepositoryMessagePublisherImpl messagePublisher = new RepositoryMessagePublisherImpl("prefix");
+	RepositoryMessagePublisherImpl messagePublisher;
 	
 	@Before
 	public void before(){
-		mockTransactionalMessanger = Mockito.mock(TransactionalMessenger.class);
-		mockAwsSNSClient = Mockito.mock(AmazonSNS.class);
 		message = new ChangeMessage();
 		message.setChangeNumber(123l);
 		message.setTimestamp(new Date());

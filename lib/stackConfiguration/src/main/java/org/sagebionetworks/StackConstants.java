@@ -26,78 +26,12 @@ public class StackConstants {
 	
 	public static final String STACK_AND_INSTANCE = "%1$s-%2$s";
 
-	public static final String QUEUE_TEMPLATE = "%1$s-%2$s-%3$s";
-
 	/**
-	 * Template used the name of the AWS topic where repository changes messages are published.
+	 * Template used the name of the AWS SNS topics and SQS Queues
 	 */
-	public static final String TOPIC_NAME_TEMPLATE_PREFIX = "%1$s-%2$s-";
-	
-	/**
-	 * Template used for the name of the AWS SQS where search updates are pushed.
-	 */
-	public static final String SEARCH_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-search-update-queue";
-
-	/**
-	 * Template used for the name of the AWS SQS dead letter where search updates are pushed.
-	 */
-	public static final String SEARCH_DEAD_LETTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-search-update-queue-dl";
-
-	/**
-	 * Template used for the name of the AWS SQS where dynamo updates are pushed.
-	 */
-	public static final String DYNAMO_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-dynamo-update-queue";
-	
-	/**
-	 * Template used for the name of the AWS SQS where search updates are pushed.
-	 */
-	public static final String ENTITY_ANNOTATIONS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-entity-annotations-update-queue";
-	
-	/**
-	 * Template used for the name of the AWS SQS where message (to user) updates are pushed.
-	 */
-	public static final String MESSAGE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-message-send-queue";
-	
-	/**
-	 * Template used for the name of the AWS SQS where file updates are pushed.
-	 */
-	public static final String FILE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-file-update-queue";
-
-	/**
-	 * Template used for the name of the AWS SQS where file updates are pushed.
-	 */
-	public static final String FILE_DEAD_LETTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-file-update-queue-dl";
+	public static final String QUEUE_AND_TOPIC_NAME_TEMPLATE = "%1$s-%2$s-%3$s";
 
 
-	/**
-	 * Template used for the name of the AWS SQS where annotations updates are pushed.
-	 */
-	public static final String SUBMISSION_ANNOTATIONS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-submission-annotations-update-queue";
-	
-	/**
-	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public static final String UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-unsent-messages-update-queue";
-	
-	/**
-	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public static final String PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-principal-header-update-queue";
-	
-	/**
-	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public static final String TABLE_CLUSTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-cluster-queue";
-	
-	/**
-	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public static final String TABLE_CLUSTER_DEAD_LETTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-cluster-queue-dl";
-	
-	/**
-	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
-	 */
-	public static final String TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-current-cache-queue";
 
 	/**
 	 * The bucket containing all table row data.
