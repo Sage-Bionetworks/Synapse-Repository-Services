@@ -57,12 +57,8 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		// Map each type to its queue;
 		toTypeToQueueURLMap = new HashMap<AsynchJobType, String>(AsynchJobType.values().length);
 		for(AsynchJobType type: AsynchJobType.values()){
-			try {
-				String qUrl = this.awsSQSClient.getQueueUrl(type.getQueueName()).getQueueUrl();
-				toTypeToQueueURLMap.put(type, qUrl);
-			}catch (QueueDoesNotExistException e){
-				throw new IllegalStateException("The queue "+ type.getQueueName()+" does not exist.", e);
-			}
+			String qUrl = this.awsSQSClient.getQueueUrl(type.getQueueName()).getQueueUrl();
+			toTypeToQueueURLMap.put(type, qUrl);
 		}
 	}
 	
