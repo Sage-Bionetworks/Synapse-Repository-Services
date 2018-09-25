@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
@@ -505,30 +504,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getQueueName(String baseName) {
-		return String.format(StackConstants.QUEUE_TEMPLATE, getStack(), getStackInstance(), baseName);
-	}
-
-	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getQueueName() {
-		return new DynamicMap<String, String>() {
-			@Override
-			protected String create(Object key) {
-				return getQueueName(key.toString());
-			}
-		};
-	}
-
-	/**
-	 * The name of the AWS topic where repository changes messages are published.
-	 *
-	 * @return
-	 */
-	public String getRepositoryChangeTopicPrefix() {
-		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX, getStack(), getStackInstance());
+		return String.format(StackConstants.QUEUE_AND_TOPIC_NAME_TEMPLATE, getStack(), getStackInstance(), baseName);
 	}
 
 	/**
@@ -538,21 +514,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getRepositoryChangeTopic(String objectType) {
-		return getRepositoryChangeTopicPrefix() + objectType;
-	}
-
-	/**
-	 * Create the map used by spring to lookup full strings with keys.
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getRepositoryChangeTopic() {
-		return new DynamicMap<String, String>() {
-			@Override
-			protected String create(Object key) {
-				return getRepositoryChangeTopic(key.toString());
-			}
-		};
+		return String.format(StackConstants.QUEUE_AND_TOPIC_NAME_TEMPLATE, getStack(), getStackInstance(), objectType);
 	}
 
 	/**

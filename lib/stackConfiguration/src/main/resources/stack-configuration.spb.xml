@@ -13,36 +13,8 @@
 	<!-- This the StackConfiguration singleton -->
 	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfigurationSingleton"
 	factory-method="singleton" scope="singleton" />
-	
-	<bean id="stackConfiguration.stackAndStackInstancePrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[LOCATIONABLE_CONVERT_TYPE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[APPEND_ROW_SET_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[UPLOAD_CSV_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[UPLOAD_CSV_TO_TABLE_PREVIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[DOWNLOAD_CSV_FROM_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[QUERY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[QUERY_NEXT_PAGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[OBJECT]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[PRINCIPAL_PREFIX]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[S3_FILE_COPY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[BULK_FILE_DOWNLOAD]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[BROADCAST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[PROJECT_STATS_V2]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[TABLE_UPDATE_TRANSACTION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[THREAD_STATS]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[MIGRATION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[DOI]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[ADD_FILES_TO_DOWNLOAD_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
-	<bean name="stackConfiguration.queueName[TABLE_VIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[TABLE_ENTITY_REPLICATION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[ENTITY_HIERARCHY_CHANGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[ENTITY_REPLICATION_RECONCILIATION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[SEARCH_UPDATE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[EVALUATION_SUBMISSION_UPDATE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[FILE_UPDATE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[MESSAGE_UPDATE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.queueName[TABLE_UPDATE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.stackAndStackInstancePrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -81,8 +53,6 @@
 	<bean id="stackConfiguration.backupRestoreThreadPoolMaximum" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.AWSDomainName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.workflowExecutionRetentionPeriodInDays" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-
-	<bean id="stackConfiguration.repositoryChangeTopicPrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<!-- user connection throttling -->
 	<bean id="stackConfiguration.maxConcurrentRepoConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

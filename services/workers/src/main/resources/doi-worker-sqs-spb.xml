@@ -29,7 +29,7 @@
 								<property name="semaphoreLockKey" value="doiWorker" />
 								<property name="semaphoreMaxLockCount" value="8" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
-								<property name="queueName" ref="stackConfiguration.queueName[DOI]" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('DOI')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

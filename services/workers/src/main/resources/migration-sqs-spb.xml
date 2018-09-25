@@ -30,7 +30,7 @@
 								<property name="semaphoreLockKey" value="migration2" />
 								<property name="semaphoreMaxLockCount" value="20" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
-								<property name="queueName" ref="stackConfiguration.queueName[MIGRATION]"/>
+								<property name="queueName" value="#{stackConfiguration.getQueueName('MIGRATION')}"/>
 								<property name="useProgressHeartbeat" value="true"/>
 							</bean>
 						</constructor-arg>

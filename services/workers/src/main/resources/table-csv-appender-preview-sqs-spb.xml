@@ -33,7 +33,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="60" />
 								<property name="queueName"
-									ref="stackConfiguration.queueName[UPLOAD_CSV_TO_TABLE_PREVIEW]" />
+									value="#{stackConfiguration.getQueueName('UPLOAD_CSV_TO_TABLE_PREVIEW')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

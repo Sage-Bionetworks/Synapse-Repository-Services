@@ -313,33 +313,12 @@ public interface StackConfiguration {
 	public String getQueueName(String baseName);
 
 	/**
-	 * The name of the async queue
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getQueueName();
-
-	/**
-	 * The name of the AWS topic where repository changes messages are published.
-	 * 
-	 * @return
-	 */
-	public String getRepositoryChangeTopicPrefix();
-
-	/**
 	 * Get the full topic name for a given object type.
 	 * 
 	 * @param objectType
 	 * @return
 	 */
 	public String getRepositoryChangeTopic(String objectType);
-
-	/**
-	 * Create the map used by spring to lookup full strings with keys.
-	 * 
-	 * @return
-	 */
-	public Map<String, String> getRepositoryChangeTopic();
 
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
