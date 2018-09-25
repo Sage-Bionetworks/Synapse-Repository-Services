@@ -106,7 +106,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		testUserInfo = userManager.createTestUser(adminUserInfo, nu, cred, tou);
+		testUserInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
 		
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();

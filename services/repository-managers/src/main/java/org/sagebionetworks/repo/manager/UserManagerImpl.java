@@ -61,7 +61,7 @@ public class UserManagerImpl implements UserManager {
 	/**
 	 * Testing purposes only
 	 * Do NOT use in non-test code
-	 * i.e. {@link #createTestUser(UserInfo, String, UserProfile, DBOCredential)}
+	 * i.e. {@link #createOrGetTestUser(UserInfo, String, UserProfile, DBOCredential)}
 	 */
 	@Autowired
 	private DBOBasicDao basicDAO;
@@ -144,36 +144,42 @@ public class UserManagerImpl implements UserManager {
 
 	@WriteTransaction
 	@Override
-	public UserInfo createTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException {
-		return createTestUser(adminUserInfo, user, credential, touAgreement, null);
+		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement, null);
 	}
 
 	@WriteTransaction
 	@Override
-	public UserInfo createTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
 		// Create the user
-		Long principalId = createUser(user);
-		
-		// Update the credentials
-		if (credential == null) {
-			credential = new DBOCredential();
-		}
-		credential.setPrincipalId(principalId);
-		credential.setSecretKey(HMACUtils.newHMACSHA1Key());
-		basicDAO.update(credential);
-		
-		if (touAgreement != null) {
-			touAgreement.setPrincipalId(principalId);
-			basicDAO.createOrUpdate(touAgreement);
-		}
-		if (token != null) {
-			token.setPrincipalId(principalId);
-			basicDAO.createOrUpdate(token);
+		Long principalId;
+		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(user.getUserName());
+		if (alias==null) {
+			principalId = createUser(user);
+
+			// Update the credentials
+			if (credential == null) {
+				credential = new DBOCredential();
+			}
+			credential.setPrincipalId(principalId);
+			credential.setSecretKey(HMACUtils.newHMACSHA1Key());
+			basicDAO.update(credential);
+
+			if (touAgreement != null) {
+				touAgreement.setPrincipalId(principalId);
+				basicDAO.createOrUpdate(touAgreement);
+			}
+			if (token != null) {
+				token.setPrincipalId(principalId);
+				basicDAO.createOrUpdate(token);
+			}
+		} else {
+			principalId = alias.getPrincipalId();
 		}
 		return getUserInfo(principalId);
 	}

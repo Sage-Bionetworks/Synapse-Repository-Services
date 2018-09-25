@@ -188,15 +188,16 @@ public class AdministrationController extends BaseController {
 	}
 
 	/**
-	 * Creates a user with specific state to be used for integration testing
+	 * Creates a user with specific state to be used for integration testing.
+	 * If the user already exists, just returns the existing one.
 	 */
 	@RequestMapping(value = {UrlHelpers.ADMIN_USER}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody EntityId createIntegrationTestUser(
+	public @ResponseBody EntityId createOrGetIntegrationTestUser(
 			@RequestBody NewIntegrationTestUser userSpecs,
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
 	        		throws NotFoundException {
-		return serviceProvider.getAdministrationService().createTestUser(userId, userSpecs);
+		return serviceProvider.getAdministrationService().createOrGetTestUser(userId, userSpecs);
 	}
 
 	/**
