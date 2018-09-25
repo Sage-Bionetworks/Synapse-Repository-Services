@@ -1305,6 +1305,7 @@ public class NodeDAOImplTest {
 		Node parent = privateCreateNew("parent");
 		parent.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(parent);
+		parent = nodeDao.getNode(parentId);
 		Long parentBenefactor = KeyFactory.stringToKey(parentId);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -1353,6 +1354,10 @@ public class NodeDAOImplTest {
 		assertEquals("1", header.getVersionLabel());
 		assertEquals(new Long(1), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
+		assertEquals(parent.getCreatedByPrincipalId().toString(), header.getCreatedBy());
+		assertEquals(parent.getCreatedOn(), header.getCreatedOn());
+		assertEquals(parent.getModifiedByPrincipalId().toString(), header.getModifiedBy());
+		assertEquals(parent.getModifiedOn(), header.getModifiedOn());
 		
 		header = results.get(2);
 		assertEquals(childId, header.getId());
@@ -1485,6 +1490,10 @@ public class NodeDAOImplTest {
 			array[i].setVersionLabel(null);
 			array[i].setVersionNumber(null);
 			array[i].setBenefactorId(null);
+			array[i].setCreatedBy(null);
+			array[i].setCreatedOn(null);
+			array[i].setModifiedBy(null);
+			array[i].setModifiedOn(null);
 		}
 		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
 		assertNotNull(path);
@@ -1979,6 +1988,7 @@ public class NodeDAOImplTest {
 		final String node1Label1 = "1";
 		node1.setVersionLabel(node1Label1);
 		final String id1 = nodeDao.createNew(node1);
+		node1 = nodeDao.getNode(id1);
 		assertNotNull(id1);
 		toDelete.add(id1);
 		node1.setId(id1);
@@ -1990,6 +2000,10 @@ public class NodeDAOImplTest {
 		assertNotNull(results.get(0).getBenefactorId());
 		assertEquals(Long.valueOf(1L), results.get(0).getVersionNumber());
 		assertEquals(node1Label1, results.get(0).getVersionLabel());
+		assertEquals(node1.getCreatedByPrincipalId().toString(), results.get(0).getCreatedBy());
+		assertEquals(node1.getCreatedOn(), results.get(0).getCreatedOn());
+		assertEquals(node1.getModifiedByPrincipalId().toString(), results.get(0).getModifiedBy());
+		assertEquals(node1.getModifiedOn(), results.get(0).getModifiedOn());
 
 		// Create a new version of the node of the same file
 		final String node1Label2 = "Node 1 version label 2";
@@ -2968,6 +2982,10 @@ public class NodeDAOImplTest {
 		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.folder), header.getType());
 		assertEquals(folder2.getVersionLabel(), header.getVersionLabel());
 		assertEquals(folder2.getVersionNumber(), header.getVersionNumber());
+		assertEquals(folder2.getCreatedByPrincipalId().toString(), header.getCreatedBy());
+		assertEquals(folder2.getCreatedOn(), header.getCreatedOn());
+		assertEquals(folder2.getModifiedByPrincipalId().toString(), header.getModifiedBy());
+		assertEquals(folder2.getModifiedOn(), header.getModifiedOn());
 		String benefactorId = nodeDao.getBenefactor(header.getId());
 		Long benefactorLong = KeyFactory.stringToKey(benefactorId);
 		assertEquals(benefactorLong, header.getBenefactorId());

@@ -220,7 +220,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " FROM "+TABLE_NODE+" N"
 			+ " WHERE N."+COL_NODE_ID+" IN (:"+BIND_NODE_IDS+")";
 	
-	private static final String ENTITY_HEADER_SELECT = "SELECT N."+COL_NODE_ID+", R."+COL_REVISION_LABEL+", N."+COL_NODE_NAME+", N."+COL_NODE_TYPE+", "+SQL_SELECT_BENEFACTOR_N+", R."+COL_REVISION_NUMBER;
+	private static final String ENTITY_HEADER_SELECT = "SELECT N." + COL_NODE_ID + ", R." + COL_REVISION_LABEL + ", N."
+			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", " + SQL_SELECT_BENEFACTOR_N + ", R." + COL_REVISION_NUMBER
+			+ ", N." + COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", R." + COL_REVISION_MODIFIED_BY + ", R."
+			+ COL_REVISION_MODIFIED_ON;
 	
 	private static final String SQL_SELECT_CHIDREN_TEMPLATE =
 			ENTITY_HEADER_SELECT+
@@ -355,6 +358,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
+			header.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
+			header.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
+			header.setModifiedBy(rs.getString(COL_REVISION_MODIFIED_BY));
+			header.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
 			return header;
 		}
 	};
