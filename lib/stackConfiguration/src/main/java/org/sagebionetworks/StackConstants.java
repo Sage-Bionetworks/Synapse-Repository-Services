@@ -27,7 +27,7 @@ public class StackConstants {
 	public static final String STACK_AND_INSTANCE = "%1$s-%2$s";
 
 	/**
-	 * Template used the name of the AWS SNS topics and SQS Queues
+	 * Template used to generate the name of the AWS SNS topics and SQS Queues
 	 */
 	public static final String QUEUE_AND_TOPIC_NAME_TEMPLATE = "%1$s-%2$s-%3$s";
 
