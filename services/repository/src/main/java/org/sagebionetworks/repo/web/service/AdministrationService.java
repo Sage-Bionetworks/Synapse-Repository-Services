@@ -107,7 +107,7 @@ public interface AdministrationService {
 	/**
 	 * Creates a test user
 	 */
-	public EntityId createTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
+	public EntityId createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
 
 	/**
 	 * Deletes a user, iff all FK constraints are met

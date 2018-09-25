@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -115,15 +118,37 @@ public class UserManagerImplUnitTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString()+"@testing.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userManager.createTestUser(admin, nu, null, null);
+		userManager.createOrGetTestUser(admin, nu, null, null);
 		verify(notificationEmailDao).create((PrincipalAlias)any());
 		
 		// Call with a non admin
 		try {
-			userManager.createTestUser(notAdmin, null, null, null);
+			userManager.createOrGetTestUser(notAdmin, null, null, null);
 			fail();
 		} catch (UnauthorizedException e) { }
 		
+	}
+	
+	@Test
+	public void testGetUserAdmin() throws Exception {
+		long principalId=1111L;
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setPrincipalId(principalId);
+		// Call with an admin
+		NewUser nu = new NewUser();
+		String username = UUID.randomUUID().toString();
+		String email = UUID.randomUUID().toString()+"@testing.com";
+		nu.setUserName(username);
+		nu.setEmail(email);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(username)).thenReturn(alias);
+		
+		// method under test
+		UserInfo userInfo = userManager.createOrGetTestUser(admin, nu, null, null);
+		// we get back the principal ID for the existing user
+		assertEquals(principalId, userInfo.getId().longValue());
+		
+		// check that a new user was never created
+		verify(mockUserGroupDAO, never()).create(any());
 	}
 	
 	@Test
