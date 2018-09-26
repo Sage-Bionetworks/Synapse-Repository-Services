@@ -2,6 +2,7 @@ package org.sagebionetworks.file.worker;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -174,18 +176,6 @@ public class BulkFileDownloadWorkerTest {
 		resultHandle.setId("1111");
 		when(mockBulkDownloadManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(resultHandle);
 		when(mockAsynchJobStatusManager.lookupJobStatus(jobStatus.getJobId())).thenReturn(jobStatus);
-	}
-
-	@Test
-	public void testCreateZipEntryName() {
-		assertEquals("321/321321/foo.txt",
-				BulkFileDownloadWorker.createZipEntryName("foo.txt", 321321));
-	}
-
-	@Test
-	public void testCreateZipEntrySmall() {
-		assertEquals("1/1/foo.txt",
-				BulkFileDownloadWorker.createZipEntryName("foo.txt", 1L));
 	}
 
 	@Test
@@ -538,6 +528,31 @@ public class BulkFileDownloadWorkerTest {
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobStatus.getJobId(),
 				exception);
+	}
+	
+	@Test
+	public void testCreateZipEntryNameProviderCommandLine() {
+		ZipFileFormat format = ZipFileFormat.CommandLineCache;
+		ZipEntryNameProvider provider = BulkFileDownloadWorker.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
+	}
+	
+	@Test
+	public void testCreateZipEntryNameProviderFlat() {
+		ZipFileFormat format = ZipFileFormat.Flat;
+		ZipEntryNameProvider provider = BulkFileDownloadWorker.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof FlatZipEntryNameProvider);
+	}
+	
+	@Test
+	public void testCreateZipEntryNameProviderDefault() {
+		// when null the default should be used.
+		ZipFileFormat format = null;
+		ZipEntryNameProvider provider = BulkFileDownloadWorker.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
 	}
 	
 	/**
