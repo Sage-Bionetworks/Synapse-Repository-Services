@@ -185,7 +185,8 @@ public class BulkFileDownloadWorkerIntegrationTest {
 			// Read the first entry
 			ZipEntry entry = zipIn.getNextEntry();
 			assertNotNull(entry);
-			String entryName = BulkFileDownloadWorker.createZipEntryName(fileHandleOne.getFileName(), Long.parseLong(fileHandleOne.getId()));
+			CommandLineCacheZipEntryNameProvider nameProvider = new CommandLineCacheZipEntryNameProvider();
+			String entryName = nameProvider.createZipEntryName(fileHandleOne.getFileName(), Long.parseLong(fileHandleOne.getId()));
 			assertEquals(entryName, entry.getName());
 			// does the file contents match?
 			assertEquals(fileOneContents, IOUtils.toString(zipIn));
@@ -193,7 +194,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 			// next entry
 			entry = zipIn.getNextEntry();
 			assertNotNull(entry);
-			entryName = BulkFileDownloadWorker.createZipEntryName(fileHandleTwo.getFileName(), Long.parseLong(fileHandleTwo.getId()));
+			entryName = nameProvider.createZipEntryName(fileHandleTwo.getFileName(), Long.parseLong(fileHandleTwo.getId()));
 			assertEquals(entryName, entry.getName());
 			// does the file contents match?
 			assertEquals(fileTwoContents, IOUtils.toString(zipIn));

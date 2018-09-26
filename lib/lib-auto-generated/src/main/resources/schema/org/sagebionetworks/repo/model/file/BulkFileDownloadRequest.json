@@ -16,6 +16,10 @@
 		"zipFileName": {
 			"type": "string",
 			"description": "Optional parameter to set the name of the resulting zip file."
+		},
+		"zipFileFormat": {
+			"$ref": "org.sagebionetworks.repo.model.file.ZipFileFormat",
+			"description": "Optional parameter to set the zip file format.  If null then 'CommandLineCache' format will be used."
 		}
 	}
 }

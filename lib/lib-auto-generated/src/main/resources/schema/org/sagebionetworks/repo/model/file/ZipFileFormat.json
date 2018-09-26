@@ -1,0 +1,14 @@
+{
+    "description": "Enumeration of all possible zip file formats produced by bulk file download worker.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "CommandLineCache",
+            "description": "This is the default format.  Zip file format structure is: (<filehandle_id>%1000)/<filehandle_id>/<file_name>"
+        },
+        {
+            "name": "Flat",
+            "description": "Files are writtent to the zip 'flat' with no directory structure. Each file is named after the original file.  Duplicate file names are appended with a number in parenthesis to ensure all names are unique."
+        }
+    ]
+}
