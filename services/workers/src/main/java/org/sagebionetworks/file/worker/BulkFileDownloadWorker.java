@@ -263,17 +263,17 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	 * @return
 	 */
 	static ZipEntryNameProvider createZipEntryNameProvider(ZipFileFormat format) {
-		if(format == null) {
+		if (format == null) {
 			// for backwards compatibility default to CommandLineCache
 			format = ZipFileFormat.CommandLineCache;
 		}
-		switch(format) {
+		switch (format) {
 		case CommandLineCache:
 			return new CommandLineCacheZipEntryNameProvider();
 		case Flat:
 			return new FlatZipEntryNameProvider();
-			default:
-				throw new IllegalArgumentException("Unknown type: "+format);
+		default:
+			throw new IllegalArgumentException("Unknown type: " + format);
 		}
 	}
 
