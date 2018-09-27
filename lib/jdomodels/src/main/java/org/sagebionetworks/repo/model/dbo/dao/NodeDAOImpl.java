@@ -88,6 +88,8 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.ParentStatsRequest;
+import org.sagebionetworks.repo.model.file.ParentStatsResponse;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -235,6 +237,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						" AND N."+COL_NODE_TYPE+" IN (:"+BIND_NODE_TYPES+")"+
 						" ORDER BY %2$s %3$s"+
 						" LIMIT :"+BIND_LIMIT+" OFFSET :"+BIND_OFFSET;
+	
+	private static final String SQL_SELECT_CHIDREN_STATS =
+			"SELECT COUNT(*), SUM(F."+COL_FILES_CONTENT_SIZE+")"+
+				" FROM "+TABLE_NODE+" N"+
+				" JOIN "+TABLE_REVISION+" R"+
+					" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
+				" LEFT JOIN "+TABLE_FILES+" F"+
+					" ON (R."+COL_REVISION_FILE_HANDLE_ID+" = F."+COL_FILES_ID+")"+
+				" WHERE N."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
+						" %1$s"+
+						" AND N."+COL_NODE_TYPE+" IN (:"+BIND_NODE_TYPES+")";
 	
 	public static final String N_NAME = "N."+COL_NODE_NAME;
 	public static final String N_CREATED_ON = "N."+COL_NODE_CREATED_ON;
@@ -1588,6 +1601,45 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				getFragmentSortColumn(sortBy),
 				sortDirection.name());
 		return namedParameterJdbcTemplate.query(sql,parameters,ENTITY_HEADER_ROWMAPPER);
+	}
+	
+	@Override
+	public ParentStatsResponse getChildernStats(ParentStatsRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getParentId(), "parentId");
+		ValidateArgument.required(request.getIncludeTypes(), "includeTypes");
+		ValidateArgument.requirement(!request.getIncludeTypes().isEmpty(),
+				"Must have at least one type for includeTypes");
+		// null defaults to false
+		final boolean includeCount = request.getIncludeTotalChildCount() != null ? request.getIncludeTotalChildCount()
+				: false;
+		// null defaults to false
+		final boolean includeSumSizes = request.getIncludeSumFileSizes() != null ? request.getIncludeSumFileSizes()
+				: false;
+		// nothing to do if both are false
+		if (!includeCount && !includeSumSizes) {
+			return new ParentStatsResponse();
+		}
+		Map<String, Object> parameters = new HashMap<String, Object>(1);
+		parameters.put(BIND_PARENT_ID, KeyFactory.stringToKey(request.getParentId()));
+		parameters.put(BIND_NODE_TYPES, getTypeNames(request.getIncludeTypes()));
+		parameters.put(BIND_NODE_IDS, request.getChildIdsToExclude());
+		// build the SQL from the template
+		String sql = String.format(SQL_SELECT_CHIDREN_STATS, getFragmentExcludeNodeIds(request.getChildIdsToExclude()));
+		return namedParameterJdbcTemplate.queryForObject(sql, parameters, new RowMapper<ParentStatsResponse>() {
+
+			@Override
+			public ParentStatsResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ParentStatsResponse response = new ParentStatsResponse();
+				if (includeCount) {
+					response.withTotalChildCount(rs.getLong(1));
+				}
+				if (includeSumSizes) {
+					response.withSumFileSizesBytes(rs.getLong(2));
+				}
+				return response;
+			}
+		});
 	}
 	
 	/**

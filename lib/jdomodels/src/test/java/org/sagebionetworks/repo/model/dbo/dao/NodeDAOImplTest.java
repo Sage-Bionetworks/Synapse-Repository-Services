@@ -30,7 +30,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -72,10 +71,11 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.ParentStatsRequest;
+import org.sagebionetworks.repo.model.file.ParentStatsResponse;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -87,11 +87,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.UnexpectedRollbackException;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Lists;
@@ -2989,6 +2986,97 @@ public class NodeDAOImplTest {
 		String benefactorId = nodeDao.getBenefactor(header.getId());
 		Long benefactorLong = KeyFactory.stringToKey(benefactorId);
 		assertEquals(benefactorLong, header.getBenefactorId());
+	}
+	
+	@Test
+	public void testGetChildrenStats() {
+		List<Node> nodes = createHierarchy();
+
+		Node project = nodes.get(0);
+		Node folder2 = nodes.get(2);
+		Node fileZero = nodes.get(3);
+
+		String parentId = project.getId();
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		// exclude folder 2.
+		Set<Long> childIdsToExclude = Sets.newHashSet(KeyFactory.stringToKey(folder2.getId()), 111L);
+		// call under test
+		ParentStatsResponse results = nodeDao.getChildernStats(new ParentStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(2), results.getTotalChildCount());
+		assertEquals(new Long(TEST_FILE_SIZE), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsNoResults() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ParentStatsResponse results = nodeDao.getChildernStats(new ParentStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsNothingToExclude() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = new HashSet<>();
+		// call under test
+		ParentStatsResponse results = nodeDao.getChildernStats(new ParentStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedNull() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ParentStatsResponse results = nodeDao.getChildernStats(new ParentStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(null).withIncludeSumFileSizes(null));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedFalse() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ParentStatsResponse results = nodeDao.getChildernStats(new ParentStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(false));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountFalseIncludeSumNull() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ParentStatsResponse results = nodeDao.getChildernStats(new ParentStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(null));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
 	}
 	
 	@Test
