@@ -9,8 +9,8 @@ import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.ParentStatsRequest;
-import org.sagebionetworks.repo.model.file.ParentStatsResponse;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -467,7 +467,7 @@ public interface NodeDAO {
 	 * @param request
 	 * @return
 	 */
-	ParentStatsResponse getChildernStats(ParentStatsRequest request);
+	ChildStatsResponse getChildernStats(ChildStatsRequest request);
 
 	/**
 	 * Count the number of children in this container.

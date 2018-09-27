@@ -88,8 +88,8 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.ParentStatsRequest;
-import org.sagebionetworks.repo.model.file.ParentStatsResponse;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -1604,7 +1604,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public ParentStatsResponse getChildernStats(ParentStatsRequest request) {
+	public ChildStatsResponse getChildernStats(ChildStatsRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getParentId(), "parentId");
 		ValidateArgument.required(request.getIncludeTypes(), "includeTypes");
@@ -1618,7 +1618,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				: false;
 		// nothing to do if both are false
 		if (!includeCount && !includeSumSizes) {
-			return new ParentStatsResponse();
+			return new ChildStatsResponse();
 		}
 		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(BIND_PARENT_ID, KeyFactory.stringToKey(request.getParentId()));
@@ -1626,11 +1626,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		parameters.put(BIND_NODE_IDS, request.getChildIdsToExclude());
 		// build the SQL from the template
 		String sql = String.format(SQL_SELECT_CHIDREN_STATS, getFragmentExcludeNodeIds(request.getChildIdsToExclude()));
-		return namedParameterJdbcTemplate.queryForObject(sql, parameters, new RowMapper<ParentStatsResponse>() {
+		return namedParameterJdbcTemplate.queryForObject(sql, parameters, new RowMapper<ChildStatsResponse>() {
 
 			@Override
-			public ParentStatsResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ParentStatsResponse response = new ParentStatsResponse();
+			public ChildStatsResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ChildStatsResponse response = new ChildStatsResponse();
 				if (includeCount) {
 					response.withTotalChildCount(rs.getLong(1));
 				}

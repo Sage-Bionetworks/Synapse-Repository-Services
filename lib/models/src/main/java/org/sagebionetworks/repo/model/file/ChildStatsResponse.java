@@ -4,7 +4,7 @@ package org.sagebionetworks.repo.model.file;
  * Response to get statistics for a parentId and types.
  *
  */
-public class ParentStatsResponse {
+public class ChildStatsResponse {
 	
 	private Long totalChildCount;
 	private Long sumFileSizesBytes;
@@ -17,12 +17,12 @@ public class ParentStatsResponse {
 		return sumFileSizesBytes;
 	}
 
-	public ParentStatsResponse withTotalChildCount(Long totalChildCount) {
+	public ChildStatsResponse withTotalChildCount(Long totalChildCount) {
 		this.totalChildCount = totalChildCount;
 		return this;
 	}
 
-	public ParentStatsResponse withSumFileSizesBytes(Long sumFileSizesBytes) {
+	public ChildStatsResponse withSumFileSizesBytes(Long sumFileSizesBytes) {
 		this.sumFileSizesBytes = sumFileSizesBytes;
 		return this;
 	}
@@ -44,7 +44,7 @@ public class ParentStatsResponse {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ParentStatsResponse other = (ParentStatsResponse) obj;
+		ChildStatsResponse other = (ChildStatsResponse) obj;
 		if (sumFileSizesBytes == null) {
 			if (other.sumFileSizesBytes != null)
 				return false;

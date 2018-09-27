@@ -35,6 +35,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -603,9 +605,17 @@ public class EntityManagerImpl implements EntityManager {
 				request.getParentId(), request.getIncludeTypes(),
 				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimitForQuery(),
 				nextPage.getOffset());
+		// Gather count and size sum if requested.
+		ChildStatsResponse stats = nodeManager
+				.getChildrenStats(new ChildStatsRequest().withParentId(request.getParentId())
+						.withIncludeTypes(request.getIncludeTypes()).withChildIdsToExclude(childIdsToExclude)
+						.withIncludeTotalChildCount(request.getIncludeTotalChildCount())
+						.withIncludeSumFileSizes(request.getIncludeSumFileSizes()));
 		EntityChildrenResponse response = new EntityChildrenResponse();
 		response.setPage(page);
 		response.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(page));
+		response.setTotalChildCount(stats.getTotalChildCount());
+		response.setSumFileSizesBytes(stats.getSumFileSizesBytes());
 		return response;
 	}
 
