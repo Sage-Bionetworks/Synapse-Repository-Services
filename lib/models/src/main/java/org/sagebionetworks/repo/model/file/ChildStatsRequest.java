@@ -3,13 +3,15 @@ package org.sagebionetworks.repo.model.file;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Request for statistics for a given parent object.
  *
  */
-public class ParentStatsRequest {
+public class ChildStatsRequest {
 
 	private String parentId;
 	private List<EntityType> includeTypes;
@@ -32,7 +34,7 @@ public class ParentStatsRequest {
 	 * @param parentId
 	 * @return
 	 */
-	public ParentStatsRequest withParentId(String parentId) {
+	public ChildStatsRequest withParentId(String parentId) {
 		this.parentId = parentId;
 		return this;
 	}
@@ -52,7 +54,7 @@ public class ParentStatsRequest {
 	 * @param includeTypes
 	 * @return
 	 */
-	public ParentStatsRequest withIncludeTypes(List<EntityType> includeTypes) {
+	public ChildStatsRequest withIncludeTypes(List<EntityType> includeTypes) {
 		this.includeTypes = includeTypes;
 		return this;
 	}
@@ -72,7 +74,7 @@ public class ParentStatsRequest {
 	 * @param childIdsToExclude
 	 * @return
 	 */
-	public ParentStatsRequest withChildIdsToExclude(Set<Long> childIdsToExclude) {
+	public ChildStatsRequest withChildIdsToExclude(Set<Long> childIdsToExclude) {
 		this.childIdsToExclude = childIdsToExclude;
 		return this;
 	}
@@ -92,7 +94,7 @@ public class ParentStatsRequest {
 	 * @param includeTotalChildCount
 	 * @return
 	 */
-	public ParentStatsRequest withIncludeTotalChildCount(Boolean includeTotalChildCount) {
+	public ChildStatsRequest withIncludeTotalChildCount(Boolean includeTotalChildCount) {
 		this.includeTotalChildCount = includeTotalChildCount;
 		return this;
 	}
@@ -112,7 +114,7 @@ public class ParentStatsRequest {
 	 * @param includeSumFileSizes
 	 * @return
 	 */
-	public ParentStatsRequest withIncludeSumFileSizes(Boolean includeSumFileSizes) {
+	public ChildStatsRequest withIncludeSumFileSizes(Boolean includeSumFileSizes) {
 		this.includeSumFileSizes = includeSumFileSizes;
 		return this;
 	}
@@ -137,7 +139,7 @@ public class ParentStatsRequest {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ParentStatsRequest other = (ParentStatsRequest) obj;
+		ChildStatsRequest other = (ChildStatsRequest) obj;
 		if (childIdsToExclude == null) {
 			if (other.childIdsToExclude != null)
 				return false;
