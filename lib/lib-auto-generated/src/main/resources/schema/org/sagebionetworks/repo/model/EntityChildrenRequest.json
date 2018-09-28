@@ -1,50 +1,60 @@
 {
-    "description": "Request for EntityHeaders of the children of a given parent Entity",
-    "properties": {
-        "parentId": {
-            "type": "string",
-            "description": "The ID of the parent.  Set to null to list projects."
-        },
-        "nextPageToken": {
-            "type": "string",
-            "description": "Optional parameter used to fetch the next page of results.  When NULL, the first page will be returned.  The nextPageToken is provided with the results if there is another page of results."
-        },
-        "includeTypes": {
-            "type": "array",
-            "description": "The types of children to be include. Must include at least one type.",
-            "items": {"$ref": "org.sagebionetworks.repo.model.EntityType"}
-        },
-        "sortBy": {
-            "type": "string",
-            "description": "How results should be sorted.",
-            "name": "SortBy",
-            "id": "org.sagebionetworks.repo.model.entity.SortBy",
-            "enum": [
-                {
-                    "name": "NAME",
-                    "description": "TODO: Auto-generated description"
-                },
-                {
-                    "name": "CREATED_ON",
-                    "description": "TODO: Auto-generated description"
-                }
-            ]
-        },
-        "sortDirection": {
-            "type": "string",
-            "description": "The direction of the result sort.",
-            "name": "Direction",
-            "id": "org.sagebionetworks.repo.model.entity.Direction",
-            "enum": [
-                {
-                    "name": "ASC",
-                    "description": "TODO: Auto-generated description"
-                },
-                {
-                    "name": "DESC",
-                    "description": "TODO: Auto-generated description"
-                }
-            ]
-        }
-    }
+	"description": "Request for EntityHeaders of the children of a given parent Entity",
+	"properties": {
+		"parentId": {
+			"type": "string",
+			"description": "The ID of the parent.  Set to null to list projects."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Optional parameter used to fetch the next page of results.  When NULL, the first page will be returned.  The nextPageToken is provided with the results if there is another page of results."
+		},
+		"includeTypes": {
+			"type": "array",
+			"description": "The types of children to be include. Must include at least one type.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.EntityType"
+			}
+		},
+		"sortBy": {
+			"type": "string",
+			"description": "How results should be sorted.",
+			"name": "SortBy",
+			"id": "org.sagebionetworks.repo.model.entity.SortBy",
+			"enum": [
+				{
+					"name": "NAME",
+					"description": "TODO: Auto-generated description"
+				},
+				{
+					"name": "CREATED_ON",
+					"description": "TODO: Auto-generated description"
+				}
+			]
+		},
+		"sortDirection": {
+			"type": "string",
+			"description": "The direction of the result sort.",
+			"name": "Direction",
+			"id": "org.sagebionetworks.repo.model.entity.Direction",
+			"enum": [
+				{
+					"name": "ASC",
+					"description": "TODO: Auto-generated description"
+				},
+				{
+					"name": "DESC",
+					"description": "TODO: Auto-generated description"
+				}
+			]
+		},
+		"includeTotalChildCount": {
+			"type": "boolean",
+			"description": "When true, the total number of children with the given parentId and types will be included.  False by default"
+		},
+		"includeSumFileSizes": {
+			"type": "boolean",
+			"description": "When true, the sum of the files sizes (bytes) with the given parentId and types will be included.  False by default"
+		}
+	}
 }

@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -458,6 +460,14 @@ public interface NodeDAO {
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
 			SortBy sortBy, Direction sortDirection, long limit, long offset);
+	
+	/**
+	 * Get the statistics about the given parentID and types.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	ChildStatsResponse getChildernStats(ChildStatsRequest request);
 
 	/**
 	 * Count the number of children in this container.
@@ -520,4 +530,6 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String touch(Long userId, String nodeId, ChangeType changeType);
+
+
 }
