@@ -12,30 +12,11 @@ import org.sagebionetworks.common.util.PathNormalizer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 public class HttpRequestIdentifierUtils {
-
-	public static final String SESSION_ID_COOKIE_NAME = "sessionId";
-
-	public static final String SESSION_HEADER_NAME = "sessionId"; //TODO: change??
+	public static final String SESSION_HEADER_NAME = "sessionId";
 
 	public static String getSessionId(HttpServletRequest request){
-		//TODO: if this starts getting more complex we will need a session id provider chain
-		//first check http headers
-		String idFromHeader = request.getHeader(SESSION_HEADER_NAME);
-
-		if(idFromHeader != null ){
-			return idFromHeader;
-		}
-
-		//then check cookies
-		if (request.getCookies() == null){
-			return null;
-		}
-		for(Cookie cookie : request.getCookies()){
-			if (SESSION_ID_COOKIE_NAME.equals(cookie.getName())){
-				return cookie.getValue();
-			}
-		}
-		return null;
+		//check http headers
+		return request.getHeader(SESSION_HEADER_NAME);
 	}
 
 	public static String generateSessionId(){

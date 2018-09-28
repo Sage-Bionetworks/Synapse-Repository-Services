@@ -14,8 +14,6 @@ public class HttpRequestIdentifierUtilsTest {
 	MockHttpServletRequest request;
 
 	private final String sessionId = "SESSION ID";
-	private final Cookie irrelevantCookie = new Cookie("IrrelevantCookie", "IrrlevantValue");
-	private final Cookie sessionIdCookie = new Cookie(HttpRequestIdentifierUtils.SESSION_ID_COOKIE_NAME, sessionId);
 	private Long userId = 123L;
 	private String ipAddress = "192.168.1.1";
 	private String requestPath = "/pathy/mcPathFace";
@@ -33,30 +31,14 @@ public class HttpRequestIdentifierUtilsTest {
 	}
 
 	@Test
-	public void testGetSessionId_NullCookies(){
-		request.setCookies(null);
-
-		assertNull(HttpRequestIdentifierUtils.getSessionId(request));
-	}
-
-	@Test
-	public void testGetSessionId_SessionCookieFoundFromCookies(){
-		request.setCookies(irrelevantCookie,sessionIdCookie);
-
-		assertEquals(sessionId, HttpRequestIdentifierUtils.getSessionId(request));
-	}
-
-	@Test
-	public void testGetSessionId_SessionCookieNotFound(){
-		request.setCookies(irrelevantCookie);
-
+	public void testGetSessionId_HeaderNotExist(){
 		assertNull(HttpRequestIdentifierUtils.getSessionId(request));
 	}
 
 	@Test
 	public void testGetRequestIdentifier(){
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
-		request.setCookies(sessionIdCookie);
+		request.addHeader(HttpRequestIdentifierUtils.SESSION_HEADER_NAME, sessionId);
 		request.setRequestURI(requestPath);
 		request.setRemoteAddr(ipAddress);
 

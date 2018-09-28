@@ -75,7 +75,6 @@ public class BaseClientImpl implements BaseClient {
 	private static final String SESSION_ID_HEADER = "sessionId";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
-	private static final String SESSION_ID_COOKIE = "sessionID";
 
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 
