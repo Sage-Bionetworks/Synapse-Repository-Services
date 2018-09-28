@@ -6,6 +6,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.SessionId;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.BaseController;
@@ -280,6 +282,20 @@ public class AuthenticationController extends BaseController {
 			) throws Exception {
 		OAuthProvider providerEnum = OAuthProvider.valueOf(provider);
 		authenticationService.unbindExternalID(userId, providerEnum, alias);
+	}
+
+	/**
+	 * Retrieve a sessionId that is used to identify/group your requests on a single machine.
+	 * Pass this value back to Synapse by setting the "sessionId" HTTP Header.
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SESSION_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	SessionId getSessionId(){
+		SessionId sessionId = new SessionId();
+		sessionId.setSessionId(HttpRequestIdentifierUtils.generateSessionId());
+		return sessionId;
 	}
 
 }
