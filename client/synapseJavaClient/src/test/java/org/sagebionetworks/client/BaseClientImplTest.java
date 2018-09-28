@@ -836,7 +836,7 @@ public class BaseClientImplTest {
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
 		SimpleHttpRequest capturedRequest = captor.getValue();
-		assertEquals("https://repo-prod.prod.sagebase.org/repo/v1/sessionId", capturedRequest.getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/sessionId", capturedRequest.getUri());
 	}
 
 	@Test (expected = IllegalArgumentException.class)

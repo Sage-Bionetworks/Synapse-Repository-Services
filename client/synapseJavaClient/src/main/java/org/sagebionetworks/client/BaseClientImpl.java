@@ -275,7 +275,7 @@ public class BaseClientImpl implements BaseClient {
 			return storedSessionId;
 		}
 
-		SessionId response = getJSONEntity(repoEndpoint, "/sessionId", SessionId.class);
+		SessionId response = getJSONEntity(authEndpoint, "/sessionId", SessionId.class);
 		setSessionId(response.getSessionId());
 		return response.getSessionId();
 	}
