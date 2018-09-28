@@ -50,11 +50,11 @@
 		},
 		"includeTotalChildCount": {
 			"type": "boolean",
-			"description": "When true, the total number of children with the given parentId and types will be include.  False by default"
+			"description": "When true, the total number of children with the given parentId and types will be included.  False by default"
 		},
 		"includeSumFileSizes": {
 			"type": "boolean",
-			"description": "When true, the sum of the files sizes (bytes) with the given parentId and types will be include.  False by default"
+			"description": "When true, the sum of the files sizes (bytes) with the given parentId and types will be included.  False by default"
 		}
 	}
 }
