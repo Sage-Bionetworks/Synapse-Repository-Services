@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.web.HttpRequestIdentifierUtils.SESSION_ID_COOKIE_NAME;
+import static org.sagebionetworks.repo.web.HttpRequestIdentifierUtils.SESSION_HEADER_NAME;
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTLED_HTTP_STATUS;
 import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler.MAX_REQUEST_FREQUENCY_LOCKS;
 import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
@@ -60,7 +60,7 @@ public class RequestThrottleFilterTest {
 		mockRequest.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		mockRequest.setRemoteAddr(ipAddress);
 		mockRequest.setRequestURI(path);
-		mockRequest.setCookies(new Cookie(SESSION_ID_COOKIE_NAME, sessionId));
+		mockRequest.addHeader(SESSION_HEADER_NAME, sessionId);
 
 		ReflectionTestUtils.setField(filter, "consumer", mockConsumer);
 	}
@@ -79,7 +79,7 @@ public class RequestThrottleFilterTest {
 	}
 
 	@Test
-	public void testAnonymousUser() throws Exception{ //TODO: remove once java client has a way to get session id from cookies
+	public void testAnonymousUser() throws Exception{ //TODO: remove once java client has a way to get session id
 		mockRequest.setParameter(AuthorizationConstants.USER_ID_PARAM, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 
 		//method under test
