@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
@@ -619,6 +619,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 				}
+				if(dto.getFileSizeBytes() != null) {
+					ps.setLong(parameterIndex++, dto.getFileSizeBytes());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+				}
 			}
 
 			@Override
@@ -687,6 +692,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					if(rs.wasNull()){
 						dto.setFileHandleId(null);
 					}
+					dto.setFileSizeBytes(rs.getLong(ENTITY_REPLICATION_COL_FILE_SIZE_BYTES));
+					if(rs.wasNull()){
+						dto.setFileSizeBytes(null);
+					}
+					
 					return dto;
 				}}, entityId);
 		} catch (DataAccessException e) {

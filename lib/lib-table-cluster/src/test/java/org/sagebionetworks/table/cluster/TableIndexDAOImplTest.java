@@ -1957,6 +1957,7 @@ public class TableIndexDAOImplTest {
 		entityDto.setModifiedOn(new Date());
 		if(EntityType.file.equals(type)){
 			entityDto.setFileHandleId(888L);
+			entityDto.setFileSizeBytes(999L);
 		}
 		List<AnnotationDTO> annos = new LinkedList<AnnotationDTO>();
 		for(int i=0; i<annotationCount; i++){
