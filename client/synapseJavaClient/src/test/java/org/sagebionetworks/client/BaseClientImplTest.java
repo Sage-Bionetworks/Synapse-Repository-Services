@@ -7,25 +7,30 @@ import static org.sagebionetworks.client.Method.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.http.HttpRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.SessionId;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
@@ -799,23 +804,39 @@ public class BaseClientImplTest {
 				.get(any(SimpleHttpRequest.class));
 	}
 
-	@Test
-	public void testSetSessionId(){
+	@Test (expected = IllegalArgumentException.class)
+	public void testSetSessionId_nullSessionId(){
 		//method under test
-		baseClient.setSessionId(sessionIdVal);
-
-		verify(mockClient).addCookie("repo-prod.prod.sagebase.org", "sessionID", sessionIdVal);
+		baseClient.setSessionId(null);
 	}
 
 	@Test
-	public void testGetSessionId(){
-		when(mockClient.getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID")).thenReturn(sessionIdVal);
+	public void testGetSessionId_alreadySet() throws SynapseException {
+		baseClient.setSessionId(sessionIdVal);
 
 		//method under test
 		String result = baseClient.getSessionId();
 
 		assertEquals(sessionIdVal, result);
-		verify(mockClient).getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID");
+		verifyZeroInteractions(mockClient);
+	}
+
+	@Test
+	public void testGetSessionId_notSet() throws IOException, SynapseException, JSONObjectAdapterException {
+		SessionId returnedSessionId = new SessionId();
+		returnedSessionId.setSessionId(sessionIdVal);
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getContent()).thenReturn(EntityFactory.createJSONObjectForEntity(returnedSessionId).toString());
+		when(mockResponse.getStatusCode()).thenReturn(200);
+
+		//method under test
+		String result = baseClient.getSessionId();
+
+		assertEquals(sessionIdVal, result);
+		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		verify(mockClient).get(captor.capture());
+		SimpleHttpRequest capturedRequest = captor.getValue();
+		assertEquals("https://repo-prod.prod.sagebase.org/repo/v1/sessionId", capturedRequest.getUri());
 	}
 
 	@Test (expected = IllegalArgumentException.class)

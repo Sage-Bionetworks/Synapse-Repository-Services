@@ -105,5 +105,5 @@ public interface BaseClient {
 	/**
 	 * Get the sessionId, which is used to identify a series of requests made by this client to the current repoEndpoint
 	 */
-	public String getSessionId();
+	public String getSessionId() throws SynapseException;
 }

@@ -38,6 +38,7 @@ import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.SessionId;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -71,6 +72,7 @@ public class BaseClientImpl implements BaseClient {
 	private static final String CONTENT_TYPE = "Content-Type";
 	private static final String ACCEPT = "Accept";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
+	private static final String SESSION_ID_HEADER = "sessionId";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
 	private static final String SESSION_ID_COOKIE = "sessionID";
@@ -261,13 +263,22 @@ public class BaseClientImpl implements BaseClient {
 
 	@Override
 	public void setSessionId(String sessionId){
-		simpleHttpClient.addCookie(this.repoEndpointBaseDomain, SESSION_ID_COOKIE, sessionId);
+		ValidateArgument.required(sessionId, "sessionId");
+
+		defaultGETDELETEHeaders.put(SESSION_ID_HEADER, sessionId);
+		defaultPOSTPUTHeaders.put(SESSION_ID_HEADER, sessionId);
 	}
 
-
 	@Override
-	public String getSessionId(){
-		return simpleHttpClient.getFirstCookieValue(this.repoEndpointBaseDomain, SESSION_ID_COOKIE);
+	public String getSessionId() throws SynapseException {
+		String storedSessionId = this.defaultPOSTPUTHeaders.get(SESSION_ID_HEADER);
+		if(storedSessionId != null){
+			return storedSessionId;
+		}
+
+		SessionId response = getJSONEntity(repoEndpoint, "/sessionId", SessionId.class);
+		setSessionId(response.getSessionId());
+		return response.getSessionId();
 	}
 
 	protected String getUserAgent() {

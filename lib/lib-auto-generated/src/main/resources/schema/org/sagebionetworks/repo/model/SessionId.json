@@ -1,0 +1,9 @@
+{
+	"description": "Information that identifies your current device's session",
+	"properties":{
+		"sessionId":{
+			"type":"string",
+			"description": "The id of the session. Include this in the \"sessiondId\" HTTP header in your subsequent requests."
+		}
+	}
+}

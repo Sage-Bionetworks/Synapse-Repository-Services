@@ -27,7 +27,7 @@ public class SessionIdCookieSetterFilter implements Filter {
 		String requestSessionId = HttpRequestIdentifierUtils.getSessionId((HttpServletRequest) request);
 		if (requestSessionId == null){
 			//add cookie to the response
-			Cookie sessionIdCookie = new Cookie(HttpRequestIdentifierUtils.SESSION_ID_COOKIE_NAME, UUID.randomUUID().toString());
+			Cookie sessionIdCookie = new Cookie(HttpRequestIdentifierUtils.SESSION_ID_COOKIE_NAME, HttpRequestIdentifierUtils.generateSessionId());
 			((HttpServletResponse) response).addCookie(sessionIdCookie);
 		}
 

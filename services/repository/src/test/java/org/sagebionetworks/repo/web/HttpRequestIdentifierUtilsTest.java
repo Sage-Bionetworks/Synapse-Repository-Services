@@ -26,6 +26,13 @@ public class HttpRequestIdentifierUtilsTest {
 	}
 
 	@Test
+	public void testGetSessionId_FromHeaders(){
+		request.addHeader(HttpRequestIdentifierUtils.SESSION_HEADER_NAME, sessionId);
+
+		assertEquals(sessionId, HttpRequestIdentifierUtils.getSessionId(request));
+	}
+
+	@Test
 	public void testGetSessionId_NullCookies(){
 		request.setCookies(null);
 
@@ -33,7 +40,7 @@ public class HttpRequestIdentifierUtilsTest {
 	}
 
 	@Test
-	public void testGetSessionId_SessionCookieFound(){
+	public void testGetSessionId_SessionCookieFoundFromCookies(){
 		request.setCookies(irrelevantCookie,sessionIdCookie);
 
 		assertEquals(sessionId, HttpRequestIdentifierUtils.getSessionId(request));
