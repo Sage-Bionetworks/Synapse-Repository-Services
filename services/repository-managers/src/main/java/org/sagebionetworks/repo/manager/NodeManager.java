@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -349,6 +351,15 @@ public interface NodeManager {
 	 */
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude, SortBy sortBy, Direction sortDirection, long limit, long offset);
+	
+	/**
+	 * Get the statistics for the given parentId and types.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public ChildStatsResponse getChildrenStats(ChildStatsRequest request);
+	
 
 	/**
 	 * Retrieve the entityId for a given parentId and entityName

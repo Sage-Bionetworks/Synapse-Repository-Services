@@ -25,8 +25,12 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -45,12 +49,14 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class EntityManagerImplUnitTest {
 
 	@Mock
@@ -61,7 +67,11 @@ public class EntityManagerImplUnitTest {
 	private NodeManager mockNodeManager;
 	@Mock
 	private UserInfo mockUser;
+	
+	@Captor
+	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
 
+	@InjectMocks
 	private EntityManagerImpl entityManager;
 	Long userId = 007L;
 	
@@ -69,14 +79,10 @@ public class EntityManagerImplUnitTest {
 	Set<Long> nonvisibleChildren;
 	List<EntityHeader> childPage;
 	
+	ChildStatsResponse statsReponse;
+	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-	
-		entityManager = new EntityManagerImpl();
-		ReflectionTestUtils.setField(entityManager, "nodeManager", mockNodeManager);
-		ReflectionTestUtils.setField(entityManager, "entityPermissionsManager", mockPermissionsManager);
-		ReflectionTestUtils.setField(entityManager, "userManager", mockUserManager);
 		
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
@@ -84,6 +90,8 @@ public class EntityManagerImplUnitTest {
 		childRequest = new EntityChildrenRequest();
 		childRequest.setParentId("syn123");
 		childRequest.setIncludeTypes(Lists.newArrayList(EntityType.file, EntityType.folder));
+		childRequest.setIncludeTotalChildCount(true);
+		childRequest.setIncludeSumFileSizes(false);
 		nonvisibleChildren = Sets.newHashSet(555L,777L);
 		
 		when(mockPermissionsManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -93,6 +101,8 @@ public class EntityManagerImplUnitTest {
 						anyListOf(EntityType.class), anySetOf(Long.class),
 						any(SortBy.class), any(Direction.class), anyLong(),
 						anyLong())).thenReturn(childPage);
+		statsReponse = new ChildStatsResponse().withSumFileSizesBytes(123L).withTotalChildCount(4L);
+		when(mockNodeManager.getChildrenStats(any(ChildStatsRequest.class))).thenReturn(statsReponse);
 
 	}
 
@@ -247,6 +257,8 @@ public class EntityManagerImplUnitTest {
 		// call under test
 		EntityChildrenResponse response = entityManager.getChildren(mockUser, childRequest);
 		assertNotNull(response);
+		assertEquals(statsReponse.getTotalChildCount(), response.getTotalChildCount());
+		assertEquals(statsReponse.getSumFileSizesBytes(), response.getSumFileSizesBytes());
 		verify(mockPermissionsManager).hasAccess(childRequest.getParentId(),
 				ACCESS_TYPE.READ, mockUser);
 		verify(mockPermissionsManager).getNonvisibleChildren(mockUser,
@@ -255,6 +267,15 @@ public class EntityManagerImplUnitTest {
 				childRequest.getIncludeTypes(), nonvisibleChildren,
 				DEFAULT_SORT_BY, DEFAULT_SORT_DIRECTION, DEFAULT_LIMIT+1,
 				DEFAULT_OFFSET);
+		
+		verify(mockNodeManager).getChildrenStats(statsRequestCaptor.capture());
+		ChildStatsRequest statsRequest = statsRequestCaptor.getValue();
+		assertNotNull(statsRequest);
+		assertEquals(childRequest.getParentId(), statsRequest.getParentId());
+		assertEquals(childRequest.getIncludeTypes(), statsRequest.getIncludeTypes());
+		assertEquals(nonvisibleChildren, statsRequest.getChildIdsToExclude());
+		assertEquals(childRequest.getIncludeTotalChildCount(), statsRequest.getIncludeTotalChildCount());
+		assertEquals(childRequest.getIncludeSumFileSizes(), statsRequest.getIncludeSumFileSizes());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

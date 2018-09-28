@@ -30,7 +30,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -72,10 +71,11 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -87,11 +87,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.UnexpectedRollbackException;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Lists;
@@ -1098,14 +1095,6 @@ public class NodeDAOImplTest {
 		assertEquals("Deleting all versions except the first should have left the node in place with a current version of 1.",new Long(1), node.getVersionNumber());
 	}
 	
-	//mySQL seems to have a limit of 15 for the number of delete cascades to prevent infinite loops. https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.5/en/ansi-diff-foreign-keys.html
-	@Test (expected = DataIntegrityViolationException.class)
-	public void testDeleteCascadeMax(){
-		List<String> nodeIds = createNestedNodes(15);
-		//delete the parent node 
-		nodeDao.delete(nodeIds.get(0));
-	}
-	
 	//anything less than 15 works
 	@Test
 	public void testDeleteCascadeNotMax(){
@@ -1228,18 +1217,6 @@ public class NodeDAOImplTest {
 	@Test
 	public void testDeleteListOfNodeWithChildren(){
 		List<String> stringTypeNodeIds = createNestedNodes(2);//1 child
-		List<Long> listParentOnly = new ArrayList<Long>();
-		
-		//only add the root parent
-		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
-		
-		nodeDao.delete(listParentOnly);
-	}
-	
-	
-	@Test (expected = DataIntegrityViolationException.class)
-	public void testDeleteListCascadeMax(){
-		List<String> stringTypeNodeIds = createNestedNodes(15);
 		List<Long> listParentOnly = new ArrayList<Long>();
 		
 		//only add the root parent
@@ -2992,6 +2969,178 @@ public class NodeDAOImplTest {
 		String benefactorId = nodeDao.getBenefactor(header.getId());
 		Long benefactorLong = KeyFactory.stringToKey(benefactorId);
 		assertEquals(benefactorLong, header.getBenefactorId());
+	}
+	
+	@Test
+	public void testGetChildrenStats() {
+		List<Node> nodes = createHierarchy();
+
+		Node project = nodes.get(0);
+		Node folder2 = nodes.get(2);
+		Node fileZero = nodes.get(3);
+
+		String parentId = project.getId();
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		// exclude folder 2.
+		Set<Long> childIdsToExclude = Sets.newHashSet(KeyFactory.stringToKey(folder2.getId()), 111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(2), results.getTotalChildCount());
+		assertEquals(new Long(TEST_FILE_SIZE), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsNoResults() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsNothingToExclude() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = new HashSet<>();
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedNull() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(null).withIncludeSumFileSizes(null));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedFalse() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(false));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountFalseIncludeSumNull() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(null));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountNullIncludeSumFalse() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(null).withIncludeSumFileSizes(false));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountTrueIncludeSumFalse() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountFalseIncludeSumTrue() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsNullRequest() {
+		// call under test
+		nodeDao.getChildernStats(null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsNullParentId() {
+		String parentId = null;
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsNullTypes() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = null;
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsEmptyTypes() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = new LinkedList<>();
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
 	}
 	
 	@Test

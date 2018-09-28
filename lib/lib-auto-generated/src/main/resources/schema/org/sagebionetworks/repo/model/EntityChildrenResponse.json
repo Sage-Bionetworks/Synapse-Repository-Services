@@ -1,16 +1,24 @@
 {
-    "description":"Response of EntityHeaders for the children of a given parent Entity",
-    "properties":{
-        "page":{
+	"description": "Response of EntityHeaders for the children of a given parent Entity",
+	"properties": {
+		"page": {
 			"type": "array",
 			"description": "The headers of each child.",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.EntityHeader"
 			}
-        },
+		},
 		"nextPageToken": {
 			"type": "string",
 			"description": "Token that can be used to get the next page.  Null if there are no more results."
+		},
+		"totalChildCount": {
+			"type": "integer",
+			"description": "The total number of children with the requested parentId and types.  Only returned if requested."
+		},
+		"sumFileSizesBytes": {
+			"type": "integer",
+			"description": "The sum of the file sizes (bytes) with the requested parentId and types. Only returned if requested."
 		}
-    }
+	}
 }

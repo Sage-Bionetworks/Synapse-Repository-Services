@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -739,10 +741,18 @@ public class NodeManagerImpl implements NodeManager {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
 	}
+	
+	@Override
+	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
+		// EntityManager handles all of the business logic for this call.
+		return nodeDao.getChildernStats(request);
+	}
 
 	@Override
 	public String lookupChild(String parentId, String entityName) {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.lookupChild(parentId, entityName);
 	}
+
+
 }
