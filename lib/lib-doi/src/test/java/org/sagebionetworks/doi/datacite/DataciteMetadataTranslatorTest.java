@@ -289,7 +289,7 @@ public class DataciteMetadataTranslatorTest {
 	}
 
 	@Test
-	@Ignore
+	@Ignore // Remove this annotation when PLFM-5145 is complete
 	public void testValidateCreatorWithNonNullNameIdentifiers() {
 		DoiCreator creator = new DoiCreator();
 		creator.setCreatorName("A name");
