@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
-import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**
  * This table tracks alias that uniquely identify principals.
@@ -94,6 +93,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 				if (backup.getAliasType().equals(AliasEnum.USER_ORCID) && backup.getAliasDisplay().toLowerCase().startsWith("http:")) {
 					dbo.setAliasDisplay("https:"+backup.getAliasDisplay().substring("http:".length()));
 					dbo.setAliasUnique(AliasUtils.getUniqueAliasName(dbo.getAliasDisplay()));
+					
 				} else {
 					dbo.setAliasDisplay(backup.getAliasDisplay());
 					dbo.setAliasUnique(backup.getAliasUnique());
@@ -102,6 +102,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 				dbo.setEtag(backup.getEtag());
 				dbo.setId(backup.getId());
 				dbo.setPrincipalId(backup.getPrincipalId());
+				dbo.getAliasType().validateAlias(dbo.getAliasDisplay());
 				dbo.setValidated(backup.getValidated());
 				return dbo;
 			}

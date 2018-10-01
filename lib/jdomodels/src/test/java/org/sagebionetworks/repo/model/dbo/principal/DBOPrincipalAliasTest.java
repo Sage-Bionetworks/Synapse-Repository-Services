@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
@@ -34,10 +33,10 @@ public class DBOPrincipalAliasTest {
 	public void testTranslatorORCIDHTTP() {
 		DBOPrincipalAlias dbo = new DBOPrincipalAlias();
 		MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> translator = dbo.getTranslator();
-		DBOPrincipalAlias backup = newDBO("http://orcid.org/000-111-222", AliasEnum.USER_ORCID);
+		DBOPrincipalAlias backup = newDBO("https://orcid.org/0000-1111-2222-3333", AliasEnum.USER_ORCID);
 		dbo = translator.createDatabaseObjectFromBackup(backup);
-		assertEquals("https://orcid.org/000-111-222", dbo.getAliasDisplay());
-		assertEquals("httpsorcidorg000111222", dbo.getAliasUnique());
+		assertEquals("https://orcid.org/0000-1111-2222-3333", dbo.getAliasDisplay());
+		assertEquals("httpsorcidorg0000111122223333", dbo.getAliasUnique());
 		// everything else should be the same
 		backup.setAliasDisplay(dbo.getAliasDisplay());
 		backup.setAliasUnique(dbo.getAliasUnique());
@@ -48,7 +47,7 @@ public class DBOPrincipalAliasTest {
 	public void testTranslatorORCIDHTTPS() {
 		DBOPrincipalAlias dbo = new DBOPrincipalAlias();
 		MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> translator = dbo.getTranslator();
-		DBOPrincipalAlias backup = newDBO("https://orcid.org/000-111-222", AliasEnum.USER_ORCID);
+		DBOPrincipalAlias backup = newDBO("https://orcid.org/0000-1111-2222-3333", AliasEnum.USER_ORCID);
 		dbo = translator.createDatabaseObjectFromBackup(backup);
 		assertEquals(dbo, backup);
 	}
