@@ -93,7 +93,6 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 				if (backup.getAliasType().equals(AliasEnum.USER_ORCID) && backup.getAliasDisplay().toLowerCase().startsWith("http:")) {
 					dbo.setAliasDisplay("https:"+backup.getAliasDisplay().substring("http:".length()));
 					dbo.setAliasUnique(AliasUtils.getUniqueAliasName(dbo.getAliasDisplay()));
-					
 				} else {
 					dbo.setAliasDisplay(backup.getAliasDisplay());
 					dbo.setAliasUnique(backup.getAliasUnique());
