@@ -76,7 +76,7 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 	private static final Random random = new Random();
 	
 	private static String randomOrcid() {
-		StringBuilder sb = new StringBuilder("http://orcid.org/");
+		StringBuilder sb = new StringBuilder("https://orcid.org/");
 		for (int i=0; i<4; i++)  {
 			sb.append(StringUtils.leftPad(""+random.nextInt(10000), 4, "0"));
 			if (i<3) sb.append("-");

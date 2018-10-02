@@ -17,7 +17,7 @@ public enum AliasEnum {
 	USER_EMAIL("[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}", "User emails must be a valid email address", false),
 	USER_OPEN_ID("^(https?)://[-a-z0-9+&@#/%?=~_|!:,.;]*[-a-z0-9+&@#/%=~_|]","User OpenIDs must be a valid URL.", false),
 	// http://support.orcid.org/knowledgebase/articles/116780-structure-of-the-orcid-identifier
-	USER_ORCID("^http://orcid.org/(([0-9]{4})-){3}([0-9]){3}[0-9xX]$","An ORCID is a URI of the form URI: http://orcid.org/xxxx-xxxx-xxxx-xxxx.", true);
+	USER_ORCID("^https://orcid.org/(([0-9]{4})-){3}([0-9]){3}[0-9xX]$","An ORCID is a URI of the form URI: https://orcid.org/xxxx-xxxx-xxxx-xxxx.", true);
 	
 	private AliasEnum(String regEx, String description, boolean isOnePerPrincipal){
 		this.description = description;
