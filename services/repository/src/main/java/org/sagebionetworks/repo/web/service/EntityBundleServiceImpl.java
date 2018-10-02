@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -187,7 +188,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if((mask & EntityBundle.DOI) > 0 ){
 			try {
-				eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, versionNumber));
+				if (versionNumber == null && (entity instanceof VersionableEntity)) {
+					// DOIs on VersionableEntity cannot be versionless, so we want to get the DOI for the current version
+					Long currentVersionNumber = ((VersionableEntity) entity).getVersionNumber();
+					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, currentVersionNumber));
+				} else {
+					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, versionNumber));
+				}
 			} catch (NotFoundException e) {
 				// does not exist
 				eb.setDoiAssociation(null);
