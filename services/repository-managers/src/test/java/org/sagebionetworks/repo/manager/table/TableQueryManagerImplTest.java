@@ -18,12 +18,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_COLUMN_MODELS;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_COUNT;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_FACETS;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_RESULTS;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
+
+import static org.sagebionetworks.repo.model.table.QueryOptions.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +35,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -65,6 +62,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -110,7 +108,7 @@ public class TableQueryManagerImplTest {
 	ProgressCallback mockProgressCallbackVoid;
 	@Mock
 	ProgressCallback mockProgressCallback2;
-	
+	@InjectMocks
 	TableQueryManagerImpl manager;
 	
 	List<ColumnModel> models;
@@ -135,14 +133,10 @@ public class TableQueryManagerImplTest {
 	private RowSet rowSet1;
 	private RowSet rowSet2;
 	
+	private QueryOptions queryOptions;
+	
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		manager = new TableQueryManagerImpl();
-		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
-		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		
 		tableId = "syn123";
@@ -246,6 +240,8 @@ public class TableQueryManagerImplTest {
 		expectedRangeResult.setColumnMin(expectedColMin);
 		expectedRangeResult.setFacetType(expectedFacetType);
 		expectedRangeResult.setColumnMax(expectedColMax);
+		
+		queryOptions = new QueryOptions().withRunQuery(true);
 	}
 	
 	/**
@@ -297,12 +293,11 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamIsConsistentTrue() throws Exception{
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
 		// call under test.
-		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, false);
+		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
@@ -321,12 +316,11 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, false);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 	}
 	
 	@Test (expected=TableUnavailableException.class)
@@ -336,12 +330,11 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, false);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 	}
 	
 	@Test (expected=TableFailedException.class)
@@ -351,12 +344,11 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, false);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 	}
 	
 	@Test (expected=LockUnavilableException.class)
@@ -366,12 +358,11 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, false);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 	}
 	
 	@Test (expected=EmptyResultException.class)
@@ -381,23 +372,21 @@ public class TableQueryManagerImplTest {
 						any(ProgressingCallable.class))).thenThrow(
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, false);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 	}
 	
 	@Test
 	public void testQueryAsStreamIsConsistentFalse() throws Exception{
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(false)
 		.build();
 		// call under test.
-		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, false);
+		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
@@ -451,10 +440,10 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
-		boolean runCount = true;
+		queryOptions = new QueryOptions().withRunCount(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, false);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -473,10 +462,10 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
-		boolean runCount = true;
+		queryOptions = new QueryOptions().withRunCount(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId+" limit 11", models).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, false);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(new Long(11), results.getQueryCount());
 	}
@@ -488,10 +477,9 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = false;
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, false);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -507,10 +495,10 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
-		boolean runCount = true;
+		queryOptions = new QueryOptions().withRunCount(true).withRunQuery(true);
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, false);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -533,8 +521,7 @@ public class TableQueryManagerImplTest {
 		facetRequestList.add(facetColumnRequest);
 		
 		RowHandler rowHandler = null;
-		boolean returnFacets = false;
-		boolean runCount = true; //running count to check that the SqlQuery gets facet filters appended
+		queryOptions = new QueryOptions().withRunCount(true);
 		
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.selectedFacets(facetRequestList)
@@ -542,7 +529,7 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, returnFacets);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -565,8 +552,7 @@ public class TableQueryManagerImplTest {
 		expectedRangeResult.setSelectedMax(facetColumnRequest.getMax());
 
 		RowHandler rowHandler = null;
-		boolean returnFacets = true;
-		boolean runCount = false; //running count to check that the SqlQuery gets facet filters appended
+		queryOptions = new QueryOptions().withReturnFacets(true).withRunCount(false);
 		
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.selectedFacets(facetRequestList)
@@ -574,7 +560,7 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, returnFacets);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -622,10 +608,8 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
 		query.setIsConsistent(true);
-		boolean runQuery = true;
-		boolean runCount = false;
-		boolean returnFacets = false;
-		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
+		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, query, queryOptions);
 		assertNotNull(results);
 		QueryResultBundle emptyResults = TableQueryManagerImpl.createEmptyBundle(tableId);
 		assertEquals(emptyResults, results);
@@ -642,10 +626,9 @@ public class TableQueryManagerImplTest {
 			Query query = new Query();
 			query.setSql("select * from " + tableId + " limit 1");
 			query.setIsConsistent(true);
-			boolean runQuery = true;
-			boolean runCount = false;
-			boolean returnFacets = false;
-			QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+			queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
+			
+			QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, query, queryOptions);
 			fail("should have failed");
 		}catch(TableUnavailableException e){
 			// expected
@@ -1131,9 +1114,7 @@ public class TableQueryManagerImplTest {
 		Row row = rows.get(0);
 		rows.clear();
 		rows.add(row);
-		boolean runQuery = true;
-		boolean runCount = true;
-		boolean returnFacets = false;
+		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
@@ -1143,7 +1124,7 @@ public class TableQueryManagerImplTest {
 		manager.setMaxBytesPerRequest(1);
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
-				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+				mockProgressCallbackVoid, user, query, queryOptions);
 		
 		assertNotNull(result);
 		assertEquals(new Long(1), result.getMaxRowsPerPage());
@@ -1159,9 +1140,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageWithNoNextPage() throws Exception{		
-		boolean runQuery = true;
-		boolean runCount = true;
-		boolean returnFacets = false;
+		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
@@ -1172,7 +1151,7 @@ public class TableQueryManagerImplTest {
 		manager.setMaxBytesPerRequest(Integer.MAX_VALUE);
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
-				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+				mockProgressCallbackVoid, user, query, queryOptions);
 		
 		assertNotNull(result);
 		assertNotNull(result.getMaxRowsPerPage());
@@ -1186,16 +1165,14 @@ public class TableQueryManagerImplTest {
 		addRowIdAndVersionToRows();
 		convertRowsToEntityRows();
 		
-		boolean runQuery = true;
-		boolean runCount = false;
-		boolean returnFacets = false;
+		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
 		query.setIncludeEntityEtag(true);
 		
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
-				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+				mockProgressCallbackVoid, user, query, queryOptions);
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
@@ -1207,9 +1184,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageRunQueryTrue() throws Exception{		
-		boolean runQuery = true;
-		boolean runCount = true;
-		boolean returnFacets = false;
+		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
@@ -1218,7 +1193,7 @@ public class TableQueryManagerImplTest {
 		query.setOffset(null);
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
-				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+				mockProgressCallbackVoid, user, query, queryOptions);
 		
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
@@ -1230,9 +1205,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageRunQueryFalse() throws Exception{		
-		boolean runQuery = false;
-		boolean runCount = true;
-		boolean returnFacets = false;
+		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
@@ -1241,7 +1214,7 @@ public class TableQueryManagerImplTest {
 		query.setOffset(null);
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
-				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+				mockProgressCallbackVoid, user, query, queryOptions);
 		
 		assertNotNull(result);
 		// there should be no query results.
@@ -1255,9 +1228,7 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageOverrideLimit() throws Exception{
 		Long totalCount = 101L;
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
-		boolean runQuery = false;
-		boolean runCount = true;
-		boolean returnFacets = false;
+		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
@@ -1266,7 +1237,7 @@ public class TableQueryManagerImplTest {
 		query.setOffset(10L);
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
-				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);		
+				mockProgressCallbackVoid, user, query, queryOptions);		
 		assertNotNull(result);
 		// there should be no query results.
 		assertNull(result.getQueryResult());
@@ -1282,9 +1253,7 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageWithLimit() throws Exception{
 		Long totalCount = 101L;
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
-		boolean runQuery = false;
-		boolean runCount = true;
-		boolean returnFacets = false;
+		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId+" limit 11");
@@ -1293,7 +1262,7 @@ public class TableQueryManagerImplTest {
 		query.setOffset(10L);
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
-				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);	
+				mockProgressCallbackVoid, user, query, queryOptions);	
 		
 		assertNotNull(result);
 		// there should be no query results.
