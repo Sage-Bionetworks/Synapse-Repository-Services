@@ -192,7 +192,8 @@ public class DoiManagerImpl implements DoiManager {
 		if (!objectType.equals(ObjectType.ENTITY)) {
 			throw new IllegalArgumentException("Generating a location request currently only supports entities");
 		}
-		String request = stackConfiguration.getRepositoryServiceEndpoint() + LOCATE_RESOURCE_PATH;
+		final String PERSISTENT_REPOSITORY_ENDPOINT = "https://repo-" + stackConfiguration.getStack() + "." + stackConfiguration.getStack() + ".sagebase.org/repo/v1";
+		String request = PERSISTENT_REPOSITORY_ENDPOINT + LOCATE_RESOURCE_PATH;
 		request += "?" + OBJECT_ID_PATH_PARAM + "=" + objectId + "&" + OBJECT_TYPE_PATH_PARAM + "=" + objectType.name();
 		if (versionNumber != null) {
 			request += "&" + OBJECT_VERSION_PATH_PARAM + "=" + versionNumber;
