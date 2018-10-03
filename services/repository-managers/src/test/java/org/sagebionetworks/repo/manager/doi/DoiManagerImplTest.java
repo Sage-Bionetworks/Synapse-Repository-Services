@@ -60,7 +60,8 @@ public class DoiManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 
 	private static final String baseUrl = "https://syn.org/test/";
-	private static final String repoEndpoint = "https://prod-base.sagetest.gov/repo/v3";
+	private static final String stack = "notprod";
+	private static final String expectedRepoEndpoint = "https://repo-" + stack + "." + stack + ".sagebase.org/repo/v1";
 
 	private static final UserInfo adminInfo = new UserInfo(true);
 	private static final String entityId = "syn584322";
@@ -85,7 +86,7 @@ public class DoiManagerImplTest {
 		doiManager = new DoiManagerImpl();
 		ReflectionTestUtils.setField(doiManager, "stackConfiguration", mockConfig);
 		when(mockConfig.getSynapseBaseUrl()).thenReturn(baseUrl);
-		when(mockConfig.getRepositoryServiceEndpoint()).thenReturn(repoEndpoint);
+		when(mockConfig.getStack()).thenReturn(stack);
 		when(mockConfig.getDoiPrefix()).thenReturn(mockPrefix);
 		ReflectionTestUtils.setField(doiManager, "dataciteClient", mockDataciteClient);
 		ReflectionTestUtils.setField(doiManager, "doiAssociationDao", mockDoiDao);
@@ -425,7 +426,7 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testGenerateRequestUrl() {
-		String expected = repoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
+		String expected = expectedRepoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
 				+ "&type=" + entityType.name()
 				+ "&version=" + version;
@@ -436,7 +437,7 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testGenerateRequestUrlNullVersion() {
-		String expected = repoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
+		String expected = expectedRepoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
 				+ "&type=" + entityType.name();
 
@@ -446,7 +447,7 @@ public class DoiManagerImplTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testGenerateRequestUrlFailOnNonentity() {
-		String expected = repoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
+		String expected = expectedRepoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
 				+ "&type=" + ObjectType.TEAM.name()
 				+ "&version=" + version;
