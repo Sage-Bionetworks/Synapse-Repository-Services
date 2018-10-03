@@ -394,4 +394,21 @@ public interface TableIndexDAO {
 	 */
 	public List<IdAndEtag> getEntityChildren(Long parentId);
 
+	/**
+	 * Get the rowIds for the given query.
+	 * 
+	 * @param sqlSelectIds
+	 * @param parameters
+	 * @return
+	 */
+	public List<Long> getRowIds(String sqlSelectIds, Map<String, Object> parameters);
+
+	/**
+	 * Get the sum of the files sizes for the given row IDs.
+	 * 
+	 * @param rowIds
+	 * @return
+	 */
+	public long getSumOfFileSizes(List<Long> rowIds);
+
 }

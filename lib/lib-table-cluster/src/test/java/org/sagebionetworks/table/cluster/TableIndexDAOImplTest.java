@@ -50,6 +50,7 @@ import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
@@ -367,6 +368,11 @@ public class TableIndexDAOImplTest {
 		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
 		assertEquals(new Long(2), count);
+		// test the rowIds
+		long limit = 2;
+		String rowIdSql = SqlElementUntils.buildSqlSelectRowIds(query.getTransformedModel(), limit);
+		List<Long> rowIds = tableIndexDAO.getRowIds(rowIdSql, query.getParameters());
+		assertEquals(Lists.newArrayList(100L,101L), rowIds);
 		
 		// the first row
 		Row row = results.getRows().get(0);
@@ -1689,6 +1695,41 @@ public class TableIndexDAOImplTest {
 		results = tableIndexDAO.getEntityChildren(parentThreeId);
 		assertNotNull(results);
 		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testGetSumOfFileSizes(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		Long parentTwoId = 222L;
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(parentOneId);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(parentTwoId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(file1.getId(), file2.getId()));
+		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
+	}
+	
+	@Test
+	public void testGetSumOfFileSizesEmpty(){
+		List<Long> list = new LinkedList<>();
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(list);
+		assertEquals(0, fileSizes);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSumOfFileSizesNull(){
+		List<Long> list = null;
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(list);
+		assertEquals(0, fileSizes);
 	}
 	
 	@Test

@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.database.semaphore.Sql;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -52,6 +54,8 @@ import org.springframework.jdbc.BadSqlGrammarException;
 public class TableQueryManagerImpl implements TableQueryManager {
 
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
+	
+	public static final long MAX_ROWS_PER_CALL = 100;
 
 	@Autowired
 	TableManagerSupport tableManagerSupport;
@@ -283,33 +287,34 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		// run the actual query if needed.
-		QueryResult queryResult = null;
-		List<FacetColumnResult> facetResults = null;
 		if (rowHandler != null) {
 			// run the query
 			RowSet rowSet = runQueryAsStream(progressCallback, queryToRun, rowHandler, indexDao);
-			queryResult = new QueryResult();
+			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
+			bundle.setQueryResult(queryResult);
 		}
 
 		// run the count query if needed.
-		Long count = null;
 		if (options.runCount()) {
 			// count requested.
-			count = runCountQuery(queryToRun, indexDao);
+			Long count = runCountQuery(queryToRun, indexDao);
+			bundle.setQueryCount(count);
 		}
 
 		// run the facet counts if needed
 		if (options.returnFacets()) {
 			// use original query instead of queryToRun because need the where clause that
 			// was not modified by any facets
-			facetResults = runFacetQueries(facetModel, indexDao);
+			List<FacetColumnResult> facetResults = runFacetQueries(facetModel, indexDao);
+			bundle.setFacets(facetResults);
+		}
+		
+		if(options.runSumFileSizes()) {
+			SumFileSizes sumFileSizes = runSumFileSize(queryToRun, indexDao);
+			bundle.setSumFileSizes(sumFileSizes);
 		}
 
-		// run
-		bundle.setQueryResult(queryResult);
-		bundle.setQueryCount(count);
-		bundle.setFacets(facetResults);
 		return bundle;
 	}
 
@@ -543,6 +548,39 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			return 1L;
 		}
 	}
+	
+	/**
+	 * Run the queries to get the sum of the file sizes (bytes) for the given query.
+	 * 
+	 * @param query
+	 * @param indexDao
+	 * @return
+	 */
+	SumFileSizes runSumFileSize(SqlQuery query, TableIndexDAO indexDao) {
+		SumFileSizes result = new SumFileSizes();
+		result.setGreaterThan(false);
+		result.setSumFileSizesBytes(0L);
+		if(EntityType.entityview.equals(query.getTableType())){
+			// actual values are only provided for entity views.
+			try {
+				// first get the rowIds for the given query up to the limit + 1.
+				String sqlSelectIds = SqlElementUntils.buildSqlSelectRowIds(query.getTransformedModel(), MAX_ROWS_PER_CALL+1L);
+				List<Long> rowIds = indexDao.getRowIds(sqlSelectIds, query.getParameters());
+				boolean isGreaterThan = rowIds.size() > MAX_ROWS_PER_CALL;
+				result.setGreaterThan(isGreaterThan);
+				// Use the rowIds to calculate the sum of the file sizes.
+				long sumFileSizesBytes = indexDao.getSumOfFileSizes(rowIds);
+				result.setSumFileSizesBytes(sumFileSizesBytes);
+			} catch (SimpleAggregateQueryException e) {
+				// zero results will be returned for this case.
+				result.setGreaterThan(false);
+				result.setSumFileSizesBytes(0L);
+			}
+		}
+		return result;
+	}
+	
+	
 
 	/**
 	 * Parser a query and convert ParseExceptions to IllegalArgumentExceptions

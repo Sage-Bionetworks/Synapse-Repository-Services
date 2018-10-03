@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -1445,6 +1446,20 @@ public class TableQueryManagerImplTest {
 		assertEquals(result2, results.get(1));
 		
 		verifyNoMoreInteractions(mockTableIndexDAO, mockFacetModel,mockTransformer1, mockTransformer2);
+
+	}
+	
+	@Test
+	public void testRunSumFileSize() throws Exception {
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 101", models).tableType(EntityType.entityview).build();
+		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		// setup the count returned from query
+		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
+		// call under test
+		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
+		verify(mockTableIndexDAO).getRowIds(sqlCaptrue.capture(), anyMapOf(String.class, Object.class));
+		
+		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C0_ = :b0", sqlCaptrue.getValue());
 
 	}
 	
