@@ -283,51 +283,16 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = new TableQueryParser("select * from T123 WHERE _C2_ = 'BAR' ORDER BY _C1_").querySpecification();
 		// call under test
 		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 WHERE _C2_ = 'BAR' LIMIT 100 OFFSET 0", countSql);
+		assertEquals("SELECT ROW_ID FROM T123 WHERE _C2_ = 'BAR' LIMIT 100", countSql);
 	}
 	
 	@Test
-	public void testBuildSqlSelectRowIdsInputLimitTooLarge() throws ParseException, SimpleAggregateQueryException {
+	public void testBuildSqlSelectRowIdsInputWithLimit() throws ParseException, SimpleAggregateQueryException {
 		long limit = 100;
-		QuerySpecification model = new TableQueryParser("select * from T123 limit 101").querySpecification();
+		QuerySpecification model = new TableQueryParser("select * from T123 limit 200 offset 100").querySpecification();
 		// call under test
 		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 LIMIT 100 OFFSET 0", countSql);
-	}
-	
-	@Test
-	public void testBuildSqlSelectRowIdsInputLimitSmaller() throws ParseException, SimpleAggregateQueryException {
-		long limit = 100;
-		QuerySpecification model = new TableQueryParser("select * from T123 limit 99").querySpecification();
-		// call under test
-		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 LIMIT 99 OFFSET 0", countSql);
-	}
-	
-	@Test
-	public void testBuildSqlSelectRowIdsLimitUnderWithOffset() throws ParseException, SimpleAggregateQueryException {
-		long limit = 100;
-		QuerySpecification model = new TableQueryParser("select * from T123 limit 10 offset 2").querySpecification();
-		// call under test
-		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 LIMIT 10 OFFSET 2", countSql);
-	}
-	
-	@Test
-	public void testBuildSqlSelectRowIdsInputLimitOverWithOffset() throws ParseException, SimpleAggregateQueryException {
-		long limit = 100;
-		QuerySpecification model = new TableQueryParser("select * from T123 limit 101 offset 2").querySpecification();
-		// call under test
-		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 LIMIT 100 OFFSET 2", countSql);
-	}
-	
-	@Test  (expected=SimpleAggregateQueryException.class)
-	public void testBuildSqlSelectRowIdsAggregate() throws ParseException, SimpleAggregateQueryException {
-		long limit = 100;
-		QuerySpecification model = new TableQueryParser("select count(*) from T123").querySpecification();
-		// call under test
-		SqlElementUntils.buildSqlSelectRowIds(model, limit);
+		assertEquals("SELECT ROW_ID FROM T123 LIMIT 100", countSql);
 	}
 	
 	@Test

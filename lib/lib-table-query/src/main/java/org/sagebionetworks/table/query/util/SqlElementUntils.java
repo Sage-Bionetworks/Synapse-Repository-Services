@@ -610,14 +610,7 @@ public class SqlElementUntils {
 		WhereClause whereClause = model.getTableExpression().getWhereClause();
 		GroupByClause groupByClause = null;
 		OrderByClause orderByClause = null;
-		Pagination inputPagination = model.getTableExpression().getPagination();
-		final long limit = inputPagination != null && inputPagination.getLimit() != null
-				? Math.min(Long.parseLong(inputPagination.getLimit()), maxLimit)
-				: maxLimit;
-		final long offset = inputPagination != null && inputPagination.getOffset() != null
-				? Long.parseLong(inputPagination.getOffset())
-				: 0L;
-		Pagination pagination = new Pagination(limit, offset);
+		Pagination pagination = null;
 
 		// There are three cases
 		if(model.hasAnyAggregateElements()){
@@ -631,6 +624,8 @@ public class SqlElementUntils {
 		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
 		builder.append(" ");
 		builder.append(tableExpression.toSql());
+		builder.append(" LIMIT ");
+		builder.append(maxLimit);
 		return builder.toString();
 	}
 	

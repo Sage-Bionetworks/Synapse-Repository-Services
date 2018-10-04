@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyMapOf;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
@@ -18,8 +19,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import static org.sagebionetworks.repo.model.table.QueryOptions.*;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COUNT;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_FACETS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_RESULTS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +43,6 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
@@ -88,7 +92,6 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
@@ -135,6 +138,8 @@ public class TableQueryManagerImplTest {
 	private RowSet rowSet2;
 	
 	private QueryOptions queryOptions;
+	
+	private Long sumFilesizes;
 	
 	@Before
 	public void before() throws Exception {
@@ -243,6 +248,11 @@ public class TableQueryManagerImplTest {
 		expectedRangeResult.setColumnMax(expectedColMax);
 		
 		queryOptions = new QueryOptions().withRunQuery(true);
+		
+		// setup the count returned from query
+		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
+		sumFilesizes = 9876L;
+		when(mockTableIndexDAO.getSumOfFileSizes(anyListOf(Long.class))).thenReturn(sumFilesizes);
 	}
 	
 	/**
@@ -1451,16 +1461,66 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunSumFileSize() throws Exception {
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 101", models).tableType(EntityType.entityview).build();
+		// query against an entity view.
+		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId + " limit 1000", models)
+				.tableType(EntityType.entityview).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
-		// setup the count returned from query
-		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
+
 		// call under test
 		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
+		assertNotNull(sum);
+		assertEquals(sumFilesizes, sum.getSumFileSizesBytes());
+		assertFalse(sum.getGreaterThan());
 		verify(mockTableIndexDAO).getRowIds(sqlCaptrue.capture(), anyMapOf(String.class, Object.class));
-		
-		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C0_ = :b0", sqlCaptrue.getValue());
+		assertEquals("SELECT ROW_ID FROM T123 LIMIT 101", sqlCaptrue.getValue());
+		verify(mockTableIndexDAO).getSumOfFileSizes(anyListOf(Long.class));
+	}
+	
+	@Test
+	public void testRunSumFileSizeOverLimit() throws Exception {
+		// setup a result with more than the max rows
+		List<Long> rowIds = createListOfSize(TableQueryManagerImpl.MAX_ROWS_PER_CALL + 1L);
+		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(rowIds);
+		// query against an entity view.
+		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, models)
+				.tableType(EntityType.entityview).build();
 
+		// call under test
+		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
+		assertNotNull(sum);
+		assertEquals(sumFilesizes, sum.getSumFileSizesBytes());
+		// when over the limit
+		assertTrue(sum.getGreaterThan());
+		verify(mockTableIndexDAO).getRowIds(anyString(), anyMapOf(String.class, Object.class));
+		verify(mockTableIndexDAO).getSumOfFileSizes(anyListOf(Long.class));
+	}
+
+	
+	@Test
+	public void testRunSumFileSizeNonEntityView() throws Exception {
+		// query against an entity view.
+		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, models)
+				.tableType(EntityType.table).build();
+		// call under test
+		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
+		assertNotNull(sum);
+		assertEquals(new Long(0), sum.getSumFileSizesBytes());
+		assertFalse(sum.getGreaterThan());
+		verify(mockTableIndexDAO, never()).getRowIds(anyString(), anyMapOf(String.class, Object.class));
+		verify(mockTableIndexDAO, never()).getSumOfFileSizes(anyListOf(Long.class));
+	}
+	
+	@Test
+	public void testRunSumFileSizeAggregate() throws Exception {
+		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId, models)
+				.tableType(EntityType.entityview).build();
+		// call under test
+		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
+		assertNotNull(sum);
+		assertEquals(new Long(0), sum.getSumFileSizesBytes());
+		assertFalse(sum.getGreaterThan());
+		verify(mockTableIndexDAO, never()).getRowIds(anyString(), anyMapOf(String.class, Object.class));
+		verify(mockTableIndexDAO, never()).getSumOfFileSizes(anyListOf(Long.class));
 	}
 	
 	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){
@@ -1484,6 +1544,14 @@ public class TableQueryManagerImplTest {
 		}
 		rowSet.setRows(rows);
 		return rowSet;
+	}
+	
+	List<Long> createListOfSize(long l){
+		List<Long> list = new LinkedList<>();
+		for(int i=0; i<l; i++) {
+			list.add(new Long(i));
+		}
+		return list;
 	}
 
 }
