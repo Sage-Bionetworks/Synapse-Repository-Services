@@ -278,6 +278,24 @@ public class SqlElementUntilsTest {
 	}
 	
 	@Test
+	public void testBuildSqlSelectRowIds() throws ParseException, SimpleAggregateQueryException {
+		long limit = 100;
+		QuerySpecification model = new TableQueryParser("select * from T123 WHERE _C2_ = 'BAR' ORDER BY _C1_").querySpecification();
+		// call under test
+		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
+		assertEquals("SELECT ROW_ID FROM T123 WHERE _C2_ = 'BAR' LIMIT 100", countSql);
+	}
+	
+	@Test
+	public void testBuildSqlSelectRowIdsInputWithLimit() throws ParseException, SimpleAggregateQueryException {
+		long limit = 100;
+		QuerySpecification model = new TableQueryParser("select * from T123 limit 200 offset 100").querySpecification();
+		// call under test
+		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
+		assertEquals("SELECT ROW_ID FROM T123 LIMIT 100", countSql);
+	}
+	
+	@Test
 	public void testCreateSelectFromGroupBy() throws Exception{
 		QuerySpecification model = new TableQueryParser("select foo as a, bar from syn123 group by bar, a").querySpecification();
 		String result = SqlElementUntils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());

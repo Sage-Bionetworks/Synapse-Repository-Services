@@ -14,7 +14,7 @@
         },
 		"partMask":{
             "type":"integer",
-            "description":"Optional, default all. The 'partsMask' is an integer mask that can be combined into to request any desired part. The mask is defined as follows:<ul><li>Query Results <i>(queryResults)</i> = 0x1</li><li>Query Count <i>(queryCount)</i> = 0x2</li><li>Select Columns <i>(selectColumns)</i> = 0x4</li><li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li><li>The Table Columns <i>(columnModels)</i> = 0x10</li></ul>"
+            "description":"Optional, default all. The 'partsMask' is an integer mask that can be combined into to request any desired part. The mask is defined as follows:<ul><li>Query Results <i>(queryResults)</i> = 0x1</li><li>Query Count <i>(queryCount)</i> = 0x2</li><li>Select Columns <i>(selectColumns)</i> = 0x4</li><li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li><li>The Table Columns <i>(columnModels)</i> = 0x10</li><li>Facet statistics for each faceted column <i>(facetStatistics)</i> = 0x20</li><li>The sum of the file sizes <i>(sumFileSizesBytes)</i> = 0x40</li></ul>"
 		}
     }
 }

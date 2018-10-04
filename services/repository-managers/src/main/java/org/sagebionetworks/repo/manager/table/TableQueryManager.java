@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -45,7 +46,7 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultBundle querySinglePage(ProgressCallback progressCallback, UserInfo user, Query query,	boolean runQuery, boolean runCount, boolean returnFacets) throws DatastoreException, NotFoundException, TableUnavailableException,
+	public QueryResultBundle querySinglePage(ProgressCallback progressCallback, UserInfo user, Query query,	QueryOptions options) throws DatastoreException, NotFoundException, TableUnavailableException,
 			TableFailedException, ParseException, LockUnavilableException;
 
 	/**

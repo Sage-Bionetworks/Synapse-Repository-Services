@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
@@ -385,14 +386,12 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	 */
 	private RowSet waitForConsistentQuery(UserInfo user, String sql, Integer expectedRowCount) throws Exception {
 		long start = System.currentTimeMillis();
-		boolean runQuery = true;
-		boolean runCount = false;
-		boolean returnFacets = false;
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
 		Query query = new Query();
 		query.setSql(sql);
 		while(true){
 			try {
-				RowSet results = tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, query, runQuery, runCount, returnFacets).getQueryResult().getQueryResults();
+				RowSet results = tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, query, options).getQueryResult().getQueryResults();
 				if(expectedRowCount != null) {
 					if(results.getRows() == null || results.getRows().size() < expectedRowCount) {
 						System.out.println("Waiting for row count: "+expectedRowCount);

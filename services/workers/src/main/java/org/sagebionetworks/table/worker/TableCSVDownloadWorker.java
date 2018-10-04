@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -67,11 +68,10 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			DownloadFromTableRequest request = AsynchJobUtils.extractRequestBody(status, DownloadFromTableRequest.class);
-			boolean runQuery = false;
-			boolean runCount = true;
-			boolean returnFacets = false;
+			// only run the count
+			QueryOptions queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 			// Before we start determine how many rows there are.
-			QueryResultBundle queryResult = tableQueryManager.querySinglePage(progressCallback, user, request, runQuery, runCount, returnFacets);
+			QueryResultBundle queryResult = tableQueryManager.querySinglePage(progressCallback, user, request, queryOptions);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
