@@ -1242,7 +1242,7 @@ public class TableViewIntegrationTest {
 	
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, int rowCount) throws Exception {
 		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
-		return waitForConsistentQuery(user, query, options);
+		return waitForConsistentQuery(user, query, options, rowCount);
 	}
 	
 	/**
