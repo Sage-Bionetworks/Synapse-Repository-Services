@@ -204,9 +204,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(user, tableId);
 
-		// To prevent race conditions on concurrency checking we apply all changes to a single table
-		// serially by locking on the table's Id.
-		tableManagerSupport.lockOnTableId(tableId);
+		// Touch an lock on the table.
+		tableManagerSupport.touchTable(user, tableId);
 		
 		/*
 		 * RowId and RowVersion can be ignored when appending data to an empty
@@ -689,6 +688,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	 */
 	TableUpdateResponse uploadToTable(ProgressCallback callback,
 			UserInfo userInfo, UploadToTableRequest change) {
+		// Touch an lock on the table.
+		tableManagerSupport.touchTable(userInfo, change.getTableId());
 		// upload the CSV to the table.
 		return tableUploadManager.uploadCSV(callback, userInfo, change, this);
 
@@ -713,6 +714,9 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	 */
 	public TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes) {
+		
+		// Touch an lock on the table.
+		tableManagerSupport.touchTable(userInfo, changes.getEntityId());
 
 		// first determine what the new Schema will be
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());

@@ -186,10 +186,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	public String getIdString() {
 		return KeyFactory.keyToString(id);
 	}
-	@Override
-	public String getParentIdString() {
-		return KeyFactory.keyToString(parentId);
-	}
+
 	@Override
 	public String getEtag() {
 		return eTag;

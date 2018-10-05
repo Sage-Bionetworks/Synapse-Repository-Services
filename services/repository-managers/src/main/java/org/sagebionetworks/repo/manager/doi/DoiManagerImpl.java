@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.manager.doi;
 
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -32,7 +36,10 @@ public class DoiManagerImpl implements DoiManager {
 	private DataciteClient dataciteClient;
 
 	public static final String ENTITY_URL_PREFIX = "#!Synapse:";
-	public static final String RESOURCE_PATH = "/doi/locate";
+	public static final String LOCATE_RESOURCE_PATH = "/doi/locate";
+	public static final String OBJECT_ID_PATH_PARAM = "id";
+	public static final String OBJECT_TYPE_PATH_PARAM = "type";
+	public static final String OBJECT_VERSION_PATH_PARAM = "version";
 
 	public Doi getDoi(final String objectId, final ObjectType objectType, final Long versionNumber) throws ServiceUnavailableException {
 		// Retrieve our record of the DOI/object association.
@@ -77,7 +84,11 @@ public class DoiManagerImpl implements DoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(user, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
 
+		// Set updated fields
 		dto.setUpdatedBy(user.getId().toString());
+		// MySQL TIMESTAMP only keeps seconds (not ms)
+		dto.setUpdatedOn(new Timestamp(DateTime.now().getMillis() / 1000L * 1000L));
+
 		DoiAssociation association = createOrUpdateAssociation(dto);
 		dto.setDoiUri(generateDoiUri(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
 		dto.setDoiUrl(generateLocationRequestUrl(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()));
@@ -87,16 +98,25 @@ public class DoiManagerImpl implements DoiManager {
 
 	DoiAssociation createOrUpdateAssociation(DoiAssociation dto) throws RecoverableMessageException {
 		DoiAssociation association;
-		try {
-			// Check if the DOI exists by checking to make sure eTags match
-			// (We will get a NotFoundException if it doesn't exist).
-			if (!doiAssociationDao.getEtagForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion()).equals(dto.getEtag())) {
+		DoiAssociation existing = doiAssociationDao.getDoiAssociationForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+		if (existing != null) {
+			if (!existing.getEtag().equals(dto.getEtag())) {
+				// We say "cannot create" because the client may have called "createOrUpdate" before discovering that
+				// another client created a DOI
 				throw new ConflictingUpdateException("Cannot create or update the DOI because the submitted eTag does not match the existing eTag.");
 			}
+
+			// Set fields from the old object that the client cannot change
+			dto.setAssociationId(existing.getAssociationId());
+			dto.setAssociatedBy(existing.getAssociatedBy());
+			dto.setAssociatedOn(existing.getAssociatedOn());
+			dto.setEtag(UUID.randomUUID().toString());
 			association = doiAssociationDao.updateDoiAssociation(dto);
-		} catch (NotFoundException e1) { // The DOI does not already exist (exception was thrown by getEtag)
+		} else { // The DOI does not already exist
 			try {
 				dto.setAssociatedBy(dto.getUpdatedBy());
+				dto.setAssociatedOn(dto.getUpdatedOn());
+				dto.setEtag(UUID.randomUUID().toString());
 				association = doiAssociationDao.createDoiAssociation(dto); // Create
 			} catch (DuplicateKeyException e2) {
 					/*
@@ -172,10 +192,11 @@ public class DoiManagerImpl implements DoiManager {
 		if (!objectType.equals(ObjectType.ENTITY)) {
 			throw new IllegalArgumentException("Generating a location request currently only supports entities");
 		}
-		String request = stackConfiguration.getRepositoryServiceEndpoint() + RESOURCE_PATH;
-		request += "?id=" + objectId + "&objectType=" + objectType.name();
+		final String PERSISTENT_REPOSITORY_ENDPOINT = "https://repo-" + stackConfiguration.getStack() + "." + stackConfiguration.getStack() + ".sagebase.org/repo/v1";
+		String request = PERSISTENT_REPOSITORY_ENDPOINT + LOCATE_RESOURCE_PATH;
+		request += "?" + OBJECT_ID_PATH_PARAM + "=" + objectId + "&" + OBJECT_TYPE_PATH_PARAM + "=" + objectType.name();
 		if (versionNumber != null) {
-			request += "&version=" + versionNumber;
+			request += "&" + OBJECT_VERSION_PATH_PARAM + "=" + versionNumber;
 		}
 		return request;
 	}

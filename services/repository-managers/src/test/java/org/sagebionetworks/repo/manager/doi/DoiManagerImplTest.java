@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager.doi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Date;
 
@@ -21,7 +24,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -32,12 +34,9 @@ import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
-import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
-import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.dao.DuplicateKeyException;
@@ -61,7 +60,8 @@ public class DoiManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 
 	private static final String baseUrl = "https://syn.org/test/";
-	private static final String repoEndpoint = "https://prod-base.sagetest.gov/repo/v3";
+	private static final String stack = "notprod";
+	private static final String expectedRepoEndpoint = "https://repo-" + stack + "." + stack + ".sagebase.org/repo/v1";
 
 	private static final UserInfo adminInfo = new UserInfo(true);
 	private static final String entityId = "syn584322";
@@ -86,7 +86,7 @@ public class DoiManagerImplTest {
 		doiManager = new DoiManagerImpl();
 		ReflectionTestUtils.setField(doiManager, "stackConfiguration", mockConfig);
 		when(mockConfig.getSynapseBaseUrl()).thenReturn(baseUrl);
-		when(mockConfig.getRepositoryServiceEndpoint()).thenReturn(repoEndpoint);
+		when(mockConfig.getStack()).thenReturn(stack);
 		when(mockConfig.getDoiPrefix()).thenReturn(mockPrefix);
 		ReflectionTestUtils.setField(doiManager, "dataciteClient", mockDataciteClient);
 		ReflectionTestUtils.setField(doiManager, "doiAssociationDao", mockDoiDao);
@@ -167,7 +167,7 @@ public class DoiManagerImplTest {
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(true, "mock"));
 		// The following mocks are necessary for the rest of the method to succeed on a "create"
-		when(mockDoiDao.getEtagForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
@@ -188,11 +188,15 @@ public class DoiManagerImplTest {
 	@Test
 	public void testCreateSuccess() throws Exception {
 		// Test the entire create call
-		when(mockDoiDao.getEtagForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 
 		doiManager.createOrUpdateDoi(adminInfo, inputDto);
+		assertEquals(inputDto.getUpdatedOn(), inputDto.getAssociatedOn());
+		assertNotNull(inputDto.getEtag());
+		assertEquals(adminInfo.getId().toString(), inputDto.getAssociatedBy());
+		assertEquals(adminInfo.getId().toString(), inputDto.getUpdatedBy());
 		verify(mockDoiDao).createDoiAssociation(inputDto);
 		verify(mockDataciteClient).registerMetadata(any(DataciteMetadata.class), any(String.class));
 		verify(mockDataciteClient).registerDoi(any(String.class), any(String.class));
@@ -201,16 +205,19 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testUpdateSuccess() throws Exception {
+		Doi dtoToUpdate = setUpDto(true);
+		String existingEtag = "an etag";
+		dtoToUpdate.setAssociatedOn(new Timestamp(0));
+		dtoToUpdate.setEtag(existingEtag);
+		when(mockDoiDao.getDoiAssociationForUpdate(dtoToUpdate.getObjectId(), dtoToUpdate.getObjectType(), dtoToUpdate.getObjectVersion())).thenReturn(dtoToUpdate);
 		// Test the entire update call
-		inputDto.setEtag("a matching etag");
-		when(mockDoiDao.getEtagForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion()))
-				.thenReturn("a matching etag");
-
-		when(mockDoiDao.updateDoiAssociation(inputDto)).thenReturn(outputDto);
-		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
+		when(mockDoiDao.updateDoiAssociation(dtoToUpdate)).thenReturn(dtoToUpdate);
+		when(mockDataciteClient.get(any(String.class))).thenReturn(dtoToUpdate);
 		// Call under test
-		doiManager.createOrUpdateDoi(adminInfo, inputDto);
-		verify(mockDoiDao).updateDoiAssociation(inputDto);
+		doiManager.createOrUpdateDoi(adminInfo, dtoToUpdate);
+		assertNotEquals(existingEtag, dtoToUpdate.getEtag());
+		assertNotEquals(dtoToUpdate.getUpdatedOn(), dtoToUpdate.getAssociatedOn());
+		verify(mockDoiDao).updateDoiAssociation(dtoToUpdate);
 		verify(mockDataciteClient).registerMetadata(any(DataciteMetadata.class), any(String.class));
 		verify(mockDataciteClient).registerDoi(any(String.class), any(String.class));
 		verify(mockDataciteClient, never()).deactivate(any(String.class));
@@ -240,7 +247,7 @@ public class DoiManagerImplTest {
 	@Test
 	public void testCreateOrUpdateNullObjectVersion() throws Exception {
 		inputDto.setObjectVersion(null);
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, null)).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
 		when(mockDataciteClient.get(any(String.class))).thenReturn(outputDto);
 		// Call under test
@@ -250,37 +257,30 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testCreateAssociation() throws Exception {
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenThrow(new NotFoundException());
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
 
-		verify(mockDoiDao).getEtagForUpdate(entityId, entityType, version);
+		verify(mockDoiDao).getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion());
 		verify(mockDoiDao).createDoiAssociation(inputDto);
 	}
 
 	@Test
 	public void testUpdateAssociation() throws Exception {
+		DoiAssociation retrievedDto = setUpDto(false);
+		retrievedDto.setEtag("matching etag");
 		inputDto.setEtag("matching etag");
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenReturn("matching etag");
+
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(retrievedDto);
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
 
-		verify(mockDoiDao).getEtagForUpdate(entityId, entityType, version);
 		verify(mockDoiDao).updateDoiAssociation(inputDto);
-	}
-
-	@Test(expected = ConflictingUpdateException.class)
-	public void testUpdateAssociationMismatchedEtag() throws Exception {
-		inputDto.setEtag("nonmatching etag 1");
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenReturn("nonmatching etag2");
-		// Call under test
-		doiManager.createOrUpdateAssociation(inputDto);
 	}
 
 	@Test(expected = RecoverableMessageException.class)
 	public void testThrowRecoverableOnDuplicateKeyException() throws Exception {
-		when(mockDoiDao.getEtagForUpdate(entityId, entityType, version)).thenThrow(new NotFoundException());
-
+		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenThrow(new DuplicateKeyException(""));
 		// Call under test
 		doiManager.createOrUpdateAssociation(inputDto);
@@ -426,9 +426,9 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testGenerateRequestUrl() {
-		String expected = repoEndpoint + DoiManagerImpl.RESOURCE_PATH
+		String expected = expectedRepoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
-				+ "&objectType=" + entityType.name()
+				+ "&type=" + entityType.name()
 				+ "&version=" + version;
 
 		// Call under test
@@ -437,9 +437,9 @@ public class DoiManagerImplTest {
 
 	@Test
 	public void testGenerateRequestUrlNullVersion() {
-		String expected = repoEndpoint + DoiManagerImpl.RESOURCE_PATH
+		String expected = expectedRepoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
-				+ "&objectType=" + entityType.name();
+				+ "&type=" + entityType.name();
 
 		// Call under test
 		assertEquals(expected, doiManager.generateLocationRequestUrl(entityId, entityType, null));
@@ -447,9 +447,9 @@ public class DoiManagerImplTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testGenerateRequestUrlFailOnNonentity() {
-		String expected = repoEndpoint + DoiManagerImpl.RESOURCE_PATH
+		String expected = expectedRepoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
 				+ "?id=" + entityId
-				+ "&objectType=" + ObjectType.TEAM.name()
+				+ "&type=" + ObjectType.TEAM.name()
 				+ "&version=" + version;
 
 		// Call under test
@@ -558,10 +558,6 @@ public class DoiManagerImplTest {
 			// Required metadata fields
 			DoiCreator doiCreator = new DoiCreator();
 			doiCreator.setCreatorName(author);
-			DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
-			nameIdentifier.setIdentifier(orcid);
-			nameIdentifier.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
-			doiCreator.setNameIdentifiers(Collections.singletonList(nameIdentifier));
 			dto.setCreators(Collections.singletonList(doiCreator));
 
 			DoiTitle doiTitle = new DoiTitle();

@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -347,6 +348,25 @@ public class TableViewIntegrationTest {
 		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
 		assertEquals(fileCount, rows.size());
 		validateRowsMatchFiles(rows);
+	}
+	
+	@Test
+	public void testSumFileSizes() throws Exception{
+		createFileView();
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+
+		// run the query again
+		int expectedRowCount = fileCount;
+		QueryOptions options = new QueryOptions().withRunSumFileSizes(true).withRunQuery(true);
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
+		assertNotNull(results);
+		assertNotNull(results.getSumFileSizes());
+		assertFalse(results.getSumFileSizes().getGreaterThan());
+		assertNotNull(results.getSumFileSizes().getSumFileSizesBytes());
+		assertTrue(results.getSumFileSizes().getSumFileSizesBytes() > 0L);
 	}
 	
 	/**
@@ -1220,6 +1240,11 @@ public class TableViewIntegrationTest {
 		return waitForConsistentQuery(user, query, rowCount);
 	}
 	
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, int rowCount) throws Exception {
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
+		return waitForConsistentQuery(user, query, options, rowCount);
+	}
+	
 	/**
 	 * Wait for a query to return the expected number of rows.
 	 * @param user
@@ -1228,10 +1253,10 @@ public class TableViewIntegrationTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, int rowCount) throws Exception {
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options, int rowCount) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
-			QueryResultBundle results = waitForConsistentQuery(user, query);
+			QueryResultBundle results = waitForConsistentQuery(user, query, options);
 			List<Row> rows = extractRows(results);
 			if(rows.size() == rowCount){
 				return results;
@@ -1259,13 +1284,16 @@ public class TableViewIntegrationTest {
 	}
 	
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query) throws Exception {
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
+		return waitForConsistentQuery(user, query, options);
+	}
+	
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				boolean runQuery = true;
-				boolean runCount = true;
-				boolean returnFacets = false;
-				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+				
+				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, options);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

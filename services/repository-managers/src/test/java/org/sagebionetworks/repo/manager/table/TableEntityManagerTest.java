@@ -1072,14 +1072,17 @@ public class TableEntityManagerTest {
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
 	
 	@Test
 	public void testUpdateTableUploadToTableRequest() throws IOException{
 		UploadToTableRequest request = new UploadToTableRequest();
+		request.setTableId(tableId);
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, request);
 		verify(mockTableUploadManager).uploadCSV(mockProgressCallbackVoid, user, request, manager);
+		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
 	
 	@Test
@@ -1089,6 +1092,7 @@ public class TableEntityManagerTest {
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, request);
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.ROW);
+		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

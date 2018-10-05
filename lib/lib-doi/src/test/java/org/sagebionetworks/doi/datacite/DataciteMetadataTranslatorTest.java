@@ -14,7 +14,6 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAMESPA
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAMESPACE_PREFIX_VALUE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAMESPACE_VALUE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER;
-import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER_SCHEME;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.ORCID_URI;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLICATION_YEAR;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER;
@@ -52,6 +51,7 @@ import java.util.List;
 
 import org.apache.xerces.dom.DocumentImpl;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
@@ -71,8 +71,6 @@ public class DataciteMetadataTranslatorTest {
 	private List<DoiCreator> creators;
 	private DoiCreator c1;
 	private DoiCreator c2;
-	private DoiNameIdentifier nameId1;
-	private DoiNameIdentifier nameId2;
 	private List<DoiTitle> titles;
 	private DoiTitle t1;
 	private DoiTitle t2;
@@ -96,16 +94,6 @@ public class DataciteMetadataTranslatorTest {
 		creators = new ArrayList<>();
 		c1 = new DoiCreator();
 		c1.setCreatorName("Last, First");
-		nameId1 = new DoiNameIdentifier();
-		nameId1.setIdentifier(validOrcid);
-		nameId1.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
-		nameId2 = new DoiNameIdentifier();
-		nameId2.setIdentifier(validOrcid);
-		nameId2.setNameIdentifierScheme(NameIdentifierScheme.ISNI);
-		List<DoiNameIdentifier> ids = new ArrayList<>();
-		ids.add(nameId1);
-		ids.add(nameId2);
-		c1.setNameIdentifiers(ids);
 		c2 = new DoiCreator();
 		c2.setCreatorName("Sample name");
 		creators.add(c1);
@@ -145,16 +133,6 @@ public class DataciteMetadataTranslatorTest {
 		Element creatorNameActual = (Element)actual.getElementsByTagName(CREATOR_NAME).item(0);
 		assertEquals(CREATOR_NAME, creatorNameActual.getTagName());
 		assertEquals(c1.getCreatorName(), creatorNameActual.getTextContent());
-
-		// Test the name identifiers
-		assertEquals(2, actual.getElementsByTagName(NAME_IDENTIFIER).getLength());
-		Element nameIdActual = (Element) actual.getElementsByTagName(NAME_IDENTIFIER).item(0);
-		assertEquals(nameId1.getNameIdentifierScheme().name(), nameIdActual.getAttribute(NAME_IDENTIFIER_SCHEME));
-		assertEquals(nameId1.getIdentifier(), nameIdActual.getTextContent());
-
-		nameIdActual = (Element) actual.getElementsByTagName(NAME_IDENTIFIER).item(1);
-		assertEquals(nameId2.getNameIdentifierScheme().name(), nameIdActual.getAttribute(NAME_IDENTIFIER_SCHEME));
-		assertEquals(nameId2.getIdentifier(), nameIdActual.getTextContent());
 
 		// Test the second creator that has no name identifiers
 		actual = createCreatorElement(dom, c2);
@@ -306,6 +284,29 @@ public class DataciteMetadataTranslatorTest {
 	public void testEmptyCreatorName() {
 		DoiCreator creator = new DoiCreator();
 		creator.setCreatorName("");
+		// Call under test
+		validateDoiCreator(creator);
+	}
+
+	@Test
+	@Ignore // Remove this annotation when PLFM-5145 is complete
+	public void testValidateCreatorWithNonNullNameIdentifiers() {
+		DoiCreator creator = new DoiCreator();
+		creator.setCreatorName("A name");
+
+		DoiNameIdentifier id1 = new DoiNameIdentifier();
+		id1.setIdentifier(validOrcid);
+		id1.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
+
+		DoiNameIdentifier id2 = new DoiNameIdentifier();
+		id2.setIdentifier("Another Identifier");
+		id2.setNameIdentifierScheme(NameIdentifierScheme.ISNI);
+
+		List<DoiNameIdentifier> ids = new ArrayList<>();
+		ids.add(id1);
+		ids.add(id2);
+
+		creator.setNameIdentifiers(ids);
 		// Call under test
 		validateDoiCreator(creator);
 	}

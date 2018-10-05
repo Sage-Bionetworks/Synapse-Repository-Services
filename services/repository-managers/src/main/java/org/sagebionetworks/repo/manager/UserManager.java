@@ -36,10 +36,10 @@ public interface UserManager {
 	 * Creates a new user and initializes some fields as specified.
 	 * Must be an admin to use this
 	 */
-	public UserInfo createTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException;
 
-	public UserInfo createTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
 	
 	/**

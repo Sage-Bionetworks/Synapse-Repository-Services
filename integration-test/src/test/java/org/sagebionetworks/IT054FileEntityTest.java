@@ -115,7 +115,7 @@ public class IT054FileEntityTest {
 		
 		// Association for this file.
 		association = new FileHandleAssociation();
-		association.setAssociateObjectId(KeyFactory.stringToKey(file.getId()).toString());
+		association.setAssociateObjectId(file.getId());
 		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		association.setFileHandleId(file.getDataFileHandleId());
 		

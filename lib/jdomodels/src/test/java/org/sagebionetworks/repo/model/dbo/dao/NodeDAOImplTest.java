@@ -30,7 +30,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -72,10 +71,11 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -87,11 +87,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.UnexpectedRollbackException;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Lists;
@@ -625,98 +622,6 @@ public class NodeDAOImplTest {
 		assertEquals(null, id);
 	}
 	
- 	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
-	@Test(expected=IllegalTransactionStateException.class)
-	public void testGetETagForUpdate1() throws Exception {
-		Node toCreate = privateCreateNew("testGetETagForUpdate");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		String eTag = nodeDao.peekCurrentEtag(id);
-		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag);
-		fail("Should have thrown an IllegalTransactionStateException");
-	}
-
- 	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
-	@Test(expected=IllegalTransactionStateException.class)
-	public void testGetETagForUpdate2() throws Exception {
-		Node toCreate = privateCreateNew("testGetETagForUpdate");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		String eTag = nodeDao.peekCurrentEtag(id);
-		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag, ChangeType.DELETE);
-		fail("Should have thrown an IllegalTransactionStateException");
-	}
-	
-	@Test(expected=IllegalTransactionStateException.class)
-	public void testLockNodesNoTransaction(){
-		// must call must be made from within a transaction.
-		nodeDao.lockNodes(new LinkedList<String>());
-	}
-	
-	@Test
-	public void testLockNodes(){
-		// one
-		Node toCreate = privateCreateNew("testOne");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		final Node one = nodeDao.getNode(id);
-
-		// two
-		toCreate = privateCreateNew("testTwo");
-		id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		final Node two = nodeDao.getNode(id);
-
-		// attempt to lock both within a transaction.
-		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
-			@Override
-			public List<String> doInTransaction(TransactionStatus status) {
-				// Try to lock both nodes out of order
-				List<String> etags = nodeDao.lockNodes(Lists.newArrayList(two.getId(), one.getId()));
-				return etags;
-			}
-		});
-		assertNotNull(lockedEtags);
-		assertEquals(2, lockedEtags.size());
-		// The first etag should be first
-		assertEquals(one.getETag(), lockedEtags.get(0));
-		assertEquals(two.getETag(), lockedEtags.get(1));
-	}
-	
-	@Test
-	public void testLockNodesEmpty(){
-		// attempt to lock both within a transaction.
-		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
-			@Override
-			public List<String> doInTransaction(TransactionStatus status) {
-				// Empty list should result in an empty return.
-				List<String> etags = nodeDao.lockNodes(new LinkedList<String>());
-				return etags;
-			}
-		});
-		assertNotNull(lockedEtags);
-		assertEquals(0, lockedEtags.size());
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testLockNodesEmptyNull(){
-		// attempt to lock both within a transaction.
-		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
-			@Override
-			public List<String> doInTransaction(TransactionStatus status) {
-				// Empty list should result in an empty return.
-				List<String> etags = nodeDao.lockNodes(null);
-				return etags;
-			}
-		});
-		assertNotNull(lockedEtags);
-		assertEquals(0, lockedEtags.size());
-	}
-	
 
 	@Test
 	public void testUpdateNode() throws Exception{
@@ -1123,16 +1028,6 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testVersionCount() throws Exception {
-		// Create a number of versions
-		int numberVersions = 10;
-		String id = createNodeWithMultipleVersions(numberVersions);
-		// Now list the versions
-		long numVersions = nodeDao.getVersionCount(id);
-		assertEquals(numberVersions, numVersions);
-	}
-
-	@Test
 	public void testDeleteCurrentVersion() throws Exception {
 		// Create a number of versions
 		int numberVersions = 2;
@@ -1198,14 +1093,6 @@ public class NodeDAOImplTest {
 		node = nodeDao.getNode(id);
 		assertNotNull(node);
 		assertEquals("Deleting all versions except the first should have left the node in place with a current version of 1.",new Long(1), node.getVersionNumber());
-	}
-	
-	//mySQL seems to have a limit of 15 for the number of delete cascades to prevent infinite loops. https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.5/en/ansi-diff-foreign-keys.html
-	@Test (expected = DataIntegrityViolationException.class)
-	public void testDeleteCascadeMax(){
-		List<String> nodeIds = createNestedNodes(15);
-		//delete the parent node 
-		nodeDao.delete(nodeIds.get(0));
 	}
 	
 	//anything less than 15 works
@@ -1339,18 +1226,6 @@ public class NodeDAOImplTest {
 	}
 	
 	
-	@Test (expected = DataIntegrityViolationException.class)
-	public void testDeleteListCascadeMax(){
-		List<String> stringTypeNodeIds = createNestedNodes(15);
-		List<Long> listParentOnly = new ArrayList<Long>();
-		
-		//only add the root parent
-		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
-		
-		nodeDao.delete(listParentOnly);
-	}
-	
-	
 	@Test
 	public void testPeekCurrentEtag() throws  Exception {
 		Node node = privateCreateNew("testPeekCurrentEtag");
@@ -1407,6 +1282,7 @@ public class NodeDAOImplTest {
 		Node parent = privateCreateNew("parent");
 		parent.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(parent);
+		parent = nodeDao.getNode(parentId);
 		Long parentBenefactor = KeyFactory.stringToKey(parentId);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -1455,6 +1331,10 @@ public class NodeDAOImplTest {
 		assertEquals("1", header.getVersionLabel());
 		assertEquals(new Long(1), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
+		assertEquals(parent.getCreatedByPrincipalId().toString(), header.getCreatedBy());
+		assertEquals(parent.getCreatedOn(), header.getCreatedOn());
+		assertEquals(parent.getModifiedByPrincipalId().toString(), header.getModifiedBy());
+		assertEquals(parent.getModifiedOn(), header.getModifiedOn());
 		
 		header = results.get(2);
 		assertEquals(childId, header.getId());
@@ -1587,6 +1467,10 @@ public class NodeDAOImplTest {
 			array[i].setVersionLabel(null);
 			array[i].setVersionNumber(null);
 			array[i].setBenefactorId(null);
+			array[i].setCreatedBy(null);
+			array[i].setCreatedOn(null);
+			array[i].setModifiedBy(null);
+			array[i].setModifiedOn(null);
 		}
 		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
 		assertNotNull(path);
@@ -1620,60 +1504,6 @@ public class NodeDAOImplTest {
 		assertEquals(childIds, fromDao);
 	}
 	
-	@Test (expected=NotFoundException.class)
-	public void testGetRefrenceDoesNotExist() throws DatastoreException, InvalidModelException, NotFoundException{
-		// This should throw a not found exception.
-		nodeDao.getNodeReference("syn123");
-	}
-	
-	@Test
-	public void testGetRefrenceNull() throws DatastoreException, InvalidModelException, NotFoundException{
-		// Create a new node
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		// This should be empty but not null
-		Reference ref = nodeDao.getNodeReference(id);
-		assertNull(ref);
-	}
-	
-	@Test
-	public void testGetRefrence() throws DatastoreException, InvalidModelException, NotFoundException{
-		// Create a new node
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(node);
-		toDelete.add(parentId);
-		// Create a child with a reference to the parent
-		node = privateCreateNew("child");
-		node.setParentId(parentId);
-		node.setNodeType(EntityType.folder);
-		// Add a reference
-		
-		Reference ref = new Reference();
-		ref.setTargetId(parentId);
-		node.setReference(ref);
-		String id = nodeDao.createNew(node);
-		// This should be empty but not null
-		Reference expectedRef = nodeDao.getNodeReference(id);
-		assertNotNull(expectedRef);
-		assertEquals(node.getReference(), expectedRef);
-		
-		// Now create a new revision and make sure we get the latest only
-		node = nodeDao.getNode(id);
-		ref = new Reference();
-		ref.setTargetId(id);
-		ref.setTargetVersionNumber(node.getVersionNumber());
-		node.setReference(ref);
-		node.setVersionLabel("v2");
-		nodeDao.createNewVersion(node);
-		// Now get the current references
-		expectedRef = nodeDao.getNodeReference(id);
-		assertNotNull(expectedRef);
-		assertEquals(node.getReference(), expectedRef);
-	}
-
 	@Test
 	public void testAddReferenceNoVersionSpecified() throws Exception {
 		String deleteMeNode = null;
@@ -2135,6 +1965,7 @@ public class NodeDAOImplTest {
 		final String node1Label1 = "1";
 		node1.setVersionLabel(node1Label1);
 		final String id1 = nodeDao.createNew(node1);
+		node1 = nodeDao.getNode(id1);
 		assertNotNull(id1);
 		toDelete.add(id1);
 		node1.setId(id1);
@@ -2146,6 +1977,10 @@ public class NodeDAOImplTest {
 		assertNotNull(results.get(0).getBenefactorId());
 		assertEquals(Long.valueOf(1L), results.get(0).getVersionNumber());
 		assertEquals(node1Label1, results.get(0).getVersionLabel());
+		assertEquals(node1.getCreatedByPrincipalId().toString(), results.get(0).getCreatedBy());
+		assertEquals(node1.getCreatedOn(), results.get(0).getCreatedOn());
+		assertEquals(node1.getModifiedByPrincipalId().toString(), results.get(0).getModifiedBy());
+		assertEquals(node1.getModifiedOn(), results.get(0).getModifiedOn());
 
 		// Create a new version of the node of the same file
 		final String node1Label2 = "Node 1 version label 2";
@@ -2784,6 +2619,8 @@ public class NodeDAOImplTest {
 		assertEquals(file.getModifiedByPrincipalId(), fileDto.getModifiedBy());
 		assertEquals(file.getModifiedOn(), fileDto.getModifiedOn());
 		assertEquals(new Long(Long.parseLong(file.getFileHandleId())), fileDto.getFileHandleId());
+		assertEquals(fileHandle.getContentSize(), fileDto.getFileSizeBytes());
+		
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());
 		List<AnnotationDTO> expected = Lists.newArrayList(
@@ -2800,6 +2637,7 @@ public class NodeDAOImplTest {
 		assertEquals(projectDto.getId(), projectDto.getProjectId());
 		assertEquals(null, projectDto.getFileHandleId());
 		assertEquals(null, projectDto.getAnnotations());
+		assertEquals(null, projectDto.getFileHandleId());
 	}
 	
 	@Test
@@ -3124,9 +2962,185 @@ public class NodeDAOImplTest {
 		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.folder), header.getType());
 		assertEquals(folder2.getVersionLabel(), header.getVersionLabel());
 		assertEquals(folder2.getVersionNumber(), header.getVersionNumber());
+		assertEquals(folder2.getCreatedByPrincipalId().toString(), header.getCreatedBy());
+		assertEquals(folder2.getCreatedOn(), header.getCreatedOn());
+		assertEquals(folder2.getModifiedByPrincipalId().toString(), header.getModifiedBy());
+		assertEquals(folder2.getModifiedOn(), header.getModifiedOn());
 		String benefactorId = nodeDao.getBenefactor(header.getId());
 		Long benefactorLong = KeyFactory.stringToKey(benefactorId);
 		assertEquals(benefactorLong, header.getBenefactorId());
+	}
+	
+	@Test
+	public void testGetChildrenStats() {
+		List<Node> nodes = createHierarchy();
+
+		Node project = nodes.get(0);
+		Node folder2 = nodes.get(2);
+		Node fileZero = nodes.get(3);
+
+		String parentId = project.getId();
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		// exclude folder 2.
+		Set<Long> childIdsToExclude = Sets.newHashSet(KeyFactory.stringToKey(folder2.getId()), 111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(2), results.getTotalChildCount());
+		assertEquals(new Long(TEST_FILE_SIZE), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsNoResults() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsNothingToExclude() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = new HashSet<>();
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedNull() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(null).withIncludeSumFileSizes(null));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedFalse() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(false));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountFalseIncludeSumNull() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(null));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountNullIncludeSumFalse() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(null).withIncludeSumFileSizes(false));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountTrueIncludeSumFalse() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
+		assertNotNull(results);
+		assertEquals(new Long(0), results.getTotalChildCount());
+		assertEquals(null, results.getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testGetChildrenStatsIncludedCountFalseIncludeSumTrue() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(true));
+		assertNotNull(results);
+		assertEquals(null, results.getTotalChildCount());
+		assertEquals(new Long(0), results.getSumFileSizesBytes());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsNullRequest() {
+		// call under test
+		nodeDao.getChildernStats(null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsNullParentId() {
+		String parentId = null;
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsNullTypes() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = null;
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenStatsEmptyTypes() {
+		String parentId = "syn123";
+		List<EntityType> includeTypes = new LinkedList<>();
+		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
+		// call under test
+		nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
+				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
 	}
 	
 	@Test
@@ -3407,5 +3421,29 @@ public class NodeDAOImplTest {
 		assertTrue(availableIds.contains(oneId));
 		assertFalse(availableIds.contains(twoId));
 		assertFalse(availableIds.contains(doesNotExist));
+	}
+	
+	@Test
+	public void testTouch() throws InterruptedException {
+		Long user1Id = Long.parseLong(user1);
+		Long user2Id = Long.parseLong(user2);
+		// created by user 1.
+		Node start = NodeTestUtils.createNew("one",  user1Id);
+		start = nodeDao.createNewNode(start);
+		Long oneId = KeyFactory.stringToKey(start.getId());
+		toDelete.add(start.getId());
+		// sleep to change updatedOn
+		Thread.sleep(10);
+		
+		// call under test (updated by user 2).
+		String newEtag = nodeDao.touch(user2Id, start.getId());
+		assertNotNull(newEtag);
+		// etag must change
+		assertFalse(start.getETag().equals(newEtag));
+		Node afterTouch = nodeDao.getNode(start.getId());
+		assertEquals(afterTouch.getETag(), newEtag);
+		assertTrue(afterTouch.getModifiedOn().getTime() > start.getModifiedOn().getTime());
+		assertEquals(user2Id, afterTouch.getModifiedByPrincipalId());
+		assertEquals(user1Id, start.getCreatedByPrincipalId());
 	}
 }

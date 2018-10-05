@@ -897,4 +897,24 @@ public class TableManagerSupportTest {
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	
+	@Test
+	public void testTouch() {
+		// call under test
+		manager.touchTable(userInfo, tableId);
+		verify(mockNodeDao).touch(userInfo.getId(), tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTouchNullUser() {
+		userInfo = null;
+		// call under test
+		manager.touchTable(userInfo, tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTouchNullTable() {
+		tableId = null;
+		// call under test
+		manager.touchTable(userInfo, tableId);
+	}
 }

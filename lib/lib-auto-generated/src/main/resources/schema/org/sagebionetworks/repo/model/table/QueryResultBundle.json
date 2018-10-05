@@ -38,6 +38,10 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResult"
 			}
+		},
+		"sumFileSizes":{
+			"description":"The sum of the file size for all files in the given view query. Use mask = 0x40 to include in the bundle.",
+			"$ref": "org.sagebionetworks.repo.model.table.SumFileSizes"
 		}
     }
 }

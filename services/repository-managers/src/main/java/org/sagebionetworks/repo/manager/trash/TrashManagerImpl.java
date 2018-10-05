@@ -134,11 +134,9 @@ public class TrashManagerImpl implements TrashManager {
 	 */
 	void updateNodeForTrashCan(UserInfo userInfo, Node node,
 			ChangeType changeType) {
-		// Lock the node and update the etag.
-		final String nextETag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag(), changeType);	
+		// Lock the node and update the etag, modifiedOn and modifiedBy.
+		final String nextETag = nodeDao.touch(userInfo.getId(), node.getId(), changeType);	
 		// Clear the modified data and fill it in with the new data
-		Long userIndividualGroupId = userInfo.getId();
-		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, node);
 		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
 			// This message will trigger a worker to send a message for each child of this hierarchy.
 			transactionalMessenger.sendMessageAfterCommit(node.getId(), ObjectType.ENTITY_CONTAINER, nextETag, changeType);

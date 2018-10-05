@@ -305,11 +305,14 @@ public interface TableManagerSupport {
 			throws DatastoreException, NotFoundException;
 
 	/**
-	 * Blocking lock on the given table ID.
+	 * Touch the table and update the etag, modifiedOn, and modifiedBy.
+	 * This will also lock the table.
 	 * 
+	 * @param user
 	 * @param tableId
+	 * @return
 	 */
-	public void lockOnTableId(String tableId);
+	public String touchTable(UserInfo user, String tableId);
 
 	/**
 	 * Given a set of benefactor Ids get the sub-set of benefactor IDs for which

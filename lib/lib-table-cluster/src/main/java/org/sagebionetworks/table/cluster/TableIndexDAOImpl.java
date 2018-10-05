@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_ON;
@@ -19,6 +20,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM;
 import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAMETER_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
@@ -59,9 +61,7 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.ValidateArgument;
@@ -87,6 +87,9 @@ import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
+
+	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
+			+ ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_ID + " IN (:rowIds)";
 
 	/**
 	 * The MD5 used for tables with no schema.
@@ -619,6 +622,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 				}
+				if(dto.getFileSizeBytes() != null) {
+					ps.setLong(parameterIndex++, dto.getFileSizeBytes());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+				}
 			}
 
 			@Override
@@ -687,6 +695,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					if(rs.wasNull()){
 						dto.setFileHandleId(null);
 					}
+					dto.setFileSizeBytes(rs.getLong(ENTITY_REPLICATION_COL_FILE_SIZE_BYTES));
+					if(rs.wasNull()){
+						dto.setFileSizeBytes(null);
+					}
+					
 					return dto;
 				}}, entityId);
 		} catch (DataAccessException e) {
@@ -901,6 +914,25 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void truncateReplicationSyncExpiration() {
 		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
+	}
+
+	@Override
+	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {
+		ValidateArgument.required(sql, "sql");
+		ValidateArgument.required(parameters, "parameters");
+		// We use spring to create create the prepared statement
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		return namedTemplate.queryForList(sql, new MapSqlParameterSource(parameters), Long.class);
+	}
+
+	@Override
+	public long getSumOfFileSizes(List<Long> rowIds) {
+		ValidateArgument.required(rowIds, "rowIds");
+		if(rowIds.isEmpty()) {
+			return 0L;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		return namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, new MapSqlParameterSource("rowIds", rowIds), Long.class);
 	}
 
 }

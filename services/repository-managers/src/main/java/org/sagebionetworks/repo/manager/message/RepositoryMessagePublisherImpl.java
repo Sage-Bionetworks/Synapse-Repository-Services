@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -43,45 +45,15 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 	@Autowired
 	AmazonSNS awsSNSClient;
-	
-	private boolean shouldMessagesBePublishedToTopic;
 
-	// The prefix applied to each topic.
-	private final String topicPrefix;
+	@Autowired
+	StackConfiguration stackConfiguration;
 
-	// The name for the modification topic.
-	private final String modificationTopicName;
-	
 	// Maps each object type to its topic
 	Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();;
 
-	private TopicInfo modificationTopic;
+	private ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
 
-	/**
-	 * This is injected from spring.
-	 * 
-	 * @param shouldMessagesBePublishedToTopic
-	 */
-	public void setShouldMessagesBePublishedToTopic(
-			boolean shouldMessagesBePublishedToTopic) {
-		this.shouldMessagesBePublishedToTopic = shouldMessagesBePublishedToTopic;
-	}
-
-	/**
-	 * IoC constructor.
-	 * @param transactionalMessanger
-	 * @param awsSNSClient
-	 * @param topicArn
-	 * @param topicName
-	 * @param messageQueue
-	 */
-	public RepositoryMessagePublisherImpl(String topicPrefix, String modificationTopicName, TransactionalMessenger transactionalMessanger,
-			AmazonSNS awsSNSClient) {
-		this.topicPrefix = topicPrefix;
-		this.modificationTopicName = modificationTopicName;
-		this.transactionalMessanger = transactionalMessanger;
-		this.awsSNSClient = awsSNSClient;
-	}
 
 	/**
 	 * Used by tests to inject a mock client.
@@ -89,16 +61,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 */
 	public void setAwsSNSClient(AmazonSNS awsSNSClient) {
 		this.awsSNSClient = awsSNSClient;
-	}
-
-
-	private ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
-
-	public RepositoryMessagePublisherImpl(final String topicPrefix, final String modificationTopicName) {
-		ValidateArgument.required(modificationTopicName, "modificationTopicName");
-		ValidateArgument.required(topicPrefix, "topicPrefix");
-		this.topicPrefix = topicPrefix;
-		this.modificationTopicName = modificationTopicName;
 	}
 
 	/**
@@ -144,7 +106,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	public void timerFired(){
 		// Poll all data from the queue.
 		List<Message> currentQueue = pollListFromQueue();
-		if(!shouldMessagesBePublishedToTopic){
+		if(!stackConfiguration.getShouldMessagesBePublishedToTopic()){
 			// The messages should not be broadcast
 			if(log.isDebugEnabled() && currentQueue.size() > 0){
 				log.debug("RepositoryMessagePublisherImpl.shouldBroadcast = false.  So "+currentQueue.size()+" messages will be thrown away.");
@@ -193,28 +155,13 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		TopicInfo info = this.typeToTopicMap.get(type);
 		if(info == null){
 			// Create the topic
-			String name = this.topicPrefix+type.name();
+			String name = stackConfiguration.getRepositoryChangeTopic(type.name());
 			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(name));
 			String arn = result.getTopicArn();
 			info = new TopicInfo(name, arn);
 			this.typeToTopicMap.put(type, info);
 		}
 		return info;
-	}
-
-	/**
-	 * Get the topic info for modifications (lazy loaded).
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private TopicInfo getModificationTopicInfoLazy() {
-		if (this.modificationTopic == null) {
-			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(this.modificationTopicName));
-			String arn = result.getTopicArn();
-			this.modificationTopic = new TopicInfo(this.modificationTopicName, arn);
-		}
-		return this.modificationTopic;
 	}
 
 	/**

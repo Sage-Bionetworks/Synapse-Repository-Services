@@ -168,11 +168,6 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	}
 
 	@Override
-	public String getParentIdString() {
-		return null;
-	}
-
-	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.WIKI;
 	}

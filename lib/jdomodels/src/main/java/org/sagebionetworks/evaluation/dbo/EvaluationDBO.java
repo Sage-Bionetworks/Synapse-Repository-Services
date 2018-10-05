@@ -208,10 +208,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public String getIdString() {
 		return id.toString();
 	}
-	@Override
-	public String getParentIdString() {
-		return null;
-	}
+
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.EVALUATION;

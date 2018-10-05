@@ -319,6 +319,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			doi.writeToJSONObject(joa);
 			writeTo.put(JSON_DOI, joa);
 		}
+		if (doiAssociation != null){
+			JSONObjectAdapter joa = writeTo.createNew();
+			doiAssociation.writeToJSONObject(joa);
+			writeTo.put(JSON_DOI_ASSOCIATION, joa);
+		}
 		if (fileName != null){
 			writeTo.put(JSON_FILE_NAME, fileName);
 		}
@@ -563,8 +568,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 				+ ", hasChildren=" + hasChildren + ", acl=" + acl + ", accessRequirements=" + accessRequirements
 				+ ", unmetAccessRequirements=" + unmetAccessRequirements + ", fileHandles=" + fileHandles
 				+ ", tableBundle=" + tableBundle + ", rootWikiId=" + rootWikiId + ", benefactorAcl=" + benefactorAcl
-				+ ", doi=" + doi + ", fileName=" + fileName + ", threadCount=" + threadCount
-				+ ", restrictionInformation=" + restrictionInformation + "]";
+				+ ", doi=" + doi + ", doiAssociation=" + doiAssociation + ", fileName=" + fileName +
+				", threadCount=" + threadCount + ", restrictionInformation=" + restrictionInformation + "]";
 	}
 	
 	@Override
@@ -576,6 +581,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 		result = prime * result + ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result + ((benefactorAcl == null) ? 0 : benefactorAcl.hashCode());
 		result = prime * result + ((doi == null) ? 0 : doi.hashCode());
+		result = prime * result + ((doiAssociation == null) ? 0 : doiAssociation.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
 		result = prime * result + ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result + ((fileHandles == null) ? 0 : fileHandles.hashCode());
@@ -625,6 +631,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (other.doi != null)
 				return false;
 		} else if (!doi.equals(other.doi))
+			return false;
+		if (doiAssociation == null) {
+			if (other.doiAssociation != null)
+				return false;
+		} else if (!doiAssociation.equals(other.doiAssociation))
 			return false;
 		if (entity == null) {
 			if (other.entity != null)

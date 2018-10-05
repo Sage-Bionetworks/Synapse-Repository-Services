@@ -68,7 +68,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		toDelete = new ArrayList<String>();
 
 		type = NodeRecord.class.getSimpleName().toLowerCase();
-		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getAsyncQueueName(QUEUE_NAME));
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getQueueName(QUEUE_NAME));
 		
 		// Clear the data for this test instance.
 		objectRecordDAO.deleteAllStackInstanceBatches(type);

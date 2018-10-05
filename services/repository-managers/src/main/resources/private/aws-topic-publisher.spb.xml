@@ -22,14 +22,6 @@
 	<bean id="messagePublisher"
 		class="org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl"
 		init-method="initialize">
-		<constructor-arg type="java.lang.String">
-			<ref bean="stackConfiguration.repositoryChangeTopicPrefix" />
-		</constructor-arg>
-		<constructor-arg type="java.lang.String">
-			<ref bean="stackConfiguration.repositoryModificationTopicName" />
-		</constructor-arg>
-		<property name="shouldMessagesBePublishedToTopic"
-			ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
 	</bean>
 
 	<!-- This is how messages get rebroadcast -->

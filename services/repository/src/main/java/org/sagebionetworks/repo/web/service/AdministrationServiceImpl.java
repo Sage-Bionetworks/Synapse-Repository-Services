@@ -146,7 +146,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 	
 	@Override
-	public EntityId createTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
+	public EntityId createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
 		adminCheck(userId);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
@@ -170,7 +170,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo user = userManager.createTestUser(userInfo, nu, cred, touAgreement, token);
+		UserInfo user = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement, token);
 		
 		EntityId id = new EntityId();
 		id.setId(user.getId().toString());

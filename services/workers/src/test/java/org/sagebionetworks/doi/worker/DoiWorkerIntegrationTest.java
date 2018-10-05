@@ -61,8 +61,8 @@ public class DoiWorkerIntegrationTest {
 	String projectId;
 	Doi submissionDoi;
 
-	private static final String title = "5 Easy Steps You Can Take To Become President (You Won't Believe #3!)";
-	private static final String author = "Washington, George";
+	private static final String title = "An Integration Test for the DOI Worker";
+	private static final String author = "Synapse Devs";
 	private static final Long publicationYear = 1787L;
 	private static final DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
 
@@ -72,7 +72,7 @@ public class DoiWorkerIntegrationTest {
 		adminUser = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserInfo = userManager.getUserInfo(adminUser);
 		project = new Project();
-		project.setName("Some project that needs a DOI");
+		project.setName("An Integration Test Project");
 		projectId = entityManager.createEntity(adminUserInfo, project, null);
 		submissionDoi = setUpRequestBody();
 	}

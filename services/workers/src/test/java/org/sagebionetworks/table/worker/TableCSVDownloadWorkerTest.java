@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -41,7 +42,6 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -109,7 +109,7 @@ public class TableCSVDownloadWorkerTest {
 		QueryResultBundle countResults = new QueryResultBundle();
 		countResults.setQueryCount(100L);
 		when(mockTableQueryManager.querySinglePage(any(ProgressCallback.class),
-				any(UserInfo.class), any(Query.class), any(Boolean.class), any(Boolean.class), any(Boolean.class))).thenReturn(countResults);
+				any(UserInfo.class), any(Query.class), any(QueryOptions.class))).thenReturn(countResults);
 
 		doAnswer(new Answer<RuntimeException>() {
 

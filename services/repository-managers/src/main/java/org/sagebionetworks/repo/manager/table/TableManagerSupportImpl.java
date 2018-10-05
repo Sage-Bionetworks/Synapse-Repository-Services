@@ -487,11 +487,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException {
 		return columnModelDao.getColumnModelsForObject(tableId);
 	}
-
-	@Override
-	public void lockOnTableId(String tableId) {
-		columnModelDao.lockOnOwner(tableId);
-	}
 	
 	@Override
 	public ColumnModel getColumnModel(EntityField field){
@@ -593,6 +588,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			// Validation is built into getAllContainerIdsForScope() call
 			getAllContainerIdsForScope(scopeIds, viewTypeMask);
 		}
+	}
+
+	@Override
+	public String touchTable(UserInfo user, String tableId) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(tableId, "tableId");
+		return nodeDao.touch(user.getId(), tableId);
 	}
 
 }

@@ -183,11 +183,6 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		return id.toString();
 	}
 
-	@Override
-	public String getParentIdString() {
-		return null;
-	}
-
 	public MetadataType getMetadataTypeEnum() {
 		return metadataType;
 	}
