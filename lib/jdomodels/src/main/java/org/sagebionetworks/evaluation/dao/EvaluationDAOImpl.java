@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.dao;
 
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_JOIN;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.BIND_VAR_PREFIX;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR;
@@ -13,7 +14,9 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -35,7 +38,6 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -72,6 +74,15 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =
 			"SELECT DISTINCT e.* FROM " + AUTHORIZATION_SQL_TABLES+", "+TABLE_EVALUATION+" e ";
 		
+	private static final String AUTHORIZATION_SQL_WHERE_1 = 
+			"where (ra."+COL_RESOURCE_ACCESS_GROUP_ID+
+			" in (";
+
+	private static final String AUTHORIZATION_SQL_WHERE_2 = 
+			")) AND "+AUTHORIZATION_SQL_JOIN+
+		    " and acl."+COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR+
+			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
+
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
 			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
 			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
@@ -154,6 +165,15 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 	}
 	
+	private static String authorizationSQLWhere() {
+		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_WHERE_1);
+		sb.append(":");
+		sb.append(BIND_VAR_PREFIX);
+		sb.append(AUTHORIZATION_SQL_WHERE_2);
+		return sb.toString();
+	}
+
+
 	@Override
 	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
@@ -166,7 +186,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere());
+		sql.append(authorizationSQLWhere());
 		sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
@@ -190,7 +210,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere());
+		sql.append(authorizationSQLWhere());
 		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
 			param.addValue(COL_EVALUATION_ID, evaluationIds);
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTER);

@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_JOIN;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.PRINCIPAL_IDS_BIND_VAR;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR;
-import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.SELECT_RESOURCE_INTERSECTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
@@ -71,6 +72,28 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String BIND_PARENT_ID = "bParentId";
 	private static final String BIND_GROUP_IDS = "bGroupIds";
+	
+	private static final String SELECT_RESOURCE_INTERSECTION = "SELECT acl."
+			+ COL_ACL_OWNER_ID
+			+ " as "+COL_ACL_OWNER_ID+" FROM "
+			+ AUTHORIZATION_SQL_TABLES
+			+ " WHERE "
+			+ AUTHORIZATION_SQL_JOIN
+			+ " AND ra."
+			+ COL_RESOURCE_ACCESS_GROUP_ID
+			+ " IN (:"
+			+ PRINCIPAL_IDS_BIND_VAR
+			+ ") AND at."
+			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT
+			+ "=:"
+			+ ACCESS_TYPE_BIND_VAR
+			+ " AND acl."
+			+ COL_ACL_OWNER_ID
+			+ " IN (:"
+			+ RESOURCE_ID_BIND_VAR
+			+ ") AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
+	
+
 	
 	private static final String SELECT_NON_VISIBLE_CHILDREN =
 			"SELECT N1."+COL_NODE_ID+
