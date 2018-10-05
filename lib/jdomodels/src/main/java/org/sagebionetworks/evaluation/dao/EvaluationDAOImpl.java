@@ -164,14 +164,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			throw new NotFoundException(EVALUATION_NOT_FOUND + id);
 		}
 	}
-	
-	private static String authorizationSQLWhere() {
-		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_WHERE_1);
-		sb.append(":");
-		sb.append(BIND_VAR_PREFIX);
-		sb.append(AUTHORIZATION_SQL_WHERE_2);
-		return sb.toString();
-	}
+
+	private static final String AUTHORIZATION_SQL_WHERE = 
+			AUTHORIZATION_SQL_WHERE_1+
+			":"+
+			BIND_VAR_PREFIX+
+			AUTHORIZATION_SQL_WHERE_2;
 
 
 	@Override
@@ -186,7 +184,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(authorizationSQLWhere());
+		sql.append(AUTHORIZATION_SQL_WHERE);
 		sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
@@ -210,7 +208,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(authorizationSQLWhere());
+		sql.append(AUTHORIZATION_SQL_WHERE);
 		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
 			param.addValue(COL_EVALUATION_ID, evaluationIds);
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTER);
