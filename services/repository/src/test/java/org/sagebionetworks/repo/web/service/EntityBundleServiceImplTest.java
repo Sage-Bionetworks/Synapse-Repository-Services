@@ -8,6 +8,7 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -90,6 +91,7 @@ public class EntityBundleServiceImplTest {
 	private Project project;
 	private Folder study;
 	private Folder studyWithId;
+	private FileEntity file;
 	private Annotations annos;
 	private AccessControlList acl;
 	private EntityThreadCounts threadCounts;
@@ -98,7 +100,10 @@ public class EntityBundleServiceImplTest {
 	
 	private static final String DUMMY_STUDY_1 = "Test Study 1";
 	private static final String DUMMY_PROJECT = "Test Project";
+	private static final String DUMMY_FILE = "Test File";
 	private static final String STUDY_ID = "1";
+	private static final String FILE_ID = "syn2";
+	private static final long FILE_VERSION = 3L;
 	private static final long BOOTSTRAP_USER_GROUP_ID = 0L;
 	
 	@Before
@@ -124,13 +129,20 @@ public class EntityBundleServiceImplTest {
 		study.setName(DUMMY_STUDY_1);
 		study.setEntityType(study.getClass().getName());
 		study.setParentId(project.getId());
-		
+
 		studyWithId = new Folder();
 		studyWithId.setName(DUMMY_STUDY_1);
 		studyWithId.setEntityType(study.getClass().getName());
 		studyWithId.setParentId(project.getId());
 		studyWithId.setId(STUDY_ID);
-		
+
+		file = new FileEntity();
+		file.setName(DUMMY_FILE);
+		file.setEntityType(file.getClass().getName());
+		file.setParentId(studyWithId.getId());
+		file.setVersionNumber(FILE_VERSION);
+		file.setId(FILE_ID);
+
 		// Annotations
 		annos = new Annotations();		
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
@@ -168,7 +180,7 @@ public class EntityBundleServiceImplTest {
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(new Annotations());
 		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class))).thenReturn(annos);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
-		
+
 		// Create the bundle, verify contents
 		EntityBundleCreate ebc = new EntityBundleCreate();
 		
@@ -276,11 +288,29 @@ public class EntityBundleServiceImplTest {
 		doi.setObjectType(ObjectType.ENTITY);
 		doi.setObjectId(entityId);
 		doi.setObjectVersion(null);
-		// The getDoi call needs to yield a ServiceUnavailableException to get a DOI Association
-		when(mockDoiServiceV2.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenThrow(new ServiceUnavailableException());
 		when(mockDoiServiceV2.getDoiAssociation(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenReturn(doi);
 		// Call under test
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(doi, bundle.getDoiAssociation());
+	}
+
+	@Test
+	public void testDoiAssociationForUnversionedRequestForVersionable() throws Exception {
+		// Must retrieve entity to determine if it is VersionableEntity
+		int mask = EntityBundle.ENTITY | EntityBundle.DOI;
+		DoiAssociation doi = new DoiAssociation();
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectId(FILE_ID);
+		doi.setObjectVersion(FILE_VERSION);
+
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(FILE_ID), any(HttpServletRequest.class))).thenReturn(file);
+		when(mockDoiServiceV2.getDoiAssociation(TEST_USER1, FILE_ID, ObjectType.ENTITY, FILE_VERSION)).thenReturn(doi);
+
+		// Call under test. Note the bundle requests 'null' version
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, FILE_ID, mask, null);
+
+		verify(mockDoiServiceV2, never()).getDoiAssociation(TEST_USER1, FILE_ID, ObjectType.ENTITY, null);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoiAssociation());
 	}

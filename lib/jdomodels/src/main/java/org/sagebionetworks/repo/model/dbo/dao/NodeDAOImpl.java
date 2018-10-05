@@ -227,11 +227,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ ", N." + COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", R." + COL_REVISION_MODIFIED_BY + ", R."
 			+ COL_REVISION_MODIFIED_ON;
 	
+	private static final String JOIN_NODE_REVISION = TABLE_NODE+" N"+
+			" JOIN "+TABLE_REVISION+" R"+
+			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")";
+	private static final String JOIN_NODE_REVISION_FILES = JOIN_NODE_REVISION+ " LEFT JOIN "
+			+ TABLE_FILES + " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID + " )";
+	
 	private static final String SQL_SELECT_CHIDREN_TEMPLATE =
 			ENTITY_HEADER_SELECT+
-				" FROM "+TABLE_NODE+" N"+
-				" JOIN "+TABLE_REVISION+" R"+
-					" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
+				" FROM "+JOIN_NODE_REVISION+
 				" WHERE N."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
 						" %1$s"+
 						" AND N."+COL_NODE_TYPE+" IN (:"+BIND_NODE_TYPES+")"+
@@ -299,18 +303,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final String BENEFACTOR_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+")";
 	public static final String PROJECT_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_PROJECT_ID+"(N."+COL_NODE_ID+")";
 	
-	private static final String SQL_SELECT_ENTITY_DTO = "SELECT N."
-			+ COL_NODE_ID + ", N."+COL_CURRENT_REV+", N." + COL_NODE_CREATED_BY + ", N."
-			+ COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N."
-			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N."
-			+ COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
-			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R."
-			+ COL_REVISION_MODIFIED_ON + ", R." + COL_REVISION_FILE_HANDLE_ID
-			+ ", R." + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_NODE + " N, "
-			+ TABLE_REVISION + " R WHERE N." + COL_NODE_ID + " = R."
-			+ COL_REVISION_OWNER_NODE + " AND N." + COL_CURRENT_REV + " = R."
-			+ COL_REVISION_NUMBER + " AND N." + COL_NODE_ID + " IN(:"
-			+ NODE_IDS_LIST_PARAM_NAME + ")";
+	private static final String SQL_SELECT_ENTITY_DTO = "SELECT N." + COL_NODE_ID + ", N." + COL_CURRENT_REV + ", N."
+			+ COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N." + COL_NODE_NAME
+			+ ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
+			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
+			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_ANNOS_BLOB + ", F." + COL_FILES_CONTENT_SIZE
+			+ " FROM " + JOIN_NODE_REVISION_FILES+" WHERE N."
+			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ")";
+	
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 
@@ -1565,6 +1565,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setFileHandleId(rs.getLong(COL_REVISION_FILE_HANDLE_ID));
 				if(rs.wasNull()){
 					dto.setFileHandleId(null);
+				}
+				dto.setFileSizeBytes(rs.getLong(COL_FILES_CONTENT_SIZE));
+				if(rs.wasNull()) {
+					dto.setFileSizeBytes(null);
 				}
 				Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
 				if(blob != null){

@@ -2619,6 +2619,8 @@ public class NodeDAOImplTest {
 		assertEquals(file.getModifiedByPrincipalId(), fileDto.getModifiedBy());
 		assertEquals(file.getModifiedOn(), fileDto.getModifiedOn());
 		assertEquals(new Long(Long.parseLong(file.getFileHandleId())), fileDto.getFileHandleId());
+		assertEquals(fileHandle.getContentSize(), fileDto.getFileSizeBytes());
+		
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());
 		List<AnnotationDTO> expected = Lists.newArrayList(
@@ -2635,6 +2637,7 @@ public class NodeDAOImplTest {
 		assertEquals(projectDto.getId(), projectDto.getProjectId());
 		assertEquals(null, projectDto.getFileHandleId());
 		assertEquals(null, projectDto.getAnnotations());
+		assertEquals(null, projectDto.getFileHandleId());
 	}
 	
 	@Test
