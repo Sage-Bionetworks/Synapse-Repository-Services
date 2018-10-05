@@ -33,8 +33,8 @@ public class AuthorizationSqlUtil {
 	 * The bind variable used to set the access type for authorization filters.
 	 */
 	public static final String ACCESS_TYPE_BIND_VAR = "type";
-	private static final String RESOURCE_ID_BIND_VAR = "resourceId";
-	private static final String PRINCIPAL_IDS_BIND_VAR = "principalIds";
+	public static final String RESOURCE_ID_BIND_VAR = "resourceId";
+	public static final String PRINCIPAL_IDS_BIND_VAR = "principalIds";
 	public static final String RESOURCE_TYPE_BIND_VAR = COL_ACL_OWNER_TYPE;
 	
 	public static final String SELECT_RESOURCE_INTERSECTION = "SELECT acl."
