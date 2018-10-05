@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A wrapper for AWS's AmazonCloudSearchDomain. DO NOT INSTANTIATE.
@@ -43,7 +44,7 @@ public class CloudsSearchDomainClientAdapter {
 
 
 		String documents = SearchUtil.convertSearchDocumentsToJSONString(batch);
-		byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
+		final byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
 										.withContentType("application/json")
 										.withDocuments(new ByteArrayInputStream(documentBytes))
@@ -51,7 +52,16 @@ public class CloudsSearchDomainClientAdapter {
 		try {
 			UploadDocumentsResult result = client.uploadDocuments(request);
 		} catch (DocumentServiceException e){
-			throw handleCloudSearchExceptions(e);
+			int statusCode = e.getStatusCode();
+			if(statusCode / 100 == 4) { //4xx status codes
+				List<String> documentIds = batch.stream().map(Document::getId).collect(Collectors.toList());
+				logger.error("The following search document was unable to be uploaded to CloudSearch:\n\n" +
+				documents);
+				throw new IllegalArgumentException(documentIds.toString() + " search documents could not be uploaded.", e);
+			}else {
+				throw e;
+			}
+
 		}
 	}
 

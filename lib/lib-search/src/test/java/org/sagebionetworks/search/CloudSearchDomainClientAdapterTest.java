@@ -2,6 +2,7 @@ package org.sagebionetworks.search;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
+import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
@@ -24,6 +25,10 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyCollection;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -120,6 +125,23 @@ public class CloudSearchDomainClientAdapterTest {
 
 		assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(documentBytes), capturedRequest.getDocuments()));
 		assertEquals(new Long(documentBytes.length), capturedRequest.getContentLength());
+	}
+
+	@Test
+	public void testSendDocument400LevelError(){
+		DocumentServiceException exception = mock(DocumentServiceException.class);
+		when(exception.getStatusCode()).thenReturn(400);
+		when(mockCloudSearchDomainClient.uploadDocuments(any(UploadDocumentsRequest.class))).thenThrow(exception);
+		Document document = new Document();
+		document.setId("syn123");
+		document.setType(DocumentTypeNames.add);
+		try {
+			cloudSearchDomainClientAdapter.sendDocument(document);
+			fail();
+		}catch (IllegalArgumentException e){
+			//expected
+			assertEquals("[syn123] search documents could not be uploaded.", e.getMessage());
+		}
 	}
 
 }
