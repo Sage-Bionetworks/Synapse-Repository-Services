@@ -38,14 +38,6 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_SUBMISSIONS_ETAG  = "ETAG";
 	public static final String COL_EVALUATION_SUBMISSIONS_EVAL_ID = "EVAL_ID";
 	
-	// Participant table constants
-	public static final String DDL_FILE_PARTICIPANT				= "schema/evaluation/Participant-ddl.sql";
-	public static final String TABLE_PARTICIPANT				= "JDOPARTICIPANT";
-	public static final String COL_PARTICIPANT_ID 				= "PARTICIPANT_ID";
-	public static final String COL_PARTICIPANT_USER_ID 			= "USER_ID";
-	public static final String COL_PARTICIPANT_EVAL_ID 			= "EVALUATION_ID";
-	public static final String COL_PARTICIPANT_CREATED_ON 		= "CREATED_ON";
-	
 	// Submission table constants
 	public static final String DDL_FILE_SUBMISSION				= "schema/evaluation/Submission-ddl.sql";
 	public static final String TABLE_SUBMISSION					= "JDOSUBMISSION";
