@@ -865,7 +865,7 @@
 		<org.apache.commons.commons-dbcp.version>1.4
 		</org.apache.commons.commons-dbcp.version>
 		<schema-to-pojo.version>0.3.21</schema-to-pojo.version>
-		<com.amazonaws.version>1.11.335</com.amazonaws.version>
+		<com.amazonaws.version>1.11.421</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.2
 		</org.apache.httpcomponents.version>

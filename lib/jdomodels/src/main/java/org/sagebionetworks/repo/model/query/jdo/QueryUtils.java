@@ -3,20 +3,17 @@ package org.sagebionetworks.repo.model.query.jdo;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
-import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -40,30 +37,6 @@ public class QueryUtils {
 		
 		// This is a bit of a hack to filter on layers.
 		primaryFields.add(SqlConstants.INPUT_DATA_LAYER_DATASET_ID);
-	}
-
-	public static String buildAuthorizationSelect(Collection<Long> groups, Map<String, Object> parameters, int groupIndexToStartFrom) {
-		if (parameters == null)
-			throw new IllegalArgumentException("Parameters cannot be null");
-		// For all other cases we build up a filter
-		if (groups == null)
-			throw new IllegalArgumentException("User's groups cannot be null");
-		if (groups.size() < 1)
-			throw new IllegalArgumentException("User must belong to at least one group");
-		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size(), groupIndexToStartFrom);
-		// Bind the variables
-		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
-		// Bind each group
-		Iterator<Long> it = groups.iterator();
-		int index = groupIndexToStartFrom;
-		while (it.hasNext()) {
-			Long ug = it.next();
-			if (ug == null)
-				throw new IllegalArgumentException("UserGroup was null");
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX + index, ug);
-			index++;
-		}
-		return sql;
 	}
 
 	public static String buildPaging(long offset, long limit,
