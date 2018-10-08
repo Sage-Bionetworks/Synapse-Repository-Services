@@ -1,26 +1,33 @@
 package org.sagebionetworks.repo;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.Collections;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.util.Clock;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
+@RunWith(MockitoJUnitRunner.class)
 public class MemoryLoggerTest {
 
 	@Mock
@@ -29,19 +36,29 @@ public class MemoryLoggerTest {
 	Clock clock;
 	@Mock
 	StackConfiguration stackConfig;
+	@InjectMocks
+	MemoryLogger memoryLogger = new MemoryLogger("Repo");
 	
-	MemoryLogger memoryLogger;
+	String namespacePrefix;
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		memoryLogger = new MemoryLogger();
-		ReflectionTestUtils.setField(memoryLogger, "consumer", consumer);
-		ReflectionTestUtils.setField(memoryLogger, "clock", clock);
-		ReflectionTestUtils.setField(memoryLogger, "stackConfig", stackConfig);
-		
+		when(stackConfig.getStackInstance()).thenReturn("instance1");		
 		when(clock.currentTimeMillis()).thenReturn(1L, 2L,3L,4L,5L);
 		when(stackConfig.isProductionStack()).thenReturn(true);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testNullPrefix() {
+		String prefix = null;
+		// call under test
+		new MemoryLogger(prefix);
+	}
+	
+	@Test
+	public void testGetNamespace() {
+		// call under test
+		assertEquals("Repo-Memory-instance1", memoryLogger.getNamespace());
 	}
 	
 	@Test
@@ -59,7 +76,7 @@ public class MemoryLoggerTest {
 		assertEquals(2, results.size());
 		// the first metric should be all
 		ProfileData all = results.get(0);
-		assertEquals(MemoryLogger.REPO_MEMORY_NAMESPACE, all.getNamespace());
+		assertEquals(memoryLogger.getNamespace(), all.getNamespace());
 		assertEquals(MemoryLogger.USED, all.getName());
 		assertEquals(Collections.singletonMap(MemoryLogger.INSTANCE, MemoryLogger.ALL_INSTANCES), all.getDimension());
 		assertEquals(StandardUnit.Bytes.name(), all.getUnit());
@@ -73,7 +90,7 @@ public class MemoryLoggerTest {
 		
 		// the next metric should be the instances
 		ProfileData instance = results.get(1);
-		assertEquals(MemoryLogger.REPO_MEMORY_NAMESPACE, instance.getNamespace());
+		assertEquals(memoryLogger.getNamespace(), instance.getNamespace());
 		assertEquals(MemoryLogger.USED, instance.getName());
 		// VMID used for the instances
 		assertEquals(Collections.singletonMap(MemoryLogger.INSTANCE, VirtualMachineIdProvider.getVMID()), instance.getDimension());
@@ -101,7 +118,7 @@ public class MemoryLoggerTest {
 		assertEquals(1, results.size());
 		// the first metric should be all
 		ProfileData all = results.get(0);
-		assertEquals(MemoryLogger.REPO_MEMORY_NAMESPACE, all.getNamespace());
+		assertEquals(memoryLogger.getNamespace(), all.getNamespace());
 		assertEquals(MemoryLogger.USED, all.getName());
 		assertEquals(Collections.singletonMap(MemoryLogger.INSTANCE, MemoryLogger.ALL_INSTANCES), all.getDimension());
 	}

@@ -58,6 +58,7 @@
     <import resource="classpath:id-generator-cleanup-worker-spb.xml" />
     <import resource="classpath:doi-worker-sqs-spb.xml" />
     <import resource="classpath:add-files-to-download-list-spb.xml" />
+    <import resource="classpath:memory-logger-trigger-spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -104,6 +105,7 @@
 				<!-- worker profiler -->
 				<ref bean="jobIntervalProcessorTrigger" />
 				<ref bean="idGeneratorCleanuSynchTrigger" />
+				<ref bean="memoryLoggerTrigger" />
 			</list>
 		</property>
 	</bean>

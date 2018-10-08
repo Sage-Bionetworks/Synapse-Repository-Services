@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Date;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricStats;
@@ -26,8 +25,7 @@ public class MemoryLogger {
 	public static final String INSTANCE = "instance";
 	public static final String USED = "used";
 	public static final String ALL_INSTANCES = "all";
-	public static final String REPO_MEMORY_NAMESPACE = "Repository-Memory-"
-			+ StackConfigurationSingleton.singleton().getStackInstance();
+			
 	/*
 	 * Since the smallest period supported by cloud watch is one minute, metrics
 	 * are only pushed to cloud watch once per minute.
@@ -40,6 +38,9 @@ public class MemoryLogger {
 	Clock clock;
 	@Autowired
 	StackConfiguration stackConfig;
+	
+	String nameSapcePrefix;
+	String nameSpace;
 
 	long lastPublishToCloudWatchMS;
 
@@ -48,8 +49,12 @@ public class MemoryLogger {
 	private long count;
 	private long sum;
 
-	public MemoryLogger() {
+	public MemoryLogger(String nameSpacePrefix) {
 		lastPublishToCloudWatchMS = 0;
+		if(nameSpacePrefix == null) {
+			throw new IllegalArgumentException("NamespacePrefix cannot be null");
+		}
+		this.nameSapcePrefix = nameSpacePrefix;
 		resetStats();
 	}
 
@@ -120,13 +125,24 @@ public class MemoryLogger {
 	public ProfileData createMetric(MetricStats stats, Date date,
 			String instance) {
 		ProfileData pd = new ProfileData();
-		pd.setNamespace(REPO_MEMORY_NAMESPACE);
+		pd.setNamespace(getNamespace());
 		pd.setTimestamp(date);
 		pd.setName(USED);
 		pd.setUnit(StandardUnit.Bytes.name());
 		pd.setMetricStats(stats);
 		pd.setDimension(Collections.singletonMap(INSTANCE, instance));
 		return pd;
+	}
+
+	/**
+	 * The metric name space.
+	 * @return
+	 */
+	public String getNamespace() {
+		if(nameSpace == null) {
+			nameSpace = nameSapcePrefix +"-Memory-"+stackConfig.getStackInstance();
+		}
+		return nameSpace;
 	}
 
 	public long getMaximum() {
