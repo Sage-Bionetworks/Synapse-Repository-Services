@@ -2,16 +2,22 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -22,6 +28,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORevision> {
 	public static final int MAX_COMMENT_LENGTH = 256;
+
+	private static Logger logger = LogManager.getLogger(DBORevision.class);
 
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -167,7 +175,35 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	}
 	@Override
 	public MigratableTableTranslation<DBORevision, DBORevision> getTranslator() {
-		return new BasicMigratableTableTranslation<DBORevision>();
+		//TODO: revert this back to using BasicMigratableTableTranslation
+		return new MigratableTableTranslation<DBORevision, DBORevision>(){
+			private static final String CONCRETE_TYPE = "concreteType";
+
+			@Override
+			public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
+				byte[] rawAnnotations = backup.getAnnotations();
+				if (rawAnnotations != null && rawAnnotations.length > 0){
+					try {
+						NamedAnnotations annotations = JDOSecondaryPropertyUtils.decompressedAnnotations(rawAnnotations);
+						Map<String, List<String>> stringAnnotations = annotations.getAdditionalAnnotations().getStringAnnotations();
+						List<String> concreteTypeAnnotation = stringAnnotations.get(CONCRETE_TYPE);
+						if(concreteTypeAnnotation.size() == 1 && concreteTypeAnnotation.get(0).startsWith("org.sagebionetworks")){
+							stringAnnotations.remove(CONCRETE_TYPE);
+						}
+						backup.setAnnotations(JDOSecondaryPropertyUtils.compressAnnotations(annotations));
+					} catch (Exception e) {
+						//don't attempt to modify the annotations if error occurs
+						logger.error(e);
+					}
+				}
+				return backup;
+			}
+
+			@Override
+			public DBORevision createBackupFromDatabaseObject(DBORevision dbo) {
+				return dbo;
+			}
+		};
 	}
 	
 	@Override
