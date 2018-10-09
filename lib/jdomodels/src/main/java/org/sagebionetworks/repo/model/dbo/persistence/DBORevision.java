@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -26,6 +28,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORevision> {
 	public static final int MAX_COMMENT_LENGTH = 256;
+
+	private static Logger logger = LogManager.getLogger(DBORevision.class);
 
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -189,6 +193,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 						backup.setAnnotations(JDOSecondaryPropertyUtils.compressAnnotations(annotations));
 					} catch (Exception e) {
 						//don't attempt to modify the annotations if error occurs
+						logger.error(e);
 					}
 				}
 				return backup;

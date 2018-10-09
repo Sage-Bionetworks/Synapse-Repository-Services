@@ -107,7 +107,7 @@ public class DBORevisionTest {
 	}
 
 	@Test
-	public void testDBOTranslatorAnnotations() throws IOException {
+	public void testDBOTranslatorAnnotations_concreteTypeIsFromPrimaryAnnotations() throws IOException {
 		DBORevision rev = new DBORevision();
 		NamedAnnotations namedAnnotations = new NamedAnnotations();
 		namedAnnotations.getAdditionalAnnotations().addAnnotation("concreteType", "org.sagebionetworks.repo.model.FileEntity");
@@ -122,5 +122,21 @@ public class DBORevisionTest {
 		assertNull(translatedAnnotations.getAdditionalAnnotations().getStringAnnotations().get("concreteType"));
 		assertEquals(Collections.singletonList("org.sagebionetworks.repo.model.FakeType"), namedAnnotations.getAdditionalAnnotations().getStringAnnotations().get("unrelatedAnnotation"));
 	}
+
+	@Test
+	public void testDBOTranslatorAnnotations_concreteTypeIsCustomAnnotation() throws IOException {
+		DBORevision rev = new DBORevision();
+		NamedAnnotations namedAnnotations = new NamedAnnotations();
+		namedAnnotations.getAdditionalAnnotations().addAnnotation("concreteType", "myOwnAnnotation");
+
+		rev.setAnnotations(JDOSecondaryPropertyUtils.compressAnnotations(namedAnnotations));
+
+		MigratableTableTranslation<DBORevision, DBORevision> translator = rev.getTranslator();
+		DBORevision translatedRevision = translator.createDatabaseObjectFromBackup(rev);
+
+		NamedAnnotations translatedAnnotations = JDOSecondaryPropertyUtils.decompressedAnnotations(translatedRevision.getAnnotations());
+		assertEquals(Collections.singletonList("myOwnAnnotation"), namedAnnotations.getAdditionalAnnotations().getStringAnnotations().get("concreteType"));
+	}
+
 
 }
