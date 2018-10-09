@@ -19,7 +19,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.*;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COUNT;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_FACETS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
@@ -741,6 +741,22 @@ public class TableQueryManagerImplTest {
 		assertEquals(2, bundle.getFacets().size());
 		//we don't care about the first facet result because it has no useful data and only exists to make sure for loops work
 		assertEquals(expectedRangeResult, bundle.getFacets().get(1));
+	}
+	
+	@Test
+	public void testQueryBundleSumFileSizes() throws LockUnavilableException, TableUnavailableException, TableFailedException {
+		QueryBundleRequest queryBundle = new QueryBundleRequest();
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		query.setIsConsistent(true);
+		queryBundle.setQuery(query);
+		queryBundle.setPartMask(BUNDLE_MASK_SUM_FILE_SIZES);
+		// call under test
+		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getSumFileSizes());
+		assertFalse(bundle.getSumFileSizes().getGreaterThan());
+		assertEquals(new Long(0),bundle.getSumFileSizes().getSumFileSizesBytes());
 	}
 	
 	@Test

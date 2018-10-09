@@ -402,6 +402,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (options.returnMaxRowsPerPage()) {
 			bundle.setMaxRowsPerPage(queryResult.getMaxRowsPerPage());
 		}
+		if(options.runSumFileSizes()) {
+			bundle.setSumFileSizes(queryResult.getSumFileSizes());
+		}
+		
 		return bundle;
 	}
 
