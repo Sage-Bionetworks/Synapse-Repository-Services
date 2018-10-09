@@ -38,12 +38,12 @@ import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -94,7 +94,9 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private EntityPermissionsManager mockEntityPermissionsManager;
 	@Mock
-	private AccessControlListDAO mockAclDAO;
+	private EntityAuthorizationManager mockEntityAuthorizationManager;
+	@Mock
+	private AuthorizationDAO mockAuthorizationDAO;
 	@Mock
 	private FileHandleAssociationManager mockFileHandleAssociationManager;
 	@Mock
@@ -178,7 +180,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
 		ReflectionTestUtils.setField(authorizationManager, "entityPermissionsManager", mockEntityPermissionsManager);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
-		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
+		ReflectionTestUtils.setField(authorizationManager, "authorizationDAO", mockAuthorizationDAO);
 		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleAssociationSwitch", mockFileHandleAssociationManager);
 		ReflectionTestUtils.setField(authorizationManager, "verificationDao", mockVerificationDao);
@@ -236,13 +238,13 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockDockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
 		when(mockNodeDao.getBenefactor(REPO_ENTITY_ID)).thenReturn(REPO_ENTITY_ID);  // mocked to return something other than trash can
 		
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.READ), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.READ), eq(USER_INFO))).
 		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 	
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
 		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 	
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 			
 		when(mockEvaluationPermissionsManager.
@@ -373,20 +375,20 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessWithObjectTypeEntityAllow() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityAuthorizationManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertTrue("User should have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
 	}
 
 	@Test
 	public void testCanAccessWithObjectTypeEntityDeny() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockEntityAuthorizationManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		assertFalse("User should not have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
 	}
 
 	@Test(expected=EntityInTrashCanException.class)
 	public void testCanAccessWithTrashCanException() throws DatastoreException, NotFoundException{
-		when(mockEntityPermissionsManager.hasAccess(eq("syn123"), any(ACCESS_TYPE.class), eq(userInfo))).thenThrow(new EntityInTrashCanException(""));
+		when(mockEntityAuthorizationManager.hasAccess(eq("syn123"), any(ACCESS_TYPE.class), eq(userInfo))).thenThrow(new EntityInTrashCanException(""));
 		authorizationManager.canAccess(userInfo, "syn123", ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
@@ -489,10 +491,10 @@ public class AuthorizationManagerImplUnitTest {
 		// admin can always access
 		assertTrue(authorizationManager.canAccess(adminUser, teamId, ObjectType.TEAM, accessType).getAuthorized());
 		// non admin can access if acl says so
-		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(true);
+		when(mockAuthorizationDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(true);
 		assertTrue(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).getAuthorized());
 		// otherwise not
-		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
+		when(mockAuthorizationDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
 		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).getAuthorized());
 	}
 
@@ -509,7 +511,7 @@ public class AuthorizationManagerImplUnitTest {
 		key.setOwnerObjectId(entityId);
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
-		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo))
+		when(mockEntityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
 	}
@@ -522,7 +524,7 @@ public class AuthorizationManagerImplUnitTest {
 		key.setOwnerObjectId(entityId);
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
-		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo))
+		when(mockEntityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.UPDATE).getAuthorized());
 	}
@@ -540,7 +542,7 @@ public class AuthorizationManagerImplUnitTest {
 		key.setOwnerObjectId(entityId);
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
-		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, anonymousUserInfo))
+		when(mockEntityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, anonymousUserInfo))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertTrue(authorizationManager.canAccess(anonymousUserInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
 	}
@@ -740,7 +742,7 @@ public class AuthorizationManagerImplUnitTest {
 		String associatedObjectId = "456";
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		//the user is not authorized to download the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
+		when(mockEntityAuthorizationManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
 		// user is the creator of "2"
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(Sets.newHashSet("2"));
 		// neither file is associated with the object.
@@ -766,7 +768,7 @@ public class AuthorizationManagerImplUnitTest {
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		Set<String> emptySet = Sets.newHashSet();
 		// the user has download on the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityAuthorizationManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// user is not the creator of either file.
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
 		// neither file is associated with the object.
@@ -790,7 +792,7 @@ public class AuthorizationManagerImplUnitTest {
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		Set<String> emptySet = Sets.newHashSet();
 		//the user is authorized to download the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityAuthorizationManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// user is not the creator of either file.
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
 		// the first file is associated with the object.
@@ -814,7 +816,7 @@ public class AuthorizationManagerImplUnitTest {
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		Set<String> emptySet = Sets.newHashSet();
 		//the user is not authorized to download the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
+		when(mockEntityAuthorizationManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
 		// user is not the creator of either file.
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
 		// the first file is associated with the object.
@@ -837,7 +839,7 @@ public class AuthorizationManagerImplUnitTest {
 		// call under test
 		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, benefactors);
 		assertEquals(benefactors, results);
-		verify(mockAclDAO, never()).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+		verify(mockAuthorizationDAO, never()).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
 	
 	@Test
@@ -845,7 +847,7 @@ public class AuthorizationManagerImplUnitTest {
 		Set<Long> benefactors = Sets.newHashSet(1L,2L);
 		// call under test
 		authorizationManager.getAccessibleBenefactors(userInfo, benefactors);
-		verify(mockAclDAO, times(1)).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+		verify(mockAuthorizationDAO, times(1)).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
 	
 	@Test
@@ -860,7 +862,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanReadBenefactorsTrashNonAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
-		when(mockAclDAO.getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
+		when(mockAuthorizationDAO.getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
 		// call under test
 		Set<Long> results = authorizationManager.getAccessibleBenefactors(userInfo, benefactors);
 		assertNotNull(results);
@@ -869,7 +871,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanSubscribeForumUnauthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockEntityAuthorizationManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
 		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
 				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
@@ -877,7 +879,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanSubscribeForumAuthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityAuthorizationManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
@@ -885,7 +887,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanSubscribeThreadUnauthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockEntityAuthorizationManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockThreadDao.getProjectId(threadId)).thenReturn(projectId);
 		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
 				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
@@ -893,7 +895,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanSubscribeThreadAuthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityAuthorizationManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockThreadDao.getProjectId(threadId)).thenReturn(projectId);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
@@ -929,30 +931,6 @@ public class AuthorizationManagerImplUnitTest {
 				.thenReturn(true);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS));
-	}
-
-	@Test
-	public void testGetAccessibleProjectIds(){
-		Set<Long> expectedProjectIds = Sets.newHashSet(555L);
-		Set<Long> principalIds = Sets.newHashSet(123L);
-		when(mockAclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ)).thenReturn(expectedProjectIds);
-		Set<Long> results = authorizationManager.getAccessibleProjectIds(principalIds);
-		assertEquals(expectedProjectIds,results);
-	}
-	
-	@Test
-	public void testGetAccessibleProjectIdsEmpty(){
-		Set<Long> principalIds = new HashSet<>();
-		Set<Long> results = authorizationManager.getAccessibleProjectIds(principalIds);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-		verify(mockAclDAO, never()).getAccessibleProjectIds(any(Set.class), any(ACCESS_TYPE.class));
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAccessibleProjectIdsNullPrincipals(){
-		Set<Long> principalIds = null;
-		authorizationManager.getAccessibleProjectIds(principalIds);
 	}
 	
 	@Test
@@ -1048,7 +1026,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testGetPermittedAccessTypesNonexistentChild() throws Exception {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
 
-		when(mockEntityPermissionsManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 	
 		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
@@ -1063,10 +1041,10 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testGetPermittedAccessRepoExistsAccessUnauthorized() throws Exception {
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
@@ -1079,10 +1057,10 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testGetPermittedAccessRepoExistsAccessUnauthorizedBUTWasSubmitted() throws Exception {
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
 		when(mockEvaluationPermissionsManager.
@@ -1100,10 +1078,10 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		// method under test:
@@ -1121,10 +1099,10 @@ public class AuthorizationManagerImplUnitTest {
 
 		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
-		when(mockEntityPermissionsManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
-		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+		when(mockEntityAuthorizationManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:

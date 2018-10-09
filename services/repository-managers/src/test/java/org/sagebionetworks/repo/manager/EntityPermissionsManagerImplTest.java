@@ -60,6 +60,9 @@ public class EntityPermissionsManagerImplTest {
 	private EntityPermissionsManager entityPermissionsManager;
 	
 	@Autowired
+	private EntityAuthorizationManager entityAuthorizationManager;
+	
+	@Autowired
 	private AccessRequirementManager accessRequirementManager;
 	
 	@Autowired
@@ -634,7 +637,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// baseline:  there is no restriction against downloading this entity
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 		// now create an access requirement on project and child
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -647,11 +650,11 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// now we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
 		arId=null;
 		// back to the baseline
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 		// now add the AR to the child node itself
 		ar.setId(null);
 		ar.setEtag(null);
@@ -661,6 +664,6 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// again, we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 	}
 }

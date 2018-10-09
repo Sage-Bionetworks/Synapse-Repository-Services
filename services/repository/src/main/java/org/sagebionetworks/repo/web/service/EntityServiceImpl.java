@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
@@ -74,6 +75,8 @@ public class EntityServiceImpl implements EntityService {
 	
 	@Autowired
 	EntityManager entityManager;
+	@Autowired
+	EntityAuthorizationManager entityAuthorizationManager;
 	@Autowired
 	EntityPermissionsManager entityPermissionsManager;
 	@Autowired
@@ -504,7 +507,7 @@ public class EntityServiceImpl implements EntityService {
 	public boolean hasAccess(String entityId, Long userId, HttpServletRequest request, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo).getAuthorized();
+		return entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo).getAuthorized();
 	}
 
 	@Override
@@ -542,7 +545,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public UserEntityPermissions getUserEntityPermissions(Long userId, String entityId) throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
+		return entityAuthorizationManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 
 	@Override

@@ -10,6 +10,8 @@ import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -24,7 +26,6 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -37,7 +38,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.Sets;
 
 public class UserProfileManagerImpl implements UserProfileManager {
@@ -45,6 +45,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
+	@Autowired
+	private AccessControlListDAO aclDAO;
 	@Autowired
 	private FavoriteDAO favoriteDAO;
 	@Autowired
@@ -189,6 +191,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			InvalidModelException, NotFoundException {
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
 	}
+	
+	private Set<Long> getAccessibleProjectIds(Set<Long> principalIds) {
+		ValidateArgument.required(principalIds, "principalIds");
+		if(principalIds.isEmpty()){
+			return new HashSet<>(0);
+		}
+		return aclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ);
+	}
 
 	@Override
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo caller,
@@ -222,7 +232,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 					+ " not yet implemented");
 		}
 		// Find the projectIds accessible to the user-to-get-for.
-		Set<Long> userToGetAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(userToGetPrincipalIds);
+		Set<Long> userToGetAccessibleProjectIds = getAccessibleProjectIds(userToGetPrincipalIds);
 		Set<Long> projectIdsToFilterBy = null;
 		if (!caller.isAdmin()
 				&& !caller.getId().equals(userToGetInfoFor.getId())) {
@@ -231,7 +241,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			 * as the user-to-get-for. Therefore, the return projects must only
 			 * include the intersection of projects that both users can read.
 			 */
-			Set<Long> currentUserAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(caller.getGroups());
+			Set<Long> currentUserAccessibleProjectIds = getAccessibleProjectIds(caller.getGroups());
 			// use the intersection.
 			projectIdsToFilterBy = Sets.intersection(userToGetAccessibleProjectIds,	currentUserAccessibleProjectIds);
 		} else {

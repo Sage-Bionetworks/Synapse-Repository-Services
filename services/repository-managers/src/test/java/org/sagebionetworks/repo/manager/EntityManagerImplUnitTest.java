@@ -64,6 +64,8 @@ public class EntityManagerImplUnitTest {
 	@Mock
 	private EntityPermissionsManager mockPermissionsManager;
 	@Mock
+	private EntityAuthorizationManager entityAuthorizationManager;
+	@Mock
 	private NodeManager mockNodeManager;
 	@Mock
 	private UserInfo mockUser;
@@ -94,8 +96,8 @@ public class EntityManagerImplUnitTest {
 		childRequest.setIncludeSumFileSizes(false);
 		nonvisibleChildren = Sets.newHashSet(555L,777L);
 		
-		when(mockPermissionsManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockPermissionsManager.getNonvisibleChildren(mockUser, childRequest.getParentId())).thenReturn(nonvisibleChildren);
+		when(entityAuthorizationManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.getNonvisibleChildren(mockUser, childRequest.getParentId())).thenReturn(nonvisibleChildren);
 		childPage = Lists.newArrayList(new EntityHeader());
 		when(mockNodeManager.getChildren(anyString(),
 						anyListOf(EntityType.class), anySetOf(Long.class),
@@ -112,8 +114,8 @@ public class EntityManagerImplUnitTest {
 		// return the mock user.
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
+		when(entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
 		entityManager.validateReadAccess(mockUser, entityId);
 		
 	}
@@ -124,8 +126,8 @@ public class EntityManagerImplUnitTest {
 		// return the mock user.
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
+		when(entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
 		entityManager.validateReadAccess(mockUser, entityId);
 	}
 	
@@ -259,9 +261,9 @@ public class EntityManagerImplUnitTest {
 		assertNotNull(response);
 		assertEquals(statsReponse.getTotalChildCount(), response.getTotalChildCount());
 		assertEquals(statsReponse.getSumFileSizesBytes(), response.getSumFileSizesBytes());
-		verify(mockPermissionsManager).hasAccess(childRequest.getParentId(),
+		verify(entityAuthorizationManager).hasAccess(childRequest.getParentId(),
 				ACCESS_TYPE.READ, mockUser);
-		verify(mockPermissionsManager).getNonvisibleChildren(mockUser,
+		verify(entityAuthorizationManager).getNonvisibleChildren(mockUser,
 				childRequest.getParentId());
 		verify(mockNodeManager).getChildren(childRequest.getParentId(),
 				childRequest.getIncludeTypes(), nonvisibleChildren,
@@ -303,8 +305,8 @@ public class EntityManagerImplUnitTest {
 		EntityChildrenResponse response = entityManager.getChildren(mockUser, childRequest);
 		assertNotNull(response);
 		// hasAcces should not be called for root.
-		verify(mockPermissionsManager, never()).hasAccess(anyString(), any(ACCESS_TYPE.class), any(UserInfo.class));
-		verify(mockPermissionsManager).getNonvisibleChildren(mockUser, EntityManagerImpl.ROOT_ID);
+		verify(entityAuthorizationManager, never()).hasAccess(anyString(), any(ACCESS_TYPE.class), any(UserInfo.class));
+		verify(entityAuthorizationManager).getNonvisibleChildren(mockUser, EntityManagerImpl.ROOT_ID);
 		verify(mockNodeManager).getChildren(
 				EntityManagerImpl.ROOT_ID,
 				EntityManagerImpl.PROJECT_ONLY,
@@ -330,7 +332,7 @@ public class EntityManagerImplUnitTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetChildrenCannotReadParent(){
-		when(mockPermissionsManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(entityAuthorizationManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// call under test
 		entityManager.getChildren(mockUser, childRequest);
 	}
@@ -380,7 +382,7 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		entityManager.lookupChild(mockUser, request);
 	}
 
@@ -389,7 +391,7 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenThrow(new NotFoundException());
 		entityManager.lookupChild(mockUser, request);
 	}
@@ -400,9 +402,9 @@ public class EntityManagerImplUnitTest {
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
 		String entityId = "syn2";
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenReturn(entityId);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		entityManager.lookupChild(mockUser, request);
 	}
 
@@ -412,9 +414,9 @@ public class EntityManagerImplUnitTest {
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
 		String entityId = "syn2";
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenReturn(entityId);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		EntityId result = entityManager.lookupChild(mockUser, request);
 		assertNotNull(result);
 		assertEquals(entityId, result.getId());
@@ -425,9 +427,9 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setEntityName("entityName");
 		String entityId = "syn2";
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeManager.lookupChild(EntityManagerImpl.ROOT_ID, request.getEntityName())).thenReturn(entityId);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		EntityId result = entityManager.lookupChild(mockUser, request);
 		assertNotNull(result);
 		assertEquals(entityId, result.getId());

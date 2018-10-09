@@ -19,10 +19,10 @@ import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -80,13 +80,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private ActivityDAO activityDAO;
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAuthorizationManager entityAuthorizationManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private FileHandleDao fileHandleDao;
 	@Autowired
-	private AccessControlListDAO aclDAO;
+	private AuthorizationDAO authorizationDAO;
 	@Autowired
 	private VerificationDAO verificationDao;
 	@Autowired
@@ -115,7 +115,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			throws DatastoreException, NotFoundException {
 		switch (objectType) {
 			case ENTITY:
-				return entityPermissionsManager.hasAccess(objectId, accessType, userInfo);
+				return entityAuthorizationManager.hasAccess(objectId, accessType, userInfo);
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:
@@ -141,7 +141,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				}
 				
 				// just check the acl
-				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
+				boolean teamAccessPermission = authorizationDAO.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
 				if (teamAccessPermission) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				} else {
@@ -217,12 +217,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) 
 		throws NotFoundException, DatastoreException {
-		return entityPermissionsManager.canCreate(parentId, nodeType, userInfo);
+		return entityAuthorizationManager.canCreate(parentId, nodeType, userInfo);
 	}
 
 	@Override
 	public AuthorizationStatus canChangeSettings(UserInfo userInfo, Node node) throws NotFoundException, DatastoreException {
-		return entityPermissionsManager.canChangeSettings(node, userInfo);
+		return entityAuthorizationManager.canChangeSettings(node, userInfo);
 	}
 
 	@Override
@@ -378,7 +378,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException {
 		if (objectType==ObjectType.ENTITY) {
-			return entityPermissionsManager.canCreateWiki(objectId, userInfo);
+			return entityAuthorizationManager.canCreateWiki(objectId, userInfo);
 		} else {
 			return canAccess(userInfo, objectId, objectType, ACCESS_TYPE.CREATE);
 		}
@@ -447,7 +447,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			results = Sets.newHashSet(benefactors);
 		}else{
 			// non-adim run a query
-			results = this.aclDAO.getAccessibleBenefactors(userInfo.getGroups(), benefactors,
+			results = this.authorizationDAO.getAccessibleBenefactors(userInfo.getGroups(), benefactors,
 					ObjectType.ENTITY, ACCESS_TYPE.READ);
 		}
 		// The trash folder should not be in the results
@@ -485,15 +485,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
 	}
 
-	@Override
-	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds) {
-		ValidateArgument.required(principalIds, "principalIds");
-		if(principalIds.isEmpty()){
-			return new HashSet<>(0);
-		}
-		return this.aclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ);
-	}
-	
 	/*
 	 * Given a docker repository path, return a valid parent Id, 
 	 * a project which has been verified to exist. 
@@ -645,7 +636,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			}
 		}
 		// An admin of the team should be able to create, read or delete the invitation
-		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mi.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		boolean userIsTeamAdmin = authorizationDAO.canAccess(userInfo.getGroups(), mi.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
@@ -691,7 +682,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		// An admin of the team should be able to read or delete the request
 		// The requester should also be able to read or delete the request
-		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mr.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		boolean userIsTeamAdmin = authorizationDAO.canAccess(userInfo.getGroups(), mr.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		boolean userIsRequester = Long.parseLong(mr.getUserId()) == userInfo.getId();
 		if ((userIsTeamAdmin || userIsRequester) && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
 			return AuthorizationManagerUtil.AUTHORIZED;

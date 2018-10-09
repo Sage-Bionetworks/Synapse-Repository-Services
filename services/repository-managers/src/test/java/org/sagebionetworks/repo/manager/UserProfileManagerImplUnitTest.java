@@ -4,10 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.*;
 import static org.mockito.Matchers.anySetOf;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +24,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
@@ -53,6 +56,8 @@ public class UserProfileManagerImplUnitTest {
 
 	@Mock
 	UserProfileDAO mockProfileDAO;
+	@Mock
+	AccessControlListDAO mockAclDAO;
 	@Mock
 	UserGroupDAO mockUserGroupDAO;
 	@Mock
@@ -183,7 +188,7 @@ public class UserProfileManagerImplUnitTest {
 		visibleProjectsOne = Sets.newHashSet(111L,222L,333L);
 		visibleProjectsTwo = Sets.newHashSet(222L,333L,444L);
 		
-		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+		when(mockAclDAO.getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ))).thenReturn(
 				visibleProjectsOne,
 				visibleProjectsTwo
 				);
@@ -326,11 +331,11 @@ public class UserProfileManagerImplUnitTest {
 		assertNotNull(results.getResults());
 		assertEquals(0L, results.getTotalNumberOfResults());
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -350,10 +355,10 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should only be called once for the userToGetFor.
-		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(1)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
 		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
@@ -371,10 +376,10 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should only be called once the userToGetFor
-		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(1)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
 		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
@@ -393,10 +398,10 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should only be called once the userToGetFor
-		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(1)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
 		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
@@ -414,11 +419,11 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -437,11 +442,11 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -460,11 +465,11 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -483,11 +488,11 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -506,11 +511,11 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public, and the user
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublicAndSelf(userToGetFor.getGroups(), userToGetFor.getId());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -532,11 +537,11 @@ public class UserProfileManagerImplUnitTest {
 				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
+		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public, and the user
 		Set<Long> expectedUserToGetGroups = Sets.newHashSet(teamId);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
+		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);

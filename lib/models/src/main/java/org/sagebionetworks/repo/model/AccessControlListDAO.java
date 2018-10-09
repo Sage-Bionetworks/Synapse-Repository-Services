@@ -8,12 +8,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface AccessControlListDAO  {
 
 	/**
-	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
-	 * @throws DatastoreException 
-	 */
-	public boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType, ACCESS_TYPE accessType) throws DatastoreException;
-
-	/**
 	 * Create a new ACL
 	 * @param dto
 	 * @return
@@ -51,7 +45,8 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Long> getAclIds(List<Long> ownerIds, ObjectType objectType);	
+	public List<Long> getAclIds(List<Long> ownerIds, ObjectType objectType);
+	
 	/**
 	 * Get an ACL using the ACL's ID
 	 * @param id - the id of the acl (not the ownerId)
@@ -100,17 +95,6 @@ public interface AccessControlListDAO  {
 	int delete(List<Long> ids, ObjectType ownerType) throws DatastoreException;
 
 	/**
-	 * Given a set of benefactors, and benefactors, return the sub-set of benefactors the that any given principal can see.
-	 * @param groups
-	 * @param benefactors
-	 * @param entity
-	 * @param read
-	 * @return
-	 */
-	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
-			ObjectType entity, ACCESS_TYPE read);
-
-	/**
 	 * Retrieve all user groups that have ACCESS_TYPE accessType to the given object
 	 * 
 	 * @param objectId
@@ -129,17 +113,6 @@ public interface AccessControlListDAO  {
 	 */
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds,
 			ACCESS_TYPE read);
-
-	/**
-	 * Get the ids of the children of the given entity that the passed
-	 * set of groups does not have the read permission.
-	 * 
-	 * @param groups
-	 * @param parentId
-	 * @return
-	 */
-	public Set<Long> getNonVisibleChilrenOfEntity(Set<Long> groups,
-			String parentId);
 
 	/**
 	 * Get the children entities that have ACLs for the given

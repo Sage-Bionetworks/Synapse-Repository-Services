@@ -2,7 +2,6 @@ package org.sagebionetworks.object.snapshot.worker.utils;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +18,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -51,7 +50,7 @@ public class NodeObjectRecordWriterTest {
 	@Mock
 	private AccessRequirementDAO mockAccessRequirementDao;
 	@Mock
-	private EntityPermissionsManager mockEntityPermissionManager;
+	private EntityAuthorizationManager mockEntityAuthorizationManager;
 	@Mock
 	private UserEntityPermissions mockPermissions;
 	@Mock
@@ -73,7 +72,7 @@ public class NodeObjectRecordWriterTest {
 		ReflectionTestUtils.setField(writer, "nodeDAO", mockNodeDAO);
 		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(writer, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(writer, "entityPermissionManager", mockEntityPermissionManager);
+		ReflectionTestUtils.setField(writer, "entityAuthorizationManager", mockEntityAuthorizationManager);
 		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDao);
 
 		node = new NodeRecord();
@@ -82,7 +81,7 @@ public class NodeObjectRecordWriterTest {
 
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
 				.thenReturn(mockUserInfo);
-		when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
+		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
 				.thenReturn(mockPermissions);
 		EntityHeader header = new EntityHeader();;
 		header.setId(node.getId());

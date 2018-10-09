@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -43,6 +44,9 @@ public class DBOAccessControlListDAOScaleTest {
 
 	@Autowired
 	private AccessControlListDAO aclDAO;
+
+	@Autowired
+	private AuthorizationDAO authorizationDAO;
 
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -133,7 +137,7 @@ public class DBOAccessControlListDAOScaleTest {
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
 			long start = System.nanoTime();
-			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
+			boolean canAccess = authorizationDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
 			long end = System.nanoTime();
 			long elpaseMs = (end-start)/1000000;
 			assertTrue(canAccess);

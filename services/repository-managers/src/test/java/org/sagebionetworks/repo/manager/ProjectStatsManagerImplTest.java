@@ -17,6 +17,8 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -43,7 +45,7 @@ public class ProjectStatsManagerImplTest {
 	V2WikiPageDao mockV2wikiPageDao;
 	
 	@Mock
-	AuthorizationManager mockAuthorizationManager;
+	AccessControlListDAO mockAclDAO;
 	
 	@Mock
 	UserGroupDAO mockUserGroupDao;
@@ -65,7 +67,7 @@ public class ProjectStatsManagerImplTest {
 		ReflectionTestUtils.setField(manager, "projectStatDao", mockProjectStatDao);
 		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(manager, "v2wikiPageDao", mockV2wikiPageDao);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "aclDAO", mockAclDAO);
 		ReflectionTestUtils.setField(manager, "userGroupDao", mockUserGroupDao);
 		ReflectionTestUtils.setField(manager, "groupMemberDao", mockGroupMemberDao);
 		
@@ -189,8 +191,8 @@ public class ProjectStatsManagerImplTest {
 		Long projectId2 = 222L;
 		Set<Long> visibleProjectIds = Sets.newLinkedHashSet(Arrays.asList(projectId1, projectId2));
 		// the projects visible to the team
-		when(mockAuthorizationManager.getAccessibleProjectIds(Sets
-						.newLinkedHashSet(Arrays.asList(teamId)))).thenReturn(visibleProjectIds);
+		when(mockAclDAO.getAccessibleProjectIds(Sets
+						.newLinkedHashSet(Arrays.asList(teamId)), ACCESS_TYPE.READ)).thenReturn(visibleProjectIds);
 		
 		// call under test
 		manager.memberAddedToTeam(teamId, memberId, activityDate);
@@ -209,8 +211,8 @@ public class ProjectStatsManagerImplTest {
 		Date activityDate = new Date();
 		Set<Long> empty = new HashSet<Long>();
 		// the projects visible to the team
-		when(mockAuthorizationManager.getAccessibleProjectIds(Sets
-						.newLinkedHashSet(Arrays.asList(teamId)))).thenReturn(empty);
+		when(mockAclDAO.getAccessibleProjectIds(Sets
+						.newLinkedHashSet(Arrays.asList(teamId)), ACCESS_TYPE.READ)).thenReturn(empty);
 		
 		// call under test
 		manager.memberAddedToTeam(teamId, memberId, activityDate);

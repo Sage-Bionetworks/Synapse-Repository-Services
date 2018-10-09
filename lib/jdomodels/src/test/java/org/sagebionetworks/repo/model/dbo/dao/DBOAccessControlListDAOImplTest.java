@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -54,6 +55,9 @@ public class DBOAccessControlListDAOImplTest {
 	
 	@Autowired
 	private AccessControlListDAO aclDAO;
+
+	@Autowired
+	private AuthorizationDAO authorizationDAO;
 	
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -176,103 +180,6 @@ public class DBOAccessControlListDAOImplTest {
 		String rid = "-598787";
 		AccessControlList acl = aclDAO.get(rid, ObjectType.ENTITY);
 		assertNull(acl);
-	}
-	
-	@Test
-	public void testNOOP() {
-	
-	}
-
-	
-	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#canAccess(java.util.Set, java.lang.String, org.sagebionetworks.repo.model.ObjectType, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
-	 */
-	@Test
-	public void testCanAccess() throws Exception {
-		Set<Long> gs = new HashSet<Long>();
-		gs.add(Long.parseLong(group.getId()));
-		
-		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		
-		// but it doesn't have 'UPDATE' access
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		
-		// and no other group has been given access
-		UserGroup sham = new UserGroup();
-		sham.setId("-34876387468764"); // dummy
-		gs.clear();
-		gs.add(Long.parseLong(sham.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-	}
-	
-	@Test
-	public void testCanAccessMultiple() throws Exception {
-		Set<Long> gs = new HashSet<Long>();
-		gs.add(Long.parseLong(group.getId()));
-		
-		Long nodeId = KeyFactory.stringToKey(node.getId());
-		Set<Long> benefactors = Sets.newHashSet(nodeId, new Long(-1));
-		
-		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertTrue(results.contains(nodeId));
-		assertFalse(results.contains(new Long(-1)));
-	}
-	
-	@Test
-	public void testCanAccessMultipleNoMatch() throws Exception {
-		Set<Long> gs = new HashSet<Long>();
-		gs.add(Long.parseLong(group.getId()));
-		
-		// there should be no matches in this set.
-		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
-		
-		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-	}
-	
-	@Test
-	public void testCanAccessMultipleBenefactorsEmpty() throws Exception {
-		Set<Long> gs = new HashSet<Long>();
-		gs.add(Long.parseLong(group.getId()));
-		
-		// there should be no matches in this set.
-		Set<Long> benefactors = Sets.newHashSet();
-		
-		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-	}
-	
-	@Test
-	public void testCanAccessMultipleGroupsEmptyEmpty() throws Exception {
-		Set<Long> gs = new HashSet<Long>();
-		// there should be no matches in this set.
-		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
-		
-		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCanAccessMultipleGroupsNull() throws Exception {
-		Set<Long> gs = null;
-		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
-		// call under test
-		aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCanAccessMultipleBenefactorsNull() throws Exception {
-		Set<Long> gs = new HashSet<Long>();
-		gs.add(Long.parseLong(group.getId()));
-		Set<Long> benefactors = null;
-		// call under test
-		aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	/**
@@ -411,9 +318,9 @@ public class DBOAccessControlListDAOImplTest {
 		
 		Set<Long> gs = new HashSet<Long>();
 		gs.add(Long.parseLong(group.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		assertFalse(authorizationDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertTrue(authorizationDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		assertTrue(authorizationDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 
 		AccessControlList acl2 = aclDAO.get(rid, ObjectType.ENTITY);
 		assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
@@ -455,15 +362,15 @@ public class DBOAccessControlListDAOImplTest {
 		gs.add(Long.parseLong(group.getId()));
 		Set<Long> gs2 = new HashSet<Long>();
 		gs2.add(Long.parseLong(group2.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		assertTrue(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertFalse(authorizationDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertTrue(authorizationDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		
 		// Group one can do this but 2 cannot.
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		assertTrue(authorizationDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		assertTrue(authorizationDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		// Now try 2
-		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		assertFalse(authorizationDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		assertFalse(authorizationDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		
 	}
 	
@@ -584,34 +491,6 @@ public class DBOAccessControlListDAOImplTest {
 		Set<Long> projectIds = aclDAO.getAccessibleProjectIds(principalIs,  ACCESS_TYPE.READ);
 		assertNotNull(projectIds);
 		assertTrue(projectIds.isEmpty());
-	}
-	
-	@Test
-	public void testGetNonVisibleChildrenOfEntity(){
-		// add three children to the project
-		Node visibleToBoth = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToBoth", createdById, modifiedById, node.getId()));
-		Node visibleToOne = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToOne", createdById, modifiedById, node.getId()));
-		Node visibleToTwo = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToTwo", createdById, modifiedById, node.getId()));
-		
-		UserInfo userOne = new UserInfo(false, group.getId());
-		UserInfo userTwo = new UserInfo(false, group2.getId());
-		
-		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
-		createAcl(acl1, ObjectType.ENTITY);
-		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo, new Date());
-		createAcl(acl2, ObjectType.ENTITY);
-		
-		String parentId = node.getId();
-		// one cannot see two
-		Set<Long> results = aclDAO.getNonVisibleChilrenOfEntity(Sets.newHashSet(userOne.getId()), parentId);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertTrue(results.contains(KeyFactory.stringToKey(visibleToTwo.getId())));
-		// two cannot see one
-		results = aclDAO.getNonVisibleChilrenOfEntity(Sets.newHashSet(userTwo.getId()), parentId);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertTrue(results.contains(KeyFactory.stringToKey(visibleToOne.getId())));
 	}
 	
 	/**

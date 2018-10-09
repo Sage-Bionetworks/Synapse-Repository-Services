@@ -60,6 +60,8 @@ public class EntityManagerImpl implements EntityManager {
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
+	private EntityAuthorizationManager entityAuthorizationManager;
+	@Autowired
 	UserManager userManager;
 	
 	boolean allowCreationOfOldEntities = true;
@@ -505,7 +507,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!entityPermissionsManager.hasAccess(entityId,
+		if (!entityAuthorizationManager.hasAccess(entityId,
 				ACCESS_TYPE.READ, userInfo).getAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
@@ -516,7 +518,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!entityPermissionsManager.hasAccess(entityId,
+		if (!entityAuthorizationManager.hasAccess(entityId,
 				ACCESS_TYPE.UPDATE, userInfo).getAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
@@ -595,11 +597,11 @@ public class EntityManagerImpl implements EntityManager {
 		if(!ROOT_ID.equals(request.getParentId())){
 			// Validate the caller has read access to the parent
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
+					entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
 		}
 
 		// Find the children of this entity that the caller cannot see.
-		Set<Long> childIdsToExclude = entityPermissionsManager.getNonvisibleChildren(user, request.getParentId());
+		Set<Long> childIdsToExclude = entityAuthorizationManager.getNonvisibleChildren(user, request.getParentId());
 		NextPageToken nextPage = new NextPageToken(request.getNextPageToken());
 		List<EntityHeader> page = nodeManager.getChildren(
 				request.getParentId(), request.getIncludeTypes(),
@@ -629,12 +631,12 @@ public class EntityManagerImpl implements EntityManager {
 			request.setParentId(ROOT_ID);
 		}
 		if(!ROOT_ID.equals(request.getParentId())){
-			if(!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).getAuthorized()){
+			if(!entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).getAuthorized()){
 				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
 			}
 		}
 		String entityId = nodeManager.lookupChild(request.getParentId(), request.getEntityName());
-		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()){
+		if(!entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()){
 			throw new UnauthorizedException("Lack of READ permission on the requested entity.");
 		}
 		EntityId result = new EntityId();

@@ -185,7 +185,7 @@ public interface AuthorizationManager {
 	 * @param originalBenefactors
 	 * @return
 	 */
-	Set<Long> getAccessibleBenefactors(UserInfo userInfo, Set<Long> originalBenefactors);
+	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, Set<Long> originalBenefactors);
 
 	/**
 	 * Check user access to an subscribable object
@@ -198,16 +198,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId, SubscriptionObjectType objectType) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the set of project IDs that that are visible to the passed set of
-	 * principal IDs. 
-	 * 
-	 * @param principalIds
-	 * @return
-	 */
-	Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
+	public AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId, SubscriptionObjectType objectType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -226,7 +217,7 @@ public interface AuthorizationManager {
 	 * @param req
 	 * @param accessors
 	 */
-	void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
+	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
 
 	/**
 	 * Check whether a user has access to a MembershipInvitation

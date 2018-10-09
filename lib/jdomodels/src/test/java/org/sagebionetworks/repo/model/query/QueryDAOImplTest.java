@@ -22,11 +22,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
-import org.mockito.Mockito;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -62,7 +61,7 @@ public class QueryDAOImplTest {
 	private static final String EVAL_ID1 = "42";
 	private static final String EVAL_ID2 = "99";
     private Set<String> submissionIds;
-    private AccessControlListDAO mockAclDAO;
+    private AuthorizationDAO mockAuthorizationDAO;
     private UserInfo mockUserInfo;
     private Map<String, Object> annoMap;
     
@@ -99,12 +98,12 @@ public class QueryDAOImplTest {
 		
 		// set up mocks
 		mockUserInfo = mock(UserInfo.class);
-		mockAclDAO = mock(AccessControlListDAO.class);
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
-		queryDAO.setAclDAO(mockAclDAO);
+		mockAuthorizationDAO = mock(AuthorizationDAO.class);
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
+		queryDAO.setAuthorizationDAO(mockAuthorizationDAO);
 	}
 	
 	private static LongAnnotation createScopeAnno(long scopeId) {
@@ -285,7 +284,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
@@ -315,7 +314,7 @@ public class QueryDAOImplTest {
 		assertFalse(noPrivateObjectIdIndex==-1);
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		QueryTableResults privateAccessResults = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(privateAccessResults);
@@ -357,7 +356,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
@@ -391,7 +390,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+		when(mockAuthorizationDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);

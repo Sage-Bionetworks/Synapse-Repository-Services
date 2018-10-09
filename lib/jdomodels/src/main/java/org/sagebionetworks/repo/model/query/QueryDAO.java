@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.query;
 
-import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -18,6 +18,6 @@ public interface QueryDAO {
 	/**
 	 * Set the ACL DAO to use (for testing).
 	 */
-	public void setAclDAO(AccessControlListDAO aclDAO);
+	public void setAuthorizationDAO(AuthorizationDAO authorizationDAO);
 	
 }

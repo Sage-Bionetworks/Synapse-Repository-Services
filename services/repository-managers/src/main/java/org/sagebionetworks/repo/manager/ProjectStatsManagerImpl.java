@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -26,7 +27,7 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 	@Autowired
 	ProjectStatsDAO projectStatDao;
 	@Autowired
-	AuthorizationManager authorizationManager;
+	AccessControlListDAO aclDAO;
 	@Autowired
 	NodeDAO nodeDao;
 	@Autowired
@@ -101,14 +102,13 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 		}
 	}
 
-
 	@WriteTransactionReadCommitted
 	@Override
 	public void memberAddedToTeam(Long teamId, Long memberId, Date activityDate) {
 		ValidateArgument.required(teamId, "teamId");
 		ValidateArgument.required(memberId, "memberId");
 		// Lookup all projects that are visible by this team
-		Set<Long> visibleProjectIds = authorizationManager.getAccessibleProjectIds(Sets.newHashSet(teamId));
+		Set<Long> visibleProjectIds = aclDAO.getAccessibleProjectIds(Sets.newHashSet(teamId), ACCESS_TYPE.READ);
 		if(!visibleProjectIds.isEmpty()){
 			ProjectStat[] update = new ProjectStat[visibleProjectIds.size()];
 			int index = 0;

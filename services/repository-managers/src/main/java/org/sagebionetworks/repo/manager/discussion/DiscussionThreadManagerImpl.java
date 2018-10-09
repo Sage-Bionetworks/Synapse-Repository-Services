@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
+import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,10 +27,10 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
-import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -258,7 +258,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
-		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		projectIds = authorizationManager.getAccessibleBenefactors(userInfo, projectIds);
 		List<DiscussionThreadBundle> results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
@@ -271,7 +271,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.requirement(entityIdList.getIdList().size() <= MAX_LIMIT, "The size of entityIdList cannot exceed "+MAX_LIMIT);
 		List<Long> entityIds = KeyFactory.stringToKey(entityIdList.getIdList());
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds);
-		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		projectIds = authorizationManager.getAccessibleBenefactors(userInfo, projectIds);
 		return threadDao.getThreadCounts(entityIds, projectIds);
 	}
 

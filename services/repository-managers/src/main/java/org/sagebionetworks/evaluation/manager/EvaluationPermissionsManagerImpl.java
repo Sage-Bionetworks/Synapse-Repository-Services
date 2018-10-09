@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -38,6 +39,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 	@Autowired
 	private AccessControlListDAO aclDAO;
+	@Autowired
+	private AuthorizationDAO authorizationDAO;
 	@Autowired
 	private EvaluationDAO evaluationDAO;
 	@Autowired
@@ -154,7 +157,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (isAnonymousWithNonReadAccess(userInfo, accessType))
 			return AuthorizationManagerUtil.accessDenied("Anonymous user is not allowed to access Evaluation.");
 		
-		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
+		if (!authorizationDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
 			return AuthorizationManagerUtil.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
 		
 		return AuthorizationManagerUtil.AUTHORIZED;

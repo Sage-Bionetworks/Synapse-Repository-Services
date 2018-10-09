@@ -236,6 +236,8 @@
 
 	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 
+	<bean id="entityAuthorizationManager" class="org.sagebionetworks.repo.manager.EntityAuthorizationManagerImpl" />
+
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
 
 	<bean id="projectSettingsManager" class="org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl" />

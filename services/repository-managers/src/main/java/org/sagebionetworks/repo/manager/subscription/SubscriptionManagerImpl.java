@@ -6,7 +6,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -40,7 +40,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	@Autowired
 	private DBOChangeDAO changeDao;
 	@Autowired
-	private AccessControlListDAO aclDao;
+	private AuthorizationDAO authorizationDAO;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -130,7 +130,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		}
 		if (projectIds != null) {
 			// filter projects the user cannot see.
-			projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY,
+			projectIds = authorizationDAO.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY,
 					ACCESS_TYPE.READ);
 		}
 		return projectIds;

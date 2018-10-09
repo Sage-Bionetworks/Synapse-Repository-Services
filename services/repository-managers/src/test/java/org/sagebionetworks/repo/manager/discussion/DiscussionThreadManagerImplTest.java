@@ -1,10 +1,19 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl.MAX_LIMIT;
+import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl.MAX_TITLE_LENGTH;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -567,11 +576,11 @@ public class DiscussionThreadManagerImplTest {
 		ArrayList<Long> entityIds = new ArrayList<Long>();
 		EntityThreadCounts entityThreadCounts = new EntityThreadCounts();
 		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(anyList())).thenReturn(projectIds);
-		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(projectIds);
+		when(mockAuthorizationManager.getAccessibleBenefactors(eq(userInfo), eq(projectIds))).thenReturn(projectIds);
 		when(mockThreadDao.getThreadCounts(entityIds, projectIds)).thenReturn(entityThreadCounts);
 		assertEquals(entityThreadCounts, threadManager.getEntityThreadCounts(userInfo, entityIdList));
 		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
-		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockAuthorizationManager).getAccessibleBenefactors(eq(userInfo), eq(projectIds));
 		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIds));
 	}
 
@@ -593,12 +602,12 @@ public class DiscussionThreadManagerImplTest {
 		EntityThreadCounts entityThreadCounts = new EntityThreadCounts();
 
 		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds)).thenReturn(projectIds);
-		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+		when(mockAuthorizationManager.getAccessibleBenefactors(eq(userInfo), eq(projectIds)))
 				.thenReturn(projectIdsCanRead);
 		when(mockThreadDao.getThreadCounts(entityIds, projectIdsCanRead)).thenReturn(entityThreadCounts);
 		assertEquals(entityThreadCounts, threadManager.getEntityThreadCounts(userInfo, entityIdList));
 		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
-		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockAuthorizationManager).getAccessibleBenefactors(eq(userInfo), eq(projectIds));
 		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIdsCanRead));
 	}
 
@@ -635,13 +644,13 @@ public class DiscussionThreadManagerImplTest {
 		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
 		PaginatedResults<DiscussionThreadBundle> result = PaginatedResults.createWithLimitAndOffset(list, 100L, 0L);
 		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds)).thenReturn(projectIds);
-		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+		when(mockAuthorizationManager.getAccessibleBenefactors(eq(userInfo), eq(projectIds)))
 				.thenReturn(projectIdsCanRead);
 		when(mockThreadDao.getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(0L);
 
 		assertEquals(result, threadManager.getThreadsForEntity(userInfo, "syn3", 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true));
 		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
-		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockAuthorizationManager).getAccessibleBenefactors(eq(userInfo), eq(projectIds));
 		verify(mockThreadDao).getThreadsForEntity(anyLong(), anyLong(), anyLong(), (DiscussionThreadOrder) anyObject(), anyBoolean(), (DiscussionFilter) anyObject(), (Set) anyObject());
 	}
 
@@ -659,14 +668,14 @@ public class DiscussionThreadManagerImplTest {
 		PaginatedResults<DiscussionThreadBundle> result = PaginatedResults.createWithLimitAndOffset(list, 100L, 0L);
 
 		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds)).thenReturn(projectIds);
-		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+		when(mockAuthorizationManager.getAccessibleBenefactors(eq(userInfo), eq(projectIds)))
 				.thenReturn(projectIdsCanRead);
 		when(mockThreadDao.getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(1L);
 		when(mockThreadDao.getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(list);
 
 		assertEquals(result, threadManager.getThreadsForEntity(userInfo, "syn3", 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true));
 		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
-		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockAuthorizationManager).getAccessibleBenefactors(eq(userInfo), eq(projectIds));
 		verify(mockThreadDao).getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
 	}
 

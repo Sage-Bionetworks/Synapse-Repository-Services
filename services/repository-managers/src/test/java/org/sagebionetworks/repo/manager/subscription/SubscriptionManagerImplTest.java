@@ -1,7 +1,15 @@
 package org.sagebionetworks.repo.manager.subscription;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anySetOf;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +29,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -54,7 +62,7 @@ public class SubscriptionManagerImplTest {
 	@Mock
 	private SubscriptionDAO mockDao;
 	@Mock
-	private AccessControlListDAO mockAclDao;
+	private AuthorizationDAO mockAuthorizationDao;
 	@Captor
 	ArgumentCaptor<SubscriptionListRequest> subscriptionRequestCapture;
 	
@@ -77,7 +85,7 @@ public class SubscriptionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
 		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
-		ReflectionTestUtils.setField(manager, "aclDao", mockAclDao);
+		ReflectionTestUtils.setField(manager, "aclDao", mockAuthorizationDao);
 
 		objectId = "1";
 		topic = new Topic();
@@ -100,7 +108,7 @@ public class SubscriptionManagerImplTest {
 				// return the benefactors unmodified.
 				return (Set<Long>) invocation.getArguments()[1];
 			}
-		}).when(mockAclDao).getAccessibleBenefactors(anySetOf(Long.class), anySetOf(Long.class), any(ObjectType.class),
+		}).when(mockAuthorizationDao).getAccessibleBenefactors(anySetOf(Long.class), anySetOf(Long.class), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		
 		projectIds = Sets.newHashSet(123L,456L);
@@ -194,7 +202,7 @@ public class SubscriptionManagerImplTest {
 		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
 		assertEquals(null, projects);
 		verifyNoMoreInteractions(mockDao);
-		verifyNoMoreInteractions(mockAclDao);
+		verifyNoMoreInteractions(mockAuthorizationDao);
 	}
 	
 	@Test
@@ -204,7 +212,7 @@ public class SubscriptionManagerImplTest {
 		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
 		assertEquals(projectIds, projects);
 		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
-		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 	
 	@Test
@@ -214,7 +222,7 @@ public class SubscriptionManagerImplTest {
 		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
 		assertEquals(projectIds, projects);
 		verify(mockDao).getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
-		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -294,7 +302,7 @@ public class SubscriptionManagerImplTest {
 		// count should be called
 		verify(mockDao).listSubscriptionsCount(passedRequest);
 		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
-		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 	
 	@Test
@@ -324,7 +332,7 @@ public class SubscriptionManagerImplTest {
 		// count should be called
 		verify(mockDao).listSubscriptionsCount(passedRequest);
 		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
-		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

@@ -27,7 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -44,7 +44,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public class QueryDAOImpl implements QueryDAO {
 	
 	@Autowired
-	AccessControlListDAO accessControlListDAO;
+	AuthorizationDAO authorizationDAO;
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
@@ -347,12 +347,12 @@ public class QueryDAOImpl implements QueryDAO {
 
 	private boolean canAccess(UserInfo userInfo, String objectId, QueryObjectType objType) {
 		if (userInfo.isAdmin()) return true;
-		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), ACCESS_TYPE.READ);
+		return authorizationDAO.canAccess(userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), ACCESS_TYPE.READ);
 	}
 
 	private boolean canAccessPrivate(UserInfo userInfo, String objectId, QueryObjectType objType) {
 		if (userInfo.isAdmin()) return true;
-		return accessControlListDAO.canAccess(
+		return authorizationDAO.canAccess(
 				userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), objType.getPrivateAccessType());
 	}
 
@@ -460,7 +460,7 @@ public class QueryDAOImpl implements QueryDAO {
 
 	// for test purposes
 	@Override
-	public void setAclDAO(AccessControlListDAO aclDAO) {
-		this.accessControlListDAO = aclDAO;
+	public void setAuthorizationDAO(AuthorizationDAO authorizationDAO) {
+		this.authorizationDAO = authorizationDAO;
 	}
 }
