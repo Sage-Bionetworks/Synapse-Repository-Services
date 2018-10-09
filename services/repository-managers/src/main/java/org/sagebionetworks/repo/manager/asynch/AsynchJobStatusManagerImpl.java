@@ -8,11 +8,11 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.cloudwatch.MetricStats;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,13 +39,13 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	
-	private static final String JOB_TYPE = "JobType";
+	public static final String JOB_TYPE = "JobType";
 
-	private static final String METRIC_NAME = "Job elapse time";
+	public static final String METRIC_NAME = "Job elapse time";
 
 	private static final String CACHED_MESSAGE_TEMPLATE = "Returning a cached job for user: %d, requestHash: %s, and jobId: %s";
 
-	public static final String METRIC_NAMESPACE = "Asynchronous-Jobs-"+ StackConfigurationSingleton.singleton().getStackInstance();
+	public static final String METRIC_NAMESPACE_PREFIX = "Asynchronous-Jobs-";
 
 	static private Log log = LogFactory.getLog(AsynchJobStatusManagerImpl.class);	
 	
@@ -65,8 +65,10 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Autowired
 	ObjectRecordDAO objectRecordDAO;
 	@Autowired
+	StackConfiguration stackConfig;
+	@Autowired
 	Consumer cloudeWatch;
-	
+	String metricNamespace;
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager#lookupJobStatus(java.lang.String)
@@ -222,6 +224,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 			objectRecordDAO.saveBatch(Arrays.asList(record), record.getJsonClassName());
 		}
 		long runtimeMS = asynchJobStatusDao.setComplete(jobId, body, requestHash);
+		// Record the runtime for this job.
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		pushCloudwatchMetric(runtimeMS, type);
 	}
@@ -234,13 +237,20 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	 */
 	void pushCloudwatchMetric(long runtimeMS, AsynchJobType type) {
 		ProfileData profileData = new ProfileData();
-		profileData.setNamespace(METRIC_NAMESPACE);
+		profileData.setNamespace(getMetricNamespace());
 		profileData.setName(METRIC_NAME);
 		profileData.setValue((double) runtimeMS);
 		profileData.setUnit(StandardUnit.Milliseconds.name());
 		profileData.setTimestamp(new Date());
 		profileData.setDimension(Collections.singletonMap(JOB_TYPE, type.name()));
 		this.cloudeWatch.addProfileData(profileData);
+	}
+	
+	public String getMetricNamespace() {
+		if(this.metricNamespace == null) {
+			this.metricNamespace = METRIC_NAMESPACE_PREFIX+stackConfig.getStackInstance();
+		}
+		return this.metricNamespace;
 	}
 
 	@Override
