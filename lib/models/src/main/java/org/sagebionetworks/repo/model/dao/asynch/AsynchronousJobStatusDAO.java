@@ -69,11 +69,11 @@ public interface AsynchronousJobStatusDAO {
 	 * @param requestHash Set the request hash for cacheable requests.  This hash is used to find cached jobs for the same
 	 * request from the same user.  See: {@link #findCompletedJobStatus(String, Long)}.
 	 * 
-	 * @return
+	 * @return runtime MS.
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public String setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException;
+	public long setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException;
 
 	
 	/**

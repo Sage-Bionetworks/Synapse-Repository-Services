@@ -13,7 +13,7 @@
 	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="memoryLogger" class="org.sagebionetworks.repo.MemoryLogger">
+	<bean id="memoryLogger" class="org.sagebionetworks.repo.memory.MemoryLogger">
 		<constructor-arg index="0" value="Repository"/>
 	</bean>
 

@@ -322,12 +322,11 @@ public class AsynchJobStatusManagerImplTest {
 	@Test
 	public void testSetCompleteHappy() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
+		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn(123L);
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
 		body.setEtag("etag");
-		String result = manager.setComplete("456", body);
-		assertEquals("etag", result);
+		manager.setComplete("456", body);
 		String requestHash = null;
 		verify(mockAsynchJobStatusDao).setComplete("456", body, requestHash);
 	}
@@ -335,7 +334,7 @@ public class AsynchJobStatusManagerImplTest {
 	@Test
 	public void testSetCompleteCacheable() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
+		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn(123L);
 		
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
@@ -349,8 +348,7 @@ public class AsynchJobStatusManagerImplTest {
 		
 		DownloadFromTableResult resultBody = new DownloadFromTableResult();
 		resultBody.setTableId("syn123");
-		String result = manager.setComplete("456", resultBody);
-		assertEquals("etag", result);
+		manager.setComplete("456", resultBody);
 		verify(mockAsynchJobStatusDao).setComplete("456", resultBody, requestHash);
 	}
 	
