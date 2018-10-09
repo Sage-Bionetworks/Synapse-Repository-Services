@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import com.amazonaws.services.cloudsearchdomain.model.Hit;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
+import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Sets;
@@ -33,6 +34,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
@@ -181,6 +183,24 @@ public class SearchDaoImplTest {
 		SearchRequest capturedRequest = requestArgumentCaptor.getValue();
 		verify(dao,times(1)).executeSearch(capturedRequest);
 		assertEquals("(and _id:'syn123' etag:'etagerino')", capturedRequest.getQuery());
+	}
+
+	@Test (expected = TemporarilyUnavailableException.class)
+	public void testDoesDocumentExist_IllegalArgumentCausedBySearchIndexFieldSchemaRaceCondition(){
+		SearchException searchExceptionCause = new SearchException("Syntax error in query: field (anyFieldDoesntMatter) does not exist.");
+		when(mockCloudSearchDomainClient.rawSearch(any(SearchRequest.class))).thenThrow(new IllegalArgumentException(searchExceptionCause));
+
+		//method under test
+		dao.doesDocumentExist("syn123", "EEEEEEEEEtag");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDoesDocumentExist_IllegalArgumentCausedByOtherErrors(){
+		SearchException searchExceptionCause = new SearchException("Some unrelated error message");
+		when(mockCloudSearchDomainClient.rawSearch(any(SearchRequest.class))).thenThrow(new IllegalArgumentException(searchExceptionCause));
+
+		//method under test
+		dao.doesDocumentExist("syn123", "EEEEEEEEEtag");
 	}
 
 	//////////////////////////////

@@ -11,15 +11,18 @@ import java.util.Set;
 
 import com.amazonaws.services.cloudsearchdomain.model.Hit;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.util.Strings;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -91,8 +94,17 @@ public class SearchDaoImpl implements SearchDao {
 
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
-		SearchResult results = executeSearch(new SearchRequest().withQuery(query).withQueryParser(QueryParser.Structured));
-		return results.getHits().getFound() > 0;
+		try {
+			SearchResult results = executeSearch(new SearchRequest().withQuery(query).withQueryParser(QueryParser.Structured));
+			return results.getHits().getFound() > 0;
+		}catch (IllegalArgumentException e){
+			Throwable cause = e.getCause();
+			if (cause instanceof SearchException && StringUtils.contains(cause.getMessage(), "Syntax error in query: field")){
+				//This exception is very likely caused by a race condition on the search index's schema. It should be resolved later
+				throw new TemporarilyUnavailableException(e);
+			}
+			throw e;
+		}
 	}
 
 	/**
