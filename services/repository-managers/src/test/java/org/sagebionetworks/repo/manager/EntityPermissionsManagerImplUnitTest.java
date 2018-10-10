@@ -1,20 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Before;
@@ -36,7 +31,6 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -46,7 +40,6 @@ import com.google.common.collect.Sets;
 
 public class EntityPermissionsManagerImplUnitTest {
 	
-	private EntityAuthorizationManagerImpl entityAuthorizationManager;
 	private EntityPermissionsManagerImpl entityPermissionsManager;
 	private UserInfo nonCertifiedUserInfo;
 	private UserInfo certifiedUserInfo;
@@ -101,7 +94,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		MockitoAnnotations.initMocks(this);
 
 		entityPermissionsManager = new EntityPermissionsManagerImpl();
-		entityAuthorizationManager = new EntityAuthorizationManagerImpl();
 		
 		nonCertifiedUserInfo = new UserInfo(false);
 		nonCertifiedUserInfo.setId(765432L);
@@ -112,7 +104,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		certifiedUserInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		
 		ReflectionStaticTestUtils.mockAutowire(this, entityPermissionsManager);
-		ReflectionStaticTestUtils.mockAutowire(this, entityAuthorizationManager);
     	
     	when(mockStackConfiguration.getDisableCertifiedUser()).thenReturn(false);
     	
@@ -189,208 +180,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		newEtag = "newEtag";
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
-	}
-
-	@Test
-	public void testGetUserPermissionsForCertifiedUserOnProject() throws Exception {
-		UserEntityPermissions uep = entityAuthorizationManager.
-				getUserPermissionsForEntity(certifiedUserInfo, projectId);
-		
-		assertTrue(uep.getCanAddChild());
-		assertTrue(uep.getCanChangePermissions()); 
-		assertTrue(uep.getCanChangeSettings()); 
-		assertTrue(uep.getCanDelete());
-		assertTrue(uep.getCanEdit());
-		assertTrue(uep.getCanEnableInheritance());
-		assertFalse(uep.getCanPublicRead());
-		assertTrue(uep.getCanView());
-		assertFalse(uep.getCanDownload());
-		assertTrue(uep.getCanUpload());
-		assertTrue(uep.getCanCertifiedUserAddChild());
-		assertTrue(uep.getCanCertifiedUserEdit());
-		assertTrue(uep.getIsCertifiedUser());
-		assertTrue(uep.getCanModerate());
-		
-		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).getAuthorized());
-		
-		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, certifiedUserInfo).getAuthorized());
-	}
-	
-	@Test
-	public void testGetUserPermissionsForNonCertifiedUserOnProject() throws Exception {
-		UserEntityPermissions uep = entityAuthorizationManager.
-				getUserPermissionsForEntity(nonCertifiedUserInfo, projectId);
-		
-		assertFalse(uep.getCanAddChild()); // not certified!
-		assertTrue(uep.getCanChangePermissions()); 
-		assertTrue(uep.getCanChangeSettings()); 
-		assertTrue(uep.getCanDelete());
-		assertTrue(uep.getCanEdit()); // not certified but is a project!
-		assertTrue(uep.getCanEnableInheritance());
-		assertFalse(uep.getCanPublicRead());
-		assertTrue(uep.getCanView());
-		assertFalse(uep.getCanDownload());
-		assertTrue(uep.getCanUpload());
-		assertTrue(uep.getCanCertifiedUserAddChild());
-		assertTrue(uep.getCanCertifiedUserEdit());
-		assertFalse(uep.getIsCertifiedUser()); // not certified!
-		assertTrue(uep.getCanModerate());
-		
-		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).getAuthorized());
-		
-		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, nonCertifiedUserInfo).getAuthorized());
-	}
-
-	@Test
-	public void testGetUserPermissionsForCertifiedUserOnFolder() throws Exception {
-		UserEntityPermissions uep = entityAuthorizationManager.
-				getUserPermissionsForEntity(certifiedUserInfo, folderId);
-		
-		assertTrue(uep.getCanAddChild());
-		assertTrue(uep.getCanChangePermissions()); 
-		assertTrue(uep.getCanChangeSettings()); 
-		assertTrue(uep.getCanDelete());
-		assertTrue(uep.getCanEdit());
-		assertTrue(uep.getCanEnableInheritance());
-		assertFalse(uep.getCanPublicRead());
-		assertTrue(uep.getCanView());
-		assertTrue(uep.getCanDownload());
-		assertTrue(uep.getCanUpload());
-		assertTrue(uep.getCanCertifiedUserAddChild());
-		assertTrue(uep.getCanCertifiedUserEdit());
-		assertTrue(uep.getIsCertifiedUser());
-		assertTrue(uep.getCanModerate());
-		
-		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
-		
-		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
-	}
-	
-	@Test
-	public void testReadButNotDownload() throws Exception {
-		// if READ is in the ACL but DOWNLOAD is not in the ACL, then I can't download
-		when(mockAuthorizationDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), 
-				eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).thenReturn(false);
-		// check that my mocks are set up correctly
-		assertTrue(mockAuthorizationDAO.canAccess(certifiedUserInfo.getGroups(), benefactorId, 
-				ObjectType.ENTITY, ACCESS_TYPE.READ));
-		assertFalse(mockAuthorizationDAO.canAccess(certifiedUserInfo.getGroups(), benefactorId, 
-				ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
-		
-		// now on to the test:
-		UserEntityPermissions uep = entityAuthorizationManager.
-				getUserPermissionsForEntity(certifiedUserInfo, folderId);
-		
-		assertTrue(uep.getCanAddChild());
-		assertTrue(uep.getCanChangePermissions()); 
-		assertTrue(uep.getCanChangeSettings()); 
-		assertTrue(uep.getCanDelete());
-		assertTrue(uep.getCanEdit());
-		assertTrue(uep.getCanEnableInheritance());
-		assertFalse(uep.getCanPublicRead());
-		assertTrue(uep.getCanView());
-		assertFalse(uep.getCanDownload());
-		assertTrue(uep.getCanUpload());
-		assertTrue(uep.getCanCertifiedUserAddChild());
-		assertTrue(uep.getCanCertifiedUserEdit());
-		assertTrue(uep.getIsCertifiedUser());
-		assertTrue(uep.getCanModerate());
-		
-		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
-		
-		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
-	}
-	
-	@Test
-	public void testGetUserPermissionsForNonCertifiedUserOnFolder() throws Exception {
-		UserEntityPermissions uep = entityAuthorizationManager.
-				getUserPermissionsForEntity(nonCertifiedUserInfo, folderId);
-		
-		assertFalse(uep.getCanAddChild()); // not certified!
-		assertTrue(uep.getCanChangePermissions()); 
-		assertTrue(uep.getCanChangeSettings()); 
-		assertTrue(uep.getCanDelete());
-		assertFalse(uep.getCanEdit()); // not certified and not a project!
-		assertTrue(uep.getCanEnableInheritance());
-		assertFalse(uep.getCanPublicRead());
-		assertTrue(uep.getCanView());
-		assertTrue(uep.getCanDownload());
-		assertTrue(uep.getCanUpload());
-		assertTrue(uep.getCanCertifiedUserAddChild());
-		assertTrue(uep.getCanCertifiedUserEdit());
-		assertFalse(uep.getIsCertifiedUser()); // not certified!
-		assertTrue(uep.getCanModerate());
-		
-		assertFalse(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).getAuthorized());
-		
-		assertFalse(entityAuthorizationManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
-	}
-	
-	@Test
-	public void testAnonymousCannotDownloadDockerRepo() throws Exception {
-    	UserInfo anonymousUser = new UserInfo(false);
-    	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		assertFalse(entityAuthorizationManager.
-				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).getAuthorized());
-		
-	}
-	
-	@Test
-	public void testGetUserPermissionsForCertifiedUserOnDockerRepo() throws Exception {
-		UserEntityPermissions uep = entityAuthorizationManager.
-				getUserPermissionsForEntity(certifiedUserInfo, dockerRepoId);
-		
-		assertTrue(uep.getCanAddChild());
-		assertTrue(uep.getCanChangePermissions()); 
-		assertTrue(uep.getCanChangeSettings()); 
-		assertTrue(uep.getCanDelete());
-		assertTrue(uep.getCanEdit());
-		assertTrue(uep.getCanEnableInheritance());
-		assertFalse(uep.getCanPublicRead());
-		assertTrue(uep.getCanView());
-		assertTrue(uep.getCanDownload());
-		assertTrue(uep.getCanUpload());
-		assertTrue(uep.getCanCertifiedUserAddChild());
-		assertTrue(uep.getCanCertifiedUserEdit());
-		assertTrue(uep.getIsCertifiedUser());
-		assertTrue(uep.getCanModerate());
-		
-	}
-
-	@Test
-	public void testGetNonvisibleChildrenNonAdmin(){
-		String parentId = "syn123";
-		// call under test
-		Set<Long> results = entityAuthorizationManager.getNonvisibleChildren(mockUser, parentId);
-		verify(mockAuthorizationDAO).getNonVisibleChildrenOfEntity(mockUsersGroups, parentId);
-		assertEquals(nonvisibleIds, results);
-	}
-	
-	@Test
-	public void testGetNonvisibleChildrenAdmin(){
-		when(mockUser.isAdmin()).thenReturn(true);
-		String parentId = "syn123";
-		// call under test
-		Set<Long> results = entityAuthorizationManager.getNonvisibleChildren(mockUser, parentId);
-		// should not hit the dao.
-		verify(mockAuthorizationDAO, never()).getNonVisibleChildrenOfEntity(anySetOf(Long.class), anyString());
-		// empty results.
-		assertEquals(new HashSet<Long>(), results);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetNonvisibleChildrenNullUser(){
-		String parentId = "syn123";
-		mockUser = null;
-		// call under test
-		entityAuthorizationManager.getNonvisibleChildren(mockUser, parentId);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetNonvisibleChildrenNullParentId(){
-		String parentId = null;
-		// call under test
-		entityAuthorizationManager.getNonvisibleChildren(mockUser, parentId);
 	}
 	
 	@Test

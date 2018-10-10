@@ -91,8 +91,7 @@ public class AuthorizationManagerImplUnitTest {
 	private ActivityDAO mockActivityDAO;
 	@Mock
 	private FileHandleDao mockFileHandleDao;
-	@Mock
-	private EntityPermissionsManager mockEntityPermissionsManager;
+
 	@Mock
 	private EntityAuthorizationManager mockEntityAuthorizationManager;
 	@Mock
@@ -178,7 +177,6 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "dockerNodeDao", mockDockerNodeDao);
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
 		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
-		ReflectionTestUtils.setField(authorizationManager, "entityPermissionsManager", mockEntityPermissionsManager);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
 		ReflectionTestUtils.setField(authorizationManager, "authorizationDAO", mockAuthorizationDAO);
 		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
