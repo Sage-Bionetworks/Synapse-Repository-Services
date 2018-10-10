@@ -157,7 +157,7 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"
 		scope="singleton" />
 
-	<bean id="authDAO"
+	<bean id="authenticationDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthorizationDaoImpl"
 		scope="singleton" />
 		
