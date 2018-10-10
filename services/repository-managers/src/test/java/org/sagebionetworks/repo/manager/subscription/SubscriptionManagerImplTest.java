@@ -85,7 +85,7 @@ public class SubscriptionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
 		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
-		ReflectionTestUtils.setField(manager, "aclDao", mockAuthorizationDao);
+		ReflectionTestUtils.setField(manager, "authorizationDAO", mockAuthorizationDao);
 
 		objectId = "1";
 		topic = new Topic();
