@@ -107,6 +107,7 @@ public class UserProfileManagerImplUnitTest {
 		ReflectionTestUtils.setField(userProfileManager, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(userProfileManager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(userProfileManager, "fileHandleManager", mockFileHandleManager);
+		ReflectionTestUtils.setField(userProfileManager, "aclDAO", mockAclDAO);
 		
 		userInfo = new UserInfo(false, userId);
 
@@ -334,8 +335,8 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
-		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(caller.getGroups()), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -358,7 +359,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(1)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
 		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
@@ -379,7 +380,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(1)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
 		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
@@ -401,7 +402,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(1)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
 		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
@@ -422,8 +423,8 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
-		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(caller.getGroups()), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -445,8 +446,8 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
-		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(caller.getGroups()), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -468,8 +469,8 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
-		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(caller.getGroups()), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -491,8 +492,8 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
-		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(caller.getGroups()), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -514,8 +515,8 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public, and the user
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublicAndSelf(userToGetFor.getGroups(), userToGetFor.getId());
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
-		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(caller.getGroups()), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -540,8 +541,8 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAclDAO, times(2)).getAccessibleProjectIds(anySetOf(Long.class), eq(ACCESS_TYPE.READ));
 		// the groups for the userToGetFor should exclude public, and the user
 		Set<Long> expectedUserToGetGroups = Sets.newHashSet(teamId);
-		verify(mockAclDAO).getAccessibleProjectIds(expectedUserToGetGroups, eq(ACCESS_TYPE.READ));
-		verify(mockAclDAO).getAccessibleProjectIds(caller.getGroups(), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(expectedUserToGetGroups), eq(ACCESS_TYPE.READ));
+		verify(mockAclDAO).getAccessibleProjectIds(eq(caller.getGroups()), eq(ACCESS_TYPE.READ));
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
