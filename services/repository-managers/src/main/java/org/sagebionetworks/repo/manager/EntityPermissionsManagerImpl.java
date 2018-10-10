@@ -42,7 +42,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private NodeDAO nodeDao;
 	@Autowired
 	private AccessControlListDAO aclDAO;
-
 	@Autowired
 	private ProjectStatsManager projectStatsManager;
 	@Autowired

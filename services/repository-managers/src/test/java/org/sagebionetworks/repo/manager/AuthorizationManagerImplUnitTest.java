@@ -191,6 +191,8 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
 		ReflectionTestUtils.setField(authorizationManager, "groupMembersDao", mockGroupMembersDao);
 		ReflectionTestUtils.setField(authorizationManager, "tokenGenerator", mockTokenGenerator);
+		ReflectionTestUtils.setField(authorizationManager, "entityAuthorizationManager", mockEntityAuthorizationManager);
+		
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);

@@ -7,6 +7,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
 
 import java.util.Collections;
 import java.util.Date;
@@ -62,7 +63,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Mock
 	private AccessControlListDAO mockAclDAO;
 	@Mock
-	private AuthorizationDAO mockAuthorizationDAO;
+	private EntityAuthorizationManager mockEntityAuthorizationManager;
 	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
 	@Mock
@@ -153,10 +154,8 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(anyString())).thenReturn(benefactorId);
 		
 		// we make the given user a fully authorized 'owner' of the entity
-		when(mockAuthorizationDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
-		thenReturn(true);
-		when(mockAuthorizationDAO.canAccess(eq(nonCertifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(eq(benefactorId), (ACCESS_TYPE)any(), eq(certifiedUserInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityAuthorizationManager.hasAccess(eq(benefactorId), (ACCESS_TYPE)any(), eq(nonCertifiedUserInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		// now let's apply an access requirement to "syn987" that does not apply to the benefactor
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
@@ -170,13 +169,10 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.isAdmin()).thenReturn(false);
 		mockUsersGroups = Sets.newHashSet(444L,555L);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
-		nonvisibleIds = Sets.newHashSet(888L,999L);
-		when(mockAuthorizationDAO.getNonVisibleChildrenOfEntity(anySetOf(Long.class), anyString())).thenReturn(nonvisibleIds);
-		
+		nonvisibleIds = Sets.newHashSet(888L,999L);		
 		entityId = "syn888";
 		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
-		when(mockAuthorizationDAO.canAccess(mockUser.getGroups(), entityId, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS)).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(entityId, CHANGE_PERMISSIONS, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		newEtag = "newEtag";
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
@@ -204,8 +200,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testOverrideInheritanceProject(){
-		when(mockAuthorizationDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(benefactorId, CHANGE_PERMISSIONS, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(projectId, mockUser, new Date());
 		when(mockAclDAO.get(projectId, ObjectType.ENTITY)).thenReturn(acl);
 		// call under test
@@ -215,8 +210,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testOverrideInheritanceFolder(){
-		when(mockAuthorizationDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(benefactorId, CHANGE_PERMISSIONS, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
 		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
 		// call under test
@@ -226,8 +220,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testOverrideInheritanceFile(){
-		when(mockAuthorizationDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(benefactorId, CHANGE_PERMISSIONS, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
 		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
 		// call under test
@@ -238,8 +231,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Test
 	public void testRestoreInheritanceProject(){
 		when(mockNodeDao.getBenefactor(project.getId())).thenReturn(project.getId());
-		when(mockAuthorizationDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(projectId, CHANGE_PERMISSIONS, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// call under test
 		entityPermissionsManager.restoreInheritance(projectId, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
@@ -248,8 +240,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Test
 	public void testRestoreInheritanceFolder(){
 		when(mockNodeDao.getBenefactor(folder.getId())).thenReturn(folder.getId());
-		when(mockAuthorizationDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(folderId, CHANGE_PERMISSIONS, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// call under test
 		entityPermissionsManager.restoreInheritance(folderId, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
@@ -258,8 +249,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Test
 	public void testRestoreInheritanceFile(){
 		when(mockNodeDao.getBenefactor(file.getId())).thenReturn(file.getId());
-		when(mockAuthorizationDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
-		thenReturn(true);
+		when(mockEntityAuthorizationManager.hasAccess(fileId, CHANGE_PERMISSIONS, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// call under test
 		entityPermissionsManager.restoreInheritance(fileId, mockUser);
 		verifyNoMoreInteractions(mockTransactionalMessenger);
