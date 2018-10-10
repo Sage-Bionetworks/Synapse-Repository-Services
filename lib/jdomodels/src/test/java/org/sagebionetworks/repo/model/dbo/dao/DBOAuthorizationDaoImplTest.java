@@ -252,6 +252,7 @@ public class DBOAuthorizationDaoImplTest {
 		gs.add(Long.parseLong(group.getId()));
 		Set<Long> benefactors = null;
 		// call under test
+		authorizationDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	/**
