@@ -98,7 +98,5 @@ public enum SynapseToCloudSearchField {
 		return indexFields;
 	}
 
-	public String getCloudSearchFieldName() {
-		return cloudSearchField.getFieldName();
-	}
+
 }
