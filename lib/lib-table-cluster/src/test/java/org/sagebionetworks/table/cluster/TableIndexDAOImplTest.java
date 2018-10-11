@@ -1716,6 +1716,25 @@ public class TableIndexDAOImplTest {
 		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
 	}
 	
+	/**
+	 * Test added for PLFM-5176
+	 */
+	@Test
+	public void testGetSumOfFileSizesNoFiles(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		// setup some hierarchy.
+		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 2);
+		folder.setParentId(parentOneId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(folder));
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(folder.getId()));
+		assertEquals(0L, fileSizes);
+	}
+	
 	@Test
 	public void testGetSumOfFileSizesEmpty(){
 		List<Long> list = new LinkedList<>();
