@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -65,6 +64,7 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -98,8 +98,6 @@ public class TableViewIntegrationTest {
 	
 	public static final int MAX_WAIT_MS = 1000 * 60 * 2;
 	
-	@Autowired
-	private StackConfiguration config;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -1292,8 +1290,10 @@ public class TableViewIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				
-				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, options);
+				QueryBundleRequest request = new QueryBundleRequest();
+				request.setPartMask(options.getPartMask());
+				request.setQuery(query);
+				return tableQueryManger.queryBundle(mockProgressCallbackVoid, user, request);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

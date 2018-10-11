@@ -103,6 +103,37 @@ public class QueryOptions {
 		this.runSumFileSizes = ((partMask & BUNDLE_MASK_SUM_FILE_SIZES) != 0);
 		return this;
 	}
+	
+	/**
+	 * Get the mask for this current options.
+	 * 
+	 * @return
+	 */
+	public long getPartMask() {
+		long partMask = 0;
+		if(this.runQuery) {
+			partMask = partMask | BUNDLE_MASK_QUERY_RESULTS; 
+		}
+		if(this.runCount) {
+			partMask = partMask | BUNDLE_MASK_QUERY_COUNT;
+		}
+		if(this.returnSelectColumns) {
+			partMask = partMask | BUNDLE_MASK_QUERY_SELECT_COLUMNS;
+		}
+		if(this.returnMaxRowsPerPage) {
+			partMask = partMask | BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
+		}
+		if(this.returnColumnModels) {
+			partMask = partMask | BUNDLE_MASK_QUERY_COLUMN_MODELS;
+		}
+		if(this.returnFacets) {
+			partMask = partMask | BUNDLE_MASK_QUERY_FACETS;
+		}
+		if(this.runSumFileSizes) {
+			partMask = partMask | BUNDLE_MASK_SUM_FILE_SIZES;
+		}
+		return partMask;
+	}
 
 	@Override
 	public int hashCode() {
