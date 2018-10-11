@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.math.NumberUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -40,6 +39,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.search.SearchUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -149,8 +149,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// The description contains the entity description and all wiki page
 		// text
 		String descriptionValue = wikiPagesText != null ? wikiPagesText : "";
-		// Set the description
-		fields.setDescription(StringEscapeUtils.escapeXml10(descriptionValue));
+		// Set user generated description after sanitizing it
+		fields.setDescription(SearchUtil.stripUnsupportedUnicodeCharacters(descriptionValue));
 
 		fields.setCreated_by(node.getCreatedByPrincipalId().toString());
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
@@ -265,7 +265,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		for(String possibleAnnotationName: SEARCHABLE_NODE_ANNOTATIONS.get(indexFieldKey)){
 			String value = firsAnnotationValues.get(possibleAnnotationName.toLowerCase());
 			if(value != null){
-				return StringEscapeUtils.escapeXml10(value);
+				//sanitize user generated values
+				return SearchUtil.stripUnsupportedUnicodeCharacters(value);
 			}
 		}
 		return null;

@@ -579,6 +579,19 @@ public class SearchUtilTest {
 		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
 	}
 
+	////////////////////////////////////////////
+	// stripUnsupportedUnicodeCharacters() test
+	////////////////////////////////////////////
+
+	@Test
+	public void testStripUnsupportedUnicodeCharacters(){
+		//test unicode characters from https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+		String testString = "⌐( ͡° ͜ʖ ͡°) ╯╲___\u000C\u0019Don't mind me just taking my unsupported unicode characters for a walk";
+
+		String result = SearchUtil.stripUnsupportedUnicodeCharacters(testString);
+		assertEquals("⌐( ͡° ͜ʖ ͡°) ╯╲___Don't mind me just taking my unsupported unicode characters for a walk", result);
+	}
+
 	////////////////////////////////////////
 	//  createOptionsJSONForFacet() tests
 	////////////////////////////////////////

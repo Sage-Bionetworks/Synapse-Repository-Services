@@ -74,8 +74,8 @@ public class SearchDocumentDriverImplTest {
 
 	private Map<String, String> annoValuesMap;
 
-	private final String xmlMarkupString = "someXMLMarkup&><'\"";
-	private final String escapedXmlMarkupString = "someXMLMarkup&amp;&gt;&lt;&apos;&quot;";
+	private final String stringContainingControlCharacters = "someString\f\f\u000c\u0019";
+	private final String sanitizedString = "someString";
 
 	@Before
 	public void setUp(){
@@ -197,10 +197,10 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
-	public void getSearchIndexFieldValue_valueIncludesXMLSpecialCharacters(){
-		annoValuesMap.put(FIELD_PLATFORM, xmlMarkupString);
+	public void getSearchIndexFieldValue_valueIncludesUnicodeControlCharacters(){
+		annoValuesMap.put(FIELD_PLATFORM, stringContainingControlCharacters);
 
-		assertEquals(escapedXmlMarkupString, spySearchDocumentDriver.getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM));
+		assertEquals(sanitizedString, spySearchDocumentDriver.getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM));
 	}
 
 
@@ -278,13 +278,13 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
-	public void formulateSearchDocument_WikiPageTextEscapedXML(){
+	public void formulateSearchDocument_WikiPageTextContainingUnicodeControlCharacters(){
 		doNothing().when(spySearchDocumentDriver).addAnnotationsToSearchDocument(any(), any());
 
 		//method under test
-		Document result = spySearchDocumentDriver.formulateSearchDocument(node, mockNamedAnnotations, mockAcl, xmlMarkupString);
+		Document result = spySearchDocumentDriver.formulateSearchDocument(node, mockNamedAnnotations, mockAcl, stringContainingControlCharacters);
 
-		assertEquals(escapedXmlMarkupString, result.getFields().getDescription());
+		assertEquals(sanitizedString, result.getFields().getDescription());
 	}
 
 }
