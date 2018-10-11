@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.regex.Pattern;
 
 import com.amazonaws.services.cloudsearchdomain.model.Bucket;
 import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
@@ -58,9 +57,6 @@ import org.springframework.util.CollectionUtils;
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
-	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
-	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
-
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
 		facetTypes.put(FIELD_NODE_TYPE, FacetTypeNames.LITERAL);
@@ -76,15 +72,6 @@ public class SearchUtil{
 		facetTypes.put(FIELD_NUM_SAMPLES, FacetTypeNames.CONTINUOUS);
 		facetTypes.put(FIELD_CONSORTIUM, FacetTypeNames.LITERAL);
 		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
-	}
-
-	/**
-	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
-	 * @param charSequence input to be stripped of unsupported Unicode characters
-	 * @return String of the input charSequence with unsupported Unicode characters stripped out
-	 */
-	static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
-		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
 	}
 
 	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
@@ -392,9 +379,8 @@ public class SearchUtil{
 				throw new RuntimeException(e);
 			}
 		}
-		// Some descriptions have control characters in them for some reason, in any case, just get rid
-		// of all control characters in the search document
-		return stripUnsupportedUnicodeCharacters(stringJoiner.toString());
+
+		return stringJoiner.toString();
 	}
 
 	/**

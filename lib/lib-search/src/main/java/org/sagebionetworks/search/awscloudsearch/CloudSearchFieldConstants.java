@@ -1,7 +1,6 @@
 package org.sagebionetworks.search.awscloudsearch;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
-import static org.sagebionetworks.search.SearchConstants.FIELD_BOOST;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
@@ -56,7 +55,6 @@ class CloudSearchFieldConstants {
 		// Free text fields to be returned in Search Results
 		static final CloudSearchField CLOUD_SEARCH_FIELD_NAME = new SynapseCreatedCloudSearchField(new IndexField().withIndexFieldName(FIELD_NAME).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withReturnEnabled(true).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
 		static final CloudSearchField CLOUD_SEARCH_FIELD_DESCRIPTION = new SynapseCreatedCloudSearchField(new IndexField().withIndexFieldName(FIELD_DESCRIPTION).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withReturnEnabled(true).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
-		static final CloudSearchField CLOUD_SEARCH_FIELD_BOOST = new SynapseCreatedCloudSearchField(new IndexField().withIndexFieldName(FIELD_BOOST).withIndexFieldType(IndexFieldType.TextArray).withTextArrayOptions(new TextArrayOptions().withReturnEnabled(false).withAnalysisScheme(DEFAULT_TEXT_ANALYSIS_SCHEME)));
 		// Numeric fields (by default these are both faceted and available to be returned in search results)
 		static final CloudSearchField CLOUD_SEARCH_FIELD_MODIFIED_ON = new SynapseCreatedCloudSearchField(new IndexField().withIndexFieldName(FIELD_MODIFIED_ON).withIndexFieldType(IndexFieldType.Int).withIntOptions(intOptionsReturnEnabled));
 		static final CloudSearchField CLOUD_SEARCH_FIELD_CREATED_ON = new SynapseCreatedCloudSearchField(new IndexField().withIndexFieldName(FIELD_CREATED_ON).withIndexFieldType(IndexFieldType.Int).withIntOptions(intOptionsReturnEnabled));

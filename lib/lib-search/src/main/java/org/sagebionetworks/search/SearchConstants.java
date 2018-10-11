@@ -27,7 +27,6 @@ public class SearchConstants {
 	public static final String FIELD_NUM_SAMPLES 	= "num_samples";
 	public static final String FIELD_CREATED_ON 	= "created_on";
 	public static final String FIELD_MODIFIED_ON 	= "modified_on";
-	public static final String FIELD_BOOST 			= "boost";
 	public static final String FIELD_DESCRIPTION 	= "description";
 	public static final String FIELD_CONSORTIUM     = "consortium";
 
