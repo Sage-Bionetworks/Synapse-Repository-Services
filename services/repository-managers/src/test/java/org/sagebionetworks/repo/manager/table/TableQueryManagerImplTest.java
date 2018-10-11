@@ -456,10 +456,40 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
-		assertEquals(models, results.getColumnModels());
-		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
+		assertEquals(null, results.getColumnModels());
+		assertEquals(null, results.getSelectColumns());
 		assertEquals(count, results.getQueryCount());
 		assertNull(results.getQueryResult());
+	}
+	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationColumnsOnly() throws Exception {
+		Long count = 201L;
+		// setup count results
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		// null handler indicates not to run the main query.
+		RowHandler rowHandler = null;
+		queryOptions = new QueryOptions().withReturnColumnModels(true);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
+		// call under test
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		assertNotNull(results);
+		assertEquals(models, results.getColumnModels());
+	}
+	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationSelectOnly() throws Exception {
+		Long count = 201L;
+		// setup count results
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		// null handler indicates not to run the main query.
+		RowHandler rowHandler = null;
+		queryOptions = new QueryOptions().withReturnSelectColumns(true);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
+		// call under test
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		assertNotNull(results);
+		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
 	}
 	
 	/**
@@ -492,8 +522,8 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
-		assertEquals(models, results.getColumnModels());
-		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
+		assertEquals(null, results.getColumnModels());
+		assertEquals(null, results.getSelectColumns());
 		assertNull(results.getQueryCount());
 		assertNotNull(results.getQueryResult());
 		assertNotNull(results.getQueryResult().getQueryResults());
@@ -511,8 +541,8 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
-		assertEquals(models, results.getColumnModels());
-		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
+		assertEquals(null, results.getColumnModels());
+		assertEquals(null, results.getSelectColumns());
 		assertEquals(count, results.getQueryCount());
 		assertNotNull(results.getQueryResult());
 		assertNotNull(results.getQueryResult().getQueryResults());
@@ -532,7 +562,7 @@ public class TableQueryManagerImplTest {
 		facetRequestList.add(facetColumnRequest);
 		
 		RowHandler rowHandler = null;
-		queryOptions = new QueryOptions().withRunCount(true);
+		queryOptions = new QueryOptions().withRunCount(true).withReturnColumnModels(true).withReturnSelectColumns(true);
 		
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.selectedFacets(facetRequestList)
@@ -573,8 +603,8 @@ public class TableQueryManagerImplTest {
 		
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
-		assertEquals(models, results.getColumnModels());
-		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
+		assertNull(results.getColumnModels());
+		assertNull(results.getSelectColumns());
 		assertNull(results.getQueryResult());
 		assertNull(results.getQueryCount());
 		
@@ -599,7 +629,9 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateEmptyBundle(){
+	public void testCreateEmptyBundleAll(){
+		// all options
+		queryOptions = new QueryOptions().withMask(-1L);
 		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
 		assertNotNull(results.getQueryResult());
 		assertNotNull(results.getQueryResult().getQueryResults());
@@ -609,6 +641,70 @@ public class TableQueryManagerImplTest {
 		assertEquals(tableId, results.getQueryResult().getQueryResults().getTableId());
 		assertEquals(new Long(0), results.getQueryCount());
 		assertEquals(new Long(1), results.getMaxRowsPerPage());
+		assertNotNull(results.getColumnModels());
+		assertTrue(results.getColumnModels().isEmpty());
+		assertNotNull(results.getSelectColumns());
+		assertTrue(results.getSelectColumns().isEmpty());
+		assertNotNull(results.getSumFileSizes());
+		assertFalse(results.getSumFileSizes().getGreaterThan());
+		assertEquals(new Long(0), results.getSumFileSizes().getSumFileSizesBytes());
+	}
+	
+	@Test
+	public void testCreateEmptyBundleNone(){
+		// no options
+		queryOptions = new QueryOptions();
+		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
+		assertEquals(null, results.getQueryResult());
+		assertEquals(null, results.getQueryCount());
+		assertEquals(null, results.getMaxRowsPerPage());
+		assertEquals(null, results.getColumnModels());
+		assertEquals(null, results.getSelectColumns());
+		assertEquals(null, results.getSumFileSizes());
+	}
+	
+	@Test
+	public void testCreateEmptyBundleColumnModles(){
+		// all options
+		queryOptions = new QueryOptions().withReturnColumnModels(true);
+		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
+		assertNotNull(results.getColumnModels());
+		assertTrue(results.getColumnModels().isEmpty());
+	}
+	
+	@Test
+	public void testCreateEmptyBundleCount(){
+		// all options
+		queryOptions = new QueryOptions().withRunCount(true);
+		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
+		assertEquals(new Long(0), results.getQueryCount());
+	}
+	
+	@Test
+	public void testCreateEmptyBundleQuery(){
+		// all options
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+	}
+	
+	@Test
+	public void testCreateEmptyBundleMaxRows(){
+		// all options
+		queryOptions = new QueryOptions().withReturnMaxRowsPerPage(true);
+		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
+		assertEquals(new Long(1), results.getMaxRowsPerPage());
+	}
+	
+	@Test
+	public void testCreateEmptyBundleSumFileSizes(){
+		// all options
+		queryOptions = new QueryOptions().withRunSumFileSizes(true);
+		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
+		assertNotNull(results.getSumFileSizes());
+		assertFalse(results.getSumFileSizes().getGreaterThan());
+		assertEquals(new Long(0), results.getSumFileSizes().getSumFileSizesBytes());
 	}
 	
 
@@ -1142,7 +1238,7 @@ public class TableQueryManagerImplTest {
 		Row row = rows.get(0);
 		rows.clear();
 		rows.add(row);
-		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
+		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false).withReturnMaxRowsPerPage(true);
 		Query query = new Query();
 		query.setIsConsistent(true);
 		query.setSql("select * from "+tableId);
@@ -1167,6 +1263,31 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
+	public void testQuerySinglePageWithNoOptions() throws Exception{
+		// setup the results to return one row.
+		Row row = rows.get(0);
+		rows.clear();
+		rows.add(row);
+		// no options
+		queryOptions = new QueryOptions();
+		Query query = new Query();
+		query.setIsConsistent(true);
+		query.setSql("select * from "+tableId);
+		query.setSort(sortList);
+		query.setLimit(null);
+		query.setOffset(null);
+		manager.setMaxBytesPerRequest(1);
+		// call under test.
+		QueryResultBundle result = manager.querySinglePage(
+				mockProgressCallbackVoid, user, query, queryOptions);
+		
+		assertNotNull(result);
+		assertNull(result.getMaxRowsPerPage());
+		assertNull(result.getQueryResult());
+		assertNull(result.getMaxRowsPerPage());
+	}
+	
+	@Test
 	public void testQuerySinglePageWithNoNextPage() throws Exception{		
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
@@ -1182,7 +1303,7 @@ public class TableQueryManagerImplTest {
 				mockProgressCallbackVoid, user, query, queryOptions);
 		
 		assertNotNull(result);
-		assertNotNull(result.getMaxRowsPerPage());
+		assertNull(result.getMaxRowsPerPage());
 		assertNotNull(result.getQueryResult());
 		assertNull(result.getQueryResult().getNextPageToken());
 	}
