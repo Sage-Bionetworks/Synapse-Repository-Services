@@ -136,7 +136,7 @@ public class SearchWorkerIntegrationTest {
 		uuid = UUID.randomUUID().toString();
 		
 		// Zip up the markdown into a file with UUID
-		String markdown = "markdown contents \u000c\f\u0019with control characters" + uuid;
+		String markdown = "markdown contents \u000c\f\u0019with control characters " + uuid;
 		markdownOne = fileHandleManager.createCompressedFileFromString(""+adminUserInfo.getId(), new Date(), markdown);
 	}
 
