@@ -600,7 +600,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testCreateEmptyBundle(){
-		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId);
+		QueryResultBundle results = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
 		assertNotNull(results.getQueryResult());
 		assertNotNull(results.getQueryResult().getQueryResults());
 		assertNull(results.getQueryResult().getQueryResults().getEtag());
@@ -622,7 +622,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
 		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, query, queryOptions);
 		assertNotNull(results);
-		QueryResultBundle emptyResults = TableQueryManagerImpl.createEmptyBundle(tableId);
+		QueryResultBundle emptyResults = TableQueryManagerImpl.createEmptyBundle(tableId, queryOptions);
 		assertEquals(emptyResults, results);
 	}
 	
@@ -1119,20 +1119,21 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testIsRowCountEqualToMaxRowsPerPage(){
 		QueryResultBundle bundle = null;
-		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle));
+		int maxNumberRows = 0;
+		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle, maxNumberRows));
 		bundle = new QueryResultBundle();
-		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle));
+		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle, maxNumberRows));
 		bundle.setQueryResult(new QueryResult());
-		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle));
+		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle, maxNumberRows));
 		bundle.getQueryResult().setQueryResults(new RowSet());
-		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle));
+		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle, maxNumberRows));
 		Row row = new Row();
 		bundle.getQueryResult().getQueryResults().setRows(Lists.newArrayList(row));
-		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle));
-		bundle.setMaxRowsPerPage(new Long(1));
-		assertTrue(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle));
-		bundle.setMaxRowsPerPage(new Long(2));
-		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle));
+		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle, maxNumberRows));
+		maxNumberRows = 1;
+		assertTrue(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle, maxNumberRows));
+		maxNumberRows = 2;
+		assertFalse(TableQueryManagerImpl.isRowCountEqualToMaxRowsPerPage(bundle, maxNumberRows));
 	}
 	
 	@Test
