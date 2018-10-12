@@ -7,16 +7,19 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+
+import com.amazonaws.services.codecommit.model.GetCommentRequest;
 
 /**
  * Translates JDOs and DTOs.
@@ -84,11 +87,47 @@ public class NodeUtils {
 		if(dto.getScopeIds() != null){
 			rev.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		}
-		try {
-			rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
+		rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
+	}
+	
+	/**
+	 * Create a DBONode from the given Node;
+	 * @param dto
+	 * @return
+	 */
+	public DBONode createDBONodeFromDto(Node dto) {
+		DBONode dbo = new DBONode();
+		dbo.setName(dto.getName());
+		dbo.setAlias(getAlias(dto.getAlias()));
+		dbo.setCreatedBy(dto.getCreatedByPrincipalId());
+		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		dbo.setCurrentRevNumber(dto.getVersionNumber());
+		dbo.setId(getNodeId(dto.getId()));
+		dbo.setParentId(getNodeId(dto.getParentId()));
+		dbo.setType(dto.getNodeType().name());
+		return dbo;
+	}
+	
+	/**
+	 * Create a DBORevision for the given Node
+	 * @param dto
+	 * @return
+	 */
+	public DBORevision createDBORevisionFromDto(Node dto) {
+		DBORevision dbo = new DBORevision();
+		dbo.setOwner(getNodeId(dto.getId()));
+		dbo.setRevisionNumber(createVersionNumber(dto.getVersionNumber()));
+		dbo.setActivityId(getActivityId(dto.getActivityId()));
+		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
+		dbo.setComment(getVersionComment(dto.getVersionComment()));
+		dbo.setFileHandleId(getFileHandlId(dto.getFileHandleId()));
+		dbo.setLabel(createVersionLabel(dto.getVersionLabel()));
+		dbo.setModifiedBy(dto.getModifiedByPrincipalId());
+		dbo.setModifiedOn(dto.getModifiedOn().getTime());
+		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
+		dbo.setScopeIds(createByteForIdList(dto.getScopeIds()));
+		dbo.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
+		return dbo;
 	}
 	
 	/**
@@ -97,7 +136,9 @@ public class NodeUtils {
 	 * @return
 	 */
 	public static byte[] createByteForIdList(List<String> idList) {
-		if(idList == null) throw new IllegalArgumentException("idList cannot be null");
+		if(idList == null) {
+			return null;
+		}
 		StringBuilder builder = new StringBuilder();
 		int count = 0;
 		for(String id: idList){
@@ -254,4 +295,86 @@ public class NodeUtils {
 		return KeyFactory.equals(ROOT_ENTITY_ID, entityId);
 	}
 	
+
+	/**
+	 * Get the alias from the provided alias.
+	 * @param alias
+	 * @return
+	 */
+	public static String getAlias(String alias) {
+		if(StringUtils.isEmpty(alias)) {
+			return null;
+		}
+		return alias;
+	}
+	
+	/**
+	 * Get the activity ID for the given activity string.
+	 * @param activityId
+	 * @return
+	 */
+	public static Long getActivityId(String activityId) {
+		if(activityId == null) {
+			return null;
+		}
+		if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)){
+			return null;
+		}
+		return Long.parseLong(activityId);
+	}
+	
+	/**
+	 * Get the Long nodeId for the given string.
+	 * 
+	 * @param nodeId
+	 * @return
+	 */
+	public static Long getNodeId(String nodeId) {
+		if(nodeId == null) {
+			return null;
+		}
+		return KeyFactory.stringToKey(nodeId);
+	}
+	
+	/**
+	 * Get the long value for a given file handle ID.
+	 * @param fileId
+	 * @return
+	 */
+	public static Long getFileHandlId(String fileId) {
+		if(fileId == null) {
+			return null;
+		}
+		return Long.parseLong(fileId);
+	}
+	
+	/**
+	 * Get the version comment with size check.
+	 * 
+	 * @param comment
+	 * @return
+	 */
+	public static String getVersionComment(String comment) {
+		if(comment == null) {
+			return null;
+		}
+		if (comment.length() > DBORevision.MAX_COMMENT_LENGTH) {
+			throw new IllegalArgumentException("Version comment length exceeds "+DBORevision.MAX_COMMENT_LENGTH+".");
+		}
+		return comment;
+	}
+	
+	public static String createVersionLabel(String label) {
+		if(label == null) {
+			return NodeConstants.DEFAULT_VERSION_LABEL;
+		}
+		return label;
+	}
+	
+	public static Long createVersionNumber(Long versionNumber) {
+		if(versionNumber == null || versionNumber < 1) {
+			return NodeConstants.DEFAULT_VERSION_NUMBER;
+		}
+		return versionNumber;
+	}
 }

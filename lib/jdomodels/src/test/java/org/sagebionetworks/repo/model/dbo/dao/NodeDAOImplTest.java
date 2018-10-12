@@ -636,6 +636,8 @@ public class NodeDAOImplTest {
 		// Now change the copy and push it back
 		copy.setName("myNewName");
 		copy.setActivityId(testActivity2.getId());
+		// ensure modified on changes.
+		Thread.sleep(1);
 		nodeDao.updateNode(copy);
 		Node updatedCopy = nodeDao.getNode(id);
 		assertNotNull(updatedCopy);

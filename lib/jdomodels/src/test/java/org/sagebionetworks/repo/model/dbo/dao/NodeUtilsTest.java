@@ -232,4 +232,70 @@ public class NodeUtilsTest {
 		assertTrue(NodeUtils.isRootEntityId(""+rootLong));
 		assertFalse(NodeUtils.isRootEntityId(""+rootLong+1));
 	}
+	
+	@Test
+	public void testGetAlias() {
+		assertEquals(null, NodeUtils.getAlias(null));
+		assertEquals(null, NodeUtils.getAlias(""));
+		assertEquals("anAlias", NodeUtils.getAlias("anAlias"));
+	}
+	
+	@Test
+	public void testGetActivityId() {
+		assertEquals(null, NodeUtils.getActivityId(null));
+		assertEquals(null, NodeUtils.getActivityId("-1"));
+		assertEquals(new Long(123), NodeUtils.getActivityId("123"));
+	}
+	
+	@Test
+	public void testGetNodeId() {
+		assertEquals(null, NodeUtils.getNodeId(null));
+		assertEquals(new Long(123), NodeUtils.getNodeId("syn123"));
+		assertEquals(new Long(456), NodeUtils.getNodeId("456"));
+	}
+	
+	@Test
+	public void testGetFileHandleId() {
+		assertEquals(null, NodeUtils.getFileHandlId(null));
+		assertEquals(new Long(123), NodeUtils.getFileHandlId("123"));
+	}
+	
+	@Test
+	public void testGetComment() {
+		String comment = createStringOfSize(DBORevision.MAX_COMMENT_LENGTH);
+		// call under test
+		assertEquals(comment, NodeUtils.getVersionComment(comment));
+	}
+	
+	@Test
+	public void testGetCommentNull() {
+		// call under test
+		assertEquals(null, NodeUtils.getVersionComment(null));
+	}
+	
+	@Test
+	public void testGetCommentOverLimit() {
+		String comment = createStringOfSize(DBORevision.MAX_COMMENT_LENGTH+1);
+		try {
+			// call under test
+			NodeUtils.getVersionComment(comment);
+			fail();
+		}catch(IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains(""+DBORevision.MAX_COMMENT_LENGTH));
+		}
+	}
+	
+	
+	/**
+	 * Helper to create a string of a given size
+	 * @param size
+	 * @return
+	 */
+	String createStringOfSize(int size) {
+		char[] chars = new char[size];
+		for(int i=0; i<size; i++) {
+			chars[i] = 'a';
+		}
+		return new String(chars);
+	}
 }
