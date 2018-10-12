@@ -19,8 +19,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
-import com.amazonaws.services.codecommit.model.GetCommentRequest;
-
 /**
  * Translates JDOs and DTOs.
  * 
