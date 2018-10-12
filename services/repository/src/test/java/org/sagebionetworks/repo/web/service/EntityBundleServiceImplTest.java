@@ -80,8 +80,6 @@ public class EntityBundleServiceImplTest {
 	@Mock
 	private WikiService mockWikiService;
 	@Mock
-	private DoiService mockDoiService;
-	@Mock
 	private DoiServiceV2 mockDoiServiceV2;
 	@Mock
 	private DiscussionService mockDiscussionService;
@@ -115,7 +113,6 @@ public class EntityBundleServiceImplTest {
 		when(mockServiceProvider.getTableServices()).thenReturn(mockTableService);
 		when(mockServiceProvider.getWikiService()).thenReturn(mockWikiService);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
-		when(mockServiceProvider.getDoiService()).thenReturn(mockDoiService);
 		when(mockServiceProvider.getDoiServiceV2()).thenReturn(mockDoiServiceV2);
 		when(mockServiceProvider.getDiscussionService()).thenReturn(mockDiscussionService);
 		when(mockServiceProvider.getDataAccessService()).thenReturn(mockDataAccessService);
@@ -265,19 +262,6 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(bundle.getTableBundle());
 		assertEquals(page.getResults(), bundle.getTableBundle().getColumnModels());
 		assertEquals(new Long(12345), bundle.getTableBundle().getMaxRowsPerPage());
-	}
-	
-	@Test
-	public void testDoi() throws Exception {
-		String entityId = "syn123";
-		int mask = EntityBundle.DOI;
-		Doi doi = new Doi();
-		doi.setObjectType(ObjectType.ENTITY);
-		doi.setObjectId(entityId);
-		when(mockDoiService.getDoiForCurrentVersion(TEST_USER1, entityId, ObjectType.ENTITY)).thenReturn(doi);
-		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
-		assertNotNull(bundle);
-		assertEquals(doi, bundle.getDoi());
 	}
 
 	@Test

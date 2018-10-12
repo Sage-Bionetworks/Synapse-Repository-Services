@@ -368,26 +368,6 @@ public interface StackConfiguration {
 	public boolean getShouldMessagesBePublishedToTopic();
 
 	/**
-	 * EZID user name.
-	 */
-	public String getEzidUsername();
-
-	/**
-	 * EZID password.
-	 */
-	public String getEzidPassword();
-
-	/**
-	 * EZID REST API URL.
-	 */
-	public String getEzidUrl();
-
-	/**
-	 * EZID DOI prefix.
-	 */
-	public String getEzidDoiPrefix();
-
-	/**
 	 * DataCite user name.
 	 */
 	public String getDataciteUsername();
@@ -406,11 +386,6 @@ public interface StackConfiguration {
 	 * Prefix under which DOIs should be registered. DOI prefix.
 	 */
 	public String getDoiPrefix();
-
-	/**
-	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
-	 */
-	public String getEzidTargetUrlPrefix();
 
 	/**
 	 * The maximum size of a backup batch.

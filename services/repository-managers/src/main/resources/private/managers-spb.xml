@@ -305,9 +305,6 @@
 	<bean id="doiManager" class="org.sagebionetworks.repo.manager.doi.DoiManagerImpl"
 		  scope="singleton" />
 
-	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
-		scope="singleton" />
-
 	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
 
