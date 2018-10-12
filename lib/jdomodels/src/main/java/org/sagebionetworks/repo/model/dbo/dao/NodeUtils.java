@@ -98,12 +98,12 @@ public class NodeUtils {
 	public DBONode createDBONodeFromDto(Node dto) {
 		DBONode dbo = new DBONode();
 		dbo.setName(dto.getName());
-		dbo.setAlias(getAlias(dto.getAlias()));
+		dbo.setAlias(translateAlias(dto.getAlias()));
 		dbo.setCreatedBy(dto.getCreatedByPrincipalId());
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setCurrentRevNumber(dto.getVersionNumber());
-		dbo.setId(getNodeId(dto.getId()));
-		dbo.setParentId(getNodeId(dto.getParentId()));
+		dbo.setId(translateNodeId(dto.getId()));
+		dbo.setParentId(translateNodeId(dto.getParentId()));
 		dbo.setType(dto.getNodeType().name());
 		return dbo;
 	}
@@ -115,13 +115,13 @@ public class NodeUtils {
 	 */
 	public DBORevision createDBORevisionFromDto(Node dto) {
 		DBORevision dbo = new DBORevision();
-		dbo.setOwner(getNodeId(dto.getId()));
-		dbo.setRevisionNumber(createVersionNumber(dto.getVersionNumber()));
-		dbo.setActivityId(getActivityId(dto.getActivityId()));
+		dbo.setOwner(translateNodeId(dto.getId()));
+		dbo.setRevisionNumber(translateVersionNumber(dto.getVersionNumber()));
+		dbo.setActivityId(translateActivityId(dto.getActivityId()));
 		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
-		dbo.setComment(getVersionComment(dto.getVersionComment()));
-		dbo.setFileHandleId(getFileHandlId(dto.getFileHandleId()));
-		dbo.setLabel(createVersionLabel(dto.getVersionLabel()));
+		dbo.setComment(translateVersionComment(dto.getVersionComment()));
+		dbo.setFileHandleId(translateFileHandleId(dto.getFileHandleId()));
+		dbo.setLabel(translateVersionLabel(dto.getVersionLabel()));
 		dbo.setModifiedBy(dto.getModifiedByPrincipalId());
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
@@ -297,11 +297,11 @@ public class NodeUtils {
 	
 
 	/**
-	 * Get the alias from the provided alias.
+	 * Translate the provided alias.
 	 * @param alias
 	 * @return
 	 */
-	public static String getAlias(String alias) {
+	public static String translateAlias(String alias) {
 		if(StringUtils.isEmpty(alias)) {
 			return null;
 		}
@@ -309,11 +309,11 @@ public class NodeUtils {
 	}
 	
 	/**
-	 * Get the activity ID for the given activity string.
+	 * Translate a string activity ID to a long.
 	 * @param activityId
 	 * @return
 	 */
-	public static Long getActivityId(String activityId) {
+	public static Long translateActivityId(String activityId) {
 		if(activityId == null) {
 			return null;
 		}
@@ -324,12 +324,12 @@ public class NodeUtils {
 	}
 	
 	/**
-	 * Get the Long nodeId for the given string.
+	 * Translate a node ID to a long.
 	 * 
 	 * @param nodeId
 	 * @return
 	 */
-	public static Long getNodeId(String nodeId) {
+	public static Long translateNodeId(String nodeId) {
 		if(nodeId == null) {
 			return null;
 		}
@@ -337,11 +337,11 @@ public class NodeUtils {
 	}
 	
 	/**
-	 * Get the long value for a given file handle ID.
+	 * Translate a string file handle ID to a long.
 	 * @param fileId
 	 * @return
 	 */
-	public static Long getFileHandlId(String fileId) {
+	public static Long translateFileHandleId(String fileId) {
 		if(fileId == null) {
 			return null;
 		}
@@ -349,12 +349,12 @@ public class NodeUtils {
 	}
 	
 	/**
-	 * Get the version comment with size check.
+	 * Translate the version comment with size check.
 	 * 
 	 * @param comment
 	 * @return
 	 */
-	public static String getVersionComment(String comment) {
+	public static String translateVersionComment(String comment) {
 		if(comment == null) {
 			return null;
 		}
@@ -364,14 +364,24 @@ public class NodeUtils {
 		return comment;
 	}
 	
-	public static String createVersionLabel(String label) {
+	/**
+	 * Translate the provide version label
+	 * @param label
+	 * @return
+	 */
+	public static String translateVersionLabel(String label) {
 		if(label == null) {
 			return NodeConstants.DEFAULT_VERSION_LABEL;
 		}
 		return label;
 	}
 	
-	public static Long createVersionNumber(Long versionNumber) {
+	/**
+	 * Translate the given version number.
+	 * @param versionNumber
+	 * @return
+	 */
+	public static Long translateVersionNumber(Long versionNumber) {
 		if(versionNumber == null || versionNumber < 1) {
 			return NodeConstants.DEFAULT_VERSION_NUMBER;
 		}

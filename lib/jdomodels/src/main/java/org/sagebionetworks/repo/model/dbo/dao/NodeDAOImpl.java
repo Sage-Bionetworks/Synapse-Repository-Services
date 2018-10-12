@@ -435,7 +435,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@WriteTransaction
 	@Override
 	public Node createNewNode(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
-		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
+		if(dto == null) {
+			throw new IllegalArgumentException("Node cannot be null");
+		}
 		DBORevision rev = new DBORevision();
 		// Set the default label
 		if(dto.getVersionLabel() == null){
@@ -758,8 +760,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long nodeId = KeyFactory.stringToKey(updatedNode.getId());
 
 		String newName = updatedNode.getName();
-		Long newParentId = NodeUtils.getNodeId(updatedNode.getParentId());
-		String newAlias = NodeUtils.getAlias(updatedNode.getAlias());
+		Long newParentId = NodeUtils.translateNodeId(updatedNode.getParentId());
+		String newAlias = NodeUtils.translateAlias(updatedNode.getAlias());
 
 		// Update the node.
 		try {
@@ -771,10 +773,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		// update the revision
 		long currentRevision = getCurrentRevisionNumber(updatedNode.getId());
-		Long newActivity = NodeUtils.getActivityId(updatedNode.getActivityId());
-		String newComment = NodeUtils.getVersionComment(updatedNode.getVersionComment());
-		String newLabel = updatedNode.getVersionLabel();
-		Long newFileHandleId = NodeUtils.getFileHandlId(updatedNode.getFileHandleId());
+		Long newActivity = NodeUtils.translateActivityId(updatedNode.getActivityId());
+		String newComment = NodeUtils.translateVersionComment(updatedNode.getVersionComment());
+		String newLabel = NodeUtils.translateVersionLabel(updatedNode.getVersionLabel());
+		Long newFileHandleId = NodeUtils.translateFileHandleId(updatedNode.getFileHandleId());
 		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
 		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
 		byte[] newReferences = JDOSecondaryPropertyUtils.compressReference(updatedNode.getReference());

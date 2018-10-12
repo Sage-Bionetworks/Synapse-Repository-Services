@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
@@ -234,55 +235,68 @@ public class NodeUtilsTest {
 	}
 	
 	@Test
-	public void testGetAlias() {
-		assertEquals(null, NodeUtils.getAlias(null));
-		assertEquals(null, NodeUtils.getAlias(""));
-		assertEquals("anAlias", NodeUtils.getAlias("anAlias"));
+	public void testTranslateAlias() {
+		assertEquals(null, NodeUtils.translateAlias(null));
+		assertEquals(null, NodeUtils.translateAlias(""));
+		assertEquals("anAlias", NodeUtils.translateAlias("anAlias"));
 	}
 	
 	@Test
-	public void testGetActivityId() {
-		assertEquals(null, NodeUtils.getActivityId(null));
-		assertEquals(null, NodeUtils.getActivityId("-1"));
-		assertEquals(new Long(123), NodeUtils.getActivityId("123"));
+	public void testTranslateActivityId() {
+		assertEquals(null, NodeUtils.translateActivityId(null));
+		assertEquals(null, NodeUtils.translateActivityId("-1"));
+		assertEquals(new Long(123), NodeUtils.translateActivityId("123"));
 	}
 	
 	@Test
-	public void testGetNodeId() {
-		assertEquals(null, NodeUtils.getNodeId(null));
-		assertEquals(new Long(123), NodeUtils.getNodeId("syn123"));
-		assertEquals(new Long(456), NodeUtils.getNodeId("456"));
+	public void testTranslateNodeId() {
+		assertEquals(null, NodeUtils.translateNodeId(null));
+		assertEquals(new Long(123), NodeUtils.translateNodeId("syn123"));
+		assertEquals(new Long(456), NodeUtils.translateNodeId("456"));
 	}
 	
 	@Test
-	public void testGetFileHandleId() {
-		assertEquals(null, NodeUtils.getFileHandlId(null));
-		assertEquals(new Long(123), NodeUtils.getFileHandlId("123"));
+	public void testTranslateFileHandleId() {
+		assertEquals(null, NodeUtils.translateFileHandleId(null));
+		assertEquals(new Long(123), NodeUtils.translateFileHandleId("123"));
 	}
 	
 	@Test
-	public void testGetComment() {
+	public void testTranslateComment() {
 		String comment = createStringOfSize(DBORevision.MAX_COMMENT_LENGTH);
 		// call under test
-		assertEquals(comment, NodeUtils.getVersionComment(comment));
+		assertEquals(comment, NodeUtils.translateVersionComment(comment));
 	}
 	
 	@Test
-	public void testGetCommentNull() {
+	public void testTranslateCommentNull() {
 		// call under test
-		assertEquals(null, NodeUtils.getVersionComment(null));
+		assertEquals(null, NodeUtils.translateVersionComment(null));
 	}
 	
 	@Test
-	public void testGetCommentOverLimit() {
+	public void testTranslateCommentOverLimit() {
 		String comment = createStringOfSize(DBORevision.MAX_COMMENT_LENGTH+1);
 		try {
 			// call under test
-			NodeUtils.getVersionComment(comment);
+			NodeUtils.translateVersionComment(comment);
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains(""+DBORevision.MAX_COMMENT_LENGTH));
 		}
+	}
+	
+	@Test
+	public void testTranslateVersionLabel() {
+		assertEquals(NodeConstants.DEFAULT_VERSION_LABEL, NodeUtils.translateVersionLabel(null));
+		assertEquals("aLabel", NodeUtils.translateVersionLabel("aLabel"));
+	}
+	
+	@Test
+	public void testTranlateVersionNumber() {
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, NodeUtils.translateVersionNumber(null));
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, NodeUtils.translateVersionNumber(-1L));
+		assertEquals(new Long(123), NodeUtils.translateVersionNumber(123L));
 	}
 	
 	
