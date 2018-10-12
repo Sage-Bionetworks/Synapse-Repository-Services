@@ -675,6 +675,51 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testUpdateOptionalNull() {
+		Node node = NodeTestUtils.createNew("foo", creatorUserGroupId);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// set all optional fields to null
+		node.setActivityId(null);
+		node.setAlias(null);
+		node.setParentId(null);
+		node.setColumnModelIds(null);
+		node.setScopeIds(null);
+		node.setReference(null);
+		// call under test
+		nodeDao.updateNode(node);
+		Node updated = nodeDao.getNode(node.getId());
+		assertEquals(node, updated);
+	}
+	
+	@Test
+	public void testUpdateAllFields() {
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		
+		Node node = NodeTestUtils.createNew("foo", creatorUserGroupId);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// set all fields that can be updated
+		node.setActivityId(testActivity.getId());
+		node.setAlias("anAlias");
+		node.setVersionLabel("updateLabel");
+		node.setVersionComment("some comment");
+		node.setParentId(parent.getId());
+		node.setColumnModelIds(Lists.newArrayList("1","2","3"));
+		node.setScopeIds(Lists.newArrayList("4","5","6"));
+		Reference ref = new Reference();
+		ref.setTargetId("syn789");
+		ref.setTargetVersionNumber(22L);
+		node.setReference(ref);
+		// call under test
+		nodeDao.updateNode(node);
+		Node updated = nodeDao.getNode(node.getId());
+		assertEquals(node, updated);
+	}
+	
+	@Test
 	public void testUpdateNodeDuplicateAlias() throws Exception{
 		String commonAlias = "alias";
 		Node parent = privateCreateNew("parent");
