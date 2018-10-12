@@ -43,13 +43,6 @@
 			"description": "The user that last modified this entity.",
 			"title": "Modified By"
 		},
-		"boost": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
-			"description": "stuff in this field any extra copies of data that you would like to boost in free text search"
-		},
 		"acl": {
 			"type": "array",
 			"items": {

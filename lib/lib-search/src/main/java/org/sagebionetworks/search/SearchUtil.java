@@ -83,7 +83,7 @@ public class SearchUtil{
 	 * @param charSequence input to be stripped of unsupported Unicode characters
 	 * @return String of the input charSequence with unsupported Unicode characters stripped out
 	 */
-	static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
+	public static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
 		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
 	}
 
@@ -394,7 +394,7 @@ public class SearchUtil{
 		}
 		// Some descriptions have control characters in them for some reason, in any case, just get rid
 		// of all control characters in the search document
-		return stripUnsupportedUnicodeCharacters(stringJoiner.toString());
+		return stringJoiner.toString();
 	}
 
 	/**

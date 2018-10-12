@@ -252,10 +252,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(new Long(node.getModifiedOn().getTime() / 1000), fields
 				.getModified_on());
 
-		// Check boost field
-		assertTrue(fields.getBoost().contains(node.getId()));
-		assertTrue(fields.getBoost().contains(node.getName()));
-
 		// Check the faceted fields
 		assertEquals((Long) 999L, fields.getNum_samples());
 		assertEquals("ear lobe", fields.getTissue());

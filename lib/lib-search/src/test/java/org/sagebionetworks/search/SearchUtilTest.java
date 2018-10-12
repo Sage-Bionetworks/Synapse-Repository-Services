@@ -579,21 +579,6 @@ public class SearchUtilTest {
 		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
 	}
 
-	@Test
-	public void testConvertSearchDocumentsToJSONStringWithUnsupportedUnicode(){
-		Document addDoc = new Document();
-		addDoc.setId("syn5158082362");
-		addDoc.setType(DocumentTypeNames.add);
-		DocumentFields fields = new DocumentFields();
-		fields.setName("John Cena");
-		fields.setDescription("You Can't See Me: \uD83D\uDC68\uD83D\uDC4B");
-		addDoc.setFields(fields);
-
-		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(addDoc));
-		assertEquals("[{\"type\":\"add\",\"id\":\"syn5158082362\",\"fields\":{\"name\":\"John Cena\",\"description\":\"You Can't See Me: \"}}]", jsonString);
-	}
-
-
 	////////////////////////////////////////////
 	// stripUnsupportedUnicodeCharacters() test
 	////////////////////////////////////////////
@@ -601,7 +586,7 @@ public class SearchUtilTest {
 	@Test
 	public void testStripUnsupportedUnicodeCharacters(){
 		//test unicode characters from https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
-		String testString = "⌐( ͡° ͜ʖ ͡°) ╯╲___\uD800\uDBFF\uDFFF\uDC00\uFFFE\uFFFF\uD83C\uDF0ADon't mind me just taking my unsupported unicode characters for a walk";
+		String testString = "⌐( ͡° ͜ʖ ͡°) ╯╲___\u000C\u0019Don't mind me just taking my unsupported unicode characters for a walk";
 
 		String result = SearchUtil.stripUnsupportedUnicodeCharacters(testString);
 		assertEquals("⌐( ͡° ͜ʖ ͡°) ╯╲___Don't mind me just taking my unsupported unicode characters for a walk", result);

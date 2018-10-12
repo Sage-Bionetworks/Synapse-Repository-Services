@@ -23,12 +23,12 @@ public class SynapseToCloudSearchFieldTest {
 
 		Set<String> expectedFieldNames = Sets.newHashSet("modified_on", "disease", "consortium",
 				"description", "tissue", "acl", "created_by", "platform", "reference", "node_type", "created_on",
-				"update_acl", "parent_id", "name", "modified_by", "etag", "boost", "num_samples");
+				"update_acl", "parent_id", "name", "modified_by", "etag", "num_samples");
 
 		Set<String> actualfieldNames = list.stream().map(IndexField::getIndexFieldName).collect(Collectors.toSet());
-		// We currently have 18 index fields
-		assertEquals(18, list.size());
-		assertEquals(18, actualfieldNames.size());
+		// We currently have 17 index fields
+		assertEquals(17, list.size());
+		assertEquals(17, actualfieldNames.size());
 		assertEquals(expectedFieldNames, actualfieldNames);
 	}
 

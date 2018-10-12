@@ -5,13 +5,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyMapOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,6 +23,7 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,8 +34,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -51,6 +56,10 @@ public class SearchDocumentDriverImplTest {
 	@Mock
 	private NamedAnnotations mockNamedAnnotations;
 
+	@Mock
+	private AccessControlList mockAcl;
+
+	private Node node;
 
 	private final String annoKey1 = "annoKey1";
 	private final String annoKey2 = "annoKey2";
@@ -65,6 +74,9 @@ public class SearchDocumentDriverImplTest {
 
 	private Map<String, String> annoValuesMap;
 
+	private final String stringContainingControlCharacters = "someString\f\f\u000c\u0019";
+	private final String sanitizedString = "someString";
+
 	@Before
 	public void setUp(){
 
@@ -77,6 +89,16 @@ public class SearchDocumentDriverImplTest {
 		// actually do exist in this map
 		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(existingIndexField));
 		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.get(existingIndexField).containsAll(Arrays.asList(existingAnnotationKey, existingAnnotationKey2)));
+
+		//setup Node to avoid NullPointerException and IllegalArgumentException for fields we don't care about in tests
+		node = new Node();
+		node.setId("syn123");
+		node.setNodeType(EntityType.file);
+		node.setCreatedByPrincipalId(123L);
+		node.setCreatedOn(new Date());
+		node.setModifiedByPrincipalId(123L);
+		node.setModifiedOn(new Date());
+
 	}
 
 	@Test
@@ -175,6 +197,14 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
+	public void getSearchIndexFieldValue_valueIncludesUnicodeControlCharacters(){
+		annoValuesMap.put(FIELD_PLATFORM, stringContainingControlCharacters);
+
+		assertEquals(sanitizedString, spySearchDocumentDriver.getSearchIndexFieldValue(annoValuesMap, FIELD_PLATFORM));
+	}
+
+
+	@Test
 	public void addAnnotationsToSearchDocument_AnnotationValueIsNull(){
 		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
 		doReturn(null).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
@@ -235,5 +265,26 @@ public class SearchDocumentDriverImplTest {
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_NUM_SAMPLES);
 	}
 
+	@Test
+	public void formulateSearchDocument_nullWikiPageText(){
+		doNothing().when(spySearchDocumentDriver).addAnnotationsToSearchDocument(any(), any());
+
+		String wikiPageText = null;
+
+		//method under test
+		Document result = spySearchDocumentDriver.formulateSearchDocument(node, mockNamedAnnotations, mockAcl, wikiPageText);
+
+		assertEquals("", result.getFields().getDescription());
+	}
+
+	@Test
+	public void formulateSearchDocument_WikiPageTextContainingUnicodeControlCharacters(){
+		doNothing().when(spySearchDocumentDriver).addAnnotationsToSearchDocument(any(), any());
+
+		//method under test
+		Document result = spySearchDocumentDriver.formulateSearchDocument(node, mockNamedAnnotations, mockAcl, stringContainingControlCharacters);
+
+		assertEquals(sanitizedString, result.getFields().getDescription());
+	}
 
 }

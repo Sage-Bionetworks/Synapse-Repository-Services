@@ -2,7 +2,6 @@ package org.sagebionetworks.search.awscloudsearch;
 
 
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ACL;
-import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_BOOST;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_BY;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_ON;
@@ -22,8 +21,6 @@ import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstant
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_UPDATE_ACL;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
@@ -52,7 +49,6 @@ public enum SynapseToCloudSearchField {
 
 	//The ones below are not exposed in our API currently (and probably never will be)
 	ETAG(null, CLOUD_SEARCH_FIELD_ETAG),
-	BOOST(null, CLOUD_SEARCH_FIELD_BOOST),
 	PARENT_ID(null, CLOUD_SEARCH_FIELD_PARENT_ID),
 	PLATFORM(null, CLOUD_SEARCH_FIELD_PLATFORM),
 	REFERENCE(null, CLOUD_SEARCH_FIELD_REFERENCE),
