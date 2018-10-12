@@ -6,6 +6,7 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import sun.plugin2.jvm.CircularByteBuffer;
 
 /**
  * Implementation of the Search DAO.
@@ -81,6 +83,12 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public void createOrUpdateSearchDocument(List<Document> document){
 		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(document);
+	}
+
+	@Override
+	public void sendDocuments(Iterator<Document> documentIterator){
+		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(documentIterator);
+		CircularByteBuffer
 	}
 
 	@Override

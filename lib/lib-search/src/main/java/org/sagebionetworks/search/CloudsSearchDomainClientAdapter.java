@@ -16,6 +16,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,32 @@ public class CloudsSearchDomainClientAdapter {
 	public void sendDocument(Document document){
 		ValidateArgument.required(document, "document");
 		sendDocuments(Collections.singletonList(document));
+	}
+
+	public void sendDocuments(Iterator<Document> documents){
+		ValidateArgument.required(documents, "documents");
+
+		String documents = SearchUtil.convertSearchDocumentsToJSONString(batch);
+		final byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
+		UploadDocumentsRequest request = new UploadDocumentsRequest()
+				.withContentType("application/json")
+				.withDocuments(new ByteArrayInputStream(documentBytes))
+				.withContentLength((long) documentBytes.length);
+		try {
+			UploadDocumentsResult result = client.uploadDocuments(request);
+		} catch (DocumentServiceException e){
+			int statusCode = e.getStatusCode();
+			if(statusCode / 100 == 4) { //4xx status codes
+				List<String> documentIds = batch.stream().map(Document::getId).collect(Collectors.toList());
+				logger.error("The following search document was unable to be uploaded to CloudSearch:\n\n" +
+						documents);
+				throw new IllegalArgumentException(documentIds.toString() + " search documents could not be uploaded.", e);
+			}else {
+				throw e;
+			}
+
+		}
+
 	}
 
 	public void sendDocuments(List<Document> batch){

@@ -96,7 +96,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @throws IOException 
 	 * @throws DatastoreException 
 	 */
-	public Document formulateFromBackup(Node node) throws NotFoundException, DatastoreException, IOException {
+	public Document formulateFromBackup(Node node) throws NotFoundException, DatastoreException {
 		if (node.getId() == null)
 			throw new IllegalArgumentException("node.id cannot be null");
 		String benefactorId = nodeDao.getBenefactor(node.getId());
@@ -274,8 +274,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 
 	@Override
-	public Document formulateSearchDocument(String nodeId)
-			throws DatastoreException, NotFoundException, IOException {
+	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException {
 		if (nodeId == null)
 			throw new IllegalArgumentException("NodeId cannot be null");
 		Node node = nodeDao.getNode(nodeId);
@@ -304,7 +303,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @throws DatastoreException
 	 * @throws IOException 
 	 */
-	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException {
+	public String getAllWikiPageText(String nodeId) throws DatastoreException {
 		// Lookup all wiki pages for this node
 		try {
 			long limit = 100L;
@@ -328,6 +327,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				builder.append(markdownString);
 			}
 			return builder.toString();
+		} catch (IOException e){
+			throw new RuntimeException(e);
 		} catch (NotFoundException e) {
 			// There is no WikiPage for this node.
 			return null;

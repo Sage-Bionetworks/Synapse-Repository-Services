@@ -1,6 +1,7 @@
 package org.sagebionetworks.search;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -46,8 +47,10 @@ public interface SearchDao {
 	 * @param docIdsToDelete
 	 */
 	void deleteDocuments(Set<String> docIdsToDelete);
-	 
-	 /**
+
+	void sendDocuments(Iterator<Document> documentIterator);
+
+	/**
 	 * Execute a query.
 	 * 
 	 * @param search

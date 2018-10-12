@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 
 import java.io.IOException;
+import java.util.List;
 
 public interface SearchManager {
 
@@ -47,6 +48,8 @@ public interface SearchManager {
 	 * @param document the document to create
 	 */
 	void createOrUpdateSearchDocument(Document document);
+
+	void documentChangeMessages(List<ChangeMessage> changeMessages);
 
 	/**
 	 * Creates a document based on an Entity or Wiki change that occurred in Synapse. Used by SearchQueueWorker.

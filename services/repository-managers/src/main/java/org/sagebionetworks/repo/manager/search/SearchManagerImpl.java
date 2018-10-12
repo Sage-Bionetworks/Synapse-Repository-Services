@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.Iterators;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -11,6 +12,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -22,8 +24,10 @@ import org.sagebionetworks.search.SearchUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class SearchManagerImpl implements SearchManager{
 	private static final Logger log = LogManager.getLogger(SearchManagerImpl.class.getName());
@@ -31,6 +35,9 @@ public class SearchManagerImpl implements SearchManager{
 
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
+
+	@Autowired
+	ChangeMessageToDocumentTranslator translator;
 
 	@Autowired
 	SearchDao searchDao;
@@ -112,6 +119,11 @@ public class SearchManagerImpl implements SearchManager{
 	/********
 	 * Worker related stuff below
 	 */
+
+	@Override
+	public void documentChangeMessages(List<ChangeMessage> messages){
+		Iterator<Document> documentIterator  = Iterators.filter(Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary), Objects::nonNull);
+	}
 
 	@Override
 	public void documentChangeMessage(ChangeMessage change) throws IOException{
