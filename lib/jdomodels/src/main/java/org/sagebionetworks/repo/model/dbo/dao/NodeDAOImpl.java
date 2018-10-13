@@ -99,7 +99,6 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
@@ -425,67 +424,42 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ IDS_PARAM_NAME+")";
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		Node node = createNewNode(dto);
 		return node.getId();
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public Node createNewNode(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
-		if(dto == null) {
-			throw new IllegalArgumentException("Node cannot be null");
-		}
-		DBORevision rev = new DBORevision();
-		// Set the default label
-		if(dto.getVersionLabel() == null){
-			rev.setLabel(NodeConstants.DEFAULT_VERSION_LABEL);
-		}
-		if(dto.getVersionNumber() == null || dto.getVersionNumber().longValue() < 1){
-			rev.setRevisionNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
-		}else{
-			rev.setRevisionNumber(dto.getVersionNumber());
-		}
-		DBONode node = new DBONode();
-		node.setCurrentRevNumber(rev.getRevisionNumber());
-		NodeUtils.updateFromDto(dto, node, rev, shouldDeleteActivityId(dto));
-		// If an id was not provided then create one
-		if(node.getId() == null){
-			node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
-		}else{
-			// If an id was provided then it must not exist
-			if(doesNodeExist(node.getId())) throw new IllegalArgumentException("The id: "+node.getId()+" already exists, so a node cannot be created using that id.");
-			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(node.getId(), IdType.ENTITY_ID);
-		}
-		// Look up this type
-		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
-		node.setType(dto.getNodeType().name());
+		ValidateArgument.required(dto, "Entity");
+		ValidateArgument.required(dto.getName(), "Entity.name");
+		ValidateArgument.required(dto.getCreatedByPrincipalId(), "Entity.createdBy");
+		ValidateArgument.required(dto.getCreatedOn(), "Entity.createdOn");
+		ValidateArgument.required(dto.getNodeType(), "Entity.type");
+		ValidateArgument.required(dto.getModifiedByPrincipalId(), "Entity.modifiedBy");
+		ValidateArgument.required(dto.getModifiedOn(), "Entity.modifiedOn");
 
-		DBONode parent = null;
-		// Set the parent and benefactor
-		if(dto.getParentId() != null){
-			// Get the parent
-			parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
-			node.setParentId(parent.getId());
-		}
-
+		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
+		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
+		dboNode.setCurrentRevNumber(dboRevision.getRevisionNumber());
+		dboNode.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		// Start it with a new e-tag
-		node.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(node).withChangeType(ChangeType.CREATE).withUserId(node.getCreatedBy()));
+		dboNode.seteTag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(dboNode).withChangeType(ChangeType.CREATE).withUserId(dboNode.getCreatedBy()));
 
 		// Now create the revision
-		rev.setOwner(node.getId());
+		dboRevision.setOwner(dboNode.getId());
 		// Now save the node and revision
 		try{
-			dboBasicDao.createNew(node);
+			dboBasicDao.createNew(dboNode);
 		}catch(IllegalArgumentException e){
-			checkExceptionDetails(node.getName(), node.getAlias(), KeyFactory.keyToString(node.getParentId()), e);
+			checkExceptionDetails(dboNode.getName(), dboNode.getAlias(), KeyFactory.keyToString(dboNode.getParentId()), e);
 		}
-		dboBasicDao.createNew(rev);		
-		return getNode(""+node.getId());
+		dboBasicDao.createNew(dboRevision);		
+		return getNode(""+dboNode.getId());
 	}
 
 	/**
@@ -500,7 +474,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		throw e;
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
@@ -550,7 +524,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public boolean delete(String id) throws DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
@@ -578,7 +552,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException {
 		// Get the version in question
@@ -748,7 +722,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return currentTag;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
 		if (updatedNode == null) {
@@ -786,7 +760,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
 
@@ -845,7 +819,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		});
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void afterPropertiesSet() throws Exception {
 

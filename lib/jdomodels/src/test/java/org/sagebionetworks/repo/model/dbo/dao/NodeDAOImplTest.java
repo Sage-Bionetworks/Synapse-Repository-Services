@@ -370,23 +370,6 @@ public class NodeDAOImplTest {
 		assertTrue(nodeDao.doesNodeExist(nodeId));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateWithExistingId() throws Exception{
-		Node toCreate = privateCreateNew("secondNodeEver");
-		toCreate.setVersionComment("This is the first version of the first node ever!");
-		toCreate.setVersionLabel("0.0.1");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		// Now create another node using this id.
-		Node duplicate = privateCreateNew("should never exist");
-		duplicate.setId(id);
-		// This should throw an exception.
-		String id2 = nodeDao.createNew(duplicate);
-		toDelete.add(id2);
-		assertNotNull(id2);;
-	}
-	
 	@Test
 	public void testCreateWithDuplicateName() throws Exception{
 		String commonName = "name";
@@ -436,35 +419,6 @@ public class NodeDAOImplTest {
 			assertTrue(e.getMessage().indexOf("The friendly url name (alias): "+commonAlias+" is already taken.  Please select another.") > -1);
 
 		}
-	}
-	
-	@Test
-	public void testCreateWithId() throws Exception{
-		// Create a new node with an ID that is beyond the current max of the 
-		// ID generator.
-		long idLong = idGenerator.generateNewId(IdType.ENTITY_ID) + 10;
-		String idString = KeyFactory.keyToString(new Long(idLong));
-		Node toCreate = privateCreateNew("secondNodeEver");
-		toCreate.setId(idString);
-		String fetchedId = nodeDao.createNew(toCreate);
-		toDelete.add(fetchedId);
-		// The id should be the same as what we provided
-		assertEquals(idString, fetchedId);
-		// Also make sure the ID generator was increment to reserve this ID.
-		long nextId = idGenerator.generateNewId(IdType.ENTITY_ID);
-		assertEquals(idLong+1, nextId);
-	}
-	
-	@Test
-	public void testCreateWithIdGreaterThanIdGenerator() throws Exception{
-		// Create a node with a specific id
-		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId(IdType.ENTITY_ID)+10));
-		Node toCreate = privateCreateNew("secondNodeEver");
-		toCreate.setId(id);
-		String fetchedId = nodeDao.createNew(toCreate);
-		toDelete.add(fetchedId);
-		// The id should be the same as what we provided
-		assertEquals(id, fetchedId);
 	}
 	
 	@Test 
