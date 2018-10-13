@@ -598,23 +598,6 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDownload());
 		assertEquals(true, uep.getCanUpload()); // can't read but CAN upload, which is controlled separately
 		assertEquals(false, uep.getCanEnableInheritance());
-
-		// now change the ownership so the user is the owner
-		node.setCreatedByPrincipalId(userInfo.getId());
-		nodeDao.updateNode(node);
-		
-		// the user still cannot do anything..
-		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
-		assertEquals(false, uep.getCanAddChild());
-		assertEquals(false, uep.getCanChangePermissions());
-		assertEquals(false, uep.getCanChangeSettings());
-		assertEquals(false, uep.getCanDelete());
-		assertEquals(false, uep.getCanEdit());
-		assertEquals(false, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
-		assertEquals(true, uep.getCanUpload()); 
-		assertEquals(false, uep.getCanEnableInheritance());
-		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 	}
 	
 	@Test
