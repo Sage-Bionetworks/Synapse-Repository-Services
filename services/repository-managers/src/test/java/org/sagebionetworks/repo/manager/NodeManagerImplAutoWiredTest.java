@@ -198,42 +198,50 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(new Long(120), annos.getSingleValue("longKey"));
 	}
 	
+	/**
+	 * Extended for PLFM-5178.
+	 * 
+	 */
 	@Test
-	public void testCreateAndUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+	public void testCreateAndUpdate() throws Exception {
 		// Create a node
-		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
+		Node start = new Node();
+		start.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setNodeType(EntityType.project);
-		String id = nodeManager.createNewNode(newNode, adminUserInfo);
-		assertNotNull(id);
-		nodesToDelete.add(id);
+		start.setNodeType(EntityType.project);
+		start = nodeManager.createNode(start, userInfo);
+		assertNotNull(start);
+		nodesToDelete.add(start.getId());
 		//Make sure we can get the node
-		Node fetched = nodeManager.get(adminUserInfo, id);
+		Node fetched = nodeManager.get(adminUserInfo, start.getId());
 		assertNotNull(fetched);
-		assertEquals(adminUserInfo.getId().toString(), fetched.getCreatedByPrincipalId().toString());
-		assertEquals(adminUserInfo.getId().toString(), fetched.getModifiedByPrincipalId().toString());
+		assertEquals(start, fetched);
+		assertEquals(userInfo.getId().toString(), fetched.getCreatedByPrincipalId().toString());
+		assertEquals(userInfo.getId().toString(), fetched.getModifiedByPrincipalId().toString());
 		assertNotNull(fetched.getCreatedOn());
 		assertNotNull(fetched.getModifiedOn());
-		assertEquals(id, fetched.getId());
-		assertEquals(newNode.getName(), fetched.getName());
-		assertEquals(newNode.getNodeType(), fetched.getNodeType());
 		assertNotNull(fetched.getETag());
 		
 		// Now try to update the node
 		String startingETag = fetched.getETag();
 		fetched.setName("mySecondName");
+		// ensure modified on changes
+		Thread.sleep(10);
+		// update as a different user.
 		Node updated = nodeManager.update(adminUserInfo, fetched);
 		assertNotNull(updated);
 		// Make sure the result has a new eTag
 		assertFalse(startingETag.equals(updated.getETag()));
 		// Now get it again
-		Node fetchedAgain = nodeManager.get(adminUserInfo, id);
-		assertNotNull(fetchedAgain);
-		assertEquals("mySecondName", fetchedAgain.getName());
-		assertEquals(updated.getETag(), fetchedAgain.getETag());
-
+		Node fetchedAfterUpdate = nodeManager.get(adminUserInfo, start.getId());
+		assertNotNull(fetchedAfterUpdate);
+		assertEquals(updated, fetchedAfterUpdate);
+		assertEquals("mySecondName", fetchedAfterUpdate.getName());
+		assertEquals(userInfo.getId().toString(), fetchedAfterUpdate.getCreatedByPrincipalId().toString());
+		assertEquals(start.getCreatedOn(), fetchedAfterUpdate.getCreatedOn());
+		assertEquals(adminUserInfo.getId(), fetchedAfterUpdate.getModifiedByPrincipalId());
+		assertTrue(start.getModifiedOn().getTime() < fetchedAfterUpdate.getModifiedOn().getTime());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
@@ -276,7 +284,7 @@ public class NodeManagerImplAutoWiredTest {
 		// sleep to ensure modifiedOn changes.
 		Thread.sleep(10);
 		// Now update the node
-		Annotations updated = nodeManager.updateAnnotations(userInfo,id, annos, AnnotationNameSpace.ADDITIONAL);
+		Annotations updated = nodeManager.updateAnnotations(adminUserInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(updated);
 		assertNotNull(updated.getEtag());
 		assertFalse(updated.getEtag().equals(eTagBeforeUpdate));
@@ -285,12 +293,17 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(updated,copy);
 		// Make sure the eTag has changed
 		assertEquals(updated.getEtag(), copy.getEtag());
-		Node nodeCopy = nodeManager.get(userInfo, id);
-		assertNotNull(nodeCopy);
-		assertNotNull(nodeCopy.getETag());
-		assertEquals(updated.getEtag(), nodeCopy.getETag());
-		assertFalse(startNode.getETag().equals(nodeCopy.getETag()));
-		assertTrue(nodeCopy.getModifiedOn().getTime() > startNode.getModifiedOn().getTime());
+		Node updatedNode = nodeManager.get(userInfo, id);
+		assertNotNull(updatedNode);
+		assertNotNull(updatedNode.getETag());
+		assertEquals(updated.getEtag(), updatedNode.getETag());
+		assertFalse(startNode.getETag().equals(updatedNode.getETag()));
+		// modified on/by should be updated.
+		assertTrue(updatedNode.getModifiedOn().getTime() > startNode.getModifiedOn().getTime());
+		assertEquals(adminUserInfo.getId(), updatedNode.getModifiedByPrincipalId());
+		// created on/by should not change.
+		assertEquals(userInfo.getId(), updatedNode.getCreatedByPrincipalId());
+		assertEquals(startNode.getCreatedOn(), updatedNode.getCreatedOn());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
@@ -369,7 +382,8 @@ public class NodeManagerImplAutoWiredTest {
 		annosToUpdate.getStringAnnotations().clear();
 		String valueOnSecondVersion = "Value on the second version.";
 		annosToUpdate.addAnnotation("stringKey", valueOnSecondVersion);
-		Node afterUpdate = nodeManager.update(userInfo, updatedNode, namedToUpdate, true);
+		// call under test
+		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode, namedToUpdate, true);
 		assertNotNull(afterUpdate);
 		assertNotNull(afterUpdate.getETag());
 		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
@@ -400,6 +414,47 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(annosZero.getStringAnnotations());
 		assertEquals(1, annosZero.getStringAnnotations().size());
 		assertEquals(firstVersionValue, annosZero.getSingleValue("stringKey"));
+	}
+	
+	/**
+	 * Test added for PLFM-5178
+	 */
+	@Test
+	public void testUpdateVersionModifiedByModifiedOn() throws Exception {
+		Node node = new Node();
+		node.setName("startName");
+		node.setNodeType(EntityType.project);
+		// call under test
+		node = nodeManager.createNode(node, userInfo);
+		assertNotNull(node);
+		nodesToDelete.add(node.getId());
+		assertNotNull(node.getETag());
+		assertEquals(userInfo.getId(), node.getCreatedByPrincipalId());
+		assertEquals(userInfo.getId(), node.getModifiedByPrincipalId());
+		assertNotNull(node.getCreatedOn());
+		assertEquals(node.getCreatedOn(), node.getModifiedOn());
+		
+		Node updated = nodeManager.get(userInfo, node.getId());
+		updated.setName("nameChanged");
+		updated.setVersionLabel("v2");
+		NamedAnnotations annos = nodeManager.getAnnotations(adminUserInfo, node.getId());
+		Thread.sleep(10);
+		boolean newVersion = true;
+		// create new version
+		updated = nodeManager.update(adminUserInfo, updated, annos, newVersion);
+		assertNotNull(updated);
+		assertEquals(node.getCreatedByPrincipalId(), updated.getCreatedByPrincipalId());
+		assertEquals(node.getCreatedOn(), updated.getCreatedOn());
+		assertEquals(adminUserInfo.getId(), updated.getModifiedByPrincipalId());
+		assertTrue(updated.getModifiedOn().getTime() > node.getModifiedOn().getTime());
+		
+		// the first version should remain unchanged.
+		Node firstVersion = nodeManager.getNodeForVersionNumber(userInfo, node.getId(), node.getVersionNumber());
+		assertNotNull(firstVersion);
+		assertEquals(node.getCreatedByPrincipalId(), firstVersion.getCreatedByPrincipalId());
+		assertEquals(node.getCreatedOn(), firstVersion.getCreatedOn());
+		assertEquals(node.getModifiedByPrincipalId(), firstVersion.getModifiedByPrincipalId());
+		assertEquals(node.getModifiedOn(), firstVersion.getModifiedOn());
 	}
 	
 	@Test
