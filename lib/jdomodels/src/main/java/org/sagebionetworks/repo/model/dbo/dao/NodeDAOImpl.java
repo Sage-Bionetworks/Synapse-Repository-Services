@@ -86,10 +86,10 @@ import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -317,7 +317,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_ANNOS_BLOB + ", F." + COL_FILES_CONTENT_SIZE
 			+ " FROM " + JOIN_NODE_REVISION_FILES+" WHERE N."
-			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ")";
+			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ") ORDER BY N."+COL_NODE_ID+" ASC";
 	
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
@@ -433,7 +433,34 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public Node createNewNode(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
+	public Node bootstrapNode(Node node, long id) {
+		ValidateArgument.required(node, "Entity");
+		// ensure the ID is reserved.
+		idGenerator.reserveId(id, IdType.ENTITY_ID);
+		node.setId(""+id);
+		return create(node);
+	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public Node createNewNode(Node node) throws NotFoundException, DatastoreException, InvalidModelException {
+		ValidateArgument.required(node, "Entity");
+		// issue a new ID for this node.
+		long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
+		node.setId(""+newId);
+		return create(node);
+	}
+	
+	/**
+	 * Create a new node with an ID.
+	 * s
+	 * @param dto
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 */
+	private Node create(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		ValidateArgument.required(dto, "Entity");
 		ValidateArgument.required(dto.getName(), "Entity.name");
 		ValidateArgument.required(dto.getCreatedByPrincipalId(), "Entity.createdBy");
@@ -441,11 +468,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(dto.getNodeType(), "Entity.type");
 		ValidateArgument.required(dto.getModifiedByPrincipalId(), "Entity.modifiedBy");
 		ValidateArgument.required(dto.getModifiedOn(), "Entity.modifiedOn");
+		ValidateArgument.required(dto.getId(), "Entity.id");
 
 		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
 		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
 		dboNode.setCurrentRevNumber(dboRevision.getRevisionNumber());
-		dboNode.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
+
 		// Start it with a new e-tag
 		dboNode.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(dboNode).withChangeType(ChangeType.CREATE).withUserId(dboNode.getCreatedBy()));

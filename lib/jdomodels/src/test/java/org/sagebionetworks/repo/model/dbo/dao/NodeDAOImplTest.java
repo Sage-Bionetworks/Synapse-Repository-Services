@@ -290,6 +290,14 @@ public class NodeDAOImplTest {
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 	}
 	
+	/**
+	 * Cases where all of the optionally fields are null.
+	 */
+	@Test
+	public void testCreateNodeOptionalNull() {
+		
+	}
+	
 	@Test (expected=NotFoundException.class)
 	public void testGetNodeNotFound(){
 		nodeDao.getNode("syn123");

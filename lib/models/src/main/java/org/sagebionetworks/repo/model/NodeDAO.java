@@ -46,6 +46,15 @@ public interface NodeDAO {
 	public Node createNewNode(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
 	
 	/**
+	 * Create a bootstrap node.
+	 * 
+	 * @param node
+	 * @param id
+	 * @return
+	 */
+	public Node bootstrapNode(Node node, long id);
+	
+	/**
 	 * Create a new version of an existing node.
 	 * @param newVersion fields that are left null are unmodified
 	 * @return The new current revision number for this node.
