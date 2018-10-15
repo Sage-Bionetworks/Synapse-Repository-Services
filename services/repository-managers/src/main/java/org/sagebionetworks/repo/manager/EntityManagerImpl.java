@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
@@ -38,7 +37,7 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +71,7 @@ public class EntityManagerImpl implements EntityManager {
 		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
@@ -262,7 +261,7 @@ public class EntityManagerImpl implements EntityManager {
 		return newEntity;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -271,7 +270,7 @@ public class EntityManagerImpl implements EntityManager {
 		nodeManager.delete(userInfo, entityId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteEntityVersion(UserInfo userInfo, String id,
 			Long versionNumber) throws NotFoundException, DatastoreException,
@@ -305,7 +304,7 @@ public class EntityManagerImpl implements EntityManager {
 		return annos.getAdditionalAnnotations();
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String entityId,
 			Annotations updated) throws ConflictingUpdateException,
@@ -334,7 +333,7 @@ public class EntityManagerImpl implements EntityManager {
 		dst.setUri(src.getUri());
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated,
 			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
@@ -395,7 +394,7 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(entity.getEtag());
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends Entity> List<String> aggregateEntityUpdate(
 			UserInfo userInfo, String parentId, Collection<T> update)
@@ -537,7 +536,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);		
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override	
 	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
 			String activityId) throws DatastoreException,
@@ -547,7 +546,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, null);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
