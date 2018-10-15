@@ -406,4 +406,15 @@ public class SearchUtil{
 			document.setFields(new DocumentFields());
 		}
 	}
+
+	static String convertSearchDocumentsToJSONString(Document document) {
+		if (DocumentTypeNames.add == document.getType()) {
+			prepareDocument(document);
+		}
+		try {
+			return EntityFactory.createJSONStringForEntity(document);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

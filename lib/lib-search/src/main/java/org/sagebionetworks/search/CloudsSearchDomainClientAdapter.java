@@ -11,9 +11,11 @@ import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.search.awscloudsearch.CloudSearchInputStreamIterator;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Iterator;
@@ -42,25 +44,26 @@ public class CloudsSearchDomainClientAdapter {
 	public void sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
 
-		String documents = SearchUtil.convertSearchDocumentsToJSONString(batch);
-		final byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
-		UploadDocumentsRequest request = new UploadDocumentsRequest()
-				.withContentType("application/json")
-				.withDocuments(new ByteArrayInputStream(documentBytes))
-				.withContentLength((long) documentBytes.length);
-		try {
-			UploadDocumentsResult result = client.uploadDocuments(request);
-		} catch (DocumentServiceException e){
-			int statusCode = e.getStatusCode();
-			if(statusCode / 100 == 4) { //4xx status codes
-				List<String> documentIds = batch.stream().map(Document::getId).collect(Collectors.toList());
-				logger.error("The following search document was unable to be uploaded to CloudSearch:\n\n" +
-						documents);
-				throw new IllegalArgumentException(documentIds.toString() + " search documents could not be uploaded.", e);
-			}else {
-				throw e;
-			}
+		Iterator<InputStream> inputStreamIterator = new CloudSearchInputStreamIterator(documents);
 
+		while(inputStreamIterator.hasNext()) {
+			UploadDocumentsRequest request = new UploadDocumentsRequest()
+					.withContentType("application/json")
+					.withDocuments()
+					.withContentLength((long) documentBytes.length);
+			try {
+				UploadDocumentsResult result = client.uploadDocuments(request);
+			} catch (DocumentServiceException e) {
+				int statusCode = e.getStatusCode();
+				if (statusCode / 100 == 4) { //4xx status codes
+					List<String> documentIds = batch.stream().map(Document::getId).collect(Collectors.toList());
+					logger.error("The following search document was unable to be uploaded to CloudSearch:\n\n" +
+							documents);
+					throw new IllegalArgumentException(documentIds.toString() + " search documents could not be uploaded.", e);
+				} else {
+					throw e;
+				}
+			}
 		}
 
 	}
