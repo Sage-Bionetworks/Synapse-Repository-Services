@@ -14,7 +14,7 @@
 	<aop:aspectj-autoproxy />
 
 	<bean id="memoryLogger" class="org.sagebionetworks.repo.memory.MemoryLogger">
-		<constructor-arg index="0" value="Repository"/>
+		<constructor-arg index="0" value="Workers"/>
 	</bean>
 
 	<!-- Trigger to drive the memory logger -->

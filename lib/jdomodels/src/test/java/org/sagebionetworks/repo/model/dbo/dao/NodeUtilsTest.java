@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
@@ -231,5 +232,84 @@ public class NodeUtilsTest {
 		Long rootLong = KeyFactory.stringToKey(rootId);
 		assertTrue(NodeUtils.isRootEntityId(""+rootLong));
 		assertFalse(NodeUtils.isRootEntityId(""+rootLong+1));
+	}
+	
+	@Test
+	public void testTranslateAlias() {
+		assertEquals(null, NodeUtils.translateAlias(null));
+		assertEquals(null, NodeUtils.translateAlias(""));
+		assertEquals("anAlias", NodeUtils.translateAlias("anAlias"));
+	}
+	
+	@Test
+	public void testTranslateActivityId() {
+		assertEquals(null, NodeUtils.translateActivityId(null));
+		assertEquals(null, NodeUtils.translateActivityId("-1"));
+		assertEquals(new Long(123), NodeUtils.translateActivityId("123"));
+	}
+	
+	@Test
+	public void testTranslateNodeId() {
+		assertEquals(null, NodeUtils.translateNodeId(null));
+		assertEquals(new Long(123), NodeUtils.translateNodeId("syn123"));
+		assertEquals(new Long(456), NodeUtils.translateNodeId("456"));
+	}
+	
+	@Test
+	public void testTranslateFileHandleId() {
+		assertEquals(null, NodeUtils.translateFileHandleId(null));
+		assertEquals(new Long(123), NodeUtils.translateFileHandleId("123"));
+	}
+	
+	@Test
+	public void testTranslateComment() {
+		String comment = createStringOfSize(DBORevision.MAX_COMMENT_LENGTH);
+		// call under test
+		assertEquals(comment, NodeUtils.translateVersionComment(comment));
+	}
+	
+	@Test
+	public void testTranslateCommentNull() {
+		// call under test
+		assertEquals(null, NodeUtils.translateVersionComment(null));
+	}
+	
+	@Test
+	public void testTranslateCommentOverLimit() {
+		String comment = createStringOfSize(DBORevision.MAX_COMMENT_LENGTH+1);
+		try {
+			// call under test
+			NodeUtils.translateVersionComment(comment);
+			fail();
+		}catch(IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains(""+DBORevision.MAX_COMMENT_LENGTH));
+		}
+	}
+	
+	@Test
+	public void testTranslateVersionLabel() {
+		assertEquals(NodeConstants.DEFAULT_VERSION_LABEL, NodeUtils.translateVersionLabel(null));
+		assertEquals("aLabel", NodeUtils.translateVersionLabel("aLabel"));
+	}
+	
+	@Test
+	public void testTranlateVersionNumber() {
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, NodeUtils.translateVersionNumber(null));
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, NodeUtils.translateVersionNumber(-1L));
+		assertEquals(new Long(123), NodeUtils.translateVersionNumber(123L));
+	}
+	
+	
+	/**
+	 * Helper to create a string of a given size
+	 * @param size
+	 * @return
+	 */
+	String createStringOfSize(int size) {
+		char[] chars = new char[size];
+		for(int i=0; i<size; i++) {
+			chars[i] = 'a';
+		}
+		return new String(chars);
 	}
 }

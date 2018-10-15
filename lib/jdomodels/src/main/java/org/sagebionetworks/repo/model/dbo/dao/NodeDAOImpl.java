@@ -106,6 +106,7 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -125,6 +126,14 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String UPDATE_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ACTIVITY_ID
+			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_FILE_HANDLE_ID
+			+ " = ?, " + COL_REVISION_COLUMN_MODEL_IDS + " = ?, " + COL_REVISION_SCOPE_IDS + " = ?, "
+			+ COL_REVISION_REF_BLOB + " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
+	
+	private static final String UPDATE_NODE = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_NAME + " = ?, "
+			+ COL_NODE_PARENT_ID + " = ?, " + COL_NODE_ALIAS + " = ? WHERE " + COL_NODE_ID + " = ?";
+	
 	private static final String SQL_UPDATE_ANNOTATIONS = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ANNOS_BLOB
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	private static final String SQL_TOUCH_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_MODIFIED_BY
@@ -426,7 +435,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@WriteTransaction
 	@Override
 	public Node createNewNode(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
-		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
+		if(dto == null) {
+			throw new IllegalArgumentException("Node cannot be null");
+		}
 		DBORevision rev = new DBORevision();
 		// Set the default label
 		if(dto.getVersionLabel() == null){
@@ -740,24 +751,40 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@WriteTransaction
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
-		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
-		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
+		if (updatedNode == null) {
+			throw new IllegalArgumentException("Node to update cannot be null");
+		}
+		if (updatedNode.getId() == null) {
+			throw new IllegalArgumentException("Node to update cannot have a null ID");
+		}
 		Long nodeId = KeyFactory.stringToKey(updatedNode.getId());
-		DBONode jdoToUpdate = getNodeById(nodeId);
-		DBORevision revToUpdate = getCurrentRevision(jdoToUpdate);
-		// Update is as simple as copying the values from the passed node.		
-		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate, shouldDeleteActivityId(updatedNode));	
+
+		String newName = updatedNode.getName();
+		Long newParentId = NodeUtils.translateNodeId(updatedNode.getParentId());
+		String newAlias = NodeUtils.translateAlias(updatedNode.getAlias());
 
 		// Update the node.
-		try{
-			dboBasicDao.update(jdoToUpdate);
-		}catch(IllegalArgumentException e){
+		try {
+			this.jdbcTemplate.update(UPDATE_NODE, newName, newParentId, newAlias, nodeId);
+		} catch (DataIntegrityViolationException e) {
 			// Check to see if this is a duplicate name exception.
-			checkExceptionDetails(updatedNode.getName(), updatedNode.getAlias(), updatedNode.getParentId(), e);
+			checkExceptionDetails(updatedNode.getName(), updatedNode.getAlias(), updatedNode.getParentId(),
+					new IllegalArgumentException(e));
 		}
-		
-		dboBasicDao.update(revToUpdate);
+		// update the revision
+		long currentRevision = getCurrentRevisionNumber(updatedNode.getId());
+		Long newActivity = NodeUtils.translateActivityId(updatedNode.getActivityId());
+		String newComment = NodeUtils.translateVersionComment(updatedNode.getVersionComment());
+		String newLabel = NodeUtils.translateVersionLabel(updatedNode.getVersionLabel());
+		Long newFileHandleId = NodeUtils.translateFileHandleId(updatedNode.getFileHandleId());
+		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
+		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
+		byte[] newReferences = JDOSecondaryPropertyUtils.compressReference(updatedNode.getReference());
+		// Update the revision
+		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
+				newScope, newReferences, nodeId, currentRevision);
 	}
+	
 
 	@WriteTransaction
 	@Override

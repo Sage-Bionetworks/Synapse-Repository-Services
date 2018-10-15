@@ -85,19 +85,21 @@ public class JDOSecondaryPropertyUtils {
 	 * @return the compressed reference
 	 * @throws IOException 
 	 */
-	public static byte[] compressReference(Reference dto) throws IOException{
-		if(dto == null) return null;
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		BufferedOutputStream buff = new BufferedOutputStream(out);
-		GZIPOutputStream zipper = new GZIPOutputStream(buff);
-		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
-		try{
+	public static byte[] compressReference(Reference dto) {
+		if(dto == null) {
+			return null;
+		}
+		try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+				BufferedOutputStream buff = new BufferedOutputStream(out);
+				GZIPOutputStream zipper = new GZIPOutputStream(buff);
+				Writer zipWriter = new OutputStreamWriter(zipper, UTF8);) {
 			XStream xstream = createXStream();
 			xstream.toXML(dto, zipWriter);
-		}finally{
-			IOUtils.closeQuietly(zipWriter);
+			zipWriter.close();
+			return out.toByteArray();
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e);
 		}
-		return out.toByteArray();
 	}
 	
 	/**
