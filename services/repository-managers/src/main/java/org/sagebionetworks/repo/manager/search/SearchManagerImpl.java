@@ -123,6 +123,7 @@ public class SearchManagerImpl implements SearchManager{
 	@Override
 	public void documentChangeMessages(List<ChangeMessage> messages){
 		Iterator<Document> documentIterator  = Iterators.filter(Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary), Objects::nonNull);
+		searchDao.sendDocuments(documentIterator);
 	}
 
 	@Override

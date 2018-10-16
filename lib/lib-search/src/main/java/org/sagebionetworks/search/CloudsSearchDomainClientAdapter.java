@@ -63,13 +63,9 @@ public class CloudsSearchDomainClientAdapter {
 			} catch (IOException e){
 				throw new RuntimeException(e);
 			} finally {
+				//done using the file, delete to free up space
 				file.delete();
 			}
-		}
-
-		List<String> oversizedDocuments = ((CloudSearchDocumentFileIterator) searchDocumentFileIterator).getDocumentsExceedingSingleSizeLimit();
-		if (!oversizedDocuments.isEmpty()){
-			throw new RuntimeException(oversizedDocuments + " did not have documents uploaded because they exceeded the single document size limit");
 		}
 	}
 

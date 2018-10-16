@@ -382,15 +382,8 @@ public class SearchUtil{
 
 		StringJoiner stringJoiner = new StringJoiner(", ", "[", "]");
 
-		for (Document document : documents) {
-			if (DocumentTypeNames.add == document.getType()) {
-				prepareDocument(document);
-			}
-			try {
-				stringJoiner.add(EntityFactory.createJSONStringForEntity(document));
-			} catch (JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
-			}
+		for (Document document : documents){
+			stringJoiner.add(convertSearchDocumentToJSONString(document));
 		}
 		// Some descriptions have control characters in them for some reason, in any case, just get rid
 		// of all control characters in the search document

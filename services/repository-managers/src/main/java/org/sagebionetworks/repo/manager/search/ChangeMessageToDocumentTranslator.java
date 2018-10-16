@@ -32,7 +32,7 @@ public class ChangeMessageToDocumentTranslator {
 			// Is this a create or update
 			if (ChangeType.CREATE == change.getChangeType()
 					|| ChangeType.UPDATE == change.getChangeType()) {
-				return createOrUpdateDocument(change.getObjectId(), change.getObjectEtag());
+				return createUpdateDocument(change.getObjectId(), change.getObjectEtag());
 			} else if (ChangeType.DELETE == change.getChangeType()) {
 				return createDeleteDocument(change.getObjectId());
 			} else {
@@ -55,7 +55,7 @@ public class ChangeMessageToDocumentTranslator {
 					newMessage.setObjectId(key.getOwnerObjectId());
 					newMessage.setObjectType(ObjectType.ENTITY);
 					newMessage.setObjectEtag(null);
-					return createOrUpdateDocument(change.getObjectId(), change.getObjectEtag());
+					return createUpdateDocument(change.getObjectId(), change.getObjectEtag());
 				}
 			} catch (NotFoundException e) {
 				// Nothing to do if the wiki does not exist
@@ -66,7 +66,7 @@ public class ChangeMessageToDocumentTranslator {
 		return null;
 	}
 
-	private Document createOrUpdateDocument(String entityId, String entityEtag) {
+	private Document createUpdateDocument(String entityId, String entityEtag) {
 		// We want to ignore this message if a document with this ID and Etag
 		// already exists in the search index.
 		if (!searchDao.doesDocumentExist(entityId, entityEtag)) {

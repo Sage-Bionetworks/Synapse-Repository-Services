@@ -3,10 +3,9 @@ package org.sagebionetworks.search;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.commons.io.output.CountingOutputStream;
@@ -18,20 +17,19 @@ import org.sagebionetworks.repo.model.search.Document;
  */
 public class CloudSearchDocumentFileIterator implements Iterator<File> {
 
-	public static final int MEGABYTE = (int) Math.pow(10, 6); //use base-10 value since it is smaller than base-2
-	public static final int DEFAULT_MAX_SINGLE_DOCUMENT_SIZE = MEGABYTE; //1MB
-	public static final int DEFAULT_MAX_DOCUMENT_BATCH_SIZE = 5 * MEGABYTE; //5MB
+	private static final int MEGABYTE = (int) Math.pow(10, 6); //use base-10 value since it is smaller than base-2
+	private static final int DEFAULT_MAX_SINGLE_DOCUMENT_SIZE = MEGABYTE; //1MB
+	private static final int DEFAULT_MAX_DOCUMENT_BATCH_SIZE = 5 * MEGABYTE; //5MB
 
-	private static final byte[] PREFIX_BYTES = "[".getBytes(StandardCharsets.UTF_8);
-	private static final byte[] SUFFIX_BYTES = "]".getBytes(StandardCharsets.UTF_8);
-	private static final byte[] DELIMITER_BYTES = ",".getBytes(StandardCharsets.UTF_8);
+	private static final Charset CHARSET = StandardCharsets.UTF_8;
+	static final byte[] PREFIX_BYTES = "[".getBytes(CHARSET);
+	static final byte[] SUFFIX_BYTES = "]".getBytes(CHARSET);
+	static final byte[] DELIMITER_BYTES = ",".getBytes(CHARSET);
 
-	private final int maxSingleDocumentSize;
-	private final int maxDocumentBatchSize;
+	//maximu bytes
+	private final int maxSingleDocumentSizeInBytes;
+	private final int maxDocumentBatchSizeInBytes;
 	private final Iterator<Document> documentIterator;
-
-	//used to store document Ids which, by themselves, would exceed CloudSearch's single document size limit
-	private List<String> exceedSingleDocumentSizeLimit;
 
 	//used to carry over bytes that would not fit in the previous file into the next file
 	private byte[] unwrittenDocumentBytes;
@@ -39,16 +37,15 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 	//place holder for result that next() will consume and reset to null.
 	private File currFile;
 
-	public CloudSearchDocumentFileIterator(Iterator<Document> documentIterator, final int maxSingleDocumentSize, final int maxDocumentBatchSize){
-		if (maxSingleDocumentSize + PREFIX_BYTES.length + SUFFIX_BYTES.length < maxDocumentBatchSize){
-			throw new IllegalArgumentException("maxSingleDocumentSize + " + (PREFIX_BYTES.length + SUFFIX_BYTES.length) + " must be greater than maxDocumentBatchSize");
+	public CloudSearchDocumentFileIterator(Iterator<Document> documentIterator, final int maxSingleDocumentSizeInBytes, final int maxDocumentBatchSizeInBytes){
+		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes){
+			throw new IllegalArgumentException("maxSingleDocumentSizeInBytes + " + (PREFIX_BYTES.length + SUFFIX_BYTES.length) + " must be greater than maxDocumentBatchSizeInBytes");
 		}
 
 		this.documentIterator =  documentIterator;
-		this.maxSingleDocumentSize = maxSingleDocumentSize;
-		this.maxDocumentBatchSize = maxDocumentBatchSize;
+		this.maxSingleDocumentSizeInBytes = maxSingleDocumentSizeInBytes;
+		this.maxDocumentBatchSizeInBytes = maxDocumentBatchSizeInBytes;
 
-		this.exceedSingleDocumentSizeLimit = new LinkedList<>();
 		this.currFile = null;
 		this.unwrittenDocumentBytes = null;
 	}
@@ -89,18 +86,6 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 	}
 
 	/**
-	 * After the iterator is fully exhausted, returns documents which, by themselves, would exceed CloudSearch's single document size limit.
-	 * @return
-	 */
-	public List<String> getDocumentsExceedingSingleSizeLimit(){
-		if(!hasNext()) {
-			return this.exceedSingleDocumentSizeLimit;
-		} else {
-			throw new IllegalStateException("The iterator must be fully used (hasNext() == false) before calling this");
-		}
-	}
-
-	/**
 	 * Generates the batch document file by using the documentIterator
 	 * @return a File containing batch documents, null if no more documents can be written.
 	 * @throws IOException
@@ -123,16 +108,17 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 
 			while (documentIterator.hasNext()) {
 				Document doc = documentIterator.next();
-				byte[] documentBytes = SearchUtil.convertSearchDocumentToJSONString(doc).getBytes(StandardCharsets.UTF_8);
+				byte[] documentBytes = SearchUtil.convertSearchDocumentToJSONString(doc).getBytes(CHARSET);
 
 				//if a single document exceeds the single document size limit, remember it but proceed with other documents.
-				if (documentBytes.length > maxSingleDocumentSize) {
-					this.exceedSingleDocumentSizeLimit.add(doc.getId());
-					continue;
+				if (documentBytes.length > maxSingleDocumentSizeInBytes) {
+					countingOutputStream.close();
+					tempFile.delete();
+					throw new RuntimeException("The document for " + doc.getId() + " is " + documentBytes.length + " bytes and exceeds the maximum allowed " + maxSingleDocumentSizeInBytes + " bytes.");
 				}
 
 				//check document, delimiter, and suffix have room to be written.
-				if(countingOutputStream.getByteCount() + documentBytes.length + DELIMITER_BYTES.length + SUFFIX_BYTES.length < maxDocumentBatchSize){
+				if(countingOutputStream.getByteCount() + documentBytes.length + DELIMITER_BYTES.length + SUFFIX_BYTES.length < maxDocumentBatchSizeInBytes){
 					if(countingOutputStream.getByteCount() > PREFIX_BYTES.length){ // if not first element add delimiter
 						countingOutputStream.write(DELIMITER_BYTES);
 					}
