@@ -363,7 +363,6 @@ public class NodeDAOImplTest {
 		Node afterCreate = nodeDao.createNewNode(node);
 		toDelete.add(afterCreate.getId());
 		assertNotNull(afterCreate.getId());
-		assertFalse(afterCreate.getId().equals(node.getId()));
 		assertEquals(node.getAlias(), afterCreate.getAlias());
 		assertEquals(node.getActivityId(), afterCreate.getActivityId());
 		assertEquals(node.getColumnModelIds(), afterCreate.getColumnModelIds());
