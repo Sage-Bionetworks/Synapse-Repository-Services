@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -133,16 +134,16 @@ public class DBOSubscriptionDAOImplTest {
 		PrincipalAlias pa = principalAliasDAO.bindAliasToPrincipal(alias);
 		notificationEmailDAO.create(pa);
 
-		projectId = "321";
 		Node node = new Node();
-		node.setId(projectId);
 		node.setModifiedByPrincipalId(1L);
 		node.setModifiedOn(new Date()); 
 		node.setNodeType(EntityType.project);
 		node.setName("project");
 		node.setCreatedByPrincipalId(1L);
 		node.setCreatedOn(new Date());
-		nodeDAO.createNew(node);
+		node = nodeDAO.createNewNode(node);
+		projectId = KeyFactory.stringToKey(node.getId()).toString();
+		
 		forumId = forumDAO.createForum(projectId).getId();
 		threadId = "123";
 		threadDAO.createThread(forumId, threadId, "title", "messageKey", Long.parseLong(userId));
