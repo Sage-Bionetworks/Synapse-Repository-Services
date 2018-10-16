@@ -103,6 +103,7 @@ public class NodeUtils {
 		dbo.setId(translateNodeId(dto.getId()));
 		dbo.setParentId(translateNodeId(dto.getParentId()));
 		dbo.setType(dto.getNodeType().name());
+		dbo.seteTag(dto.getETag());
 		return dbo;
 	}
 	

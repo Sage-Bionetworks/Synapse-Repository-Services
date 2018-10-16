@@ -471,6 +471,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(dto.getId(), "Entity.id");
 
 		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
+		dboRevision.setRevisionNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
 		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
 		dboNode.setCurrentRevNumber(dboRevision.getRevisionNumber());
 
