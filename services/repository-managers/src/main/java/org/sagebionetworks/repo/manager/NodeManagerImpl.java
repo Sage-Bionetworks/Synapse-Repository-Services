@@ -213,12 +213,7 @@ public class NodeManagerImpl implements NodeManager {
 	 */
 	public static void validateNode(Node node){
 		if(node == null) throw new IllegalArgumentException("Node cannot be null");
-		if(node.getNodeType() == null) throw new IllegalArgumentException("Node.type cannot be null");
-		// If the node name is null then try to use its id
-		if(node.getName() == null){
-			node.setName(node.getId());
-		}
-		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");	
+		if(node.getNodeType() == null) throw new IllegalArgumentException("Node.type cannot be null");	
 		node.setName(EntityNameValidation.valdiateName(node.getName()));
 		if (StringUtils.isNotEmpty(node.getAlias())) {
 			if (INVALID_ALIAS_CHARACTERS.matcher(node.getAlias()).find()) {

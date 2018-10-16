@@ -158,11 +158,7 @@ public class DockerManagerImpl implements DockerManager {
 					entity.setParentId(parentId);
 					// Get the user
 					UserInfo userInfo = userManager.getUserInfo(userId);
-					// Create a new id for this entity
-					long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
-					entity.setId(KeyFactory.keyToString(newId));
-					entityManager.createEntity(userInfo, entity, null);
-					entityId =  KeyFactory.keyToString(newId);
+					entityId = entityManager.createEntity(userInfo, entity, null);
 					dockerNodeDao.createRepositoryName(entityId, repositoryName);
 				}
 				// Add commit to entity

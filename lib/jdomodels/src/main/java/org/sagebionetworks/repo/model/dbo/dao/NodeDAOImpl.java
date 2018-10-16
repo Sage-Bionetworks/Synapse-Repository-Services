@@ -437,7 +437,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(node, "Entity");
 		// ensure the ID is reserved.
 		idGenerator.reserveId(id, IdType.ENTITY_ID);
-		node.setId(""+id);
+		node.setId(KeyFactory.keyToString(id));
 		return create(node);
 	}
 	
@@ -447,7 +447,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(node, "Entity");
 		// issue a new ID for this node.
 		long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
-		node.setId(""+newId);
+		node.setId(KeyFactory.keyToString(newId));
 		return create(node);
 	}
 	
@@ -462,13 +462,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private Node create(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		ValidateArgument.required(dto, "Entity");
-		ValidateArgument.required(dto.getName(), "Entity.name");
 		ValidateArgument.required(dto.getCreatedByPrincipalId(), "Entity.createdBy");
 		ValidateArgument.required(dto.getCreatedOn(), "Entity.createdOn");
 		ValidateArgument.required(dto.getNodeType(), "Entity.type");
 		ValidateArgument.required(dto.getModifiedByPrincipalId(), "Entity.modifiedBy");
 		ValidateArgument.required(dto.getModifiedOn(), "Entity.modifiedOn");
 		ValidateArgument.required(dto.getId(), "Entity.id");
+		if(dto.getName() == null) {
+			dto.setName(dto.getId());
+		}
 
 		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
 		dboRevision.setRevisionNumber(NodeConstants.DEFAULT_VERSION_NUMBER);

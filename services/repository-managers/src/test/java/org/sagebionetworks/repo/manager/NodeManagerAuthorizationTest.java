@@ -89,6 +89,8 @@ public class NodeManagerAuthorizationTest {
 		mockUserInfo = new UserInfo(false, 123L);
 		
 		when(mockNodeDao.lockNode(any(String.class))).thenReturn(startEtag);
+		
+		when(mockNodeDao.isNodeAvailable(any(String.class))).thenReturn(true);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

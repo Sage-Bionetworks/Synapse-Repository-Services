@@ -385,19 +385,6 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testCreateNodeNullName() {
-		Node node = new Node();
-		node.setName(null);
-		node.setCreatedByPrincipalId(creatorUserGroupId);
-		node.setModifiedByPrincipalId(creatorUserGroupId);
-		node.setCreatedOn(new Date(System.currentTimeMillis()));
-		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType(EntityType.folder);
-		// call under test
-		nodeDao.createNewNode(node);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
 	public void testCreateNodeNullCreatedBy() {
 		Node node = new Node();
 		node.setName("name");
@@ -891,12 +878,14 @@ public class NodeDAOImplTest {
 		}
 	}
 	
-	@Test(expected=Exception.class)
+	@Test
 	public void testNullName() throws Exception{
 		Node node = privateCreateNew("setNameNull");
 		node.setName(null);
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// name should match the ID.
+		assertEquals(node.getId(), node.getName());
 	}
 	
 	@Test
