@@ -97,7 +97,7 @@ public class SearchDaoImplTest {
 	public void testDeleteDocumentsEmptyIdSet(){
 		dao.deleteDocuments(new HashSet<>());
 		verify(mockCloudSearchClientProvider, never()).getCloudSearchClient();
-		verify(mockCloudSearchDomainClient, never()).sendDocuments(any());
+		verify(mockCloudSearchDomainClient, never()).sendDocuments(anyListOf(Document.class));
 	}
 
 	@Test

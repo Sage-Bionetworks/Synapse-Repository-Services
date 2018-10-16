@@ -407,7 +407,7 @@ public class SearchUtil{
 		}
 	}
 
-	static String convertSearchDocumentsToJSONString(Document document) {
+	public static String convertSearchDocumentToJSONString(Document document) {
 		if (DocumentTypeNames.add == document.getType()) {
 			prepareDocument(document);
 		}

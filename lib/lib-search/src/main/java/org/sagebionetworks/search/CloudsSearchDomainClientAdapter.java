@@ -11,12 +11,16 @@ import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.search.awscloudsearch.CloudSearchInputStreamIterator;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -43,29 +47,30 @@ public class CloudsSearchDomainClientAdapter {
 
 	public void sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
+		Iterator<File> searchDocumentFileIterator = new CloudSearchDocumentFileIterator(documents);
 
-		Iterator<InputStream> inputStreamIterator = new CloudSearchInputStreamIterator(documents);
+		while(searchDocumentFileIterator.hasNext()) {
+			File file = searchDocumentFileIterator.next();
 
-		while(inputStreamIterator.hasNext()) {
-			UploadDocumentsRequest request = new UploadDocumentsRequest()
-					.withContentType("application/json")
-					.withDocuments()
-					.withContentLength((long) documentBytes.length);
-			try {
-				UploadDocumentsResult result = client.uploadDocuments(request);
+			try (InputStream fileStream = new FileInputStream(file);) {
+				UploadDocumentsRequest request = new UploadDocumentsRequest()
+						.withContentType("application/json")
+						.withDocuments(fileStream)
+						.withContentLength((long) file.length());
+				client.uploadDocuments(request);
 			} catch (DocumentServiceException e) {
-				int statusCode = e.getStatusCode();
-				if (statusCode / 100 == 4) { //4xx status codes
-					List<String> documentIds = batch.stream().map(Document::getId).collect(Collectors.toList());
-					logger.error("The following search document was unable to be uploaded to CloudSearch:\n\n" +
-							documents);
-					throw new IllegalArgumentException(documentIds.toString() + " search documents could not be uploaded.", e);
-				} else {
-					throw e;
-				}
+				throw handleCloudSearchExceptions(e);
+			} catch (IOException e){
+				throw new RuntimeException(e);
+			} finally {
+				file.delete();
 			}
 		}
 
+		List<String> oversizedDocuments = ((CloudSearchDocumentFileIterator) searchDocumentFileIterator).getDocumentsExceedingSingleSizeLimit();
+		if (!oversizedDocuments.isEmpty()){
+			throw new RuntimeException(oversizedDocuments + " did not have documents uploaded because they exceeded the single document size limit");
+		}
 	}
 
 	public void sendDocuments(List<Document> batch){
