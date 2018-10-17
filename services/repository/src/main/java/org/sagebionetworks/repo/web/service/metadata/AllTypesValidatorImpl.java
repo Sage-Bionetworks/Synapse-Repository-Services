@@ -64,7 +64,7 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		}
 		
 		// Is this a create or update?
-		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType()){
+		if(EventType.UPDATE == event.getType()){
 			// Verify that path is acyclic
 			if (parentPath != null){
 				for (EntityHeader eh : parentPath){

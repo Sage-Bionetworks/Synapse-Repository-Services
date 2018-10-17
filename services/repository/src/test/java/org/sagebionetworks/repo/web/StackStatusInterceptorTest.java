@@ -56,7 +56,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 			stackStatusDao.updateStatus(status);
 		}
 		// Delete the sample project
-		if(sampleProject != null){
+		if(sampleProject != null && sampleProject.getId() != null){
 			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		}
 	}

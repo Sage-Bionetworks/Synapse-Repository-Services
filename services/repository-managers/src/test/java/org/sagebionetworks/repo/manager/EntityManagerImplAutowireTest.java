@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -42,6 +43,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -363,5 +365,20 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(viewGet);
 		assertEquals(fileView.getColumnIds(), viewGet.getColumnIds());
 		assertEquals(Lists.newArrayList("4","5"), viewGet.getScopeIds());
+	}
+	
+	@Test
+	public void testCreateWithID() {
+		String maxId = KeyFactory.keyToString(Long.MAX_VALUE);
+		Project project = new Project();
+		project.setName(null);
+		project.setId(maxId);
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		// the provided ID must not be used.
+		assertFalse(maxId.equals(pid));
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		// the name should match the newly issued ID.
+		assertEquals(pid, project.getName());
 	}
 }

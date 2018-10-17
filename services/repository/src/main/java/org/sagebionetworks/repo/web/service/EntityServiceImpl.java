@@ -81,8 +81,6 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	MetadataProviderFactory metadataProviderFactory;
 	@Autowired
-	IdGenerator idGenerator;
-	@Autowired
 	AllTypesValidator allTypesValidator;
 	@Autowired
 	FileHandleManager fileHandleManager;
@@ -214,13 +212,11 @@ public class EntityServiceImpl implements EntityService {
 		// Fetch the provider that will validate this entity.
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		// Create a new id for this entity
-		long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
-		newEntity.setId(KeyFactory.keyToString(newId));
 		EventType eventType = EventType.CREATE;
 		// Fire the event
 		fireValidateEvent(userInfo, eventType, newEntity, type);
 		String id = entityManager.createEntity(userInfo, newEntity, activityId);
+		newEntity.setId(id);
 		fireAfterCreateEntityEvent(userInfo, newEntity, type);
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, eventType);
