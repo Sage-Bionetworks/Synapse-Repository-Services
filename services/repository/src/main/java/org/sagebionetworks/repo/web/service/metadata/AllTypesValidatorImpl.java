@@ -63,7 +63,7 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 					(parentType==null?"null":EntityTypeUtils.getEntityTypeClassName(parentType)));
 		}
 		
-		// Is this a create or update?
+		// for update check for cycles
 		if(EventType.UPDATE == event.getType()){
 			// Verify that path is acyclic
 			if (parentPath != null){
