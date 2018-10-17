@@ -39,7 +39,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 
 	public CloudSearchDocumentFileIterator(Iterator<Document> documentIterator, final int maxSingleDocumentSizeInBytes, final int maxDocumentBatchSizeInBytes){
 		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes){
-			throw new IllegalArgumentException("maxSingleDocumentSizeInBytes + " + (PREFIX_BYTES.length + SUFFIX_BYTES.length) + " must be greater than maxDocumentBatchSizeInBytes");
+			throw new IllegalArgumentException("maxSingleDocumentSizeInBytes + " + (PREFIX_BYTES.length + SUFFIX_BYTES.length) + " must be less or equal to than maxDocumentBatchSizeInBytes");
 		}
 
 		this.documentIterator =  documentIterator;
@@ -90,10 +90,12 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 	 * @return a File containing batch documents, null if no more documents can be written.
 	 * @throws IOException
 	 */
-	File processDocumentFile() throws IOException{
-		if( !documentIterator.hasNext() ){ //no work to be done since the document iterator is exhausted
+	private File processDocumentFile() throws IOException{
+		//no work to be done since the document iterator is exhausted and no left over bytes from previous
+		if( !this.documentIterator.hasNext() && unwrittenDocumentBytes == null){
 			return null;
 		}
+
 		File tempFile = File.createTempFile("CloudSearchDocument", ".json");
 
 		try (CountingOutputStream countingOutputStream = new CountingOutputStream(new FileOutputStream(tempFile)) ) {
@@ -106,20 +108,27 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 				this.unwrittenDocumentBytes = null;
 			}
 
-			while (documentIterator.hasNext()) {
-				Document doc = documentIterator.next();
+			while (this.documentIterator.hasNext()) {
+				Document doc = this.documentIterator.next();
 				byte[] documentBytes = SearchUtil.convertSearchDocumentToJSONString(doc).getBytes(CHARSET);
 
-				//if a single document exceeds the single document size limit, remember it but proceed with other documents.
+				//if a single document exceeds the single document size limit throw exception
 				if (documentBytes.length > maxSingleDocumentSizeInBytes) {
 					countingOutputStream.close();
 					tempFile.delete();
 					throw new RuntimeException("The document for " + doc.getId() + " is " + documentBytes.length + " bytes and exceeds the maximum allowed " + maxSingleDocumentSizeInBytes + " bytes.");
 				}
 
-				//check document, delimiter, and suffix have room to be written.
-				if(countingOutputStream.getByteCount() + documentBytes.length + DELIMITER_BYTES.length + SUFFIX_BYTES.length < maxDocumentBatchSizeInBytes){
-					if(countingOutputStream.getByteCount() > PREFIX_BYTES.length){ // if not first element add delimiter
+				//determine how many bytes need to be written
+				boolean isNotFirstDocument = countingOutputStream.getByteCount() > PREFIX_BYTES.length;
+				int bytesToBeAdded = (int) countingOutputStream.getByteCount() + documentBytes.length + SUFFIX_BYTES.length; //always reserve space for the suffix
+				if(isNotFirstDocument) {
+					bytesToBeAdded += DELIMITER_BYTES.length;
+				}
+
+				//check if there is enough space to write the bytes
+				if(bytesToBeAdded <= maxDocumentBatchSizeInBytes){
+					if(isNotFirstDocument){ // if not first element add delimiter
 						countingOutputStream.write(DELIMITER_BYTES);
 					}
 					countingOutputStream.write(documentBytes);
