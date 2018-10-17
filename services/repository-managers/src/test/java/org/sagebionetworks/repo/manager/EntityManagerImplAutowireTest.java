@@ -367,6 +367,10 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(Lists.newArrayList("4","5"), viewGet.getScopeIds());
 	}
 	
+	/**
+	 * Test added for PLFM-5188
+	 * 
+	 */
 	@Test
 	public void testCreateWithID() {
 		String maxId = KeyFactory.keyToString(Long.MAX_VALUE);
