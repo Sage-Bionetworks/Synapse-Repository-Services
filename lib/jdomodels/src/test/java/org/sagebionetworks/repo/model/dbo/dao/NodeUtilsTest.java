@@ -12,7 +12,6 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -297,6 +296,69 @@ public class NodeUtilsTest {
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, NodeUtils.translateVersionNumber(null));
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, NodeUtils.translateVersionNumber(-1L));
 		assertEquals(new Long(123), NodeUtils.translateVersionNumber(123L));
+	}
+	
+	@Test
+	public void testTranslateNodeToDBONode() {
+		Node dto = createDefaultNode();
+		// call under test
+		DBONode dbo = NodeUtils.translateNodeToDBONode(dto);
+		assertNotNull(dbo);
+		assertEquals(null, dbo.getAlias());
+		assertEquals(dto.getName(), dbo.getName());
+		assertEquals(dto.getCreatedByPrincipalId(), dbo.getCreatedBy());
+		assertEquals(new Long(dto.getCreatedOn().getTime()), dbo.getCreatedOn());
+		assertEquals(dto.getVersionNumber(), dbo.getCurrentRevNumber());
+		assertEquals(dto.getETag(), dbo.geteTag());
+		assertEquals(new Long(123), dbo.getId());
+		assertEquals(new Long(456), dbo.getParentId());
+		assertEquals(EntityType.project.name(), dbo.getType());
+	}
+	
+	@Test
+	public void testTransalteNodeToDBORevision() {
+		Node dto = createDefaultNode();
+		// call under test
+		DBORevision dbo = NodeUtils.transalteNodeToDBORevision(dto);
+		assertNotNull(dbo);
+		assertEquals(null, dbo.getActivityId());
+		assertEquals(null, dbo.getAnnotations());
+		assertNotNull(dbo.getColumnModelIds());
+		assertNotNull(dbo.getScopeIds());
+		assertEquals(new Long(8888),dbo.getFileHandleId());
+		assertEquals(dto.getModifiedByPrincipalId(), dbo.getModifiedBy());
+		assertEquals(new Long(dto.getModifiedOn().getTime()), dbo.getModifiedOn());
+		assertNotNull(dbo.getScopeIds());
+		assertEquals(NodeConstants.DEFAULT_VERSION_LABEL, dbo.getLabel());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, dbo.getRevisionNumber());
+		assertEquals(dto.getVersionComment(), dbo.getComment());
+		assertEquals(new Long(123), dbo.getOwner());
+		assertNotNull(dbo.getReference());
+	}
+	
+	Node createDefaultNode() {
+		Node node = new Node();
+		node.setNodeType(EntityType.project);
+		node.setActivityId("-1");
+		node.setAlias("");
+		node.setColumnModelIds(Lists.newArrayList("111","222"));
+		node.setScopeIds(Lists.newArrayList(Lists.newArrayList("333","444")));
+		node.setCreatedByPrincipalId(11L);
+		node.setCreatedOn(new Date(555L));
+		node.setETag("etag");
+		node.setFileHandleId("9999");
+		node.setId("syn123");
+		node.setModifiedByPrincipalId(22L);
+		node.setModifiedOn(new Date(777L));
+		node.setName("aName");
+		node.setParentId("syn456");
+		node.setFileHandleId("8888");
+		Reference reference = new Reference();
+		reference.setTargetId("syn888");
+		reference.setTargetVersionNumber(4L);
+		node.setReference(reference);
+		node.setVersionComment("aComment");
+		return node;
 	}
 	
 	

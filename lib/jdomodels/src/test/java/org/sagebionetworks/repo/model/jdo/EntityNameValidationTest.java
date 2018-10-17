@@ -16,7 +16,7 @@ public class EntityNameValidationTest {
 		// There are all invalid names
 		String[] invalidNames = new String[] { "~", "!", "@", "#", "$", "%",
 				"^", "&", "*", "\"", "\n\t", "'", "?", "<", ">", "/",
-				";", "{", "}", "|", "=", "White\n\t Space", null, "" };
+				";", "{", "}", "|", "=", "White\n\t Space", "" };
 		for (int i = 0; i < invalidNames.length; i++) {
 			try {
 				// These are all bad names

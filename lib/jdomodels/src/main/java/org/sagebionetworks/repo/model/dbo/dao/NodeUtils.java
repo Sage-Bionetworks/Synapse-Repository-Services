@@ -89,11 +89,11 @@ public class NodeUtils {
 	}
 	
 	/**
-	 * Create a DBONode from the given Node;
+	 * Translate a Node to DBONode.
 	 * @param dto
 	 * @return
 	 */
-	public DBONode createDBONodeFromDto(Node dto) {
+	public static DBONode translateNodeToDBONode(Node dto) {
 		DBONode dbo = new DBONode();
 		dbo.setName(dto.getName());
 		dbo.setAlias(translateAlias(dto.getAlias()));
@@ -103,15 +103,16 @@ public class NodeUtils {
 		dbo.setId(translateNodeId(dto.getId()));
 		dbo.setParentId(translateNodeId(dto.getParentId()));
 		dbo.setType(dto.getNodeType().name());
+		dbo.seteTag(dto.getETag());
 		return dbo;
 	}
 	
 	/**
-	 * Create a DBORevision for the given Node
+	 * Translate a Node to DBORevision.
 	 * @param dto
 	 * @return
 	 */
-	public DBORevision createDBORevisionFromDto(Node dto) {
+	public static DBORevision transalteNodeToDBORevision(Node dto) {
 		DBORevision dbo = new DBORevision();
 		dbo.setOwner(translateNodeId(dto.getId()));
 		dbo.setRevisionNumber(translateVersionNumber(dto.getVersionNumber()));
