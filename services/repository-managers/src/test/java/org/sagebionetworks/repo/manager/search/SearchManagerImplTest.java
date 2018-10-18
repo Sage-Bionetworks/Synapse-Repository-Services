@@ -30,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -46,6 +47,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PATH;
@@ -72,6 +74,8 @@ public class SearchManagerImplTest {
 	@InjectMocks
 	private SearchManagerImpl searchManager;
 
+	Document doc1;
+
 	@Before
 	public void before(){
 		nonAdminUserInfo = new UserInfo(false, 990L);
@@ -80,6 +84,9 @@ public class SearchManagerImplTest {
 		userGroups.add(8008135L);
 		nonAdminUserInfo.setGroups(userGroups);
 		searchRequest = new SearchRequest();
+
+		doc1 = new Document();
+		doc1.setId("syn1");
 	}
 
 	@Test
@@ -154,10 +161,32 @@ public class SearchManagerImplTest {
 	}
 
 	@Test
-	public void testDocumentChangeMessages(){
-		Document doc1 = new Document();
-		doc1.setId("syn1");
+	public void testDocumentChangeMessage_oneMessage_nullDocumentGenerated(){
+		List<ChangeMessage> singleMessageList = Collections.singletonList(new ChangeMessage());
+		when(mockTranslator.generateSearchDocumentIfNecessary(any(ChangeMessage.class))).thenReturn(null);
 
+		//method under test
+		searchManager.documentChangeMessages(singleMessageList);
+
+		verify(mockTranslator).generateSearchDocumentIfNecessary(singleMessageList.get(0));
+		verifyZeroInteractions(mockSearchDao, mockSearchDocumentDriver);
+	}
+
+	@Test
+	public void testDocumentChangeMessage_oneMessage_nonNullDocumentGenerated(){
+		List<ChangeMessage> singleMessageList = Collections.singletonList(new ChangeMessage());
+		when(mockTranslator.generateSearchDocumentIfNecessary(any(ChangeMessage.class))).thenReturn(doc1);
+
+		//method under test
+		searchManager.documentChangeMessages(singleMessageList);
+
+		verify(mockTranslator).generateSearchDocumentIfNecessary(singleMessageList.get(0));
+		verify(mockSearchDao).createOrUpdateSearchDocument(doc1);
+		verifyZeroInteractions(mockSearchDocumentDriver);
+	}
+
+	@Test
+	public void testDocumentChangeMessages_multipleMessages(){
 		Document doc2Null = null;
 
 		Document doc3 = new Document();

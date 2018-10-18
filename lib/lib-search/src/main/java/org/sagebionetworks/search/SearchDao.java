@@ -26,15 +26,8 @@ public interface SearchDao {
 	 * @param toCreate
 	 */
 	void createOrUpdateSearchDocument(Document toCreate);
-	 
-	 /**
-	 * Create or update a batch of search documents
-	 * 
-	 * @param batch
-	 */
-	void createOrUpdateSearchDocument(List<Document> batch);
-	 
-	 /**
+
+	/**
 	 * Delete a document using its id.
 	 * 
 	 * @param docIdToDelete

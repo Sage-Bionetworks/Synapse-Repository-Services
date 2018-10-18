@@ -16,6 +16,7 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -71,18 +72,13 @@ public class SearchDaoImpl implements SearchDao {
 			documentBatch.add(document);
 		}
 		// Delete the batch.
-		createOrUpdateSearchDocument(documentBatch);
+		sendDocuments(documentBatch.iterator());
 	}
 
 	@Override
 	public void createOrUpdateSearchDocument(Document document){
 		ValidateArgument.required(document, "document");
-		createOrUpdateSearchDocument(Collections.singletonList(document));
-	}
-
-	@Override
-	public void createOrUpdateSearchDocument(List<Document> document){
-		sendDocuments(document.iterator());
+		cloudSearchClientProvider.getCloudSearchClient().sendDocument(document);
 	}
 
 	@Override

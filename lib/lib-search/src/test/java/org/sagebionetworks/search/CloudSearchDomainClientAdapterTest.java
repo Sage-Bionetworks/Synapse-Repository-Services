@@ -115,7 +115,7 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	/**
-	 * createOrUpdateSearchDocument() Tests
+	 * sendDocument() Tests
 	 */
 
 	@Test(expected = IllegalArgumentException.class)
@@ -134,8 +134,7 @@ public class CloudSearchDomainClientAdapterTest {
 
 		verify(mockCloudSearchDomainClient).uploadDocuments(uploadRequestCaptor.capture());
 		UploadDocumentsRequest capturedRequest = uploadRequestCaptor.getValue();
-
-		byte[] documentBytes = SearchUtil.convertSearchDocumentsToJSONString(Collections.singletonList(document)).getBytes();
+		byte[] documentBytes = "[{\"type\":\"add\",\"id\":\"syn123\",\"fields\":{}}]".getBytes(StandardCharsets.UTF_8);
 		assertEquals("application/json", capturedRequest.getContentType());
 
 		assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(documentBytes), capturedRequest.getDocuments()));
@@ -155,7 +154,7 @@ public class CloudSearchDomainClientAdapterTest {
 			fail();
 		}catch (IllegalArgumentException e){
 			//expected
-			assertEquals("[syn123] search documents could not be uploaded.", e.getMessage());
+			assertEquals("syn123 search documents could not be uploaded.", e.getMessage());
 		}
 	}
 

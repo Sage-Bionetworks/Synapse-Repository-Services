@@ -29,7 +29,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)
-public class qjSearchQueueWorkerTest {
+public class SearchQueueWorkerTest {
 
 	@Mock
 	private ProgressCallback mockCallback;

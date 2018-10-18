@@ -39,11 +39,6 @@ public class CloudsSearchDomainClientAdapter {
 		this.client = client;
 	}
 
-	public void sendDocument(Document document){
-		ValidateArgument.required(document, "document");
-		sendDocuments(Collections.singletonList(document));
-	}
-
 	public void sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
 		Iterator<File> searchDocumentFileIterator = new CloudSearchDocumentFileIterator(documents);
@@ -65,12 +60,10 @@ public class CloudsSearchDomainClientAdapter {
 		}
 	}
 
-	public void sendDocuments(List<Document> batch){
-		ValidateArgument.required(batch, "batch");
-		ValidateArgument.requirement(!batch.isEmpty(), "List<Document> batch cannot be empty");
+	public void sendDocument(Document document){
+		ValidateArgument.required(document, "batch");
 
-
-		String documents = SearchUtil.convertSearchDocumentsToJSONString(batch);
+		String documents = "[" + SearchUtil.convertSearchDocumentToJSONString(document) + "]";
 		final byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
 										.withContentType("application/json")
@@ -81,10 +74,9 @@ public class CloudsSearchDomainClientAdapter {
 		} catch (DocumentServiceException e){
 			int statusCode = e.getStatusCode();
 			if(statusCode / 100 == 4) { //4xx status codes
-				List<String> documentIds = batch.stream().map(Document::getId).collect(Collectors.toList());
 				logger.error("The following search document was unable to be uploaded to CloudSearch:\n\n" +
 				documents);
-				throw new IllegalArgumentException(documentIds.toString() + " search documents could not be uploaded.", e);
+				throw new IllegalArgumentException(document.getId() + " search documents could not be uploaded.", e);
 			}else {
 				throw e;
 			}
