@@ -41,9 +41,6 @@ public class SearchManagerImpl implements SearchManager{
 	@Autowired
 	SearchDao searchDao;
 
-	@Autowired
-	V2WikiPageDao wikiPageDao;
-
 	@Override
 	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) {
 		boolean includePath = false;
@@ -99,7 +96,6 @@ public class SearchManagerImpl implements SearchManager{
 		}
 	}
 
-	//TODO: maybe move these functions from dao into manager
 	@Override
 	public void deleteAllDocuments() throws InterruptedException{
 		searchDao.deleteAllDocuments();
@@ -121,14 +117,9 @@ public class SearchManagerImpl implements SearchManager{
 
 	@Override
 	public void documentChangeMessages(List<ChangeMessage> messages){
-		Iterator<Document> documentIterator  = Iterators.filter(Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary), Objects::nonNull);
+		Iterator<Document> documentIterator  = Iterators.filter(
+				Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
+				Objects::nonNull);
 		searchDao.sendDocuments(documentIterator);
-	}
-
-	public void documentChangeMessage(ChangeMessage message){
-		Document doc = translator.generateSearchDocumentIfNecessary(message);
-		if(doc != null){
-			searchDao.createOrUpdateSearchDocument(doc);
-		}
 	}
 }

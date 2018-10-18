@@ -49,12 +49,9 @@ public interface SearchManager {
 	 */
 	void createOrUpdateSearchDocument(Document document);
 
-	void documentChangeMessages(List<ChangeMessage> changeMessages);
-
 	/**
-	 * Creates a document based on an Entity or Wiki change that occurred in Synapse. Used by SearchQueueWorker.
-	 * @param change a ChangeMessage representing a change in Synapse
-	 * @throws IOException
+	 * Creates a document based on Entity or Wiki changes that occurred in Synapse. Used by SearchQueueWorker.
+	 * @param changeMessages a batch of ChangeMessages representing changes in Synapse
 	 */
-	void documentChangeMessage(ChangeMessage change) throws IOException;
+	void documentChangeMessages(List<ChangeMessage> changeMessages);
 }

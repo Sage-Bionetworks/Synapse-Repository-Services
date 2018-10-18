@@ -82,7 +82,7 @@ public class SearchDaoImpl implements SearchDao {
 
 	@Override
 	public void createOrUpdateSearchDocument(List<Document> document){
-		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(document);
+		sendDocuments(document.iterator());
 	}
 
 	@Override

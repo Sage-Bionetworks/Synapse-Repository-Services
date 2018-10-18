@@ -5,9 +5,12 @@ import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -26,8 +29,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -52,10 +58,13 @@ public class SearchManagerImplTest {
 	private SearchDao mockSearchDao;
 
 	@Mock
-	ChangeMessageToSearchDocumentTranslator translator;
+	ChangeMessageToSearchDocumentTranslator mockTranslator;
 
 	@Mock
 	SearchDocumentDriver mockSearchDocumentDriver;
+
+	@Captor
+	ArgumentCaptor<Iterator<Document>> iteratorArgumentCaptor;
 
 	private UserInfo nonAdminUserInfo;
 	private SearchRequest searchRequest;
@@ -144,5 +153,29 @@ public class SearchManagerImplTest {
 		assertEquals(SearchUtil.formulateAuthorizationFilter(nonAdminUserInfo), searchRequest.getFilterQuery());
 	}
 
+	@Test
+	public void testDocumentChangeMessages(){
+		Document doc1 = new Document();
+		doc1.setId("syn1");
 
+		Document doc2Null = null;
+
+		Document doc3 = new Document();
+		doc3.setId("syn3");
+
+		when(mockTranslator.generateSearchDocumentIfNecessary(any(ChangeMessage.class))).thenReturn(doc1, doc2Null, doc3);
+
+		List<ChangeMessage> messages = Arrays.asList(new ChangeMessage(), new ChangeMessage(), new ChangeMessage());
+		//method under test
+		searchManager.documentChangeMessages(messages);
+
+		verify(mockSearchDao).sendDocuments(iteratorArgumentCaptor.capture());
+
+		//check that the document iterator now only contains non-null Documents
+		Iterator<Document> generatedIterator = iteratorArgumentCaptor.getValue();
+		List<Document> documentsInIterator = Lists.newArrayList(generatedIterator);
+		assertEquals(2, documentsInIterator.size());
+		assertEquals(doc1, documentsInIterator.get(0));
+		assertEquals(doc3, documentsInIterator.get(1));
+	}
 }
