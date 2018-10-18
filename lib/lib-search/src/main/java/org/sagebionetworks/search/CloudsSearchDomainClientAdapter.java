@@ -35,7 +35,6 @@ public class CloudsSearchDomainClientAdapter {
 
 	private AmazonCloudSearchDomain client;
 
-
 	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client){
 		this.client = client;
 	}
@@ -52,7 +51,7 @@ public class CloudsSearchDomainClientAdapter {
 		while(searchDocumentFileIterator.hasNext()) {
 			File file = searchDocumentFileIterator.next();
 
-			try (InputStream fileStream = new FileInputStream(file);) {
+			try (InputStream fileStream = Files.newInputStream(file.toPath(), StandardOpenOption.DELETE_ON_CLOSE)) {
 				UploadDocumentsRequest request = new UploadDocumentsRequest()
 						.withContentType("application/json")
 						.withDocuments(fileStream)
@@ -62,9 +61,6 @@ public class CloudsSearchDomainClientAdapter {
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
 				throw new RuntimeException(e);
-			} finally {
-				//done using the file, delete to free up space
-				file.delete();
 			}
 		}
 	}

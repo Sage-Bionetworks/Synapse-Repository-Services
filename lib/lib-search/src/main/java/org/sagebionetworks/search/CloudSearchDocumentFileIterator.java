@@ -17,9 +17,9 @@ import org.sagebionetworks.repo.model.search.Document;
  */
 public class CloudSearchDocumentFileIterator implements Iterator<File> {
 
-	private static final int MEGABYTE = (int) Math.pow(10, 6); //use base-10 value since it is smaller than base-2
-	private static final int DEFAULT_MAX_SINGLE_DOCUMENT_SIZE = MEGABYTE; //1MB
-	private static final int DEFAULT_MAX_DOCUMENT_BATCH_SIZE = 5 * MEGABYTE; //5MB
+	private static final int MEBIBYTE = 1048576; // CloudSearch's Limits say MB but they really mean MiB
+	private static final int DEFAULT_MAX_SINGLE_DOCUMENT_SIZE = MEBIBYTE; //1MiB
+	private static final int DEFAULT_MAX_DOCUMENT_BATCH_SIZE = 5 * MEBIBYTE; //5MiB
 
 	private static final Charset CHARSET = StandardCharsets.UTF_8;
 	static final byte[] PREFIX_BYTES = "[".getBytes(CHARSET);

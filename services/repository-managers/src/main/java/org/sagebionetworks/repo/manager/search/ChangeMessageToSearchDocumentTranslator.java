@@ -13,8 +13,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class ChangeMessageToDocumentTranslator {
-	private static final Logger log = LogManager.getLogger(ChangeMessageToDocumentTranslator.class.getName());
+public class ChangeMessageToSearchDocumentTranslator {
+	private static final Logger log = LogManager.getLogger(ChangeMessageToSearchDocumentTranslator.class.getName());
 
 
 	@Autowired
@@ -49,13 +49,7 @@ public class ChangeMessageToDocumentTranslator {
 				// If the owner of the wiki is a an entity then pass along the
 				// message.
 				if (ObjectType.ENTITY == key.getOwnerObjectType()) {
-					// We need the current document etag
-					ChangeMessage newMessage = new ChangeMessage();
-					newMessage.setChangeType(ChangeType.UPDATE);
-					newMessage.setObjectId(key.getOwnerObjectId());
-					newMessage.setObjectType(ObjectType.ENTITY);
-					newMessage.setObjectEtag(null);
-					return createUpdateDocument(change.getObjectId(), change.getObjectEtag());
+					return createUpdateDocument(key.getOwnerObjectId(), null);
 				}
 			} catch (NotFoundException e) {
 				// Nothing to do if the wiki does not exist

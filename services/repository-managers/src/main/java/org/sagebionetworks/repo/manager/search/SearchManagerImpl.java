@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -37,7 +36,7 @@ public class SearchManagerImpl implements SearchManager{
 	SearchDocumentDriver searchDocumentDriver;
 
 	@Autowired
-	ChangeMessageToDocumentTranslator translator;
+	ChangeMessageToSearchDocumentTranslator translator;
 
 	@Autowired
 	SearchDao searchDao;
@@ -126,77 +125,10 @@ public class SearchManagerImpl implements SearchManager{
 		searchDao.sendDocuments(documentIterator);
 	}
 
-	@Override
-	public void documentChangeMessage(ChangeMessage change) throws IOException{
-		// We only care about entity messages as this time
-		if (ObjectType.ENTITY == change.getObjectType()) {
-			// Is this a create or update
-			if (ChangeType.CREATE == change.getChangeType()
-					|| ChangeType.UPDATE == change.getChangeType()) {
-				processCreateUpdate(change);
-			} else if (ChangeType.DELETE == change.getChangeType()) {
-				searchDao.deleteDocument(change.getObjectId());
-			} else {
-				throw new IllegalArgumentException("Unknown change type: "
-						+ change.getChangeType());
-			}
+	public void documentChangeMessage(ChangeMessage message){
+		Document doc = translator.generateSearchDocumentIfNecessary(message);
+		if(doc != null){
+			searchDao.createOrUpdateSearchDocument(doc);
 		}
-		// Is this a wikipage?
-		if (ObjectType.WIKI == change.getObjectType()) {
-			// Lookup the owner of the page
-			try {
-				WikiPageKey key = wikiPageDao
-						.lookupWikiKey(change.getObjectId());
-				// If the owner of the wiki is a an entity then pass along the
-				// message.
-				if (ObjectType.ENTITY == key.getOwnerObjectType()) {
-					// We need the current document etag
-					ChangeMessage newMessage = new ChangeMessage();
-					newMessage.setChangeType(ChangeType.UPDATE);
-					newMessage.setObjectId(key.getOwnerObjectId());
-					newMessage.setObjectType(ObjectType.ENTITY);
-					newMessage.setObjectEtag(null);
-					processCreateUpdate(newMessage);
-				}
-			} catch (NotFoundException e) {
-				// Nothing to do if the wiki does not exist
-				log.debug("Wiki not found for id: " + change.getObjectId()
-						+ " Message:" + e.getMessage());
-			}
-		}
-	}
-
-	private void processCreateUpdate(ChangeMessage change) throws IOException{
-		Document newDoc = getDocFromMessage(change);
-		if (newDoc != null) {
-			searchDao.createOrUpdateSearchDocument(newDoc);
-		}
-	}
-
-	private Document getDocFromMessage(ChangeMessage changeMessage) throws IOException {
-		// We want to ignore this message if a document with this ID and Etag
-		// already exists in the search index.
-		if (!searchDao.doesDocumentExist(changeMessage.getObjectId(),
-				changeMessage.getObjectEtag())) {
-			// We want to ignore this message if a document with this ID and
-			// Etag are not in the repository as it is an
-			// old message.
-			if (changeMessage.getObjectEtag() == null
-					|| searchDocumentDriver.doesNodeExist(
-						changeMessage.getObjectId(),
-						changeMessage.getObjectEtag())) {
-				try {
-					return searchDocumentDriver
-							.formulateSearchDocument(changeMessage
-									.getObjectId());
-				} catch (NotFoundException e) {
-					// There is nothing to do if it does not exist
-					log.debug("Node not found for id: "
-							+ changeMessage.getObjectId() + " Message:"
-							+ e.getMessage());
-				}
-			}
-		}
-		return null;
 	}
 }

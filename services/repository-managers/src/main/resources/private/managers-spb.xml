@@ -424,7 +424,7 @@
 		scope="singleton" />
 
 	<bean id="changeMessageToDocumentTranslator"
-		class="org.sagebionetworks.repo.manager.search.ChangeMessageToDocumentTranslator"/>
+		class="org.sagebionetworks.repo.manager.search.ChangeMessageToSearchDocumentTranslator"/>
 
 	<!-- Used to perform search and upload search documents-->
 	<bean id="searchManager"
