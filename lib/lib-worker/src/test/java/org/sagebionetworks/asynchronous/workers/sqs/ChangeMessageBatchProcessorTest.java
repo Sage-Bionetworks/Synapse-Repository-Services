@@ -123,7 +123,7 @@ public class ChangeMessageBatchProcessorTest {
 		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
 				queueName, mockBatchRunner);
 		// setup RecoverableMessageException failures
-		doThrow(new RecoverableMessageException()).when(mockBatchRunner).run(
+		doThrow(new Exception()).when(mockBatchRunner).run(
 				any(ProgressCallback.class), anyListOf(ChangeMessage.class));
 		// call under test
 		processor.run(mockProgressCallback, awsMessage);

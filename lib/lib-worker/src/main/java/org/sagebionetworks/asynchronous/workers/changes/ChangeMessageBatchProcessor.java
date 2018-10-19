@@ -63,7 +63,9 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 			throws RecoverableMessageException, Exception {
 		try{
 			batchRunner.run(progressCallback, batch);
-		} catch (RecoverableMessageException e) {
+		} catch (Exception e) {
+			//if part of the batch fails for any reason, put everything back onto the queue as individual batched messages and retry later
+
 			if (batch.size() == 1) {
 				// Let the container handle retry for single messages.
 				throw e;
