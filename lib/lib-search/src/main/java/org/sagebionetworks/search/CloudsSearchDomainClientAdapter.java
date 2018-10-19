@@ -42,7 +42,7 @@ public class CloudsSearchDomainClientAdapter {
 		while(searchDocumentFileIterator.hasNext()) {
 			Path file = searchDocumentFileIterator.next();
 
-			try (InputStream fileStream = Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE)) {
+			try (InputStream fileStream = Files.newInputStream(file)) {
 				UploadDocumentsRequest request = new UploadDocumentsRequest()
 						.withContentType("application/json")
 						.withDocuments(fileStream)
@@ -52,6 +52,15 @@ public class CloudsSearchDomainClientAdapter {
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
 				throw new RuntimeException(e);
+			} finally {
+				// Here we perform manual delete instead of using StandardOpenOption.DELETE_ON_CLOSE in Files.newInputStream
+				// because in Linux, the file (if it is small enough) could get deleted before we call Files.size() to check its size.
+				// This is not reproducible on Windows systems.
+				try {
+					Files.delete(file);
+				} catch (IOException e) {
+					logger.error("Failed to delete temp file " + file);
+				}
 			}
 		}
 	}
