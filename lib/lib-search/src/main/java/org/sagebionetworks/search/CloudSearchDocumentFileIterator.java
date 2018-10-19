@@ -5,6 +5,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -98,7 +99,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<Path> {
 
 		Path tempFile = Files.createTempFile("CloudSearchDocument", ".json");
 
-		try (CountingOutputStream countingOutputStream = new CountingOutputStream(Files.newOutputStream(tempFile)); ) {
+		try (CountingOutputStream countingOutputStream = new CountingOutputStream(Files.newOutputStream(tempFile, StandardOpenOption.CREATE, StandardOpenOption.DSYNC)); ) {
 
 			//append prefix
 			countingOutputStream.write(PREFIX_BYTES);
