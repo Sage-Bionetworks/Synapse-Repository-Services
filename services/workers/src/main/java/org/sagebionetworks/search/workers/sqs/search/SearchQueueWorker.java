@@ -41,7 +41,7 @@ public class SearchQueueWorker implements BatchChangeMessageDrivenRunner {
 			searchManager.documentChangeMessages(changes);
 		} catch (IllegalStateException e){
 			// If the feature is disabled then we simply swallow all messages
-		} catch (TemporarilyUnavailableException | AmazonCloudSearchDomainException e) { //TODO:
+		} catch (TemporarilyUnavailableException | AmazonCloudSearchDomainException e) {
 			workerLogger.logWorkerFailure(SearchQueueWorker.class.getName(), e,true);
 			throw new RecoverableMessageException();
 		} catch (Exception e){
