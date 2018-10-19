@@ -1,10 +1,10 @@
 package org.sagebionetworks.search;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.search.Document;
  * Iterator that lazily generates document batch files for CloudSearch.
  * This class is not thread-safe.
  */
-public class CloudSearchDocumentFileIterator implements Iterator<File> {
+public class CloudSearchDocumentFileIterator implements Iterator<Path> {
 
 	private static final int MEBIBYTE = 1048576; // CloudSearch's Limits say MB but they really mean MiB
 	private static final int DEFAULT_MAX_SINGLE_DOCUMENT_SIZE = MEBIBYTE; //1MiB
@@ -35,7 +35,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 	private byte[] unwrittenDocumentBytes;
 
 	//place holder for result that next() will consume and reset to null.
-	private File currFile;
+	private Path currFile;
 
 	public CloudSearchDocumentFileIterator(Iterator<Document> documentIterator, final int maxSingleDocumentSizeInBytes, final int maxDocumentBatchSizeInBytes){
 		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes){
@@ -61,7 +61,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 		}
 
 		try {
-			File processedFile = processDocumentFile();
+			Path processedFile = processDocumentFile();
 			if(processedFile != null){
 				this.currFile = processedFile;
 				return true;
@@ -74,9 +74,9 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 	}
 
 	@Override
-	public File next() {
+	public Path next() {
 		if (hasNext()){
-			File temp = this.currFile;
+			Path temp = this.currFile;
 			//reset
 			this.currFile = null;
 			return temp;
@@ -90,15 +90,16 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 	 * @return a File containing batch documents, null if no more documents can be written.
 	 * @throws IOException
 	 */
-	private File processDocumentFile() throws IOException{
+	private Path processDocumentFile() throws IOException{
 		//no work to be done since the document iterator is exhausted and no left over bytes from previous
 		if( !this.documentIterator.hasNext() && unwrittenDocumentBytes == null){
 			return null;
 		}
 
-		File tempFile = File.createTempFile("CloudSearchDocument", ".json");
+		Path tempFile = Files.createTempFile("CloudSearchDocument", ".json");
 
-		try (CountingOutputStream countingOutputStream = new CountingOutputStream(new FileOutputStream(tempFile)) ) {
+		try (CountingOutputStream countingOutputStream = new CountingOutputStream(Files.newOutputStream(tempFile)); ) {
+
 			//append prefix
 			countingOutputStream.write(PREFIX_BYTES);
 
@@ -115,7 +116,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 				//if a single document exceeds the single document size limit throw exception
 				if (documentBytes.length > maxSingleDocumentSizeInBytes) {
 					countingOutputStream.close();
-					tempFile.delete();
+					Files.delete(tempFile);
 					throw new RuntimeException("The document for " + doc.getId() + " is " + documentBytes.length + " bytes and exceeds the maximum allowed " + maxSingleDocumentSizeInBytes + " bytes.");
 				}
 
@@ -140,6 +141,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<File> {
 
 			//append suffix
 			countingOutputStream.write(SUFFIX_BYTES);
+			countingOutputStream.flush();
 		}
 
 		return tempFile;

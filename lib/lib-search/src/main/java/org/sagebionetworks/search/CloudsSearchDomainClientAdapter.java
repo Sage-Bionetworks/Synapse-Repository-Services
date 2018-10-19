@@ -1,5 +1,14 @@
 package org.sagebionetworks.search;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.Iterator;
+
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
@@ -12,19 +21,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.util.ValidateArgument;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * A wrapper for AWS's AmazonCloudSearchDomain. DO NOT INSTANTIATE.
@@ -41,16 +37,16 @@ public class CloudsSearchDomainClientAdapter {
 
 	public void sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
-		Iterator<File> searchDocumentFileIterator = new CloudSearchDocumentFileIterator(documents);
+		Iterator<Path> searchDocumentFileIterator = new CloudSearchDocumentFileIterator(documents);
 
 		while(searchDocumentFileIterator.hasNext()) {
-			File file = searchDocumentFileIterator.next();
+			Path file = searchDocumentFileIterator.next();
 
-			try (InputStream fileStream = Files.newInputStream(file.toPath(), StandardOpenOption.DELETE_ON_CLOSE)) {
+			try (InputStream fileStream = Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE)) {
 				UploadDocumentsRequest request = new UploadDocumentsRequest()
 						.withContentType("application/json")
 						.withDocuments(fileStream)
-						.withContentLength((long) file.length());
+						.withContentLength(Files.size(file));
 				client.uploadDocuments(request);
 			} catch (DocumentServiceException e) {
 				throw handleCloudSearchExceptions(e);

@@ -6,17 +6,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONArray;
 import org.junit.AfterClass;
@@ -29,7 +28,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class CloudSearchDocumentFileIteratorTest {
 
-	private static List<File> filesToDelete = new LinkedList<>();
+	private static List<Path> filesToDelete = new LinkedList<>();
 
 	Document document1;
 	Document document2;
@@ -68,9 +67,9 @@ public class CloudSearchDocumentFileIteratorTest {
 	}
 
 	@AfterClass
-	public static void cleanUpClass(){
-		for(File file : filesToDelete){
-			file.delete();
+	public static void cleanUpClass() throws IOException {
+		for(Path file : filesToDelete){
+			Files.delete(file);
 		}
 	}
 
@@ -91,7 +90,7 @@ public class CloudSearchDocumentFileIteratorTest {
 		assertTrue(iterator.hasNext());
 		assertTrue(iterator.hasNext());
 
-		File file = iterator.next();
+		Path file = iterator.next();
 		filesToDelete.add(file);
 		assertNotNull(file);
 
@@ -147,15 +146,15 @@ public class CloudSearchDocumentFileIteratorTest {
 		return SearchUtil.convertSearchDocumentToJSONString(document).getBytes(StandardCharsets.UTF_8).length;
 	};
 
-	private static List<List<Document>> readFromIterator(Iterator<File> iterator) throws Exception{
+	private static List<List<Document>> readFromIterator(Iterator<Path> iterator) throws Exception{
 		List<List<Document>> documents = new LinkedList<>();
 		while(iterator.hasNext()){
-			File file = iterator.next();
+			Path file = iterator.next();
 			filesToDelete.add(file);
 
 			List<Document> nestedDocuments = new LinkedList<>();
 
-			String JsonString = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+			String JsonString = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
 			JSONArray jsonArray = new JSONArray(JsonString);
 			for(int i = 0; i < jsonArray.length(); i++){
 				Document document = EntityFactory.createEntityFromJSONObject(jsonArray.getJSONObject(i), Document.class);
