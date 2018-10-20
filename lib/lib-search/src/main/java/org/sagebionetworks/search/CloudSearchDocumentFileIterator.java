@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.search.Document;
  * Iterator that lazily generates document batch files for CloudSearch.
  * This class is not thread-safe.
  */
-public class CloudSearchDocumentFileIterator implements Iterator<Path> {
+public class CloudSearchDocumentFileIterator implements Iterator<CloudSearchDocumentBatch> {
 
 	private static final int MEBIBYTE = 1048576; // CloudSearch's Limits say MB but they really mean MiB
 	private static final int DEFAULT_MAX_SINGLE_DOCUMENT_SIZE = MEBIBYTE; //1MiB
@@ -36,7 +36,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<Path> {
 	private byte[] unwrittenDocumentBytes;
 
 	//place holder for result that next() will consume and reset to null.
-	private Path currFile;
+	private CloudSearchDocumentBatch currentBatch;
 
 	public CloudSearchDocumentFileIterator(Iterator<Document> documentIterator, final int maxSingleDocumentSizeInBytes, final int maxDocumentBatchSizeInBytes){
 		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes){
@@ -47,7 +47,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<Path> {
 		this.maxSingleDocumentSizeInBytes = maxSingleDocumentSizeInBytes;
 		this.maxDocumentBatchSizeInBytes = maxDocumentBatchSizeInBytes;
 
-		this.currFile = null;
+		this.currentBatch = null;
 		this.unwrittenDocumentBytes = null;
 	}
 
@@ -57,14 +57,14 @@ public class CloudSearchDocumentFileIterator implements Iterator<Path> {
 
 	@Override
 	public boolean hasNext() {
-		if(currFile != null){
+		if(currentBatch != null){
 			return true;
 		}
 
 		try {
-			Path processedFile = processDocumentFile();
+			CloudSearchDocumentBatch processedFile = processDocumentFile();
 			if(processedFile != null){
-				this.currFile = processedFile;
+				this.currentBatch = processedFile;
 				return true;
 			}
 		} catch (IOException e){
@@ -75,11 +75,11 @@ public class CloudSearchDocumentFileIterator implements Iterator<Path> {
 	}
 
 	@Override
-	public Path next() {
+	public CloudSearchDocumentBatch next() {
 		if (hasNext()){
-			Path temp = this.currFile;
+			CloudSearchDocumentBatch temp = this.currentBatch;
 			//reset
-			this.currFile = null;
+			this.currentBatch = null;
 			return temp;
 		} else {
 			throw new NoSuchElementException();
@@ -91,7 +91,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<Path> {
 	 * @return a File containing batch documents, null if no more documents can be written.
 	 * @throws IOException
 	 */
-	private Path processDocumentFile() throws IOException{
+	private CloudSearchDocumentBatch processDocumentFile() throws IOException{
 		//no work to be done since the document iterator is exhausted and no left over bytes from previous
 		if( !this.documentIterator.hasNext() && unwrittenDocumentBytes == null){
 			return null;
