@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
@@ -75,12 +76,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>spring-webmvc-portlet</artifactId>
+			<artifactId>spring-webmvc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context-support</artifactId>
-		</dependency>			
+		</dependency>
 		<!-- ATOM -->
 		<dependency>
 			<groupId>rome</groupId>
@@ -116,7 +117,7 @@
 		</dependency>
 
 		<dependency>
-		    <groupId>org.quartz-scheduler</groupId>
+			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
 		</dependency>
 		<dependency>
@@ -222,7 +223,8 @@
 					<useStandardDocletOptions>false</useStandardDocletOptions>
 					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
 					<!-- This name is used to link to the authentication controller -->
-					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
+					<additionalJOption>-authControllerName
+						org.sagebionetworks.auth.AuthenticationController</additionalJOption>
 					<additionnalDependencies>
 						<additionnalDependency>
 							<groupId>org.sagebionetworks</groupId>

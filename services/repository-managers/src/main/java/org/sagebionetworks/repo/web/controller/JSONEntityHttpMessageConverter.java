@@ -97,7 +97,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
 			HttpMessageNotReadableException {
 		// First read the string
-		Charset charsetForDeSerializingBody = inputMessage.getHeaders().getContentType().getCharSet();
+		Charset charsetForDeSerializingBody = inputMessage.getHeaders().getContentType().getCharset();
 		if (charsetForDeSerializingBody==null) {
 			// HTTP 1.1 says that the default is ISO-8859-1
 			charsetForDeSerializingBody = HTTP_1_1_DEFAULT_CHARSET;
@@ -211,7 +211,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 				// this will leave the character set unspecified, but we fill that in below
 				contentTypeForResponseHeader = MediaType.APPLICATION_JSON;
 			}
-			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharSet();
+			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharset();
 			if (charsetForSerializingBody==null) {
 				charsetForSerializingBody = SYNAPSE_DEFAULT_CHARSET;
 				// Let's make it explicit in the response header
