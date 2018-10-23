@@ -27,25 +27,29 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class CloudSearchDocumentFileIteratorTest {
-
-	private static List<Path> filesToDelete = new LinkedList<>();
-
-
-
+	Document document1;
+	Document document2;
 
 
 	CloudSearchDocumentFileIterator iterator;
 
 
+	@Before
+	public void setUp() throws IOException {
+		document1 = new Document();
+		document1.setId("syn123");
+		document1.setType(DocumentTypeNames.add);
+		document1.setFields(new DocumentFields());
+
+		document2 = new Document();
+		document2.setId("syn456");
+		document2.setType(DocumentTypeNames.add);
+		document2.setFields(new DocumentFields());
+	}
 //
 //	@Test (expected = IllegalArgumentException.class)
 //	public void testConstructor_singleDocumentSizeLimitPlusDelimitersThanBatchSizeLimit(){
-//		maxDocumentBatchSizeInBytes = 6;
-//		maxSingleDocumentSizeInBytes = maxDocumentBatchSizeInBytes
-//				- CloudSearchDocumentFileIterator.PREFIX_BYTES.length
-//				- CloudSearchDocumentFileIterator.SUFFIX_BYTES.length
-//				+ 1;
-//		iterator = new CloudSearchDocumentFileIterator(Arrays.asList(document1).iterator(), maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
+//
 //	}
 //
 //	@Test
@@ -74,59 +78,6 @@ public class CloudSearchDocumentFileIteratorTest {
 //		} catch (NoSuchElementException e){
 //			//expected
 //		}
-//	}
-//
-//	@Test (expected = RuntimeException.class)
-//	public void testIterator_singleDoumentSizeExceeded() throws Exception{
-//		maxSingleDocumentSizeInBytes = 1;
-//		iterator = new CloudSearchDocumentFileIterator(Arrays.asList(document1).iterator(), maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
-//		iterator.next();
-//	}
-//
-//	@Test
-//	public void testIterator_multipleFilesLargeFileAtBeginning() throws Exception{
-//		//test iterator when the large document is at the beginning
-//		List<Document> documentList = Arrays.asList(documentLarge, document1, document2);
-//		iterator = new CloudSearchDocumentFileIterator(documentList.iterator(), maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
-//		List<List<Document>> documentsFromFiles = readFromIterator(iterator);
-//		List<List<Document>> expectedList = Arrays.asList( Arrays.asList(documentLarge), Arrays.asList(document1, document2));
-//		assertEquals(expectedList, documentsFromFiles);
-//
-//	}
-//
-//	@Test
-//	public void testIterator_multipleFilesLargeFileAtEnd() throws Exception{
-//		//test iterator when the large document is at the end
-//		List<Document> documentList = Arrays.asList(document1, document2, documentLarge);
-//		iterator = new CloudSearchDocumentFileIterator(documentList.iterator(), maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
-//		List<List<Document>> documentsFromFiles = readFromIterator(iterator);
-//		List<List<Document>> expectedList = Arrays.asList(Arrays.asList(document1, document2), Arrays.asList(documentLarge));
-//		assertEquals(expectedList, documentsFromFiles);
-//	}
-//
-//
-//
-//
-//
-//
-//	private static List<List<Document>> readFromIterator(Iterator<Path> iterator) throws Exception{
-//		List<List<Document>> documents = new LinkedList<>();
-//		while(iterator.hasNext()){
-//			Path file = iterator.next();
-//			filesToDelete.add(file);
-//
-//			List<Document> nestedDocuments = new LinkedList<>();
-//
-//			String JsonString = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
-//			JSONArray jsonArray = new JSONArray(JsonString);
-//			for(int i = 0; i < jsonArray.length(); i++){
-//				Document document = EntityFactory.createEntityFromJSONObject(jsonArray.getJSONObject(i), Document.class);
-//				nestedDocuments.add(document);
-//			}
-//
-//			documents.add(nestedDocuments);
-//		}
-//		return documents;
 //	}
 
 }

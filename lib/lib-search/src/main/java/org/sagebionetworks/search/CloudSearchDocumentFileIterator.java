@@ -1,13 +1,10 @@
 package org.sagebionetworks.search;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.util.FileProvider;
 
 /**
  * Iterator that lazily generates document batch files for CloudSearch.
@@ -81,14 +78,14 @@ public class CloudSearchDocumentFileIterator implements Iterator<CloudSearchDocu
 		try ( CloudSearchDocumentBatchBuilder builder = builderProvider.getBuilder()) {
 			//unwritten bytes from previous call to processDocumentFile(). These bytes are guaranteed to fit within the size limit.
 			if(this.unwrittenDocument != null){
-				builder.tryAddDocumentToBatch(unwrittenDocument);
+				builder.tryAddDocument(unwrittenDocument);
 				this.unwrittenDocument = null;
 			}
 
 			while (this.documentIterator.hasNext()) {
 				Document doc = this.documentIterator.next();
 				//try to add the document. If it would not fit, return the current batch
-				if(!builder.tryAddDocumentToBatch(doc)){
+				if(!builder.tryAddDocument(doc)){
 					this.unwrittenDocument = doc;
 					break;
 				}

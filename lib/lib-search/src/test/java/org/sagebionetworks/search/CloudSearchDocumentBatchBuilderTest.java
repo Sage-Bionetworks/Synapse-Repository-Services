@@ -1,27 +1,39 @@
 package org.sagebionetworks.search;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
+import org.json.JSONArray;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -33,8 +45,7 @@ public class CloudSearchDocumentBatchBuilderTest {
 	@Mock
 	File mockFile;
 
-	@Spy
-	OutputStream spyOutputStream = new ByteArrayOutputStream();
+	ByteArrayOutputStream spyOutputStream;
 
 
 	CloudSearchDocumentBatchBuilder builder;
@@ -74,21 +85,176 @@ public class CloudSearchDocumentBatchBuilderTest {
 
 
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		when(mockFileProvider.createFileOutputStream(mockFile)).thenReturn((FileOutputStream) spyOutputStream);
+
+		//make sure that all calls to constructor of CloudSearchDocumentBatchBuilder will use a new OutputStream
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenAnswer((invocationOnMock)->{
+			spyOutputStream = spy(new ByteArrayOutputStream());
+			return spyOutputStream;
+		});
+
+		builder = new CloudSearchDocumentBatchBuilder(mockFileProvider, maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testConstuctor_singleDocumentSizeExceedsMaxDocumentBatchSize() throws IOException {
+		maxDocumentBatchSizeInBytes = 6;
+		maxSingleDocumentSizeInBytes = maxDocumentBatchSizeInBytes
+				- CloudSearchDocumentBatchBuilder.PREFIX_BYTES.length
+				- CloudSearchDocumentBatchBuilder.SUFFIX_BYTES.length
+				+ 1;
+		new CloudSearchDocumentBatchBuilder(mockFileProvider, maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
+	}
+
+	@Test
+	public void testConstuctor_ExceptionInConstructor() throws FileNotFoundException {
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenThrow(new FileNotFoundException());
+
+		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider)){
+			fail("expected exception to be thrown");
+		}catch (IOException e){
+			//expected
+		}
+
+		verify(mockFile).delete();
+	}
+
+	//////////////////////////
+	// tryAddDocument() Tests
+	//////////////////////////
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testTryAddDocument_nullDocument() throws Exception{
+		builder.tryAddDocument(null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testTryAddDocument_DocumentHasNullId() throws Exception{
+		document1.setId(null);
+		builder.tryAddDocument(document1);
+	}
+
+	@Test
+	public void testTryAddDocument_alreadyBuilt() throws Exception{
+		//set really large limits but build the builder already
+		builder = new CloudSearchDocumentBatchBuilder(mockFileProvider, 99999999L,9999999999999L);
+		builder.build();
+		assertFalse(builder.tryAddDocument(document1));
+		assertEquals("[]", new String(spyOutputStream.toByteArray(), CloudSearchDocumentBatchBuilder.CHARSET));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testTryAddDocument_singleDocumentSizeExceeded() throws Exception {
+		maxSingleDocumentSizeInBytes = 1;
+		builder = new CloudSearchDocumentBatchBuilder(mockFileProvider, maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
+		builder.tryAddDocument(document1);
+	}
+
+	@Test
+	public void testTryAddDocument_multipleFiles_largeFileAddedFirst() throws Exception{
+		assertTrue(builder.tryAddDocument(documentLarge));
+
+		assertFalse(builder.tryAddDocument(document1));
+		assertFalse(builder.tryAddDocument(document2));
+
+		builder.build();
+
+		List<Document> documentsFromFiles = documentsInOutPutStream();
+		List<Document> expectedList = Arrays.asList(documentLarge);
+		assertEquals(expectedList, documentsFromFiles);
+
+	}
+
+	@Test
+	public void testTryAddDocument_multipleFiles_largeFileAddedLast() throws Exception{
+		assertTrue(builder.tryAddDocument(document1));
+		assertTrue(builder.tryAddDocument(document2));
+
+		assertFalse(builder.tryAddDocument(documentLarge));
+
+		builder.build();
+
+		List<Document> documentsFromFiles = documentsInOutPutStream();
+		List<Document> expectedList = Arrays.asList(document1, document2);
+		assertEquals(expectedList, documentsFromFiles);
+	}
+
+	/////////////////
+	// build() tests
+	/////////////////
+
+	@Test
+	public void testBuild() throws IOException {
+		assertTrue(builder.tryAddDocument(document1));
+		assertTrue(builder.tryAddDocument(document2));
+
+		CloudSearchDocumentBatchImpl batch = (CloudSearchDocumentBatchImpl) builder.build();
+
+
+		assertEquals(CloudSearchDocumentBatchBuilder.PREFIX_BYTES.length
+				+ byteSizeOfDocument(document1)
+				+ CloudSearchDocumentBatchBuilder.DELIMITER_BYTES.length
+				+ byteSizeOfDocument(document2)
+				+ CloudSearchDocumentBatchBuilder.SUFFIX_BYTES.length
+
+				, batch.byteSize);
+
+		assertEquals(mockFile, batch.documentBatchFile);
+		assertEquals(Sets.newHashSet(document1.getId(), document2.getId()), batch.documentIds);
+	}
+
+
+	@Test
+	public void testBuild_multipleCallsToBuild() throws IOException {
+		assertTrue(builder.tryAddDocument(document1));
+		assertTrue(builder.tryAddDocument(document2));
+
+		assertSame(builder.build(), builder.build());
+	}
+
+	/////////////////
+	// close() Tests
+	/////////////////
+
+	@Test
+	public void testCloseBeforeBuild_beforeBuildCalled() throws IOException {
+		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider)){
+			batchBuilder.tryAddDocument(document1);
+		}
+
+		verify(spyOutputStream).close();
+		verify(mockFile).delete();
+	}
+
+	@Test
+	public void testCloseBeforeBuild_afterBuildCalled() throws IOException {
+		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider)){
+			batchBuilder.tryAddDocument(document1);
+			batchBuilder.build();
+		}
+
+		verify(spyOutputStream, times(2)).close(); //once in build() and once in close()
+		verify(mockFile, never()).delete();
+	}
+
+	////////////////
+	// test helpers
+	////////////////
 
 	private int byteSizeOfDocument(Document document){
 		return SearchUtil.convertSearchDocumentToJSONString(document).getBytes(StandardCharsets.UTF_8).length;
 	};
 
-	@Test
-	public void testThing(){
+	private List<Document> documentsInOutPutStream() throws Exception{
+		List<Document> documents = new LinkedList<>();
 
-	}
+		String JsonString = new String(spyOutputStream.toByteArray(), CloudSearchDocumentBatchBuilder.CHARSET);
+		JSONArray jsonArray = new JSONArray(JsonString);
+		for(int i = 0; i < jsonArray.length(); i++){
+			Document document = EntityFactory.createEntityFromJSONObject(jsonArray.getJSONObject(i), Document.class);
+			documents.add(document);
+		}
 
-	private static String readFromOutputStream(){
-		return null;
+		return documents;
 	}
 
 }
