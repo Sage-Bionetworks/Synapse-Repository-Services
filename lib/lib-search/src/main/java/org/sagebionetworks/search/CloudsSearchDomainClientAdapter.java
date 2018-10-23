@@ -7,7 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.Set;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
@@ -17,6 +19,7 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
+import com.google.common.collect.Iterators;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.search.Document;
@@ -29,64 +32,43 @@ import org.sagebionetworks.util.ValidateArgument;
 public class CloudsSearchDomainClientAdapter {
 	static private Logger logger = LogManager.getLogger(CloudsSearchDomainClientAdapter.class);
 
-	private AmazonCloudSearchDomain client;
+	private final AmazonCloudSearchDomain client;
+	private final CloudSearchDocumentBatchIteratorProvider iteratorProvider;
 
-	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client){
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider){
 		this.client = client;
+		this.iteratorProvider = iteratorProvider;
 	}
 
 	public void sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
-		Iterator<Path> searchDocumentFileIterator = new CloudSearchDocumentFileIterator(documents);
+		Iterator<CloudSearchDocumentBatch> searchDocumentFileIterator = iteratorProvider.getIterator(documents);
 
 		while(searchDocumentFileIterator.hasNext()) {
-			Path file = searchDocumentFileIterator.next();
+			Set<String> documentIds = null;
+			try (CloudSearchDocumentBatch batch = searchDocumentFileIterator.next();
+				 InputStream fileStream = batch.getNewInputStream();) {
 
-			try (InputStream fileStream = Files.newInputStream(file)) {
+				documentIds = batch.getDocumentIds();
+
 				UploadDocumentsRequest request = new UploadDocumentsRequest()
 						.withContentType("application/json")
 						.withDocuments(fileStream)
-						.withContentLength(Files.size(file));
+						.withContentLength(batch.size());
 				client.uploadDocuments(request);
 			} catch (DocumentServiceException e) {
+				logger.error("The following documents failed to upload: " +  documentIds);
+				documentIds = null;
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
 				throw new RuntimeException(e);
-			} finally {
-				// Here we perform manual delete instead of using StandardOpenOption.DELETE_ON_CLOSE in Files.newInputStream
-				// because in Linux, the file (if it is small enough) could get deleted before we call Files.size() to check its size.
-				// This is not reproducible on Windows systems.
-				try {
-					Files.delete(file);
-				} catch (IOException e) {
-					logger.error("Failed to delete temp file " + file);
-				}
 			}
 		}
 	}
 
 	public void sendDocument(Document document){
-		ValidateArgument.required(document, "batch");
-
-		String documents = "[" + SearchUtil.convertSearchDocumentToJSONString(document) + "]";
-		final byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
-		UploadDocumentsRequest request = new UploadDocumentsRequest()
-										.withContentType("application/json")
-										.withDocuments(new ByteArrayInputStream(documentBytes))
-										.withContentLength((long) documentBytes.length);
-		try {
-			UploadDocumentsResult result = client.uploadDocuments(request);
-		} catch (DocumentServiceException e){
-			int statusCode = e.getStatusCode();
-			if(statusCode / 100 == 4) { //4xx status codes
-				logger.error("The following search document was unable to be uploaded to CloudSearch:\n\n" +
-				documents);
-				throw new IllegalArgumentException(document.getId() + " search documents could not be uploaded.", e);
-			}else {
-				throw e;
-			}
-
-		}
+		ValidateArgument.required(document, "document");
+		sendDocuments(Iterators.singletonIterator(document));
 	}
 
 	SearchResult rawSearch(SearchRequest request) {

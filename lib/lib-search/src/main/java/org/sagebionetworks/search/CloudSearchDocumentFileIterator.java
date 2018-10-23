@@ -13,24 +13,22 @@ import org.sagebionetworks.util.FileProvider;
  * Iterator that lazily generates document batch files for CloudSearch.
  * This class is not thread-safe.
  */
-public class CloudSearchDocumentFileIterator implements Iterator<CloudSearchDocumentBatch> {
+public class CloudSearchDocumentFileIterator implements Iterator<CloudSearchDocumentBatch> { //TODO rename to DocumentBatchIterator
 
-	private static final Charset CHARSET = StandardCharsets.UTF_8;
-
+	private final CloudSearchDocumentBuilderProvider builderProvider;
 
 	private final Iterator<Document> documentIterator;
 
-	//used to carry over bytes that would not fit in the previous file into the next file
+	//used to carry over documents that would not fit in the previous file into the next file
 	private Document unwrittenDocument;
 
 	//place holder for result that next() will consume and reset to null.
 	private CloudSearchDocumentBatch currentBatch;
 
-	//TODO: autowire
-	private FileProvider fileProvider;
 
-	public CloudSearchDocumentFileIterator(Iterator<Document> documentIterator){
+	public CloudSearchDocumentFileIterator(Iterator<Document> documentIterator, CloudSearchDocumentBuilderProvider builderProvider){
 		this.documentIterator =  documentIterator;
+		this.builderProvider = builderProvider;
 
 		this.currentBatch = null;
 		this.unwrittenDocument = null;
@@ -80,7 +78,7 @@ public class CloudSearchDocumentFileIterator implements Iterator<CloudSearchDocu
 		}
 
 
-		try ( CloudSearchDocumentBatchBuilder builder = new CloudSearchDocumentBatchBuilder(fileProvider)) {
+		try ( CloudSearchDocumentBatchBuilder builder = builderProvider.getBuilder()) {
 			//unwritten bytes from previous call to processDocumentFile(). These bytes are guaranteed to fit within the size limit.
 			if(this.unwrittenDocument != null){
 				builder.tryAddDocumentToBatch(unwrittenDocument);
@@ -92,12 +90,11 @@ public class CloudSearchDocumentFileIterator implements Iterator<CloudSearchDocu
 				//try to add the document. If it would not fit, return the current batch
 				if(!builder.tryAddDocumentToBatch(doc)){
 					this.unwrittenDocument = doc;
-					return builder.build();
+					break;
 				}
 			}
+			return builder.build();
 		}
-
-		return null;
 	}
 
 }

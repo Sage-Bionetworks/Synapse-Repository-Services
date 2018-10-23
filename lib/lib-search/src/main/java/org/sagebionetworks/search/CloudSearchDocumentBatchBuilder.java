@@ -25,8 +25,6 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 	static final byte[] SUFFIX_BYTES = "]".getBytes(CHARSET);
 	static final byte[] DELIMITER_BYTES = ",".getBytes(CHARSET);
 
-	FileProvider fileProvider;
-
 	File documentBatchFile;
 
 	CountingOutputStream countingOutputStream;
@@ -37,17 +35,17 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 	private final long maxSingleDocumentSizeInBytes;
 	private final long maxDocumentBatchSizeInBytes;
 
-	boolean built;
+	private CloudSearchDocumentBatch builtBatch;
 
 	public CloudSearchDocumentBatchBuilder(FileProvider fileProvider) throws IOException {
 		this(fileProvider, DEFAULT_MAX_SINGLE_DOCUMENT_SIZE, DEFAULT_MAX_SINGLE_DOCUMENT_SIZE);
 	}
 
-	public CloudSearchDocumentBatchBuilder(FileProvider fileProvider, long maxSingleDocumentSizeInBytes, long maxDocumentBatchSizeInBytes) throws IOException {
+	public CloudSearchDocumentBatchBuilder(FileProvider fileProvider, long maxSingleDocumentSizeInBytes, long maxDocumentBatchSizeInBytes) throws IOException{
 		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes){
 			throw new IllegalArgumentException("maxSingleDocumentSizeInBytes + " + (PREFIX_BYTES.length + SUFFIX_BYTES.length) + " must be less or equal to than maxDocumentBatchSizeInBytes");
 		}
-		this.built = false;
+		this.builtBatch = null;
 
 
 		this.documentBatchFile = fileProvider.createTempFile("CloudSearchDocument", ".json");
@@ -55,29 +53,44 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 
 		this.maxSingleDocumentSizeInBytes = maxSingleDocumentSizeInBytes;
 		this.maxDocumentBatchSizeInBytes = maxDocumentBatchSizeInBytes;
-
-
-		//always append prefix to the file
-		this.countingOutputStream.write(PREFIX_BYTES);
-	}
-
-	public CloudSearchDocumentBatch build() throws IOException {
-		//append suffix
-		countingOutputStream.write(SUFFIX_BYTES);
-		countingOutputStream.flush();
-		built = true;
-
-		countingOutputStream.close();
-
-		return new CloudSearchDocumentBatchImpl(documentBatchFile, documentIds, countingOutputStream.getByteCount());
 	}
 
 	/**
-	 * Attempt to add bytes to the document
+	 * Build the CloudSearchDocumentBatch
+	 * @return the built documentBatch
+	 * @throws IOException
+	 */
+	public CloudSearchDocumentBatch build() throws IOException {
+		if(builtBatch != null){
+			return builtBatch;
+		}
+
+		//append suffix
+		countingOutputStream.write(SUFFIX_BYTES);
+		countingOutputStream.flush();
+		countingOutputStream.close();
+
+		builtBatch = new CloudSearchDocumentBatchImpl(documentBatchFile, documentIds, countingOutputStream.getByteCount());
+		return builtBatch;
+	}
+
+	/**
+	 * Attempt to add document to the batch. Returns true if bytes could be added, false otherwise. Once false is returned,
+	 * {@link #build()} should be called.
 	 * @return true if bytes could be added, false otherwise
 	 */
 	public boolean tryAddDocumentToBatch(Document document) throws IOException {
 		ValidateArgument.required(document.getId(), "document.Id");
+
+		if (builtBatch != null){ //If it's already been built, don't add document
+			return false;
+		}
+
+		if(countingOutputStream.getByteCount() == 0) {
+			//initialize the file with prefix
+			this.countingOutputStream.write(PREFIX_BYTES);
+		}
+
 
 		byte[] documentBytes = SearchUtil.convertSearchDocumentToJSONString(document).getBytes(CHARSET);
 
@@ -115,7 +128,7 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 			countingOutputStream.close();
 		}
 
-		if(!built && documentBatchFile != null) {
+		if(builtBatch == null && documentBatchFile != null) {
 			documentBatchFile.delete();
 		}
 	}

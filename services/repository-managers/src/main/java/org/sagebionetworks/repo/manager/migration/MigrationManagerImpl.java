@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -381,7 +382,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	public BackupTypeResponse backupStreamToS3(MigrationType type, Iterable<MigratableDatabaseObject<?, ?>> dataStream, BackupAliasType aliasType, long batchSize) throws IOException {
 		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationBackup", ".zip");
-		FileOutputStream fos = null;
+		OutputStream fos = null;
 		try {
 			fos = fileProvider.createFileOutputStream(temp);
 			backupFileStream.writeBackupFile(fos, dataStream, aliasType, batchSize);
@@ -434,7 +435,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		
 		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationRestore", ".zip");
-		FileInputStream fis = null;
+		InputStream fis = null;
 		try {
 			// download the file from S3
 			GetObjectRequest getObjectRequest = new GetObjectRequest(backupBucket, request.getBackupFileKey());

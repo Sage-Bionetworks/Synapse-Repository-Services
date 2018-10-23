@@ -7,6 +7,7 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
+import com.google.common.collect.Iterators;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,12 +40,19 @@ import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CloudSearchDomainClientAdapterTest {
 
 	@Mock
 	private AmazonCloudSearchDomain mockCloudSearchDomainClient;
+
+	@Mock
+	private CloudSearchDocumentBatchIteratorProvider mockProvider;
+
+	@Mock
+	private CloudSearchDocumentBatch mockDocumentBatch;
 
 	@Mock
 	private SearchResult mockResponse;
@@ -54,23 +63,26 @@ public class CloudSearchDomainClientAdapterTest {
 	@Captor
 	ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor;
 
+	Long documentBatchSize = 42L;
+
+	@Mock
+	InputStream mockDocumentBatchInputStream;
+
 	private CloudsSearchDomainClientAdapter cloudSearchDomainClientAdapter;
 
 	private SearchRequest searchRequest;
 
 	String endpoint = "http://www.ImALittleEndpoint.com";
 
-	Document deleteDocument;
-
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
-		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient);
+		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient, mockProvider);
 		searchRequest = new SearchRequest().withQuery("aQuery");
 
-		deleteDocument = new Document();
-		deleteDocument.setId("syn123");
-		deleteDocument.setType(DocumentTypeNames.delete);
+		when(mockProvider.getIterator(any())).thenReturn(Iterators.singletonIterator(mockDocumentBatch));
+		when(mockDocumentBatch.getNewInputStream()).thenReturn(mockDocumentBatchInputStream);
+		when(mockDocumentBatch.size()).thenReturn(documentBatchSize);
 	}
 
 	/**
@@ -134,28 +146,15 @@ public class CloudSearchDomainClientAdapterTest {
 
 		verify(mockCloudSearchDomainClient).uploadDocuments(uploadRequestCaptor.capture());
 		UploadDocumentsRequest capturedRequest = uploadRequestCaptor.getValue();
-		byte[] documentBytes = "[{\"type\":\"add\",\"id\":\"syn123\",\"fields\":{}}]".getBytes(StandardCharsets.UTF_8);
+
+
+		verify(mockDocumentBatch).getNewInputStream();
+		verify(mockDocumentBatch).getDocumentIds();
+		verify(mockDocumentBatch).size();
 		assertEquals("application/json", capturedRequest.getContentType());
 
-		assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(documentBytes), capturedRequest.getDocuments()));
-		assertEquals(new Long(documentBytes.length), capturedRequest.getContentLength());
-	}
-
-	@Test
-	public void testSendDocument400LevelError(){
-		DocumentServiceException exception = mock(DocumentServiceException.class);
-		when(exception.getStatusCode()).thenReturn(400);
-		when(mockCloudSearchDomainClient.uploadDocuments(any(UploadDocumentsRequest.class))).thenThrow(exception);
-		Document document = new Document();
-		document.setId("syn123");
-		document.setType(DocumentTypeNames.add);
-		try {
-			cloudSearchDomainClientAdapter.sendDocument(document);
-			fail();
-		}catch (IllegalArgumentException e){
-			//expected
-			assertEquals("syn123 search documents could not be uploaded.", e.getMessage());
-		}
+		assertEquals(mockDocumentBatchInputStream, capturedRequest.getDocuments());
+		assertEquals(documentBatchSize, capturedRequest.getContentLength());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -164,33 +163,19 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test
-	public void testSendDocuments_iterator(){
-		Iterator<Document> iterator = Collections.singletonList(deleteDocument).iterator();
+	public void testSendDocuments_iteratorMultipleBatchResults(){
+		Iterator<Document> iterator = Arrays.asList(new Document(), new Document()).iterator();
 
-		//because the File used by the method under test will be deleted after upload completes,
-		//capture the document string by copying it out when the tested method is run
-		StringBuilder uploadedDocument = new StringBuilder();
-		when(mockCloudSearchDomainClient.uploadDocuments(any(UploadDocumentsRequest.class))).thenAnswer(
-				(InvocationOnMock invocation) -> {
-					UploadDocumentsRequest request = invocation.getArgumentAt(0, UploadDocumentsRequest.class);
-					//use StringBuilder to copy document value out
-					uploadedDocument.append(IOUtils.toString(request.getDocuments(), "UTF-8"));
-					return new UploadDocumentsResult();
-				}
-			);
+		when(mockProvider.getIterator(iterator)).thenReturn(Arrays.asList(mockDocumentBatch, mockDocumentBatch).iterator());
 
 		//method under test
 		cloudSearchDomainClientAdapter.sendDocuments(iterator);
 
+		verify(mockDocumentBatch, times(2)).getDocumentIds();
+		verify(mockDocumentBatch, times(2)).size();
+		verify(mockDocumentBatch, times(2)).getNewInputStream();
 
-		verify(mockCloudSearchDomainClient).uploadDocuments(uploadRequestCaptor.capture());
-
-		String expectedJson = "[{\"type\":\"delete\",\"id\":\"syn123\"}]";
-		//verify expected document would be sent
-		assertEquals(expectedJson, uploadedDocument.toString());
-		UploadDocumentsRequest uploadRequest = uploadRequestCaptor.getValue();
-		assertEquals(new Long(expectedJson.getBytes(StandardCharsets.UTF_8).length), uploadRequest.getContentLength());
-		assertEquals("application/json", uploadRequest.getContentType());
+		verify(mockCloudSearchDomainClient, times(2)).uploadDocuments(any());
 	}
 
 }

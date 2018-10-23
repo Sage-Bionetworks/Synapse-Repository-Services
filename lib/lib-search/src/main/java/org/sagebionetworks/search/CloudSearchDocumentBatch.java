@@ -1,6 +1,8 @@
 package org.sagebionetworks.search;
 
 import java.io.Closeable;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 
@@ -16,7 +18,7 @@ public interface CloudSearchDocumentBatch extends Closeable {
 	 * Returns an inputStream for the contents of this batch.
 	 * @return
 	 */
-	public InputStream getInputStream();
+	public InputStream getNewInputStream();
 
 	/**
 	 * Set CloudSearch Document IDs included in this batch.

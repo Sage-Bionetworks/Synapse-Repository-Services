@@ -1,10 +1,10 @@
 package org.sagebionetworks.util;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Simple abstraction for creating files.
@@ -27,7 +27,7 @@ public interface FileProvider {
 	 * @return
 	 * @throws FileNotFoundException 
 	 */
-	FileOutputStream createFileOutputStream(File file) throws FileNotFoundException;
+	OutputStream createFileOutputStream(File file) throws FileNotFoundException;
 
 	/**
 	 * Create a FileInputStream for the given file.
@@ -35,5 +35,5 @@ public interface FileProvider {
 	 * @return
 	 * @throws FileNotFoundException 
 	 */
-	FileInputStream createFileInputStream(File file) throws FileNotFoundException;
+	InputStream createFileInputStream(File file) throws FileNotFoundException;
 }
