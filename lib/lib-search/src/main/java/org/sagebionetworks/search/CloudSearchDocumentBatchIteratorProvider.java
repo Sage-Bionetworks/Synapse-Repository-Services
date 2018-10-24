@@ -10,6 +10,6 @@ public class CloudSearchDocumentBatchIteratorProvider {
 	CloudSearchDocumentBuilderProvider documentBuilderProvider;
 
 	Iterator<CloudSearchDocumentBatch> getIterator(Iterator<Document> documentIterator){
-		return new CloudSearchDocumentFileIterator(documentIterator, documentBuilderProvider);
+		return new CloudSearchDocumentBatchIterator(documentIterator, documentBuilderProvider);
 	}
 }
