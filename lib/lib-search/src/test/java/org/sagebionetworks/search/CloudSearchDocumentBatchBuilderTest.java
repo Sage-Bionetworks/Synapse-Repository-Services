@@ -5,7 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -216,7 +218,7 @@ public class CloudSearchDocumentBatchBuilderTest {
 	/////////////////
 
 	@Test
-	public void testCloseBeforeBuild_beforeBuildCalled() throws IOException {
+	public void testClose_BeforeBuild_beforeBuildCalled() throws IOException {
 		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider)){
 			batchBuilder.tryAddDocument(document1);
 		}
@@ -226,7 +228,23 @@ public class CloudSearchDocumentBatchBuilderTest {
 	}
 
 	@Test
-	public void testCloseBeforeBuild_afterBuildCalled() throws IOException {
+	public void testClose_BeforeBuild_errorInBuilder() throws IOException {
+		CloudSearchDocumentBatchBuilder spyBatchBuilder = spy(new CloudSearchDocumentBatchBuilder(mockFileProvider));
+		doThrow(IllegalArgumentException.class).when(spyBatchBuilder).tryAddDocument(any());
+
+		try(CloudSearchDocumentBatchBuilder builder = spyBatchBuilder;){
+			builder.tryAddDocument(document1);
+			fail("expected IllegalArgumentException to be thrown");
+		}catch (IllegalArgumentException e){
+			//expected
+		}
+
+		verify(spyOutputStream).close();
+		verify(mockFile).delete();
+	}
+
+	@Test
+	public void testClose_AfterBuild() throws IOException {
 		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider)){
 			batchBuilder.tryAddDocument(document1);
 			batchBuilder.build();
