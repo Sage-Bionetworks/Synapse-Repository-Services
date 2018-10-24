@@ -117,16 +117,9 @@ public class SearchManagerImpl implements SearchManager{
 
 	@Override
 	public void documentChangeMessages(List<ChangeMessage> messages){
-		if (messages.size() == 1){//send in-memory bytes to cloudsearch
-			Document singleDocument = translator.generateSearchDocumentIfNecessary(messages.get(0));
-			if (singleDocument != null) {
-				searchDao.createOrUpdateSearchDocument(singleDocument);
-			}
-		} else{//generate a batch file and send that file to cloudsearch
-			Iterator<Document> documentIterator = Iterators.filter(
-					Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
-					Objects::nonNull);
-			searchDao.sendDocuments(documentIterator);
-		}
+		Iterator<Document> documentIterator = Iterators.filter(
+				Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
+				Objects::nonNull);
+		searchDao.sendDocuments(documentIterator);
 	}
 }

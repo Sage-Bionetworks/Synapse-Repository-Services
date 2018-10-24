@@ -160,33 +160,9 @@ public class SearchManagerImplTest {
 		assertEquals(SearchUtil.formulateAuthorizationFilter(nonAdminUserInfo), searchRequest.getFilterQuery());
 	}
 
-	@Test
-	public void testDocumentChangeMessage_oneMessage_nullDocumentGenerated(){
-		List<ChangeMessage> singleMessageList = Collections.singletonList(new ChangeMessage());
-		when(mockTranslator.generateSearchDocumentIfNecessary(any(ChangeMessage.class))).thenReturn(null);
-
-		//method under test
-		searchManager.documentChangeMessages(singleMessageList);
-
-		verify(mockTranslator).generateSearchDocumentIfNecessary(singleMessageList.get(0));
-		verifyZeroInteractions(mockSearchDao, mockSearchDocumentDriver);
-	}
 
 	@Test
-	public void testDocumentChangeMessage_oneMessage_nonNullDocumentGenerated(){
-		List<ChangeMessage> singleMessageList = Collections.singletonList(new ChangeMessage());
-		when(mockTranslator.generateSearchDocumentIfNecessary(any(ChangeMessage.class))).thenReturn(doc1);
-
-		//method under test
-		searchManager.documentChangeMessages(singleMessageList);
-
-		verify(mockTranslator).generateSearchDocumentIfNecessary(singleMessageList.get(0));
-		verify(mockSearchDao).createOrUpdateSearchDocument(doc1);
-		verifyZeroInteractions(mockSearchDocumentDriver);
-	}
-
-	@Test
-	public void testDocumentChangeMessages_multipleMessages(){
+	public void testDocumentChangeMessages(){
 		Document doc2Null = null;
 
 		Document doc3 = new Document();
