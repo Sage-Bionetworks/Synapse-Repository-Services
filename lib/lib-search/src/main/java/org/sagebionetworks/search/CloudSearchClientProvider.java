@@ -18,6 +18,9 @@ public class CloudSearchClientProvider {
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
 
+	@Autowired
+	CloudSearchDocumentBatchIteratorProvider cloudSearchDocumentBatchIteratorProvider;
+
 	AmazonCloudSearchDomain awsCloudSearchDomainClient;
 
 	private boolean isSearchEnabled;
@@ -34,7 +37,7 @@ public class CloudSearchClientProvider {
 		}else{
 			if(searchDomainSetup.postInitialize()) {
 				awsCloudSearchDomainClient = AwsClientFactory.createAmazonCloudSearchDomain(searchDomainSetup.getDomainSearchEndpoint());
-				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient);
+				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider);
 				return singletonWrapper;
 			} else{
 				throw new TemporarilyUnavailableException("Search has not yet been initialized. Please try again later!");

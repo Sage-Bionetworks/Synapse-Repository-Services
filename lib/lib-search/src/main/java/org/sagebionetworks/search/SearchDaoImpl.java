@@ -3,9 +3,11 @@ package org.sagebionetworks.search;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -14,6 +16,7 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -69,18 +72,18 @@ public class SearchDaoImpl implements SearchDao {
 			documentBatch.add(document);
 		}
 		// Delete the batch.
-		createOrUpdateSearchDocument(documentBatch);
+		sendDocuments(documentBatch.iterator());
 	}
 
 	@Override
 	public void createOrUpdateSearchDocument(Document document){
 		ValidateArgument.required(document, "document");
-		createOrUpdateSearchDocument(Collections.singletonList(document));
+		cloudSearchClientProvider.getCloudSearchClient().sendDocument(document);
 	}
 
 	@Override
-	public void createOrUpdateSearchDocument(List<Document> document){
-		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(document);
+	public void sendDocuments(Iterator<Document> documentIterator){
+		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(documentIterator);
 	}
 
 	@Override

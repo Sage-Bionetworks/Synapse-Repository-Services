@@ -371,39 +371,23 @@ public class SearchUtil{
 	}
 
 	/**
-	 * Remove any character that is not compatible with cloud search.
-	 * @param documents
-	 * @return JSON String of cleaned document
-	 */
-	static String convertSearchDocumentsToJSONString(List<Document> documents) {
-		ValidateArgument.required(documents, "documents");
-		// CloudSearch will not accept an empty document batch
-		ValidateArgument.requirement(!documents.isEmpty(), "documents can not be empty");
-
-		StringJoiner stringJoiner = new StringJoiner(", ", "[", "]");
-
-		for (Document document : documents) {
-			if (DocumentTypeNames.add == document.getType()) {
-				prepareDocument(document);
-			}
-			try {
-				stringJoiner.add(EntityFactory.createJSONStringForEntity(document));
-			} catch (JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
-			}
-		}
-		// Some descriptions have control characters in them for some reason, in any case, just get rid
-		// of all control characters in the search document
-		return stringJoiner.toString();
-	}
-
-	/**
 	 * Prepare the document to be sent.
 	 * @param document
 	 */
 	static void prepareDocument(Document document) {
 		if(document.getFields() == null){
 			document.setFields(new DocumentFields());
+		}
+	}
+
+	public static String convertSearchDocumentToJSONString(Document document) {
+		if (DocumentTypeNames.add == document.getType()) {
+			prepareDocument(document);
+		}
+		try {
+			return EntityFactory.createJSONStringForEntity(document);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

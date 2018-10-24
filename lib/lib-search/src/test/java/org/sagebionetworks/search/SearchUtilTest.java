@@ -549,25 +549,11 @@ public class SearchUtilTest {
 	}
 
 	////////////////////////////////////////
-	// convertSearchDocumentsToJSONString() test
+	// convertSearchDocumentToJSONString() test
 	////////////////////////////////////////
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONStringNullDocuments(){
-		SearchUtil.convertSearchDocumentsToJSONString(null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONStringEmptyDocuments(){
-		SearchUtil.convertSearchDocumentsToJSONString(new LinkedList<>());
-	}
-
 	@Test
-	public void testConvertSearchDocumentsToJSONString(){
-		Document deleteDoc = new Document();
-		deleteDoc.setId("syn123");
-		deleteDoc.setType(DocumentTypeNames.delete);
-
+	public void testConvertSearchDocumentToJSONString(){
 		Document addDoc = new Document();
 		addDoc.setId("syn456");
 		addDoc.setType(DocumentTypeNames.add);
@@ -575,8 +561,8 @@ public class SearchUtilTest {
 		fields.setName("Fake Entity");
 		addDoc.setFields(fields);
 
-		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(deleteDoc,addDoc));
-		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
+		String jsonString = SearchUtil.convertSearchDocumentToJSONString(addDoc);
+		assertEquals("{\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}", jsonString);
 	}
 
 	////////////////////////////////////////////
