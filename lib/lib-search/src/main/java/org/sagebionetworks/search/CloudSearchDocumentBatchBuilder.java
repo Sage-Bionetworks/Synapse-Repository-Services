@@ -3,10 +3,8 @@ package org.sagebionetworks.search;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,12 +24,9 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 	static final byte[] SUFFIX_BYTES = "]".getBytes(CHARSET);
 	static final byte[] DELIMITER_BYTES = ",".getBytes(CHARSET);
 
-	File documentBatchFile;
+	CloudSearchBatchBuilderResource builderResource;
 
-	CountingOutputStream countingOutputStream;
-
-	Set<String> documentIds;
-
+	private final FileProvider fileProvider;
 	//maximum bytes
 	private final long maxSingleDocumentSizeInBytes;
 	private final long maxDocumentBatchSizeInBytes;
@@ -46,23 +41,26 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes){
 			throw new IllegalArgumentException("maxSingleDocumentSizeInBytes + " + (PREFIX_BYTES.length + SUFFIX_BYTES.length) + " must be less or equal to than maxDocumentBatchSizeInBytes");
 		}
-		try {
-			this.builtBatch = null;
+		this.builtBatch = null;
 
 
-			this.documentBatchFile = fileProvider.createTempFile("CloudSearchDocument", ".json");
-			this.countingOutputStream = new CountingOutputStream(fileProvider.createFileOutputStream(documentBatchFile));
-			this.documentIds = new HashSet<>();
+		this.fileProvider = fileProvider;
+		this.maxSingleDocumentSizeInBytes = maxSingleDocumentSizeInBytes;
+		this.maxDocumentBatchSizeInBytes = maxDocumentBatchSizeInBytes;
+	}
 
-			this.maxSingleDocumentSizeInBytes = maxSingleDocumentSizeInBytes;
-			this.maxDocumentBatchSizeInBytes = maxDocumentBatchSizeInBytes;
-
-			//initialize the file with prefix
-			this.countingOutputStream.write(PREFIX_BYTES);
-		} catch (Exception e){
-			close();
-			throw e;
+	boolean lazyInit() throws IOException {
+		if(this.documentBatchFile != null){
+			return false;
 		}
+
+		this.documentBatchFile = fileProvider.createTempFile("CloudSearchDocument", ".json");
+		this.countingOutputStream = new CountingOutputStream(fileProvider.createFileOutputStream(documentBatchFile));
+		this.documentIds = new HashSet<>();
+
+		//initialize the file with prefix
+		this.countingOutputStream.write(PREFIX_BYTES);
+		return true;
 	}
 
 	/**
@@ -94,7 +92,7 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 		ValidateArgument.required(document.getId(), "document.Id");
 
 		if (builtBatch != null){ //If it's already been built, don't add document
-			return false;
+			throw new IllegalStateException("Build has already been called.");
 		}
 
 		byte[] documentBytes = SearchUtil.convertSearchDocumentToJSONString(document).getBytes(CHARSET);
@@ -104,24 +102,22 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 			throw new IllegalArgumentException("The document for " + document.getId() + " is " + documentBytes.length + " bytes and exceeds the maximum allowed " + maxSingleDocumentSizeInBytes + " bytes.");
 		}
 
-		boolean isNotFirstDocument = countingOutputStream.getByteCount() > PREFIX_BYTES.length;
+		//if this is not the first document to be added, we must check if it would fit in the batch
+		if(!lazyInit()) {
 
-		//determine how many bytes need to be written
-		//always reserve space for the suffix because the next document being added may not fit into this document batch.
-		long bytesToBeAdded = documentBytes.length + SUFFIX_BYTES.length;
-		if(isNotFirstDocument) {
-			bytesToBeAdded += DELIMITER_BYTES.length;
-		}
+			//determine how many bytes need to be written
+			//always reserve space for the suffix because the next document being added may not fit into this document batch.
+			long bytesToBeAdded =  DELIMITER_BYTES.length + documentBytes.length + SUFFIX_BYTES.length;
 
-		// Check there is enough space to write into this batch
-		if(countingOutputStream.getByteCount() + bytesToBeAdded > maxDocumentBatchSizeInBytes){
-			return false;
-		}
+			// Check there is enough space to write into this batch
+			if (countingOutputStream.getByteCount() + bytesToBeAdded > maxDocumentBatchSizeInBytes) {
+				return false;
+			}
 
-		//add delimiter bytes if necessary and document bytes for this file
-		if(isNotFirstDocument){
+			//add delimiter between previous document and the new document to be added.
 			countingOutputStream.write(DELIMITER_BYTES);
 		}
+
 		countingOutputStream.write(documentBytes);
 
 		documentIds.add(document.getId());
@@ -130,12 +126,26 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 
 	@Override
 	public void close() throws IOException {
-		if(countingOutputStream != null){
-			countingOutputStream.close();
-		}
 
-		if(builtBatch == null && documentBatchFile != null) {
-			documentBatchFile.delete();
+	}
+
+
+
+
+	static class CloudSearchBatchBuilderResource implements Closeable{
+		File documentBatchFile;
+		CountingOutputStream countingOutputStream;
+		Set<String> documentIds;
+
+		@Override
+		public void close() throws IOException {
+			if(countingOutputStream != null){
+				countingOutputStream.close();
+			}
+
+			if(documentBatchFile != null) {
+				documentBatchFile.delete();
+			}
 		}
 	}
 }
