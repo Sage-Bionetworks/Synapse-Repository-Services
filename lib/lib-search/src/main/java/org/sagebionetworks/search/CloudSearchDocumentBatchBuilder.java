@@ -24,24 +24,25 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 	static final byte[] SUFFIX_BYTES = "]".getBytes(CHARSET);
 	static final byte[] DELIMITER_BYTES = ",".getBytes(CHARSET);
 
-	CloudSearchBatchBuilderResource builderResource;
-
 	private final FileProvider fileProvider;
 	//maximum bytes
 	private final long maxSingleDocumentSizeInBytes;
 	private final long maxDocumentBatchSizeInBytes;
 
-	private CloudSearchDocumentBatch builtBatch;
+	private boolean builtBatch;
+	private CloudSearchBatchBuilderResource builderResources;
+
 
 	public CloudSearchDocumentBatchBuilder(FileProvider fileProvider) throws IOException {
 		this(fileProvider, DEFAULT_MAX_SINGLE_DOCUMENT_SIZE, DEFAULT_MAX_DOCUMENT_BATCH_SIZE);
 	}
 
-	public CloudSearchDocumentBatchBuilder(FileProvider fileProvider, long maxSingleDocumentSizeInBytes, long maxDocumentBatchSizeInBytes) throws IOException{
-		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes){
+	public CloudSearchDocumentBatchBuilder(FileProvider fileProvider, long maxSingleDocumentSizeInBytes, long maxDocumentBatchSizeInBytes) throws IOException {
+		if (maxSingleDocumentSizeInBytes + PREFIX_BYTES.length + SUFFIX_BYTES.length > maxDocumentBatchSizeInBytes) {
 			throw new IllegalArgumentException("maxSingleDocumentSizeInBytes + " + (PREFIX_BYTES.length + SUFFIX_BYTES.length) + " must be less or equal to than maxDocumentBatchSizeInBytes");
 		}
-		this.builtBatch = null;
+		this.builtBatch = false;
+		this.builderResources = null;
 
 
 		this.fileProvider = fileProvider;
@@ -49,17 +50,20 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 		this.maxDocumentBatchSizeInBytes = maxDocumentBatchSizeInBytes;
 	}
 
-	boolean lazyInit() throws IOException {
-		if(this.documentBatchFile != null){
+	/**
+	 * Initializes builder's resources the if necessary
+	 * @return true if the resources needed to be initialized, false otherwise.
+	 * @throws IOException
+	 */
+	boolean initIfNecessary() throws IOException {
+		if(this.builderResources != null){
 			return false;
 		}
 
-		this.documentBatchFile = fileProvider.createTempFile("CloudSearchDocument", ".json");
-		this.countingOutputStream = new CountingOutputStream(fileProvider.createFileOutputStream(documentBatchFile));
-		this.documentIds = new HashSet<>();
+		builderResources = new CloudSearchBatchBuilderResource(fileProvider);
 
 		//initialize the file with prefix
-		this.countingOutputStream.write(PREFIX_BYTES);
+		builderResources.getCountingOutputStream().write(PREFIX_BYTES);
 		return true;
 	}
 
@@ -69,17 +73,25 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 	 * @throws IOException
 	 */
 	public CloudSearchDocumentBatch build() throws IOException {
-		if(builtBatch != null){
-			return builtBatch;
+		if (builtBatch){ // If it's already been built, don't add document
+			throw new IllegalStateException("build() can only be called once");
+		}
+		if(builderResources == null){
+			throw new IllegalStateException("at least one document must be added for a valid batch");
 		}
 
-		//append suffix
-		countingOutputStream.write(SUFFIX_BYTES);
-		countingOutputStream.flush();
-		countingOutputStream.close();
+		try {
+			CountingOutputStream countingOutputStream = builderResources.getCountingOutputStream();
+			//append suffix
+			countingOutputStream.write(SUFFIX_BYTES);
+			countingOutputStream.flush();
+			countingOutputStream.close();
 
-		builtBatch = new CloudSearchDocumentBatchImpl(documentBatchFile, documentIds, countingOutputStream.getByteCount());
-		return builtBatch;
+			builtBatch = true;
+			return new CloudSearchDocumentBatchImpl(builderResources.getDocumentBatchFile(), builderResources.getDocumentIds(), countingOutputStream.getByteCount());
+		} finally {
+			builderResources = null;
+		}
 	}
 
 	/**
@@ -91,8 +103,8 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 		ValidateArgument.required(document, "document");
 		ValidateArgument.required(document.getId(), "document.Id");
 
-		if (builtBatch != null){ //If it's already been built, don't add document
-			throw new IllegalStateException("Build has already been called.");
+		if (builtBatch){ // If it's already been built, don't add document
+			throw new IllegalStateException("build() has already been called.");
 		}
 
 		byte[] documentBytes = SearchUtil.convertSearchDocumentToJSONString(document).getBytes(CHARSET);
@@ -102,50 +114,75 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 			throw new IllegalArgumentException("The document for " + document.getId() + " is " + documentBytes.length + " bytes and exceeds the maximum allowed " + maxSingleDocumentSizeInBytes + " bytes.");
 		}
 
-		//if this is not the first document to be added, we must check if it would fit in the batch
-		if(!lazyInit()) {
-
-			//determine how many bytes need to be written
-			//always reserve space for the suffix because the next document being added may not fit into this document batch.
-			long bytesToBeAdded =  DELIMITER_BYTES.length + documentBytes.length + SUFFIX_BYTES.length;
-
-			// Check there is enough space to write into this batch
-			if (countingOutputStream.getByteCount() + bytesToBeAdded > maxDocumentBatchSizeInBytes) {
-				return false;
-			}
-
-			//add delimiter between previous document and the new document to be added.
-			countingOutputStream.write(DELIMITER_BYTES);
+		if(!willDocumentBytesFit(documentBytes.length)){
+			return false;
 		}
 
-		countingOutputStream.write(documentBytes);
+		//if this is not the first document to be added, we must check if it would fit in the batch
+		if(!initIfNecessary()) {
+			//add delimiter between previous document and the new document to be added.
+			builderResources.getCountingOutputStream().write(DELIMITER_BYTES);
+		}
 
-		documentIds.add(document.getId());
+		builderResources.getCountingOutputStream().write(documentBytes);
+
+		builderResources.getDocumentIds().add(document.getId());
 		return true;
+	}
+
+	private boolean willDocumentBytesFit(long documentByteLength){
+		if(builderResources == null){
+			//not initialized yet so it should fit since maxSingleDocumentSizeInBytes has already been checked
+			return true;
+		}
+
+		//determine how many bytes need to be written
+		//always reserve space for the suffix because the next document being added may not fit into this document batch.
+		long bytesToBeAdded =  DELIMITER_BYTES.length + documentByteLength + SUFFIX_BYTES.length;
+
+		// Check there is enough space to write into this batch
+		return builderResources.getCountingOutputStream().getByteCount() + bytesToBeAdded <= maxDocumentBatchSizeInBytes;
 	}
 
 	@Override
 	public void close() throws IOException {
-
+		if (builderResources != null){
+			builderResources.close();
+		}
 	}
 
 
-
-
+	/**
+	 * Class used to encapsulate the resources needed by the builder.
+	 * The builder needs these fields to be either all null, or all not null.
+	 */
 	static class CloudSearchBatchBuilderResource implements Closeable{
-		File documentBatchFile;
-		CountingOutputStream countingOutputStream;
-		Set<String> documentIds;
+		private File documentBatchFile;
+		private CountingOutputStream countingOutputStream;
+		private Set<String> documentIds;
+
+		public CloudSearchBatchBuilderResource(FileProvider fileProvider) throws IOException {
+			this.documentBatchFile = fileProvider.createTempFile("CloudSearchDocument", ".json");
+			this.countingOutputStream = new CountingOutputStream(fileProvider.createFileOutputStream(documentBatchFile));
+			this.documentIds = new HashSet<>();
+		}
 
 		@Override
 		public void close() throws IOException {
-			if(countingOutputStream != null){
-				countingOutputStream.close();
-			}
+			countingOutputStream.close();
+			documentBatchFile.delete();
+		}
 
-			if(documentBatchFile != null) {
-				documentBatchFile.delete();
-			}
+		public CountingOutputStream getCountingOutputStream() {
+			return countingOutputStream;
+		}
+
+		public Set<String> getDocumentIds() {
+			return documentIds;
+		}
+
+		public File getDocumentBatchFile() {
+			return documentBatchFile;
 		}
 	}
 }
