@@ -6,9 +6,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 import org.imgscalr.Scalr;
 import org.imgscalr.Scalr.Mode;
@@ -48,8 +52,10 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
+		// Determine the size of the image
 		// First load the image
-		BufferedImage image = ImageIO.read(from);
+		BufferedImage image = loadImageWithSizeCheck(from);
+		
 		if(image == null){
 			throw new IllegalArgumentException("The passed input stream was not an image");
 		}
@@ -98,5 +104,40 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 		double multiplier = SUPPORTED_CONTENT_TYPES.get(mimeType);
 		long memoryNeededBytes = (long) Math.ceil((((double) contentSize) * multiplier));
 		return memoryNeededBytes;
+	}
+	
+	/**
+	 * Load an image from the given input stream with a size check before the load is finished.
+	 * @param from
+	 * @return
+	 * @throws IOException
+	 */
+	public static BufferedImage loadImageWithSizeCheck(InputStream from) throws IOException {
+        ImageInputStream stream = ImageIO.createImageInputStream(from);
+        Iterator iter = ImageIO.getImageReaders(stream);
+        if (!iter.hasNext()) {
+            return null;
+        }
+
+        ImageReader reader = (ImageReader)iter.next();
+        ImageReadParam param = reader.getDefaultReadParam();
+        reader.setInput(stream, true, true);
+        long width = reader.getWidth(0);
+        long height = reader.getHeight(0);
+        long size = width*height;
+        if(size > 1000) {
+        	throw new IllegalArgumentException("Image is too large to load into memrory.");
+        }
+        BufferedImage image;
+        try {
+        	image = reader.read(0, param);
+        } finally {
+            reader.dispose();
+            stream.close();
+        }
+        if (image == null) {
+            stream.close();
+        }
+        return image;
 	}
 }
