@@ -21,6 +21,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -176,6 +177,14 @@ public class CloudSearchDomainClientAdapterTest {
 		verify(mockDocumentBatch, times(2)).getNewInputStream();
 
 		verify(mockCloudSearchDomainClient, times(2)).uploadDocuments(any());
+	}
+
+	@Test (expected = TemporarilyUnavailableException.class)
+	public void testSendDocuments_IOException(){
+		when(mockDocumentBatch.getNewInputStream()).thenThrow(IOException.class);
+
+		//method under test
+		cloudSearchDomainClientAdapter.sendDocuments(Iterators.emptyIterator());
 	}
 
 }

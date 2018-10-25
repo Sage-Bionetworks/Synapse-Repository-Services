@@ -28,17 +28,11 @@ public interface SearchDao {
 	void createOrUpdateSearchDocument(Document toCreate);
 
 	/**
-	 * Delete a document using its id.
-	 * 
-	 * @param docIdToDelete
-	 */
-	void deleteDocument(String docIdToDelete);
-	 
-	 /**
 	 * Delete all documents with the passed set of document ids.
 	 * 
 	 * @param docIdsToDelete
 	 */
+	@Deprecated
 	void deleteDocuments(Set<String> docIdsToDelete);
 
 	void sendDocuments(Iterator<Document> documentIterator);
