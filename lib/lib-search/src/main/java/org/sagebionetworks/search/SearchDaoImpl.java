@@ -48,12 +48,6 @@ public class SearchDaoImpl implements SearchDao {
 
 
 	@Override
-	public void deleteDocument(String docIdToDelete) {
-		// This is just a batch delete of size one.
-		deleteDocuments(Sets.newHashSet(docIdToDelete));
-	}
-
-	@Override
 	public void deleteDocuments(Set<String> docIdsToDelete) {
 		ValidateArgument.required(docIdsToDelete,"docIdsToDelete");
 

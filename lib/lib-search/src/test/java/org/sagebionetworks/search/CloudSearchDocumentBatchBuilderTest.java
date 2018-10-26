@@ -76,6 +76,7 @@ public class CloudSearchDocumentBatchBuilderTest {
 		documentLarge.setId("syn789");
 		documentLarge.setType(DocumentTypeNames.add);
 		documentLarge.setFields(new DocumentFields());
+		documentLarge.getFields().setDescription("asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfassdfasdf");
 
 		//make documentLarge "large" enough that it needs to be in a file by itself
 		documentLarge.getFields().setDescription(StringUtils.repeat("text", 10));
@@ -107,19 +108,6 @@ public class CloudSearchDocumentBatchBuilderTest {
 		new CloudSearchDocumentBatchBuilder(mockFileProvider, maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
 	}
 
-	@Test
-	public void testConstuctor_ExceptionInConstructor() throws FileNotFoundException {
-		when(mockFileProvider.createFileOutputStream(mockFile)).thenThrow(new FileNotFoundException());
-
-		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider)){
-			fail("expected exception to be thrown");
-		}catch (IOException e){
-			//expected
-		}
-
-		verify(mockFile).delete();
-	}
-
 	//////////////////////////
 	// tryAddDocument() Tests
 	//////////////////////////
@@ -139,9 +127,15 @@ public class CloudSearchDocumentBatchBuilderTest {
 	public void testTryAddDocument_alreadyBuilt() throws Exception{
 		//set really large limits but build the builder already
 		builder = new CloudSearchDocumentBatchBuilder(mockFileProvider, 99999999L,9999999999999L);
+		builder.tryAddDocument(document1);
 		builder.build();
-		assertFalse(builder.tryAddDocument(document1));
-		assertEquals("[]", new String(spyOutputStream.toByteArray(), CloudSearchDocumentBatchBuilder.CHARSET));
+
+		try {
+			builder.tryAddDocument(document1);
+			fail("expected exception to be thrown");
+		}catch (IllegalStateException e){
+			//expected
+		}
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -210,7 +204,13 @@ public class CloudSearchDocumentBatchBuilderTest {
 		assertTrue(builder.tryAddDocument(document1));
 		assertTrue(builder.tryAddDocument(document2));
 
-		assertSame(builder.build(), builder.build());
+		builder.build();
+		try {
+			builder.build();
+			fail("expected exception to be thrown");
+		} catch (IllegalStateException e){
+			//expected
+		}
 	}
 
 	/////////////////
@@ -229,11 +229,10 @@ public class CloudSearchDocumentBatchBuilderTest {
 
 	@Test
 	public void testClose_BeforeBuild_errorInBuilder() throws IOException {
-		CloudSearchDocumentBatchBuilder spyBatchBuilder = spy(new CloudSearchDocumentBatchBuilder(mockFileProvider));
-		doThrow(IllegalArgumentException.class).when(spyBatchBuilder).tryAddDocument(any());
-
-		try(CloudSearchDocumentBatchBuilder builder = spyBatchBuilder;){
-			builder.tryAddDocument(document1);
+		maxSingleDocumentSizeInBytes = byteSizeOfDocument(documentLarge) - 1;
+		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider, maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);){
+			batchBuilder.tryAddDocument(document1);
+			batchBuilder.tryAddDocument(documentLarge);
 			fail("expected IllegalArgumentException to be thrown");
 		}catch (IllegalArgumentException e){
 			//expected
@@ -250,7 +249,7 @@ public class CloudSearchDocumentBatchBuilderTest {
 			batchBuilder.build();
 		}
 
-		verify(spyOutputStream, times(2)).close(); //once in build() and once in close()
+		verify(spyOutputStream).close(); // the close() call happened in build()
 		verify(mockFile, never()).delete();
 	}
 

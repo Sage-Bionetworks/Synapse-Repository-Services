@@ -23,6 +23,7 @@ import com.google.common.collect.Iterators;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -61,7 +62,7 @@ public class CloudsSearchDomainClientAdapter {
 				documentIds = null;
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
-				throw new RuntimeException(e);
+				throw new TemporarilyUnavailableException(e);
 			}
 		}
 	}
