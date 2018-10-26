@@ -107,7 +107,9 @@ public class FacetRequestColumnModel {
 		builder.append("\"");
 		builder.append(facetRange.getColumnName());
 		builder.append("\"");
-		if(min == null){ //only max exists
+		if (NULL_VALUE_KEYWORD.equals(min) || NULL_VALUE_KEYWORD.equals(max)){
+			builder.append(" IS NULL");
+		} else if(min == null){ //only max exists
 			builder.append("<=");
 			appendValueToStringBuilder(builder, max);
 		}else if (max == null){ //only min exists
