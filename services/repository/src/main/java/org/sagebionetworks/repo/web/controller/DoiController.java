@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -39,6 +40,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class DoiController extends BaseController {
 
+	private static final String DOI_SERVICES_TEMPORARILY_UNAVAILABLE = "DOI minting services are temporarily unavailable for service upgrades. Check back later.";
+
 	@Autowired
 	private ServiceProvider serviceProvider;
 
@@ -57,7 +60,7 @@ public class DoiController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().createDoi(userId, id, ObjectType.ENTITY, null);
+		throw new TemporarilyUnavailableException(DOI_SERVICES_TEMPORARILY_UNAVAILABLE);
 	}
 
 	/**
@@ -77,7 +80,7 @@ public class DoiController extends BaseController {
 			@PathVariable String id,
 			@PathVariable Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().createDoi(userId, id, ObjectType.ENTITY, versionNumber);
+		throw new TemporarilyUnavailableException(DOI_SERVICES_TEMPORARILY_UNAVAILABLE);
 	}
 
 	/**
@@ -93,7 +96,7 @@ public class DoiController extends BaseController {
 	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoiForVersion(userId, id, ObjectType.ENTITY, null);
+		throw new TemporarilyUnavailableException(DOI_SERVICES_TEMPORARILY_UNAVAILABLE);
 	}
 
 	/**
@@ -111,7 +114,7 @@ public class DoiController extends BaseController {
 			@PathVariable String id,
 			@PathVariable Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoiForVersion(userId, id, ObjectType.ENTITY, versionNumber);
+		throw new TemporarilyUnavailableException(DOI_SERVICES_TEMPORARILY_UNAVAILABLE);
 	}
 
 	/**
