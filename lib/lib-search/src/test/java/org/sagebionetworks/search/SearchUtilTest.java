@@ -7,20 +7,19 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -358,14 +357,14 @@ public class SearchUtilTest {
 		String createdBy = "1213324";
 		String createdOn = "1234567890";
 		String description = "Description";
-		String disease = "space aids";
+		String diagnosis = "space aids";
 		String etag = "some etag";
 		String id = "id";
 		String modifiedBy = "modifiedBy";
 		String modifiedOn = "11958442069423";
 		String name = "my name Jeff";
 		String nodeType = "dataset";
-		String numSamples = "42";
+		String organ = "appendix";
 		String tissue = "Kleenex";
 		String consortium = "consortium";
 
@@ -374,13 +373,13 @@ public class SearchUtilTest {
 				put(FIELD_CREATED_BY, Collections.singletonList(createdBy));
 				put(FIELD_CREATED_ON, Collections.singletonList(createdOn));
 				put(FIELD_DESCRIPTION, Collections.singletonList(description));
-				put(FIELD_DISEASE, Collections.singletonList(disease));
+				put(FIELD_DIAGNOSIS, Collections.singletonList(diagnosis));
 				put(FIELD_ETAG, Collections.singletonList(etag));
 				put(FIELD_MODIFIED_BY, Collections.singletonList(modifiedBy));
 				put(FIELD_MODIFIED_ON, Collections.singletonList(modifiedOn));
 				put(FIELD_NAME, Collections.singletonList(name));
 				put(FIELD_NODE_TYPE, Collections.singletonList(nodeType));
-				put(FIELD_NUM_SAMPLES, Collections.singletonList(numSamples));
+				put(FIELD_ORGAN, Collections.singletonList(organ));
 				put(FIELD_TISSUE, Collections.singletonList(tissue));
 				put(FIELD_CONSORTIUM, Collections.singletonList(consortium));
 			}
@@ -395,11 +394,11 @@ public class SearchUtilTest {
 		assertEquals(etag, hit.getEtag());
 		assertEquals(new Long(modifiedOn), hit.getModified_on());
 		assertEquals(new Long(createdOn), hit.getCreated_on());
-		assertEquals(new Long(numSamples), hit.getNum_samples());
+		assertEquals(organ, hit.getOrgan());
 		assertEquals(createdBy, hit.getCreated_by());
 		assertEquals(modifiedBy, hit.getModified_by());
 		assertEquals(nodeType, hit.getNode_type());
-		assertEquals(disease, hit.getDisease());
+		assertEquals(diagnosis, hit.getDiagnosis());
 		assertEquals(tissue, hit.getTissue());
 		assertEquals(consortium, hit.getConsortium());
 	}

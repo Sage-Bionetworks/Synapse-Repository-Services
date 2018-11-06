@@ -21,14 +21,14 @@ public class SynapseToCloudSearchFieldTest {
 		List<IndexField> list = SynapseToCloudSearchField.loadSearchDomainSchema();
 		assertNotNull(list);
 
-		Set<String> expectedFieldNames = Sets.newHashSet("modified_on", "disease", "consortium",
-				"description", "tissue", "acl", "created_by", "platform", "reference", "node_type", "created_on",
-				"update_acl", "parent_id", "name", "modified_by", "etag", "num_samples");
+		Set<String> expectedFieldNames = Sets.newHashSet("modified_on", "diagnosis", "consortium",
+				"description", "tissue", "acl", "created_by", "reference", "node_type", "created_on",
+				"update_acl", "parent_id", "name", "modified_by", "etag", "organ");
 
 		Set<String> actualfieldNames = list.stream().map(IndexField::getIndexFieldName).collect(Collectors.toSet());
-		// We currently have 17 index fields
-		assertEquals(17, list.size());
-		assertEquals(17, actualfieldNames.size());
+		// We currently have 16 index fields
+		assertEquals(16, list.size());
+		assertEquals(16, actualfieldNames.size());
 		assertEquals(expectedFieldNames, actualfieldNames);
 	}
 
@@ -48,8 +48,8 @@ public class SynapseToCloudSearchFieldTest {
 		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.CreatedOn), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_ON);
 		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Description), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DESCRIPTION);
 		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Consortium), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CONSORTIUM);
-		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Disease), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DISEASE);
-		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.NumSamples), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NUM_SAMPLES);
+		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Diagnosis), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DIAGNOSIS);
+		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Organ), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ORGAN);
 		assertEquals(SynapseToCloudSearchField.cloudSearchFieldFor(SearchFieldName.Tissue), CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_TISSUE);
 	}
 }
