@@ -11,6 +11,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -164,6 +165,7 @@ public class SearchDocumentDriverImplTest {
 
 		assertNotNull(result);
 		verify(mockNamedAnnotations, times(1)).getAdditionalAnnotations();
+		verify(mockNamedAnnotations, never()).getPrimaryAnnotations();
 		verify(spySearchDocumentDriver, times(1)).addFirstAnnotationValuesToMap(mockAdditionaAnnotations, result);
 	}
 
@@ -184,7 +186,7 @@ public class SearchDocumentDriverImplTest {
 
 	@Test
 	public void getSearchIndexFieldValue__testCaseInsensitive(){
-		annoValuesMap.put("cOnSoRtIuM", annoValue1);
+		annoValuesMap.put("consortium", annoValue1);
 		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.containsKey(FIELD_CONSORTIUM));
 		assertTrue(SearchDocumentDriverImpl.SEARCHABLE_NODE_ANNOTATIONS.get(FIELD_CONSORTIUM).contains("consortium"));
 		String result = spySearchDocumentDriver.getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
@@ -217,7 +219,7 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
-	public void addAnnotationsToSearchDocument_AnnotationValueIsNotNumericString(){
+	public void addAnnotationsToSearchDocument(){
 		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
 		doReturn(annoValue1).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
 
@@ -227,28 +229,10 @@ public class SearchDocumentDriverImplTest {
 		assertEquals(annoValue1, documentFields.getTissue());
 		assertEquals(annoValue1, documentFields.getOrgan());
 		assertEquals(annoValue1, documentFields.getDiagnosis());
+		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_ORGAN);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_DIAGNOSIS);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
 		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_TISSUE);
-		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_ORGAN);
-	}
-
-	@Test
-	public void addAnnotationsToSearchDocument_AnnotationValueIsNumericString(){
-		String numberString = "5";
-		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockNamedAnnotations);
-		doReturn(numberString).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
-
-		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, mockNamedAnnotations);
-
-		assertEquals(numberString, documentFields.getConsortium());
-		assertEquals(numberString, documentFields.getTissue());
-		assertEquals(numberString, documentFields.getOrgan());
-		assertEquals(numberString, documentFields.getDiagnosis());
-		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_DIAGNOSIS);
-		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_CONSORTIUM);
-		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_TISSUE);
-		verify(spySearchDocumentDriver,times(1)).getSearchIndexFieldValue(annoValuesMap, FIELD_ORGAN);
 	}
 
 	@Test

@@ -212,7 +212,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
 
 		//set the values for the document fields
-		fields.setDiagnosis(getSearchIndexFieldValue(firstAnnotationValues, FIELD_ORGAN));
+		fields.setDiagnosis(getSearchIndexFieldValue(firstAnnotationValues, FIELD_DIAGNOSIS));
 		fields.setConsortium(getSearchIndexFieldValue(firstAnnotationValues, FIELD_CONSORTIUM));
 		fields.setTissue(getSearchIndexFieldValue(firstAnnotationValues, FIELD_TISSUE));
 		fields.setOrgan(getSearchIndexFieldValue(firstAnnotationValues, FIELD_ORGAN));

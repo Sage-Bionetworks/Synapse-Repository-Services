@@ -188,14 +188,14 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
 		NamedAnnotations named = new NamedAnnotations();
-		Annotations primaryAnnos = named.getAdditionalAnnotations();
+		Annotations primaryAnnos = named.getPrimaryAnnotations();
 		primaryAnnos.addAnnotation("organ", "This should not be indexed");
 		Annotations additionalAnnos = named.getAdditionalAnnotations();
 		additionalAnnos
 				.addAnnotation("stringKey",
 						"a multi-word annotation gets underscores so we can exact-match find it");
 		additionalAnnos.addAnnotation("longKey", 10L);
-		additionalAnnos.addAnnotation("Tissue_Tumor", "ear lobe");
+		additionalAnnos.addAnnotation("tissue", "ear lobe");
 		additionalAnnos.addAnnotation("consortium", "C O N S O R T I U M");
 		// PLFM-4438
 		additionalAnnos.addAnnotation("diagnosis", 1L);
