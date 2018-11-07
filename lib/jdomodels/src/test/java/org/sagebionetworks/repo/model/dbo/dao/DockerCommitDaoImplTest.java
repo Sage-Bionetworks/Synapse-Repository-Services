@@ -77,11 +77,11 @@ public class DockerCommitDaoImplTest {
 		commit.setDigest(digest);
 		return commit;
 	}
-	
+
 	@Test
 	public void testRoundTrip() {
 		assertEquals(0, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));
-		
+
 		Date createdOn = new Date();
 		String digest = "sha256:abcdef0123456789";
 		String tag = "latest";
@@ -94,23 +94,51 @@ public class DockerCommitDaoImplTest {
 		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(
 				dockerRepository1.getId(), DockerCommitSortBy.CREATED_ON, 
 				/*ascending*/true, 10, 0);
-		
+
 		assertEquals(1, commits.size());
 		assertEquals(commit, commits.get(0));
-		
+
 		// make sure we've affected the node correctly
 		Node retrievedRepo = nodeDao.getNode(dockerRepository1.getId());
 		assertFalse(newNodeEtag.equals(dockerRepository1.getETag()));
 		assertEquals(newNodeEtag, retrievedRepo.getETag());
 		assertEquals(createdOn, retrievedRepo.getModifiedOn());
 		assertEquals(creatorUserGroupId, retrievedRepo.getModifiedByPrincipalId());
-		
+
 		// let's make sure were're not accidentally updating other nodes!!
 		Node otherRepository = nodeDao.getNode(dockerRepository2.getId());
 		assertFalse(newNodeEtag.equals(otherRepository.getETag()));
 		assertFalse(createdOn.equals(otherRepository.getModifiedOn()));
 	}
-	
+
+	@Test
+	public void createDockerCommitMissingTag() {
+		assertEquals(0, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));
+
+		Date createdOn = new Date();
+		String digest = "sha256:abcdef0123456789";
+		String tag = null;
+		DockerCommit commit = createCommit(createdOn, tag, digest);
+		String newNodeEtag = dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, commit);
+		assertNotNull(newNodeEtag);
+
+		assertEquals(1, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));
+
+		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(
+				dockerRepository1.getId(), DockerCommitSortBy.CREATED_ON,
+				/*ascending*/true, 10, 0);
+
+		assertEquals(1, commits.size());
+		assertEquals(commit, commits.get(0));
+
+		// make sure we've affected the node correctly
+		Node retrievedRepo = nodeDao.getNode(dockerRepository1.getId());
+		assertFalse(newNodeEtag.equals(dockerRepository1.getETag()));
+		assertEquals(newNodeEtag, retrievedRepo.getETag());
+		assertEquals(createdOn, retrievedRepo.getModifiedOn());
+		assertEquals(creatorUserGroupId, retrievedRepo.getModifiedByPrincipalId());
+	}
+
 	@Test
 	public void testListDockerCommitsSortedBy() throws Exception {
 		long now = System.currentTimeMillis();
@@ -221,11 +249,7 @@ public class DockerCommitDaoImplTest {
 		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), 101L, createCommit(null, "a", UUID.randomUUID().toString()));
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testCreateDockerCommitsMissingTag() {
-		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), 101L, createCommit(new Date(), null, UUID.randomUUID().toString()));
-	}
-	
+
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDockerCommitsMissingDigest() {
 		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), 101L, createCommit(new Date(), "a", null));

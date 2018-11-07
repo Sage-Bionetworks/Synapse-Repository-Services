@@ -65,7 +65,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 			COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
 			") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
 				" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
-				" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+") ORDER BY ";
+				" d2."+COL_DOCKER_COMMIT_TAG+"<=>d."+COL_DOCKER_COMMIT_TAG+") ORDER BY ";
 	
 	private static final String ASC = " ASC ";
 	private static final String DESC = " DESC ";
@@ -79,7 +79,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
 		") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
 			" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
-			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+")";
+			" d2."+COL_DOCKER_COMMIT_TAG+"<=>d."+COL_DOCKER_COMMIT_TAG+")";
 	
 	private static final String COMMITS_FOR_ENTITY_AND_DIGEST_SQL = 
 			"SELECT * FROM "+TABLE_DOCKER_COMMIT+" d "+
@@ -93,8 +93,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		ValidateArgument.required(commit, "commit");
 		ValidateArgument.required(commit.getCreatedOn(), "commit.createdOn");
 		ValidateArgument.required(commit.getDigest(), "commit.digest");
-		ValidateArgument.required(commit.getTag(), "commit.tag");
-		
+
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
 		dbo.setMigrationId(idGenerator.generateNewId(IdType.DOCKER_COMMIT_ID));
