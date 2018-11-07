@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.manager.search;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.io.IOException;
@@ -14,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -73,11 +71,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	static { // initialize SEARCHABLE_NODE_ANNOTATIONS
 		// NOTE: ORDER MATTERS. Earlier annotation key names will be preferred over later ones if both keys are present.
 		Map<String, List<String>> searchableNodeAnnotations = new HashMap<>();
-		searchableNodeAnnotations.put(FIELD_DISEASE, Collections.unmodifiableList(Arrays.asList("disease")));
-		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue", "tissue_tumor", "sampleSource", "tissueType")));
-		searchableNodeAnnotations.put(FIELD_PLATFORM, Collections.unmodifiableList(Arrays.asList("platform", "platformDesc", "platformVendor")));
-		searchableNodeAnnotations.put(FIELD_NUM_SAMPLES, Collections.unmodifiableList(Arrays.asList("numSamples", "num_samples", "number_of_samples")));
+		searchableNodeAnnotations.put(FIELD_DIAGNOSIS, Collections.unmodifiableList(Arrays.asList("diagnosis")));
+		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue")));
 		searchableNodeAnnotations.put(FIELD_CONSORTIUM, Collections.unmodifiableList(Arrays.asList("consortium")));
+		searchableNodeAnnotations.put(FIELD_ORGAN, Collections.unmodifiableList(Arrays.asList("organ")));
 
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
@@ -215,17 +212,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
 
 		//set the values for the document fields
-		fields.setDisease(getSearchIndexFieldValue(firstAnnotationValues, FIELD_DISEASE));
+		fields.setDiagnosis(getSearchIndexFieldValue(firstAnnotationValues, FIELD_DIAGNOSIS));
 		fields.setConsortium(getSearchIndexFieldValue(firstAnnotationValues, FIELD_CONSORTIUM));
 		fields.setTissue(getSearchIndexFieldValue(firstAnnotationValues, FIELD_TISSUE));
-		fields.setPlatform(getSearchIndexFieldValue(firstAnnotationValues, FIELD_PLATFORM));
-		try {
-			fields.setNum_samples(NumberUtils.createLong(getSearchIndexFieldValue(firstAnnotationValues, FIELD_NUM_SAMPLES)));
-		}catch (NumberFormatException e){
-			/* If the user did not provide a numeric value for FIELD_NUM_SAMPLES
-			   then that value will not be added to the search index. This is not considered an error.
-			 */
-		}
+		fields.setOrgan(getSearchIndexFieldValue(firstAnnotationValues, FIELD_ORGAN));
 
 	}
 

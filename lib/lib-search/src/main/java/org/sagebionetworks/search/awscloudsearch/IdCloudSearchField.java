@@ -1,5 +1,7 @@
 package org.sagebionetworks.search.awscloudsearch;
 
+import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
+
 /**
  * This is a special case of CloudSearch index field.
  * The unique id of an entry in CloudSearch must always exist so there is no need to create an IndexField for it.
@@ -25,5 +27,10 @@ class IdCloudSearchField implements CloudSearchField{
 	@Override
 	public boolean isReturned() {
 		return true;
+	}
+
+	@Override
+	public IndexFieldType getType() {
+		return IndexFieldType.Literal;
 	}
 }

@@ -38,12 +38,12 @@
 			"description":"Value of the Entity's Annotation with Key=\"consortium\" if it exists"
 		},
 		{
-			"name":"Disease",
-			"description":"Value of the Entity's Annotation with Key=\"disease\" if it exists"
+			"name":"Diagnosis",
+			"description":"Value of the Entity's Annotation with Key=\"diagnosis\" if it exists"
 		},
 		{
-			"name":"NumSamples",
-			"description":"Value of the Entity's Annotation with Key=\"numSamples\" if it exists"
+			"name":"Organ",
+			"description":"Value of the Entity's Annotation with Key=\"organ\" if it exists"
 		},
 		{
 			"name":"Tissue",

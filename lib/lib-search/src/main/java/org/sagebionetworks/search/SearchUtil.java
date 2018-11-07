@@ -5,20 +5,16 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,27 +52,8 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.CollectionUtils;
 
 public class SearchUtil{
-	public static final Map<String, FacetTypeNames> FACET_TYPES;
-
 	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
 	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
-
-	static {
-		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
-		facetTypes.put(FIELD_NODE_TYPE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_DISEASE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_TISSUE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_PLATFORM, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_CREATED_BY, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_MODIFIED_BY, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_REFERENCE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_ACL, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_CREATED_ON, FacetTypeNames.DATE);
-		facetTypes.put(FIELD_MODIFIED_ON, FacetTypeNames.DATE);
-		facetTypes.put(FIELD_NUM_SAMPLES, FacetTypeNames.CONTINUOUS);
-		facetTypes.put(FIELD_CONSORTIUM, FacetTypeNames.LITERAL);
-		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
-	}
 
 	/**
 	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
@@ -274,7 +251,7 @@ public class SearchUtil{
 	}
 
 	static Facet convertToSynapseSearchFacet(String facetName, BucketInfo bucketInfo) {
-		FacetTypeNames facetType = FACET_TYPES.get(facetName);
+		FacetTypeNames facetType = IndexFieldToSynapseFacetType.getSynapseFacetType(SynapseToCloudSearchField.cloudSearchFieldFor(facetName).getType());
 		if (facetType == null) {
 			throw new IllegalArgumentException(
 					"facet "
@@ -306,16 +283,16 @@ public class SearchUtil{
 		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_BY));
 		synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_ON)));
 		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, FIELD_DESCRIPTION));
-		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, FIELD_DISEASE));
+		synapseHit.setDiagnosis(getFirstListValueFromMap(fieldsMap, FIELD_DIAGNOSIS));
 		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, FIELD_ETAG));
 		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_BY));
 		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_ON)));
 		synapseHit.setName(getFirstListValueFromMap(fieldsMap, FIELD_NAME));
 		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, FIELD_NODE_TYPE));
-		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
 		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE));
 		synapseHit.setConsortium(getFirstListValueFromMap(fieldsMap, FIELD_CONSORTIUM));
-		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+		synapseHit.setOrgan(getFirstListValueFromMap(fieldsMap, FIELD_ORGAN));
+		//synapseHit.setPath() also exists but is being set at the manager level because it requires additional calls to DAOs.
 		synapseHit.setId(cloudSearchHit.getId());
 		return synapseHit;
 	}

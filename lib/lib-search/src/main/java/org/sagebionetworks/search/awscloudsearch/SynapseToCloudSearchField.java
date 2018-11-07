@@ -6,16 +6,15 @@ import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstant
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_BY;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_CREATED_ON;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DISEASE;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_DIAGNOSIS;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ETAG;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ID;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NAME;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_ORGAN;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_PARENT_ID;
-import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_PLATFORM;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_REFERENCE;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_TISSUE;
 import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstants.CLOUD_SEARCH_FIELD_UPDATE_ACL;
@@ -32,6 +31,12 @@ import org.sagebionetworks.util.ValidateArgument;
  * to their actual CloudSearch fields.
  */
 public enum SynapseToCloudSearchField {
+	//indexes of annotations
+	CONSORTIUM(SearchFieldName.Consortium, CLOUD_SEARCH_FIELD_CONSORTIUM),
+	DIAGNOSIS(SearchFieldName.Diagnosis, CLOUD_SEARCH_FIELD_DIAGNOSIS),
+	ORGAN(SearchFieldName.Organ, CLOUD_SEARCH_FIELD_ORGAN),
+	TISSUE(SearchFieldName.Tissue, CLOUD_SEARCH_FIELD_TISSUE),
+
 	ID(SearchFieldName.Id, CLOUD_SEARCH_FIELD_ID),
 	NAME(SearchFieldName.Name, CLOUD_SEARCH_FIELD_NAME),
 	ENTITY_TYPE(SearchFieldName.EntityType, CLOUD_SEARCH_FIELD_NODE_TYPE),
@@ -41,16 +46,9 @@ public enum SynapseToCloudSearchField {
 	CREATED_ON(SearchFieldName.CreatedOn, CLOUD_SEARCH_FIELD_CREATED_ON),
 	DESCRIPTION(SearchFieldName.Description, CLOUD_SEARCH_FIELD_DESCRIPTION),
 
-	//indexes of annotations
-	CONSORTIUM(SearchFieldName.Consortium, CLOUD_SEARCH_FIELD_CONSORTIUM),
-	DISEASE(SearchFieldName.Disease, CLOUD_SEARCH_FIELD_DISEASE),
-	NUM_SAMPLES(SearchFieldName.NumSamples, CLOUD_SEARCH_FIELD_NUM_SAMPLES),
-	TISSUE(SearchFieldName.Tissue, CLOUD_SEARCH_FIELD_TISSUE),
-
 	//The ones below are not exposed in our API currently (and probably never will be)
 	ETAG(null, CLOUD_SEARCH_FIELD_ETAG),
 	PARENT_ID(null, CLOUD_SEARCH_FIELD_PARENT_ID),
-	PLATFORM(null, CLOUD_SEARCH_FIELD_PLATFORM),
 	REFERENCE(null, CLOUD_SEARCH_FIELD_REFERENCE),
 	ACL(null, CLOUD_SEARCH_FIELD_ACL),
 	UPDATE_ACL(null, CLOUD_SEARCH_FIELD_UPDATE_ACL);
@@ -79,6 +77,17 @@ public enum SynapseToCloudSearchField {
 		throw new IllegalArgumentException("Unknown SearchField");
 	}
 
+	public static CloudSearchField cloudSearchFieldFor(String cloudSearchFieldName){
+		ValidateArgument.required(cloudSearchFieldName, "cloudSearchFieldName");
+
+		for (SynapseToCloudSearchField synapseToCloudSearchField : values()){
+			if(cloudSearchFieldName.equals(synapseToCloudSearchField.cloudSearchField.getFieldName())){
+				return synapseToCloudSearchField.cloudSearchField;
+			}
+		}
+		throw new IllegalArgumentException("Unknown SearchField");
+	}
+
 	/**
 	 * Returns a List of all IndexFields needed for initialization of the Cloud Search Domain.
 	 * @return a List of all IndexFields needed for initialization of the Cloud Search Domain,
@@ -93,6 +102,8 @@ public enum SynapseToCloudSearchField {
 		}
 		return indexFields;
 	}
+
+
 
 
 }
