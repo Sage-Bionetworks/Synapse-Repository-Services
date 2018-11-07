@@ -31,6 +31,12 @@ import org.sagebionetworks.util.ValidateArgument;
  * to their actual CloudSearch fields.
  */
 public enum SynapseToCloudSearchField {
+	//indexes of annotations
+	CONSORTIUM(SearchFieldName.Consortium, CLOUD_SEARCH_FIELD_CONSORTIUM),
+	DIAGNOSIS(SearchFieldName.Diagnosis, CLOUD_SEARCH_FIELD_DIAGNOSIS),
+	ORGAN(SearchFieldName.Organ, CLOUD_SEARCH_FIELD_ORGAN),
+	TISSUE(SearchFieldName.Tissue, CLOUD_SEARCH_FIELD_TISSUE),
+
 	ID(SearchFieldName.Id, CLOUD_SEARCH_FIELD_ID),
 	NAME(SearchFieldName.Name, CLOUD_SEARCH_FIELD_NAME),
 	ENTITY_TYPE(SearchFieldName.EntityType, CLOUD_SEARCH_FIELD_NODE_TYPE),
@@ -39,12 +45,6 @@ public enum SynapseToCloudSearchField {
 	CREATED_BY(SearchFieldName.CreatedBy, CLOUD_SEARCH_FIELD_CREATED_BY),
 	CREATED_ON(SearchFieldName.CreatedOn, CLOUD_SEARCH_FIELD_CREATED_ON),
 	DESCRIPTION(SearchFieldName.Description, CLOUD_SEARCH_FIELD_DESCRIPTION),
-
-	//indexes of annotations
-	CONSORTIUM(SearchFieldName.Consortium, CLOUD_SEARCH_FIELD_CONSORTIUM),
-	DIAGNOSIS(SearchFieldName.Diagnosis, CLOUD_SEARCH_FIELD_DIAGNOSIS),
-	ORGAN(SearchFieldName.Organ, CLOUD_SEARCH_FIELD_ORGAN),
-	TISSUE(SearchFieldName.Tissue, CLOUD_SEARCH_FIELD_TISSUE),
 
 	//The ones below are not exposed in our API currently (and probably never will be)
 	ETAG(null, CLOUD_SEARCH_FIELD_ETAG),
@@ -77,6 +77,17 @@ public enum SynapseToCloudSearchField {
 		throw new IllegalArgumentException("Unknown SearchField");
 	}
 
+	public static CloudSearchField cloudSearchFieldFor(String cloudSearchFieldName){
+		ValidateArgument.required(cloudSearchFieldName, "cloudSearchFieldName");
+
+		for (SynapseToCloudSearchField synapseToCloudSearchField : values()){
+			if(cloudSearchFieldName.equals(synapseToCloudSearchField.cloudSearchField.getFieldName())){
+				return synapseToCloudSearchField.cloudSearchField;
+			}
+		}
+		throw new IllegalArgumentException("Unknown SearchField");
+	}
+
 	/**
 	 * Returns a List of all IndexFields needed for initialization of the Cloud Search Domain.
 	 * @return a List of all IndexFields needed for initialization of the Cloud Search Domain,
@@ -91,6 +102,8 @@ public enum SynapseToCloudSearchField {
 		}
 		return indexFields;
 	}
+
+
 
 
 }

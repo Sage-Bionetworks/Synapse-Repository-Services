@@ -12,12 +12,9 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
-import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,26 +52,8 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.CollectionUtils;
 
 public class SearchUtil{
-	public static final Map<String, FacetTypeNames> FACET_TYPES;
-
 	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
 	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
-
-	static { //TODO: remove and use CloudSearchField instead
-		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
-		facetTypes.put(FIELD_NODE_TYPE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_DIAGNOSIS, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_TISSUE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_CREATED_BY, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_MODIFIED_BY, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_REFERENCE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_ACL, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_CREATED_ON, FacetTypeNames.DATE);
-		facetTypes.put(FIELD_MODIFIED_ON, FacetTypeNames.DATE);
-		facetTypes.put(FIELD_CONSORTIUM, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_ORGAN, FacetTypeNames.LITERAL);
-		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
-	}
 
 	/**
 	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
@@ -272,7 +251,7 @@ public class SearchUtil{
 	}
 
 	static Facet convertToSynapseSearchFacet(String facetName, BucketInfo bucketInfo) {
-		FacetTypeNames facetType = FACET_TYPES.get(facetName);
+		FacetTypeNames facetType = IndexFieldToSynapseFacetType.getSynapseFacetType(SynapseToCloudSearchField.cloudSearchFieldFor(facetName).getType());
 		if (facetType == null) {
 			throw new IllegalArgumentException(
 					"facet "
