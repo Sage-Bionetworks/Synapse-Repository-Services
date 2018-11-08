@@ -78,7 +78,7 @@ public class DockerCommitDaoImplTest {
 		commit.setDigest(digest);
 		return commit;
 	}
-
+	
 	@Test
 	public void testRoundTrip() {
 		assertEquals(0, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));
