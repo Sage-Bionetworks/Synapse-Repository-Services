@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -122,18 +123,15 @@ public class DockerCommitDaoImplTest {
 		String newNodeEtag = dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, commit);
 		assertNotNull(newNodeEtag);
 
-		assertEquals(1, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));
-
-		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(
-				dockerRepository1.getId(), DockerCommitSortBy.CREATED_ON,
-				/*ascending*/true, 10, 0);
+		List<DockerCommit> commits = dockerCommitDao.listCommitsByOwnerAndDigest(
+				dockerRepository1.getId(), digest);
 
 		assertEquals(1, commits.size());
 		assertEquals(commit, commits.get(0));
 
 		// make sure we've affected the node correctly
 		Node retrievedRepo = nodeDao.getNode(dockerRepository1.getId());
-		assertFalse(newNodeEtag.equals(dockerRepository1.getETag()));
+		assertNotEquals(newNodeEtag, dockerRepository1.getETag());
 		assertEquals(newNodeEtag, retrievedRepo.getETag());
 		assertEquals(createdOn, retrievedRepo.getModifiedOn());
 		assertEquals(creatorUserGroupId, retrievedRepo.getModifiedByPrincipalId());
