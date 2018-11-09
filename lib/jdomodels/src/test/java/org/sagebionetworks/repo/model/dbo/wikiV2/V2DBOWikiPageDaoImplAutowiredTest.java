@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -1129,7 +1130,20 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
-	
+
+	@Test
+	public void lockForUpdateNonexistentWikiException(){
+		try {
+			// Lock for update on a WikiPage that should not exist.
+			wikiPageDao.lockForUpdate("123");
+			fail("Expected exception");
+		} catch (EmptyResultDataAccessException e) {
+			fail("Uncaught exception thrown by Spring");
+		} catch (NotFoundException e) {
+			// As expected.
+		}
+	}
+
 	// Just create versions with modified page title
 	private V2WikiPage createVersions(V2WikiPage page, String ownerId, ObjectType ownerType, int numVersions) {
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
