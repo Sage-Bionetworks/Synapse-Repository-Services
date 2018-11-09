@@ -1132,13 +1132,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void lockForUpdateNonexistentWikiException(){
+	public void lockForUpdateNonexistentWikiNotFoundException(){
 		try {
 			// Lock for update on a WikiPage that should not exist.
 			wikiPageDao.lockForUpdate("123");
 			fail("Expected exception");
-		} catch (EmptyResultDataAccessException e) {
-			fail("Uncaught exception thrown by Spring");
 		} catch (NotFoundException e) {
 			// As expected.
 		}
