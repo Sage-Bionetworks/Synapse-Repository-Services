@@ -683,7 +683,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		try {
 			currentEtag = jdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The wiki page to update could not be found.");
+			throw new NotFoundException("The wiki page to update could not be found.", e);
 		}
 		return currentEtag;
 	}
