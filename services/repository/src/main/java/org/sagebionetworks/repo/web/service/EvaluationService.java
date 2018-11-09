@@ -350,23 +350,9 @@ public interface EvaluationService {
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Creates a new ACL.
-	 */
-	public AccessControlList createAcl(Long userId, AccessControlList acl)
-			throws NotFoundException, DatastoreException, InvalidModelException,
-			UnauthorizedException, ConflictingUpdateException;
-
-	/**
 	 * Updates with the given ACL.
 	 */
 	public AccessControlList updateAcl(Long userId, AccessControlList acl)
-			throws NotFoundException, DatastoreException, InvalidModelException,
-			UnauthorizedException, ConflictingUpdateException;
-
-	/**
-	 * Deletes the ACL of the specified evaluation.
-	 */
-	public void deleteAcl(Long userId, String evalId)
 			throws NotFoundException, DatastoreException, InvalidModelException,
 			UnauthorizedException, ConflictingUpdateException;
 
