@@ -679,7 +679,13 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	@Override																	
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.
-		return jdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
+		String currentEtag;
+		try {
+			currentEtag = jdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("The wiki page to update could not be found.", e);
+		}
+		return currentEtag;
 	}
 	
 	/**
