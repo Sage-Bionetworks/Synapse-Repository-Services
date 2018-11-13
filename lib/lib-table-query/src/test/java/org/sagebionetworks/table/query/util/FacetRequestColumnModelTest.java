@@ -263,6 +263,26 @@ public class FacetRequestColumnModelTest {
 		assertEquals("(\"someColumn\" BETWEEN '123' AND '456')", searchConditionString);
 	}
 
+	@Test
+	public void testRangeSearchConditionStringMinIsNullValueKeyword(){
+		String min = TableConstants.NULL_VALUE_KEYWORD;
+		String max = "456";
+		facetRange.setMin(min);
+		facetRange.setMax(max);
+		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange);
+		assertEquals("(\"someColumn\" IS NULL)", searchConditionString);
+	}
+
+	@Test
+	public void testRangeSearchConditionStringMaxIsNullValueKeyword(){
+		String min = "123";
+		String max = TableConstants.NULL_VALUE_KEYWORD;
+		facetRange.setMin(min);
+		facetRange.setMax(max);
+		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange);
+		assertEquals("(\"someColumn\" IS NULL)", searchConditionString);
+	}
+
 	//////////////////////////////////////
 	// appendValueToStringBuilder() Tests
 	//////////////////////////////////////

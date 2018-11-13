@@ -9,8 +9,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
@@ -26,7 +24,6 @@ import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
@@ -43,9 +40,6 @@ public class DockerManagerImpl implements DockerManager {
 	
 	@Autowired
 	private DockerNodeDao dockerNodeDao;
-
-	@Autowired
-	IdGenerator idGenerator;
 
 	@Autowired
 	UserManager userManager;
@@ -158,11 +152,7 @@ public class DockerManagerImpl implements DockerManager {
 					entity.setParentId(parentId);
 					// Get the user
 					UserInfo userInfo = userManager.getUserInfo(userId);
-					// Create a new id for this entity
-					long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
-					entity.setId(KeyFactory.keyToString(newId));
-					entityManager.createEntity(userInfo, entity, null);
-					entityId =  KeyFactory.keyToString(newId);
+					entityId = entityManager.createEntity(userInfo, entity, null);
 					dockerNodeDao.createRepositoryName(entityId, repositoryName);
 				}
 				// Add commit to entity

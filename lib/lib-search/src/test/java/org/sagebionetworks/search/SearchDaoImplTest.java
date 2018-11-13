@@ -7,6 +7,7 @@ import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.collections.ArrayStack;
 import org.junit.Before;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.times;
 
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
@@ -69,6 +71,9 @@ public class SearchDaoImplTest {
 	@Spy
 	private SearchDaoImpl dao = new SearchDaoImpl(); //variable must be initialized here for Spy to work
 
+	@Captor
+	ArgumentCaptor<Iterator<Document>> iteratorArgumentCaptor;
+
 	private SearchResult searchResult;
 
 	private ArgumentCaptor<SearchRequest> requestArgumentCaptor;
@@ -97,7 +102,7 @@ public class SearchDaoImplTest {
 	public void testDeleteDocumentsEmptyIdSet(){
 		dao.deleteDocuments(new HashSet<>());
 		verify(mockCloudSearchClientProvider, never()).getCloudSearchClient();
-		verify(mockCloudSearchDomainClient, never()).sendDocuments(any());
+		verify(mockCloudSearchDomainClient, never()).sendDocuments(any(Iterator.class));
 	}
 
 	@Test
@@ -116,7 +121,9 @@ public class SearchDaoImplTest {
 		//method under test
 		dao.deleteDocuments(new LinkedHashSet<>(Arrays.asList(id1, id2)));
 
-		verify(dao, times(1)).createOrUpdateSearchDocument(Arrays.asList(expectedDoc1, expectedDoc2));
+
+		verify(dao, times(1)).sendDocuments(iteratorArgumentCaptor.capture());
+		assertEquals(Arrays.asList(expectedDoc1, expectedDoc2), Lists.newArrayList(iteratorArgumentCaptor.getValue()));
 	}
 
 	/////////////////////////////////////////
@@ -132,15 +139,7 @@ public class SearchDaoImplTest {
 	public void testCreateOrUpdateSearchDocumentSingleDocument(){
 		Document doc = new Document();
 		dao.createOrUpdateSearchDocument(doc);
-		verify(dao, times(1)).createOrUpdateSearchDocument(Collections.singletonList(doc));
-	}
-
-	@Test
-	public void testCreateOrUpdateSearchDocumentUsingList(){
-		List<Document> docList = new LinkedList<>();
-		dao.createOrUpdateSearchDocument(docList);
-		verify(mockCloudSearchClientProvider,times(1)).getCloudSearchClient();
-		verify(mockCloudSearchDomainClient, times(1)).sendDocuments(docList);
+		verify(mockCloudSearchDomainClient, times(1)).sendDocument(doc);
 	}
 
 	/////////////////////////

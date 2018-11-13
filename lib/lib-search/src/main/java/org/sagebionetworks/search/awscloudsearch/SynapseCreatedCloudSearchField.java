@@ -72,6 +72,11 @@ class SynapseCreatedCloudSearchField implements CloudSearchField{
 		return isReturned;
 	}
 
+	@Override
+	public IndexFieldType getType() {
+		return IndexFieldType.fromValue(this.indexField.getIndexFieldType());
+	}
+
 	IndexField getIndexField() {
 		return indexField.clone();
 	}

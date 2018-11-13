@@ -142,6 +142,8 @@ public class NodeManagerImplUnitTest {
 		annos.addAnnotation("key", "value");
 		
 		when(mockNodeDao.getAnnotations(any(String.class))).thenReturn(new NamedAnnotations());
+		
+		when(mockNodeDao.isNodeAvailable(any(String.class))).thenReturn(true);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -245,6 +247,23 @@ public class NodeManagerImplUnitTest {
 		assertNotNull(processedNode.getModifiedByPrincipalId());
 		// a child count check should occur
 		verify(mockNodeDao).getChildCount(parentId);
+	}
+	
+	@Test
+	public void testCreateNodeParentDoesNotExist() throws Exception {
+		String parenId = "syn123";
+		Node node = new Node();
+		node.setName("foo");
+		node.setParentId("syn123");
+		node.setNodeType(EntityType.folder);
+		when(mockNodeDao.isNodeAvailable(parenId)).thenReturn(false);
+		try {
+			// call under test
+			this.nodeManager.createNode(node, mockUserInfo);
+			fail();
+		} catch (NotFoundException e) {
+			assertTrue(e.getMessage().contains(parenId+" does not exist"));
+		}
 	}
 	
 	@Test(expected=UnauthorizedException.class)

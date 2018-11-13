@@ -259,7 +259,7 @@
 	
 	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>
 	
-	<bean id="fileProvider" class="org.sagebionetworks.repo.manager.migration.FileProviderImpl" scope="singleton"/>
+	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" scope="singleton"/>
 
 	<bean
 		id="migrationManager"
@@ -424,6 +424,9 @@
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
 		scope="singleton" />
+
+	<bean id="changeMessageToDocumentTranslator"
+		class="org.sagebionetworks.repo.manager.search.ChangeMessageToSearchDocumentTranslator"/>
 
 	<!-- Used to perform search and upload search documents-->
 	<bean id="searchManager"

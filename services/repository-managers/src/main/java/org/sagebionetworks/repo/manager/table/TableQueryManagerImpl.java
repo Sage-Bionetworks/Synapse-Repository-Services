@@ -8,7 +8,6 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.database.semaphore.Sql;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -19,9 +18,9 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -98,14 +97,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// run the query as a stream.
 			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, options);
 			// save the max rows per page.
-			bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
+			if(options.returnMaxRowsPerPage()) {
+				bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
+			}
+
 			// add captured rows to the bundle
 			if (options.runQuery()) {
 				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
 			}
+			int maxRowsPerPage = sqlQuery.getMaxRowsPerPage().intValue();
 			// add the next page token if needed
-			if (isRowCountEqualToMaxRowsPerPage(bundle)) {
-				int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
+			if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
 				long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
 				QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query.getSql(), query.getSort(),
 						nextOffset, query.getLimit(), query.getIsConsistent(), query.getSelectedFacets());
@@ -114,7 +116,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			return bundle;
 		} catch (EmptyResultException e) {
 			// return an empty result.
-			return createEmptyBundle(e.getTableId());
+			return createEmptyBundle(e.getTableId(), options);
 		}
 
 	}
@@ -271,8 +273,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
-		bundle.setColumnModels(query.getTableSchema());
-		bundle.setSelectColumns(query.getSelectColumns());
+		if(options.returnColumnModels()) {
+			bundle.setColumnModels(query.getTableSchema());
+		}
+		if(options.returnSelectColumns()) {
+			bundle.setSelectColumns(query.getSelectColumns());
+		}
 
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
 
@@ -348,12 +354,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param bundle
 	 * @return
 	 */
-	public static boolean isRowCountEqualToMaxRowsPerPage(QueryResultBundle bundle) {
+	public static boolean isRowCountEqualToMaxRowsPerPage(QueryResultBundle bundle, int maxRowsPerPage) {
 		if (bundle != null) {
 			if (bundle.getQueryResult() != null) {
 				if (bundle.getQueryResult().getQueryResults() != null) {
-					if (bundle.getMaxRowsPerPage() != null) {
-						int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
+					if(bundle.getQueryResult().getQueryResults().getRows() != null){
 						int resultSize = bundle.getQueryResult().getQueryResults().getRows().size();
 						return maxRowsPerPage == resultSize;
 					}
@@ -379,30 +384,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		ValidateArgument.required(queryBundle.getQuery(), "query");
 		ValidateArgument.required(queryBundle.getQuery().getSql(), "query.sql");
 		QueryOptions options = new QueryOptions().withMask(queryBundle.getPartMask());
-		QueryResultBundle bundle = new QueryResultBundle();
-
 		// execute the query
-		QueryResultBundle queryResult = querySinglePage(progressCallback, user, queryBundle.getQuery(),  options);
-
-		if (options.runQuery()) {
-			bundle.setQueryResult(queryResult.getQueryResult());
-		}
-		if (options.runCount()) {
-			bundle.setQueryCount(queryResult.getQueryCount());
-		}
-		if (options.returnFacets()) {
-			bundle.setFacets(queryResult.getFacets());
-		}
-		if (options.returnSelectColumns()) {
-			bundle.setSelectColumns(queryResult.getSelectColumns());
-		}
-		if (options.returnColumnModels()) {
-			bundle.setColumnModels(queryResult.getColumnModels());
-		}
-		if (options.returnMaxRowsPerPage()) {
-			bundle.setMaxRowsPerPage(queryResult.getMaxRowsPerPage());
-		}
-		return bundle;
+		return querySinglePage(progressCallback, user, queryBundle.getQuery(),  options);
 	}
 
 	/**
@@ -636,19 +619,35 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param tableId
 	 * @return
 	 */
-	public static QueryResultBundle createEmptyBundle(String tableId) {
+	public static QueryResultBundle createEmptyBundle(String tableId, QueryOptions options) {
 		QueryResult result = new QueryResult();
 		QueryResultBundle bundle = new QueryResultBundle();
-		RowSet emptyRowSet = new RowSet();
-		emptyRowSet.setRows(new LinkedList<Row>());
-		emptyRowSet.setTableId(tableId);
-		emptyRowSet.setHeaders(new LinkedList<SelectColumn>());
-		result.setQueryResults(emptyRowSet);
-		bundle.setQueryResult(result);
-		bundle.setQueryCount(0L);
-		bundle.setColumnModels(new LinkedList<ColumnModel>());
-		bundle.setMaxRowsPerPage(1L);
-		bundle.setSelectColumns(new LinkedList<SelectColumn>());
+		if(options.runQuery()) {
+			RowSet emptyRowSet = new RowSet();
+			emptyRowSet.setRows(new LinkedList<Row>());
+			emptyRowSet.setTableId(tableId);
+			emptyRowSet.setHeaders(new LinkedList<SelectColumn>());
+			result.setQueryResults(emptyRowSet);
+			bundle.setQueryResult(result);
+		}
+		if(options.runCount()) {
+			bundle.setQueryCount(0L);
+		}
+		if(options.returnSelectColumns()) {
+			bundle.setSelectColumns(new LinkedList<SelectColumn>());
+		}
+		if(options.returnColumnModels()) {
+			bundle.setColumnModels(new LinkedList<ColumnModel>());
+		}
+		if(options.returnMaxRowsPerPage()) {
+			bundle.setMaxRowsPerPage(1L);
+		}
+		if(options.runSumFileSizes()) {
+			SumFileSizes sum = new SumFileSizes();
+			sum.setGreaterThan(false);
+			sum.setSumFileSizesBytes(0L);
+			bundle.setSumFileSizes(sum);
+		}
 		return bundle;
 	}
 
