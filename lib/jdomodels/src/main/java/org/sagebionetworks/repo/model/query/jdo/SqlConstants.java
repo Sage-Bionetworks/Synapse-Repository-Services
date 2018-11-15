@@ -561,6 +561,17 @@ public class SqlConstants {
 	public static final String COL_DOWNLOAD_ORDER_FILES_BLOB		= "FILES_BLOB";
 	public static final String DDL_DOWNLOAD_ORDER					= "schema/DownloadOrder-ddl.sql";
 	
+	// Data type
+	public static final String TABLE_DATA_TYPE				= "DATA_TYPE";
+	public static final String COL_DATA_TYPE_ID 			= "ID";
+	public static final String COL_DATA_TYPE_OBJECT_ID 		= "OBJECT_ID";
+	public static final String COL_DATA_TYPE_OBJECT_TYPE 	= "OBJECT_TYPE";
+	public static final String COL_DATA_TYPE_TYPE			= "DATA_TYPE";
+	public static final String COL_DATA_TYPE_UPDATED_ON 	= "UPDATED_ON";
+	public static final String COL_DATA_TYPE_UPDATED_BY 	= "UPDATED_BY";
+	public static final String DDL_DATA_TYPE				= "schema/DataType-ddl.sql";
+			
+	
 	// The alias used for the dataset table.
 	public static final String NODE_ALIAS					= "nod";
 	public static final String REVISION_ALIAS				= "rev";

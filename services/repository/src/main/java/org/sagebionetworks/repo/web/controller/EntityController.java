@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -1548,6 +1550,29 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody(required=true) EntityLookupRequest request){
 		return serviceProvider.getEntityService().lookupChild(userId, request);
+	}
+	
+	/**
+	 * Change the <a href="${org.sagebionetworks.repo.model.DataType}" >DataType</a>
+	 * of the given entity. The entity's DataType controls how the entity can be
+	 * accessed. For example, an entity's DataType must be set to 'open_data' in
+	 * order for anonymous to be allowed to access its contents.
+	 * 
+	 * <p>
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team'
+	 * (id=464532) change an Entity's type to 'open_data'. The caller must be grated
+	 * UPDATED on the Entity to change the Entity's DataType to 'sensitive_data'.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param dataType
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_DATA_TYPE }, method = RequestMethod.PUT)
+	public DataTypeResponse changeEntityDataType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestParam(value = "type") DataType dataType) {
+		return serviceProvider.getEntityService().changeEntityDataType(userId, id, dataType);
 	}
 }
 

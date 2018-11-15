@@ -178,6 +178,7 @@ public class TableWorkerIntegrationTest {
 	private TrashManager trashManager;
 
 	private UserInfo adminUserInfo;
+	private UserInfo anonymousUser;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
 	List<String> headers;
@@ -202,6 +203,7 @@ public class TableWorkerIntegrationTest {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
@@ -2179,6 +2181,28 @@ public class TableWorkerIntegrationTest {
 		// call under test (this type of query would fail)
 		QueryResult results = waitForConsistentQuery(adminUserInfo, query, queryOptions);
 		assertNotNull(results);
+	}
+	
+	@Test
+	public void testPLFM_5240() throws Exception {
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		// make the table public read
+		AccessControlList acl = entityPermissionsManager.getACL(projectId, adminUserInfo);
+		acl.setId(tableId);
+		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		acl = entityPermissionsManager.getACL(tableId, adminUserInfo);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		acl.getResourceAccess().add(ra);
+		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		// Wait for the table to become available
+		String sql = "select row_id from " + tableId;
+		query.setSql(sql);
+		query.setLimit(8L);
+		QueryResult queryResult = waitForConsistentQuery(anonymousUser, query, queryOptions);
+		assertNotNull(queryResult);
 	}
 	
 	/**

@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -60,6 +63,8 @@ public class EntityManagerImpl implements EntityManager {
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	ObjectTypeManager objectTypeManager;
 	
 	boolean allowCreationOfOldEntities = true;
 	
@@ -639,5 +644,13 @@ public class EntityManagerImpl implements EntityManager {
 		EntityId result = new EntityId();
 		result.setId(entityId);
 		return result;
+	}
+
+	@Override
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(dataType, "DataType");
+		return objectTypeManager.changeObjectsDataType(userInfo, id, ObjectType.ENTITY, dataType);
 	}
 }
