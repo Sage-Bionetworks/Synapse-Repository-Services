@@ -48,9 +48,11 @@ import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -2183,11 +2185,61 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(results);
 	}
 	
+	/**
+	 * Anonymous cannot query a sensitive table.
+	 * @throws Exception
+	 */
 	@Test
-	public void testPLFM_5240() throws Exception {
+	public void testPLFM_5240Sensitive() throws Exception {
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		grantReadToPublicOnTable();
+		
+		// Set the table to be sensitive
+		DataType dataType = DataType.SENSITIVE_DATA;
+		entityManager.changeEntityDataType(adminUserInfo, tableId, dataType);
+		
+		// Wait for the table to become available
+		String sql = "select row_id from " + tableId;
+		query.setSql(sql);
+		query.setLimit(8L);
+		try {
+			// cannot query a sensitive data table
+			waitForConsistentQuery(anonymousUser, query, queryOptions);
+			fail();
+		} catch (UnauthorizedException e) {
+			// expected
+		}
+	}
+	
+	/**
+	 * Anonymous can query a OPEN_DATA table if PUBLIC is granted READ.
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_5240Open() throws Exception {
 		createSchemaOneOfEachType();
 		createTableWithSchema();
 		// make the table public read
+		grantReadToPublicOnTable();
+		
+		// Set the table to be open
+		DataType dataType = DataType.OPEN_DATA;
+		entityManager.changeEntityDataType(adminUserInfo, tableId, dataType);
+		
+		// Wait for the table to become available
+		String sql = "select row_id from " + tableId;
+		query.setSql(sql);
+		query.setLimit(8L);
+		QueryResult results = waitForConsistentQuery(anonymousUser, query, queryOptions);
+		assertNotNull(results);
+	}
+
+	/**
+	 * Helper to grant the read permission to PUBLIC for the current table.
+	 * @throws ACLInheritanceException
+	 */
+	void grantReadToPublicOnTable() throws ACLInheritanceException {
 		AccessControlList acl = entityPermissionsManager.getACL(projectId, adminUserInfo);
 		acl.setId(tableId);
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
@@ -2197,12 +2249,6 @@ public class TableWorkerIntegrationTest {
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
 		acl.getResourceAccess().add(ra);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
-		// Wait for the table to become available
-		String sql = "select row_id from " + tableId;
-		query.setSql(sql);
-		query.setLimit(8L);
-		QueryResult queryResult = waitForConsistentQuery(anonymousUser, query, queryOptions);
-		assertNotNull(queryResult);
 	}
 	
 	/**

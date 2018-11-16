@@ -16,5 +16,13 @@ public interface ObjectTypeManager {
 	 * @return
 	 */
 	DataTypeResponse changeObjectsDataType(UserInfo userInfo, String objectId, ObjectType objectType, DataType dataType);
+	
+	/**
+	 * Get the {@link DataType} for the given Object ID and ObjectType.
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	DataType getObjectsDataType(String objectId, ObjectType objectType);
 
 }

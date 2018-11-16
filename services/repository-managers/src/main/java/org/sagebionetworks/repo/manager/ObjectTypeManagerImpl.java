@@ -42,4 +42,9 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 		return dataTypeDao.changeDataType(userInfo.getId(), objectId, objectType, dataType);
 	}
 
+	@Override
+	public DataType getObjectsDataType(String objectId, ObjectType objectType) {
+		return dataTypeDao.getObjectDataType(objectId, objectType);
+	}
+
 }
