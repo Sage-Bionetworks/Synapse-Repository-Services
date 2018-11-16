@@ -24,13 +24,17 @@ public class DataTypeDaoImplTest {
 
 	@Autowired
 	DataTypeDao dataTypeDao;
-	
-	@Autowired 
+
+	@Autowired
 	UserGroupDAO userGroupDAO;
-	
+
 	Long userId;
 	Long userIdTwo;
-	
+
+	String objectId;
+	ObjectType objectType;
+	DataType dataType;
+
 	@Before
 	public void before() {
 		dataTypeDao.truncateAllData();
@@ -40,18 +44,19 @@ public class DataTypeDaoImplTest {
 		ug.setCreationDate(new Date());
 		userId = userGroupDAO.create(ug);
 		userIdTwo = userGroupDAO.create(ug);
+
+		objectId = "syn123";
+		objectType = ObjectType.ENTITY;
+		dataType = DataType.OPEN_DATA;
 	}
-	
+
 	@After
 	public void after() {
 		dataTypeDao.truncateAllData();
 	}
-	
+
 	@Test
 	public void testCreate() {
-		String objectId = "syn123";
-		ObjectType objectType = ObjectType.ENTITY;
-		DataType dataType = DataType.OPEN_DATA;
 		// call under test
 		DataTypeResponse response = dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
 		assertNotNull(response);
@@ -61,11 +66,9 @@ public class DataTypeDaoImplTest {
 		assertEquals(userId.toString(), response.getUpdatedBy());
 		assertNotNull(response.getUpdatedOn());
 	}
-	
+
 	@Test
 	public void testUpdate() throws InterruptedException {
-		String objectId = "syn123";
-		ObjectType objectType = ObjectType.ENTITY;
 		// call under test
 		DataTypeResponse one = dataTypeDao.changeDataType(userId, objectId, objectType, DataType.OPEN_DATA);
 		assertNotNull(one);
@@ -82,4 +85,63 @@ public class DataTypeDaoImplTest {
 		assertNotNull(one.getUpdatedOn().getTime() < two.getUpdatedOn().getTime());
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testChangeDataTypeNullUserId() {
+		userId = null;
+		// call under test
+		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testChangeDataTypeNullObjectId() {
+		objectId = null;
+		// call under test
+		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testChangeDataTypeNullObjectType() {
+		objectType = null;
+		// call under test
+		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testChangeDataTypeNullDataType() {
+		dataType = null;
+		// call under test
+		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+	}
+
+	@Test
+	public void testGetObjectDataType() {
+		// setup a type.
+		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		// call under test
+		DataType resultType = dataTypeDao.getObjectDataType(objectId, objectType);
+		assertEquals(dataType, resultType);
+	}
+	
+	@Test
+	public void testGetObjectDataTypeDoesNotExist() {
+		// call under test
+		DataType resultType = dataTypeDao.getObjectDataType(objectId, objectType);
+		assertEquals(DataTypeDaoImpl.DEFAULT_DATA_TYPE, resultType);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetObjectDataTypeNullObjectId() {
+		objectId = null;
+		// call under test
+		dataTypeDao.getObjectDataType(objectId, objectType);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetObjectDataTypeNullObjectType() {
+		objectType = null;
+		// call under test
+		dataTypeDao.getObjectDataType(objectId, objectType);
+	}
+
+
 }

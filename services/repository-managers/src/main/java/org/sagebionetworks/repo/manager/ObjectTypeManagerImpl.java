@@ -36,7 +36,7 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 		}else {
 			// must have the update permission.
 			if (!authorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE).getAuthorized()) {
-				throw new UnauthorizedException("Must have "+ACCESS_TYPE.UPDATE+" permssion to change an object's DataType to : "+dataType.name());
+				throw new UnauthorizedException("Must have "+ACCESS_TYPE.UPDATE+" permission to change an object's DataType to : "+dataType.name());
 			}
 		}
 		return dataTypeDao.changeDataType(userInfo.getId(), objectId, objectType, dataType);

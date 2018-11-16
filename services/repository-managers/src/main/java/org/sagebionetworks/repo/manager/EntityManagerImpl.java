@@ -647,10 +647,10 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType) {
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String entityId, DataType dataType) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(id, "id");
+		ValidateArgument.required(entityId, "id");
 		ValidateArgument.required(dataType, "DataType");
-		return objectTypeManager.changeObjectsDataType(userInfo, id, ObjectType.ENTITY, dataType);
+		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
 	}
 }
