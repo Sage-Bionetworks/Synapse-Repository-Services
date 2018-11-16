@@ -28,18 +28,22 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.ObjectTypeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -67,11 +71,11 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableManagerSupportTest {
 
 	@Mock
@@ -98,11 +102,15 @@ public class TableManagerSupportTest {
 	ProgressCallback mockCallback;
 	@Mock
 	ReplicationMessageManager mockReplicationMessageManager;
+	@Mock
+	ObjectTypeManager mockObjectTypeManager;
 	
+	@InjectMocks
+	TableManagerSupportImpl manager;
 	
 	String schemaMD5Hex;
 	
-	TableManagerSupportImpl manager;
+
 	String tableId;
 	Long tableIdLong;
 	TableStatus status;
@@ -116,21 +124,6 @@ public class TableManagerSupportTest {
 	
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		
-		manager = new TableManagerSupportImpl();
-		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
-		ReflectionTestUtils.setField(manager, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(manager, "columnModelDao",
-				mockColumnModelDao);
-		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
-		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "replicationMessageManager", mockReplicationMessageManager);
-		
 		callableReturn = 123;
 		
 		userInfo = new UserInfo(false, 8L);
@@ -667,7 +660,8 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testValidateTableReadAccessTableEntity(){
+	public void testValidateTableReadAccessTableEntitySensitiveData(){
+		when(mockObjectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY)).thenReturn(DataType.SENSITIVE_DATA);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
@@ -676,6 +670,21 @@ public class TableManagerSupportTest {
 		assertEquals(EntityType.table, type);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockObjectTypeManager).getObjectsDataType(tableId, ObjectType.ENTITY);
+	}
+	
+	@Test
+	public void testValidateTableReadAccessTableEntityOpenData(){
+		when(mockObjectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY)).thenReturn(DataType.OPEN_DATA);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		//  call under test
+		EntityType type = manager.validateTableReadAccess(userInfo, tableId);
+		assertEquals(EntityType.table, type);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockObjectTypeManager).getObjectsDataType(tableId, ObjectType.ENTITY);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

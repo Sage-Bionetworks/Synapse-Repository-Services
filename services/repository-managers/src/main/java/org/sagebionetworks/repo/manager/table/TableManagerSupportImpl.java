@@ -15,9 +15,11 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.ObjectTypeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -114,6 +116,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	AuthorizationManager authorizationManager;
 	@Autowired
 	ReplicationMessageManager replicationMessageManager;
+	@Autowired
+	ObjectTypeManager objectTypeManager;
 	
 	/*
 	 * Cache of default ColumnModels for views.  Once created, these columns will not change
@@ -449,21 +453,21 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public EntityType validateTableReadAccess(UserInfo userInfo, String tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		// They must have read permission to access table content.
-		AuthorizationManagerUtil
-				.checkAuthorizationAndThrowException(authorizationManager
-						.canAccess(userInfo, tableId, ObjectType.ENTITY,
-								ACCESS_TYPE.READ));
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 
 		// Lookup the entity type for this table.
 		EntityType entityTpe = getTableEntityType(tableId);
 		ObjectType type = getObjectTypeForEntityType(entityTpe);
 		// User must have the download permission to read from a TableEntity.
-		if(ObjectType.TABLE.equals(type)){
-			// And they must have download permission to access table content.
-			AuthorizationManagerUtil
-					.checkAuthorizationAndThrowException(authorizationManager
-							.canAccess(userInfo, tableId, ObjectType.ENTITY,
-									ACCESS_TYPE.DOWNLOAD));
+		if (ObjectType.TABLE.equals(type)) {
+			// If the table's DataType is not OPEN then the caller must have the download permission (see PLFM-5240).
+			if (!DataType.OPEN_DATA.equals(objectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY))) {
+				// And they must have download permission to access table content.
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+			}
+
 		}
 		return entityTpe;
 	}
