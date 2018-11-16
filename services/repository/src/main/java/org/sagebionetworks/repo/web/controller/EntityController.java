@@ -1560,8 +1560,8 @@ public class EntityController extends BaseController {
 	 * 
 	 * <p>
 	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team'
-	 * (id=464532) change an Entity's type to 'open_data'. The caller must be grated
-	 * UPDATED on the Entity to change the Entity's DataType to 'sensitive_data'.
+	 * (id=464532) in order to change an Entity's type to 'OPEN_DATA'. The caller must be grated
+	 * UPDATED on the Entity to change the its type to any other value.
 	 * </p>
 	 * 
 	 * @param userId
@@ -1570,7 +1570,7 @@ public class EntityController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_DATA_TYPE }, method = RequestMethod.PUT)
-	public DataTypeResponse changeEntityDataType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody DataTypeResponse changeEntityDataType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestParam(value = "type") DataType dataType) {
 		return serviceProvider.getEntityService().changeEntityDataType(userId, id, dataType);
 	}
