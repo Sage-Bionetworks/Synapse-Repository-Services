@@ -41,7 +41,7 @@ public class ObjectTypeManagerImplTest {
 
 	@Before
 	public void before() {
-
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(false);
 		boolean isAuthorized = true;
 		when(mockAuthStatus.getAuthorized()).thenReturn(isAuthorized);
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class),
