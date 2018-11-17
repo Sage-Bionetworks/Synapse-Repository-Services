@@ -9,7 +9,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -123,7 +125,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * Cache of default ColumnModels for views.  Once created, these columns will not change
 	 * and will be the same across the cluster.
 	 */
-	Map<EntityField, ColumnModel> defaultColumnCache = Collections.synchronizedMap(new HashMap<EntityField, ColumnModel>());
+	Map<EntityField, ColumnModel> defaultColumnCache = Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.HOURS));
 	
 	/*
 	 * (non-Javadoc)
@@ -499,6 +501,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ColumnModel model = defaultColumnCache.get(field);
 		if(model == null){
 			// not in the cache so create the column.
+			// this call is idempotent so we won't end up creating multiple ColumnModels with same configuration
 			model = columnModelDao.createColumnModel(field.getColumnModel());
 			defaultColumnCache.put(field, model);
 		}
