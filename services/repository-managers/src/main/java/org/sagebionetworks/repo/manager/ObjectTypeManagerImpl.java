@@ -27,13 +27,12 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "ObjectType");
 		ValidateArgument.required(dataType, "DataType");
-		
-		if(DataType.OPEN_DATA.equals(dataType)) {
-			// must be an ACT member
-			if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		// Any member of the ACT can change any object's type.
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			// Open data can only be set by a member of the ACT
+			if(DataType.OPEN_DATA.equals(dataType)) {
 				throw new UnauthorizedException("Must be a member of the 'Synapse Access and Compliance Team' to change an object's DataType to: "+DataType.OPEN_DATA.name());
 			}
-		}else {
 			// must have the update permission.
 			if (!authorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE).getAuthorized()) {
 				throw new UnauthorizedException("Must have "+ACCESS_TYPE.UPDATE+" permission to change an object's DataType to : "+dataType.name());

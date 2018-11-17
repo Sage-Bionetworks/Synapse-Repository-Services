@@ -74,7 +74,7 @@ public class ObjectTypeManagerImplTest {
 		assertEquals(defaultResponse, returnedResponse);
 		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType);
 		verify(mockAuthorizationManager).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE);
-		verify(mockAuthorizationManager, never()).isACTTeamMemberOrAdmin(any(UserInfo.class));
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(any(UserInfo.class));
 	}
 
 	@Test
@@ -90,16 +90,31 @@ public class ObjectTypeManagerImplTest {
 		}
 		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class), any(DataType.class));
 		verify(mockAuthorizationManager).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE);
-		verify(mockAuthorizationManager, never()).isACTTeamMemberOrAdmin(any(UserInfo.class));
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(any(UserInfo.class));
 	}
 	
 	/**
 	 * Must be an ACT member to set an Object's type to DataType.OPEN_DATA
 	 */
 	@Test
-	public void testChangeObjectsDataTypeOpen() {
+	public void testChangeObjectsDataTypeOpenAsACT() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(true);
 		dataType = DataType.OPEN_DATA;
+		// call under test
+		DataTypeResponse returnedResponse = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
+		assertEquals(defaultResponse, returnedResponse);
+		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType);
+		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
+	}
+	
+	/**
+	 * Must be an ACT member to set an Object's type to DataType.OPEN_DATA
+	 */
+	@Test
+	public void testChangeObjectsDataTypeSensitiveAsACT() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(true);
+		dataType = DataType.SENSITIVE_DATA;
 		// call under test
 		DataTypeResponse returnedResponse = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
 		assertEquals(defaultResponse, returnedResponse);
