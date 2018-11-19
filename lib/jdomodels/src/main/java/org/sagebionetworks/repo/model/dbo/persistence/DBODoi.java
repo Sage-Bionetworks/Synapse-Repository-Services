@@ -173,13 +173,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new BasicMigratableTableTranslation<DBODoi>() {
-			@Override
-			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-				// Initialize updated fields to match the created fields
-				return DBODoi.createDatabaseObjectFromBackup(backup);
-			}
-		};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override
@@ -195,13 +189,6 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
-	}
-
-	private static DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-		if (backup.updatedBy == null) {
-			backup.setUpdatedBy(backup.createdBy);
-		}
-		return backup;
 	}
 }
 
