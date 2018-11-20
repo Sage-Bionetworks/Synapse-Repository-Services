@@ -93,7 +93,7 @@ public class DockerManagerImplAutowiredTest {
 		assertNotNull(createdEntityId);
 
 		PaginatedResults<DockerCommit> pgs = 
-				dockerManager.listDockerCommits(adminUserInfo, createdEntityId, 
+				dockerManager.listDockerTags(adminUserInfo, createdEntityId,
 						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0);
 		
 		assertEquals(1L, pgs.getTotalNumberOfResults());
@@ -119,7 +119,7 @@ public class DockerManagerImplAutowiredTest {
 		dockerManager.addDockerCommitToUnmanagedRespository(adminUserInfo, entityId, commit);
 		
 		PaginatedResults<DockerCommit> pgs = 
-				dockerManager.listDockerCommits(adminUserInfo, entityId, 
+				dockerManager.listDockerTags(adminUserInfo, entityId,
 						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0);
 		
 		assertEquals(1L, pgs.getTotalNumberOfResults());
