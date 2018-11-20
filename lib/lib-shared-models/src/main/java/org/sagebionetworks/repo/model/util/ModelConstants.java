@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,7 +32,15 @@ public class ModelConstants {
 	public static final Set<ACCESS_TYPE> EVALUATION_ADMIN_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 			Arrays.asList(CREATE, READ, SUBMIT, READ_PRIVATE_SUBMISSION, UPDATE_SUBMISSION, 
 					CHANGE_PERMISSIONS, UPDATE, DELETE, DELETE_SUBMISSION));
-	
+
+	// Suggested permissions that may be granted to the public/anonymous user on evaluations
+	public static final Set<ACCESS_TYPE> EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
+			Collections.singletonList(READ));
+
+	// Suggested permissions that may be granted to all authorized Synapse users on evaluations
+	public static final Set<ACCESS_TYPE> EVALUATION_AUTH_USERS_MAXIMUM_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
+			Arrays.asList(READ, SUBMIT));
+
 	public static final Set<ACCESS_TYPE> TEAM_ADMIN_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 		Arrays.asList(READ, 
 		SEND_MESSAGE, 
