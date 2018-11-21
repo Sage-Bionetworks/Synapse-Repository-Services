@@ -325,5 +325,8 @@
 		
 	<bean id="bulkDownloadDao"
 		class="org.sagebionetworks.repo.model.dbo.file.download.BulkDownloadDAOImpl"/>
+		
+	<bean id="dataTypeDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DataTypeDaoImpl"/>
 	
 </beans>

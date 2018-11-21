@@ -315,6 +315,10 @@
 			"description": "Historical record of files download by users."
 		},
 		{
+			"name": "DATA_TYPE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

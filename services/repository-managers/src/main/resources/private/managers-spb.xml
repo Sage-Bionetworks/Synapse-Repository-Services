@@ -524,4 +524,8 @@
 		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"
 		scope="singleton" />
 
+	<bean id="objectTypeManager"
+		class="org.sagebionetworks.repo.manager.ObjectTypeManagerImpl"
+		scope="singleton" />
+
 </beans>

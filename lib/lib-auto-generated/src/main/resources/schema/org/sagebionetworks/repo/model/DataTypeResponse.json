@@ -1,0 +1,26 @@
+{
+	"description": "Response for an Object's DataType.",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The ID of the object."
+		},
+		"objectType": {
+			"description": "The type of the object.",
+			"$ref": "org.sagebionetworks.repo.model.ObjectType"
+		},
+		"dataType": {
+			"description": "The current DataType of the object.",
+			"$ref": "org.sagebionetworks.repo.model.DataType"
+		},
+		"updatedBy": {
+			"type": "string",
+			"description": "The user that last updated this object's DataType."
+		},
+		"updatedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this object's DataType was last updated."
+		}
+	}
+}

@@ -35,6 +35,8 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -186,6 +188,12 @@ public class IT100TableControllerTest {
 		// now create a table entity
 		TableEntity table = createTable(Lists.newArrayList(one.getId(), two.getId()));
 		String tableId = table.getId();
+		
+		// Set the table's type to sensitive (add with PLFM-5240)
+		DataType dataType = DataType.SENSITIVE_DATA;
+		DataTypeResponse typeResponse = synapse.changeEntitysDataType(tableId, dataType);
+		assertNotNull(typeResponse);
+		assertEquals(dataType, typeResponse.getDataType());
 		
 		assertNotNull(table);
 		assertNotNull(table.getId());

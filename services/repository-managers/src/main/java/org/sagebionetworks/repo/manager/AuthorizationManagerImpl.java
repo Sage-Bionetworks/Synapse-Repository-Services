@@ -327,7 +327,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
-		if(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID)) return true;
+		if(userInfo.getGroups() != null) {
+			if(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID)) return true;
+		}
 		return false;
 	}
 	
