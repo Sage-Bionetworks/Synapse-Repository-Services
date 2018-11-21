@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -110,7 +111,32 @@ public class DockerCommitDaoImplTest {
 		assertFalse(newNodeEtag.equals(otherRepository.getETag()));
 		assertFalse(createdOn.equals(otherRepository.getModifiedOn()));
 	}
-	
+
+	@Test
+	public void createDockerCommitMissingTag() {
+		assertEquals(0, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));
+		
+		Date createdOn = new Date();
+		String digest = "sha256:abcdef0123456789";
+		String tag = null;
+		DockerCommit commit = createCommit(createdOn, tag, digest);
+		String newNodeEtag = dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, commit);
+		assertNotNull(newNodeEtag);
+
+		List<DockerCommit> commits = dockerCommitDao.listCommitsByOwnerAndDigest(
+				dockerRepository1.getId(), digest);
+
+		assertEquals(1, commits.size());
+		assertEquals(commit, commits.get(0));
+
+		// make sure we've affected the node correctly
+		Node retrievedRepo = nodeDao.getNode(dockerRepository1.getId());
+		assertNotEquals(newNodeEtag, dockerRepository1.getETag());
+		assertEquals(newNodeEtag, retrievedRepo.getETag());
+		assertEquals(createdOn, retrievedRepo.getModifiedOn());
+		assertEquals(creatorUserGroupId, retrievedRepo.getModifiedByPrincipalId());
+	}
+
 	@Test
 	public void testListDockerCommitsSortedBy() throws Exception {
 		long now = System.currentTimeMillis();
@@ -221,10 +247,6 @@ public class DockerCommitDaoImplTest {
 		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), 101L, createCommit(null, "a", UUID.randomUUID().toString()));
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testCreateDockerCommitsMissingTag() {
-		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), 101L, createCommit(new Date(), null, UUID.randomUUID().toString()));
-	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDockerCommitsMissingDigest() {

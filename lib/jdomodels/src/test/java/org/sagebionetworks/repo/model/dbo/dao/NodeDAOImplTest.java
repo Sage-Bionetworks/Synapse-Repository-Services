@@ -290,6 +290,180 @@ public class NodeDAOImplTest {
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 	}
 	
+	/**
+	 * Cases where all of the optionally fields are null.
+	 */
+	@Test
+	public void testCreateNodeOptionalNull() {
+		Node node = new Node();
+		node.setName("name");
+		node.setCreatedByPrincipalId(creatorUserGroupId);
+		node.setModifiedByPrincipalId(creatorUserGroupId);
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType(EntityType.folder);
+		node.setId(null);
+		node.setActivityId(null);
+		node.setAlias(null);
+		node.setColumnModelIds(null);
+		node.setScopeIds(null);
+		node.setETag(null);
+		node.setParentId(null);
+		node.setReference(null);
+		node.setFileHandleId(null);
+		node.setVersionComment(null);
+		node.setVersionLabel(null);
+		node.setVersionNumber(null);
+		// call under test
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		assertNotNull(node.getId());
+		assertEquals(null, node.getAlias());
+		assertEquals(null, node.getActivityId());
+		assertEquals(null, node.getColumnModelIds());
+		assertEquals(null, node.getScopeIds());
+		assertNotNull(node.getETag());
+		assertEquals(null, node.getParentId());
+		assertEquals(null, node.getReference());
+		assertEquals(null, node.getFileHandleId());
+		assertEquals(null, node.getVersionComment());
+		assertEquals(NodeConstants.DEFAULT_VERSION_LABEL, node.getVersionLabel());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, node.getVersionNumber());
+	}
+	
+	@Test
+	public void testCreateNodeOptionalNotNull() {
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		
+		Node node = new Node();
+		node.setName("name");
+		node.setCreatedByPrincipalId(creatorUserGroupId);
+		node.setModifiedByPrincipalId(creatorUserGroupId);
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType(EntityType.project);
+		node.setId("syn123");
+		node.setActivityId(testActivity.getId());
+		node.setAlias("someAlias");
+		node.setColumnModelIds(Lists.newArrayList("111","222"));
+		node.setScopeIds(Lists.newArrayList("333","444"));
+		node.setETag("not the real etag");
+		node.setParentId(parent.getId());
+		Reference ref = new Reference();
+		ref.setTargetId(parent.getId());
+		ref.setTargetVersionNumber(0L);
+		node.setReference(ref);
+		node.setFileHandleId(this.fileHandle.getId());
+		node.setVersionComment("a comment");
+		node.setVersionLabel(" a label");
+		node.setVersionNumber(12L);
+		// call under test
+		Node afterCreate = nodeDao.createNewNode(node);
+		toDelete.add(afterCreate.getId());
+		assertNotNull(afterCreate.getId());
+		assertEquals(node.getAlias(), afterCreate.getAlias());
+		assertEquals(node.getActivityId(), afterCreate.getActivityId());
+		assertEquals(node.getColumnModelIds(), afterCreate.getColumnModelIds());
+		assertEquals(node.getScopeIds(), afterCreate.getScopeIds());
+		assertFalse(afterCreate.getETag().equals(node.getETag()));
+		assertEquals(node.getParentId(), afterCreate.getParentId());
+		assertEquals(node.getReference(), afterCreate.getReference());
+		assertEquals(node.getFileHandleId(), afterCreate.getFileHandleId());
+		assertEquals(node.getVersionComment(), afterCreate.getVersionComment());
+		assertEquals(node.getVersionLabel(), afterCreate.getVersionLabel());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, afterCreate.getVersionNumber());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNodeNull() {
+		Node node = null;
+		// call under test
+		nodeDao.createNewNode(node);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNodeNullCreatedBy() {
+		Node node = new Node();
+		node.setName("name");
+		node.setCreatedByPrincipalId(null);
+		node.setModifiedByPrincipalId(creatorUserGroupId);
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType(EntityType.folder);
+		// call under test
+		nodeDao.createNewNode(node);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNodeNullCreatedOn() {
+		Node node = new Node();
+		node.setName("name");
+		node.setCreatedByPrincipalId(creatorUserGroupId);
+		node.setModifiedByPrincipalId(null);
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType(EntityType.folder);
+		// call under test
+		nodeDao.createNewNode(node);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNodeNullModifiedBy() {
+		Node node = new Node();
+		node.setName("name");
+		node.setCreatedByPrincipalId(creatorUserGroupId);
+		node.setModifiedByPrincipalId(creatorUserGroupId);
+		node.setCreatedOn(null);
+		node.setModifiedOn(new Date(System.currentTimeMillis()));
+		node.setNodeType(EntityType.folder);
+		// call under test
+		nodeDao.createNewNode(node);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNodeNullModifiedOn() {
+		Node node = new Node();
+		node.setName("name");
+		node.setCreatedByPrincipalId(creatorUserGroupId);
+		node.setModifiedByPrincipalId(creatorUserGroupId);
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(null);
+		node.setNodeType(EntityType.folder);
+		// call under test
+		nodeDao.createNewNode(node);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNodeNullType() {
+		Node node = new Node();
+		node.setName("name");
+		node.setCreatedByPrincipalId(creatorUserGroupId);
+		node.setModifiedByPrincipalId(creatorUserGroupId);
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType(null);
+		// call under test
+		nodeDao.createNewNode(node);
+	}
+	
+	@Test
+	public void testBootstrapNode() {
+		// start with a unique ID
+		Long lastId = this.idGenerator.generateNewId(IdType.ENTITY_ID);
+		Long boostrapId = new Long(lastId+2);
+		Node node  = NodeTestUtils.createNew("foo", creatorUserGroupId);
+		// call under test
+		node = nodeDao.bootstrapNode(node, boostrapId);
+		assertNotNull(node);
+		toDelete.add(node.getId());
+		assertEquals(boostrapId, KeyFactory.stringToKey(node.getId()));
+		// the provided ID should be reserved so the next Id should be larger
+		Long nextId = this.idGenerator.generateNewId(IdType.ENTITY_ID);
+		assertEquals(new Long(boostrapId+1), nextId);
+	}
+	
 	@Test (expected=NotFoundException.class)
 	public void testGetNodeNotFound(){
 		nodeDao.getNode("syn123");
@@ -370,23 +544,6 @@ public class NodeDAOImplTest {
 		assertTrue(nodeDao.doesNodeExist(nodeId));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateWithExistingId() throws Exception{
-		Node toCreate = privateCreateNew("secondNodeEver");
-		toCreate.setVersionComment("This is the first version of the first node ever!");
-		toCreate.setVersionLabel("0.0.1");
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
-		// Now create another node using this id.
-		Node duplicate = privateCreateNew("should never exist");
-		duplicate.setId(id);
-		// This should throw an exception.
-		String id2 = nodeDao.createNew(duplicate);
-		toDelete.add(id2);
-		assertNotNull(id2);;
-	}
-	
 	@Test
 	public void testCreateWithDuplicateName() throws Exception{
 		String commonName = "name";
@@ -436,35 +593,6 @@ public class NodeDAOImplTest {
 			assertTrue(e.getMessage().indexOf("The friendly url name (alias): "+commonAlias+" is already taken.  Please select another.") > -1);
 
 		}
-	}
-	
-	@Test
-	public void testCreateWithId() throws Exception{
-		// Create a new node with an ID that is beyond the current max of the 
-		// ID generator.
-		long idLong = idGenerator.generateNewId(IdType.ENTITY_ID) + 10;
-		String idString = KeyFactory.keyToString(new Long(idLong));
-		Node toCreate = privateCreateNew("secondNodeEver");
-		toCreate.setId(idString);
-		String fetchedId = nodeDao.createNew(toCreate);
-		toDelete.add(fetchedId);
-		// The id should be the same as what we provided
-		assertEquals(idString, fetchedId);
-		// Also make sure the ID generator was increment to reserve this ID.
-		long nextId = idGenerator.generateNewId(IdType.ENTITY_ID);
-		assertEquals(idLong+1, nextId);
-	}
-	
-	@Test
-	public void testCreateWithIdGreaterThanIdGenerator() throws Exception{
-		// Create a node with a specific id
-		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId(IdType.ENTITY_ID)+10));
-		Node toCreate = privateCreateNew("secondNodeEver");
-		toCreate.setId(id);
-		String fetchedId = nodeDao.createNew(toCreate);
-		toDelete.add(fetchedId);
-		// The id should be the same as what we provided
-		assertEquals(id, fetchedId);
 	}
 	
 	@Test 
@@ -636,6 +764,8 @@ public class NodeDAOImplTest {
 		// Now change the copy and push it back
 		copy.setName("myNewName");
 		copy.setActivityId(testActivity2.getId());
+		// ensure modified on changes.
+		Thread.sleep(1);
 		nodeDao.updateNode(copy);
 		Node updatedCopy = nodeDao.getNode(id);
 		assertNotNull(updatedCopy);
@@ -673,6 +803,51 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testUpdateOptionalNull() {
+		Node node = NodeTestUtils.createNew("foo", creatorUserGroupId);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// set all optional fields to null
+		node.setActivityId(null);
+		node.setAlias(null);
+		node.setParentId(null);
+		node.setColumnModelIds(null);
+		node.setScopeIds(null);
+		node.setReference(null);
+		// call under test
+		nodeDao.updateNode(node);
+		Node updated = nodeDao.getNode(node.getId());
+		assertEquals(node, updated);
+	}
+	
+	@Test
+	public void testUpdateAllFields() {
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		
+		Node node = NodeTestUtils.createNew("foo", creatorUserGroupId);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// set all fields that can be updated
+		node.setActivityId(testActivity.getId());
+		node.setAlias("anAlias");
+		node.setVersionLabel("updateLabel");
+		node.setVersionComment("some comment");
+		node.setParentId(parent.getId());
+		node.setColumnModelIds(Lists.newArrayList("1","2","3"));
+		node.setScopeIds(Lists.newArrayList("4","5","6"));
+		Reference ref = new Reference();
+		ref.setTargetId("syn789");
+		ref.setTargetVersionNumber(22L);
+		node.setReference(ref);
+		// call under test
+		nodeDao.updateNode(node);
+		Node updated = nodeDao.getNode(node.getId());
+		assertEquals(node, updated);
+	}
+	
+	@Test
 	public void testUpdateNodeDuplicateAlias() throws Exception{
 		String commonAlias = "alias";
 		Node parent = privateCreateNew("parent");
@@ -702,12 +877,14 @@ public class NodeDAOImplTest {
 		}
 	}
 	
-	@Test(expected=Exception.class)
+	@Test
 	public void testNullName() throws Exception{
 		Node node = privateCreateNew("setNameNull");
 		node.setName(null);
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// name should match the ID.
+		assertEquals(node.getId(), node.getName());
 	}
 	
 	@Test
@@ -867,7 +1044,8 @@ public class NodeDAOImplTest {
 		assertEquals(newNumber.toString(), loaded.getVersionLabel());
 	}
 	
-	@Test public void testCreateVersionDefaults() throws Exception {
+	@Test
+	public void testCreateVersionDefaults() throws Exception {
 		Node node = privateCreateNew("testCreateNewVersion");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);

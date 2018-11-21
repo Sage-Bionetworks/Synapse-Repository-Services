@@ -43,13 +43,6 @@
 			"description": "The user that last modified this entity.",
 			"title": "Modified By"
 		},
-		"boost": {
-			"type": "array",
-			"items": {
-				"type": "string"
-			},
-			"description": "stuff in this field any extra copies of data that you would like to boost in free text search"
-		},
 		"acl": {
 			"type": "array",
 			"items": {
@@ -64,30 +57,25 @@
 			},
 			"description": "All group names with UPDATE access to this entity"
 		},
-		"disease": {
+		"diagnosis": {
 			"type": "string",
-			"description": "The disease associated with this entity",
-			"title": "Disease"
+			"description": "The result of a medical investigation to identify a disorder from its signs and symptoms.",
+			"title": "Diagnosis"
 		},
 		"tissue": {
 			"type": "string",
 			"description": "Type of tissue for the samples in this entity.",
 			"title": "Tissue Type"
 		},
-		"platform": {
-			"type": "string",
-			"description": "Chip platform for the samples in this entity",
-			"title": "Platform"
-		},
-		"num_samples": {
-			"type": "integer",
-			"description": "Approximate number of samples in this entity",
-			"title": "Number of Samples"
-		},
 		"consortium": {
 			"type": "string",
 			"description": "The name of the consortium",
 			"title": "Consortium"
+		},
+		"organ": {
+			"type": "string",
+			"description": "A unique macroscopic (gross) anatomic structure that performs specific functions. It is composed of various tissues. An organ is part of an anatomic system or a body region.",
+			"title": "Organ"
 		}
 	}
 }

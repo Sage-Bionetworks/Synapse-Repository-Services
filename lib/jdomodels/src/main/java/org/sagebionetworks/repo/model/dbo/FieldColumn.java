@@ -124,6 +124,16 @@ public class FieldColumn {
 	}
 	
 	/**
+	 * Is this column part of the primary key?
+	 * @param isPrimaryKey
+	 * @return
+	 */
+	public FieldColumn withIsPrimaryKey(boolean isPrimaryKey) {
+		this.isPrimaryKey = isPrimaryKey;
+		return this;
+	}
+	
+	/**
 	 * Does this column have a Foreign Key constraint to another column on this table?
 	 * For example, 'parentId' can be a reference to another row within the same table.
 	 * In this example, the 'parentId' column should be set to isSelfForeignKey = true;

@@ -93,7 +93,6 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		ValidateArgument.required(commit, "commit");
 		ValidateArgument.required(commit.getCreatedOn(), "commit.createdOn");
 		ValidateArgument.required(commit.getDigest(), "commit.digest");
-		ValidateArgument.required(commit.getTag(), "commit.tag");
 		
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);

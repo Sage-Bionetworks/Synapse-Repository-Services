@@ -7,20 +7,19 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -358,14 +357,14 @@ public class SearchUtilTest {
 		String createdBy = "1213324";
 		String createdOn = "1234567890";
 		String description = "Description";
-		String disease = "space aids";
+		String diagnosis = "space aids";
 		String etag = "some etag";
 		String id = "id";
 		String modifiedBy = "modifiedBy";
 		String modifiedOn = "11958442069423";
 		String name = "my name Jeff";
 		String nodeType = "dataset";
-		String numSamples = "42";
+		String organ = "appendix";
 		String tissue = "Kleenex";
 		String consortium = "consortium";
 
@@ -374,13 +373,13 @@ public class SearchUtilTest {
 				put(FIELD_CREATED_BY, Collections.singletonList(createdBy));
 				put(FIELD_CREATED_ON, Collections.singletonList(createdOn));
 				put(FIELD_DESCRIPTION, Collections.singletonList(description));
-				put(FIELD_DISEASE, Collections.singletonList(disease));
+				put(FIELD_DIAGNOSIS, Collections.singletonList(diagnosis));
 				put(FIELD_ETAG, Collections.singletonList(etag));
 				put(FIELD_MODIFIED_BY, Collections.singletonList(modifiedBy));
 				put(FIELD_MODIFIED_ON, Collections.singletonList(modifiedOn));
 				put(FIELD_NAME, Collections.singletonList(name));
 				put(FIELD_NODE_TYPE, Collections.singletonList(nodeType));
-				put(FIELD_NUM_SAMPLES, Collections.singletonList(numSamples));
+				put(FIELD_ORGAN, Collections.singletonList(organ));
 				put(FIELD_TISSUE, Collections.singletonList(tissue));
 				put(FIELD_CONSORTIUM, Collections.singletonList(consortium));
 			}
@@ -395,11 +394,11 @@ public class SearchUtilTest {
 		assertEquals(etag, hit.getEtag());
 		assertEquals(new Long(modifiedOn), hit.getModified_on());
 		assertEquals(new Long(createdOn), hit.getCreated_on());
-		assertEquals(new Long(numSamples), hit.getNum_samples());
+		assertEquals(organ, hit.getOrgan());
 		assertEquals(createdBy, hit.getCreated_by());
 		assertEquals(modifiedBy, hit.getModified_by());
 		assertEquals(nodeType, hit.getNode_type());
-		assertEquals(disease, hit.getDisease());
+		assertEquals(diagnosis, hit.getDiagnosis());
 		assertEquals(tissue, hit.getTissue());
 		assertEquals(consortium, hit.getConsortium());
 	}
@@ -549,25 +548,11 @@ public class SearchUtilTest {
 	}
 
 	////////////////////////////////////////
-	// convertSearchDocumentsToJSONString() test
+	// convertSearchDocumentToJSONString() test
 	////////////////////////////////////////
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONStringNullDocuments(){
-		SearchUtil.convertSearchDocumentsToJSONString(null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONStringEmptyDocuments(){
-		SearchUtil.convertSearchDocumentsToJSONString(new LinkedList<>());
-	}
-
 	@Test
-	public void testConvertSearchDocumentsToJSONString(){
-		Document deleteDoc = new Document();
-		deleteDoc.setId("syn123");
-		deleteDoc.setType(DocumentTypeNames.delete);
-
+	public void testConvertSearchDocumentToJSONString(){
 		Document addDoc = new Document();
 		addDoc.setId("syn456");
 		addDoc.setType(DocumentTypeNames.add);
@@ -575,24 +560,9 @@ public class SearchUtilTest {
 		fields.setName("Fake Entity");
 		addDoc.setFields(fields);
 
-		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(deleteDoc,addDoc));
-		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
+		String jsonString = SearchUtil.convertSearchDocumentToJSONString(addDoc);
+		assertEquals("{\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}", jsonString);
 	}
-
-	@Test
-	public void testConvertSearchDocumentsToJSONStringWithUnsupportedUnicode(){
-		Document addDoc = new Document();
-		addDoc.setId("syn5158082362");
-		addDoc.setType(DocumentTypeNames.add);
-		DocumentFields fields = new DocumentFields();
-		fields.setName("John Cena");
-		fields.setDescription("You Can't See Me: \uD83D\uDC68\uD83D\uDC4B");
-		addDoc.setFields(fields);
-
-		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(addDoc));
-		assertEquals("[{\"type\":\"add\",\"id\":\"syn5158082362\",\"fields\":{\"name\":\"John Cena\",\"description\":\"You Can't See Me: \"}}]", jsonString);
-	}
-
 
 	////////////////////////////////////////////
 	// stripUnsupportedUnicodeCharacters() test
@@ -601,7 +571,7 @@ public class SearchUtilTest {
 	@Test
 	public void testStripUnsupportedUnicodeCharacters(){
 		//test unicode characters from https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
-		String testString = "⌐( ͡° ͜ʖ ͡°) ╯╲___\uD800\uDBFF\uDFFF\uDC00\uFFFE\uFFFF\uD83C\uDF0ADon't mind me just taking my unsupported unicode characters for a walk";
+		String testString = "⌐( ͡° ͜ʖ ͡°) ╯╲___\u000C\u0019Don't mind me just taking my unsupported unicode characters for a walk";
 
 		String result = SearchUtil.stripUnsupportedUnicodeCharacters(testString);
 		assertEquals("⌐( ͡° ͜ʖ ͡°) ╯╲___Don't mind me just taking my unsupported unicode characters for a walk", result);

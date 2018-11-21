@@ -932,7 +932,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return 0L;
 		}
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-		return namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, new MapSqlParameterSource("rowIds", rowIds), Long.class);
+		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, new MapSqlParameterSource("rowIds", rowIds), Long.class);
+		if(sum == null) {
+			sum =  0L;
+		}
+		return sum;
 	}
 
 }

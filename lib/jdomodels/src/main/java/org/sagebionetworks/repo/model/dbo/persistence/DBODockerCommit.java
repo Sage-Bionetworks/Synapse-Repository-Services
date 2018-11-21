@@ -34,7 +34,7 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 	private Long owner;
 	
 	// max length is 128 https://docs.docker.com/engine/reference/commandline/tag/
-	@Field(name = COL_DOCKER_COMMIT_TAG, varchar = 128, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_DOCKER_COMMIT_TAG, varchar = 128, backupId = false, primary = false, nullable = true)
 	private String tag;
 
 	// a sha256 digest uses 71 characters, but the Docker spec' is open ended, 

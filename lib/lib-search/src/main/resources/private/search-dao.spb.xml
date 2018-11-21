@@ -24,6 +24,18 @@
 		<property name="searchEnabled" ref="stackConfiguration.searchEnabled"/>
 	</bean>
 
+	<bean id="fileProvider"
+		  class="org.sagebionetworks.util.FileProviderImpl"
+	/>
+
+	<bean id="cloudSearchDocumentBatchBuilderProvider"
+		  class="org.sagebionetworks.search.CloudSearchDocumentBuilderProvider"
+	/>
+
+	<bean id="cloudSearchDocumentBatchIteratorProvider"
+		  class="org.sagebionetworks.search.CloudSearchDocumentBatchIteratorProvider"
+	/>
+
 	<!-- The search DAO -->
 	<bean id="searchDomainSetup"
 		class="org.sagebionetworks.search.SearchDomainSetupImpl"

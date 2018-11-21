@@ -26,8 +26,9 @@ public class EntityNameValidation {
 	 * @throws IllegalArgumentException
 	 */
 	public static String valdiateName(String key) {
-		if (key == null)
-			throw new IllegalArgumentException("Entity names cannot be null");
+		if (key == null){
+			return null;
+		}
 		key = key.trim();
 		if ("".equals(key))
 			throw new IllegalArgumentException(

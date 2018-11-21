@@ -1,5 +1,7 @@
 package org.sagebionetworks.search.awscloudsearch;
 
+import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
+
 public interface CloudSearchField {
 
 	/**
@@ -25,4 +27,7 @@ public interface CloudSearchField {
 	 * @return true if the value of the field can be returned in results. false, otherwise.
 	 */
 	boolean isReturned();
+
+
+	IndexFieldType getType();
 }

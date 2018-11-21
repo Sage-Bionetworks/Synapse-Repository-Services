@@ -102,7 +102,7 @@ public interface AsynchJobStatusManager {
 	 * @throws DatastoreException
 	 * @throws IOException 
 	 */
-	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException, IOException;
+	public void setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException, IOException;
 
 	public void emptyAllQueues();
 }

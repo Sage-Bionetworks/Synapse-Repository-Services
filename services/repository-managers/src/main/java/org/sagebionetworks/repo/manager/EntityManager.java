@@ -6,6 +6,8 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -424,4 +426,13 @@ public interface EntityManager {
 	 * @return
 	 */
 	public EntityId lookupChild(UserInfo userInfo, EntityLookupRequest request);
+
+	/**
+	 * Change the given entity's {@link DataType}
+	 * @param userInfo
+	 * @param id
+	 * @param dataType
+	 * @return
+	 */
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
 }

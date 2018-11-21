@@ -38,6 +38,8 @@ import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -3076,4 +3078,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException;
+	
+	/**
+	 * Change the {@link DataType} of the given Entity.
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team' to change
+	 * an Entity's data type to OPEN_DATA.  The caller must be grated the UPDATE permission
+	 * to change an Entity's data type to any value other than  OPEN_DATA.
+	 * @param entityId
+	 * @param newDataType
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
 }

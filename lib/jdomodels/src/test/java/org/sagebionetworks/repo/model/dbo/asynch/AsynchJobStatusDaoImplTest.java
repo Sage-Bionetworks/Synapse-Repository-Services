@@ -105,8 +105,10 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
-	public void testUpdateProgress() throws DatastoreException, NotFoundException{
+	public void testUpdateProgress() throws DatastoreException, NotFoundException, InterruptedException{
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		// sleep to increase elapse time
+		Thread.sleep(1);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		// update the progress
@@ -117,6 +119,8 @@ public class AsynchJobStatusDaoImplTest {
 		assertEquals("A MESSAGE", clone.getProgressMessage());
 		assertEquals(body, status.getRequestBody());
 		assertEquals(AsynchJobState.PROCESSING, status.getJobState());
+		assertNotNull(clone.getRuntimeMS());
+		assertTrue(clone.getRuntimeMS() > 0L);
 	}
 	
 	@Test
@@ -321,9 +325,8 @@ public class AsynchJobStatusDaoImplTest {
 		// Make sure at at least some time has passed before me set it complete
 		Thread.sleep(10);
 		String requestHash = null;
-		String newEtag = asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
-		assertNotNull(newEtag);
-		assertFalse(previousEtag.equals(newEtag));
+		long runtimeMS = asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
+		assertNotNull(runtimeMS);
 		AsynchronousJobStatus result = asynchJobStatusDao.getJobStatus(status.getJobId());
 		assertNotNull(result);
 		assertNotNull(result.getEtag());

@@ -32,6 +32,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -67,6 +69,8 @@ public class EntityManagerImplUnitTest {
 	private NodeManager mockNodeManager;
 	@Mock
 	private UserInfo mockUser;
+	@Mock
+	private ObjectTypeManager mockObjectTypeManger;
 	
 	@Captor
 	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
@@ -431,5 +435,14 @@ public class EntityManagerImplUnitTest {
 		EntityId result = entityManager.lookupChild(mockUser, request);
 		assertNotNull(result);
 		assertEquals(entityId, result.getId());
+	}
+	
+	@Test
+	public void testChangeEntityDataType() {
+		String entityId = "syn123";
+		DataType dataType = DataType.SENSITIVE_DATA;
+		// call under test
+		entityManager.changeEntityDataType(mockUser, entityId, dataType);
+		verify(mockObjectTypeManger).changeObjectsDataType(mockUser, entityId, ObjectType.ENTITY, dataType);
 	}
 }

@@ -142,7 +142,7 @@ public class NodeDaoUnitTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(this.messageCaptor.capture());
 		MessageToSend sent = messageCaptor.getValue();
 		assertNotNull(sent);
-		assertEquals(node.getId(), sent.getObjectId());
+		assertEquals("syn0", sent.getObjectId());
 		assertEquals(ObjectType.ENTITY, sent.getObjectType());
 		assertEquals(node.getCreatedByPrincipalId(), sent.getUserId());
 		assertEquals(ChangeType.CREATE, sent.getChangeType());

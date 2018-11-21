@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -675,5 +677,15 @@ public interface EntityService {
 	 * @return
 	 */
 	public EntityId lookupChild(Long userId, EntityLookupRequest request);
+
+	/**
+	 * Change an Entity's {@link DataType}
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param dataType
+	 * @return
+	 */
+	public DataTypeResponse changeEntityDataType(Long userId, String id, DataType dataType);
 
 }

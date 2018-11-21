@@ -32,7 +32,7 @@ public interface SearchDocumentDriver {
 	 * @throws NotFoundException
 	 * @throws IOException TODO
 	 */
-	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException, IOException;
+	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException;
 	/**
 	 * Create a search document and return it.
 	 *
@@ -56,7 +56,7 @@ public interface SearchDocumentDriver {
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException;
 	
 	
-	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException;
+	public String getAllWikiPageText(String nodeId) throws DatastoreException;
 	
 
 }

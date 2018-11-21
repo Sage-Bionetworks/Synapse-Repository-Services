@@ -395,6 +395,12 @@ public class AuthorizationManagerImplUnitTest {
 		UserInfo adminInfo = new UserInfo(true);
 		assertTrue(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
 	}
+	
+	@Test
+	public void testVerifyACTTeamMembershipOrIsAdminNullGroups() {
+		UserInfo adminInfo = new UserInfo(false);
+		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
+	}
 
 	@Test
 	public void testVerifyACTTeamMembershipOrIsAdmin_ACT() {
