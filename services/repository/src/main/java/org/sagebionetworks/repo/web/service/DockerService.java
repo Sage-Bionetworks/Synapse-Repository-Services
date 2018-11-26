@@ -39,7 +39,7 @@ public interface DockerService {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, 
+	public PaginatedResults<DockerCommit> listDockerTags(Long userId,
 			String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset);
 	
 	

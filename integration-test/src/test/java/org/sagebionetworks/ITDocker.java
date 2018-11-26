@@ -14,7 +14,6 @@ import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpStatus;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -160,7 +159,7 @@ public class ITDocker {
 		// now reassign the tag to a new commit
 		DockerCommit commit2 = createCommit(tag, UUID.randomUUID().toString());
 		synapseOne.addDockerCommit(dockerRepo.getId(), commit2);
-		PaginatedResults<DockerCommit> result = synapseOne.listDockerCommits(dockerRepo.getId(), 10L, 0L, DockerCommitSortBy.TAG, true);
+		PaginatedResults<DockerCommit> result = synapseOne.listDockerTags(dockerRepo.getId(), 10L, 0L, DockerCommitSortBy.TAG, true);
 		assertEquals(1L, result.getTotalNumberOfResults());
 		assertEquals(1, result.getResults().size());
 		DockerCommit retrieved = result.getResults().get(0);
@@ -171,7 +170,7 @@ public class ITDocker {
 		// make sure optional params are optional
 		assertEquals(
 				result,
-				synapseOne.listDockerCommits(dockerRepo.getId(), null, null, null, null)
+				synapseOne.listDockerTags(dockerRepo.getId(), null, null, null, null)
 				);
 	}
 	

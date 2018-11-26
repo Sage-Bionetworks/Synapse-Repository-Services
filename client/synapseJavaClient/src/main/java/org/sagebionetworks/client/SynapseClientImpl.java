@@ -522,8 +522,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OBJECT = "/object";	
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
-	
+
 	private static final String DOCKER_COMMIT = "/dockerCommit";
+	private static final String DOCKER_TAG = "/dockerTag";
 
 	private static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken=";
 
@@ -4967,6 +4968,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		voidPost(getRepoEndpoint(), ENTITY+"/"+entityId+DOCKER_COMMIT, dockerCommit, null);
 	}
 
+	@Deprecated // TODO: Remove when no longer used
 	@Override
 	public PaginatedResults<DockerCommit> listDockerCommits(
 			String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException {
@@ -4988,7 +4990,32 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (!requestParams.isEmpty()) {
 			url += "?" + Joiner.on('&').join(requestParams);
 		}
-		
+
+		return getPaginatedResults(getRepoEndpoint(), url, DockerCommit.class);
+	}
+
+	@Override
+	public PaginatedResults<DockerCommit> listDockerTags(
+			String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = ENTITY+"/"+entityId+DOCKER_TAG;
+		List<String> requestParams = new ArrayList<String>();
+		if (limit!=null) {
+			requestParams.add(LIMIT+"="+limit);
+		}
+		if (offset!=null) {
+			requestParams.add(OFFSET+"="+offset);
+		}
+		if (sortBy!=null) {
+			requestParams.add("sort="+sortBy.name());
+		}
+		if (ascending!=null) {
+			requestParams.add("ascending="+ascending);
+		}
+		if (!requestParams.isEmpty()) {
+			url += "?" + Joiner.on('&').join(requestParams);
+		}
+
 		return getPaginatedResults(getRepoEndpoint(), url, DockerCommit.class);
 	}
 

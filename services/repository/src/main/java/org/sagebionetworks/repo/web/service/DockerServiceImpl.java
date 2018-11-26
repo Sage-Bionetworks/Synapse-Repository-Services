@@ -43,10 +43,10 @@ public class DockerServiceImpl implements DockerService {
 	}
 
 	@Override
-	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, 
+	public PaginatedResults<DockerCommit> listDockerTags(Long userId,
 			String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
 				UserInfo userInfo = userManager.getUserInfo(userId);
-		return dockerManager.listDockerCommits(userInfo, entityId, sortBy, ascending, limit, offset);
+		return dockerManager.listDockerTags(userInfo, entityId, sortBy, ascending, limit, offset);
 	}
 	
 	public void log(Exception e) {

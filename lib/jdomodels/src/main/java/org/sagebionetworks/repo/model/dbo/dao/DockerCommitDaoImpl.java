@@ -110,7 +110,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	}
 	
 	@Override
-	public List<DockerCommit> listDockerCommits(String entityId, 
+	public List<DockerCommit> listDockerTags(String entityId,
 			DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(sortBy, "sortBy");

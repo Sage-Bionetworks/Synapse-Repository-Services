@@ -186,7 +186,7 @@ public class DockerManagerImpl implements DockerManager {
 	}
 
 	@Override
-	public PaginatedResults<DockerCommit> listDockerCommits(UserInfo userInfo,
+	public PaginatedResults<DockerCommit> listDockerTags(UserInfo userInfo,
 			String entityId, DockerCommitSortBy sortBy, boolean ascending,
 			long limit, long offset) {
 		ValidateArgument.required(entityId, "entityId");
@@ -195,7 +195,7 @@ public class DockerManagerImpl implements DockerManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
 		EntityType entityType = entityManager.getEntityType(userInfo, entityId);
 		if (!entityType.equals(EntityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
-		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(entityId, sortBy, ascending, limit, offset);
+		List<DockerCommit> commits = dockerCommitDao.listDockerTags(entityId, sortBy, ascending, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(commits, limit, offset);
 	}
 }
