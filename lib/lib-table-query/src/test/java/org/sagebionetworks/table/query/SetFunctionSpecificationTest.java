@@ -120,5 +120,40 @@ public class SetFunctionSpecificationTest {
 		SetFunctionSpecification element = new TableQueryParser("COUNT(one)").generalSetFunction();
 		assertTrue(element.isElementAggregate());
 	}
+	
+	@Test
+	public void testGroupConcat() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("group_concat(one)").generalSetFunction();
+		assertTrue(element.isElementAggregate());
+		assertEquals("GROUP_CONCAT(one)", element.toString());
+	}
+	
+	@Test
+	public void testGroupConcatDistinct() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("group_concat(distinct one)").generalSetFunction();
+		assertTrue(element.isElementAggregate());
+		assertEquals("GROUP_CONCAT(DISTINCT one)", element.toString());
+	}
+	
+	@Test
+	public void testGroupConcatOrderBy() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("group_concat(one order by foo desc)").generalSetFunction();
+		assertTrue(element.isElementAggregate());
+		assertEquals("GROUP_CONCAT(one ORDER BY foo DESC)", element.toString());
+	}
+	
+	@Test
+	public void testGroupConcatSeparator() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("group_concat(one separator '#')").generalSetFunction();
+		assertTrue(element.isElementAggregate());
+		assertEquals("GROUP_CONCAT(one SEPARATOR '#')", element.toString());
+	}
+	
+	@Test
+	public void testGroupConcatAllParts() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("group_concat(distinct one order by foo asc separator '#')").generalSetFunction();
+		assertTrue(element.isElementAggregate());
+		assertEquals("GROUP_CONCAT(DISTINCT one ORDER BY foo ASC SEPARATOR '#')", element.toString());
+	}
 
 }
