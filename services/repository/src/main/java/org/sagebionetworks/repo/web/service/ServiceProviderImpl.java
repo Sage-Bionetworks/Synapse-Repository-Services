@@ -45,8 +45,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private TrashService trashService;
 	@Autowired
-	private DoiService doiService;
-	@Autowired
 	private DoiServiceV2 doiServiceV2;
 	@Autowired
 	private MigrationService migrationService;
@@ -132,10 +130,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public TrashService getTrashService() {
 		return trashService;
-	}
-	@Override
-	public DoiService getDoiService() {
-		return doiService;
 	}
 	@Override
 	public DoiServiceV2 getDoiServiceV2() {

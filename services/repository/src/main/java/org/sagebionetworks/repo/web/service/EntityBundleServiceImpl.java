@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
-import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -170,20 +169,6 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			} catch (NotFoundException e) {
 				// does not exist
 				eb.setRootWikiId(null);
-			}
-		}
-		if((mask & EntityBundle.DOI) > 0 ){
-			 try {
-			 	Doi doi = null;
-			 	if (versionNumber == null) {
-					doi = serviceProvider.getDoiService().getDoiForCurrentVersion(userId, entityId, ObjectType.ENTITY);
-				} else {
-					doi = serviceProvider.getDoiService().getDoiForVersion(userId, entityId, ObjectType.ENTITY, versionNumber);
-				} 
-				eb.setDoi(doi);
-			} catch (NotFoundException e) {
-				// does not exist
-				eb.setDoi(null);
 			}
 		}
 		if((mask & EntityBundle.DOI) > 0 ){

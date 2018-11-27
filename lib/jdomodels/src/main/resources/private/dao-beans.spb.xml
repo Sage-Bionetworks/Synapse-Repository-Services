@@ -186,10 +186,6 @@
 		scope="singleton">
 	</bean>
 
-	<bean id="doiDao" class="org.sagebionetworks.repo.model.dbo.dao.DBODoiDaoImpl"
-		scope="singleton">
-	</bean>
-
 	<bean id="doiAssociationDao" class="org.sagebionetworks.repo.model.dbo.dao.DBODoiAssociationDaoImpl"
 		  scope="singleton">
 	</bean>

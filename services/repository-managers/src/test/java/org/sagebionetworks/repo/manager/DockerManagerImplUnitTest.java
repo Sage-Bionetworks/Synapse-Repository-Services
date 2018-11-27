@@ -13,7 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -23,21 +22,16 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
@@ -330,13 +324,13 @@ public class DockerManagerImplUnitTest {
 		commits.add(createCommit());
 		commits.add(createCommit());
 		
-		when(dockerCommitDao.listDockerCommits(REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)).
+		when(dockerCommitDao.listDockerTags(REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)).
 			thenReturn(commits);
 		
 		when(dockerCommitDao.countDockerCommits(REPO_ENTITY_ID)).thenReturn(2L);
 		
 		// method under test
-		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerCommits(
+		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 		
 		assertEquals(2L, pgs.getTotalNumberOfResults());
@@ -350,7 +344,7 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 				
 		// method under test
-		dockerManager.listDockerCommits(
+		dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 	}
 	
@@ -358,7 +352,7 @@ public class DockerManagerImplUnitTest {
 	public void listDockerCommitsforNONrepo() {
 		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.project);
 		// method under test
-		dockerManager.listDockerCommits(
+		dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 	}
 

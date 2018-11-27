@@ -138,7 +138,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
-import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
@@ -522,8 +522,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OBJECT = "/object";	
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
-	
+
 	private static final String DOCKER_COMMIT = "/dockerCommit";
+	private static final String DOCKER_TAG = "/dockerTag";
 
 	private static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken=";
 
@@ -3427,62 +3428,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Creates a DOI for the specified entity. The DOI will always be associated
-	 * with the current version of the entity.
-	 */
-	@Deprecated
-	@Override
-	public void createEntityDoi(String entityId) throws SynapseException {
-		createEntityDoi(entityId, null);
-	}
-
-	/**
-	 * Creates a DOI for the specified entity version. If version is null, the
-	 * DOI will always be associated with the current version of the entity.
-	 */
-	@Deprecated
-	@Override
-	public void createEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException {
-
-		ValidateArgument.required(entityId, "entityId");
-		String url = ENTITY + "/" + entityId;
-		if (entityVersion != null) {
-			url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
-		}
-		url = url + DOI;
-		voidPut(getRepoEndpoint(), url, null);
-	}
-
-	/**
-	 * Gets the DOI for the specified entity version. The DOI is for the current
-	 * version of the entity.
-	 */
-	@Deprecated
-	@Override
-	public Doi getEntityDoi(String entityId) throws SynapseException {
-		return getEntityDoi(entityId, null);
-	}
-
-	/**
-	 * Gets the DOI for the specified entity version. If version is null, the
-	 * DOI is for the current version of the entity.
-	 */
-	@Deprecated
-	@Override
-	public Doi getEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException {
-
-		ValidateArgument.required(entityId, "entityId");
-		String url = ENTITY + "/" + entityId;
-		if (entityVersion != null) {
-			url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
-		}
-		url = url + DOI;
-		return getJSONEntity(getRepoEndpoint(), url, Doi.class);
-	}
-
-	/**
 	 * Gets the DOI Association for the specified object. If object version is null, the call will return the DOI
 	 * for the current version of the object.
 	 */
@@ -3502,13 +3447,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * for the current version of the object.
 	 */
 	@Override
-	public org.sagebionetworks.repo.model.doi.v2.Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException {
+	public Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
 		String url = DOI_ASSOCIATION + "?id=" + objectId + "&type=" + objectType;
 		if (objectVersion != null) {
 			url += "&version=" + objectVersion;
-		}		return getJSONEntity(getRepoEndpoint(), url, org.sagebionetworks.repo.model.doi.v2.Doi.class);
+		}
+		return getJSONEntity(getRepoEndpoint(), url, Doi.class);
 	}
 
 
@@ -3516,7 +3462,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Creates a DOI for the specified object. Idempotent.
 	 */
 	@Override
-	public String createOrUpdateDoiAsyncStart(org.sagebionetworks.repo.model.doi.v2.Doi doi) throws SynapseException {
+	public String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException {
 		DoiRequest request = new DoiRequest();
 		request.setDoi(doi);
 		return startAsynchJob(AsynchJobType.Doi, request);
@@ -4967,6 +4913,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		voidPost(getRepoEndpoint(), ENTITY+"/"+entityId+DOCKER_COMMIT, dockerCommit, null);
 	}
 
+	@Deprecated // TODO: Remove when no longer used
 	@Override
 	public PaginatedResults<DockerCommit> listDockerCommits(
 			String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException {
@@ -4988,7 +4935,32 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (!requestParams.isEmpty()) {
 			url += "?" + Joiner.on('&').join(requestParams);
 		}
-		
+
+		return getPaginatedResults(getRepoEndpoint(), url, DockerCommit.class);
+	}
+
+	@Override
+	public PaginatedResults<DockerCommit> listDockerTags(
+			String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = ENTITY+"/"+entityId+DOCKER_TAG;
+		List<String> requestParams = new ArrayList<String>();
+		if (limit!=null) {
+			requestParams.add(LIMIT+"="+limit);
+		}
+		if (offset!=null) {
+			requestParams.add(OFFSET+"="+offset);
+		}
+		if (sortBy!=null) {
+			requestParams.add("sort="+sortBy.name());
+		}
+		if (ascending!=null) {
+			requestParams.add("ascending="+ascending);
+		}
+		if (!requestParams.isEmpty()) {
+			url += "?" + Joiner.on('&').join(requestParams);
+		}
+
 		return getPaginatedResults(getRepoEndpoint(), url, DockerCommit.class);
 	}
 

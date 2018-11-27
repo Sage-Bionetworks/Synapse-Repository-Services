@@ -12,8 +12,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -56,15 +54,6 @@ public class EntityBundleTest {
 		assertNotNull("Entity was set / should not be null.", retrieved);
 		assertTrue("Entity type was '" + retrieved.getClass().getName() + "'; Expected '" 
 				+ clazz.getName(), retrieved.getClass().getName().equals(clazz.getName()));
-	}
-	
-	@Test
-	public void testAddDoi() {
-		Doi doi = new Doi();
-		entityBundle.setDoi(doi);
-		Doi retrieved = entityBundle.getDoi();
-		assertNotNull("Doi was set / should not be null", retrieved);
-		assertTrue("Set/Retrieved doi do not match original", retrieved.equals(doi));
 	}
 
 	@Test
@@ -184,12 +173,6 @@ public class EntityBundleTest {
 		ColumnModel cm2 = new ColumnModel();
 		cm2.setId("890");
 		tableBundle.setColumnModels(Arrays.asList(cm1, cm2));
-		
-		Doi doi = new Doi();
-		doi.setCreatedBy("John Doe");
-		doi.setId("syn456");
-		doi.setDoiStatus(DoiStatus.READY);
-		doi.setObjectId("1");
 
 		DoiAssociation doiAssociation = new DoiAssociation();
 		doiAssociation.setAssociatedBy("John Doe");
@@ -209,7 +192,6 @@ public class EntityBundleTest {
 		entityBundle.setFileHandles(fileHandleList);
 		entityBundle.setTableBundle(tableBundle);
 		entityBundle.setRootWikiId("9876");
-		entityBundle.setDoi(doi);
 		entityBundle.setDoiAssociation(doiAssociation);
 		entityBundle.setFileName("foo.txt");
 		
