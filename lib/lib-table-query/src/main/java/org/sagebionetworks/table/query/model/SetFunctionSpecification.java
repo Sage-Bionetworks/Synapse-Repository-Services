@@ -79,6 +79,8 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, valueExpression);
+		checkElement(elements, type, orderByClause);
+		checkElement(elements, type, separator);
 	}
 
 	@Override

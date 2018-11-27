@@ -367,4 +367,16 @@ public class TableQueryParserTest {
 			}
 		}
 	}
+	
+	/**
+	 * Test for PLFM-5281
+	 * @throws ParseException 
+	 */
+	@Test
+	public void testGroupConcat() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery(
+				"select foo, group_concat(distinct bar order by bar desc separator '#') from syn123 group by foo");
+		assertEquals("SELECT foo, GROUP_CONCAT(DISTINCT bar ORDER BY bar DESC SEPARATOR '#') FROM syn123 GROUP BY foo",
+				element.toSql());
+	}
 }

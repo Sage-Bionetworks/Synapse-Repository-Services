@@ -1,10 +1,13 @@
 package org.sagebionetworks.table.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
+import org.sagebionetworks.table.query.model.OrderByClause;
+import org.sagebionetworks.table.query.model.Separator;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 
 public class SetFunctionSpecificationTest {
@@ -126,6 +129,7 @@ public class SetFunctionSpecificationTest {
 		SetFunctionSpecification element = new TableQueryParser("group_concat(one)").generalSetFunction();
 		assertTrue(element.isElementAggregate());
 		assertEquals("GROUP_CONCAT(one)", element.toString());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionReturnType());
 	}
 	
 	@Test
@@ -154,6 +158,8 @@ public class SetFunctionSpecificationTest {
 		SetFunctionSpecification element = new TableQueryParser("group_concat(distinct one order by foo asc separator '#')").generalSetFunction();
 		assertTrue(element.isElementAggregate());
 		assertEquals("GROUP_CONCAT(DISTINCT one ORDER BY foo ASC SEPARATOR '#')", element.toString());
+		assertNotNull(element.getFirstElementOfType(OrderByClause.class));
+		assertNotNull(element.getFirstElementOfType(Separator.class));
 	}
 
 }
