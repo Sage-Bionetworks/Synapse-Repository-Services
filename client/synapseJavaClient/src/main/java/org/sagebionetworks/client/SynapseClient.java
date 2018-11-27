@@ -111,7 +111,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
-import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
@@ -213,7 +213,6 @@ import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Abstraction for Synapse.
@@ -1024,20 +1023,11 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException;
 
-	public void createEntityDoi(String entityId) throws SynapseException;
-
-	public void createEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException;
-
-	public Doi getEntityDoi(String entityId) throws SynapseException;
-
-	public Doi getEntityDoi(String s, Long entityVersion) throws SynapseException;
-
 	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public org.sagebionetworks.repo.model.doi.v2.Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
+	public Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public String createOrUpdateDoiAsyncStart(org.sagebionetworks.repo.model.doi.v2.Doi doi) throws SynapseException;
+	public String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException;
 
 	public DoiResponse createOrUpdateDoiAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 

@@ -6,15 +6,15 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.manager.doi.DoiManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -42,76 +42,52 @@ public class DoiController extends BaseController {
 	@Autowired
 	private ServiceProvider serviceProvider;
 
+	private static final String DEPRECATED_MESSAGE = "The Entity DOI service is deprecated. Please update your client to use the new DOI API";
+
 	/**
-	 * Creates a DOI for the specified entity. The DOI will associated with the most recent version where applicable.
-	 *
-	 * @param userId The user creating this DOI
-	 * @param id The entity ID
-	 * @return DOI being created
+	 * This service is deprecated. See: <a href="${POST.doi.async.start}">POST /doi/async/start</a>
+	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
 	@RequestMapping(value = {UrlHelpers.ENTITY_DOI}, method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	public @ResponseBody Doi
-	createDoi(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().createDoi(userId, id, ObjectType.ENTITY, null);
+	public @ResponseBody void createDoi() throws DeprecatedServiceException {
+		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
 	/**
-	 * Creates a DOI for the specified entity version.
-	 * 
-	 * @param userId The user creating this DOI
-	 * @param id The entity ID
-	 * @param versionNumber The version of the entity
-	 * @return DOI being created
+	 * This service is deprecated. See: <a href="${POST.doi.async.start}">POST /doi/async/start</a>
+	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
 	@RequestMapping(value = {UrlHelpers.ENTITY_VERSION_DOI}, method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	public @ResponseBody Doi
-	createDoi(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			@PathVariable Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().createDoi(userId, id, ObjectType.ENTITY, versionNumber);
+	public @ResponseBody void createDoiForVersion() throws DeprecatedServiceException {
+		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
 	/**
-	 * Gets the DOI of the specified entity.
-	 *
-	 * @param userId The user retrieving the DOI
-	 * @param id The ID of the entity
+	 * This service is deprecated. See: <a href="${GET.doi}">GET /doi</a> and
+	 * <a href="${GET.doi.association}">GET /doi/association</a>
+	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
 	@RequestMapping(value = {UrlHelpers.ENTITY_DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody Doi
-	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoiForVersion(userId, id, ObjectType.ENTITY, null);
+	public @ResponseBody void getDoi() throws DeprecatedServiceException {
+		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
 	/**
-	 * Gets the DOI of the specified entity version.
-	 *
-	 * @param userId The user retrieving the DOI.
-	 * @param id The ID of the entity
-	 * @param versionNumber The version of the entity. Null to indicate the most recent version where applicable.
+	 * This service is deprecated. See: <a href="${GET.doi}">GET /doi</a> and
+	 * <a href="${GET.doi.association}">GET /doi/association</a>
+	 * @throws DeprecatedServiceException This service is deprecated.
 	 */
 	@Deprecated
 	@RequestMapping(value = {UrlHelpers.ENTITY_VERSION_DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody Doi
-	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			@PathVariable Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoiForVersion(userId, id, ObjectType.ENTITY, versionNumber);
+	public @ResponseBody void getDoiForVersion() throws DeprecatedServiceException {
+		throw new DeprecatedServiceException(DEPRECATED_MESSAGE);
 	}
 
 	/**
@@ -128,8 +104,7 @@ public class DoiController extends BaseController {
 	 */
 	@RequestMapping(value = {UrlHelpers.DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody
-	org.sagebionetworks.repo.model.doi.v2.Doi
+	public @ResponseBody Doi
 	getDoiV2(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			 @RequestParam(value = "id") String objectId,
 			 @RequestParam(value = "type") ObjectType objectType,
