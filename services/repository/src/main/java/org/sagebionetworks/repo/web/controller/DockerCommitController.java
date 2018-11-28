@@ -56,29 +56,6 @@ public class DockerCommitController {
 	}
 
 	/**
-	 * This service has been deprecated. See <a href="${GET.entity.id.dockerTag}">GET /entity/{id}/dockerTag</a>.
-	 *
-	 * TODO: Remove when portal uses dockerTag instead of this URI
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<DockerCommit> listDockerCommits(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) String sortByParam,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = "false") Boolean ascending,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset
-			) {
-		DockerCommitSortBy sortBy = sortByParam==null ? 
-				DockerCommitSortBy.CREATED_ON : DockerCommitSortBy.valueOf(sortByParam);
-		return serviceProvider.getDockerService().listDockerTags(userId, entityId,
-				sortBy, ascending, limit, offset);
-	}
-
-	/**
 	 * List the tagged commits (tag/digest pairs) for the given Docker repository.  Only the most recent
 	 * digest for each tag is returned since, following Docker's convention, a tag may be reassigned
 	 * to a newer commit. The list may be sorted by date or tag.  The default is to sort by
