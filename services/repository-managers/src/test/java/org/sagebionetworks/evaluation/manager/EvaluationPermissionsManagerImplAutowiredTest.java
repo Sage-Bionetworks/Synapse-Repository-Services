@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -500,9 +501,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		Set<ResourceAccess> raSet = new HashSet<>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		Set<ACCESS_TYPE> accessType = new HashSet<>();
-		accessType.add(ACCESS_TYPE.READ);
-		ra.setAccessType(accessType);
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
 		raSet.add(ra);
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
@@ -527,15 +526,13 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 
 		// add READ privilege to ACL for anonymous
-		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
-		Set<ResourceAccess> raSet = new HashSet<>();
-		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		Set<ACCESS_TYPE> accessType = new HashSet<>();
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.READ)) {
-				accessType.add(type);
-				ra.setAccessType(accessType);
+				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+				Set<ResourceAccess> raSet = new HashSet<>();
+				ResourceAccess ra = new ResourceAccess();
+				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+				ra.setAccessType(Collections.singleton(type));
 				raSet.add(ra);
 				acl.setResourceAccess(raSet);
 				try {
