@@ -2177,11 +2177,11 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
-	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, String entityId,
-			DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
+	public PaginatedResults<DockerCommit> listDockerTaggedCommits(Long userId, String entityId,
+	  		DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/"+entityId+"/dockerCommit", userId, null);
+				HTTPMODE.GET, "/entity/"+entityId+"/dockerTag", userId, null);
 
 		if (sortBy!=null) request.addParameter("sort", ""+sortBy);
 		if (ascending!=null) request.addParameter("ascending", ""+ascending);
