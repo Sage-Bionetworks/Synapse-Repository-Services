@@ -2235,6 +2235,46 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(results);
 	}
 
+	@Test
+	public void testQueryGroupConcat() throws Exception {
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.STRING);
+		foo.setMaximumSize(50L);
+		foo.setName("foo");
+		foo = columnManager.createColumnModel(adminUserInfo, foo);
+		// faceted enum column with a keyword name.
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.STRING);
+		bar.setMaximumSize(50L);
+		bar.setName("bar");
+		bar = columnManager.createColumnModel(adminUserInfo, bar);
+		schema = Lists.newArrayList(foo, bar);
+		// build a table with this column.
+		createTableWithSchema();
+		// add some rows
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "a", "one"),
+				TableModelTestUtils.createRow(null, null, "a", "two"),
+				TableModelTestUtils.createRow(null, null, "b", "four"),
+				TableModelTestUtils.createRow(null, null, "b", "five")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, rowSet, mockPprogressCallback);
+
+		// Wait for the table to become available
+		String sql = "select foo, group_concat(distinct bar order by bar asc separator '#') from " + tableId
+				+ " group by foo order by foo desc";
+		query.setSql(sql);
+		QueryResult results = waitForConsistentQuery(adminUserInfo, query, queryOptions);
+		assertNotNull(results);
+		List<Row> queryRows = results.getQueryResults().getRows();
+		assertEquals(2, queryRows.size());
+		Row row = queryRows.get(0);
+		assertEquals("b", row.getValues().get(0));
+		assertEquals("five#four", row.getValues().get(1));
+	}
+
 	/**
 	 * Helper to grant the read permission to PUBLIC for the current table.
 	 * @throws ACLInheritanceException
