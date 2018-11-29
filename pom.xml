@@ -674,6 +674,12 @@
 				<artifactId>jira-rest-java-client-core</artifactId>
 				<version>${jira.client.version}</version>
 			</dependency>
+			<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-dbcp2</artifactId>
+				<version>2.5.0</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -891,8 +897,6 @@
 		</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<org.apache.commons.commons-dbcp.version>1.4
-		</org.apache.commons.commons-dbcp.version>
 		<schema-to-pojo.version>0.3.21</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.421</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
