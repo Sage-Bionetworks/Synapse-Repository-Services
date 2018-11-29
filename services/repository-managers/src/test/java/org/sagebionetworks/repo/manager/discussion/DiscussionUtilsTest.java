@@ -81,6 +81,13 @@ public class DiscussionUtilsTest {
 	}
 
 	@Test
+	public void getUsernameWithValidSpecialChars() {
+		Set<String> expected = new HashSet<String>();
+		expected.add("a.non-ymo_us");
+		assertEquals(expected, DiscussionUtils.getMentionedUsername("@a.non-ymo_us"));
+	}
+
+	@Test
 	public void testGetMentionedUsernameCaseSimilarUsername() {
 		Set<String> expected = new HashSet<String>();
 		expected.add("username1");
