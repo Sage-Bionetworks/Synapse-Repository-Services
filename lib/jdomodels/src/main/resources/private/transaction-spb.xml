@@ -13,7 +13,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- This is serving as the JDBC connection pool -->
-	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
+	<bean id="dataSourcePool" class="org.apache.commons.dbcp2.BasicDataSource"
 		destroy-method="close" depends-on="stackConfiguration">
 		<property name="driverClassName" ref="stackConfiguration.repositoryDatabaseDriver" />
 		<property name="url"
