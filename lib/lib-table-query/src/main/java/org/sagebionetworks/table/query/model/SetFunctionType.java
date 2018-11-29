@@ -20,6 +20,7 @@ public enum SetFunctionType {
 	VAR_POP(DOUBLE),
 	VAR_SAMP(DOUBLE),
 	VARIANCE(DOUBLE),
+	GROUP_CONCAT(STRING)
 	;
 	
 	FunctionReturnType returnType;

@@ -188,6 +188,7 @@ TOKEN [IGNORE_CASE]: {
 | < unknown: "UNKNOWN">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
+| < separator: "SEPARATOR">
 }
 
 /* Aggregate functions */
@@ -208,6 +209,7 @@ TOKEN [IGNORE_CASE]: {
    | "VAR_POP"
    | "VAR_SAMP"
    | "VARIANCE"
+   | "GROUP_CONCAT"
   >
 }
 
@@ -595,10 +597,17 @@ SetFunctionSpecification generalSetFunction():
 	SetFunctionType setFunctionType = null;
 	SetQuantifier setQuantifier = null;
 	ValueExpression valueExpression = null;
+	OrderByClause orderByClause = null;
+	Separator separatorClause = null;
 }
 {
-	setFunctionType = setFunctionType() <left_paren> [ setQuantifier = setQuantifier() ] valueExpression = valueExpression() <right_paren>
-	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
+	setFunctionType = setFunctionType() 
+	<left_paren>
+	 [ setQuantifier = setQuantifier() ] valueExpression = valueExpression()
+	 [ orderByClause = orderByClause() ]
+	 [ separatorClause = separatorClause() ] 
+	<right_paren>
+	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression, orderByClause, separatorClause);}
 }
 SetFunctionType setFunctionType():
 {
@@ -606,6 +615,13 @@ SetFunctionType setFunctionType():
 }
 {
 	functionName = <aggregate_functions_name> { return SetFunctionType.valueOf(functionName.image.toUpperCase()); }
+}
+Separator separatorClause():
+{
+	CharacterStringLiteral characterStringLiteral;
+}
+{
+	<separator> characterStringLiteral = characterStringLiteral() { return new Separator(characterStringLiteral); }
 }
 WhereClause whereClause():
 {
