@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -26,11 +27,13 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -97,6 +100,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
+
+		validateAnonymousPermissions(acl.getResourceAccess());
 
 		aclDAO.update(acl, ObjectType.EVALUATION);
 		return aclDAO.get(evalId, ObjectType.EVALUATION);
@@ -191,6 +196,21 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION).getAuthorized());
 
 		return permission;
+	}
+
+	/*
+	 * Ensures that Anonymous users are not given more permissions than they should be allowed
+	 */
+	private static void validateAnonymousPermissions(Set<ResourceAccess> resourceAccess) {
+		for (ResourceAccess ra : resourceAccess) {
+			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+				Set<ACCESS_TYPE> anonymousGrantCopy = new HashSet<>(ra.getAccessType());
+				anonymousGrantCopy.removeAll(ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS);
+				if (!anonymousGrantCopy.isEmpty()) {
+					throw new IllegalArgumentException("Anonymous users may only have read access.");
+				}
+			}
+		}
 	}
 	
 	private static boolean isAnonymousWithNonReadAccess(UserInfo userInfo, ACCESS_TYPE accessType) {
