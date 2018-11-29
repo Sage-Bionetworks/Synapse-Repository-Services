@@ -46,15 +46,9 @@ public class DiscussionUtilsTest {
 	@Test
 	public void testGetMentionedUsernameCaseDoubleAlpha(){
 		Set<String> expected = new HashSet<String>();
-		expected.add("anonymous");
+		expected.add("anon");
+		expected.add("ymous");
 		assertEquals(expected, DiscussionUtils.getMentionedUsername("@anon@ymous"));
-	}
-
-	@Test
-	public void testGetMentionedUsernameCaseContainSpecialChar(){
-		Set<String> expected = new HashSet<String>();
-		expected.add("anonymous?#$%!^&*)(+-_=`~/'\"|.,<>");
-		assertEquals(expected, DiscussionUtils.getMentionedUsername("@anonymous?#$%!^&*)(+-_=`~/'\"|.,<>"));
 	}
 
 	@Test
@@ -70,6 +64,20 @@ public class DiscussionUtilsTest {
 		Set<String> expected = new HashSet<String>();
 		expected.add("anonymous");
 		assertEquals(expected, DiscussionUtils.getMentionedUsername("@ @anonymous"));
+	}
+
+	@Test
+	public void getMentionedUsernameSurroundedByParentheses() {
+		Set<String> expected = new HashSet<String>();
+		expected.add("anonymous");
+		assertEquals(expected, DiscussionUtils.getMentionedUsername("(@anonymous)"));
+	}
+
+	@Test
+	public void getMentionedUsernameFollowedByComma() {
+		Set<String> expected = new HashSet<String>();
+		expected.add("anonymous");
+		assertEquals(expected, DiscussionUtils.getMentionedUsername("@anonymous, check this out"));
 	}
 
 	@Test
