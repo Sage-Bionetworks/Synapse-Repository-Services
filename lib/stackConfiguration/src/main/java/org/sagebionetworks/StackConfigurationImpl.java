@@ -1159,4 +1159,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public int getCurrentHmacSigningKeyVersion() {
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.hmac.signing.key.current.version"));
 	}
+
+	@Override
+	public boolean useSSLConnectionForTablesDatabase() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.table.cluster.use.ssl"));
+	}
 }
