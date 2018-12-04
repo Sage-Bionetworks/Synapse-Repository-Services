@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -161,6 +162,27 @@ public class AuthenticationServiceImplTest {
 		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
 		//call under test
 		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
+		assertEquals(session, result);
+	}
+	
+	@Test
+	public void testCreateAccountViaOauth() throws NotFoundException{
+		OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		request.setUserName("uname");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		
+		when(mockUserManager.createUser((NewUser)any())).thenReturn(userId);
+		Session session = new Session();
+		session.setSessionToken("token");
+		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
+		
+		//call under test
+		Session result = service.createAccountViaOauth(request);
 		assertEquals(session, result);
 	}
 	

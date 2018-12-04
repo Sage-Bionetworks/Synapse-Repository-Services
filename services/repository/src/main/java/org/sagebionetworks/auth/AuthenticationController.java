@@ -267,13 +267,17 @@ public class AuthenticationController extends BaseController {
 	 * provider will redirect the browser to the provided redirectUrl. The
 	 * provider will add a query parameter to the redirectUrl called "code" that
 	 * represent the authorization code for the user. This method will use the
-	 * authorization code to validate the user and fetch information about the
-	 * user from the OAuthProvider. If there is no existing account using the email address
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
 	 * from the provider then a new account will be created, the user will be authenticated,
 	 * and a session will be returned.
 	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
 	 * @param request
-	 * @return
+	 * @return 
 	 * @throws Exception
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
