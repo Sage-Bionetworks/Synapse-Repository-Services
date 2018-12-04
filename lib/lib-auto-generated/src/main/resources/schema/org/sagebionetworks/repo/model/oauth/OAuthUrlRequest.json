@@ -9,6 +9,10 @@
 		"redirectUrl": {
 			"type": "string",
 			"description": "The URL that the OAuth provider is expected to redirect to after authenticating the user."
+		},
+		"state": {
+			"type": "string",
+			"description": "State to be echoed in the redirect URL as a request parameter named 'state'. Supported by some OAuth providers."
 		}
 	}
 }
