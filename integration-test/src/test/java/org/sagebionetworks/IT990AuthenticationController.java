@@ -21,6 +21,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -175,6 +176,27 @@ public class IT990AuthenticationController {
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
 			synapse.validateOAuthAuthenticationCode(request);
+			fail();
+		} catch (SynapseForbiddenException e) {
+			// OK
+		}
+	}
+	
+	/**
+	 * Since a browser is need to get a real authentication code, we are just testing
+	 * that everything is wires up correctly.
+	 * @throws SynapseException 
+	 */
+	@Test
+	public void testCreateAccountViaOAuth2() throws SynapseException {
+		try {
+			OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
+			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			request.setRedirectUrl("https://www.synapse.org");
+			// this invalid code will trigger a SynapseForbiddenException
+			request.setAuthenticationCode("test auth code");
+			request.setUserName("uname");
+			synapse.createAccountViaOAuth2(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK

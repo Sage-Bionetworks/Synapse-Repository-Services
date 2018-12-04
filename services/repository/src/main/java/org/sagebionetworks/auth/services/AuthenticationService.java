@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -98,6 +99,9 @@ public interface AuthenticationService {
 
 	public Session validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request) throws NotFoundException;
+	
+	public Session createAccountViaOauth(OAuthAccountCreationRequest request) throws NotFoundException;
+
 
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 

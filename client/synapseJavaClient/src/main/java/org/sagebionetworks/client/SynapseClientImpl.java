@@ -181,6 +181,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -442,6 +443,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
+	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	
 	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
@@ -4248,6 +4250,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public Session validateOAuthAuthenticationCode(OAuthValidationRequest request) throws SynapseException{
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_SESSION, request, Session.class);
+	}
+	
+	@Override
+	public Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException{
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ACCOUNT, request, Session.class);
 	}
 	
 	@Override

@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -178,6 +179,26 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		PrincipalAlias emailAlias = userManager.lookupUserForAuthentication(providedInfo.getUsersVerifiedEmail());
 		// Return the user's session token
 		return authManager.getSessionToken(emailAlias.getPrincipalId());
+	}
+	
+	@WriteTransaction
+	public Session createAccountViaOauth(OAuthAccountCreationRequest request) {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// create account with the returned user info.
+		NewUser newUser = new NewUser();
+		newUser.setEmail(providedInfo.getUsersVerifiedEmail());
+		newUser.setFirstName(providedInfo.getFirstName());
+		newUser.setLastName(providedInfo.getLastName());
+		newUser.setUserName(request.getUserName());
+		long newPrincipalId = userManager.createUser(newUser);
+		
+		Session session = authManager.getSessionToken(newPrincipalId);
+		return session;
 	}
 	
 	@Override

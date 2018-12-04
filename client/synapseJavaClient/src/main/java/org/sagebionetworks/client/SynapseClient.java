@@ -150,6 +150,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -1777,6 +1778,28 @@ public interface SynapseClient extends BaseClient {
 	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
 			throws SynapseException;
 	
+
+	/**
+	 * 
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and a session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException;
+	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -3080,4 +3103,5 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
+
 }

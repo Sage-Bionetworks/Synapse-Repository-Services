@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -23,7 +24,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.BaseController;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -260,6 +260,32 @@ public class AuthenticationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws Exception {
 		return authenticationService.bindExternalID(userId, request);
+	}
+	
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and a session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return 
+	 * @throws Exception
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
+	public @ResponseBody
+	Session createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request)
+			throws Exception {
+		return authenticationService.createAccountViaOauth(request);
 	}
 	
 	/**
