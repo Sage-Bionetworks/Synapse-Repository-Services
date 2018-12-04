@@ -182,7 +182,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@WriteTransaction
-	public LoginResponse createAccountViaOauth(OAuthAccountCreationRequest request) {
+	public Session createAccountViaOauth(OAuthAccountCreationRequest request) {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
@@ -198,10 +198,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		long newPrincipalId = userManager.createUser(newUser);
 		
 		Session session = authManager.getSessionToken(newPrincipalId);
-		LoginResponse result = new LoginResponse();
-		result.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
-		result.setSessionToken(session.getSessionToken());
-		return result;
+		return session;
 	}
 	
 	@Override

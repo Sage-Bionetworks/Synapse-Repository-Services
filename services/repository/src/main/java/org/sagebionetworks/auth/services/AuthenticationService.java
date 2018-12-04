@@ -100,7 +100,7 @@ public interface AuthenticationService {
 	public Session validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request) throws NotFoundException;
 	
-	public LoginResponse createAccountViaOauth(OAuthAccountCreationRequest request) throws NotFoundException;
+	public Session createAccountViaOauth(OAuthAccountCreationRequest request) throws NotFoundException;
 
 
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);

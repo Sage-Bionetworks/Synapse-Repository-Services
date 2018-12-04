@@ -279,7 +279,7 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
 	public @ResponseBody
-	LoginResponse createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request)
+	Session createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request)
 			throws Exception {
 		return authenticationService.createAccountViaOauth(request);
 	}
