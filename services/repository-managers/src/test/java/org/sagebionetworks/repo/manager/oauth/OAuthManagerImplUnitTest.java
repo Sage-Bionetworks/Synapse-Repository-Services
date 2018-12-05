@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.oauth;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,9 +32,20 @@ public class OAuthManagerImplUnitTest {
 	@Test
 	public void testGetAuthorizationUrl() {
 		String redirUrl = "redirectUrl";
-		String expected = "http://foo.bar.com";
+		String expected = "http://foo.bar.com?response_type=code&redirect_uri="+redirUrl;
 		when(providerBinding.getAuthorizationUrl(redirUrl)).thenReturn(expected);
-		assertEquals(expected, oauthManager.getAuthorizationUrl(PROVIDER_ENUM, redirUrl));
+		assertEquals(expected, oauthManager.getAuthorizationUrl(PROVIDER_ENUM, redirUrl, null));
+	}
+
+	
+	@Test
+	public void testGetAuthorizationUrlWithState() {
+		String redirUrl = "redirectUrl";
+		String state = "some state#@%";
+		String authUrl = "http://foo.bar.com?response_type=code&redirect_uri="+redirUrl;
+		String expected = authUrl+"&state="+URLEncoder.encode(state);
+		when(providerBinding.getAuthorizationUrl(redirUrl)).thenReturn(authUrl);
+		assertEquals(expected, oauthManager.getAuthorizationUrl(PROVIDER_ENUM, redirUrl, state));
 	}
 
 	

@@ -160,7 +160,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request) {
-		String url = oauthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl());
+		String url = oauthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl(), request.getState());
 		OAuthUrlResponse response = new OAuthUrlResponse();
 		response.setAuthorizationUrl(url);
 		return response;

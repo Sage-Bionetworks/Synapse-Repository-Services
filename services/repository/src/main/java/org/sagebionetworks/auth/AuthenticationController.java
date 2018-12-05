@@ -204,6 +204,17 @@ public class AuthenticationController extends BaseController {
 	 * value is an authorization code that must be provided to Synapse to
 	 * validate a user.
 	 * 
+	 * Note:  The 'state' field in the request body is an arbitrary string
+	 * that certain Oauth providers will return as part of the redirect URL.
+	 * The handling of 'state' is not standardized by Oauth.
+	 * <ul>
+	 * <li><em>Google</em> returns the state as <a href="https://developers.google.com/identity/protocols/OAuth2WebServer">
+	 * a name-value pair in the fragment part of the redirect URL.</a></li>
+	 * <li><em>ORCID</em> <a href="https://members.orcid.org/api/oauth/3legged-oauth">
+	 * does not handle the state parameter.</a></li>
+	 * <li>Other providers might return the state as a request parameter.</li>
+	 * </ul>
+	 * 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_AUTH_URL, method = RequestMethod.POST)
