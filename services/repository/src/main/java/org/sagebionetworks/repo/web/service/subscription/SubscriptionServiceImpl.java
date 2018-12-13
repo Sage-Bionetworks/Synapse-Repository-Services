@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -27,9 +29,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	}
 
 	@Override
-	public SubscriptionPagedResults getAll(Long userId, Long limit, Long offset, SubscriptionObjectType objectType) {
+	public SubscriptionPagedResults getAll(Long userId, Long limit, Long offset, SubscriptionObjectType objectType, SortByType sortByType, SortDirection sortDirection) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return subscriptionManager.getAll(userInfo, limit, offset, objectType);
+		return subscriptionManager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
 	}
 
 	@Override

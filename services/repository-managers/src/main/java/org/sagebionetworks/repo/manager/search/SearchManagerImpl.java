@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import org.apache.http.client.ClientProtocolException;
+import com.google.common.collect.Iterators;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -17,18 +17,16 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.search.SearchDaoImpl;
 import org.sagebionetworks.search.SearchUtil;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class SearchManagerImpl implements SearchManager{
 	private static final Logger log = LogManager.getLogger(SearchManagerImpl.class.getName());
@@ -38,10 +36,10 @@ public class SearchManagerImpl implements SearchManager{
 	SearchDocumentDriver searchDocumentDriver;
 
 	@Autowired
-	SearchDao searchDao;
+	ChangeMessageToSearchDocumentTranslator translator;
 
 	@Autowired
-	V2WikiPageDao wikiPageDao;
+	SearchDao searchDao;
 
 	@Override
 	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) {
@@ -66,8 +64,7 @@ public class SearchManagerImpl implements SearchManager{
 
 	static void filterSearchForAuthorization(UserInfo userInfo, SearchRequest searchRequest) {
 		if (!userInfo.isAdmin()){
-			ValidateArgument.requirement(searchRequest.getFilterQuery() == null, "searchRequest's fitler query should be null");
-			searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userInfo));
+			SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
 		}
 	}
 
@@ -99,7 +96,6 @@ public class SearchManagerImpl implements SearchManager{
 		}
 	}
 
-	//TODO: maybe move these functions from dao into manager
 	@Override
 	public void deleteAllDocuments() throws InterruptedException{
 		searchDao.deleteAllDocuments();
@@ -120,76 +116,10 @@ public class SearchManagerImpl implements SearchManager{
 	 */
 
 	@Override
-	public void documentChangeMessage(ChangeMessage change) throws IOException{
-		// We only care about entity messages as this time
-		if (ObjectType.ENTITY == change.getObjectType()) {
-			// Is this a create or update
-			if (ChangeType.CREATE == change.getChangeType()
-					|| ChangeType.UPDATE == change.getChangeType()) {
-				processCreateUpdate(change);
-			} else if (ChangeType.DELETE == change.getChangeType()) {
-				searchDao.deleteDocument(change.getObjectId());
-			} else {
-				throw new IllegalArgumentException("Unknown change type: "
-						+ change.getChangeType());
-			}
-		}
-		// Is this a wikipage?
-		if (ObjectType.WIKI == change.getObjectType()) {
-			// Lookup the owner of the page
-			try {
-				WikiPageKey key = wikiPageDao
-						.lookupWikiKey(change.getObjectId());
-				// If the owner of the wiki is a an entity then pass along the
-				// message.
-				if (ObjectType.ENTITY == key.getOwnerObjectType()) {
-					// We need the current document etag
-					ChangeMessage newMessage = new ChangeMessage();
-					newMessage.setChangeType(ChangeType.UPDATE);
-					newMessage.setObjectId(key.getOwnerObjectId());
-					newMessage.setObjectType(ObjectType.ENTITY);
-					newMessage.setObjectEtag(null);
-					processCreateUpdate(newMessage);
-				}
-			} catch (NotFoundException e) {
-				// Nothing to do if the wiki does not exist
-				log.debug("Wiki not found for id: " + change.getObjectId()
-						+ " Message:" + e.getMessage());
-			}
-		}
-	}
-
-	private void processCreateUpdate(ChangeMessage change) throws IOException{
-		Document newDoc = getDocFromMessage(change);
-		if (newDoc != null) {
-			searchDao.createOrUpdateSearchDocument(newDoc);
-		}
-	}
-
-	private Document getDocFromMessage(ChangeMessage changeMessage) throws IOException {
-		// We want to ignore this message if a document with this ID and Etag
-		// already exists in the search index.
-		if (!searchDao.doesDocumentExist(changeMessage.getObjectId(),
-				changeMessage.getObjectEtag())) {
-			// We want to ignore this message if a document with this ID and
-			// Etag are not in the repository as it is an
-			// old message.
-			if (changeMessage.getObjectEtag() == null
-					|| searchDocumentDriver.doesNodeExist(
-						changeMessage.getObjectId(),
-						changeMessage.getObjectEtag())) {
-				try {
-					return searchDocumentDriver
-							.formulateSearchDocument(changeMessage
-									.getObjectId());
-				} catch (NotFoundException e) {
-					// There is nothing to do if it does not exist
-					log.debug("Node not found for id: "
-							+ changeMessage.getObjectId() + " Message:"
-							+ e.getMessage());
-				}
-			}
-		}
-		return null;
+	public void documentChangeMessages(List<ChangeMessage> messages){
+		Iterator<Document> documentIterator = Iterators.filter(
+				Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
+				Objects::nonNull);
+		searchDao.sendDocuments(documentIterator);
 	}
 }

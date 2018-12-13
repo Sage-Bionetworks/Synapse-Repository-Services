@@ -13,7 +13,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- This is serving as the JDBC connection pool -->
-	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
+	<bean id="dataSourcePool" class="org.apache.commons.dbcp2.BasicDataSource"
 		destroy-method="close" depends-on="stackConfiguration">
 		<property name="driverClassName" ref="stackConfiguration.repositoryDatabaseDriver" />
 		<property name="url"
@@ -26,7 +26,7 @@
 		<property name="minIdle"
 			ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
 		<!-- The maximum number of connections in the pool -->
-		<property name="maxActive"
+		<property name="maxTotal"
 			ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections" />
 		<!-- This will test a connection to see if it is alive when a connection 
 			is fetched from the pool -->
@@ -73,6 +73,11 @@
 			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="REPEATABLE_READ" />
 		</tx:attributes>
 	</tx:advice>
+	<tx:advice id="defaultMandatoryWriteReadCommittedTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
+		</tx:attributes>
+	</tx:advice>
 
 	<!-- These advisor will be applied to any method with the @WriteTransaction, @NewWriteTransaction and 
 		@MandatoryWriteTransaction annotations. This allows us to change the default rollback exception types 
@@ -99,8 +104,13 @@
 	</aop:config>
 	<aop:config>
 		<aop:pointcut id="defaultMandatoryWrites"
-			expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
+					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
+	</aop:config>
+	<aop:config>
+		<aop:pointcut id="defaultMandatoryWritesReadCommitted"
+					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction)" />
+		<aop:advisor pointcut-ref="defaultMandatoryWritesReadCommitted" advice-ref="defaultMandatoryWriteReadCommittedTxRollbackAdvice" />
 	</aop:config>
 
 	<!-- Transaction Manager for PMF -->

@@ -43,13 +43,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li> Annotations <i>(Annotations)</i> = 0x2 </li>
  * <li> Permissions <i>(UserEntityPermissions)</i> = 0x4 </li>
  * <li> Entity Path <i>(EntityPath)</i> = 0x8 </li>
- * <li> Entity References <i>(List&lt;EntityHeader&gt;)</i> = 0x10 </li>
  * <li> HasChildren <i>(Boolean)</i> = 0x20 </li>
  * <li> ACL <i>(AccessControlList)</i> = 0x40 </li>
- * <li> Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x200 </li>
- * <li> Unmet Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x400 </li>
  * <li> File Handles <i>(List&lt;FileHandle&gt;)</i> = 0x800 </li>
  * <li> TableEntity Metadata <i>(TableBundle)</i> = 0x1000</li>
+ * <li> Root Wiki ID <i>(String)</i> = 0x2000</li>
+ * <li> Benefactor ACL <i>(AccessControlList)</i> = 0x4000</li>
+ * <li> DOI Association <i>(DoiAssociation)</i> = 0x8000</li>
+ * <li> File Name <i>(String)</i> = 0x10000</li>
+ * <li> Thread Count <i>(Long)</i> = 0x20000</li>
+ * <li> Restriction Information <i>(RestrictionInformationResponse)</i> = 0x40000</li>
  * </ul>
  * </p>
  * <p>

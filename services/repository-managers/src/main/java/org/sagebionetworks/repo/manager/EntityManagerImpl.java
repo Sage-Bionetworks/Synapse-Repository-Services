@@ -6,13 +6,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -34,8 +37,10 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +54,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	public static final Direction DEFAULT_SORT_DIRECTION = Direction.ASC;
 	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
-	public static final String ROOT_ID = StackConfiguration.getRootFolderEntityIdStatic();
+	public static final String ROOT_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 	public static final List<EntityType> PROJECT_ONLY = Lists.newArrayList(EntityType.project);
 	
 	@Autowired
@@ -58,6 +63,8 @@ public class EntityManagerImpl implements EntityManager {
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	ObjectTypeManager objectTypeManager;
 	
 	boolean allowCreationOfOldEntities = true;
 	
@@ -69,7 +76,7 @@ public class EntityManagerImpl implements EntityManager {
 		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
@@ -259,7 +266,7 @@ public class EntityManagerImpl implements EntityManager {
 		return newEntity;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -268,7 +275,7 @@ public class EntityManagerImpl implements EntityManager {
 		nodeManager.delete(userInfo, entityId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteEntityVersion(UserInfo userInfo, String id,
 			Long versionNumber) throws NotFoundException, DatastoreException,
@@ -302,7 +309,7 @@ public class EntityManagerImpl implements EntityManager {
 		return annos.getAdditionalAnnotations();
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String entityId,
 			Annotations updated) throws ConflictingUpdateException,
@@ -331,7 +338,7 @@ public class EntityManagerImpl implements EntityManager {
 		dst.setUri(src.getUri());
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated,
 			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
@@ -357,6 +364,7 @@ public class EntityManagerImpl implements EntityManager {
 				newVersion = true;
 				// setting this to null we cause the revision id to be used.
 				updatedFile.setVersionLabel(null);
+				updatedFile.setVersionComment(null);
 			}
 		}
 
@@ -391,7 +399,7 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(entity.getEtag());
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends Entity> List<String> aggregateEntityUpdate(
 			UserInfo userInfo, String parentId, Collection<T> update)
@@ -449,14 +457,6 @@ public class EntityManagerImpl implements EntityManager {
 			List<Reference> references) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeHeader(userInfo, references);
-	}
-
-	@Override
-	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo,
-			String entityId) throws NotFoundException, DatastoreException,
-			UnauthorizedException {
-		// pass through
-		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
 	}
 
 	@Override
@@ -541,7 +541,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);		
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override	
 	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
 			String activityId) throws DatastoreException,
@@ -551,7 +551,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, null);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -609,9 +609,17 @@ public class EntityManagerImpl implements EntityManager {
 				request.getParentId(), request.getIncludeTypes(),
 				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimitForQuery(),
 				nextPage.getOffset());
+		// Gather count and size sum if requested.
+		ChildStatsResponse stats = nodeManager
+				.getChildrenStats(new ChildStatsRequest().withParentId(request.getParentId())
+						.withIncludeTypes(request.getIncludeTypes()).withChildIdsToExclude(childIdsToExclude)
+						.withIncludeTotalChildCount(request.getIncludeTotalChildCount())
+						.withIncludeSumFileSizes(request.getIncludeSumFileSizes()));
 		EntityChildrenResponse response = new EntityChildrenResponse();
 		response.setPage(page);
 		response.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(page));
+		response.setTotalChildCount(stats.getTotalChildCount());
+		response.setSumFileSizesBytes(stats.getSumFileSizesBytes());
 		return response;
 	}
 
@@ -636,5 +644,13 @@ public class EntityManagerImpl implements EntityManager {
 		EntityId result = new EntityId();
 		result.setId(entityId);
 		return result;
+	}
+
+	@Override
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String entityId, DataType dataType) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "id");
+		ValidateArgument.required(dataType, "DataType");
+		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
 	}
 }

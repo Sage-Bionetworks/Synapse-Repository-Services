@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 
 public class CloudMailInAuthFilter implements Filter {
 
@@ -20,8 +21,9 @@ public class CloudMailInAuthFilter implements Filter {
 	private String cloudMailInPassword;
 
 	public CloudMailInAuthFilter() {
-		cloudMailInUser = StackConfiguration.getCloudMailInUser();
-		cloudMailInPassword = StackConfiguration.getCloudMailInPassword();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
+		cloudMailInUser = config.getCloudMailInUser();
+		cloudMailInPassword = config.getCloudMailInPassword();
 	}
 
 	@Override

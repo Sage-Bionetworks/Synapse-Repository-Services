@@ -181,21 +181,33 @@
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
-		}, 
-        "notificationSettings": {
-            "type": "object", 
-            "title": "Notification Settings", 
-            "description": "The user's preferences regarding when email notifications should be sent", 
-            "$ref": "org.sagebionetworks.repo.model.message.Settings"
-        },
-        "preferences": {
-            "type": "array", 
-            "title": "User Preferences", 
+		},
+		"notificationSettings": {
+			"type": "object",
+			"title": "Notification Settings",
+			"description": "The user's preferences regarding when email notifications should be sent",
+			"$ref": "org.sagebionetworks.repo.model.message.Settings"
+		},
+		"preferences": {
+			"type": "array",
+			"title": "User Preferences",
 			"items": {
-				"type":"object",
-				"$ref":"org.sagebionetworks.repo.model.UserPreference"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.UserPreference"
 			},
-  			"uniqueItems": true
-        } 
+			"uniqueItems": true
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this profile was created.",
+			"title": "Created On",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		}
 	}
 }

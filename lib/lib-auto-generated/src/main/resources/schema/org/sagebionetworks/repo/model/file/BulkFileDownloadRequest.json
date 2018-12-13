@@ -1,17 +1,25 @@
 {
 	"description": "Request for a bulk file download.",
-	"implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
-        }
-    ],
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
 	"properties": {
 		"requestedFiles": {
 			"type": "array",
 			"description": "The files to be included in the download.",
 			"items": {
-				"$ref":"org.sagebionetworks.repo.model.file.FileHandleAssociation"
+				"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation"
 			}
+		},
+		"zipFileName": {
+			"type": "string",
+			"description": "Optional parameter to set the name of the resulting zip file."
+		},
+		"zipFileFormat": {
+			"$ref": "org.sagebionetworks.repo.model.file.ZipFileFormat",
+			"description": "Optional parameter to set the zip file format.  If null then 'CommandLineCache' format will be used."
 		}
 	}
 }

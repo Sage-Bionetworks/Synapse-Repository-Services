@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -40,8 +42,8 @@ public class ITSubscription {
 	public static void beforeClass() throws SynapseException, JSONObjectAdapterException {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -79,8 +81,10 @@ public class ITSubscription {
 		assertEquals(userToDelete.toString(), sub.getSubscriberId());
 
 		assertEquals(sub, synapse.getSubscription(sub.getSubscriptionId()));
+		SortByType sortType = SortByType.CREATED_ON;
+		SortDirection sortDirection = SortDirection.DESC;
 
-		SubscriptionPagedResults results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L);
+		SubscriptionPagedResults results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L, sortType, sortDirection);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(sub, results.getResults().get(0));
@@ -104,7 +108,9 @@ public class ITSubscription {
 		
 
 		synapse.unsubscribe(Long.parseLong(sub.getSubscriptionId()));
-		results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L);
+		sortType = null;
+		sortDirection = null;
+		results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L, sortType, sortDirection);
 		assertFalse(results.getResults().contains(sub));
 
 		assertNotNull(adminSynapse.subscribeAll(SubscriptionObjectType.DATA_ACCESS_SUBMISSION));

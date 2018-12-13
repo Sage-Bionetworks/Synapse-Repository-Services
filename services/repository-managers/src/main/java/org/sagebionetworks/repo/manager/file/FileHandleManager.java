@@ -225,13 +225,10 @@ public interface FileHandleManager {
 	/**
 	 * Multi-part upload a local file to S3.  This is used by workers.
 	 * 
-	 * @param userInfo
-	 * @param fileToUpload
-	 * @param contentType
-	 * @param listener
+	 * @param request
 	 * @return
 	 */
-	S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload,	String contentType, ProgressListener listener);
+	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
 
 	/**
 	 * Only the creator of a FileHandle can call this method.

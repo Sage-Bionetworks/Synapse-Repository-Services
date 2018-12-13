@@ -2,10 +2,10 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertTrue;
 
+import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 
 /*
  * The methods in this class help read and validate emails (written as files when testing).
@@ -13,24 +13,21 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class EmailValidationUtil {
 	
 	public static boolean doesFileExist(String key, long maxWaitTimeInMillis) throws Exception {
-		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
-				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
 		
-		return S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client, maxWaitTimeInMillis);
+		return S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, maxWaitTimeInMillis);
 	}
 	
 	public static void deleteFile(String key) throws Exception {
-		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
-				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
 		
-		S3TestUtils.deleteFile(StackConfiguration.getS3Bucket(), key, s3Client);
+		S3TestUtils.deleteFile(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client);
 	}
 	
 	public static String readFile(String key) throws Exception {
-		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
-				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
 		
-		return S3TestUtils.getObjectAsString(StackConfiguration.getS3Bucket(), key, s3Client);
+		return S3TestUtils.getObjectAsString(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client);
 	}
 	
 	public static String getBucketKeyForEmail(String email) {
@@ -50,4 +47,5 @@ public class EmailValidationUtil {
 		String token = body.substring(tokenStart, tokenEnd);
 		return token;
 	}
+
 }

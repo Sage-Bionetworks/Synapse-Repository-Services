@@ -54,20 +54,21 @@ public class ITCloudMailIn {
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse
-		.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		.setUsername(config.getMigrationAdminUsername());
+		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
 		user1ToDelete = SynapseClientHelper
 				.createUser(adminSynapse, synapseOne);
-		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		username = StackConfiguration.getCloudMailInUser();
-		password = StackConfiguration.getCloudMailInPassword();
+		repoEndpoint = config.getRepositoryServiceEndpoint();
+		username = config.getCloudMailInUser();
+		password = config.getCloudMailInPassword();
 		simpleHttpClient = new SimpleHttpClientImpl();
 	}
 

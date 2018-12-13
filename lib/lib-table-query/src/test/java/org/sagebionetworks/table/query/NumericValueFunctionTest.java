@@ -12,7 +12,7 @@ public class NumericValueFunctionTest {
 	public void testMySqlFunction() throws ParseException{
 		NumericValueExpression element = new TableQueryParser("unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 MONTH)").numericValueExpression();
 		assertEquals("UNIX_TIMESTAMP(CURRENT_TIMESTAMP-INTERVAL 1 MONTH)", element.toSql());
-		assertTrue(element.hasAnyAggregateElements());
+		assertFalse(element.hasAnyAggregateElements());
 	}
 
 }

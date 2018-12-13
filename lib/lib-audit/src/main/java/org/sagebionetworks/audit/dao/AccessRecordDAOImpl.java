@@ -8,7 +8,7 @@ import org.sagebionetworks.audit.utils.AccessRecordUtils;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 
 /**
@@ -26,7 +26,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	private final static String[] HEADERS = new String[]{"returnObjectId", "elapseMS","timestamp","via","host","threadId","userAgent","queryString","sessionId","xForwardedFor","requestURL","userId","origin", "date","method","vmId","instance","stack","success", "responseStatus"};
 
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	/**
 	 * Injected via Spring

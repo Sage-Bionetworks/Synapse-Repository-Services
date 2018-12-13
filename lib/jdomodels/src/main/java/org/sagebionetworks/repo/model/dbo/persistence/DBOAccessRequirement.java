@@ -22,6 +22,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -278,19 +279,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 
 	@Override
 	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
-		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
-
-			@Override
-			public DBOAccessRequirement createDatabaseObjectFromBackup(
-					DBOAccessRequirement backup) {
-				return backup;
-			}
-			
-			@Override
-			public DBOAccessRequirement createBackupFromDatabaseObject(
-					DBOAccessRequirement dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOAccessRequirement>();
 	}
 
 	@Override

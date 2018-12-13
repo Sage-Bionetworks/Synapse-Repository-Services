@@ -19,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -42,7 +43,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -78,6 +78,9 @@ public class AuthorizationManagerImplTest {
 
 	@Autowired
 	private TeamManager teamManager;
+	
+	@Autowired
+	private TokenGenerator tokenGenerator;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
@@ -132,7 +135,7 @@ public class AuthorizationManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUser, nu, cred, tou);
+		userInfo = userManager.createOrGetTestUser(adminUser, nu, cred, tou);
 
 		// Create a new group
 		testGroup = new UserGroup();
@@ -146,7 +149,7 @@ public class AuthorizationManagerImplTest {
 		// Create team with teamAdmin as the admin
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		teamAdmin = userManager.createUser(adminUser, nu, cred, tou);
+		teamAdmin = userManager.createOrGetTestUser(adminUser, nu, cred, tou);
 		team = new Team();
 		team.setName("teamName");
 		team = teamManager.create(teamAdmin, team);
@@ -595,23 +598,6 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDownload());
 		assertEquals(true, uep.getCanUpload()); // can't read but CAN upload, which is controlled separately
 		assertEquals(false, uep.getCanEnableInheritance());
-
-		// now change the ownership so the user is the owner
-		node.setCreatedByPrincipalId(userInfo.getId());
-		nodeDao.updateNode(node);
-		
-		// the user still cannot do anything..
-		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
-		assertEquals(false, uep.getCanAddChild());
-		assertEquals(false, uep.getCanChangePermissions());
-		assertEquals(false, uep.getCanChangeSettings());
-		assertEquals(false, uep.getCanDelete());
-		assertEquals(false, uep.getCanEdit());
-		assertEquals(false, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
-		assertEquals(true, uep.getCanUpload()); 
-		assertEquals(false, uep.getCanEnableInheritance());
-		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 	}
 	
 	@Test
@@ -691,7 +677,7 @@ public class AuthorizationManagerImplTest {
 	public void testCanAccessMembershipInvitationWithMembershipInvtnSignedToken() {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setMembershipInvitationId("validId");
-		SignedTokenUtil.signToken(token);
+		tokenGenerator.signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, accessType);
@@ -714,7 +700,7 @@ public class AuthorizationManagerImplTest {
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
 		token.setInviteeId(userId.toString());
 		token.setMembershipInvitationId("validId");
-		SignedTokenUtil.signToken(token);
+		tokenGenerator.signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			// Only updating is allowed

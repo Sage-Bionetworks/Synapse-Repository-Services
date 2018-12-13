@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -81,9 +83,11 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTe
 	
 	@Test
 	public void testStartUploadJob() throws ServletException, Exception{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId(table.getId());
-		body.setUploadFileHandleId(fileHandle.getId());
+		TableUpdateTransactionRequest body = new TableUpdateTransactionRequest();
+		UploadToTableRequest uploadToTableRequest = new UploadToTableRequest();
+		uploadToTableRequest.setTableId(table.getId());
+		uploadToTableRequest.setUploadFileHandleId(fileHandle.getId());
+		body.setChanges(Collections.singletonList(uploadToTableRequest));
 		// Start the job
 		AsynchronousJobStatus status = servletTestHelper.startAsynchJob(dispatchServlet, adminUserId, body);
 		assertNotNull(status);

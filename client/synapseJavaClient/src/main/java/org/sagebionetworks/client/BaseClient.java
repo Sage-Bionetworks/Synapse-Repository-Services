@@ -95,4 +95,15 @@ public interface BaseClient {
 	public void logout() throws SynapseException;
 
 	public void invalidateApiKey() throws SynapseException;
+
+	/**
+	 * Set the sessionId, which is used to identify a series of requests made by this client to the current repoEndpoint
+	 * @param sessionId
+	 */
+	public void setSessionId(String sessionId);
+
+	/**
+	 * Get the sessionId, which is used to identify a series of requests made by this client to the current repoEndpoint
+	 */
+	public String getSessionId();
 }

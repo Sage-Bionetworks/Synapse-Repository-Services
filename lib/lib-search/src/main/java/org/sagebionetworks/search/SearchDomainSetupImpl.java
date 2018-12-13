@@ -6,11 +6,12 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.model.CreateDomainRequest;
 import com.amazonaws.services.cloudsearchv2.model.DefineIndexFieldRequest;
 import com.amazonaws.services.cloudsearchv2.model.DeleteIndexFieldRequest;
@@ -27,12 +28,12 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
 	private static final String CLOUD_SEARCH_API_VERSION = "2013-01-01";
 
-	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.singleton().getStack(),	StackConfiguration.getStackInstance());
+	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfigurationSingleton.singleton().getStack(),	StackConfigurationSingleton.singleton().getStackInstance());
 
 	static private Logger log = LogManager.getLogger(SearchDomainSetupImpl.class);
 
 	@Autowired
-	AmazonCloudSearchClient awsSearchClient;
+	AmazonCloudSearch awsSearchClient;
 
 
 	@Override
@@ -116,7 +117,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			currentFieldsMap.put(field.getIndexFieldName(), field);
 		}
 		// The the expected schema.
-		List<IndexField> indexList = SearchSchemaLoader.loadSearchDomainSchema();
+		List<IndexField> indexList = SynapseToCloudSearchField.loadSearchDomainSchema();
 		for (IndexField field : indexList) {
 			// Determine if this field already exists
 			IndexField currentField = currentFieldsMap.get(field.getIndexFieldName());

@@ -10,6 +10,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -20,6 +21,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  *
  */
 public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORevision> {
+	public static final int MAX_COMMENT_LENGTH = 256;
+
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		// This is a sub-table of node, so it gets backed up with nodes using the node ids
@@ -164,19 +167,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	}
 	@Override
 	public MigratableTableTranslation<DBORevision, DBORevision> getTranslator() {
-		// currently we do not have a backup object for node
-		return new MigratableTableTranslation<DBORevision, DBORevision>(){
-
-			@Override
-			public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
-				return backup;
-			}
-
-			@Override
-			public DBORevision createBackupFromDatabaseObject(DBORevision dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBORevision>();
 	}
+	
 	@Override
 	public Class<? extends DBORevision> getBackupClass() {
 		return DBORevision.class;

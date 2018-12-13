@@ -33,15 +33,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * 
@@ -61,9 +58,6 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private V2WikiPageDao v2WikiPageDao;
-	
-	@Autowired
-	private AmazonS3Client s3Client;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -153,10 +147,14 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
+		entity = new Project();
+		entity.setEntityType(Project.class.getName());
+		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+
 		// create an entity
 		evaluation = new Evaluation();
 		evaluation.setName("testCompetitionWikiCRUD");
-		evaluation.setContentSource(KeyFactory.SYN_ROOT_ID);
+		evaluation.setContentSource(entity.getId());
 		evaluation.setDescription("a test descrption");
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = entityServletHelper.createEvaluation(evaluation, adminUserId);

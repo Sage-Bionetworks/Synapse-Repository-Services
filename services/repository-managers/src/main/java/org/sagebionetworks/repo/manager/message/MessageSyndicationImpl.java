@@ -16,7 +16,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.BatchResultErrorEntry;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
@@ -41,7 +41,7 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	RepositoryMessagePublisher messagePublisher;
 	
 	@Autowired
-	private AmazonSQSClient awsSQSClient;
+	private AmazonSQS awsSQSClient;
 	
 	@Autowired
 	DBOChangeDAO changeDAO;
@@ -50,7 +50,7 @@ public class MessageSyndicationImpl implements MessageSyndication {
 		super();
 	}
 
-	public MessageSyndicationImpl(RepositoryMessagePublisher messagePublisher, AmazonSQSClient awsSQSClient, DBOChangeDAO changeDAO) {
+	public MessageSyndicationImpl(RepositoryMessagePublisher messagePublisher, AmazonSQS awsSQSClient, DBOChangeDAO changeDAO) {
 		super();
 		this.messagePublisher = messagePublisher;
 		this.awsSQSClient = awsSQSClient;

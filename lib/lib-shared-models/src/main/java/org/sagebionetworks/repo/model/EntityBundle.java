@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleInstanceFactory;
 import org.sagebionetworks.repo.model.table.TableBundle;
@@ -63,6 +64,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_TABLE_DATA = "tableBundle";
 	public static final String JSON_ROOT_WIKI_ID = "rootWikiId";
 	public static final String JSON_DOI = "doi";
+	public static final String JSON_DOI_ASSOCIATION = "doiAssociation";
 	public static final String JSON_FILE_NAME = "fileName";
 	public static final String JSON_THREAD_COUNT = "threadCount";
 	public static final String JSON_RESTRICTION_INFORMATION = "restrictionInformation";
@@ -82,6 +84,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private String rootWikiId;
 	private AccessControlList benefactorAcl;
 	private Doi doi;
+	private DoiAssociation doiAssociation;
 	private String fileName;
 	private Long threadCount;
 	private RestrictionInformationResponse restrictionInformation;
@@ -206,6 +209,12 @@ public class EntityBundle implements JSONEntity, Serializable {
 				doi = new Doi();
 			doi.initializeFromJSONObject(joa);
 		}
+		if(toInitFrom.has(JSON_DOI_ASSOCIATION)){
+			JSONObjectAdapter joa = toInitFrom.getJSONObject(JSON_DOI_ASSOCIATION);
+			if (doiAssociation == null)
+				doiAssociation = new DoiAssociation();
+			doiAssociation.initializeFromJSONObject(joa);
+		}
 		if(toInitFrom.has(JSON_FILE_NAME)){
 			fileName = toInitFrom.getString(JSON_FILE_NAME);
 		}
@@ -310,6 +319,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			doi.writeToJSONObject(joa);
 			writeTo.put(JSON_DOI, joa);
 		}
+		if (doiAssociation != null){
+			JSONObjectAdapter joa = writeTo.createNew();
+			doiAssociation.writeToJSONObject(joa);
+			writeTo.put(JSON_DOI_ASSOCIATION, joa);
+		}
 		if (fileName != null){
 			writeTo.put(JSON_FILE_NAME, fileName);
 		}
@@ -322,12 +336,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 			writeTo.put(JSON_RESTRICTION_INFORMATION, joa);
 		}
 		return writeTo;
-	}
-
-	@Override
-	public String getJSONSchema() {
-		// Auto-generated method stub
-		return null;
 	}
 
 	/**
@@ -425,16 +433,35 @@ public class EntityBundle implements JSONEntity, Serializable {
 	 * 
 	 * Get the doi associated with this entity.
 	 */
+	@Deprecated
 	public Doi getDoi() {
 		return doi;
 	}
 
+
 	/**
-	 * 
+	 *
+	 * Get the DOI Association associated with this entity.
+	 */
+	public org.sagebionetworks.repo.model.doi.v2.DoiAssociation getDoiAssociation() {
+		return doiAssociation;
+	}
+
+	/**
+	 *
 	 * Set the doi associated with this entity.
 	 */
+	@Deprecated
 	public void setDoi(Doi doi) {
 		this.doi = doi;
+	}
+
+	/**
+	 *
+	 * Set the DOI association associated with this entity.
+	 */
+	public void setDoiAssociation(org.sagebionetworks.repo.model.doi.v2.DoiAssociation doiAssociation) {
+		this.doiAssociation = doiAssociation;
 	}
 
 	/**
@@ -541,8 +568,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 				+ ", hasChildren=" + hasChildren + ", acl=" + acl + ", accessRequirements=" + accessRequirements
 				+ ", unmetAccessRequirements=" + unmetAccessRequirements + ", fileHandles=" + fileHandles
 				+ ", tableBundle=" + tableBundle + ", rootWikiId=" + rootWikiId + ", benefactorAcl=" + benefactorAcl
-				+ ", doi=" + doi + ", fileName=" + fileName + ", threadCount=" + threadCount
-				+ ", restrictionInformation=" + restrictionInformation + "]";
+				+ ", doi=" + doi + ", doiAssociation=" + doiAssociation + ", fileName=" + fileName +
+				", threadCount=" + threadCount + ", restrictionInformation=" + restrictionInformation + "]";
 	}
 	
 	@Override
@@ -554,6 +581,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 		result = prime * result + ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result + ((benefactorAcl == null) ? 0 : benefactorAcl.hashCode());
 		result = prime * result + ((doi == null) ? 0 : doi.hashCode());
+		result = prime * result + ((doiAssociation == null) ? 0 : doiAssociation.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
 		result = prime * result + ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result + ((fileHandles == null) ? 0 : fileHandles.hashCode());
@@ -603,6 +631,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (other.doi != null)
 				return false;
 		} else if (!doi.equals(other.doi))
+			return false;
+		if (doiAssociation == null) {
+			if (other.doiAssociation != null)
+				return false;
+		} else if (!doiAssociation.equals(other.doiAssociation))
 			return false;
 		if (entity == null) {
 			if (other.entity != null)

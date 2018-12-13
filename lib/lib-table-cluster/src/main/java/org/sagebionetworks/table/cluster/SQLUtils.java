@@ -1,13 +1,16 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
@@ -28,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -38,7 +40,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
@@ -1257,7 +1259,7 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromEntityReplication(String viewId, ViewType viewType,
+	public static String createSelectInsertFromEntityReplication(String viewId, Long viewTypeMask,
 			List<ColumnModel> currentSchema) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		StringBuilder builder = new StringBuilder();
@@ -1282,11 +1284,11 @@ public class SQLUtils {
 		builder.append(" WHERE ");
 		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
-		builder.append(getViewScopeFilterColumnForType(viewType));
+		builder.append(getViewScopeFilterColumnForType(viewTypeMask));
 		builder.append(" IN (:");
 		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
 		builder.append(") AND ");
-		builder.append(createViewTypeFilter(viewType));
+		builder.append(createViewTypeFilter(viewTypeMask));
 		builder.append(" GROUP BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
 		return builder.toString();
 	}
@@ -1296,33 +1298,23 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String createViewTypeFilter(ViewType type){
-		ValidateArgument.required(type, "type");
+	public static String createViewTypeFilter(Long viewTypeMask){
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		StringBuilder builder = new StringBuilder();
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_TYPE);
 		builder.append(" IN (");
-		switch(type){
-		case file:
-			builder.append("'");
-			builder.append(EntityType.file.name());
-			builder.append("'");
-			break;
-		case project:
-			builder.append("'");
-			builder.append(EntityType.project.name());
-			builder.append("'");
-			break;
-		case file_and_table:
-			builder.append("'");
-			builder.append(EntityType.file.name());
-			builder.append("'");
-			builder.append(",");
-			builder.append("'");
-			builder.append(EntityType.table.name());
-			builder.append("'");
-			break;
-			default:
-				throw new IllegalArgumentException("Unknown type: "+type.name());
+		// add all types that match the given mask
+		int count = 0;
+		for(ViewTypeMask type: ViewTypeMask.values()) {
+			if((type.getMask() & viewTypeMask) > 0) {
+				if(count > 0) {
+					builder.append(", ");
+				}
+				builder.append("'");
+				builder.append(type.getEntityType().name());
+				builder.append("'");
+				count++;
+			}
 		}
 		builder.append(")");
 		return builder.toString();
@@ -1466,9 +1458,9 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
-			builder.append("'");
+			builder.append("`");
 			builder.append(cm.getName());
-			builder.append("'");
+			builder.append("`");
 			first = false;
 		}
 		builder.append(" FROM ");
@@ -1611,15 +1603,11 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getViewScopeFilterColumnForType(ViewType type) {
-		switch (type) {
-		case project:
+	public static String getViewScopeFilterColumnForType(Long viewTypeMask) {
+		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
 			return TableConstants.ENTITY_REPLICATION_COL_ID;
-		case file:
-		case file_and_table:
+		}else {
 			return TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
-		default:
-			throw new IllegalArgumentException("Unknown type: "+type.name());
 		}
 	}
 	
@@ -1630,8 +1618,8 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getDistinctAnnotationColumnsSql(ViewType type){
-		String filterColumln = getViewScopeFilterColumnForType(type);
+	public static String getDistinctAnnotationColumnsSql(Long viewTypeMask){
+		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
 		return String.format(TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumln);
 	}
 	
@@ -1640,9 +1628,9 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getCalculateCRC32Sql(ViewType type){
-		String typeFilter = createViewTypeFilter(type);
-		String filterColumln = getViewScopeFilterColumnForType(type);
+	public static String getCalculateCRC32Sql(Long viewTypeMask){
+		String typeFilter = createViewTypeFilter(viewTypeMask);
+		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
 		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, typeFilter, filterColumln);
 	}
 	

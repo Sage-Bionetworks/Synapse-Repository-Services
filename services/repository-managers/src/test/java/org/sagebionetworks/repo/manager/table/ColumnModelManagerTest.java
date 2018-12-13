@@ -98,12 +98,12 @@ public class ColumnModelManagerTest {
 		
 		expectedNewSchemaIds = Lists.newArrayList("444","333","555");
 		
-		List<ColumnModel> newSchema = Lists.newArrayList(
+		newSchema = Lists.newArrayList(
 				TableModelTestUtils.createColumn(444L),
 				TableModelTestUtils.createColumn(333L),
 				TableModelTestUtils.createColumn(555L)
 				);
-		when(mockColumnModelDAO.getColumnModel(expectedNewSchemaIds, false)).thenReturn(newSchema);
+		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(newSchema);
 		
 		underLimitSchemaIds = Lists.newArrayList();
 		underLimitSchema = Lists.newArrayList();
@@ -255,31 +255,73 @@ public class ColumnModelManagerTest {
 		
 		columnModelManager.createColumnModel(user, cm);
 	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetColumnsNullUser() throws DatastoreException, NotFoundException{
-		List<String> ids = new LinkedList<String>();
-		columnModelManager.getColumnModel(null, ids, false);
-	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullList() throws DatastoreException, NotFoundException{
-		columnModelManager.getColumnModel(user, (List<String>) null, false);
+		columnModelManager.getAndValidateColumnModels(null);
 	}
 	
 	@Test
-	public void testGetColumnsHappy() throws DatastoreException, NotFoundException{
-		List<String> ids = new LinkedList<String>();
-		ids.add("123");
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		ColumnModel cm = new ColumnModel();
-		cm.setName("abb");
-		cm.setId("123");
-		results.add(cm);
-		when(mockColumnModelDAO.getColumnModel(ids, false)).thenReturn(results);
-		List<ColumnModel> out = columnModelManager.getColumnModel(user, ids, false);
-		assertNotNull(out);
-		assertEquals(results, out);
+	public void testGetColumns() {
+		//Call under test
+		List<ColumnModel> resutls = columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
+		assertNotNull(resutls);
+		assertEquals(newSchema, resutls);
+	}
+	
+	@Test
+	public void testGetColumnsInOrder() {
+		Lists.reverse(expectedNewSchemaIds);
+		//Call under test
+		List<ColumnModel> resutls = columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
+		assertNotNull(resutls);
+		// expected should also be in reverse order
+		Lists.reverse(newSchema);
+		assertEquals(newSchema, resutls);
+	}
+	
+	@Test
+	public void testGetColumnsDoesNotExist() {
+		// add a column that does not exist
+		expectedNewSchemaIds.add("9999");
+		//Call under test
+		try{
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
+			fail();
+		}catch( NotFoundException e) {
+			// expected
+			assertEquals("Column does not exist for id: 9999", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testGetColumnsDuplicateId() {
+		// add a duplicate value to the list
+		expectedNewSchemaIds.add(expectedNewSchemaIds.get(1));
+		//Call under test
+		try{
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
+			fail();
+		}catch( IllegalArgumentException e) {
+			// expected
+			assertEquals("Duplicate column: 'col_333'", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testGetColumnsDuplicateName() {
+		// Setup duplicate names for two of the columns
+		ColumnModel zero = newSchema.get(0);
+		ColumnModel one = newSchema.get(1);
+		one.setName(zero.getName());
+		//Call under test
+		try{
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
+			fail();
+		}catch( IllegalArgumentException e) {
+			// expected
+			assertEquals("Duplicate column name: 'col_444'", e.getMessage());
+		}
 	}
 	
 	@Test
@@ -296,31 +338,85 @@ public class ColumnModelManagerTest {
 
 	
 	@Test
-	public void testBindColumnToObjectHappy() throws DatastoreException, NotFoundException{
+	public void testBindColumnToObject() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		List<String> ids = new LinkedList<String>();
-		ids.add("123");
-		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
-		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId));
+		// call under test
+		List<ColumnModel> results = columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
+		assertEquals(newSchema, results);
+		verify(mockColumnModelDAO).bindColumnToObject(newSchema, objectId);
+		verify(mockColumnModelDAO, never()).unbindAllColumnsFromObject(anyString());
 	}
 	
 	/**
-	 * This is a test for PLFM-2636
-	 * 
+	 * Test for PLFM-2636
+	 */
+	@Test
+	public void testBindColumnToObjectEmptyList() {
+		String objectId = "syn123";
+		List<String> columnIds = new LinkedList<>();
+		// call under test
+		List<ColumnModel> results = columnModelManager.bindColumnToObject(columnIds, objectId);
+		// should be an emptyt list
+		assertEquals(new LinkedList<>(), results);
+		verify(mockColumnModelDAO, never()).bindColumnToObject(anyListOf(ColumnModel.class), anyString());
+		// should unbind all columns from this object
+		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
+	}
+	
+	/**
+	 * Test for PLFM-2636
+	 */
+	@Test
+	public void testBindColumnToObjectNull() {
+		String objectId = "syn123";
+		List<String> columnIds = null;
+		// call under test
+		List<ColumnModel> results = columnModelManager.bindColumnToObject(columnIds, objectId);
+		// should be an emptyt list
+		assertEquals(new LinkedList<>(), results);
+		verify(mockColumnModelDAO, never()).bindColumnToObject(anyListOf(ColumnModel.class), anyString());
+		// should unbind all columns from this object
+		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
+	}
+	
+	/**
+	 * Test for PLFM-3113.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Test
-	public void testBindColumnNull() throws DatastoreException, NotFoundException{
+	@Test (expected=IllegalArgumentException.class)
+	public void testBindColumnToObjectDuplicateId() throws DatastoreException, NotFoundException{
+		// bind a duplicate
+		expectedNewSchemaIds.add(expectedNewSchemaIds.get(1));
 		String objectId = "syn123";
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		List<String> ids = new LinkedList<String>();
-		ids.add("123");
-		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(0);
-		assertFalse("Binding null columns should trigger a rest for a new object",columnModelManager.bindColumnToObject(user, ids, objectId));
+		// call under test
+		columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBindColumnsToObjectDuplicateName() {
+		// Setup duplicate names for two of the columns
+		ColumnModel zero = newSchema.get(0);
+		ColumnModel one = newSchema.get(1);
+		one.setName(zero.getName());
+		String objectId = "syn123";
+		// call under test
+		columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
+	}
+	
+	/**
+	 * Test for PLFM-3113.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test (expected=NotFoundException.class)
+	public void testBindColumnToObjectDoesNotExist() throws DatastoreException, NotFoundException{
+		// bind a column that does not exist
+		expectedNewSchemaIds.add("9999");
+		String objectId = "syn123";
+		// call under test
+		columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
+	}	
 	
 	@Test (expected =IllegalArgumentException.class)
 	public void testListObjectsBoundToColumnNullUser(){
@@ -398,7 +494,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -414,7 +510,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -430,7 +526,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
@@ -445,7 +541,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
 		List<ColumnModel> l = columnModelManager.validateSchemaSize(scheamIds);
 		assertNotNull(l);
 	}
@@ -463,9 +559,9 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testUnderDataPerColumnLimit(){
 		String objectId = "syn123";
-		when(mockColumnModelDAO.getColumnModel(underLimitSchemaIds, false)).thenReturn(underLimitSchema);
+		when(mockColumnModelDAO.getColumnModel(underLimitSchemaIds)).thenReturn(underLimitSchema);
 		//call under test
-		columnModelManager.bindColumnToObject(user, underLimitSchemaIds, objectId);
+		columnModelManager.bindColumnToObject(underLimitSchemaIds, objectId);
 	}
 	
 	/**
@@ -474,9 +570,9 @@ public class ColumnModelManagerTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testOverDataPerColumnLimit(){
 		String objectId = "syn123";
-		when(mockColumnModelDAO.getColumnModel(overLimitSchemaIds, false)).thenReturn(overLimitSchema);
+		when(mockColumnModelDAO.getColumnModel(overLimitSchemaIds)).thenReturn(overLimitSchema);
 		//call under test
-		columnModelManager.bindColumnToObject(user, overLimitSchemaIds, objectId);
+		columnModelManager.bindColumnToObject(overLimitSchemaIds, objectId);
 	}
 	
 	/**
@@ -494,10 +590,10 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
 		try {
 			//call under test
-			columnModelManager.bindColumnToObject(user, scheamIds, objectId);
+			columnModelManager.bindColumnToObject(scheamIds, objectId);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().startsWith("Too many columns"));
@@ -509,7 +605,7 @@ public class ColumnModelManagerTest {
 		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
 		List<ColumnModel> columns = TableModelTestUtils.createColumnsForChanges(changes);
 		
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(columns);
+		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(columns);
 		
 		List<ColumnChangeDetails> expected = Lists.newArrayList(
 				new ColumnChangeDetails(null, columns.get(0)),
@@ -519,6 +615,35 @@ public class ColumnModelManagerTest {
 		// Call under test
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
 		assertEquals(expected, results);
+	}
+	
+	/**
+	 * For PLFM-4904 ColumnModelManager.getColumnChangeDetails() we throwing a 
+	 * 'Duplicate column name' exception if two columns have the same name.
+	 */
+	@Test
+	public void testPLFM_4904() {
+		ColumnModel oldCol = new ColumnModel();
+		oldCol.setName("foo");
+		oldCol.setId("111");
+		ColumnModel newCol = new ColumnModel();
+		newCol.setName("foo");
+		newCol.setId("222");
+		
+		List<String> colIds = Lists.newArrayList(newCol.getId(), oldCol.getId());
+ 
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(oldCol.getId());
+		change.setNewColumnId(newCol.getId());
+		List<ColumnChange> changes = Lists.newArrayList(change);
+		
+		// return both columns
+		when(mockColumnModelDAO.getColumnModel(colIds)).thenReturn(Lists.newArrayList(oldCol, newCol));
+		
+		// Call under test
+		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
+		assertNotNull(results);
+		assertEquals(1, results.size());
 	}
 
 	@Test
@@ -551,12 +676,28 @@ public class ColumnModelManagerTest {
 				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>()));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateNewSchemaIdsAndValidateOverSizeLimit(){
+		// setup the current schema as empty
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<>());
 		// setup the new schema to be over the limit.
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(overLimitSchema);
-		// call under test.
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
+		List<String> newSchemaIds = new LinkedList<>();
+		List<ColumnChange> changes = new LinkedList<>();
+		for(ColumnModel cm: overLimitSchema) {
+			ColumnChange change = new ColumnChange();
+			change.setOldColumnId(null);
+			change.setNewColumnId(cm.getId());
+			changes.add(change);
+			newSchemaIds.add(cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(overLimitSchema);
+		try {
+			// call under test.
+			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newSchemaIds);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("Too much data per column"));
+		}
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -812,4 +953,58 @@ public class ColumnModelManagerTest {
 	public void testValidateSchemaWithProvidedOrderedColumnsWithDifferentOrder() {
 		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1", "2"), Arrays.asList("2", "1"));
 	}
+	
+	@Test
+	public void testCheckColumnNaming() {
+		String name = "foo";
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCheckColumnNamingReserved() {
+		String name = TableConstants.ROW_ID;
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	/**
+	 * PLFM-4329.
+	 */
+	@Test
+	public void testCheckColumnNamingAtLimit() {
+		String name = createStringOfSize(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS);
+		// call under test
+		ColumnModelManagerImpl.checkColumnNaming(name);
+	}
+	
+	/**
+	 * PLFM-4329.
+	 */
+	@Test
+	public void testCheckColumnNamingOverLimit() {
+		String name = createStringOfSize(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS+1);
+		// call under test
+		try {
+			ColumnModelManagerImpl.checkColumnNaming(name);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals("Column name must be: 256 characters or less.", e.getMessage());
+		}
+	}
+	
+	/**
+	 * Create a string with the given number of characters.
+	 * 
+	 * @param numberChars
+	 * @return
+	 */
+	public static String createStringOfSize(int numberChars) {
+		char[] chars = new char[numberChars];
+		for(int i=0; i<numberChars; i++) {
+			chars[i] = (char) i;
+		}
+		return new String(chars);
+	}
+	
 }

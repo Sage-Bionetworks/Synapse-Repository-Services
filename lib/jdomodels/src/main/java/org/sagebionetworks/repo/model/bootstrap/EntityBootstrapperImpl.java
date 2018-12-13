@@ -139,10 +139,10 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setModifiedOn(toCreate.getCreatedOn());
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
 			toCreate.setId(""+entityBoot.getEntityId());
-			String nodeId = nodeDao.createNew(toCreate);
+			toCreate = nodeDao.bootstrapNode(toCreate, entityBoot.getEntityId());
 
 			// Now create the ACL on the node
-			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
+			AccessControlList acl = createAcl(toCreate.getId(), entityBoot.getAccessList());
 			// Now set the ACL for this node.
 			aclDAO.create(acl, ObjectType.ENTITY);
 

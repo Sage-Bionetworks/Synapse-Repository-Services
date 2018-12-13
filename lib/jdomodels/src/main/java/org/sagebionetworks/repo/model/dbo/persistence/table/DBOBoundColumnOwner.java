@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -58,20 +59,7 @@ public class DBOBoundColumnOwner implements MigratableDatabaseObject<DBOBoundCol
 
 	@Override
 	public MigratableTableTranslation<DBOBoundColumnOwner, DBOBoundColumnOwner> getTranslator() {
-		return new MigratableTableTranslation<DBOBoundColumnOwner, DBOBoundColumnOwner>(){
-
-			@Override
-			public DBOBoundColumnOwner createDatabaseObjectFromBackup(
-					DBOBoundColumnOwner backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOBoundColumnOwner createBackupFromDatabaseObject(
-					DBOBoundColumnOwner dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOBoundColumnOwner>();
 	}
 
 	@Override

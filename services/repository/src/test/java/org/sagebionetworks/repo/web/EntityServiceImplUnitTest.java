@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.web;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,9 +14,10 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.ids.IdGenerator;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -21,19 +26,18 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.EntityServiceImpl;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificUpdateProvider;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class EntityServiceImplUnitTest {
 	
-	@Mock
-	EntityService entityService;
+	@InjectMocks
+	EntityServiceImpl entityService;
 	@Mock
 	EntityManager mockEntityManager;
 	@Mock
@@ -42,8 +46,6 @@ public class EntityServiceImplUnitTest {
 	UserManager mockUserManager;
 	@Mock
 	FileHandleManager mockFileHandleManager;
-	@Mock
-	IdGenerator mockIdGenerator;
 	@Mock
 	AllTypesValidator mockAllTypesValidator;
 	@Mock
@@ -62,20 +64,10 @@ public class EntityServiceImplUnitTest {
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
 		
 		projectProviders = new ArrayList<EntityProvider<?>>();
 		projectProviders.add(mockProjectUpdateProvider);
 		projectProviders.add(mockProjectCreateProvider);
-		
-		entityService = new EntityServiceImpl();
-		
-		ReflectionTestUtils.setField(entityService, "entityManager", mockEntityManager);
-		ReflectionTestUtils.setField(entityService, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(entityService, "fileHandleManager", mockFileHandleManager);
-		ReflectionTestUtils.setField(entityService, "metadataProviderFactory", mockMetadataProviderFactory);
-		ReflectionTestUtils.setField(entityService, "idGenerator", mockIdGenerator);
-		ReflectionTestUtils.setField(entityService, "allTypesValidator", mockAllTypesValidator);
 		
 		userInfo = new UserInfo(false);
 		userInfo.setId(PRINCIPAL_ID);
@@ -86,6 +78,7 @@ public class EntityServiceImplUnitTest {
 		project = new Project();
 		project.setId("syn123");
 		when(mockEntityManager.getEntity(any(UserInfo.class), anyString(), any(Class.class))).thenReturn(project);
+		when(mockEntityManager.createEntity(any(UserInfo.class), any(Entity.class), any(String.class))).thenReturn(project.getId());
 		
 		when(mockRequest.getServletPath()).thenReturn("path");
 

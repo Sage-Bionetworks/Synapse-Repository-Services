@@ -18,6 +18,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -247,17 +248,7 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 
 	@Override
 	public MigratableTableTranslation<DBOChange, DBOChange> getTranslator() {
-		return new MigratableTableTranslation<DBOChange, DBOChange>(){
-
-			@Override
-			public DBOChange createDatabaseObjectFromBackup(DBOChange backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOChange createBackupFromDatabaseObject(DBOChange dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOChange>();
 	}
 
 	@Override

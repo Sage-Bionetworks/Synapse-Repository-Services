@@ -12,19 +12,6 @@
 
 	<!-- Import the stack configuration -->
 	<import resource="stack-configuration.spb.xml" />
-
-	<bean id="accessKey" class="org.sagebionetworks.StackConfiguration"
-		factory-method="getIAMUserId" />
-	<bean id="secretKey" class="org.sagebionetworks.StackConfiguration"
-		factory-method="getIAMUserKey" />
-	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
-		<constructor-arg index="0" ref="accessKey" />
-		<constructor-arg index="1" ref="secretKey" />
-	</bean>
-	
-	<bean id="awsRDSClient" class="com.amazonaws.services.rds.AmazonRDSClient" scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
 	
 	<bean id="instanceDiscovery" class="org.sagebionetworks.table.cluster.InstanceDiscoveryImpl" />
 	

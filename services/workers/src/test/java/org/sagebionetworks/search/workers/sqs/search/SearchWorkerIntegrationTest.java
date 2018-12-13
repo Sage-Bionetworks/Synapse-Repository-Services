@@ -39,7 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.base.Predicate;
 
 /**
@@ -77,7 +77,7 @@ public class SearchWorkerIntegrationTest {
 	private SemaphoreManager semphoreManager;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	@Autowired
 	private SearchManager searchManager;
@@ -136,7 +136,7 @@ public class SearchWorkerIntegrationTest {
 		uuid = UUID.randomUUID().toString();
 		
 		// Zip up the markdown into a file with UUID
-		String markdown = "markdown contents " + uuid;
+		String markdown = "markdown contents \u000c\f\u0019with control characters " + uuid;
 		markdownOne = fileHandleManager.createCompressedFileFromString(""+adminUserInfo.getId(), new Date(), markdown);
 	}
 

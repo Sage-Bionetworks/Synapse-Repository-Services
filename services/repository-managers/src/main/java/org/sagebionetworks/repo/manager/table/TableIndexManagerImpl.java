@@ -10,7 +10,8 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
@@ -166,7 +167,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				tableIndexDao.truncateTable(tableId);
 			}
 			// Set the new schema MD5
-			String schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(currentSchema);
+			List<String> columnIds = TableModelUtils.getIds(currentSchema);
+			String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		}
 		return wasSchemaChanged;
@@ -249,12 +251,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback callback, final ViewType viewType,
+	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback callback, final Long viewTypeMask,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		ValidateArgument.required(callback, "callback");
 		try {
 			return populateViewFromEntityReplicationWithProgress(tableId,
-					viewType, allContainersInScope, currentSchema);
+					viewTypeMask, allContainersInScope, currentSchema);
 		} catch (Exception e) {
 			if (e instanceof RuntimeException) {
 				throw ((RuntimeException) e);
@@ -275,16 +277,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
 	 * @throws Exception 
 	 */
-	Long populateViewFromEntityReplicationWithProgress(final String tableId, ViewType viewType, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
-		ValidateArgument.required(viewType, "viewType");
+	Long populateViewFromEntityReplicationWithProgress(final String tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
 		// copy the data from the entity replication tables to table's index
 		try {
-			tableIndexDao.copyEntityReplicationToTable(tableId, viewType, allContainersInScope, currentSchema);
+			tableIndexDao.copyEntityReplicationToTable(tableId, viewTypeMask, allContainersInScope, currentSchema);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
-			determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewType);
+			determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewTypeMask);
 		}
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(tableId);
@@ -297,9 +299,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param currentSchema
 	 * @throws Exception 
 	 */
-	public void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, Set<Long> containersInScope, ViewType type) throws Exception{
+	public void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, Set<Long> containersInScope, Long viewTypeMask) throws Exception{
 		// Calculate the schema from the annotations
-		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(containersInScope, type, Long.MAX_VALUE, 0L);
+		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(containersInScope, viewTypeMask, Long.MAX_VALUE, 0L);
 		// check the 
 		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
 		// Have not determined the cause so throw the original exception
@@ -310,24 +312,23 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public ColumnModelPage getPossibleColumnModelsForView(
 			String viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
-		ViewType type = tableManagerSupport.getViewType(viewId);
+		Long type = tableManagerSupport.getViewTypeMask(viewId);
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId, type);
 		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
 	}
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForScope(
-			List<String> scopeIds, ViewType type, String nextPageToken) {
-		ValidateArgument.required(scopeIds, "scopeIds");
-		if(type == null){
-			// default to file
-			type = ViewType.file;
-		}
+			ViewScope scope, String nextPageToken) {
+		ValidateArgument.required(scope, "scope");
+		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
+		long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
 		// lookup the containers for the given scope
-		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scopeIds));
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, type);
-		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
+		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, viewTypeMask);
+		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewTypeMask, nextPageToken);
 	}
+	
 	
 	/**
 	 * Get the possible annotations for the given set of container IDs.
@@ -337,7 +338,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 */
 	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(
-			Set<Long> containerIds, ViewType type, String nextPageToken) {
+			Set<Long> containerIds, Long viewTypeMask, String nextPageToken) {
 		ValidateArgument.required(containerIds, "containerIds");
 		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
@@ -347,7 +348,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			return results;
 		}
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(containerIds, type, token.getLimitForQuery(), token.getOffset());
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(containerIds, viewTypeMask, token.getLimitForQuery(), token.getOffset());
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		return results;

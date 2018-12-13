@@ -51,6 +51,8 @@ import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -136,11 +138,16 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
-import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
+import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -150,10 +157,15 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -169,6 +181,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -196,6 +209,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -356,7 +370,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	protected static final String COLUMN = "/column";
 	protected static final String COLUMN_BATCH = COLUMN + "/batch";
-	protected static final String COLUMN_VIEW_DEFAULT = COLUMN + "/tableview/defaults/";
+	protected static final String COLUMN_VIEW_DEFAULT = COLUMN + "/tableview/defaults";
 	protected static final String TABLE = "/table";
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
@@ -416,7 +430,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String LOG = "/log";
 
-	private static final String DOI = "/doi";
+	protected static final String DOI = "/doi";
+	private static final String DOI_ASSOCIATION = DOI + "/association";
+	private static final String DOI_LOCATE = DOI + "/locate";
 
 	private static final String ETAG = "etag";
 
@@ -427,6 +443,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
+	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	
 	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
@@ -507,8 +524,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OBJECT = "/object";	
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
-	
+
 	private static final String DOCKER_COMMIT = "/dockerCommit";
+	private static final String DOCKER_TAG = "/dockerTag";
 
 	private static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken=";
 
@@ -521,6 +539,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String RESEARCH_PROJECT = "/researchProject";
 	private static final String DATA_ACCESS_REQUEST = "/dataAccessRequest";
 	private static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
+	
+	public static final String DOWNLOAD_LIST = "/download/list";
+	public static final String DOWNLOAD_LIST_ADD = DOWNLOAD_LIST+"/add";
+	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
+	public static final String DOWNLOAD_LIST_CLEAR = DOWNLOAD_LIST+"/clear";
+	
+	public static final String DOWNLOAD_ORDER = "/download/order";
+	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
+	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -2506,11 +2533,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return postJSONEntity(getRepoEndpoint(), "/search", searchQuery, SearchResults.class);
 	}
 
-	@Override
-	public String getSynapseTermsOfUse() throws SynapseException {
-		return getStringDirect(getAuthEndpoint(), "/synapseTermsOfUse.html");
-	}
-
 	/**
 	 * Helper for pagination of messages
 	 */
@@ -3408,55 +3430,68 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Creates a DOI for the specified entity. The DOI will always be associated
-	 * with the current version of the entity.
+	 * Gets the DOI Association for the specified object. If object version is null, the call will return the DOI
+	 * for the current version of the object.
 	 */
 	@Override
-	public void createEntityDoi(String entityId) throws SynapseException {
-		createEntityDoi(entityId, null);
-	}
-
-	/**
-	 * Creates a DOI for the specified entity version. If version is null, the
-	 * DOI will always be associated with the current version of the entity.
-	 */
-	@Override
-	public void createEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException {
-
-		ValidateArgument.required(entityId, "entityId");
-		String url = ENTITY + "/" + entityId;
-		if (entityVersion != null) {
-			url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
+	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		String url = DOI_ASSOCIATION + "?id=" + objectId + "&type=" + objectType;
+		if (objectVersion != null) {
+			url += "&version=" + objectVersion;
 		}
-		url = url + DOI;
-		voidPut(getRepoEndpoint(), url, null);
+		return getJSONEntity(getRepoEndpoint(), url, DoiAssociation.class);
 	}
 
 	/**
-	 * Gets the DOI for the specified entity version. The DOI is for the current
-	 * version of the entity.
+	 * Gets the DOI for the specified object. If object version is null, the call will return the DOI
+	 * for the current version of the object.
 	 */
 	@Override
-	public Doi getEntityDoi(String entityId) throws SynapseException {
-		return getEntityDoi(entityId, null);
-	}
-
-	/**
-	 * Gets the DOI for the specified entity version. If version is null, the
-	 * DOI is for the current version of the entity.
-	 */
-	@Override
-	public Doi getEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException {
-
-		ValidateArgument.required(entityId, "entityId");
-		String url = ENTITY + "/" + entityId;
-		if (entityVersion != null) {
-			url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
+	public Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		String url = DOI_ASSOCIATION + "?id=" + objectId + "&type=" + objectType;
+		if (objectVersion != null) {
+			url += "&version=" + objectVersion;
 		}
-		url = url + DOI;
 		return getJSONEntity(getRepoEndpoint(), url, Doi.class);
+	}
+
+
+	/**
+	 * Creates a DOI for the specified object. Idempotent.
+	 */
+	@Override
+	public String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException {
+		DoiRequest request = new DoiRequest();
+		request.setDoi(doi);
+		return startAsynchJob(AsynchJobType.Doi, request);
+	}
+
+	/**
+	 * Retrieves the status of a createOrUpdateDoi call.
+	 */
+	@Override
+	public DoiResponse createOrUpdateDoiAsyncGet(String asyncJobToken) throws SynapseException {
+		String url = DOI + ASYNC_GET + asyncJobToken;
+		return getJSONEntity(getRepoEndpoint(), url, DoiResponse.class);
+	}
+
+	/**
+	 *
+	 */
+	@Override
+	public String getPortalUrl(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		String requestUrl = DOI_LOCATE + "?id=" + objectId + "&type=" + objectType;
+		if (objectVersion != null) {
+			requestUrl += "&version=" + objectVersion;
+		}
+		requestUrl += "&redirect=false";
+		return getStringDirect(getRepoEndpoint(), requestUrl);
 	}
 
 	/**
@@ -3752,7 +3787,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public List<ColumnModel> getDefaultColumnsForView(ViewType viewType)
 			throws SynapseException {
 		ValidateArgument.required(viewType, "viewType");
-		String url = COLUMN_VIEW_DEFAULT+viewType.name();
+		String url = COLUMN_VIEW_DEFAULT+"/"+viewType.name();
+		return getListOfJSONEntity(getRepoEndpoint(), url, ColumnModel.class);
+	}
+	
+	@Override
+	public List<ColumnModel> getDefaultColumnsForView(Long viewTypeMask)
+			throws SynapseException {
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		String url = COLUMN_VIEW_DEFAULT+"?viewTypeMask="+viewTypeMask;
 		return getListOfJSONEntity(getRepoEndpoint(), url, ColumnModel.class);
 	}
 
@@ -4207,6 +4250,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public Session validateOAuthAuthenticationCode(OAuthValidationRequest request) throws SynapseException{
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_SESSION, request, Session.class);
+	}
+	
+	@Override
+	public Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException{
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ACCOUNT, request, Session.class);
 	}
 	
 	@Override
@@ -4768,13 +4816,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public SubscriptionPagedResults getAllSubscriptions(
-			SubscriptionObjectType objectType, Long limit, Long offset) throws SynapseException {
+			SubscriptionObjectType objectType, Long limit, Long offset, SortByType sortByType, org.sagebionetworks.repo.model.subscription.SortDirection sortDirection) throws SynapseException {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(objectType, "objectType");
-		String url = SUBSCRIPTION+ALL+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
-		url += "&"+OBJECT_TYPE_PARAM+"="+objectType.name();
-		return getJSONEntity(getRepoEndpoint(), url, SubscriptionPagedResults.class);
+		StringBuilder builder = new StringBuilder(SUBSCRIPTION+ALL);
+		builder.append("?");
+		builder.append(LIMIT).append("=").append(limit);
+		builder.append("&").append(OFFSET).append("=").append(offset);
+		builder.append("&").append(OBJECT_TYPE_PARAM).append("=").append(objectType.name());
+		if(sortByType != null) {
+			builder.append("&").append("sortBy").append("=").append(sortByType.name());
+		}
+		if(sortDirection != null) {
+			builder.append("&").append("sortDirection").append("=").append(sortDirection.name());
+		}
+		return getJSONEntity(getRepoEndpoint(), builder.toString(), SubscriptionPagedResults.class);
 	}
 
 	@Override
@@ -4864,10 +4921,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<DockerCommit> listDockerCommits(
+	public PaginatedResults<DockerCommit> listDockerTags(
 			String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = ENTITY+"/"+entityId+DOCKER_COMMIT;
+		String url = ENTITY+"/"+entityId+DOCKER_TAG;
 		List<String> requestParams = new ArrayList<String>();
 		if (limit!=null) {
 			requestParams.add(LIMIT+"="+limit);
@@ -4884,7 +4941,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (!requestParams.isEmpty()) {
 			url += "?" + Joiner.on('&').join(requestParams);
 		}
-		
+
 		return getPaginatedResults(getRepoEndpoint(), url, DockerCommit.class);
 	}
 
@@ -5104,4 +5161,72 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		return getJSONEntity(getRepoEndpoint(), uri, RestrictableObjectDescriptorResponse.class);
 	}
+
+	@Override
+	public String startAddFilesToDownloadList(AddFileToDownloadListRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return startAsynchJob(AsynchJobType.AddFileToDownloadList, request);
+	}
+
+	@Override
+	public AddFileToDownloadListResponse getAddFilesToDownloadListResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		ValidateArgument.required(asyncJobToken, "asyncJobToken");
+		return (AddFileToDownloadListResponse) getAsyncResult(AsynchJobType.AddFileToDownloadList, asyncJobToken, (String) null);
+	}
+
+	@Override
+	public DownloadList addFilesToDownloadList(List<FileHandleAssociation> toAdd) throws SynapseException {
+		ValidateArgument.required(toAdd, "toAdd");
+		FileHandleAssociationList request = new FileHandleAssociationList();
+		request.setList(toAdd);
+		return postJSONEntity(getFileEndpoint(), DOWNLOAD_LIST_ADD, request, DownloadList.class);
+	}
+
+	@Override
+	public DownloadList removeFilesFromDownloadList(List<FileHandleAssociation> toRemove) throws SynapseException {
+		ValidateArgument.required(toRemove, "toRemove");
+		FileHandleAssociationList request = new FileHandleAssociationList();
+		request.setList(toRemove);
+		return postJSONEntity(getFileEndpoint(), DOWNLOAD_LIST_REMOVE, request, DownloadList.class);
+	}
+
+	@Override
+	public void clearDownloadList() throws SynapseException {
+		deleteUri(getFileEndpoint(), DOWNLOAD_LIST);
+	}
+	
+	@Override
+	public DownloadList getDownloadList() throws SynapseException {
+		return getJSONEntity(getFileEndpoint(), DOWNLOAD_LIST, DownloadList.class);
+	}
+
+	@Override
+	public DownloadOrder createDownloadOrderFromUsersDownloadList(String zipFileName) throws SynapseException {
+		ValidateArgument.required(zipFileName, "zipFileName");
+		String url = DOWNLOAD_ORDER+"?zipFileName="+zipFileName;
+		return postJSONEntity(getFileEndpoint(), url, null, DownloadOrder.class);
+	}
+
+	@Override
+	public DownloadOrder getDownloadOrder(String orderId) throws SynapseException {
+		ValidateArgument.required(orderId, "orderId");
+		String url = DOWNLOAD_ORDER+"/"+orderId;
+		return getJSONEntity(getFileEndpoint(), url, DownloadOrder.class);
+	}
+
+	@Override
+	public DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getFileEndpoint(), DOWNLOAD_ORDER_HISTORY, request, DownloadOrderSummaryResponse.class);
+	}
+
+	@Override
+	public DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(newDataType, "newDataType");
+		String url = ENTITY + "/" + entityId + "/datatype?type="+newDataType.name();
+		return putJSONEntity(getRepoEndpoint(), url, null, DataTypeResponse.class);
+	}
+
 }

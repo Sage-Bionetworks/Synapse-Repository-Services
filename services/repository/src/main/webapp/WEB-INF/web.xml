@@ -56,22 +56,6 @@
 		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
 	</listener>
 
-	<!-- Python Client Filter -->
-
-	<filter>
-		<filter-name>pythonClientFilter</filter-name>
-		<filter-class>org.sagebionetworks.repo.web.filter.PythonClientFilter</filter-class>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>pythonClientFilter</filter-name>
-		<url-pattern>/auth/v1/*</url-pattern>
-		<url-pattern>/repo/v1/*</url-pattern>
-		<url-pattern>/file/v1/*</url-pattern>
-	</filter-mapping>
-
-	<!-- END Python Client Filter -->
-
 	<!-- Some browsers do not support PUT and DELETE methods, this filter will 
 		examine the form field parameter _method -->
 	<filter>
@@ -241,18 +225,6 @@
 		<url-pattern>/*</url-pattern>
 	</servlet-mapping>
 
-	<servlet>
-		<servlet-name>tomcatDefaultServlet</servlet-name>
-		<servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
-	</servlet>
-
-
-	<servlet-mapping>
-		<servlet-name>tomcatDefaultServlet</servlet-name>
-		<url-pattern>/auth/v1/synapseTermsOfUse.html</url-pattern>
-	</servlet-mapping>
-
-
 	<!-- This filter will look for the session token as a cookie, if it finds 
 		it, the token will be added to the header of the request -->
 	<filter>
@@ -262,6 +234,15 @@
 
 	<filter-mapping>
 		<filter-name>CORSFilter</filter-name>
+		<url-pattern>*</url-pattern>
+	</filter-mapping>
+	
+	<filter>
+		<filter-name>HSTSFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.HSTSFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>HSTSFilter</filter-name>
 		<url-pattern>*</url-pattern>
 	</filter-mapping>
 	
@@ -287,5 +268,15 @@
 		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
+	</filter-mapping>
+
+	<!-- appends a new sessionId cookie to the response if the user did not provide one in their request -->
+	<filter>
+		<filter-name>sessionIdCookieSetterFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.SessionIdCookieSetterFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>sessionIdCookieSetterFilter</filter-name>
+		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 </web-app>

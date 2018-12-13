@@ -12,9 +12,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 public class AccessControlListUtil {
 	/**
 	 * Will create an ACL that will grant all permissions to a given user for the given node.
-	 * @param objectId
-	 * @param userId
-	 * @return
+	 * @param objectId The entity, team, or evaluation to which the ACL refers
+	 * @param info The user or group info which refers to the principal given access to the object
+	 * @param permissions The access type permissions to give the user group
+	 * @param now The date to set on the DTO
+	 * @return a corresponding AccessControlList DTO
 	 */
 	public static AccessControlList createACL(String objectId, UserInfo info, Set<ACCESS_TYPE> permissions, Date now) {
 		if(objectId == null) throw new IllegalArgumentException("NodeId cannot be null");
@@ -22,10 +24,10 @@ public class AccessControlListUtil {
 		AccessControlList acl = new AccessControlList();
 		acl.setCreationDate(now);
 		acl.setId(objectId);
-		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
+		Set<ResourceAccess> set = new HashSet<>();
 		acl.setResourceAccess(set);
 		ResourceAccess access = new ResourceAccess();
-		access.setAccessType(new HashSet<ACCESS_TYPE>(permissions));
+		access.setAccessType(new HashSet<>(permissions));
 		access.setPrincipalId(info.getId());
 		set.add(access);
 		return acl;

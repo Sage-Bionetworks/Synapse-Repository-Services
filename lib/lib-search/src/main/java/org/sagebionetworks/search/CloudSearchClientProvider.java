@@ -1,12 +1,12 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.Random;
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 
 /**
  * This class is responsible for initializing the setup of AWS CloudSearch
@@ -19,7 +19,9 @@ public class CloudSearchClientProvider {
 	SearchDomainSetup searchDomainSetup;
 
 	@Autowired
-	AmazonCloudSearchDomainClient awsCloudSearchDomainClient;
+	CloudSearchDocumentBatchIteratorProvider cloudSearchDocumentBatchIteratorProvider;
+
+	AmazonCloudSearchDomain awsCloudSearchDomainClient;
 
 	private boolean isSearchEnabled;
 
@@ -34,8 +36,8 @@ public class CloudSearchClientProvider {
 			return singletonWrapper;
 		}else{
 			if(searchDomainSetup.postInitialize()) {
-				awsCloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
-				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient);
+				awsCloudSearchDomainClient = AwsClientFactory.createAmazonCloudSearchDomain(searchDomainSetup.getDomainSearchEndpoint());
+				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider);
 				return singletonWrapper;
 			} else{
 				throw new TemporarilyUnavailableException("Search has not yet been initialized. Please try again later!");

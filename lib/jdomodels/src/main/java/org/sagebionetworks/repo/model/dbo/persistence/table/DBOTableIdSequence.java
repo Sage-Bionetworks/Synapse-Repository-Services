@@ -15,6 +15,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -114,19 +115,7 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 
 	@Override
 	public MigratableTableTranslation<DBOTableIdSequence, DBOTableIdSequence> getTranslator() {
-		return new MigratableTableTranslation<DBOTableIdSequence, DBOTableIdSequence>(){
-
-			@Override
-			public DBOTableIdSequence createDatabaseObjectFromBackup(
-					DBOTableIdSequence backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOTableIdSequence createBackupFromDatabaseObject(
-					DBOTableIdSequence dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOTableIdSequence>();
 	}
 
 	@Override

@@ -1,10 +1,8 @@
 package org.sagebionetworks.client;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.net.URLEncoder;
 
-import org.apache.http.client.utils.URIBuilder;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -18,6 +16,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -42,7 +41,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES + "/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
-	private static final String ADMIN_WAIT = ADMIN + "/wait";
 
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
@@ -65,6 +63,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String DAYS_IN_TRASH_PARAM = "daysInTrash";
 	
 	private static final String ADMIN_ASYNCHRONOUS_JOB = "/admin/asynchronous/job";
+	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
 	
 	public SynapseAdminClientImpl() {
 		super();
@@ -285,16 +284,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public void waitForTesting(boolean release) throws SynapseException {
-		try {
-			URIBuilder uri = new URIBuilder(ADMIN_WAIT).setParameter("release", Boolean.toString(release));
-			getStringDirect(getRepoEndpoint(), uri.build().toString());
-		} catch (URISyntaxException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	@Override
 	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES, batch, ChangeMessages.class);
 	}
@@ -315,5 +304,10 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		ValidateArgument.required(jobId, "jobId");
 		String url = ADMIN_ASYNCHRONOUS_JOB + "/" + jobId;
 		return getJSONEntity(getRepoEndpoint(), url, AsynchronousJobStatus.class);
+	}
+
+	@Override
+	public IdGeneratorExport createIdGeneratorExport() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), ADMIN_ID_GEN_EXPORT, IdGeneratorExport.class);
 	}
 }

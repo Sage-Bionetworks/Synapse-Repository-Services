@@ -15,7 +15,6 @@ import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,13 +61,11 @@ public class IT099AsynchronousJobTest {
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(new StackConfiguration().getTableEnabled());
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		try {
 			adminSynapse.clearAllLocks();
 		} catch (SynapseNotFoundException nfe) {

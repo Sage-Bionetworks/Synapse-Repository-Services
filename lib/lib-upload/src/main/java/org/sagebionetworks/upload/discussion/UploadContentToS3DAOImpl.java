@@ -16,7 +16,7 @@ import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -33,7 +33,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
 
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	private String bucketName;
 

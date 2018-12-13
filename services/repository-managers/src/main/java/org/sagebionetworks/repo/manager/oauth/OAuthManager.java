@@ -29,9 +29,11 @@ public interface OAuthManager {
 	 * @param redirectUrl
 	 *            The URL that the OAuthProvider will redirect to after
 	 *            successful authentication.
+	 * @param state An optional string to be added by the provider to 
+	 * 				the redirect URL as a request parameter.
 	 * @return The url to the OAuthProvider's authentication web page.
 	 */
-	public String getAuthorizationUrl(OAuthProvider provider, String redirectUrl);
+	public String getAuthorizationUrl(OAuthProvider provider, String redirectUrl, String state);
 
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the

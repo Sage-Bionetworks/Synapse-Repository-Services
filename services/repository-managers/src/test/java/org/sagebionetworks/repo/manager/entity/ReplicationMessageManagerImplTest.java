@@ -7,9 +7,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,8 +26,11 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
+import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
+import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
+import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.google.common.collect.Lists;
 
@@ -32,7 +38,7 @@ import com.google.common.collect.Lists;
 public class ReplicationMessageManagerImplTest {
 
 	@Mock
-	AmazonSQSClient mockSqsClient;
+	AmazonSQS mockSqsClient;
 
 	ReplicationMessageManagerImpl manager;
 
@@ -41,6 +47,9 @@ public class ReplicationMessageManagerImplTest {
 
 	String reconciliationQueueName;
 	String reconciliationQueueUrl;
+	
+	long messageCount;
+	Map<String, String> queueAttributes;
 
 	@Before
 	public void before() {
@@ -52,11 +61,11 @@ public class ReplicationMessageManagerImplTest {
 		reconciliationQueueName = "reconciliationQueueName";
 		reconciliationQueueUrl = "reconciliationQueueUrl";
 
-		when(mockSqsClient.createQueue(replicationQueueName)).thenReturn(
-				new CreateQueueResult().withQueueUrl(replicationQueueUrl));
+		when(mockSqsClient.getQueueUrl(replicationQueueName)).thenReturn(
+				new GetQueueUrlResult().withQueueUrl(replicationQueueUrl));
 		
-		when(mockSqsClient.createQueue(reconciliationQueueName)).thenReturn(
-				new CreateQueueResult().withQueueUrl(reconciliationQueueUrl));
+		when(mockSqsClient.getQueueUrl(reconciliationQueueName)).thenReturn(
+				new GetQueueUrlResult().withQueueUrl(reconciliationQueueUrl));
 
 		manager.setReplicationQueueName(replicationQueueName);
 		manager.setReconciliationQueueName(reconciliationQueueName);
@@ -64,6 +73,12 @@ public class ReplicationMessageManagerImplTest {
 		
 		assertEquals(replicationQueueUrl, manager.replicationQueueUrl);
 		assertEquals(reconciliationQueueUrl, manager.reconciliationQueueUrl);
+		
+		messageCount = 99L;
+		queueAttributes = new HashMap<>(0);
+		queueAttributes.put(QueueAttributeName.ApproximateNumberOfMessages.name(), ""+ messageCount);
+		when(mockSqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class)))
+				.thenReturn(new GetQueueAttributesResult().withAttributes(queueAttributes));
 	}
 	
 	@Test
@@ -119,7 +134,7 @@ public class ReplicationMessageManagerImplTest {
 	@Test
 	public void testPushContainerIdsToReconciliationQueueOverMax(){
 		// pushing more than the max messages should result in multiple batches.
-		List<Long> toPush = createLongMessages(ChangeMessageUtils.MAX_NUMBER_OF_ID_MESSAGES_PER_SQS_MESSAGE+1);
+		List<Long> toPush = createLongMessages(ReplicationMessageManagerImpl.MAX_CONTAINERS_IDS_PER_RECONCILIATION_MESSAGE+1);
 		// call under test
 		manager.pushContainerIdsToReconciliationQueue(toPush);
 		verify(mockSqsClient, times(2)).sendMessage(any(SendMessageRequest.class));
@@ -138,6 +153,20 @@ public class ReplicationMessageManagerImplTest {
 		List<Long> empty = null;
 		// call under test
 		manager.pushContainerIdsToReconciliationQueue(empty);
+	}
+	
+	@Test
+	public void testGetApproximateNumberOfMessageOnReplicationQueue() {
+		// call under test
+		long count = manager.getApproximateNumberOfMessageOnReplicationQueue();
+		assertEquals(messageCount, count);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetApproximateNumberOfMessageOnReplicationQueueMissingAttribute() {
+		this.queueAttributes.clear();
+		// call under test
+		manager.getApproximateNumberOfMessageOnReplicationQueue();
 	}
 	
 	/**

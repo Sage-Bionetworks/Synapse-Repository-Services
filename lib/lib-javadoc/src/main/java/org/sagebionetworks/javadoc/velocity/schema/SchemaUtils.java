@@ -1,6 +1,5 @@
 package org.sagebionetworks.javadoc.velocity.schema;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -9,10 +8,12 @@ import java.util.Map;
 
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.schema.EnumValue;
+import org.sagebionetworks.schema.HasEffectiveSchema;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.server.ServerSideOnlyFactory;
 
 import com.sun.javadoc.ClassDoc;
@@ -194,8 +195,18 @@ public class SchemaUtils {
 		Class<JSONEntity> clazz;
 		try {
 			clazz = (Class<JSONEntity>) Class.forName(name);
-			Field f = clazz.getField("EFFECTIVE_SCHEMA");
-			String json = (String)f.get(null);
+			String json = null;
+			try {
+				json = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz);
+			} catch (IllegalArgumentException e) {
+				if(!clazz.isInterface()) {
+					JSONEntity entity = clazz.newInstance();
+					if(entity instanceof HasEffectiveSchema) {
+						HasEffectiveSchema hasSchema = (HasEffectiveSchema) entity;
+						json = hasSchema.getEffectiveSchema();
+					}
+				}
+			}
 			if(json == null) return null;
 			if(!json.startsWith("{")) return null;
 			return json;

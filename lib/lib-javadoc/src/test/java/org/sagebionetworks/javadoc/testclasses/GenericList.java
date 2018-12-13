@@ -1,8 +1,8 @@
 package org.sagebionetworks.javadoc.testclasses;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.schema.HasEffectiveSchema;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -17,11 +17,12 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  * @param <T> the type of result to paginate
  */
-public class GenericList<T extends JSONEntity> implements JSONEntity {
+public class GenericList<T extends JSONEntity> implements JSONEntity, HasEffectiveSchema {
 
 	private static final String CONCRETE_TYPE = "concreteType";
-
+	
 	public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.model.GenericList\",\"title\":\"GenericList\",\"description\":\"A list of objects.\",\"name\":\"GenericList\",\"properties\":{\"list\":{\"items\":{\"type\":\"string\"},\"type\":\"array\",\"description\":\"The list\"}}}";
+
 
 	private List<T> list;
 
@@ -106,11 +107,6 @@ public class GenericList<T extends JSONEntity> implements JSONEntity {
 	}
 
 	@Override
-	public String getJSONSchema() {
-		return EFFECTIVE_SCHEMA;
-	}
-
-	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -136,5 +132,10 @@ public class GenericList<T extends JSONEntity> implements JSONEntity {
 		} else if (!list.equals(other.list))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String getEffectiveSchema() {
+		return EFFECTIVE_SCHEMA;
 	}
 }

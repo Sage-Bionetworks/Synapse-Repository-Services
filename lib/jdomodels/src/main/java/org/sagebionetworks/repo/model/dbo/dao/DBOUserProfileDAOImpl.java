@@ -1,23 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_EMAIL_NOTIFICATION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_FIRST_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_LAST_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +31,7 @@ import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -70,24 +58,54 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	private static final String SQL_SELECT_USER_PROFILE = "SELECT G."+COL_USER_GROUP_CREATION_DATE+", P.* FROM "+TABLE_USER_GROUP+" G JOIN "+TABLE_USER_PROFILE+" P ON (G."+COL_USER_GROUP_ID+" = P."+COL_USER_PROFILE_ID+")";
 
-	private static final String SELECT_PAGINATED = "SELECT * FROM "
-			+ TABLE_USER_PROFILE + " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :"
+	private static final String SQL_SELECT_PROFILE_BY_ID = SQL_SELECT_USER_PROFILE+" WHERE G."+COL_USER_GROUP_ID+" = ?";
+
+	private static final String SELECT_PAGINATED = SQL_SELECT_USER_PROFILE + " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :"
 			+ OFFSET_PARAM_NAME;
 
-	private static final String LIST_FOR_IDS = "SELECT * FROM "
-			+ TABLE_USER_PROFILE + " WHERE " + COL_USER_PROFILE_ID + " in (:"
+	private static final String LIST_FOR_IDS = SQL_SELECT_USER_PROFILE + " WHERE P." + COL_USER_PROFILE_ID + " in (:"
 			+ COL_USER_PROFILE_ID + ")";
 
 	private static final String SQL_SELECT_PROFILE_PIC_ID = "SELECT "
 			+ COL_USER_PROFILE_PICTURE_ID + " FROM " + TABLE_USER_PROFILE
 			+ " WHERE " + COL_USER_PROFILE_ID + " = ?";
 
-	private static final RowMapper<DBOUserProfile> USER_PROFILE_ROW_MAPPER = (new DBOUserProfile())
-			.getTableMapping();
+	private static final RowMapper<DBOUserProfile> USER_PROFILE_ROW_MAPPER = new RowMapper<DBOUserProfile>() {
+
+		@Override
+		public DBOUserProfile mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOUserProfile up = new DBOUserProfile();
+			up.setOwnerId(rs.getLong(COL_USER_PROFILE_ID));
+			java.sql.Blob blob = rs.getBlob(COL_USER_PROFILE_PROPS_BLOB);
+			if(blob != null){
+				up.setProperties(blob.getBytes(1, (int) blob.length()));
+			}
+			up.seteTag(rs.getString(COL_USER_PROFILE_ETAG));
+			up.setPictureId(rs.getLong(COL_USER_PROFILE_PICTURE_ID));
+			if(rs.wasNull()){
+				up.setPictureId(null);
+			}
+			up.setEmailNotification(rs.getBoolean(COL_USER_PROFILE_EMAIL_NOTIFICATION));
+			blob = rs.getBlob(COL_USER_PROFILE_FIRST_NAME);
+			if (blob != null){
+				up.setFirstName(blob.getBytes(1, (int) blob.length()));
+			}
+			blob = rs.getBlob(COL_USER_PROFILE_LAST_NAME);
+			if (blob != null){
+				up.setLastName(blob.getBytes(1, (int) blob.length()));
+			}
+			Timestamp createdOnTimestamp = rs.getTimestamp(COL_USER_GROUP_CREATION_DATE);
+			if(createdOnTimestamp != null) {
+				up.setCreatedOn(createdOnTimestamp.getTime());
+			}
+			return up;
+		}
+	};
 	
-	private static final String SELECT_FOR_UPDATE_SQL = "select * from "
-			+ TABLE_USER_PROFILE + " where " + COL_USER_PROFILE_ID + "=:"
+	private static final String SELECT_FOR_UPDATE_SQL = SQL_SELECT_USER_PROFILE + " where " + COL_USER_PROFILE_ID + "=:"
 			+ DBOUserProfile.OWNER_ID_FIELD_NAME + " for update";
 
 	private static final String SQL_GET_USER_INFO_FOR_NOTIFICATION = "SELECT"
@@ -144,10 +162,12 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Override
 	public UserProfile get(String id) throws DatastoreException,
 			NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
-		DBOUserProfile jdo = basicDao.getObjectByPrimaryKey(
-				DBOUserProfile.class, param);
+		DBOUserProfile jdo;
+		try {
+			jdo = jdbcTemplate.queryForObject(SQL_SELECT_PROFILE_BY_ID, USER_PROFILE_ROW_MAPPER, id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("UserProfile cannot be found for: "+id);
+		}
 		UserProfile dto = UserProfileUtils.convertDboToDto(jdo);
 		return dto;
 	}

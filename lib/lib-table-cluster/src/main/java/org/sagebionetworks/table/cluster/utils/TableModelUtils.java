@@ -1081,6 +1081,20 @@ public class TableModelUtils {
 		}
 		return map;
 	}
+	
+	/**
+	 * Map the ID of each column to its ColumnModel.
+	 * @param columns
+	 * @return
+	 */
+	public static LinkedHashMap<String, ColumnModel> createIdToColumnModelMap(List<ColumnModel> columns) {
+		LinkedHashMap<String, ColumnModel> map = Maps.newLinkedHashMap();
+		for (ColumnModel cm : columns) {
+			map.put(cm.getId(), cm);
+		}
+		return map;
+	}
+
 
 	/**
 	 * Map the column id to the column index.
@@ -1328,17 +1342,6 @@ public class TableModelUtils {
 			}
 		}
 		return fileHandleIds;
-	}
-	
-
-	/**
-	 * Create the MD5 Hex string of the given column models.
-	 * @param schema
-	 * @return
-	 */
-	public static String createSchemaMD5HexCM(List<ColumnModel> schema){
-		List<String> ids = TableModelUtils.getIds(schema);
-		return createSchemaMD5Hex(ids);
 	}
 	
 	/**

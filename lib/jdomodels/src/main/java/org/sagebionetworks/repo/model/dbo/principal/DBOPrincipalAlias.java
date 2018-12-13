@@ -86,20 +86,29 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 
 	@Override
 	public MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> getTranslator() {
-		return new MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias>(){
-
+		return new MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias>() {
 			@Override
-			public DBOPrincipalAlias createDatabaseObjectFromBackup(
-					DBOPrincipalAlias backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOPrincipalAlias createBackupFromDatabaseObject(
-					DBOPrincipalAlias dbo) {
+			public DBOPrincipalAlias createDatabaseObjectFromBackup(DBOPrincipalAlias backup) {
+				DBOPrincipalAlias dbo = new DBOPrincipalAlias();
+				if (backup.getAliasType().equals(AliasEnum.USER_ORCID) && backup.getAliasDisplay().toLowerCase().startsWith("http:")) {
+					dbo.setAliasDisplay("https:"+backup.getAliasDisplay().substring("http:".length()));
+					dbo.setAliasUnique(AliasUtils.getUniqueAliasName(dbo.getAliasDisplay()));
+				} else {
+					dbo.setAliasDisplay(backup.getAliasDisplay());
+					dbo.setAliasUnique(backup.getAliasUnique());
+				}
+				dbo.setAliasType(backup.getAliasType()); 
+				dbo.setEtag(backup.getEtag());
+				dbo.setId(backup.getId());
+				dbo.setPrincipalId(backup.getPrincipalId());
+				dbo.getAliasType().validateAlias(dbo.getAliasDisplay());
+				dbo.setValidated(backup.getValidated());
 				return dbo;
 			}
-			
+			@Override
+			public DBOPrincipalAlias createBackupFromDatabaseObject(DBOPrincipalAlias dbo) {
+				return dbo;
+			}
 		};
 	}
 

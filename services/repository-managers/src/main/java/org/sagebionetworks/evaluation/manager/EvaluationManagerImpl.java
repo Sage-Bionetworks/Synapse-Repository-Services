@@ -14,7 +14,9 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,6 +33,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 	@Autowired
 	private EvaluationDAO evaluationDAO;
+
+	@Autowired
+	private NodeDAO nodeDAO;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -63,6 +68,11 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" must have " + ACCESS_TYPE.CREATE.name() + " right on the entity " +
 					nodeId + " in order to create a evaluation based on it.");
+		}
+
+		if (!nodeDAO.getNodeTypeById(nodeId).equals(EntityType.project)) {
+			throw new IllegalArgumentException("Evaluation " + eval.getId() +
+					" could not be created because the parent entity " + nodeId +  " is not a project.");
 		}
 
 		// Create the evaluation

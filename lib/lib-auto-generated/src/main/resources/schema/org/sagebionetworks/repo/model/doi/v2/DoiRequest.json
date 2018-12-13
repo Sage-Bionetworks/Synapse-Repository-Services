@@ -1,0 +1,14 @@
+{
+	"description": "An AsynchronousRequestBody to mint or modify DOIs.",
+	"implements":[
+		{
+			"$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+  "properties": {
+    "doi": {
+		"description": "A DOI object containing the Synapse object ID, type, and (optional) version, along with all required metadata to mint a DOI",
+      "$ref":"org.sagebionetworks.repo.model.doi.v2.Doi"
+    }
+  }
+}

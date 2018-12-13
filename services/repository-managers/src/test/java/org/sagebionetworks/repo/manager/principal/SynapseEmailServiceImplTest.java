@@ -11,12 +11,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.simpleemail.model.Body;
 import com.amazonaws.services.simpleemail.model.Content;
 import com.amazonaws.services.simpleemail.model.Destination;
@@ -36,11 +37,11 @@ public class SynapseEmailServiceImplTest {
 	private SynapseEmailService sesClient;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 	
 	@BeforeClass
 	public static void before() throws Exception {
-		BUCKET = StackConfiguration.getS3Bucket();
+		BUCKET = StackConfigurationSingleton.singleton().getS3Bucket();
 	}
 	
 	@After

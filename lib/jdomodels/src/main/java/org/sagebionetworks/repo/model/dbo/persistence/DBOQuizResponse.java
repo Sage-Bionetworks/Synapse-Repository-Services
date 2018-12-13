@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -58,19 +59,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 
 	@Override
 	public MigratableTableTranslation<DBOQuizResponse, DBOQuizResponse> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOQuizResponse, DBOQuizResponse>() {
-
-			@Override
-			public DBOQuizResponse createDatabaseObjectFromBackup(DBOQuizResponse backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOQuizResponse createBackupFromDatabaseObject(DBOQuizResponse dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOQuizResponse>();
 	}
 
 	@Override

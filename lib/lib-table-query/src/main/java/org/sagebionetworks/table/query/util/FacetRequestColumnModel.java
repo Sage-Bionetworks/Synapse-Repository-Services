@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEY
 
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
@@ -20,17 +19,13 @@ public class FacetRequestColumnModel {
 	
 	private String columnName;
 	private FacetType facetType;
-	private ColumnType columnType;
 	private FacetColumnRequest facetColumnRequest;
 	private String searchConditionString;
 	
 	/**
 	 * Constructor.
-	 * Pass in 
-	 * @param columnName name of the column
-	 * @param facetType the type of the facet either enum or 
-	 * @param columnValues the 
-	 * @param facetRange 
+	 * @param columnModel The original ColumnModel from which we derive the FacetRequestColumnModel
+	 * @param facetColumnRequest The FacetColumnRequest describing the requested facet.
 	 * 
 	 */
 	public FacetRequestColumnModel(ColumnModel columnModel, FacetColumnRequest facetColumnRequest){
@@ -49,12 +44,10 @@ public class FacetRequestColumnModel {
 			}
 		}
 		
-		
 		this.columnName = columnModel.getName();
 		this.facetType = columnModel.getFacetType();
-		this.columnType = columnModel.getColumnType();
 		this.facetColumnRequest = facetColumnRequest;
-		this.searchConditionString = createFacetSearchConditionString(facetColumnRequest, this.columnType);
+		this.searchConditionString = createFacetSearchConditionString(facetColumnRequest);
 	}
 
 	public String getColumnName() {
@@ -73,7 +66,7 @@ public class FacetRequestColumnModel {
 	 * returns null if no search conditions exist
 	 * @return
 	 */
-	public String getSearchConditionString(){
+	String getSearchConditionString(){
 		return this.searchConditionString;
 	}
 	
@@ -86,24 +79,22 @@ public class FacetRequestColumnModel {
 	 * @param facetColumnRequest
 	 * @return the search condition string
 	 */
-	public static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest, ColumnType columnType){
-		ValidateArgument.required(columnType, "columnType");
-		
+	static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest){
 		if (facetColumnRequest == null){
 			return null;
 		}
 		
 		if (facetColumnRequest instanceof FacetColumnValuesRequest){
-			return createEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest, columnType);
+			return createEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);
 		}else if (facetColumnRequest instanceof FacetColumnRangeRequest){
-			return createRangeSearchCondition((FacetColumnRangeRequest) facetColumnRequest, columnType);
+			return createRangeSearchCondition((FacetColumnRangeRequest) facetColumnRequest);
 		}else{
 			throw new IllegalArgumentException("Unexpected instance of FacetColumnRequest");
 		}
 		
 	}
 	
-	static String createRangeSearchCondition(FacetColumnRangeRequest facetRange, ColumnType columnType){
+	static String createRangeSearchCondition(FacetColumnRangeRequest facetRange){
 		if( facetRange == null || ( StringUtils.isEmpty( facetRange.getMin() ) && StringUtils.isEmpty( facetRange.getMax() ) ) ){
 			return null;
 		}
@@ -116,24 +107,26 @@ public class FacetRequestColumnModel {
 		builder.append("\"");
 		builder.append(facetRange.getColumnName());
 		builder.append("\"");
-		if(min == null){ //only max exists
+		if (NULL_VALUE_KEYWORD.equals(min) || NULL_VALUE_KEYWORD.equals(max)){
+			builder.append(" IS NULL");
+		} else if(min == null){ //only max exists
 			builder.append("<=");
-			appendValueToStringBuilder(builder, max, columnType);
+			appendValueToStringBuilder(builder, max);
 		}else if (max == null){ //only min exists
 			builder.append(">=");
-			appendValueToStringBuilder(builder, min, columnType);
+			appendValueToStringBuilder(builder, min);
 		}else{
 			builder.append(" BETWEEN ");
-			appendValueToStringBuilder(builder, min, columnType);
+			appendValueToStringBuilder(builder, min);
 			builder.append(" AND ");
-			appendValueToStringBuilder(builder, max, columnType);
+			appendValueToStringBuilder(builder, max);
 		}
 		
 		builder.append(")");
 		return builder.toString();
 	}
 	
-	static String createEnumerationSearchCondition(FacetColumnValuesRequest facetValues, ColumnType columnType){
+	static String createEnumerationSearchCondition(FacetColumnValuesRequest facetValues){
 		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
 			return null;
 		}
@@ -151,26 +144,21 @@ public class FacetRequestColumnModel {
 				builder.append(" IS NULL");
 			}else{
 				builder.append("=");
-				appendValueToStringBuilder(builder, value, columnType);
+				appendValueToStringBuilder(builder, value);
 			}
 		}
 		builder.append(")");
 		return builder.toString();
 	}
-	
+
 	/**
 	 * Appends a value to the string builder
 	 * and places single quotes (') around it if the column type is String
 	 */ 
-	static void appendValueToStringBuilder(StringBuilder builder, String value, ColumnType columnType){
-		boolean isStringType = ColumnType.STRING.equals(columnType);
-		if(isStringType){
-			builder.append("'");
-		}
-		builder.append(value);
-		if(isStringType){
-			builder.append("'");
-		}
+	static void appendValueToStringBuilder(StringBuilder builder, String value){
+		builder.append("'");
+		builder.append(value.replaceAll("'", "''"));
+		builder.append("'");
 	}
 
 

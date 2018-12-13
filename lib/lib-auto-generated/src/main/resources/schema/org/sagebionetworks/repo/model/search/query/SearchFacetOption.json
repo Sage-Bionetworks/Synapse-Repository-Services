@@ -1,0 +1,29 @@
+{
+	"description": "Specify which field should be returned as facets and the format of the results for each field",
+	"properties": {
+		"name": {
+			"$ref":"org.sagebionetworks.repo.model.search.query.SearchFieldName",
+			"description": "name of the field for which facet information will be returned",
+			"required": true
+		},
+		"maxResultCount":{
+			"type": "integer",
+			"description": "Specify the maximum number of results to be returned for this facet. Defaults to 10"
+		},
+		"sortType":{
+			"type": "string",
+			"name": "SearchFacetSort",
+			"description":"Specify how results should be sorted. Defaults to COUNT",
+			"enum": [
+				{
+					"name": "ALPHA",
+					"description": "Sort facet results in ascending alphabetical order."
+				},
+				{
+					"name": "COUNT",
+					"description": "Sort facet results in descending numerical order of the results' counts."
+				}
+				]
+		}
+	}
+}

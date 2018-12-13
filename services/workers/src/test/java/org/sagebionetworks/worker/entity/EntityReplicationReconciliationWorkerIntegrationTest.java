@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,8 +63,6 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	@Before
 	public void before(){
 		MockitoAnnotations.initMocks(this);
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		project = new Project();

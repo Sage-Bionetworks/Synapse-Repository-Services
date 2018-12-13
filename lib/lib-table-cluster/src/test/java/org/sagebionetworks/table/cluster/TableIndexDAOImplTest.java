@@ -15,9 +15,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -50,6 +50,7 @@ import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
@@ -74,8 +75,6 @@ public class TableIndexDAOImplTest {
 	@Before
 	public void before() {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		tableId = "syn123";
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
@@ -369,6 +368,11 @@ public class TableIndexDAOImplTest {
 		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
 		assertEquals(new Long(2), count);
+		// test the rowIds
+		long limit = 2;
+		String rowIdSql = SqlElementUntils.buildSqlSelectRowIds(query.getTransformedModel(), limit);
+		List<Long> rowIds = tableIndexDAO.getRowIds(rowIdSql, query.getParameters());
+		assertEquals(Lists.newArrayList(100L,101L), rowIds);
 		
 		// the first row
 		Row row = results.getRows().get(0);
@@ -1259,17 +1263,17 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(381255304L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(file1.getParentId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(3214398L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(file2.getParentId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(378040906L), crc);
 	}
 	
@@ -1289,17 +1293,17 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(project1.getId(), project2.getId());
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
 		assertEquals(new Long(381255304L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(project1.getId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
 		assertEquals(new Long(3214398L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(project2.getId());
 		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
 		assertEquals(new Long(378040906L), crc);
 	}
 	
@@ -1308,7 +1312,7 @@ public class TableIndexDAOImplTest {
 		// nothing should have this scope
 		Set<Long> scope = Sets.newHashSet(99999L);
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(-1), crc);
 	}
 	
@@ -1316,7 +1320,7 @@ public class TableIndexDAOImplTest {
 	public void testCalculateCRC32ofEntityReplicationScopeEmpty(){
 		Set<Long> scope = new HashSet<Long>();
 		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 		assertEquals(new Long(-1), crc);
 	}
 	
@@ -1331,7 +1335,7 @@ public class TableIndexDAOImplTest {
 	public void testCalculateCRC32ofEntityReplicationNullScope(){
 		Set<Long> scope = null;
 		// call under test
-		tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
 	}
 	
 	@Test
@@ -1355,7 +1359,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1400,7 +1404,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1427,7 +1431,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
@@ -1452,8 +1456,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
-		ViewType type = ViewType.file;
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, type, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -1473,6 +1476,125 @@ public class TableIndexDAOImplTest {
 		assertEquals(null, cm.getMaximumSize());
 	}
 	
+	/**
+	 * Test added for PLFM-5034
+	 */
+	@Test
+	public void testGetPossibleAnnotationsForContainersPLFM_5034(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		String duplicateName = "duplicate";
+		
+		// one
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 15);
+		file1.getAnnotations().clear();
+		file1.setParentId(333L);
+		// add a string annotation with a size of 3
+		AnnotationDTO annoDto = new AnnotationDTO();
+		annoDto.setEntityId(file1.getId());
+		annoDto.setKey(duplicateName);
+		annoDto.setType(AnnotationType.STRING);
+		annoDto.setValue("123");
+		file1.getAnnotations().add(annoDto);
+	
+		// two
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 12);
+		file2.getAnnotations().clear();
+		file2.setParentId(222L);
+		// add a long annotation with a size of 6
+		annoDto = new AnnotationDTO();
+		annoDto.setEntityId(file2.getId());
+		annoDto.setKey(duplicateName);
+		annoDto.setType(AnnotationType.LONG);
+		annoDto.setValue("123456");
+		file1.getAnnotations().add(annoDto);
+
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), limit, offset);
+		assertNotNull(columns);
+		assertEquals(2, columns.size());
+		// expected
+		ColumnModel one = new ColumnModel();
+		one.setName(duplicateName);
+		one.setColumnType(ColumnType.STRING);
+		one.setMaximumSize(6L);
+		ColumnModel two = new ColumnModel();
+		two.setName(duplicateName);
+		two.setColumnType(ColumnType.INTEGER);
+		two.setMaximumSize(null);
+		Set<ColumnModel> expected = new HashSet<>(2);
+		expected.add(one);
+		expected.add(two);
+		
+		assertEquals(expected, new HashSet<>(columns));
+	}
+	
+	@Test
+	public void testExpandFromAggregation() {
+		
+		ColumnAggregation one = new ColumnAggregation();
+		one.setColumnName("foo");
+		one.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
+		one.setMaxSize(101L);
+		
+		ColumnAggregation two = new ColumnAggregation();
+		two.setColumnName("bar");
+		two.setColumnTypeConcat(concatTypes(AnnotationType.DOUBLE, AnnotationType.LONG));
+		two.setMaxSize(0L);
+		
+		ColumnAggregation three = new ColumnAggregation();
+		three.setColumnName("foobar");
+		three.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		three.setMaxSize(202L);
+
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three));
+		assertEquals(5, results.size());
+		// zero
+		ColumnModel cm = results.get(0);
+		assertEquals("foo", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(101), cm.getMaximumSize());
+		// one
+		cm = results.get(1);
+		assertEquals("foo", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// two
+		cm = results.get(2);
+		assertEquals("bar", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// three
+		cm = results.get(3);
+		assertEquals("bar", cm.getName());
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// four
+		cm = results.get(4);
+		assertEquals("foobar", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(202), cm.getMaximumSize());		
+	}
+	
+	/**
+	 * Helper to create a concatenated list of column types delimited with dot ('.')
+	 * @param types
+	 * @return
+	 */
+	public static String concatTypes(AnnotationType...types) {
+		StringJoiner joiner = new StringJoiner(",");
+		for(AnnotationType type: types) {
+			joiner.add(type.name());
+		}
+		return joiner.toString();
+	}
+	
 	@Test
 	public void testGetPossibleAnnotationsForContainersProject(){
 		// delete all data
@@ -1489,8 +1611,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> containerIds = Sets.newHashSet(2L, 3L);
 		long limit = 5;
 		long offset = 0;
-		ViewType type = ViewType.project;
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, type, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.Project.getMask(), limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -1574,6 +1695,60 @@ public class TableIndexDAOImplTest {
 		results = tableIndexDAO.getEntityChildren(parentThreeId);
 		assertNotNull(results);
 		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testGetSumOfFileSizes(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		Long parentTwoId = 222L;
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(parentOneId);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(parentTwoId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(file1.getId(), file2.getId()));
+		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
+	}
+	
+	/**
+	 * Test added for PLFM-5176
+	 */
+	@Test
+	public void testGetSumOfFileSizesNoFiles(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		// setup some hierarchy.
+		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 2);
+		folder.setParentId(parentOneId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(folder));
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(folder.getId()));
+		assertEquals(0L, fileSizes);
+	}
+	
+	@Test
+	public void testGetSumOfFileSizesEmpty(){
+		List<Long> list = new LinkedList<>();
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(list);
+		assertEquals(0, fileSizes);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSumOfFileSizesNull(){
+		List<Long> list = null;
+		// call under test
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(list);
+		assertEquals(0, fileSizes);
 	}
 	
 	@Test
@@ -1842,6 +2017,7 @@ public class TableIndexDAOImplTest {
 		entityDto.setModifiedOn(new Date());
 		if(EntityType.file.equals(type)){
 			entityDto.setFileHandleId(888L);
+			entityDto.setFileSizeBytes(999L);
 		}
 		List<AnnotationDTO> annos = new LinkedList<AnnotationDTO>();
 		for(int i=0; i<annotationCount; i++){

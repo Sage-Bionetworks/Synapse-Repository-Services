@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -69,7 +70,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.context.request.NativeWebRequest;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
@@ -95,7 +96,7 @@ public class FileHandleManagerImplAutowireTest {
 	private FileHandleManager fileUploadManager;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 	
 	@Autowired
 	private FileHandleDao fileHandleDao;
@@ -334,7 +335,7 @@ public class FileHandleManagerImplAutowireTest {
 		externalS3LocationSetting.setBanner("upload here");
 		externalS3LocationSetting.setDescription("external");
 		externalS3LocationSetting.setUploadType(UploadType.S3);
-		externalS3LocationSetting.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
+		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey(testBase);
 
 		s3Client.createBucket(externalS3LocationSetting.getBucket());
@@ -488,7 +489,7 @@ public class FileHandleManagerImplAutowireTest {
 		S3FileHandle handle = fileUploadManager.createCompressedFileFromString(userId, createdOn, fileContents);
 		assertNotNull(handle);
 		toDelete.add(handle);
-		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
+		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), handle.getBucketName());
 		assertEquals("compressed.txt.gz", handle.getFileName());
 		assertNotNull(handle.getContentMd5());
 		assertTrue(handle.getContentSize() > 1);

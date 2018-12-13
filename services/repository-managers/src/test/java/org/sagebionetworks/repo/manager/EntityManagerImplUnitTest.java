@@ -2,15 +2,21 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.model.NextPageToken.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
+import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
+import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_OFFSET;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -19,10 +25,14 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfiguration;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -34,17 +44,21 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class EntityManagerImplUnitTest {
 
 	@Mock
@@ -55,7 +69,13 @@ public class EntityManagerImplUnitTest {
 	private NodeManager mockNodeManager;
 	@Mock
 	private UserInfo mockUser;
+	@Mock
+	private ObjectTypeManager mockObjectTypeManger;
+	
+	@Captor
+	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
 
+	@InjectMocks
 	private EntityManagerImpl entityManager;
 	Long userId = 007L;
 	
@@ -63,14 +83,10 @@ public class EntityManagerImplUnitTest {
 	Set<Long> nonvisibleChildren;
 	List<EntityHeader> childPage;
 	
+	ChildStatsResponse statsReponse;
+	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-	
-		entityManager = new EntityManagerImpl();
-		ReflectionTestUtils.setField(entityManager, "nodeManager", mockNodeManager);
-		ReflectionTestUtils.setField(entityManager, "entityPermissionsManager", mockPermissionsManager);
-		ReflectionTestUtils.setField(entityManager, "userManager", mockUserManager);
 		
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
@@ -78,6 +94,8 @@ public class EntityManagerImplUnitTest {
 		childRequest = new EntityChildrenRequest();
 		childRequest.setParentId("syn123");
 		childRequest.setIncludeTypes(Lists.newArrayList(EntityType.file, EntityType.folder));
+		childRequest.setIncludeTotalChildCount(true);
+		childRequest.setIncludeSumFileSizes(false);
 		nonvisibleChildren = Sets.newHashSet(555L,777L);
 		
 		when(mockPermissionsManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -87,6 +105,8 @@ public class EntityManagerImplUnitTest {
 						anyListOf(EntityType.class), anySetOf(Long.class),
 						any(SortBy.class), any(Direction.class), anyLong(),
 						anyLong())).thenReturn(childPage);
+		statsReponse = new ChildStatsResponse().withSumFileSizesBytes(123L).withTotalChildCount(4L);
+		when(mockNodeManager.getChildrenStats(any(ChildStatsRequest.class))).thenReturn(statsReponse);
 
 	}
 
@@ -144,8 +164,8 @@ public class EntityManagerImplUnitTest {
 		NamedAnnotations annos = new NamedAnnotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
-		Entity entity = mock(Entity.class);
-		when(entity.getId()).thenReturn(id);
+		Entity entity = new Project();
+		entity.setId(id);
 		
 		String activityId;		
 
@@ -181,8 +201,8 @@ public class EntityManagerImplUnitTest {
 		NamedAnnotations annos = new NamedAnnotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
-		Entity entity = mock(Entity.class);
-		when(entity.getId()).thenReturn(id);
+		Entity entity = new Project();
+		entity.setId(id);
 		
 		String activityId;		
 
@@ -212,10 +232,37 @@ public class EntityManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testUpdateFileHandleId() throws Exception {
+		String id = "123";
+		Node node = new Node();
+		node.setFileHandleId("101");
+		NamedAnnotations annos = new NamedAnnotations();
+		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		FileEntity entity = new FileEntity();
+		entity.setId(id);
+		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202
+		entity.setDataFileHandleId(dataFileHandleId);
+		entity.setVersionComment("a comment for the original version");
+		entity.setVersionLabel("a label for the original version");
+		
+		boolean newVersion = false; // even though new version is false the 
+		// modified file handle will trigger a version update
+		
+		// method under test
+		entityManager.updateEntity(mockUser, entity, newVersion, null);
+		
+		assertNull(node.getVersionComment());
+		assertNull(node.getVersionLabel());
+	}
+
+	@Test
 	public void testGetChildren(){
 		// call under test
 		EntityChildrenResponse response = entityManager.getChildren(mockUser, childRequest);
 		assertNotNull(response);
+		assertEquals(statsReponse.getTotalChildCount(), response.getTotalChildCount());
+		assertEquals(statsReponse.getSumFileSizesBytes(), response.getSumFileSizesBytes());
 		verify(mockPermissionsManager).hasAccess(childRequest.getParentId(),
 				ACCESS_TYPE.READ, mockUser);
 		verify(mockPermissionsManager).getNonvisibleChildren(mockUser,
@@ -224,6 +271,15 @@ public class EntityManagerImplUnitTest {
 				childRequest.getIncludeTypes(), nonvisibleChildren,
 				DEFAULT_SORT_BY, DEFAULT_SORT_DIRECTION, DEFAULT_LIMIT+1,
 				DEFAULT_OFFSET);
+		
+		verify(mockNodeManager).getChildrenStats(statsRequestCaptor.capture());
+		ChildStatsRequest statsRequest = statsRequestCaptor.getValue();
+		assertNotNull(statsRequest);
+		assertEquals(childRequest.getParentId(), statsRequest.getParentId());
+		assertEquals(childRequest.getIncludeTypes(), statsRequest.getIncludeTypes());
+		assertEquals(nonvisibleChildren, statsRequest.getChildIdsToExclude());
+		assertEquals(childRequest.getIncludeTotalChildCount(), statsRequest.getIncludeTotalChildCount());
+		assertEquals(childRequest.getIncludeSumFileSizes(), statsRequest.getIncludeSumFileSizes());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -379,5 +435,14 @@ public class EntityManagerImplUnitTest {
 		EntityId result = entityManager.lookupChild(mockUser, request);
 		assertNotNull(result);
 		assertEquals(entityId, result.getId());
+	}
+	
+	@Test
+	public void testChangeEntityDataType() {
+		String entityId = "syn123";
+		DataType dataType = DataType.SENSITIVE_DATA;
+		// call under test
+		entityManager.changeEntityDataType(mockUser, entityId, dataType);
+		verify(mockObjectTypeManger).changeObjectsDataType(mockUser, entityId, ObjectType.ENTITY, dataType);
 	}
 }

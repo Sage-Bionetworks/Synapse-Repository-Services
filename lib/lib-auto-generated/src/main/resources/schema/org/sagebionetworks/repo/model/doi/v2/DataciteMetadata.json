@@ -1,0 +1,28 @@
+{
+	"description": "JSON schema for metadata that is submitted to DataCite and can later be retrieved via DOI in Synapse, with the DataCite REST API, or with external citation services.",
+	"type": "interface",
+	"properties": {
+		"creators":{
+			"type":"array",
+			"description":"Required. The main researchers involved in producing the data, or the authors of the publication, in priority order.",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.doi.v2.DoiCreator"
+			}
+		},
+		"titles": {
+			"description": "Required. A name or title by which a resource is known.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiTitle"
+			}
+		},
+		"publicationYear": {
+			"description": "Required. The year that this resource became publicly accessible. Must be in YYYY format.",
+			"type": "integer"
+		},
+		"resourceType": {
+			"description": "Required. Describes the type of media that the DOI Metadata refers to.",
+			"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiResourceType"
+		}
+	}
+}

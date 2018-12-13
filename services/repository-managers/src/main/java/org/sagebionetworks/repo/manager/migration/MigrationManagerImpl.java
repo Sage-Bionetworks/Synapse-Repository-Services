@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -13,8 +14,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.pdfbox.io.IOUtils;
-import org.sagebionetworks.StackConfiguration;
+import org.apache.commons.io.IOUtils;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -42,10 +43,11 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Iterables;
 
@@ -59,9 +61,9 @@ import com.google.common.collect.Iterables;
 public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
-	public static String backupBucket = StackConfiguration.getSharedS3BackupBucket();
-	public static String stack = StackConfiguration.singleton().getStack();
-	public static String instance = StackConfiguration.getStackInstance();
+	public static String backupBucket = StackConfigurationSingleton.singleton().getSharedS3BackupBucket();
+	public static String stack = StackConfigurationSingleton.singleton().getStack();
+	public static String instance = StackConfigurationSingleton.singleton().getStackInstance();
 	
 	@Autowired
 	MigratableTableDAO migratableTableDao;
@@ -70,7 +72,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Autowired
 	BackupFileStream backupFileStream;
 	@Autowired
-	AmazonS3Client s3Client;
+	AmazonS3 s3Client;
 	@Autowired
 	FileProvider fileProvider;
 	
@@ -380,7 +382,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	public BackupTypeResponse backupStreamToS3(MigrationType type, Iterable<MigratableDatabaseObject<?, ?>> dataStream, BackupAliasType aliasType, long batchSize) throws IOException {
 		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationBackup", ".zip");
-		FileOutputStream fos = null;
+		OutputStream fos = null;
 		try {
 			fos = fileProvider.createFileOutputStream(temp);
 			backupFileStream.writeBackupFile(fos, dataStream, aliasType, batchSize);
@@ -433,7 +435,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		
 		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationRestore", ".zip");
-		FileInputStream fis = null;
+		InputStream fis = null;
 		try {
 			// download the file from S3
 			GetObjectRequest getObjectRequest = new GetObjectRequest(backupBucket, request.getBackupFileKey());

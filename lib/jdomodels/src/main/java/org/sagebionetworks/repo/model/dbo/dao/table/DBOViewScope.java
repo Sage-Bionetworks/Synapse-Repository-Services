@@ -12,6 +12,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -131,18 +132,7 @@ public class DBOViewScope implements MigratableDatabaseObject<DBOViewScope, DBOV
 
 	@Override
 	public MigratableTableTranslation<DBOViewScope, DBOViewScope> getTranslator() {
-		return new MigratableTableTranslation<DBOViewScope, DBOViewScope>(){
-
-			@Override
-			public DBOViewScope createDatabaseObjectFromBackup(
-					DBOViewScope backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOViewScope createBackupFromDatabaseObject(DBOViewScope dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOViewScope>();
 	}
 
 	@Override

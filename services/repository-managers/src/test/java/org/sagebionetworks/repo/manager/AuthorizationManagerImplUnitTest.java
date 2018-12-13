@@ -35,6 +35,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -122,6 +123,8 @@ public class AuthorizationManagerImplUnitTest {
 	private GroupMembersDAO mockGroupMembersDao;
 	@Mock
 	private Set<String> accessors;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -187,6 +190,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "messageManager", mockMessageManager);
 		ReflectionTestUtils.setField(authorizationManager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
 		ReflectionTestUtils.setField(authorizationManager, "groupMembersDao", mockGroupMembersDao);
+		ReflectionTestUtils.setField(authorizationManager, "tokenGenerator", mockTokenGenerator);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
@@ -390,6 +394,12 @@ public class AuthorizationManagerImplUnitTest {
 	public void testVerifyACTTeamMembershipOrIsAdmin_Admin() {
 		UserInfo adminInfo = new UserInfo(true);
 		assertTrue(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
+	}
+	
+	@Test
+	public void testVerifyACTTeamMembershipOrIsAdminNullGroups() {
+		UserInfo adminInfo = new UserInfo(false);
+		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
 	}
 
 	@Test

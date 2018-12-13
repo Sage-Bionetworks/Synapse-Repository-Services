@@ -9,6 +9,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -194,16 +195,16 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	@Override
 	public MigratableTableTranslation<DBOTableRowChange, DBOTableRowChange> getTranslator() {
 		return new MigratableTableTranslation<DBOTableRowChange, DBOTableRowChange>() {
-			
+
 			@Override
 			public DBOTableRowChange createDatabaseObjectFromBackup(DBOTableRowChange backup) {
-				if(backup.getChangeType() == null){
+				if (backup.getChangeType() == null) {
 					// PLFM-4016
 					backup.setChangeType(TableChangeType.ROW.name());
 				}
 				return backup;
 			}
-			
+
 			@Override
 			public DBOTableRowChange createBackupFromDatabaseObject(DBOTableRowChange dbo) {
 				return dbo;

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
+import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -205,7 +206,7 @@ public class EvaluationController extends BaseController {
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -629,7 +630,7 @@ public class EvaluationController extends BaseController {
 	 * @param evalId the ID of the Evaluation to which the SubmissionSatus objects belong.
 	 * @param userId
 	 * @param header
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -966,15 +967,14 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
+	 * This method is deprecated and should be removed from future versions of the API.
 	 * Creates a new access control list (ACL) for an evaluation.
-	 * The <a href="${org.sagebionetworks.repo.model.AccessControlList}">ACL</a>
-	 * to be created should have the ID of the evaluation. The user must be an owner of
-	 * the evaluation to create the ACL.
 	 *
 	 * @param userId  The user creating the ACL.
 	 * @param acl     The ACL to be created.
 	 * @return        The ACL created.
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList
@@ -982,9 +982,10 @@ public class EvaluationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessControlList acl,
 			HttpServletRequest request)
-			throws NotFoundException, DatastoreException, InvalidModelException,
-			UnauthorizedException, ConflictingUpdateException {
-		return serviceProvider.getEvaluationService().createAcl(userId, acl);
+			throws DeprecatedServiceException {
+		throw new DeprecatedServiceException("You cannot create an ACL for an evaluation. " +
+				"ACLs for evaluations are created when the evaluation is created. " +
+				"To update an existing ACL, see PUT /evaluation/acl");
 	}
 
 	/**
@@ -1011,6 +1012,7 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
+	 * This method is deprecated and should be removed from future versions of the API.
 	 * Deletes the ACL (access control list) of the specified evaluation. The user should have the proper
 	 * <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">permissions</a>
 	 * to delete the ACL.
@@ -1018,15 +1020,16 @@ public class EvaluationController extends BaseController {
 	 * @param userId  The user deleting the ACL.
 	 * @param evalId  The ID of the evaluation whose ACL is being removed.
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
 	public void deleteAcl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
 			HttpServletRequest request)
-			throws NotFoundException, DatastoreException, InvalidModelException,
-			UnauthorizedException, ConflictingUpdateException {
-		serviceProvider.getEvaluationService().deleteAcl(userId, evalId);
+			throws DeprecatedServiceException {
+		throw new DeprecatedServiceException("You cannot delete an ACL for an evaluation. " +
+				"To update an existing ACL, see PUT /evaluation/acl");
 	}
 
 	/**

@@ -8,9 +8,10 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.AwsClientFactory;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -37,14 +38,12 @@ public class PublishToS3 {
 		if(!source.isDirectory()) throw new IllegalArgumentException("Expected the source path to be a directory: "+source.getAbsolutePath());
 		if(!source.exists()) throw new IllegalArgumentException("Source path does not exist: "+source.getAbsolutePath());
 		// Create the bucket if needed
-		String stack = StackConfiguration.singleton().getStack();
-		String instance = StackConfiguration.getStackInstance();
+		String stack = StackConfigurationSingleton.singleton().getStack();
+		String instance = StackConfigurationSingleton.singleton().getStackInstance();
 		String bucketName = stack+"."+instance+".rest.doc.sagebase.org";
 		
 		// Create an S3 Connection
-		String userId = StackConfiguration.getIAMUserId();
-		String userKey = StackConfiguration.getIAMUserKey();
-		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(userId, userKey));
+		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
 		// Create the bucket if it does not exist
 		Bucket bucket = s3Client.createBucket(bucketName);
 		// Set the bucket to be a static website
@@ -98,7 +97,7 @@ public class PublishToS3 {
 	 * @param s3Client
 	 * @param bucketName
 	 */
-	public static void emptyBucket(AmazonS3Client s3Client, String bucketName){
+	public static void emptyBucket(AmazonS3 s3Client, String bucketName){
 		String token = null;
 		do{
 			ObjectListing ol = s3Client.listObjects(new ListObjectsRequest().withBucketName(bucketName).withMarker(token));

@@ -4,7 +4,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openid4java.message.ParameterList;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -15,6 +14,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -44,14 +44,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <ul>
  * <li>username and password</li>
- * <li>OpenID from Google</li>
  * <li>session token</li>
  * <li>API key</li>
  * </ul>
  * <p>
  * Only the session token or API key can be used to authenticate the user
  * outside of the authentication services. Authentication via a username and
- * password, or via OpenID, will allow the user to retrieve a session token
+ * password will allow the user to retrieve a session token
  * and/or API key for use in other requests.
  * </p>
  */
@@ -66,17 +65,19 @@ public class AuthenticationController extends BaseController {
 	private AuthenticationService authenticationService;
 
 	/**
-	 * Retrieve a session token that will be usable for 24 hours or until
-	 * invalidated. The user must accept the terms of use before a session token
-	 * is issued.
+	 * This method only exists for backwards compatibility.
+	 * Use {@link #login(LoginRequest)}.
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Session authenticate(
 			@RequestBody LoginCredentials credentials)
 			throws NotFoundException {
-		return authenticationService.authenticate(credentials);
+		LoginRequest request = DeprecatedUtils.createLoginRequest(credentials);
+		LoginResponse loginResponse =  authenticationService.login(request);
+		return DeprecatedUtils.createSession(loginResponse);
 	}
 
 	/**
@@ -192,33 +193,6 @@ public class AuthenticationController extends BaseController {
 	}
 
 	/**
-	 * To authenticate via OpenID, this service takes all URL parameters
-	 * returned by the OpenID provider (i.e. Google) along with an optional
-	 * parameter to explicitly accept the terms of use
-	 * (org.sagebionetworks.acceptsTermsOfUse=true) and an optional parameter to
-	 * create a user account if the OpenID is not registered in Synapse
-	 * (org.sagebionetworks.createUserIfNecessary=true). If
-	 * org.sagebionetworks.createUserIfNecessary is not set to true, and if the
-	 * email address returned by the OpenID provider is not registered, then the
-	 * service returns a 404.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
-	public @ResponseBody
-	Session getSessionTokenViaOpenID(HttpServletRequest request)
-			throws Exception {
-		log.trace("Got a request: " + request.getRequestURL());
-		ParameterList parameters = new ParameterList(request.getParameterMap());
-		log.trace("Query params are: " + request.getQueryString());
-
-		// Pass the request information to the auth service for a session token
-		Session session = authenticationService
-				.authenticateViaOpenID(parameters);
-		return session;
-	}
-
-	/**
 	 * The first step in OAuth authentication involves sending the user to
 	 * authenticate on an OAuthProvider's web page. Use this method to get a
 	 * properly formed URL to redirect the browser to an OAuthProvider's
@@ -229,6 +203,11 @@ public class AuthenticationController extends BaseController {
 	 * query parameter to the redirect URL named "code". The code parameter's
 	 * value is an authorization code that must be provided to Synapse to
 	 * validate a user.
+	 * 
+	 * Note:  The 'state' field in the request body is an arbitrary string
+	 * that certain Oauth providers (including Google) will return as a request 
+	 * parameter in the redirect URL. (The handling of 'state' is not prescribed by 
+	 * the OAuth standard.)
 	 * 
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -286,6 +265,32 @@ public class AuthenticationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws Exception {
 		return authenticationService.bindExternalID(userId, request);
+	}
+	
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and a session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return 
+	 * @throws Exception
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
+	public @ResponseBody
+	Session createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request)
+			throws Exception {
+		return authenticationService.createAccountViaOauth(request);
 	}
 	
 	/**

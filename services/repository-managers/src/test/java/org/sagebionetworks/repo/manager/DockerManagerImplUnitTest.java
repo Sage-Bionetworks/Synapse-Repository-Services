@@ -13,27 +13,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
+import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
@@ -48,6 +46,7 @@ import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
+@RunWith(MockitoJUnitRunner.class)
 public class DockerManagerImplUnitTest {
 	
 	private static final long PARENT_ID_LONG = 98765L;
@@ -72,6 +71,7 @@ public class DockerManagerImplUnitTest {
 	
 	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
 	
+	@InjectMocks
 	private DockerManagerImpl dockerManager;
 	
 	@Mock
@@ -82,9 +82,6 @@ public class DockerManagerImplUnitTest {
 	
 	@Mock
 	private DockerCommitDao dockerCommitDao;
-	
-	@Mock
-	private IdGenerator idGenerator;
 	
 	@Mock
 	private UserManager userManager;
@@ -100,24 +97,13 @@ public class DockerManagerImplUnitTest {
 
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		dockerManager = new DockerManagerImpl();
-		ReflectionTestUtils.setField(dockerManager, "nodeDao", nodeDAO);
-		ReflectionTestUtils.setField(dockerManager, "dockerNodeDao", dockerNodeDao);
-		ReflectionTestUtils.setField(dockerManager, "idGenerator", idGenerator);
-		ReflectionTestUtils.setField(dockerManager, "userManager", userManager);
-		ReflectionTestUtils.setField(dockerManager, "entityManager", entityManager);
-		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
-		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
-		ReflectionTestUtils.setField(dockerManager, "transactionalMessenger", transactionalMessenger);
+		ReflectionTestUtils.setField(dockerManager, "stackConfiguration", StackConfigurationSingleton.singleton());
 		
 		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
 		
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
 		
 		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
-		
-		when(idGenerator.generateNewId(IdType.ENTITY_ID)).thenReturn(REPO_ENTITY_ID_LONG);
 		
 		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.dockerrepo);
 		
@@ -128,6 +114,8 @@ public class DockerManagerImplUnitTest {
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		when(entityManager.createEntity(any(UserInfo.class), any(Entity.class), any(String.class))).thenReturn(REPO_ENTITY_ID);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -191,7 +179,9 @@ public class DockerManagerImplUnitTest {
 		assertEquals(PARENT_ID, repo.getValue().getParentId());
 		assertTrue(repo.getValue().getIsManaged());
 		assertEquals(REPOSITORY_NAME, repo.getValue().getRepositoryName());
-		assertEquals(REPO_ENTITY_ID, repo.getValue().getId());
+		// the repo should be created with a null ID and name.
+		assertEquals(null, repo.getValue().getId());
+		assertEquals(null, repo.getValue().getName());
 		
 		// verify that commit was added
 		ArgumentCaptor<DockerCommit> captureCommit = ArgumentCaptor.forClass(DockerCommit.class);
@@ -334,13 +324,13 @@ public class DockerManagerImplUnitTest {
 		commits.add(createCommit());
 		commits.add(createCommit());
 		
-		when(dockerCommitDao.listDockerCommits(REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)).
+		when(dockerCommitDao.listDockerTags(REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)).
 			thenReturn(commits);
 		
 		when(dockerCommitDao.countDockerCommits(REPO_ENTITY_ID)).thenReturn(2L);
 		
 		// method under test
-		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerCommits(
+		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 		
 		assertEquals(2L, pgs.getTotalNumberOfResults());
@@ -354,7 +344,7 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 				
 		// method under test
-		dockerManager.listDockerCommits(
+		dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 	}
 	
@@ -362,7 +352,7 @@ public class DockerManagerImplUnitTest {
 	public void listDockerCommitsforNONrepo() {
 		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.project);
 		// method under test
-		dockerManager.listDockerCommits(
+		dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 	}
 

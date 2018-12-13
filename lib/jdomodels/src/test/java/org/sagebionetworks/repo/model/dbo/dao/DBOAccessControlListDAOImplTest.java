@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -160,7 +161,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#getForResource(java.lang.String)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#get(java.lang.String, org.sagebionetworks.repo.model.ObjectType)}.
 	 */
 	@Test
 	public void testGetForResource() throws Exception {
@@ -184,7 +185,7 @@ public class DBOAccessControlListDAOImplTest {
 
 	
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#canAccess(java.util.Collection, java.lang.String, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#canAccess(java.util.Set, java.lang.String, org.sagebionetworks.repo.model.ObjectType, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
 	 */
 	@Test
 	public void testCanAccess() throws Exception {
@@ -275,7 +276,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#get(java.lang.String, Long)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#get(java.lang.String, ObjectType)}.
 	 */
 	@Test
 	public void testGet() throws Exception {
@@ -391,7 +392,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#update(org.sagebionetworks.repo.model.Base)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#update(org.sagebionetworks.repo.model.AccessControlList, org.sagebionetworks.repo.model.ObjectType)}.
 	 */
 	@Test
 	public void testUpdate() throws Exception {
@@ -586,11 +587,11 @@ public class DBOAccessControlListDAOImplTest {
 	}
 	
 	@Test
-	public void testGetNonVisibleChilrenOfEntity(){
+	public void testGetNonVisibleChildrenOfEntity(){
 		// add three children to the project
-		Node visibleToBoth = createFolder("visibleToBoth");
-		Node visibleToOne = createFolder("visibleToOne");
-		Node visibleToTwo = createFolder("visibleToTwo");
+		Node visibleToBoth = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToBoth", createdById, modifiedById, node.getId()));
+		Node visibleToOne = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToOne", createdById, modifiedById, node.getId()));
+		Node visibleToTwo = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToTwo", createdById, modifiedById, node.getId()));
 		
 		UserInfo userOne = new UserInfo(false, group.getId());
 		UserInfo userTwo = new UserInfo(false, group2.getId());
@@ -629,10 +630,10 @@ public class DBOAccessControlListDAOImplTest {
 	@Test
 	public void testGetChildrenEntitiesWithAcls(){
 		// add three children to the project
-		Node visibleToBoth = createFolder("visibleToBoth");
-		Node visibleToOne = createFolder("visibleToOne");
-		Node visibleToTwo = createFolder("visibleToTwo");
-		
+		Node visibleToBoth = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToBoth", createdById, modifiedById, node.getId()));
+		Node visibleToOne = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToOne", createdById, modifiedById, node.getId()));
+		Node visibleToTwo = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToTwo", createdById, modifiedById, node.getId()));
+
 		UserInfo userOne = new UserInfo(false, group.getId());
 		UserInfo userTwo = new UserInfo(false, group2.getId());
 		
@@ -658,18 +659,5 @@ public class DBOAccessControlListDAOImplTest {
 		List<Long> results = aclDAO.getChildrenEntitiesWithAcls(new LinkedList<Long>());
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
-	}
-	
-	public Node createFolder(String name){
-		Node folder = new Node();
-		folder.setName(name);
-		folder.setCreatedOn(new Date());
-		folder.setCreatedByPrincipalId(createdById);
-		folder.setModifiedOn(new Date());
-		folder.setModifiedByPrincipalId(modifiedById);
-		folder.setNodeType(EntityType.folder);
-		// use the project as the parent
-		folder.setParentId(node.getId());
-		return nodeDAO.createNewNode(folder);
 	}
 }

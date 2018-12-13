@@ -303,7 +303,7 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public long calculateCRC32ofEntityReplicationScope(
-			ViewType viewType, Set<Long> allContainersInScope);
+			Long viewTypeMask, Set<Long> allContainersInScope);
 
 	/**
 	 * Copy the data from the entity replication tables to the given view's table.
@@ -313,7 +313,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
+	public void copyEntityReplicationToTable(String viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 
 	/**
@@ -345,7 +345,7 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
-			Set<Long> containerIds, ViewType type, Long limit, Long offset);
+			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset);
 	
 	/**
 	 * The process for synchronizing entity replication data with the truth is
@@ -393,5 +393,22 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public List<IdAndEtag> getEntityChildren(Long parentId);
+
+	/**
+	 * Get the rowIds for the given query.
+	 * 
+	 * @param sqlSelectIds
+	 * @param parameters
+	 * @return
+	 */
+	public List<Long> getRowIds(String sqlSelectIds, Map<String, Object> parameters);
+
+	/**
+	 * Get the sum of the files sizes for the given row IDs.
+	 * 
+	 * @param rowIds
+	 * @return
+	 */
+	public long getSumOfFileSizes(List<Long> rowIds);
 
 }

@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -46,7 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -69,7 +69,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	AmazonS3Client s3Client;
+	AmazonS3 s3Client;
 	@Autowired
 	SemaphoreManager semphoreManager;
 	@Autowired
@@ -84,8 +84,6 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws NotFoundException{
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
@@ -95,14 +93,12 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	
 	@After
 	public void after(){
-		if(config.getTableEnabled()){
-			if(tempFile != null){
-				tempFile.delete();
-			}
-			if(fileHandle != null){
-				s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
-				fileHandleDao.delete(fileHandle.getId());
-			}
+		if(tempFile != null){
+			tempFile.delete();
+		}
+		if(fileHandle != null){
+			s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
+			fileHandleDao.delete(fileHandle.getId());
 		}
 	}
 
@@ -139,7 +135,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 			csv.close();
 		}
 		fileHandle = new S3FileHandle();
-		fileHandle.setBucketName(StackConfiguration.getS3Bucket());
+		fileHandle.setBucketName(StackConfigurationSingleton.singleton().getS3Bucket());
 		fileHandle.setKey(UUID.randomUUID()+".csv");
 		fileHandle.setContentType("text/csv");
 		fileHandle.setCreatedBy(""+adminUserInfo.getId());

@@ -6,7 +6,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -30,9 +29,9 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
-import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -173,17 +172,17 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			}
 		}
 		if((mask & EntityBundle.DOI) > 0 ){
-			 try {
-			 	Doi doi = null;
-			 	if (versionNumber == null) {
-					doi = serviceProvider.getDoiService().getDoiForCurrentVersion(userId, entityId, ObjectType.ENTITY);
+			try {
+				if (versionNumber == null && (entity instanceof VersionableEntity)) {
+					// DOIs on VersionableEntity cannot be versionless, so we want to get the DOI for the current version
+					Long currentVersionNumber = ((VersionableEntity) entity).getVersionNumber();
+					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, currentVersionNumber));
 				} else {
-					doi = serviceProvider.getDoiService().getDoiForVersion(userId, entityId, ObjectType.ENTITY, versionNumber);
-				} 
-				eb.setDoi(doi);
+					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(userId, entityId, ObjectType.ENTITY, versionNumber));
+				}
 			} catch (NotFoundException e) {
 				// does not exist
-				eb.setDoi(null);
+				eb.setDoiAssociation(null);
 			}
 		}
 		if((mask & EntityBundle.FILE_NAME) > 0 && (entity instanceof FileEntity)){

@@ -11,12 +11,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_PROFILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
@@ -42,6 +44,7 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	private boolean emailNotification;
 	private byte[] firstName;
 	private byte[] lastName;
+	private Long createdOn;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 
@@ -193,6 +196,15 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	}
 
 
+	public Long getCreatedOn() {
+		return createdOn;
+	}
+
+	public void setCreatedOn(Long createdOn) {
+		this.createdOn = createdOn;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -283,7 +295,8 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 			public DBOUserProfile createBackupFromDatabaseObject(
 					DBOUserProfile dbo) {
 				return dbo;
-			}};
+			}
+		};
 	}
 
 

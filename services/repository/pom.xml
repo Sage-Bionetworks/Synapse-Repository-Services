@@ -135,8 +135,6 @@
 				<filtering>true</filtering>
 			</resource>
 		</resources>
-
-
 		<plugins>
 			<!-- Make a WAR file -->
 			<plugin>

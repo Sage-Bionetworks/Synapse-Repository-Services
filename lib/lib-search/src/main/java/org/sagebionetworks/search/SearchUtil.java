@@ -1,13 +1,34 @@
 package org.sagebionetworks.search;
 
+import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.regex.Pattern;
+
 import com.amazonaws.services.cloudsearchdomain.model.Bucket;
 import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.base.CharMatcher;
 import org.apache.commons.lang.math.NumberUtils;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Document;
@@ -17,64 +38,40 @@ import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
+import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
+import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.search.awscloudsearch.CloudSearchField;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchFacetSortType;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.sagebionetworks.util.ValidateArgument;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-
-import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+import org.springframework.util.CollectionUtils;
 
 public class SearchUtil{
-	public static final Map<String, FacetTypeNames> FACET_TYPES;
+	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
 
-	static {
-		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
-		facetTypes.put(FIELD_NODE_TYPE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_DISEASE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_TISSUE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_PLATFORM, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_CREATED_BY, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_MODIFIED_BY, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_REFERENCE, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_ACL, FacetTypeNames.LITERAL);
-		facetTypes.put(FIELD_CREATED_ON, FacetTypeNames.DATE);
-		facetTypes.put(FIELD_MODIFIED_ON, FacetTypeNames.DATE);
-		facetTypes.put(FIELD_NUM_SAMPLES, FacetTypeNames.CONTINUOUS);
-		facetTypes.put(FIELD_CONSORTIUM, FacetTypeNames.LITERAL);
-		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
+	/**
+	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
+	 * @param charSequence input to be stripped of unsupported Unicode characters
+	 * @return String of the input charSequence with unsupported Unicode characters stripped out
+	 */
+	public static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
+		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
 	}
-
 
 	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
 		ValidateArgument.required(searchQuery, "searchQuery");
-		SearchRequest searchRequest = new SearchRequest();
 
 		List<String> q = searchQuery.getQueryTerm();
 		List<KeyValue> bq = searchQuery.getBooleanQuery();
-		StringBuilder queryTermsStringBuilder = new StringBuilder();
+		List<KeyRange> rangeQueries =  searchQuery.getRangeQuery();
+
+		SearchRequest searchRequest = new SearchRequest();
 
 		// clean up empty q
 		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
@@ -82,60 +79,26 @@ public class SearchUtil{
 		}
 
 		// test for minimum search requirements
-		if (!(q != null && q.size() > 0) && !(bq != null && bq.size() > 0)) {
+		if ((q == null || q.isEmpty()) && (bq == null || bq.isEmpty())) {
 			throw new IllegalArgumentException(
 					"Either one queryTerm or one booleanQuery must be defined");
 		}
 
-		// unstructured query terms into structured query terms
-		if (q != null && q.size() > 0)
-			queryTermsStringBuilder.append(joinQueryTerms(q));
+		if (q != null && !q.isEmpty()) {
+			searchRequest.setQueryParser(QueryParser.Simple);
+			searchRequest.setQuery(String.join(" ", q));
+		}else{
+			searchRequest.setQueryParser(QueryParser.Structured);
+			searchRequest.setQuery("matchall"); //if no query is given. default to matching all queries
+		}
+
+		List<String> filterQueryTerms = new ArrayList<String>();
 
 		// boolean query into structured query terms
-		if (bq != null && bq.size() > 0) {
-			List<String> bqTerms = new ArrayList<String>();
+		if (bq != null) {
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue();
-
-				if(value.contains("*")){ //prefix queries are treated differently
-					String prefixQuery = createPrefixQuery(value, pair.getKey());
-					bqTerms.add(prefixQuery);
-					continue;
-				}
-
-				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
-				if(value.contains("..")) {
-					//TODO: remove this part once client stops using ".." notation for ranges
-					String[] range = value.split("\\.\\.", -1);
-
-					if(range.length != 2 ){
-						throw new IllegalArgumentException("Numeric range is incorrectly formatted");
-					}
-
-					StringBuilder rangeStringBuilder = new StringBuilder();
-					//left bound
-					if(range[0].equals("")){
-						rangeStringBuilder.append("{");
-					}else{
-						rangeStringBuilder.append("[" + range[0]);
-					}
-
-					//right bound
-					rangeStringBuilder.append(",");
-					if(range[1].equals("")){
-						rangeStringBuilder.append("}");
-					}else{
-						rangeStringBuilder.append( range[1] + "]");
-					}
-					value = rangeStringBuilder.toString();
-				}
-
-				if((value.contains("{") || value.contains("["))
-						&& (value.contains("}") || value.contains("]")) ){ //if is a continuous range such as [300,}
-					bqTerms.add("(range field=" + pair.getKey()+ " " + value + ")");
-					continue;
-				}
 
 				//add quotes around value. i.e. value -> 'value'
 				value = "'" + escapeQuotedValue(pair.getValue()) + "'";
@@ -143,48 +106,19 @@ public class SearchUtil{
 				if(pair.getNot() != null && pair.getNot()) {
 					term = "(not " + term + ")";
 				}
-				bqTerms.add(term);
+				filterQueryTerms.add(term);
 			}
-
-			//turns it from (and <q1> <q2> ... <qN>) into (and (and <q1> <q2> ... <qN>) <bqterm1> <bqterm2> ... <bqtermN>)
-			queryTermsStringBuilder.append( (queryTermsStringBuilder.length() > 0 ? " ":"") + String.join(" ", bqTerms)+ ")");
-			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
 		}
 
-		searchRequest.setQueryParser(QueryParser.Structured);
-		searchRequest.setQuery(queryTermsStringBuilder.toString());
-
-		//preprocess the FacetSortConstraints
-		// facet field constraints
-		if (searchQuery.getFacetFieldConstraints() != null
-				&& searchQuery.getFacetFieldConstraints().size() > 0) {
-			throw new IllegalArgumentException("Facet field constraints are no longer supported");
+		if (rangeQueries != null && !rangeQueries.isEmpty()) {
+			filterQueryTerms.addAll(createRangeFilterQueries(rangeQueries));
 		}
-		if (searchQuery.getFacetFieldSort() != null){
-			throw new IllegalArgumentException("Sorting of facets is no longer supported");
-		}
+		searchRequest.setFilterQuery(filterQueryTerms.isEmpty() ? null : "(and " + String.join(" ", filterQueryTerms) + ")");
 
-		// facets
-		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
-			StringJoiner facetStringJoiner = new StringJoiner(",","{" ,"}");
-			for(String facetFieldName : searchQuery.getFacet()){
-				//no options inside {} since none are used by the webclient
-				facetStringJoiner.add("\""+ facetFieldName + "\":{}");
-			}
-			searchRequest.setFacet(facetStringJoiner.toString());
+		// Translate from provided FacetOption to AWS CloudSearch options
+		if (!CollectionUtils.isEmpty(searchQuery.getFacetOptions())){
+			searchRequest.setFacet(createCloudSearchFacetJSON(searchQuery.getFacetOptions()).toString());
 		}
-
-		//switch to size parameter in facet
-		// facet top n
-		if (searchQuery.getFacetFieldTopN() != null) {
-			throw new IllegalArgumentException("facet-field-top-n is no longer supported");
-		}
-
-		// rank
-		if (searchQuery.getRank() != null){
-			throw new IllegalArgumentException("Rank is no longer supported");
-		}
-
 
 		// return-fields
 		if (searchQuery.getReturnFields() != null
@@ -201,6 +135,90 @@ public class SearchUtil{
 
 		return searchRequest;
 	}
+
+	/**
+	 * For each KeyRange in the List, create a String representing its CloudSearch structured query.
+	 * The order of the returned List<String> match the order of the input List<Keyrange>
+	 *
+	 * For example:
+	 * given [KeyRange(key=myKey, min=5, max=45)] return ["(range field=myKey [5,45])"]
+	 *
+	 * @param rangeQueries List of KeyRanges for which the range queries will be constructed
+	 * @return List<String> containing the Cloudsearch range structured query for each of the KeyRanges
+	 */
+	static List<String> createRangeFilterQueries(List<KeyRange> rangeQueries) {
+		List<String> filterQueryTerms = new ArrayList<>(rangeQueries.size());
+
+		for (KeyRange keyRange : rangeQueries) {
+			String key = keyRange.getKey();
+			String min = keyRange.getMin();
+			String max = keyRange.getMax();
+
+			if (min == null && max == null) {
+				throw new IllegalArgumentException("at least one of min or max for key=" + key + "must be not null");
+			}
+
+			StringBuilder rangeStringBuilder = new StringBuilder();
+			//left bound
+			if (min == null) {
+				rangeStringBuilder.append("{");
+			} else {
+				rangeStringBuilder.append("[" + min);
+			}
+
+			//right bound
+			rangeStringBuilder.append(",");
+			if (max == null) {
+				rangeStringBuilder.append("}");
+			} else {
+				rangeStringBuilder.append(max + "]");
+			}
+
+			filterQueryTerms.add("(range field=" + keyRange.getKey() + " " + rangeStringBuilder.toString() + ")");
+		}
+		return filterQueryTerms;
+	}
+
+	/**
+	 * Translates a list of SearchFacetOptions into a valid JSON for CloudSearch's SearchRequest facet field.
+	 * @param searchFacetOptions list of SearchFacetOption
+	 * @return a JSON representation of the SearchFacetOption that is compatible with CloudSearch
+	 */
+	static JSONObject createCloudSearchFacetJSON(List<SearchFacetOption> searchFacetOptions){
+		JSONObject facetJSON = new JSONObject();
+
+		for(SearchFacetOption facetOption : searchFacetOptions){
+			addOptionsJSONForFacet(facetJSON, facetOption);
+		}
+		return facetJSON;
+	}
+
+	/**
+	 * Helper method to createCloudSearchFacetJSON() which creates the JSON for each individual SearchFacetOption
+	 * @param facetOption A facetOption
+	 * @return translation of the the facetOption's sortType and maxCount into CloudSearch's facet option JSON.
+	 */
+	static void addOptionsJSONForFacet(JSONObject facetJSON, SearchFacetOption facetOption) {
+		CloudSearchField field = SynapseToCloudSearchField.cloudSearchFieldFor(facetOption.getName());
+		if(!field.isFaceted()){
+			throw new IllegalArgumentException("The field:\"" + facetOption.getName() +"\" can not be faceted");
+		}
+
+		JSONObject facetOptionJSON = new JSONObject();
+
+		SearchFacetSort sortType = facetOption.getSortType();
+		Long maxCount = facetOption.getMaxResultCount();
+
+		if(sortType != null) {
+			facetOptionJSON.put("sort", SynapseToCloudSearchFacetSortType.getCloudSearchSortTypeFor(sortType).name());
+		}
+
+		if(maxCount != null){
+			facetOptionJSON.put("size", maxCount);
+		}
+		facetJSON.putOnce(field.getFieldName() , facetOptionJSON);
+	}
+
 
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();
@@ -233,7 +251,7 @@ public class SearchUtil{
 	}
 
 	static Facet convertToSynapseSearchFacet(String facetName, BucketInfo bucketInfo) {
-		FacetTypeNames facetType = FACET_TYPES.get(facetName);
+		FacetTypeNames facetType = IndexFieldToSynapseFacetType.getSynapseFacetType(SynapseToCloudSearchField.cloudSearchFieldFor(facetName).getType());
 		if (facetType == null) {
 			throw new IllegalArgumentException(
 					"facet "
@@ -265,16 +283,16 @@ public class SearchUtil{
 		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_BY));
 		synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_ON)));
 		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, FIELD_DESCRIPTION));
-		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, FIELD_DISEASE));
+		synapseHit.setDiagnosis(getFirstListValueFromMap(fieldsMap, FIELD_DIAGNOSIS));
 		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, FIELD_ETAG));
 		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_BY));
 		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_ON)));
 		synapseHit.setName(getFirstListValueFromMap(fieldsMap, FIELD_NAME));
 		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, FIELD_NODE_TYPE));
-		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
 		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE));
 		synapseHit.setConsortium(getFirstListValueFromMap(fieldsMap, FIELD_CONSORTIUM));
-		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+		synapseHit.setOrgan(getFirstListValueFromMap(fieldsMap, FIELD_ORGAN));
+		//synapseHit.setPath() also exists but is being set at the manager level because it requires additional calls to DAOs.
 		synapseHit.setId(cloudSearchHit.getId());
 		return synapseHit;
 	}
@@ -288,31 +306,6 @@ public class SearchUtil{
 	/*
 	 * Private Methods
 	 */
-	/**
-	 * Creates a prefix query if there is an asterisk
-	 * @param prefixStringWithAsterisk prefix string containing the * symbol
-	 * @param fieldName optional. used in boolean queries but not in regular queries. 
-	 * @return
-	 */
-	private static String createPrefixQuery(String prefixStringWithAsterisk, String fieldName){
-		int asteriskIndex = prefixStringWithAsterisk.indexOf('*');
-		if(asteriskIndex == -1){
-			throw new IllegalArgumentException("the prefixString does not contain an * (asterisk) symbol");
-		}
-		return "(prefix" + (fieldName==null ? "" : " field=" + fieldName) + " '" + prefixStringWithAsterisk.substring(0, asteriskIndex) + "')";
-	}
-	
-	public static String joinQueryTerms(List<String> list){
-		StringJoiner sb = new StringJoiner(" ", "(and ", ")");
-		for (String item : list) {
-			if(item.contains("*")){
-				sb.add(createPrefixQuery(item, null));
-			}else{
-				sb.add('\'' + item + '\''); //wraps item with single quotes (e.g. 'item')
-			}
-		}
-		return sb.toString();
-	}
 
 	private static String escapeQuotedValue(String value) {
 		value = value.replaceAll("\\\\", "\\\\\\\\"); // replace \ -> \\
@@ -344,31 +337,14 @@ public class SearchUtil{
 		return authorizationFilterJoiner.toString();
 	}
 
-	/**
-	 * Remove any character that is not compatible with cloud search.
-	 * @param documents
-	 * @return JSON String of cleaned document
-	 */
-	static String convertSearchDocumentsToJSONString(List<Document> documents) {
-		ValidateArgument.required(documents, "documents");
-		// CloudSearch will not accept an empty document batch
-		ValidateArgument.requirement(!documents.isEmpty(), "documents can not be empty");
-
-		StringJoiner stringJoiner = new StringJoiner(", ", "[", "]");
-
-		for (Document document : documents) {
-			if (DocumentTypeNames.add == document.getType()) {
-				prepareDocument(document);
-			}
-			try {
-				stringJoiner.add(EntityFactory.createJSONStringForEntity(document));
-			} catch (JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
-			}
+	public static void addAuthorizationFilter(SearchRequest searchRequest, UserInfo userInfo){
+		String authFilter = formulateAuthorizationFilter(userInfo);
+		String existingFitler = searchRequest.getFilterQuery();
+		if(existingFitler != null){
+			searchRequest.setFilterQuery("(and " + authFilter + " " + existingFitler + ")");
+		}else{
+			searchRequest.setFilterQuery(authFilter);
 		}
-		// Some descriptions have control characters in them for some reason, in any case, just get rid
-		// of all control characters in the search document
-		return CharMatcher.JAVA_ISO_CONTROL.removeFrom(stringJoiner.toString());
 	}
 
 	/**
@@ -378,6 +354,17 @@ public class SearchUtil{
 	static void prepareDocument(Document document) {
 		if(document.getFields() == null){
 			document.setFields(new DocumentFields());
+		}
+	}
+
+	public static String convertSearchDocumentToJSONString(Document document) {
+		if (DocumentTypeNames.add == document.getType()) {
+			prepareDocument(document);
+		}
+		try {
+			return EntityFactory.createJSONStringForEntity(document);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

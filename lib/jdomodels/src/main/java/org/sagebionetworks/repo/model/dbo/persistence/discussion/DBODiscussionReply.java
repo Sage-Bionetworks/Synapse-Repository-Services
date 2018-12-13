@@ -20,6 +20,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -256,18 +257,7 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 
 	@Override
 	public MigratableTableTranslation<DBODiscussionReply, DBODiscussionReply> getTranslator() {
-		return new MigratableTableTranslation<DBODiscussionReply, DBODiscussionReply>(){
-
-			@Override
-			public DBODiscussionReply createDatabaseObjectFromBackup(DBODiscussionReply backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODiscussionReply createBackupFromDatabaseObject(DBODiscussionReply dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBODiscussionReply>();
 	}
 
 	@Override

@@ -1,5 +1,28 @@
 package org.sagebionetworks.search;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.amazonaws.services.cloudsearchdomain.model.Bucket;
 import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
@@ -7,6 +30,7 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Sets;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -17,54 +41,35 @@ import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.FacetSort;
-import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
-import org.sagebionetworks.repo.model.search.query.FacetTopN;
-import org.sagebionetworks.repo.model.search.query.KeyList;
+import org.sagebionetworks.repo.model.search.query.KeyRange;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
+import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
+import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
+import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
-import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 public class SearchUtilTest {
 	private SearchQuery query;
 	private SearchRequest searchRequest;
-	private SearchRequest expectedSearchRequestBase;
+	private SearchRequest expectedSearchRequestBaseWithQueryTerm;
+	private SearchRequest expectedSearchRequestBaseNoQueryTermSet;
 	private SearchResult searchResult;
+	private SearchFacetOption searchFacetOption;
 
 	private List<String> q;
 	private List<KeyValue> bq;
 	private List<KeyValue> bqNot;
 	private List<KeyValue> bq2;
 	private List<KeyValue> bqSpecialChar;
+	private List<KeyRange> keyRangeList;
+	private KeyRange keyRange;
 
+	UserInfo userInfo;
 	@Before
 	public void before() throws Exception {
 		query = new SearchQuery();
-		expectedSearchRequestBase =  new SearchRequest().withQueryParser(QueryParser.Structured);
+		expectedSearchRequestBaseWithQueryTerm =  new SearchRequest().withQueryParser(QueryParser.Simple);
+		expectedSearchRequestBaseNoQueryTermSet = new SearchRequest().withQueryParser(QueryParser.Structured).withQuery("matchall");
 		// q
 		q = new ArrayList<>();
 		q.add("hello");
@@ -101,6 +106,19 @@ public class SearchUtilTest {
 		bqSpecialChar.add(kv);
 
 		searchResult = new SearchResult();
+
+		userInfo = new UserInfo(false);
+		userInfo.setGroups(Sets.newLinkedHashSet(Arrays.asList(123L, 456L, 789L)));
+
+		keyRangeList = new ArrayList<>();
+		keyRange = new KeyRange();
+		keyRange.setKey("SomeRangeFacet");
+		keyRangeList.add(keyRange);
+
+		searchFacetOption = new SearchFacetOption();
+		searchFacetOption.setMaxResultCount(42L);
+		searchFacetOption.setSortType(SearchFacetSort.COUNT);
+		searchFacetOption.setName(SearchFieldName.EntityType);
 	}
 
 	//////////////////////////////////////
@@ -131,16 +149,7 @@ public class SearchUtilTest {
 		// query only
 		query.setQueryTerm(q);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and 'hello' 'world')"), searchRequest);
-	}
-
-	@Test
-	public void testRegularQueryWithPrefix() {
-		// q
-		q.add("somePrefix*");
-		query.setQueryTerm(q);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and 'hello' 'world' (prefix 'somePrefix'))"), searchRequest);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world"), searchRequest);
 	}
 
 	@Test
@@ -148,18 +157,7 @@ public class SearchUtilTest {
 		// boolean query only
 		query.setBooleanQuery(bq);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'Value1')"), searchRequest);
-	}
-
-	@Test
-	public void testBooleanQueryWithPrefix() {
-		KeyValue prefixKV = new KeyValue();
-		prefixKV.setKey("someField");
-		prefixKV.setValue("somePrefix*");
-		bq.add(prefixKV);
-		query.setBooleanQuery(bq);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'Value1' (prefix field=someField 'somePrefix'))"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and Facet1:'Value1')"), searchRequest);
 	}
 
 	@Test
@@ -168,15 +166,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(Collections.singletonList(""));
 		query.setBooleanQuery(bq);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'Value1')"), searchRequest);
-	}
-
-	@Test
-	public void testBooleanQueryContinuous() {
-		// continuous bq
-		query.setBooleanQuery(bq2);
-		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and (range field=Facet1 {,2000]))"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and Facet1:'Value1')"), searchRequest);
 	}
 
 	@Test
@@ -184,7 +174,7 @@ public class SearchUtilTest {
 		// negated boolean query
 		query.setBooleanQuery(bqNot);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and (not Facet1:'Value1') Facet2:'Value2')"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and (not Facet1:'Value1') Facet2:'Value2')"), searchRequest);
 	}
 
 	@Test
@@ -192,7 +182,7 @@ public class SearchUtilTest {
 		// special characters in boolean query
 		query.setBooleanQuery(bqSpecialChar);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and Facet1:'c:\\\\dave\\'s_folde,r')"), searchRequest);
+		assertEquals(expectedSearchRequestBaseNoQueryTermSet.withFilterQuery("(and Facet1:'c:\\\\dave\\'s_folde,r')"), searchRequest);
 	}
 	@Test
 	public void testRegularQueryAndBooleanQuery() {
@@ -200,82 +190,46 @@ public class SearchUtilTest {
 		query.setBooleanQuery(bq);
 		query.setQueryTerm(q);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and (and 'hello' 'world') Facet1:'Value1')"), searchRequest);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFilterQuery("(and Facet1:'Value1')"), searchRequest);
 	}
 
 	@Test
-	public void testFacets() {
-		// facets
+	public void testGenerateSearchRequest_rangeQueriesOnly(){
 		query.setQueryTerm(q);
-		List<String> facets = new ArrayList<>();
-		facets.add("facet1");
-		facets.add("facet2");
-		query.setQueryTerm(q);
-		query.setFacet(facets);
+		query.setRangeQuery(keyRangeList);
+		keyRange.setMax("42");
+
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withFacet("{\"facet1\":{},\"facet2\":{}}"), searchRequest);
+
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
+				.withFilterQuery("(and (range field=SomeRangeFacet {,42]))"), searchRequest);
 	}
 
+	@Test
+	public void testGenerateSearchRequest_booleanQueriesAndRangeQueries(){
+		query.setBooleanQuery(bq);
+		query.setQueryTerm(q);
+		query.setRangeQuery(keyRangeList);
+		keyRange.setMax("42");
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testFacetConstraints() {
-		// facet field constraints
-		query.setQueryTerm(q);
-		List<KeyList> facetFieldConstraints = new ArrayList<>();
-		KeyList ffc1 = new KeyList();
-		ffc1.setKey("facet1");
-		ffc1.setValues(Arrays.asList("one,two\\three", "dave's", "regular"));
-		facetFieldConstraints.add(ffc1);
-		KeyList ffc2 = new KeyList();
-		ffc2.setKey("facet2");
-		ffc2.setValues(Arrays.asList("123", "4..5"));
-		facetFieldConstraints.add(ffc2);
-		query.setFacetFieldConstraints(facetFieldConstraints);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-	}
-	@Test (expected = IllegalArgumentException.class)
-	public void testFacetSort() {
-		// facet field sort
-		query.setQueryTerm(q);
-		List<FacetSort> facetFieldSorts = null;
-		FacetSort fs = null;
 
-		fs = new FacetSort();
-		fs.setFacetName("facet1");
-		fs.setSortType(FacetSortOptions.ALPHA);
-		facetFieldSorts = new ArrayList<>();
-		facetFieldSorts.add(fs);
-		query.setQueryTerm(q);
-		query.setFacetFieldSort(facetFieldSorts);
-		searchRequest = SearchUtil.generateSearchRequest(query);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
+				.withFilterQuery("(and Facet1:'Value1' (range field=SomeRangeFacet {,42]))"), searchRequest);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testFacetFieldTopN() {
-		// facet field top N
-		List<FacetTopN> topNList = new ArrayList<>();
-		FacetTopN topn = null;
-
-		topn = new FacetTopN();
-		topn.setKey("facet1");
-		topn.setValue(10L);
-		topNList.add(topn);
-
-		topn = new FacetTopN();
-		topn.setKey("facet2");
-		topn.setValue(20L);
-		topNList.add(topn);
-
+	@Test
+	public void testBooleanQueryWithBrackets(){
+		KeyValue kv = new KeyValue();
+		kv.setKey("disease");
+		kv.setValue("[\"normal\",\"carcinoma\"]");
 		query.setQueryTerm(q);
-		query.setFacetFieldTopN(topNList);
+		query.setBooleanQuery(Collections.singletonList(kv));
+
 		searchRequest = SearchUtil.generateSearchRequest(query);
-	}
-	@Test (expected=IllegalArgumentException.class)
-	public void testRank() {
-		query.setQueryTerm(q);
-		query.setRank(Arrays.asList("rankfield1", "-rankfield2"));
-		searchRequest = SearchUtil.generateSearchRequest(query);
-	}
+
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world")
+				.withFilterQuery("(and disease:'[\"normal\",\"carcinoma\"]')"), searchRequest);	}
 
 	@Test
 	public void testReturnFields() {
@@ -283,7 +237,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setReturnFields(Arrays.asList("retF1", "retF2"));
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals(expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withReturn("retF1,retF2"), searchRequest);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withReturn("retF1,retF2"), searchRequest);
 
 	}
 	@Test
@@ -292,7 +246,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setSize(100L);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withSize(100L), searchRequest);
+		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withSize(100L), searchRequest);
 	}
 	@Test
 	public void testStartParameter() {
@@ -300,7 +254,58 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setStart(10L);
 		searchRequest = SearchUtil.generateSearchRequest(query);
-		assertEquals( expectedSearchRequestBase.withQuery("(and 'hello' 'world')").withStart(10L), searchRequest);
+		assertEquals( expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withStart(10L), searchRequest);
+	}
+
+	@Test
+	public void testGenerateSearchRequest_FacetOptions_usingFacetOptions(){
+		query.setQueryTerm(q);
+		query.setFacetOptions(Collections.singletonList(searchFacetOption));
+		searchRequest = SearchUtil.generateSearchRequest(query);
+		assertEquals(expectedSearchRequestBaseWithQueryTerm.withQuery("hello world").withFacet("{\"node_type\":{\"sort\":\"count\",\"size\":42}}"), searchRequest);
+	}
+
+	///////////////////////////////////
+	// createRangeFilterQueries() test
+	///////////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateRangeFilterQueries_keyRangeWithNullMinAndNullMax(){
+		keyRange.setMin(null);
+		keyRange.setMax(null);
+
+		SearchUtil.createRangeFilterQueries(keyRangeList);
+	}
+
+	@Test
+	public void testCreateRangeFilterQueries_keyRangeWithNullMin(){
+		keyRange.setMin("56");
+		keyRange.setMax(null);
+
+		List<String> rangeFilterQueries = SearchUtil.createRangeFilterQueries(keyRangeList);
+		assertEquals(Arrays.asList("(range field=SomeRangeFacet [56,})"), rangeFilterQueries);
+	}
+
+	@Test
+	public void testCreateRangeFilterQueries_keyRangeWithNullMax(){
+		keyRange.setMin(null);
+		keyRange.setMax("89");
+
+		List<String> rangeFilterQueries = SearchUtil.createRangeFilterQueries(keyRangeList);
+		assertEquals(Arrays.asList("(range field=SomeRangeFacet {,89])"), rangeFilterQueries);
+
+	}
+
+	@Test
+	public void testCreateRangeFilterQueries_keyRangeWithMultipleValues(){
+		keyRange.setMin("56");
+		keyRange.setMax("89");
+
+		KeyRange keyRange2 = new KeyRange();
+		keyRange2.setMin("234");
+		keyRange2.setMax("567");
+
+		List<String> rangeFilterQueries = SearchUtil.createRangeFilterQueries(keyRangeList);
+		Arrays.asList("(range field=SomeRangeFacet [56,89])", "(range field=SomeRangeFacet [234,567])");
 	}
 
 	/////////////////////////////////
@@ -352,14 +357,14 @@ public class SearchUtilTest {
 		String createdBy = "1213324";
 		String createdOn = "1234567890";
 		String description = "Description";
-		String disease = "space aids";
+		String diagnosis = "space aids";
 		String etag = "some etag";
 		String id = "id";
 		String modifiedBy = "modifiedBy";
 		String modifiedOn = "11958442069423";
 		String name = "my name Jeff";
 		String nodeType = "dataset";
-		String numSamples = "42";
+		String organ = "appendix";
 		String tissue = "Kleenex";
 		String consortium = "consortium";
 
@@ -368,13 +373,13 @@ public class SearchUtilTest {
 				put(FIELD_CREATED_BY, Collections.singletonList(createdBy));
 				put(FIELD_CREATED_ON, Collections.singletonList(createdOn));
 				put(FIELD_DESCRIPTION, Collections.singletonList(description));
-				put(FIELD_DISEASE, Collections.singletonList(disease));
+				put(FIELD_DIAGNOSIS, Collections.singletonList(diagnosis));
 				put(FIELD_ETAG, Collections.singletonList(etag));
 				put(FIELD_MODIFIED_BY, Collections.singletonList(modifiedBy));
 				put(FIELD_MODIFIED_ON, Collections.singletonList(modifiedOn));
 				put(FIELD_NAME, Collections.singletonList(name));
 				put(FIELD_NODE_TYPE, Collections.singletonList(nodeType));
-				put(FIELD_NUM_SAMPLES, Collections.singletonList(numSamples));
+				put(FIELD_ORGAN, Collections.singletonList(organ));
 				put(FIELD_TISSUE, Collections.singletonList(tissue));
 				put(FIELD_CONSORTIUM, Collections.singletonList(consortium));
 			}
@@ -389,11 +394,11 @@ public class SearchUtilTest {
 		assertEquals(etag, hit.getEtag());
 		assertEquals(new Long(modifiedOn), hit.getModified_on());
 		assertEquals(new Long(createdOn), hit.getCreated_on());
-		assertEquals(new Long(numSamples), hit.getNum_samples());
+		assertEquals(organ, hit.getOrgan());
 		assertEquals(createdBy, hit.getCreated_by());
 		assertEquals(modifiedBy, hit.getModified_by());
 		assertEquals(nodeType, hit.getNode_type());
-		assertEquals(disease, hit.getDisease());
+		assertEquals(diagnosis, hit.getDiagnosis());
 		assertEquals(tissue, hit.getTissue());
 		assertEquals(consortium, hit.getConsortium());
 	}
@@ -489,24 +494,45 @@ public class SearchUtilTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testFormulateAuthorizationFilterNullUserGroups(){
-		UserInfo userInfo = new UserInfo(false);
 		userInfo.setGroups(null);
 		SearchUtil.formulateAuthorizationFilter(userInfo);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testFormulateAuthorizationFilterEmptyUserGroups(){
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(new HashSet<>());
+		userInfo.setGroups(Collections.emptySet());
 		SearchUtil.formulateAuthorizationFilter(userInfo);
 	}
 
 	@Test
 	public void testFormulateAuthorizationFilterHappyCase(){
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(Sets.newLinkedHashSet(Arrays.asList(123L, 456L, 789L)));
 		String authFilter = SearchUtil.formulateAuthorizationFilter(userInfo);
 		assertEquals("(or acl:'123' acl:'456' acl:'789')", authFilter);
+	}
+
+	///////////////////////////////////
+	// addAuthorizationFilter() tests
+	///////////////////////////////////
+
+	@Test
+	public void testAddAuthourizationFilter__filterQueryAlreadyExists(){
+		String fitlerQuery = "(and indexName:'asdf')";
+		searchRequest = new SearchRequest().withFilterQuery(fitlerQuery);
+
+		//method under test
+		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
+
+		assertEquals("(and (or acl:'123' acl:'456' acl:'789') (and indexName:'asdf'))", searchRequest.getFilterQuery());
+	}
+
+	@Test
+	public void testAddAuthourizationFilter__filterQueryNotExist(){
+		searchRequest = new SearchRequest();
+
+		//method under test
+		SearchUtil.addAuthorizationFilter(searchRequest, userInfo);
+
+		assertEquals("(or acl:'123' acl:'456' acl:'789')", searchRequest.getFilterQuery());
 	}
 
 	///////////////////////////
@@ -522,25 +548,11 @@ public class SearchUtilTest {
 	}
 
 	////////////////////////////////////////
-	// convertSearchDocumentsToJSONString() test
+	// convertSearchDocumentToJSONString() test
 	////////////////////////////////////////
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONStringNullDocuments(){
-		SearchUtil.convertSearchDocumentsToJSONString(null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testConvertSearchDocumentsToJSONStringEmptyDocuments(){
-		SearchUtil.convertSearchDocumentsToJSONString(new LinkedList<>());
-	}
-
 	@Test
-	public void testConvertSearchDocumentsToJSONString(){
-		Document deleteDoc = new Document();
-		deleteDoc.setId("syn123");
-		deleteDoc.setType(DocumentTypeNames.delete);
-
+	public void testConvertSearchDocumentToJSONString(){
 		Document addDoc = new Document();
 		addDoc.setId("syn456");
 		addDoc.setType(DocumentTypeNames.add);
@@ -548,8 +560,68 @@ public class SearchUtilTest {
 		fields.setName("Fake Entity");
 		addDoc.setFields(fields);
 
-		String jsonString = SearchUtil.convertSearchDocumentsToJSONString(Arrays.asList(deleteDoc,addDoc));
-		assertEquals("[{\"type\":\"delete\",\"id\":\"syn123\"}, {\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}]", jsonString);
+		String jsonString = SearchUtil.convertSearchDocumentToJSONString(addDoc);
+		assertEquals("{\"type\":\"add\",\"id\":\"syn456\",\"fields\":{\"name\":\"Fake Entity\"}}", jsonString);
 	}
 
+	////////////////////////////////////////////
+	// stripUnsupportedUnicodeCharacters() test
+	////////////////////////////////////////////
+
+	@Test
+	public void testStripUnsupportedUnicodeCharacters(){
+		//test unicode characters from https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+		String testString = "⌐( ͡° ͜ʖ ͡°) ╯╲___\u000C\u0019Don't mind me just taking my unsupported unicode characters for a walk";
+
+		String result = SearchUtil.stripUnsupportedUnicodeCharacters(testString);
+		assertEquals("⌐( ͡° ͜ʖ ͡°) ╯╲___Don't mind me just taking my unsupported unicode characters for a walk", result);
+	}
+
+	////////////////////////////////////////
+	//  createOptionsJSONForFacet() tests
+	////////////////////////////////////////
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateCloudSearchFacetJSON_SingleFieldIsNotFacetable(){
+		searchFacetOption.setName(SearchFieldName.Description);
+		SearchUtil.addOptionsJSONForFacet(new JSONObject(), searchFacetOption);
+	}
+
+	@Test
+	public void testCreateOptionsJSONForFacet_SortTypeNull(){
+		searchFacetOption.setMaxResultCount(56L);
+		searchFacetOption.setSortType(null);
+		JSONObject jsonObject = new JSONObject();
+		SearchUtil.addOptionsJSONForFacet(jsonObject, searchFacetOption);
+		assertEquals("{\"node_type\":{\"size\":56}}", jsonObject.toString());
+	}
+
+	@Test
+	public void testCreateOptionsJSONForFacet_MaxCountNull(){
+		searchFacetOption.setMaxResultCount(null);
+		searchFacetOption.setSortType(SearchFacetSort.ALPHA);
+		JSONObject jsonObject = new JSONObject();
+
+		SearchUtil.addOptionsJSONForFacet(jsonObject, searchFacetOption);
+		assertEquals("{\"node_type\":{\"sort\":\"bucket\"}}", jsonObject.toString());
+	}
+
+
+	///////////////////////////////////////
+	// createCloudSearchFacetJSON() tests
+	///////////////////////////////////////
+	@Test
+	public void testCreateCloudSearchFacetJSON_SingleField(){
+		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Collections.singletonList(searchFacetOption));
+		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42}}", result.toString());
+	}
+
+	@Test
+	public void testCreateCloudSearchFacetJSON_MultipleField(){
+		SearchFacetOption otherFacetOption = new SearchFacetOption();
+		otherFacetOption.setName(SearchFieldName.CreatedOn);
+
+		JSONObject result = SearchUtil.createCloudSearchFacetJSON(Arrays.asList( searchFacetOption, otherFacetOption));
+		assertEquals("{\"node_type\":{\"sort\":\"count\",\"size\":42},\"created_on\":{}}", result.toString());
+	}
 }

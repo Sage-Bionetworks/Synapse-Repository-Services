@@ -23,10 +23,13 @@ import javax.mail.internet.MimeMultipart;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -43,21 +46,29 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PrincipalManagerImplUnitTest {
 
+	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	@Mock
 	private SynapseEmailService mockSynapseEmailService;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private AuthenticationManager mockAuthManager;
+	@Mock
 	private UserProfileDAO mockUserProfileDAO;
+	@Mock
 	private NotificationEmailDAO mockNotificationEmailDao;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
 	
 	private PrincipalManagerImpl manager;
 
@@ -84,23 +95,13 @@ public class PrincipalManagerImplUnitTest {
 	public void before() {
 		manager = new PrincipalManagerImpl();
 		
-		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		ReflectionTestUtils.setField(manager, "principalAliasDAO", mockPrincipalAliasDAO);
-		
-		mockSynapseEmailService = Mockito.mock(SynapseEmailService.class);
 		ReflectionTestUtils.setField(manager, "sesClient", mockSynapseEmailService);
-		
-		mockUserManager = Mockito.mock(UserManager.class);
 		ReflectionTestUtils.setField(manager, "userManager", mockUserManager);
-		
-		mockAuthManager = Mockito.mock(AuthenticationManager.class);
 		ReflectionTestUtils.setField(manager, "authManager", mockAuthManager);
-		
-		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		ReflectionTestUtils.setField(manager, "userProfileDAO", mockUserProfileDAO);
-		
-		mockNotificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
 		ReflectionTestUtils.setField(manager, "notificationEmailDao", mockNotificationEmailDao);
+		ReflectionTestUtils.setField(manager, "tokenGenerator", mockTokenGenerator);
 
 		// create some data
 		user = createNewUser();
@@ -135,16 +136,6 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(manager.isAliasAvailable(toTest));
 	}
 
-	private static String paste(String[] pieces, String and) {
-		boolean first = true;
-		StringBuilder sb = new StringBuilder();
-		for (String piece : pieces) {
-			if (first) first=false; else sb.append(and);
-			if (piece!=null) sb.append(piece);
-		}
-		return sb.toString();
-	}
-
 	// token is OK 23 hours from now
 	@Test
 	public void testValidateNOTtooOLDTimestamp() {
@@ -152,8 +143,8 @@ public class PrincipalManagerImplUnitTest {
 		EmailValidationSignedToken token = new EmailValidationSignedToken();
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
-		SignedTokenUtil.signToken(token);
-		PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate);
+		token.setHmac("signed");
+		PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate, mockTokenGenerator);
 	}
 
 	// token is not OK 25 hours from now
@@ -163,8 +154,8 @@ public class PrincipalManagerImplUnitTest {
 		EmailValidationSignedToken token = new EmailValidationSignedToken();
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
-		SignedTokenUtil.signToken(token);
-		PrincipalUtils.validateEmailValidationSignedToken(token, outOfDate);
+		token.setHmac("signed");
+		PrincipalUtils.validateEmailValidationSignedToken(token, outOfDate, mockTokenGenerator);
 	}
 
 	@Test
@@ -174,10 +165,10 @@ public class PrincipalManagerImplUnitTest {
 		token.setUserId(Long.toString(USER_ID));
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
-		SignedTokenUtil.signToken(token);
+		token.setHmac("signed");
 		try {
 			// Method under test
-			PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate);
+			PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate, mockTokenGenerator);
 			fail();
 		} catch (IllegalArgumentException e) {
 			// As expected
@@ -200,7 +191,7 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(!body.contains("#"));
 		// check that token appears
 		assertTrue(body.contains(PORTAL_ENDPOINT));
-		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createAccountCreationToken(user, now))));
+		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createAccountCreationToken(user, now, mockTokenGenerator))));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -238,7 +229,7 @@ public class PrincipalManagerImplUnitTest {
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
 		emailValidationSignedToken.setEmail(user.getEmail());
 		emailValidationSignedToken.setCreatedOn(now);
-		SignedTokenUtil.signToken(emailValidationSignedToken);
+		emailValidationSignedToken.setHmac("signed");
 		accountSetupInfo.setEmailValidationSignedToken(emailValidationSignedToken);
 		accountSetupInfo.setFirstName(FIRST_NAME);
 		accountSetupInfo.setLastName(LAST_NAME);
@@ -254,23 +245,23 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(USER_NAME, user.getUserName());
 		assertEquals(EMAIL, user.getEmail());
 		verify(mockAuthManager).changePassword(USER_ID, PASSWORD);
-		verify(mockAuthManager).authenticate(USER_ID, PASSWORD);
+		verify(mockAuthManager).login(USER_ID, PASSWORD, null);
 	}
 
 	// token is OK 23 hours from now
 	@Test
 	public void testValidateAdditionalEmailNOTtooOLDTimestamp() {
 		Date notOutOfDate = new Date(System.currentTimeMillis()+23*3600*1000L);
-		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
-		PrincipalUtils.validateAdditionalEmailSignedToken(token, USER_ID.toString(), notOutOfDate);
+		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
+		PrincipalUtils.validateAdditionalEmailSignedToken(token, USER_ID.toString(), notOutOfDate, mockTokenGenerator);
 	}
 
 	// token is not OK 25 hours from now
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateAdditionalEmailOLDTimestamp() {
 		Date outOfDate = new Date(System.currentTimeMillis()+25*3600*1000L);
-		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
-		PrincipalUtils.validateAdditionalEmailSignedToken(token, USER_ID.toString(), outOfDate);
+		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
+		PrincipalUtils.validateAdditionalEmailSignedToken(token, USER_ID.toString(), outOfDate, mockTokenGenerator);
 	}
 
 	@Test
@@ -302,7 +293,7 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(body.contains(EMAIL));
 		// check that token appears
 		assertTrue(body.contains(PORTAL_ENDPOINT));
-		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now))));
+		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator))));
 	}
 
 	@Test(expected=NameConflictException.class)
@@ -345,7 +336,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testAddEmail() throws Exception {
 		UserInfo userInfo = new UserInfo(false, USER_ID);
 
-		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
 
 		Boolean setAsNotificationEmail = true;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
@@ -363,7 +354,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testAddEmailNoSetNotification() throws Exception {
 		UserInfo userInfo = new UserInfo(false, USER_ID);
 		
-		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
 
 		Boolean setAsNotificationEmail = null;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
@@ -385,7 +376,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testAddEmailWrongUser() throws Exception {
 		UserInfo userInfo = new UserInfo(false, USER_ID);
-		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(222L, EMAIL, now);
+		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(222L, EMAIL, now, mockTokenGenerator);
 		manager.addEmail(userInfo, emailValidationSignedToken, null);
 	}
 	

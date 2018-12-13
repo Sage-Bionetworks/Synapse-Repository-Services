@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -24,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
@@ -45,12 +46,12 @@ public class MessageSyndicationImplAutowiredTest {
 	MessageSyndication messageSyndication;
 	
 	@Autowired
-	AmazonSQSClient awsSQSClient;
+	AmazonSQS awsSQSClient;
 	
 	@Autowired
 	DBOChangeDAO changeDAO;
 	
-	private String queueName = StackConfiguration.singleton().getStack()+"-"+StackConfiguration.getStackInstance()+"-test-syndication";
+	private String queueName = StackConfigurationSingleton.singleton().getStack()+"-"+StackConfigurationSingleton.singleton().getStackInstance()+"-test-syndication";
 	private String queueUrl;
 	
 	@Before

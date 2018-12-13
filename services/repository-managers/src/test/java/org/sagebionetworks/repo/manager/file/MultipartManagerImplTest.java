@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class MultipartManagerImplTest {
 	@Mock
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 	
 	@Mock
 	private FileHandleDao fileHandleDao;

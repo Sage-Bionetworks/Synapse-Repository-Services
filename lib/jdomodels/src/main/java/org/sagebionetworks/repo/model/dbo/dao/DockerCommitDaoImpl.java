@@ -93,7 +93,6 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		ValidateArgument.required(commit, "commit");
 		ValidateArgument.required(commit.getCreatedOn(), "commit.createdOn");
 		ValidateArgument.required(commit.getDigest(), "commit.digest");
-		ValidateArgument.required(commit.getTag(), "commit.tag");
 		
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
@@ -111,7 +110,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	}
 	
 	@Override
-	public List<DockerCommit> listDockerCommits(String entityId, 
+	public List<DockerCommit> listDockerTags(String entityId,
 			DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(sortBy, "sortBy");

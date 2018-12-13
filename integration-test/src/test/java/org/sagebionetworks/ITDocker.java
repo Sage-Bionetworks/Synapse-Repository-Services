@@ -14,7 +14,6 @@ import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpStatus;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -64,17 +63,20 @@ public class ITDocker {
 	private static String password;
 
 	private String projectId;
+	
+	StackConfiguration config;
 
 	private static SimpleHttpClient simpleClient;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse
-		.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		.setUsername(config.getMigrationAdminUsername());
+		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
@@ -88,6 +90,7 @@ public class ITDocker {
 
 	@Before
 	public void before() throws Exception {
+		config = StackConfigurationSingleton.singleton();
 		Project project = new Project();
 		project = synapseOne.createEntity(project);
 		projectId = project.getId();
@@ -123,7 +126,7 @@ public class ITDocker {
 		String service = "docker.synapse.org";
 		String repoPath = projectId+"/reponame";
 		String scope = TYPE+":"+repoPath+":"+ACCESS_TYPES_STRING;
-		String urlString = StackConfiguration.getDockerServiceEndpoint() + DOCKER_AUTHORIZATION;
+		String urlString = config.getDockerServiceEndpoint() + DOCKER_AUTHORIZATION;
 		urlString += "?" + SERVICE_PARAM + "=" + URLEncoder.encode(service, "UTF-8");
 		urlString += "&" + SCOPE_PARAM + "=" + URLEncoder.encode(scope, "UTF-8");
 		
@@ -156,7 +159,7 @@ public class ITDocker {
 		// now reassign the tag to a new commit
 		DockerCommit commit2 = createCommit(tag, UUID.randomUUID().toString());
 		synapseOne.addDockerCommit(dockerRepo.getId(), commit2);
-		PaginatedResults<DockerCommit> result = synapseOne.listDockerCommits(dockerRepo.getId(), 10L, 0L, DockerCommitSortBy.TAG, true);
+		PaginatedResults<DockerCommit> result = synapseOne.listDockerTags(dockerRepo.getId(), 10L, 0L, DockerCommitSortBy.TAG, true);
 		assertEquals(1L, result.getTotalNumberOfResults());
 		assertEquals(1, result.getResults().size());
 		DockerCommit retrieved = result.getResults().get(0);
@@ -167,7 +170,7 @@ public class ITDocker {
 		// make sure optional params are optional
 		assertEquals(
 				result,
-				synapseOne.listDockerCommits(dockerRepo.getId(), null, null, null, null)
+				synapseOne.listDockerTags(dockerRepo.getId(), null, null, null, null)
 				);
 	}
 	
@@ -198,8 +201,8 @@ public class ITDocker {
 
 	@Test
 	public void testSendRegistryEvents() throws Exception {
-		String registryUserName = StackConfiguration.getDockerRegistryUser();
-		String registryPassword =StackConfiguration.getDockerRegistryPassword();
+		String registryUserName = config.getDockerRegistryUser();
+		String registryPassword =config.getDockerRegistryPassword();
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		// Note, without this header  we get a 415 response code
 		requestHeaders.put("Content-Type", "application/json"); 
@@ -213,7 +216,7 @@ public class ITDocker {
 		String digest = UUID.randomUUID().toString(); // usu. a SHA256, but not required
 		DockerRegistryEventList registryEvents = createDockerRegistryEvent(
 				RegistryEventAction.push,  host,  userToDelete,  repositoryPath,  tag,  digest);
-		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
+		URL url = new URL(config.getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url.toString());
@@ -239,7 +242,7 @@ public class ITDocker {
 				"Authorization",
 				createBasicAuthorizationHeader("wrong user name", "wrong password"));
 		DockerRegistryEventList registryEvents = new DockerRegistryEventList();
-		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
+		URL url = new URL(config.getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url.toString());

@@ -1,18 +1,15 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.Content;
@@ -36,11 +33,14 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	private AmazonSimpleEmailService amazonSESClient;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
+	
+	@Autowired
+	private StackConfiguration stackConfiguration;
 	
 	@Override
 	public void sendEmail(SendEmailRequest emailRequest) {
-		if (StackConfiguration.singleton().isProductionStack() || StackConfiguration.getDeliverEmail()) {
+		if (stackConfiguration.isProductionStack() || stackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendEmail(emailRequest);
 		} else {
 			writeToFile(emailRequest);
@@ -49,7 +49,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	
 	@Override
 	public void sendRawEmail(SendRawEmailRequest sendRawEmailRequest) {
-		if (StackConfiguration.singleton().isProductionStack() || StackConfiguration.getDeliverEmail()) {
+		if (stackConfiguration.isProductionStack() || stackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendRawEmail(sendRawEmailRequest);
 		} else {
 			writeToFile(sendRawEmailRequest);
@@ -75,18 +75,23 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	}
 	
 	public void writeToFile(SendRawEmailRequest rawEmailRequest) {
-		String to = rawEmailRequest.getDestinations().get(0);
-		writeObjectToFile(new String(rawEmailRequest.getRawMessage().getData().array()), to);
+		try {
+			String to = rawEmailRequest.getDestinations().get(0);
+			writeObjectToFile(new String(rawEmailRequest.getRawMessage().getData().array(), "UTF-8"), to);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public void writeObjectToFile(String emailBody, String to) {
 		String fileName = to+".json";
 		InputStream is;
 		try {
-			is = new StringInputStream(emailBody);
+			byte[] bytes = emailBody.getBytes("UTF-8");
+			is = new ByteArrayInputStream(bytes);
 			ObjectMetadata metadata = new ObjectMetadata();
-			metadata.setContentLength(emailBody.length());
-			s3Client.putObject(StackConfiguration.getS3Bucket(), fileName, is, metadata);
+			metadata.setContentLength(bytes.length);
+			s3Client.putObject(stackConfiguration.getS3Bucket(), fileName, is, metadata);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}

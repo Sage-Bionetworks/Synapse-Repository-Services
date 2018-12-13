@@ -160,8 +160,8 @@ public class IT500SynapseJavaClient {
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
@@ -834,13 +834,6 @@ public class IT500SynapseJavaClient {
 		assertNotNull("Failed to find session token", sessionToken);
 		UserProfile integrationTestUserProfile = userSessionData.getProfile();
 		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
-	}
-
-	@Test
-	public void testRetrieveSynapseTOU() throws Exception {
-		String termsOfUse = synapseOne.getSynapseTermsOfUse();
-		assertNotNull(termsOfUse);
-		assertTrue(termsOfUse.length()>100);
 	}
 
 	/**
@@ -1620,6 +1613,7 @@ public class IT500SynapseJavaClient {
 		EmailValidationUtil.deleteFile(inviterNotification);
 	}
 
+	@Ignore // See PLFM-4131
 	@Test
 	public void testMembershipRequestAndAcceptanceViaNotification() throws Exception {
 		// create a Team

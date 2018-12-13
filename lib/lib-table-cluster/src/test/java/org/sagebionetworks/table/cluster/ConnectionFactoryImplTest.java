@@ -3,7 +3,6 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,8 +22,7 @@ public class ConnectionFactoryImplTest {
 	
 	@Before
 	public void before(){
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
+
 	}
 	
 	@Test

@@ -51,6 +51,10 @@
 		<constructor-arg ref="stackConfiguration.oAuth2ORCIDClientSecret" index="1" />
 	</bean>
 
+	<bean id="tokenGenerator"
+		class="org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton"
+		factory-method="singleton"/>
+
 	<bean id="oAuthManager" class="org.sagebionetworks.repo.manager.oauth.OAuthManagerImpl">
 		<property name="providerMap">
 			<map>
@@ -240,16 +244,12 @@
 
 	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
 
-	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.AmazonClientFactoryImpl"
-		scope="singleton" />
-
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 		
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 	
-	<bean id="amazonSESClient" class="com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient">
-        <constructor-arg ref="awsCredentials" />
-    </bean>
+	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonSimpleEmailServiceClient"/>
     
 	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
 			
@@ -257,7 +257,7 @@
 	
 	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>
 	
-	<bean id="fileProvider" class="org.sagebionetworks.repo.manager.migration.FileProviderImpl" scope="singleton"/>
+	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" scope="singleton"/>
 
 	<bean
 		id="migrationManager"
@@ -302,8 +302,8 @@
 	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 
 		scope="singleton" />
 
-	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
-		scope="singleton" />
+	<bean id="doiManager" class="org.sagebionetworks.repo.manager.doi.DoiManagerImpl"
+		  scope="singleton" />
 
 	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
@@ -420,6 +420,9 @@
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
 		scope="singleton" />
 
+	<bean id="changeMessageToDocumentTranslator"
+		class="org.sagebionetworks.repo.manager.search.ChangeMessageToSearchDocumentTranslator"/>
+
 	<!-- Used to perform search and upload search documents-->
 	<bean id="searchManager"
 		  class="org.sagebionetworks.repo.manager.search.SearchManagerImpl"
@@ -508,8 +511,16 @@
 	<bean id="replicationMessageManager"
 		class="org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerImpl"
 		scope="singleton" init-method="initialize">
-		<property name="replicationQueueName" ref="stackConfiguration.workerQueueName[TableEntityReplicationWorker]" />
-		<property name="reconciliationQueueName" ref="stackConfiguration.workerQueueName[EntityReplicationReconciliationWorker]" />
+		<property name="replicationQueueName" value="#{stackConfiguration.getQueueName('TABLE_ENTITY_REPLICATION')}" />
+		<property name="reconciliationQueueName" value="#{stackConfiguration.getQueueName('ENTITY_REPLICATION_RECONCILIATION')}" />
 	</bean>
+
+	<bean id="bulkDownloadManager"
+		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"
+		scope="singleton" />
+
+	<bean id="objectTypeManager"
+		class="org.sagebionetworks.repo.manager.ObjectTypeManagerImpl"
+		scope="singleton" />
 
 </beans>

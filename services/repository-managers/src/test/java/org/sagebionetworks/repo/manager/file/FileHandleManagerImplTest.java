@@ -45,6 +45,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -92,7 +93,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -111,7 +112,7 @@ public class FileHandleManagerImplTest {
 	@Mock
 	FileHandleDao mockFileHandleDao;
 	@Mock
-	AmazonS3Client mockS3Client;
+	AmazonS3 mockS3Client;
 	@Mock
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
@@ -289,7 +290,7 @@ public class FileHandleManagerImplTest {
 		InputStream stream = new StringInputStream("stream");
 		TransferRequest metadata = FileHandleManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata", stream);
 		assertNotNull(metadata);
-		assertEquals(StackConfiguration.getS3Bucket(), metadata.getS3bucketName());
+		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), metadata.getS3bucketName());
 		assertEquals(Mimetypes.MIMETYPE_OCTET_STREAM, metadata.getContentType());
 		assertNotNull(metadata.getS3key());
 		assertTrue(metadata.getS3key().startsWith("123/"));

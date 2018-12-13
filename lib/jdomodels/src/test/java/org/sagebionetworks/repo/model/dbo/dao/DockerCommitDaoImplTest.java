@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -91,7 +92,7 @@ public class DockerCommitDaoImplTest {
 		
 		assertEquals(1, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));			
 		
-		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(
+		List<DockerCommit> commits = dockerCommitDao.listDockerTags(
 				dockerRepository1.getId(), DockerCommitSortBy.CREATED_ON, 
 				/*ascending*/true, 10, 0);
 		
@@ -110,7 +111,32 @@ public class DockerCommitDaoImplTest {
 		assertFalse(newNodeEtag.equals(otherRepository.getETag()));
 		assertFalse(createdOn.equals(otherRepository.getModifiedOn()));
 	}
-	
+
+	@Test
+	public void createDockerCommitMissingTag() {
+		assertEquals(0, dockerCommitDao.countDockerCommits(dockerRepository1.getId()));
+		
+		Date createdOn = new Date();
+		String digest = "sha256:abcdef0123456789";
+		String tag = null;
+		DockerCommit commit = createCommit(createdOn, tag, digest);
+		String newNodeEtag = dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, commit);
+		assertNotNull(newNodeEtag);
+
+		List<DockerCommit> commits = dockerCommitDao.listCommitsByOwnerAndDigest(
+				dockerRepository1.getId(), digest);
+
+		assertEquals(1, commits.size());
+		assertEquals(commit, commits.get(0));
+
+		// make sure we've affected the node correctly
+		Node retrievedRepo = nodeDao.getNode(dockerRepository1.getId());
+		assertNotEquals(newNodeEtag, dockerRepository1.getETag());
+		assertEquals(newNodeEtag, retrievedRepo.getETag());
+		assertEquals(createdOn, retrievedRepo.getModifiedOn());
+		assertEquals(creatorUserGroupId, retrievedRepo.getModifiedByPrincipalId());
+	}
+
 	@Test
 	public void testListDockerCommitsSortedBy() throws Exception {
 		long now = System.currentTimeMillis();
@@ -130,48 +156,48 @@ public class DockerCommitDaoImplTest {
 		// sort by created_on, ascending
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitA, commitB}),
-				dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 						DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)
 				);
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitZ, commitY}),
-				dockerCommitDao.listDockerCommits(dockerRepository2.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository2.getId(),
 						DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)
 				);
 		
 		// sort by created_on, descending
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitB, commitA}),
-				dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 						DockerCommitSortBy.CREATED_ON, /*ascending*/false, 10, 0)
 				);
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitY, commitZ}),
-				dockerCommitDao.listDockerCommits(dockerRepository2.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository2.getId(),
 						DockerCommitSortBy.CREATED_ON, /*ascending*/false, 10, 0)
 				);
 
 		// sort by tag, ascending
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitA, commitB}),
-				dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0)
 				);
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitY, commitZ}),
-				dockerCommitDao.listDockerCommits(dockerRepository2.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository2.getId(),
 						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0)
 				);
 		
 		// sort by tag, descending
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitB, commitA}),
-				dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 						DockerCommitSortBy.TAG, /*ascending*/false, 10, 0)
 				);
 		assertEquals(
 				Arrays.asList(new DockerCommit[]{commitZ, commitY}),
-				dockerCommitDao.listDockerCommits(dockerRepository2.getId(), 
+				dockerCommitDao.listDockerTags(dockerRepository2.getId(),
 						DockerCommitSortBy.TAG, /*ascending*/false, 10, 0)
 				);
 
@@ -185,7 +211,7 @@ public class DockerCommitDaoImplTest {
 		DockerCommit laterCommit = createCommit(new Date(now+1000L), "a", UUID.randomUUID().toString());
 		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, laterCommit);
 		
-		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+		List<DockerCommit> commits = dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 				DockerCommitSortBy.TAG, /*ascending*/false, 10, 0);
 		assertEquals(Collections.singletonList(laterCommit), commits);
 		
@@ -200,13 +226,13 @@ public class DockerCommitDaoImplTest {
 		DockerCommit commitB = createCommit(new Date(now+1000L), "B", UUID.randomUUID().toString());
 		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, commitB);
 		
-		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+		List<DockerCommit> commits = dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 				DockerCommitSortBy.TAG, /*ascending*/true, 1, 0);
 		assertEquals(Collections.singletonList(commitA), commits);
-		commits = dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+		commits = dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 				DockerCommitSortBy.TAG, /*ascending*/true, 1, 1);
 		assertEquals(Collections.singletonList(commitB), commits);
-		commits = dockerCommitDao.listDockerCommits(dockerRepository1.getId(), 
+		commits = dockerCommitDao.listDockerTags(dockerRepository1.getId(),
 				DockerCommitSortBy.TAG, /*ascending*/true, 10, 3);
 		assertTrue(commits.isEmpty());
 	}
@@ -221,10 +247,6 @@ public class DockerCommitDaoImplTest {
 		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), 101L, createCommit(null, "a", UUID.randomUUID().toString()));
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testCreateDockerCommitsMissingTag() {
-		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), 101L, createCommit(new Date(), null, UUID.randomUUID().toString()));
-	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDockerCommitsMissingDigest() {
@@ -234,12 +256,12 @@ public class DockerCommitDaoImplTest {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testListDockerCommitsMissingEntityId() {
-		dockerCommitDao.listDockerCommits(null, DockerCommitSortBy.TAG, /*ascending*/true, 1, 0);
+		dockerCommitDao.listDockerTags(null, DockerCommitSortBy.TAG, /*ascending*/true, 1, 0);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testListDockerCommitsMissingSortyBy() {
-		dockerCommitDao.listDockerCommits(dockerRepository1.getId(), null, /*ascending*/true, 1, 0);
+		dockerCommitDao.listDockerTags(dockerRepository1.getId(), null, /*ascending*/true, 1, 0);
 	}
 
 	@Test(expected=IllegalArgumentException.class)

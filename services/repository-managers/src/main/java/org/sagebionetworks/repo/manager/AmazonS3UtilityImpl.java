@@ -12,11 +12,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
@@ -33,25 +33,14 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	
 	static private Log log = LogFactory.getLog(AmazonS3UtilityImpl.class);
 
-	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
+	private static final String S3_BUCKET = StackConfigurationSingleton.singleton().getS3Bucket();
 	
-	/**
-	 * Create a new AWS client using the configuration credentials.
-	 * @return
-	 */
-	private AmazonS3Client createNewAWSClient() {
-		String iamId = StackConfiguration.getIAMUserId();
-		String iamKey = StackConfiguration.getIAMUserKey();
-		if (iamId == null) throw new IllegalArgumentException("IAM id cannot be null");
-		if (iamKey == null)	throw new IllegalArgumentException("IAM key cannot be null");
-		AWSCredentials creds = new BasicAWSCredentials(iamId, iamKey);
-		AmazonS3Client client = new AmazonS3Client(creds);
-		return client;
-	}
+	@Autowired
+	AmazonS3 client;
+
 
 	@Override
 	public File downloadFromS3(String key) throws DatastoreException {
-		AmazonS3Client client = createNewAWSClient();
 		log.info("Attempting to download: "+key+" from "+S3_BUCKET);
 		GetObjectRequest getObjectRequest = new GetObjectRequest(S3_BUCKET, key);
 		File temp;
@@ -80,7 +69,6 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	@Override
 	public void uploadInputStreamToS3File(String key, InputStream is, String charSet) {
 		if (charSet==null) throw new IllegalArgumentException("charSet required.");
-		AmazonS3Client client = createNewAWSClient();
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentType("text/plain);charset="+charSet);
 		try {
@@ -97,7 +85,6 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	
 	@Override
 	public String downloadFromS3ToString(String key) {
-		AmazonS3Client client = createNewAWSClient();
 		S3Object s3Object = client.getObject(S3_BUCKET, key);
 		ObjectMetadata metadata = s3Object.getObjectMetadata();
 		String contentTypeString = metadata.getContentType();
@@ -129,7 +116,6 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	@Override
 	public boolean uploadToS3(File toUpload, String key) {
 		log.info("Attempting to upload: "+key+" to "+S3_BUCKET);
-		AmazonS3Client client = createNewAWSClient();
 		PutObjectResult results = client.putObject(S3_BUCKET, key, toUpload);
 		log.info(results);
 		return results.getETag() != null;
@@ -137,7 +123,6 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 
 	@Override
 	public boolean doesExist(String key) {
-		AmazonS3Client client = createNewAWSClient();
 		try{
 			ObjectMetadata metadata = client.getObjectMetadata(S3_BUCKET, key);
 			if(metadata == null) return false;
@@ -149,7 +134,6 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 
 	@Override
 	public boolean deleteFromS3(String key) {
-		AmazonS3Client client = createNewAWSClient();
 		try{
 			log.info("Deleting: "+key+" from "+S3_BUCKET);
 			client.deleteObject(S3_BUCKET, key);

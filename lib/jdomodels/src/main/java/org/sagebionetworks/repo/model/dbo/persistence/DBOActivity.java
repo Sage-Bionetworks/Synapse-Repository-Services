@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -230,28 +231,13 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	}
 
 	@Override
-	public String getParentIdString() {
-		return null;
-	}
-
-	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.ACTIVITY;
 	}
 
 	@Override
 	public MigratableTableTranslation<DBOActivity, DBOActivity> getTranslator() {
-		return new MigratableTableTranslation<DBOActivity, DBOActivity>(){
-
-			@Override
-			public DBOActivity createDatabaseObjectFromBackup(DBOActivity backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOActivity createBackupFromDatabaseObject(DBOActivity dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOActivity>();
 	}
 
 	@Override

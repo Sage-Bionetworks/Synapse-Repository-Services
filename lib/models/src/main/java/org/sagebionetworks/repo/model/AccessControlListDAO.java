@@ -111,7 +111,7 @@ public interface AccessControlListDAO  {
 			ObjectType entity, ACCESS_TYPE read);
 
 	/**
-	 * Retrieve all user groups that has ACCESS_TYPE accessType to the given object
+	 * Retrieve all user groups that have ACCESS_TYPE accessType to the given object
 	 * 
 	 * @param objectId
 	 * @param objectType

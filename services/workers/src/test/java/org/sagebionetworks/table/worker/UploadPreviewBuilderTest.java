@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -366,6 +367,30 @@ public class UploadPreviewBuilderTest {
 		// call under test
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
+	}
+	
+	@Test
+	public void testPLFM_5106_tooManyColumns() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This CSV has ROW_ID and ROW_VERSION
+		input.add(new String[] {"a","b","c"});
+		input.add(new String[] { "1", "2", "3"});
+		input.add(new String[] { "4", "5", "6", "7"});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		try {
+			builder.buildResult();
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals("Row number 3 has 4 column(s).  Expected each row to have 3 columns or less.", e.getMessage());
+		}
 	}
 	
 	@Test

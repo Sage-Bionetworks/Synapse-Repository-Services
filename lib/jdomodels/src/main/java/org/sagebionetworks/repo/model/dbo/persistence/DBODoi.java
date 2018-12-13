@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_UPDATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_DOI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
@@ -21,11 +22,14 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
+
+	public static final long NULL_OBJECT_VERSION = -1L;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true).withIsBackupId(true),
@@ -36,6 +40,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			new FieldColumn("objectVersion", COL_DOI_OBJECT_VERSION),
 			new FieldColumn("createdBy", COL_DOI_CREATED_BY),
 			new FieldColumn("createdOn", COL_DOI_CREATED_ON),
+			new FieldColumn("updatedBy", COL_DOI_UPDATED_BY),
 			new FieldColumn("updatedOn", COL_DOI_UPDATED_ON)
 	};
 
@@ -50,14 +55,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
 					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
-					// Object version is nullable
-					// We can't just use rs.getLong() which returns a primitive long
-					Object obj = rs.getObject(COL_DOI_OBJECT_VERSION);
-					if (obj != null) {
-						dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
-					}
+					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
+					dbo.setUpdatedBy(rs.getLong(COL_DOI_UPDATED_BY));
 					dbo.setUpdatedOn(rs.getTimestamp(COL_DOI_UPDATED_ON));
 					return dbo;
 				}
@@ -132,6 +133,12 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public void setCreatedOn(Timestamp createdOn) {
 		this.createdOn = createdOn;
 	}
+	public Long getUpdatedBy() {
+		return updatedBy;
+	}
+	public void setUpdatedBy(Long updatedBy) {
+		this.updatedBy = updatedBy;
+	}
 	public Timestamp getUpdatedOn() {
 		return updatedOn;
 	}
@@ -145,7 +152,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 				+ doiStatus + ", objectId=" + objectId + ", objectType="
 				+ doiObjectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", updatedOn=" + updatedOn + "]";
+				+ ", updatedBy=" + updatedBy + ", updatedOn=" + updatedOn +"]";
 	}
 
 	private Long id;
@@ -156,6 +163,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
+	private Long updatedBy;
 	private Timestamp updatedOn;
 
 	@Override
@@ -165,17 +173,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new MigratableTableTranslation<DBODoi, DBODoi>(){
-
-			@Override
-			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override

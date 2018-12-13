@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -85,11 +86,6 @@ public class DBOFavorite implements MigratableDatabaseObject<DBOFavorite, DBOFav
 	@Override
 	public String getIdString() {
 		return principalId +"-"+ nodeId;
-	}
-
-	@Override
-	public String getParentIdString() {
-		return null;
 	}
 
 	@Override
@@ -203,17 +199,7 @@ public class DBOFavorite implements MigratableDatabaseObject<DBOFavorite, DBOFav
 
 	@Override
 	public MigratableTableTranslation<DBOFavorite, DBOFavorite> getTranslator() {
-		return new  MigratableTableTranslation<DBOFavorite, DBOFavorite>(){
-
-			@Override
-			public DBOFavorite createDatabaseObjectFromBackup(DBOFavorite backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOFavorite createBackupFromDatabaseObject(DBOFavorite dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOFavorite>();
 	}
 
 

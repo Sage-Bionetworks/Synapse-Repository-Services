@@ -7,11 +7,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -27,7 +29,7 @@ public class NodeUtils {
 	
 	private static final String COLUMN_ID_DELIMITER = ",";
 	
-	public static final String ROOT_ENTITY_ID = StackConfiguration.singleton().getRootFolderEntityId();
+	public static final String ROOT_ENTITY_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 
 	/**
 	 * Used to update an existing object
@@ -56,7 +58,12 @@ public class NodeUtils {
 		rev.setModifiedBy(dto.getModifiedByPrincipalId());
 		if (dto.getModifiedOn()==null) throw new InvalidModelException("modifiedOn may not be null");
 		rev.setModifiedOn(dto.getModifiedOn().getTime());
+		
+		if (dto.getVersionComment()!=null && dto.getVersionComment().length()>DBORevision.MAX_COMMENT_LENGTH) 
+			throw new IllegalArgumentException("Version comment length exceeds "+DBORevision.MAX_COMMENT_LENGTH+".");
+		
 		rev.setComment(dto.getVersionComment());
+		
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());
 		} 	
@@ -78,11 +85,48 @@ public class NodeUtils {
 		if(dto.getScopeIds() != null){
 			rev.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		}
-		try {
-			rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
+		rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
+	}
+	
+	/**
+	 * Translate a Node to DBONode.
+	 * @param dto
+	 * @return
+	 */
+	public static DBONode translateNodeToDBONode(Node dto) {
+		DBONode dbo = new DBONode();
+		dbo.setName(dto.getName());
+		dbo.setAlias(translateAlias(dto.getAlias()));
+		dbo.setCreatedBy(dto.getCreatedByPrincipalId());
+		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		dbo.setCurrentRevNumber(dto.getVersionNumber());
+		dbo.setId(translateNodeId(dto.getId()));
+		dbo.setParentId(translateNodeId(dto.getParentId()));
+		dbo.setType(dto.getNodeType().name());
+		dbo.seteTag(dto.getETag());
+		return dbo;
+	}
+	
+	/**
+	 * Translate a Node to DBORevision.
+	 * @param dto
+	 * @return
+	 */
+	public static DBORevision transalteNodeToDBORevision(Node dto) {
+		DBORevision dbo = new DBORevision();
+		dbo.setOwner(translateNodeId(dto.getId()));
+		dbo.setRevisionNumber(translateVersionNumber(dto.getVersionNumber()));
+		dbo.setActivityId(translateActivityId(dto.getActivityId()));
+		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
+		dbo.setComment(translateVersionComment(dto.getVersionComment()));
+		dbo.setFileHandleId(translateFileHandleId(dto.getFileHandleId()));
+		dbo.setLabel(translateVersionLabel(dto.getVersionLabel()));
+		dbo.setModifiedBy(dto.getModifiedByPrincipalId());
+		dbo.setModifiedOn(dto.getModifiedOn().getTime());
+		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
+		dbo.setScopeIds(createByteForIdList(dto.getScopeIds()));
+		dbo.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
+		return dbo;
 	}
 	
 	/**
@@ -91,7 +135,9 @@ public class NodeUtils {
 	 * @return
 	 */
 	public static byte[] createByteForIdList(List<String> idList) {
-		if(idList == null) throw new IllegalArgumentException("idList cannot be null");
+		if(idList == null) {
+			return null;
+		}
 		StringBuilder builder = new StringBuilder();
 		int count = 0;
 		for(String id: idList){
@@ -248,4 +294,96 @@ public class NodeUtils {
 		return KeyFactory.equals(ROOT_ENTITY_ID, entityId);
 	}
 	
+
+	/**
+	 * Translate the provided alias.
+	 * @param alias
+	 * @return
+	 */
+	public static String translateAlias(String alias) {
+		if(StringUtils.isEmpty(alias)) {
+			return null;
+		}
+		return alias;
+	}
+	
+	/**
+	 * Translate a string activity ID to a long.
+	 * @param activityId
+	 * @return
+	 */
+	public static Long translateActivityId(String activityId) {
+		if(activityId == null) {
+			return null;
+		}
+		if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)){
+			return null;
+		}
+		return Long.parseLong(activityId);
+	}
+	
+	/**
+	 * Translate a node ID to a long.
+	 * 
+	 * @param nodeId
+	 * @return
+	 */
+	public static Long translateNodeId(String nodeId) {
+		if(nodeId == null) {
+			return null;
+		}
+		return KeyFactory.stringToKey(nodeId);
+	}
+	
+	/**
+	 * Translate a string file handle ID to a long.
+	 * @param fileId
+	 * @return
+	 */
+	public static Long translateFileHandleId(String fileId) {
+		if(fileId == null) {
+			return null;
+		}
+		return Long.parseLong(fileId);
+	}
+	
+	/**
+	 * Translate the version comment with size check.
+	 * 
+	 * @param comment
+	 * @return
+	 */
+	public static String translateVersionComment(String comment) {
+		if(comment == null) {
+			return null;
+		}
+		if (comment.length() > DBORevision.MAX_COMMENT_LENGTH) {
+			throw new IllegalArgumentException("Version comment length exceeds "+DBORevision.MAX_COMMENT_LENGTH+".");
+		}
+		return comment;
+	}
+	
+	/**
+	 * Translate the provide version label
+	 * @param label
+	 * @return
+	 */
+	public static String translateVersionLabel(String label) {
+		if(label == null) {
+			return NodeConstants.DEFAULT_VERSION_LABEL;
+		}
+		return label;
+	}
+	
+	/**
+	 * Translate the given version number.
+	 * @param versionNumber
+	 * @return
+	 */
+	public static Long translateVersionNumber(Long versionNumber) {
+		if(versionNumber == null || versionNumber < 1) {
+			return NodeConstants.DEFAULT_VERSION_NUMBER;
+		}
+		return versionNumber;
+	}
 }

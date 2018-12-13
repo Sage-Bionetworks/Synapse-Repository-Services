@@ -38,6 +38,8 @@ import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -109,10 +111,14 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
-import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -122,6 +128,10 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -140,6 +150,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -164,6 +175,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -735,8 +747,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
-	
-	public String getSynapseTermsOfUse() throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -1014,14 +1024,15 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException;
 
-	public void createEntityDoi(String entityId) throws SynapseException;
+	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public void createEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException;
+	public Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public Doi getEntityDoi(String entityId) throws SynapseException;
+	public String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException;
 
-	public Doi getEntityDoi(String s, Long entityVersion) throws SynapseException;
+	public DoiResponse createOrUpdateDoiAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+
+	public String getPortalUrl(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
 
@@ -1328,6 +1339,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	List<ColumnModel> getDefaultColumnsForView(ViewType viewType) throws SynapseException;
+	
+	/**
+	 * Get the default columns for a given view type mask.
+	 * 
+	 * @param viewTypeMask
+	 *            Bit mask representing the types to include in the view. The
+	 *            following are the possible types (type=<mask_hex>): File=0x01,
+	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20.
+
+	 * @return
+	 * @throws SynapseException
+	 */
+	List<ColumnModel> getDefaultColumnsForView(Long viewTypeMask) throws SynapseException;
 	
 	// Team services
 	
@@ -1753,6 +1777,28 @@ public interface SynapseClient extends BaseClient {
 	 */
 	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
 			throws SynapseException;
+	
+
+	/**
+	 * 
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and a session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException;
 	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
@@ -2565,7 +2611,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	SubscriptionPagedResults getAllSubscriptions(SubscriptionObjectType objectType, Long limit, Long offset) throws SynapseException;
+	SubscriptionPagedResults getAllSubscriptions(SubscriptionObjectType objectType, Long limit, Long offset, SortByType sortByType, org.sagebionetworks.repo.model.subscription.SortDirection sortDirection) throws SynapseException;
 
 	/**
 	 * List all subscriptions one has based on a list of topic
@@ -2690,19 +2736,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void addDockerCommit(String entityId, DockerCommit dockerCommit) throws SynapseException;
-	
+
 	/**
-	 * Return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 * Return a paginated list of tagged commits (tag/digest pairs) for the given Docker repository.
 	 *
 	 * @param entityId the ID of the Docker repository entity
 	 * @param limit pagination parameter, optional (default is 20)
 	 * @param offset pagination parameter, optional (default is 0)
 	 * @param sortBy TAG or CREATED_ON, optional (default is CREATED_ON)
 	 * @param ascending, optional (default is false)
-	 * @return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 * @return a paginated list of tagged commits (tag/digest pairs) for the given Docker repository.
 	 * @throws SynapseException
 	 */
-	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
+	PaginatedResults<DockerCommit> listDockerTags(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
 
 	/**
 	 * Get threads that reference the given entity
@@ -2952,4 +2998,110 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken) throws SynapseException;
+	
+	/**
+	 * Start an asynchronous job to add files to a user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startAddFilesToDownloadList(AddFileToDownloadListRequest request)
+			throws SynapseException;
+
+
+	/**
+	 * Get the results of the asynchronous job to add files to a user's download list.
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	AddFileToDownloadListResponse getAddFilesToDownloadListResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Add the given list of files to the user's download list.
+	 * 
+	 * @param toAdd
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList addFilesToDownloadList(List<FileHandleAssociation> toAdd) throws SynapseException;
+	
+	/**
+	 * Remove the given list of files from the user's download list.
+	 * 
+	 * @param toRemove
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList removeFilesFromDownloadList(List<FileHandleAssociation> toRemove) throws SynapseException;
+	
+	/**
+	 * Clear the user's download list.
+	 * 
+	 * @return
+	 * @throws SynapseException 
+	 */
+	void clearDownloadList() throws SynapseException;
+	
+	/**
+	 * Get a user's download list.
+	 * 
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList getDownloadList() throws SynapseException;
+	
+	/**
+	 * Create a download Order from the user's current download list. Only files that
+	 * the user has permission to download will be added to the download order. Any
+	 * file that cannot be added to the order will remain in the user's download
+	 * list.
+	 * <p>
+	 * The resulting download order can then be downloaded using
+	 * {@link #startBulkFileDownload(BulkFileDownloadRequest)}.
+	 * </p>
+	 * 
+	 * <p>
+	 * Note: A single download order is limited to 1 GB of uncompressed file data.
+	 * This method will attempt to create the largest possible order that is within
+	 * the limit. Any file that cannot be added to the order will remain in the
+	 * user's download list.
+	 * </p>
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrder createDownloadOrderFromUsersDownloadList(String zipFileName) throws SynapseException;
+	
+	/**
+	 * Get a download order given the order's ID
+	 * @param orderId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrder getDownloadOrder(String orderId) throws SynapseException;
+	
+	/**
+	 * Get the download order history for a user in reverse chronological order.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException;
+	
+	/**
+	 * Change the {@link DataType} of the given Entity.
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team' to change
+	 * an Entity's data type to OPEN_DATA.  The caller must be grated the UPDATE permission
+	 * to change an Entity's data type to any value other than  OPEN_DATA.
+	 * @param entityId
+	 * @param newDataType
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
+
 }

@@ -104,19 +104,34 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return results;
 	}
 
-	private void validateColumnModel(ColumnModel columnModel) {
-		checkColumnNaming(columnModel);
+	/**
+	 * Validate the column model.
+	 * 
+	 * @param columnModel
+	 */
+	static void validateColumnModel(ColumnModel columnModel) {
+		ValidateArgument.required(columnModel, "ColumnModel");
+		checkColumnNaming(columnModel.getName());
 		validateFacetType(columnModel);
 	}
 	
-	private void checkColumnNaming(ColumnModel columnModel) {
+	/**
+	 * Validate the column name.
+	 * 
+	 * @param columnModel
+	 */
+	static void checkColumnNaming(String name) {
+		ValidateArgument.required(name, "name");
+		if(name.length() > TableConstants.MAX_COLUMN_NAME_SIZE_CHARS) {
+			throw new IllegalArgumentException("Column name must be: "+TableConstants.MAX_COLUMN_NAME_SIZE_CHARS+" characters or less.");
+		}
 		// Validate the name
-		if (TableConstants.isReservedColumnName(columnModel.getName())) {
-			throw new IllegalArgumentException("The column name: " + columnModel.getName() + " is a system reserved column name.");
+		if (TableConstants.isReservedColumnName(name)) {
+			throw new IllegalArgumentException("The column name: " + name + " is a system reserved column name.");
 		}
 	}
 	
-	void validateFacetType(ColumnModel columnModel){
+	static void validateFacetType(ColumnModel columnModel){
 		//validate the facetType agains its d
 		FacetType facetType = columnModel.getFacetType();
 		ColumnType columnType = columnModel.getColumnType();
@@ -155,23 +170,50 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return columnModelDao.getColumnModel(columnId);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.ColumnModelManager#getColumnModels(java.util.List)
+	 */
 	@Override
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder)
+	public List<ColumnModel> getAndValidateColumnModels(List<String> ids)
 			throws DatastoreException, NotFoundException {
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		if(ids == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
-		return columnModelDao.getColumnModel(ids, keepOrder);
+		ValidateArgument.required(ids, "ColumnModel IDs");
+		List<ColumnModel> fromDb =  columnModelDao.getColumnModel(ids);
+		Map<String, ColumnModel> resultMap = TableModelUtils.createIdToColumnModelMap(fromDb);
+		// column IDs must be unique.
+		Set<String> visitedIds = new HashSet<>(fromDb.size());
+		// column names must be unique.
+		Set<String> visitedNames = new HashSet<>(fromDb.size());
+		List<ColumnModel> results = new LinkedList<>();
+		for(String id: ids) {
+			ColumnModel cm = resultMap.get(id);
+			if (cm == null) {
+				throw new NotFoundException("Column does not exist for id: " + id);
+			}
+			if (!visitedIds.add(id)) {
+				throw new IllegalArgumentException("Duplicate column: '" + cm.getName() + "'");
+			}
+			if (!visitedNames.add(cm.getName())) {
+				throw new IllegalArgumentException("Duplicate column name: '" + cm.getName() + "'");
+			}
+			results.add(cm);
+		}
+		return results;
 	}
 	
 	@WriteTransaction
 	@Override
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		// Get the columns and validate the size
-		validateSchemaSize(columnIds);
-		// pass it along to the DAO.
-		long count = columnModelDao.bindColumnToObject(columnIds, objectId);
-		return count > 0;
+	public List<ColumnModel> bindColumnToObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
+		if(columnIds == null || columnIds.isEmpty()) {
+			// remove all bound columns from this object
+			columnModelDao.unbindAllColumnsFromObject(objectId);
+			return new LinkedList<>();
+		}else {
+			// Get the columns and validate the size
+			List<ColumnModel> schema = validateSchemaSize(columnIds);
+			columnModelDao.bindColumnToObject(schema, objectId);
+			return schema;
+		}
 	}
 	
 	/**
@@ -190,8 +232,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 							+ " columns per table");
 		}
 		// fetch the columns
-		List<ColumnModel> schema = columnModelDao.getColumnModel(columnIds,
-				false);
+		List<ColumnModel> schema = getAndValidateColumnModels(columnIds);
 		// Calculate the max row size for this schema.
 		int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
 		if (shemaSize > MY_SQL_MAX_BYTES_PER_ROW) {
@@ -372,13 +413,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		boolean keepOrder = false;
-		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds, keepOrder);
-		// map the result
-		Map<String, ColumnModel> map = new HashMap<String, ColumnModel>(models.size());
-		for(ColumnModel cm: models){
-			map.put(cm.getId(), cm);
-		}
+		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds);
+		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();
 		for(ColumnChange change: changes){
@@ -398,6 +434,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@Override
 	public List<String> getColumnIdForTable(String id) {
 		return columnModelDao.getColumnIdsForObject(id);
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModelsForObject(String tableId) {
+		return columnModelDao.getColumnModelsForObject(tableId);
 	}
 	
 }

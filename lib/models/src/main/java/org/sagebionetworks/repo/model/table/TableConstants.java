@@ -40,6 +40,8 @@ public class TableConstants {
 	 */
 	public static final Long ROW_VERSION_ID = -2L;
 	public static final Long ROW_ETAG_ID = -3L;
+	
+	public static final int MAX_COLUMN_NAME_SIZE_CHARS = 256;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and
@@ -90,20 +92,21 @@ public class TableConstants {
 	}
 
 	// ENTITY_REPLICATION
-	public static final String ENTITY_REPLICATION_TABLE 			= "ENTITY_REPLICATION";
-	public static final String ENTITY_REPLICATION_COL_ID			= "ID";
-	public static final String ENTITY_REPLICATION_COL_VERSION		= "CURRENT_VERSION";
-	public static final String ENTITY_REPLICATION_COL_CRATED_BY		= "CREATED_BY";
-	public static final String ENTITY_REPLICATION_COL_CRATED_ON		= "CREATED_ON";
-	public static final String ENTITY_REPLICATION_COL_ETAG			= "ETAG";
-	public static final String ENTITY_REPLICATION_COL_NAME			= "NAME";
-	public static final String ENTITY_REPLICATION_COL_TYPE			= "TYPE";
-	public static final String ENTITY_REPLICATION_COL_PARENT_ID		= "PARENT_ID";
-	public static final String ENTITY_REPLICATION_COL_BENEFACTOR_ID	= "BENEFACTOR_ID";
-	public static final String ENTITY_REPLICATION_COL_PROJECT_ID	= "PROJECT_ID";
-	public static final String ENTITY_REPLICATION_COL_MODIFIED_BY	= "MODIFIED_BY";
-	public static final String ENTITY_REPLICATION_COL_MODIFIED_ON	= "MODIFIED_ON";
-	public static final String ENTITY_REPLICATION_COL_FILE_ID		= "FILE_ID";
+	public static final String ENTITY_REPLICATION_TABLE 				= "ENTITY_REPLICATION";
+	public static final String ENTITY_REPLICATION_COL_ID				= "ID";
+	public static final String ENTITY_REPLICATION_COL_VERSION			= "CURRENT_VERSION";
+	public static final String ENTITY_REPLICATION_COL_CRATED_BY			= "CREATED_BY";
+	public static final String ENTITY_REPLICATION_COL_CRATED_ON			= "CREATED_ON";
+	public static final String ENTITY_REPLICATION_COL_ETAG				= "ETAG";
+	public static final String ENTITY_REPLICATION_COL_NAME				= "NAME";
+	public static final String ENTITY_REPLICATION_COL_TYPE				= "TYPE";
+	public static final String ENTITY_REPLICATION_COL_PARENT_ID			= "PARENT_ID";
+	public static final String ENTITY_REPLICATION_COL_BENEFACTOR_ID		= "BENEFACTOR_ID";
+	public static final String ENTITY_REPLICATION_COL_PROJECT_ID		= "PROJECT_ID";
+	public static final String ENTITY_REPLICATION_COL_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String ENTITY_REPLICATION_COL_MODIFIED_ON		= "MODIFIED_ON";
+	public static final String ENTITY_REPLICATION_COL_FILE_ID			= "FILE_ID";
+	public static final String ENTITY_REPLICATION_COL_FILE_SIZE_BYTES	= "FILE_SIZE_BYTES";
 	
 	// REPLICATION_SYNC_EXPIRATION
 	public static final String REPLICATION_SYNC_EXPIRATION_TABLE	= "REPLICATION_SYNC_EXPIRATION";
@@ -148,6 +151,7 @@ public class TableConstants {
 			+ ENTITY_REPLICATION_COL_MODIFIED_BY +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_MODIFIED_ON +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_FILE_ID +" bigint(20) DEFAULT NULL,"
+			+ ENTITY_REPLICATION_COL_FILE_SIZE_BYTES +" bigint(20) DEFAULT NULL,"
 			+ "PRIMARY KEY("+ENTITY_REPLICATION_COL_ID+")"
 			+ ", INDEX ("+ENTITY_REPLICATION_COL_VERSION+")"
 			+ ", INDEX ("+ENTITY_REPLICATION_COL_CRATED_BY+")"
@@ -176,8 +180,9 @@ public class TableConstants {
 			+ ENTITY_REPLICATION_COL_PROJECT_ID+","
 			+ ENTITY_REPLICATION_COL_MODIFIED_BY+","
 			+ ENTITY_REPLICATION_COL_MODIFIED_ON+","
-			+ ENTITY_REPLICATION_COL_FILE_ID
-			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			+ ENTITY_REPLICATION_COL_FILE_ID+","
+			+ ENTITY_REPLICATION_COL_FILE_SIZE_BYTES
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	
 	public final static String ENTITY_REPLICATION_GET = "SELECT * FROM "+TableConstants.ENTITY_REPLICATION_TABLE+" WHERE "+TableConstants.ENTITY_REPLICATION_COL_ID+" = ?";
 	
@@ -267,8 +272,8 @@ public class TableConstants {
 	public static final String P_LIMIT = "pLimit";
 	
 	public static final String SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE = "SELECT A."
-			+ ANNOTATION_REPLICATION_COL_KEY + ", A."
-			+ ANNOTATION_REPLICATION_COL_TYPE + ", MAX(LENGTH(A."
+			+ ANNOTATION_REPLICATION_COL_KEY + ", GROUP_CONCAT(DISTINCT A."
+			+ ANNOTATION_REPLICATION_COL_TYPE + "), MAX(LENGTH(A."
 			+ ANNOTATION_REPLICATION_COL_STRING_VALUE + "))" + " FROM "
 			+ ENTITY_REPLICATION_TABLE + " AS E" + " INNER JOIN "
 			+ ANNOTATION_REPLICATION_TABLE + " AS A" + " ON E."
@@ -276,8 +281,7 @@ public class TableConstants {
 			+ ANNOTATION_REPLICATION_COL_ENTITY_ID + " WHERE E."
 			+ "%1$s IN (:"
 			+ PARENT_ID_PARAMETER_NAME + ") GROUP BY A."
-			+ ANNOTATION_REPLICATION_COL_KEY + ", A."
-			+ ANNOTATION_REPLICATION_COL_TYPE + " LIMIT :" + P_LIMIT
+			+ ANNOTATION_REPLICATION_COL_KEY + " LIMIT :" + P_LIMIT
 			+ " OFFSET :" + P_OFFSET;
 	
 	public static final String CRC_ALIAS = "CRC";

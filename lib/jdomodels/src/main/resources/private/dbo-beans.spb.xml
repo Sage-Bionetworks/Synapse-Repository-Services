@@ -118,6 +118,11 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
+				
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -201,6 +206,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

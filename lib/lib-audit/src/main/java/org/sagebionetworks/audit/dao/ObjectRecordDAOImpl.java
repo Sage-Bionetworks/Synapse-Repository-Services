@@ -11,6 +11,7 @@ import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 
 public class ObjectRecordDAOImpl implements ObjectRecordDAO {
@@ -18,7 +19,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	private final static String[] HEADERS = new String[] { "timestamp", "jsonClassName", "jsonString" };
 
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 
 	/**
 	 * Injected via Spring

@@ -47,6 +47,6 @@ public interface DockerManager {
 	 * @returnall the commits for a given Docker repository, choosing just
 	 * the *latest* commit for each tag.
 	 */
-	PaginatedResults<DockerCommit> listDockerCommits(UserInfo userInfo, String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset);
+	PaginatedResults<DockerCommit> listDockerTags(UserInfo userInfo, String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset);
 
 }

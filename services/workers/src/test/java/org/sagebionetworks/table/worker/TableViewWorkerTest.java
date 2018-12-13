@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -97,8 +97,8 @@ public class TableViewWorkerTest {
 	
 		when(tableManagerSupport.startTableProcessing(tableId)).thenReturn(token);
 		when(tableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
-		when(tableManagerSupport.getAllContainerIdsForViewScope(tableId, ViewType.file)).thenReturn(viewScope);
-		when(tableManagerSupport.getViewType(tableId)).thenReturn(ViewType.file);
+		when(tableManagerSupport.getAllContainerIdsForViewScope(tableId, ViewTypeMask.File.getMask())).thenReturn(viewScope);
+		when(tableManagerSupport.getViewTypeMask(tableId)).thenReturn(ViewTypeMask.File.getMask());
 
 		when(connectionFactory.connectToTableIndex(tableId)).thenReturn(
 				indexManager);
@@ -139,7 +139,9 @@ public class TableViewWorkerTest {
 			cm.setId(""+i);
 		}
 		
-		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(schema);
+		List<String> columnIds = TableModelUtils.getIds(schema);
+		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
+		when(tableManagerSupport.getSchemaMD5Hex(tableId)).thenReturn(schemaMD5Hex);
 		
 		rowCount = 1;
 		rows = new LinkedList<Row>();
@@ -151,7 +153,7 @@ public class TableViewWorkerTest {
 		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(schema);
 		when(tableViewManager.getViewSchema(tableId)).thenReturn(expandedSchema);
 		viewCRC = 888L;		
-		when(indexManager.populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema)).thenReturn(viewCRC);
+		when(indexManager.populateViewFromEntityReplication(tableId, innerCallback, ViewTypeMask.File.getMask(), viewScope,expandedSchema)).thenReturn(viewCRC);
 	}
 
 	@Test
@@ -236,7 +238,7 @@ public class TableViewWorkerTest {
 		verify(indexManager).setIndexSchema(tableId, isTableView, innerCallback,expandedSchema);
 		verify(tableViewManager).getViewSchema(tableId);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
-		verify(indexManager, times(1)).populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema);
+		verify(indexManager, times(1)).populateViewFromEntityReplication(tableId, innerCallback, ViewTypeMask.File.getMask(), viewScope,expandedSchema);
 		verify(indexManager).setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
 		verify(indexManager).optimizeTableIndices(tableId);
@@ -250,7 +252,7 @@ public class TableViewWorkerTest {
 	@Test
 	public void testCreateOrUpdateIndexHoldingLockException() throws RecoverableMessageException{
 		IllegalArgumentException exception = new IllegalArgumentException("failure");
-		when(indexManager.populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema)).thenThrow(exception);
+		when(indexManager.populateViewFromEntityReplication(tableId, innerCallback, ViewTypeMask.File.getMask(), viewScope,expandedSchema)).thenThrow(exception);
 		
 		try {
 			// call under test

@@ -7,8 +7,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.junit.After;
@@ -158,73 +160,6 @@ public class MigratableTableDAOImplAutowireTest {
 		assertTrue(result);
 		assertEquals(new Long(2), jdbcTemplate.queryForObject("SELECT COUNT(*) FROM KEY_TEST", Long.class));
 		jdbcTemplate.execute("DROP TABLE `KEY_TEST`");
-	}
-	
-
-	/**
-	 * This test exists to ensure only Primary types are listed.  This test will break each type a new 
-	 * primary type is added, but that ensures we check that the types are truly primary.
-	 * Migration will break if secondary types are added to this list.
-	 */
-	@Test
-	public void testGetPrimaryMigrationTypes(){
-		// Only primary migration types should be returned.
-		List<MigrationType> expectedPrimaryTypes = new LinkedList<MigrationType>();
-		expectedPrimaryTypes.add(MigrationType.PRINCIPAL);
-		expectedPrimaryTypes.add(MigrationType.PRINCIPAL_ALIAS);
-		expectedPrimaryTypes.add(MigrationType.NOTIFICATION_EMAIL);
-		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
-		expectedPrimaryTypes.add(MigrationType.STORAGE_LOCATION);
-		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
-		expectedPrimaryTypes.add(MigrationType.MULTIPART_UPLOAD);
-		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);
-		expectedPrimaryTypes.add(MigrationType.V2_WIKI_PAGE);
-		expectedPrimaryTypes.add(MigrationType.V2_WIKI_OWNERS);
-		expectedPrimaryTypes.add(MigrationType.ACTIVITY);
-		expectedPrimaryTypes.add(MigrationType.NODE);
-		expectedPrimaryTypes.add(MigrationType.DOCKER_REPOSITORY_NAME);
-		expectedPrimaryTypes.add(MigrationType.DOCKER_COMMIT);
-		expectedPrimaryTypes.add(MigrationType.TEAM);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
-		expectedPrimaryTypes.add(MigrationType.EVALUATION);
-		expectedPrimaryTypes.add(MigrationType.EVALUATION_SUBMISSIONS);
-		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
-		expectedPrimaryTypes.add(MigrationType.SUBMISSION_CONTRIBUTOR);
-		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
-		expectedPrimaryTypes.add(MigrationType.PROJECT_SETTINGS);
-		expectedPrimaryTypes.add(MigrationType.PROJECT_STATS);
-		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
-		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
-		expectedPrimaryTypes.add(MigrationType.ACL);
-		expectedPrimaryTypes.add(MigrationType.FAVORITE);
-		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
-		expectedPrimaryTypes.add(MigrationType.DOI);
-		expectedPrimaryTypes.add(MigrationType.CHALLENGE);
-		expectedPrimaryTypes.add(MigrationType.CHALLENGE_TEAM);
-		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
-		expectedPrimaryTypes.add(MigrationType.BOUND_COLUMN_OWNER);
-		expectedPrimaryTypes.add(MigrationType.TABLE_SEQUENCE);
-		expectedPrimaryTypes.add(MigrationType.QUIZ_RESPONSE);
-		expectedPrimaryTypes.add(MigrationType.VERIFICATION_SUBMISSION);
-		expectedPrimaryTypes.add(MigrationType.VERIFICATION_STATE);
-		expectedPrimaryTypes.add(MigrationType.FORUM);
-		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD);
-		expectedPrimaryTypes.add(MigrationType.DISCUSSION_REPLY);
-		expectedPrimaryTypes.add(MigrationType.SUBSCRIPTION);
-		expectedPrimaryTypes.add(MigrationType.BROADCAST_MESSAGE);
-		expectedPrimaryTypes.add(MigrationType.VIEW_TYPE);
-		expectedPrimaryTypes.add(MigrationType.AUTHENTICATION_RECEIPT);
-		expectedPrimaryTypes.add(MigrationType.THROTTLE_RULE);
-		expectedPrimaryTypes.add(MigrationType.RESEARCH_PROJECT);
-		expectedPrimaryTypes.add(MigrationType.DATA_ACCESS_REQUEST);
-		expectedPrimaryTypes.add(MigrationType.DATA_ACCESS_SUBMISSION);
-		expectedPrimaryTypes.add(MigrationType.DATA_ACCESS_SUBMISSION_SUBMITTER);
-		expectedPrimaryTypes.add(MigrationType.CHANGE);
-		// Get the list
-		List<MigrationType> primary = migratableTableDAO.getPrimaryMigrationTypes();
-		System.out.println(primary);
-		assertEquals(expectedPrimaryTypes, primary);
 	}
 	
 	@Deprecated

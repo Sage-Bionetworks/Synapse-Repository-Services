@@ -243,6 +243,12 @@ public class DBOUserProfileDAOImplTest {
 		assertEquals(userProfile.getLastName(), clone.getLastName());
 	}
 	
+	@Test (expected=NotFoundException.class)
+	public void testGetDoesNotExist() {
+		// call under test
+		userProfileDAO.get("-123");
+	}
+	
 	@Test
 	public void testCRUD() throws Exception{
 		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
@@ -263,6 +269,8 @@ public class DBOUserProfileDAOImplTest {
 			String id = userProfileDAO.create(userProfile);
 			assertNotNull(id);
 			userProfile.setOwnerId(id);
+			// Creation date should be userGroup.creationDate.
+			userProfile.setCreatedOn(userGroupDAO.get(Long.parseLong(id)).getCreationDate());
 		}
 		
 		assertEquals(userProfiles.size()+initialCount, userProfileDAO.getCount());

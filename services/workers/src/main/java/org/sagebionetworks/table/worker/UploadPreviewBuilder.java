@@ -1,6 +1,10 @@
 package org.sagebionetworks.table.worker;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,6 +15,7 @@ import java.util.regex.Pattern;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
@@ -171,6 +176,12 @@ public class UploadPreviewBuilder {
 			if (schema == null) {
 				schema = new ColumnModel[row.length];
 			}
+			if (row.length > schema.length) {
+				// The rowsScanned is a zero based index that does not include the header row,
+				// therefore we add two when communicating this row to the caller.
+				throw new IllegalArgumentException("Row number " + (rowsScanned + 2) + " has " + row.length
+						+ " column(s).  Expected each row to have " + schema.length + " columns or less.");
+			}
 			// Check the schema from this row
 			CSVUtils.checkTypes(row, schema);
 			rowsScanned++;
@@ -279,6 +290,32 @@ public class UploadPreviewBuilder {
 			newHeader = "col";
 		}
 		return newHeader;
+	}
+	
+	/**
+	 * Helper to run the preview against a local file.
+	 * 
+	 * @param args
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		String filePath = args[0];
+		File toRead = new File(filePath);
+		System.out.println("Reading: " + toRead.getAbsolutePath());
+		try (FileInputStream fis = new FileInputStream(toRead);
+				InputStreamReader isr = new InputStreamReader(fis, "UTF-8");) {
+			CsvTableDescriptor csvTableDescriptor = new CsvTableDescriptor();
+			UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+			request.setDoFullFileScan(true);
+			request.setCsvTableDescriptor(csvTableDescriptor);
+
+			CSVReader reader = CSVUtils.createCSVReader(isr, csvTableDescriptor, request.getLinesToSkip());
+
+			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, null, request);
+			UploadToTablePreviewResult result = builder.buildResult();
+			System.out.println(result);
+		}
 	}
 
 }

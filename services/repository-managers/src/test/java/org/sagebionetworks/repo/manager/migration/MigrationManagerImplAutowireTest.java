@@ -15,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -28,7 +27,6 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -103,9 +101,6 @@ public class MigrationManagerImplAutowireTest {
 	ProjectSettingsManager projectSettingsManager;
 
 	@Autowired
-	private ProjectSettingsDAO projectSettingsDao;
-
-	@Autowired
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	@Autowired
@@ -117,7 +112,6 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	IdGenerator idGenerator;
 
-
 	private List<String> toDelete;
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
@@ -128,7 +122,6 @@ public class MigrationManagerImplAutowireTest {
 	private String[] projectIds = new String[3];
 	List<Project> projects;
 	List<Long> projectIdsLong;
-	StackConfiguration stackConfig;
 	ProgressCallback mockProgressCallback;
 	ProgressCallback mockProgressCallbackVoid;
 	private long startId;
@@ -179,30 +172,26 @@ public class MigrationManagerImplAutowireTest {
 			projectIdsLong.add(KeyFactory.stringToKey(id));
 		}
 
-		// Do this only if table enabled
-		if (StackConfiguration.singleton().getTableEnabled()) {
-			// create columns
-			LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
-			for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
-				cm = columnManager.createColumnModel(adminUser, cm);
-				schema.add(cm);
-			}
-			List<String> headers = TableModelUtils.getIds(schema);
-			// Create the table.
-			TableEntity table = new TableEntity();
-			table.setName(UUID.randomUUID().toString());
-			table.setColumnIds(headers);
-			tableId = entityManager.createEntity(adminUser, table, null);
-			tableEntityManager.setTableSchema(adminUser, headers, tableId);
-
-			// Now add some data
-			RowSet rowSet = new RowSet();
-			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
-			rowSet.setTableId(tableId);
-			tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback);
+		// create columns
+		LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+			cm = columnManager.createColumnModel(adminUser, cm);
+			schema.add(cm);
 		}
-		stackConfig = new StackConfiguration();
+		List<String> headers = TableModelUtils.getIds(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUser, table, null);
+		tableEntityManager.setTableSchema(adminUser, headers, tableId);
+
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback);
 	}
 	
 	@After

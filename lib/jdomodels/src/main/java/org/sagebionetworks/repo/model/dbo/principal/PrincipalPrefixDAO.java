@@ -47,16 +47,25 @@ public interface PrincipalPrefixDAO {
 	List<Long> listPrincipalsForPrefix(String prefix, Long limit, Long offset);
 	
 	/**
-	 * List a single page of users or teams that match the given prefix;
+	 * List a single page of users or usergroups that match the given prefix.
 	 * 
 	 * @param prefix
-	 * @param isIndividual True for users, false for teams.
+	 * @param isIndividual True for users, false for user groups.
 	 * @param limit
 	 * @param offset
-	 * @return
+	 * @return A list of IDs corresponding to matching users or usergroups.
 	 */
 	List<Long> listPrincipalsForPrefix(String prefix, boolean isIndividual, Long limit, Long offset);
 
+	/**
+	 * List a single page of teams that match the given prefix;
+	 *
+	 * @param prefix
+	 * @param limit
+	 * @param offset
+	 * @return A list of IDs corresponding to matching teams.
+	 */
+	List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset);
 
 	/**
 	 * For a given team, list all members that share the given prefix.

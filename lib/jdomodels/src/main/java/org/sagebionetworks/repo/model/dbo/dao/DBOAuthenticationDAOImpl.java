@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -150,7 +151,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_ID_BY_EMAIL_AND_PASSWORD, new SingleColumnRowMapper<Long>(), principalId, passHash);
 		} catch (EmptyResultDataAccessException e) {
-			throw new UnauthenticatedException("The provided username/password combination is incorrect");
+			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e);
 		}
 	}
 	
@@ -333,7 +334,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 		// The migration admin should only be used in specific, non-development stacks
 		Long migrationAdminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		changeSecretKey(migrationAdminId, StackConfiguration.getMigrationAdminAPIKey());
+		changeSecretKey(migrationAdminId, StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 	}
 
 }

@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.VersionableEntity;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -73,6 +74,8 @@ import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -1673,6 +1676,33 @@ public class ServletTestHelper {
 		return ServletTestHelperUtils.readResponse(response, Doi.class);
 	}
 
+	public DoiAssociation getDoiAssociation(Long userId, String objectId, ObjectType objectType, Long versionNumber) throws Exception {
+		String path = "?id=" + objectId + "&type=" + objectType + "&version=" + versionNumber;
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.DOI_ASYNC_START, path, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return ServletTestHelperUtils.readResponse(response, DoiAssociation.class);
+	}
+
+	public org.sagebionetworks.repo.model.doi.v2.Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber) throws Exception {
+		String path = "?id=" + objectId + "&type=" + objectType + "&version=" + versionNumber;
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.DOI_ASYNC_START, path, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return ServletTestHelperUtils.readResponse(response, org.sagebionetworks.repo.model.doi.v2.Doi.class);
+	}
+
+	public DoiResponse getPortalUrlLocation(Long userId, String objectId, ObjectType objectType, Long versionNumber) throws Exception {
+		String path = "?id=" + objectId + "&type=" + objectType + "&version=" + versionNumber;
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, path, UrlHelpers.DOI_LOCATE, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return ServletTestHelperUtils.readResponse(response, DoiResponse.class);
+	}
 	/**
 	 * Get search results
 	 */
@@ -2147,11 +2177,11 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
-	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, String entityId,
-			DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
+	public PaginatedResults<DockerCommit> listDockerTaggedCommits(Long userId, String entityId,
+	  		DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/"+entityId+"/dockerCommit", userId, null);
+				HTTPMODE.GET, "/entity/"+entityId+"/dockerTag", userId, null);
 
 		if (sortBy!=null) request.addParameter("sort", ""+sortBy);
 		if (ascending!=null) request.addParameter("ascending", ""+ascending);

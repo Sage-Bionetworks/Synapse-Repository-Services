@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
+import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
@@ -71,7 +72,13 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	public String requiresNew(Callable<String> callable) throws Exception {
 		return callable.call();
 	}
-	
+
+	@MandatoryWriteReadCommittedTransaction
+	@Override
+	public String mandatoryReadCommitted(Callable<String> callable) throws Exception {
+		return callable.call();
+	}
+
 
 	@Override
 	public void setStringNoTransaction(Long id, String value) {
@@ -91,7 +98,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	public void initialize() throws IOException{
 		// Create the test table if needed.
 		String url = stackConfiguration.getRepositoryDatabaseConnectionUrl();
-		String schema = DDLUtilsImpl.getSchemaFromConnectionString(url);
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
 		String tableName = TRANS_TEST;
 		String sql = String.format(DDLUtilsImpl.TABLE_EXISTS_SQL_FORMAT, tableName, schema);
 		List<Map<String, Object>> list = jdbcTemplate.queryForList(sql);

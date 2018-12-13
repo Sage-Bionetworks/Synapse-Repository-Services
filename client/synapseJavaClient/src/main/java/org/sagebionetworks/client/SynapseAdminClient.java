@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -191,15 +192,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	void clearAllLocks() throws SynapseException;
 
 	/**
-	 * Don't return unless someone makes this call with release set to true. Only used for testing to emulate long
-	 * running calls
-	 * 
-	 * @param release
-	 * @throws SynapseException
-	 */
-	public void waitForTesting(boolean release) throws SynapseException;
-
-	/**
 	 * Create or update change messages
 	 */
 	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch)
@@ -221,5 +213,12 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException 
 	 */
 	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws SynapseException;
+	
+	/**
+	 * Create an export of the ID generator.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public IdGeneratorExport createIdGeneratorExport() throws SynapseException;
 
 }

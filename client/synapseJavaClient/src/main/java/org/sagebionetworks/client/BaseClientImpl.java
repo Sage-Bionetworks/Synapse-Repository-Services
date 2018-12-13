@@ -1,12 +1,16 @@
 package org.sagebionetworks.client;
 
-import static org.sagebionetworks.client.Method.*;
+import static org.sagebionetworks.client.Method.DELETE;
+import static org.sagebionetworks.client.Method.GET;
+import static org.sagebionetworks.client.Method.POST;
+import static org.sagebionetworks.client.Method.PUT;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,8 +31,9 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseServiceUnavailable;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -68,6 +73,7 @@ public class BaseClientImpl implements BaseClient {
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
+	private static final String SESSION_ID_COOKIE = "sessionID";
 
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 
@@ -79,6 +85,9 @@ public class BaseClientImpl implements BaseClient {
 	private String repoEndpoint;
 	private String authEndpoint;
 	private String fileEndpoint;
+
+	//cached value that is derived from repoEndpoint
+	String repoEndpointBaseDomain;
 
 	private Map<String, String> defaultGETDELETEHeaders;
 	private Map<String, String> defaultPOSTPUTHeaders;
@@ -92,7 +101,7 @@ public class BaseClientImpl implements BaseClient {
 		this.simpleHttpClient = new SimpleHttpClientImpl(config);
 
 		this.authEndpoint = DEFAULT_AUTH_ENDPOINT;
-		this.repoEndpoint = DEFAULT_REPO_ENDPOINT;
+		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		this.fileEndpoint = DEFAULT_FILE_ENDPOINT;
 		this.defaultGETDELETEHeaders = new HashMap<String, String>();
 		this.defaultGETDELETEHeaders.put(ACCEPT, APPLICATION_JSON_CHARSET_UTF8);
@@ -174,7 +183,15 @@ public class BaseClientImpl implements BaseClient {
 
 	@Override
 	public void setRepositoryEndpoint(String repoEndpoint) {
-		this.repoEndpoint = repoEndpoint;
+
+		try {
+			URL url = new URL(repoEndpoint);
+			this.repoEndpointBaseDomain = url.getHost();
+
+			this.repoEndpoint = repoEndpoint;
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("repoEndpoint is malformed", e);
+		}
 	}
 
 	@Override
@@ -242,6 +259,17 @@ public class BaseClientImpl implements BaseClient {
 		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 	}
 
+	@Override
+	public void setSessionId(String sessionId){
+		simpleHttpClient.addCookie(this.repoEndpointBaseDomain, SESSION_ID_COOKIE, sessionId);
+	}
+
+
+	@Override
+	public String getSessionId(){
+		return simpleHttpClient.getFirstCookieValue(this.repoEndpointBaseDomain, SESSION_ID_COOKIE);
+	}
+
 	protected String getUserAgent() {
 		return this.userAgent;
 	}
@@ -290,9 +318,8 @@ public class BaseClientImpl implements BaseClient {
 		try {
 			SimpleHttpResponse response = simpleHttpClient.putFile(request, file);
 			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
-				throw new SynapseServerException(response.getStatusCode(),
-						"Response code: " + response.getStatusCode() + " " 
-						+ response.getStatusReason()
+				throw new UnknownSynapseServerException(response.getStatusCode(), 
+						response.getStatusReason()
 						+ " for " + url + " File: " + file.getName());
 			}
 			return response.getContent();
@@ -834,16 +861,16 @@ public class BaseClientImpl implements BaseClient {
 						SimpleHttpResponse response = ClientUtils.performRequest(simpleHttpClient, requestUrl, requestMethod, requestContent, requestHeaders);
 						int statusCode = response.getStatusCode();
 						if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
-							throw new RetryException(new SynapseServerException(statusCode, response.getContent()));
+							throw new RetryException(new SynapseServiceUnavailable(response.getContent()));
 						}
 						return response;
 					} catch (SocketTimeoutException ste) {
-						throw new RetryException(new SynapseServerException(HttpStatus.SC_SERVICE_UNAVAILABLE, ste));
+						throw new RetryException(new SynapseServiceUnavailable(ste));
 					}
 				}
 			});
 		} catch (RetryException e) {
-			throw (SynapseServerException) e.getCause();
+			throw (SynapseServiceUnavailable) e.getCause();
 		} catch (Exception e) {
 			throw new SynapseClientException("Failed to perform request.", e);
 		}

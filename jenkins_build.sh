@@ -6,6 +6,9 @@
 # org_sagebionetworks_stackEncryptionKey - the stack encryption key, common to all dev builds
 # org_sagebionetworks_search_enabled - when set to "true", will enable search feature and its tests
 # rds_password - the password for the build database, common to all dev builds
+# build_deploy - when set to "true" deploy artifacts
+# artifactory_username - artifactory username for deploy
+# artifactory_password - artifactory password for deploy
 
 # On Jenkins HOME is /var/lib/jenkins
 export m2_cache_parent_folder=${HOME}/${JOB_NAME}

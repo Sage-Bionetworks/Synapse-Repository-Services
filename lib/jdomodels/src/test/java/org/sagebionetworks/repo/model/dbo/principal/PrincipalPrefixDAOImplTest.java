@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.dao.UserGroupTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -50,41 +51,44 @@ public class PrincipalPrefixDAOImplTest {
 	Long teamEvenId;
 	Long teamOddId;
 
-	List<Long> toDelete;
+	Long nonTeamUserGroupId;
+
+	List<Long> userGroupsToDelete;
+	List<Long> teamsToDelete;
 
 	@Before
 	public void before() throws DatastoreException, IllegalArgumentException,
 			NotFoundException {
 		principalPrefixDao.truncateTable();
-		toDelete = new LinkedList<Long>();
-		UserGroup ug = new UserGroup();
-		ug.setIsIndividual(true);
+		userGroupsToDelete = new LinkedList<Long>();
+		teamsToDelete = new LinkedList<Long>();
+		UserGroup ug = UserGroupTestUtils.createUser();
 		principalOne = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(principalOne);
+		userGroupsToDelete.add(principalOne);
 		principalTwo = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(principalTwo);
+		userGroupsToDelete.add(principalTwo);
 		// Create the rest
 		romaneId = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(romaneId);
+		userGroupsToDelete.add(romaneId);
 		romanusId = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(romanusId);
+		userGroupsToDelete.add(romanusId);
 		romulusId = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(romulusId);
+		userGroupsToDelete.add(romulusId);
 		rubensId = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(rubensId);
+		userGroupsToDelete.add(rubensId);
 		ruberId = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(ruberId);
+		userGroupsToDelete.add(ruberId);
 		rubiconId = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(rubiconId);
+		userGroupsToDelete.add(rubiconId);
 		rubicundusId = Long.parseLong(userGroupDAO.create(ug).toString());
-		toDelete.add(rubicundusId);
+		userGroupsToDelete.add(rubicundusId);
 		// all
-		ug = new UserGroup();
-		ug.setIsIndividual(false);
+		ug = UserGroupTestUtils.createGroup();
 		teamAllId =  Long.parseLong(userGroupDAO.create(ug).toString());
 		Team team = new Team();
 		team.setId(""+teamAllId);
-		teamDAO.create(team);
+		team = teamDAO.create(team);
+		teamsToDelete.add(Long.valueOf(team.getId()));
 		groupMembersDAO.addMembers(teamAllId.toString(), new LinkedList<String>(
 				Arrays.asList(
 						romaneId.toString(),
@@ -99,7 +103,8 @@ public class PrincipalPrefixDAOImplTest {
 		teamEvenId = Long.parseLong(userGroupDAO.create(ug).toString());
 		team = new Team();
 		team.setId(""+teamEvenId);
-		teamDAO.create(team);
+		team = teamDAO.create(team);
+		teamsToDelete.add(Long.valueOf(team.getId()));
 		groupMembersDAO.addMembers(teamEvenId.toString(), new LinkedList<String>(
 				Arrays.asList(
 						romanusId.toString(),
@@ -110,7 +115,8 @@ public class PrincipalPrefixDAOImplTest {
 		teamOddId =  Long.parseLong(userGroupDAO.create(ug).toString());
 		team = new Team();
 		team.setId(""+teamOddId);
-		teamDAO.create(team);
+		team = teamDAO.create(team);
+		teamsToDelete.add(Long.valueOf(team.getId()));
 		groupMembersDAO.addMembers(teamOddId.toString(), new LinkedList<String>(
 				Arrays.asList(
 						romaneId.toString(),
@@ -118,12 +124,23 @@ public class PrincipalPrefixDAOImplTest {
 						ruberId.toString(),
 						rubicundusId.toString()
 						)));
+		// Create usergroup that does not have a team
+		nonTeamUserGroupId = userGroupDAO.create(ug);
+		userGroupsToDelete.add(nonTeamUserGroupId);
 	}
 
 	@After
 	public void after() {
-		if (toDelete != null) {
-			for (Long id : toDelete) {
+		if (teamsToDelete != null) {
+			for (Long id : teamsToDelete) {
+				try {
+					teamDAO.delete(id.toString());
+				} catch (Exception e) {
+				}
+			}
+		}
+		if (userGroupsToDelete != null) {
+			for (Long id : userGroupsToDelete) {
 				try {
 					userGroupDAO.delete(id.toString());
 				} catch (Exception e) {
@@ -265,9 +282,9 @@ public class PrincipalPrefixDAOImplTest {
 		List<Long> results = principalPrefixDao.listPrincipalsForPrefix(prefixWithNoAlphaNumerics,
 				1000L, 0L);
 		assertNotNull(results);
-		assertEquals(10, results.size());
+		assertEquals(11, results.size());
 		// the count should give the same results
-		assertEquals(new Long(10), countPrincipalsForPrefix(prefixWithNoAlphaNumerics));
+		assertEquals(new Long(11), countPrincipalsForPrefix(prefixWithNoAlphaNumerics));
 	}
 
 	@Test
@@ -311,9 +328,9 @@ public class PrincipalPrefixDAOImplTest {
 		List<Long> results = principalPrefixDao.listPrincipalsForPrefix("r",
 				1000L, 0L);
 		assertNotNull(results);
-		assertEquals(10, results.size());
+		assertEquals(11, results.size());
 		// Counts should match
-		assertEquals(new Long(10), countPrincipalsForPrefix("r"));
+		assertEquals(new Long(11), countPrincipalsForPrefix("r"));
 		assertEquals(romaneId, results.get(0));
 		assertEquals(romanusId, results.get(1));
 		assertEquals(romulusId, results.get(2));
@@ -467,12 +484,11 @@ public class PrincipalPrefixDAOImplTest {
 		assertEquals(romanusId, results.get(1));
 		assertEquals(romulusId, results.get(2));
 	}
-	
+
 	@Test
 	public void testListTeamsForPrefix(){
 		addDefaultAlias();
-		boolean isIndividual = false;
-		List<Long> results = principalPrefixDao.listPrincipalsForPrefix("r", isIndividual, 1000L, 0L);
+		List<Long> results = principalPrefixDao.listTeamsForPrefix("r", 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(3, results.size());
 		assertEquals(teamAllId, results.get(0));
@@ -480,14 +496,14 @@ public class PrincipalPrefixDAOImplTest {
 		assertEquals(teamOddId, results.get(2));
 		
 		// Full paging
-		results = principalPrefixDao.listPrincipalsForPrefix("rteam",isIndividual, 2L, 1L);
+		results = principalPrefixDao.listTeamsForPrefix("rteam", 2L, 1L);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		assertEquals(teamEvenId, results.get(0));
 		assertEquals(teamOddId, results.get(1));
 		
 		// single
-		results = principalPrefixDao.listPrincipalsForPrefix("rteama", isIndividual, 100L, 0L);
+		results = principalPrefixDao.listTeamsForPrefix("rteama", 100L, 0L);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(teamAllId, results.get(0));
@@ -496,10 +512,9 @@ public class PrincipalPrefixDAOImplTest {
 	@Test
 	public void testListTeamsForPrefixEmptyPrefix() {
 		addDefaultAlias();
-		boolean isIndividual = false;
 		// Prefix with no alpha-numerics
 		String prefixWithNoAlphaNumerics = "#$%";
-		List<Long> results = principalPrefixDao.listPrincipalsForPrefix(prefixWithNoAlphaNumerics, isIndividual, 1000L, 0L);
+		List<Long> results = principalPrefixDao.listTeamsForPrefix(prefixWithNoAlphaNumerics, 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(3, results.size());
 	}
@@ -520,6 +535,8 @@ public class PrincipalPrefixDAOImplTest {
 		principalPrefixDao.addPrincipalAlias("ruber", ruberId);
 		principalPrefixDao.addPrincipalAlias("rubicon", rubiconId);
 		principalPrefixDao.addPrincipalAlias("rubicundus", rubicundusId);
+		// nonteam usergroup
+		principalPrefixDao.addPrincipalAlias("rzNotATeam", nonTeamUserGroupId);
 	}
 
 }

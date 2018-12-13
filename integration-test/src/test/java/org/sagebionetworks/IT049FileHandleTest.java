@@ -63,7 +63,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.Lists;
 
 public class IT049FileHandleTest {
@@ -71,7 +71,6 @@ public class IT049FileHandleTest {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
-	private static AmazonS3Client s3Client;
 	
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
@@ -85,14 +84,12 @@ public class IT049FileHandleTest {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
-		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 	}
 	
 	@Before
@@ -115,7 +112,6 @@ public class IT049FileHandleTest {
 			} catch (SynapseClientException e) { }
 		}
 		synapse.deleteEntity(project, true);
-		S3TestUtils.doDeleteAfter(s3Client);
 	}
 	
 	@AfterClass

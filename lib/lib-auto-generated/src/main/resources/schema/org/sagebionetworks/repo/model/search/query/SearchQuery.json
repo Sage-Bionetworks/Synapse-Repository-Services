@@ -17,46 +17,21 @@
         		"$ref":"org.sagebionetworks.repo.model.search.query.KeyValue"
         	}
         },
-        "facet":{
-        	"type":"array",
-        	"description":"A list of the fields for which you want to compute facets.",
-            "uniqueItems":false,
-            "items":{
-                "type":"string"
-            }            
-        },
-        "facetFieldConstraints":{
-        	"type":"array",
-        	"description":"Specify the field values (facet constraints) that you want to count for a partifular field. Key is the facet field name, value is a list of facet constraints.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.query.KeyList"
-            }                    	
-        },
-        "facetFieldSort":{
-        	"type":"array",
-        	"description":"Specify how you want to sort facet values for a particular field.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.query.FacetSort"
-            }                    	
-        },
-        "facetFieldTopN":{
-        	"type":"array",
-        	"description":"Set the maximum number of facet constraints to be included for the specified field in the search results. Default is the top 40.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.query.FacetTopN"
-            }                    	        	
-        },
-        "rank":{
-        	"type":"array",
-        	"description":"A list of fields to use for ranking. Hits are ordered according to the specified rank field(s). By default, hits are ranked in ascending order.",
-            "uniqueItems":false,
-            "items":{
-                "type":"string"
-            }                    	        	        	
-        },
+		"rangeQuery":{
+			"type":"array",
+			"description": "One or more key-value-range filters that filter values of a key based on the specified range where min<=value<=max. Multiple expressions are joined with a top-level AND.",
+			"uniqueItems":false,
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.search.query.KeyRange"
+			}
+		},
+		"facetOptions":{
+			"type": "array",
+			"description": "Specify which fields should be returned as facets and the format of the results for each field",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.query.SearchFacetOption"
+			}
+		},
         "returnFields":{
         	"type":"array",
         	"description":"Specifies the document fields to include in the response. By default, only the document ids of the hits are returned.",

@@ -8,16 +8,15 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.BooleanTest;
-import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
@@ -26,7 +25,6 @@ import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.GroupingColumnReference;
 import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
-import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.LikePredicate;
@@ -49,7 +47,6 @@ import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.ValueExpression;
-import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -600,6 +597,39 @@ public class SqlElementUntils {
 	}
 	
 	/**
+	 * Build the SQL to select the ROW_IDs for the given query with the provided limit.
+	 * 
+	 * @param model
+	 * @param limit
+	 * @return
+	 * @throws SimpleAggregateQueryException
+	 */
+	public static String buildSqlSelectRowIds(QuerySpecification model, long maxLimit) throws SimpleAggregateQueryException {
+		TableExpression tableExpression = null;
+		FromClause fromClause = model.getTableExpression().getFromClause();
+		WhereClause whereClause = model.getTableExpression().getWhereClause();
+		GroupByClause groupByClause = null;
+		OrderByClause orderByClause = null;
+		Pagination pagination = null;
+
+		// There are three cases
+		if(model.hasAnyAggregateElements()){
+			throw new SimpleAggregateQueryException("Simple aggregate queries always return one row");
+		}
+		
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		builder.append(TableConstants.ROW_ID);
+		// clear pagination, group by, order by
+		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
+		builder.append(" ");
+		builder.append(tableExpression.toSql());
+		builder.append(" LIMIT ");
+		builder.append(maxLimit);
+		return builder.toString();
+	}
+	
+	/**
 	 * Create a select clause from a group by clause.
 	 * A group by column reference can be the value of an 'AS' from the select
 	 * column.  When this occurs the original ValueExpression from the select must
@@ -669,8 +699,13 @@ public class SqlElementUntils {
 			 * create the SortKey. For non-aggregate functions the name must be
 			 * bracketed in quotes.
 			 */
-			ValueExpression primary = new TableQueryParser(columnName)
-					.valueExpression();
+			TableQueryParser parser = new TableQueryParser(columnName);
+			ValueExpression primary = parser.valueExpression();
+			String nextToken = parser.getNextToken().toString();
+			if(nextToken.length() > 1) {
+				// The entire value was not consumed so it must be wrapped
+				return new TableQueryParser(wrapInDoubleQuotes(columnName)).sortKey();
+			}
 			if (primary.hasAnyAggregateElements()) {
 				return new SortKey(primary);
 			} else {

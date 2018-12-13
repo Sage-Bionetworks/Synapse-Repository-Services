@@ -306,30 +306,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public AccessControlList createAcl(Long userId, AccessControlList acl)
-			throws NotFoundException, DatastoreException,
-			InvalidModelException, UnauthorizedException,
-			ConflictingUpdateException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return evaluationPermissionsManager.createAcl(userInfo, acl);
-	}
-
-	@Override
 	public AccessControlList updateAcl(Long userId, AccessControlList acl)
 			throws NotFoundException, DatastoreException,
 			InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationPermissionsManager.updateAcl(userInfo, acl);
-	}
-
-	@Override
-	public void deleteAcl(Long userId, String evalId)
-			throws NotFoundException, DatastoreException,
-			InvalidModelException, UnauthorizedException,
-			ConflictingUpdateException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		evaluationPermissionsManager.deleteAcl(userInfo, evalId);
 	}
 
 	@Override

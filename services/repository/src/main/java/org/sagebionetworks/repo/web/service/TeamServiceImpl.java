@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.web.service;
 
 import java.util.Arrays;
@@ -15,6 +12,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -31,7 +29,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,21 +50,8 @@ public class TeamServiceImpl implements TeamService {
 	private NotificationManager notificationManager;
 	@Autowired
 	private UserProfileManager userProfileManager;
-	
-	public TeamServiceImpl() {}
-	
-	// for testing
-	public TeamServiceImpl(TeamManager teamManager, 
-			PrincipalPrefixDAO principalPrefixDAO,
-			UserManager userManager,
-			NotificationManager notificationManager,
-			UserProfileManager userProfileManager) {
-		this.teamManager=teamManager;
-		this.principalPrefixDAO=principalPrefixDAO;
-		this.userManager=userManager;
-		this.notificationManager=notificationManager;
-		this.userProfileManager = userProfileManager;
-	}
+	@Autowired
+	private TokenGenerator tokenGenerator;
 	
 	
 	/* (non-Javadoc)
@@ -122,8 +106,7 @@ public class TeamServiceImpl implements TeamService {
 		if (fragment==null || fragment.trim().length()==0) {
 			return teamManager.list(limit, offset);
 		}
-		boolean isIndividual = false;
-		List<Long> teamIds = principalPrefixDAO.listPrincipalsForPrefix(fragment, isIndividual, limit, offset);
+		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(teams, limit, offset);
 	}
@@ -153,10 +136,10 @@ public class TeamServiceImpl implements TeamService {
 		List<TeamMember> members = listTeamMembers(Arrays.asList(teamIdLong), memberIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(members, limit, offset);
 	}
-	
+
 	/**
-	 * 
-	 * @param id
+	 *
+	 * @param teamId
 	 * @param fragment
 	 * @return
 	 */
@@ -242,7 +225,7 @@ public class TeamServiceImpl implements TeamService {
 	
 	@Override
 	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
-		SignedTokenUtil.validateToken(joinTeamToken);
+		tokenGenerator.validateToken(joinTeamToken);
 		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());

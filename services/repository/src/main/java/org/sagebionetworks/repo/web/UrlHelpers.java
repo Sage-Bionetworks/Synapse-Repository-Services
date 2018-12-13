@@ -184,6 +184,8 @@ public class UrlHelpers {
 	public static final String ASYNCHRONOUS_JOB_CANCEL = ASYNCHRONOUS_JOB_ID + "/cancel";
 	public static final String ADMIN_ASYNCHRONOUS_JOB = ADMIN + ASYNCHRONOUS_JOB;
 	public static final String ADMIN_ASYNCHRONOUS_JOB_ID = ADMIN + ASYNCHRONOUS_JOB_ID;
+	
+	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -216,11 +218,22 @@ public class UrlHelpers {
 	public static final String S3_FILE_COPY_ASYNC_GET = S3_FILE_COPY + ASYNC_GET_REQUEST;
 	public static final String COPY = "/copy";
 	public static final String FILE_HANDLES_COPY = FILE_HANDLES + COPY;
+	public static final String ENTITY_DATA_TYPE = ENTITY_ID+"/datatype";
 	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_GET = BULK_FILE_DOWNLOAD + ASYNC_GET_REQUEST;
 	public static final String FILE_DOWNLOAD = FILE+ID;
+	
+	public static final String DOWNLOAD_LIST = "/download/list";
+	public static final String DOWNLOAD_LIST_ADD = DOWNLOAD_LIST+"/add";
+	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
+	public static final String DOWNLOAD_LIST_ADD_START_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_START_REQUEST;
+	public static final String DOWNLOAD_LIST_ADD_GET_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_GET_REQUEST;
+	
+	public static final String DOWNLOAD_ORDER = "/download/order";
+	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
+	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
 	
 	// multipart upload v2
 	public static final String FILE_MULTIPART = FILE+"/multipart";
@@ -318,6 +331,10 @@ public class UrlHelpers {
 	 * DOI (Digital Object Identifier).
 	 */
 	public static final String DOI = "/doi";
+	public static final String DOI_ASSOCIATION = DOI + "/association";
+	public static final String DOI_LOCATE = DOI + "/locate";
+	public static final String DOI_ASYNC_START = DOI + ASYNC_START_REQUEST;
+	public static final String DOI_ASYNC_GET = DOI + ASYNC_GET_REQUEST;
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).
@@ -741,7 +758,8 @@ public class UrlHelpers {
 	// Tables
 	public static final String COLUMN = "/column";
 	public static final String COLUMN_BATCH = COLUMN + "/batch";
-	public static final String COLUMN_TABLE_IVEW = COLUMN + "/tableview/defaults/{viewtype}";
+	public static final String COLUMN_TABLE_VIEW_DEFAULT = COLUMN + "/tableview/defaults";
+	public static final String COLUMN_TABLE_VIEW_DEFAULT_TYPE = COLUMN_TABLE_VIEW_DEFAULT+"/{viewtype}";
 	public static final String ROW_ID = "/row/{rowId}";
 	public static final String ROW_VERSION = "/version/{versionNumber}";
 	public static final String TABLE = "/table";
@@ -954,6 +972,7 @@ public class UrlHelpers {
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
 	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
+	public static final String ENTITY_ID_DOCKER_TAG = ENTITY_ID+"/dockerTag";
 	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
 	// Data Access Services
@@ -999,12 +1018,12 @@ public class UrlHelpers {
 	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
-	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
 	
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
+	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 
 	public static final String AUTH_LOGIN = "/login";
 	
@@ -1020,16 +1039,6 @@ public class UrlHelpers {
 	public static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
 	/**
-	 * API for testing throttling
-	 */
-	public static final String ADMIN_WAIT = ADMIN + "/wait";
-	
-	/**
-	 * API for testing exception handling
-	 */
-	public static final String ADMIN_EXCEPTION = ADMIN + "/exception";
-
-	/**
 	 * API for updating a file
 	 * @see PLFM-4108
 	 */
@@ -1042,18 +1051,6 @@ public class UrlHelpers {
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 	}
 
-	/**
-	 * Determine the controller URL prefix for a given model class
-	 * 
-	 * @param theModelClass
-	 * @return the URL for the model class
-	 */
-//	@SuppressWarnings("unchecked")
-//	public static String getUrlForModel(Class theModelClass) {
-//		EntityType type =  EntityType.getNodeTypeForClass(theModelClass);
-//		return type.getUrlPrefix();
-//	}
-
 	
 	/**
 	 * Helper function to create a relative URL for an entity's annotations
@@ -1062,7 +1059,7 @@ public class UrlHelpers {
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
 	 * 
-	 * @param request
+	 * @param loginRequest
 	 * @return the uri for this entity's annotations
 	 */
 	public static String makeEntityAnnotationsUri(String entityId) {
@@ -1076,7 +1073,7 @@ public class UrlHelpers {
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
 	 * 
-	 * @param request
+	 * @param loginRequest
 	 * @return the uri for this entity's annotations
 	 */
 	public static String makeEntityACLUri(String entityId) {

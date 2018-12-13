@@ -40,7 +40,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_AUTHENTICATE, null));
 	}
 	
-	private static final String ORCID_URI_PREFIX = "http://orcid.org/";
+	private static final String ORCID_URI_PREFIX = "https://orcid.org/";
 	
 	private static String convertOrcIdToURI(String orcid) {
 		return ORCID_URI_PREFIX + orcid;

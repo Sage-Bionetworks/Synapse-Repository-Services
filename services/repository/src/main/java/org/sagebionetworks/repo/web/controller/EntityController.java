@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -640,7 +642,7 @@ public class EntityController extends BaseController {
 	 * @param userId
 	 * @param batch
 	 *            A comma separated list of Entity IDs to get EntityHeaders for.
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -673,7 +675,7 @@ public class EntityController extends BaseController {
 	 *            -The user that is doing the get.
 	 * @param batch
 	 *            - The comma-separated list of IDs of the entity to fetch.
-	 * @param request
+	 * @param loginRequest
 	 * @return The requested Entity if it exists.
 	 * @throws DatastoreException
 	 *             - Thrown when an there is a server failure.
@@ -1022,7 +1024,7 @@ public class EntityController extends BaseController {
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
-	 * @param request
+	 * @param loginRequest
 	 * @return A paginated list of results.
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -1548,6 +1550,29 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody(required=true) EntityLookupRequest request){
 		return serviceProvider.getEntityService().lookupChild(userId, request);
+	}
+	
+	/**
+	 * Change the <a href="${org.sagebionetworks.repo.model.DataType}" >DataType</a>
+	 * of the given entity. The entity's DataType controls how the entity can be
+	 * accessed. For example, an entity's DataType must be set to 'open_data' in
+	 * order for anonymous to be allowed to access its contents.
+	 * 
+	 * <p>
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team'
+	 * (id=464532) in order to change an Entity's type to 'OPEN_DATA'. The caller must be grated
+	 * UPDATED on the Entity to change the its type to any other value.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param dataType
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_DATA_TYPE }, method = RequestMethod.PUT)
+	public @ResponseBody DataTypeResponse changeEntityDataType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestParam(value = "type") DataType dataType) {
+		return serviceProvider.getEntityService().changeEntityDataType(userId, id, dataType);
 	}
 }
 

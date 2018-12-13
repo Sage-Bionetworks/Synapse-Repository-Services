@@ -26,21 +26,24 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.ObjectTypeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -62,16 +65,17 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableManagerSupportTest {
 
 	@Mock
@@ -98,11 +102,15 @@ public class TableManagerSupportTest {
 	ProgressCallback mockCallback;
 	@Mock
 	ReplicationMessageManager mockReplicationMessageManager;
+	@Mock
+	ObjectTypeManager mockObjectTypeManager;
 	
+	@InjectMocks
+	TableManagerSupportImpl manager;
 	
 	String schemaMD5Hex;
 	
-	TableManagerSupportImpl manager;
+
 	String tableId;
 	Long tableIdLong;
 	TableStatus status;
@@ -110,35 +118,19 @@ public class TableManagerSupportTest {
 	Set<Long> scope;
 	Set<Long> containersInScope;
 	UserInfo userInfo;
-	ViewType viewType;
+	Long viewType;
 	
 	Integer callableReturn;
 	
 	@Before
 	public void before() throws Exception {
-		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
-		MockitoAnnotations.initMocks(this);
-		
-		manager = new TableManagerSupportImpl();
-		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
-		ReflectionTestUtils.setField(manager, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(manager, "columnModelDao",
-				mockColumnModelDao);
-		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
-		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "replicationMessageManager", mockReplicationMessageManager);
-		
 		callableReturn = 123;
 		
 		userInfo = new UserInfo(false, 8L);
 		
 		tableId = "syn123";
 		tableIdLong = KeyFactory.stringToKey(tableId);
-		viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		
@@ -158,7 +150,9 @@ public class TableManagerSupportTest {
 		List<ColumnModel> columns = Lists.newArrayList(cm);
 		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(
 				columns);
-		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(columns);
+		List<String> columnIds = TableModelUtils.getIds(columns);
+		when(mockColumnModelDao.getColumnModelIdsForObject(tableId)).thenReturn(columnIds);
+		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(cm.getId()));
 
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		
@@ -513,14 +507,14 @@ public class TableManagerSupportTest {
 		for(long i=0; i<countOverLimit; i++){
 			overLimit.add(i);
 		}
-		viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		// call under test.
 		manager.getAllContainerIdsForScope(overLimit, viewType);
 	}
 	
 	@Test
 	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
-		viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(containersInScope, containers);
@@ -529,7 +523,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
-		viewType = ViewType.project;
+		viewType = ViewTypeMask.Project.getMask();
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(scope, containers);
@@ -582,29 +576,29 @@ public class TableManagerSupportTest {
 	@Test
 	public void testcreateViewOverLimitMessageFileView(){
 		// call under test
-		String message = manager.createViewOverLimitMessage(ViewType.file);
+		String message = manager.createViewOverLimitMessage(ViewTypeMask.File.getMask());
 		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
 	}
 	
 	@Test
 	public void testcreateViewOverLimitMessageFileAndTableView(){
 		// call under test
-		String message = manager.createViewOverLimitMessage(ViewType.file_and_table);
+		String message = manager.createViewOverLimitMessage(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
 	}
 	
 	@Test
 	public void testcreateViewOverLimitMessageProjectView(){
 		// call under test
-		String message = manager.createViewOverLimitMessage(ViewType.project);
+		String message = manager.createViewOverLimitMessage(ViewTypeMask.Project.getMask());
 		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, message);
 	}
 	
 	@Test
 	public void calculateFileViewCRC32(){
 		Long crc32 = 45678L;
-		ViewType type = ViewType.file;
-		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
+		Long type = ViewTypeMask.File.getMask();
+		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
 		Long crcResult = manager.calculateViewCRC32(tableId);
@@ -614,7 +608,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testTriggerScopeReconciliationFileView(){
-		ViewType type = ViewType.file;
+		Long type = ViewTypeMask.File.getMask();
 		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
 		// call under test
 		manager.triggerScopeReconciliation(type, containersInScope);
@@ -624,8 +618,8 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testTriggerScopeReconciliationProjectView(){
-		ViewType type = ViewType.project;
-		Long rootId = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+		Long type = ViewTypeMask.Project.getMask();
+		Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 		// project views reconcile on root.
 		List<Long> toReconcile = Lists.newArrayList(rootId);
 		// call under test
@@ -649,8 +643,8 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableVersionForFileView() {
 		Long crc32 = 45678L;
-		ViewType type = ViewType.file;
-		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
+		Long type = ViewTypeMask.File.getMask();
+		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		// call under test
@@ -666,7 +660,8 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testValidateTableReadAccessTableEntity(){
+	public void testValidateTableReadAccessTableEntitySensitiveData(){
+		when(mockObjectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY)).thenReturn(DataType.SENSITIVE_DATA);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
@@ -675,6 +670,21 @@ public class TableManagerSupportTest {
 		assertEquals(EntityType.table, type);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockObjectTypeManager).getObjectsDataType(tableId, ObjectType.ENTITY);
+	}
+	
+	@Test
+	public void testValidateTableReadAccessTableEntityOpenData(){
+		when(mockObjectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY)).thenReturn(DataType.OPEN_DATA);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		//  call under test
+		EntityType type = manager.validateTableReadAccess(userInfo, tableId);
+		assertEquals(EntityType.table, type);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockObjectTypeManager).getObjectsDataType(tableId, ObjectType.ENTITY);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -766,7 +776,7 @@ public class TableManagerSupportTest {
 			expected.add(field.getColumnModel());
 		}
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.File.getMask());
 		assertEquals(expected, results);
 	}
 	
@@ -777,7 +787,8 @@ public class TableManagerSupportTest {
 			expected.add(field.getColumnModel());
 		}
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file_and_table);
+		Long viewTypeMaks = ViewTypeMask.File.getMask() | ViewTypeMask.Table.getMask();
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(viewTypeMaks);
 		assertEquals(expected, results);
 	}
 	
@@ -793,16 +804,54 @@ public class TableManagerSupportTest {
 				EntityField.modifiedBy.getColumnModel()
 				);
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.project);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewTypeMask.Project.getMask());
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsMaskExcludesFiles(){
+		long typeMask = 0;
+		for(ViewTypeMask type: ViewTypeMask.values()) {
+			if(type != ViewTypeMask.File) {
+				typeMask |= type.getMask();
+			}
+		}
+		List<ColumnModel> expected = Lists.newArrayList(
+				EntityField.id.getColumnModel(),
+				EntityField.name.getColumnModel(),
+				EntityField.createdOn.getColumnModel(),
+				EntityField.createdBy.getColumnModel(),
+				EntityField.etag.getColumnModel(),
+				EntityField.modifiedOn.getColumnModel(),
+				EntityField.modifiedBy.getColumnModel()
+				);
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsMaskIncludeFiles(){
+		long typeMask = 0;
+		for(ViewTypeMask type: ViewTypeMask.values()) {
+			typeMask |= type.getMask();
+		}
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		for(EntityField field: EntityField.values()){
+			expected.add(field.getColumnModel());
+		}
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(typeMask);
 		assertEquals(expected, results);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetDefaultTableViewColumnsNull(){
-		ViewType type = null;
+	public void testGetDefaultTableViewColumnsNullMask(){
+		Long typeMask = null;
 		// call under test
-		manager.getDefaultTableViewColumns(type);
+		manager.getDefaultTableViewColumns(typeMask);
 	}
+
 	
 	@Test
 	public void testGetEntityPath(){
@@ -857,4 +906,24 @@ public class TableManagerSupportTest {
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	
+	@Test
+	public void testTouch() {
+		// call under test
+		manager.touchTable(userInfo, tableId);
+		verify(mockNodeDao).touch(userInfo.getId(), tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTouchNullUser() {
+		userInfo = null;
+		// call under test
+		manager.touchTable(userInfo, tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTouchNullTable() {
+		tableId = null;
+		// call under test
+		manager.touchTable(userInfo, tableId);
+	}
 }

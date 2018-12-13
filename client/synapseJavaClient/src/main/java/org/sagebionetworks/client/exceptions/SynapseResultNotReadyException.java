@@ -1,11 +1,11 @@
 package org.sagebionetworks.client.exceptions;
 
-import org.apache.http.HttpStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.table.TableStatus;
 
 /**
  * This exception is thrown when an asynch call is running and the result is not yet ready
+ * 
+ * Throw for HTTP status code of 202.
  * 
  */
 public class SynapseResultNotReadyException extends SynapseServerException {
@@ -15,7 +15,7 @@ public class SynapseResultNotReadyException extends SynapseServerException {
 	private AsynchronousJobStatus jobStatus;
 
 	public SynapseResultNotReadyException(AsynchronousJobStatus jobStatus) {
-		super(HttpStatus.SC_ACCEPTED);
+		super();
 		this.jobStatus = jobStatus;
 	}
 

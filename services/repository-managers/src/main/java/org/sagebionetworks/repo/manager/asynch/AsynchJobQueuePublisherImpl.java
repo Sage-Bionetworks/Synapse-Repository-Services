@@ -3,11 +3,12 @@ package org.sagebionetworks.repo.manager.asynch;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.DeleteMessageRequest;
@@ -25,7 +26,7 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 	
 	@Autowired
-	AmazonSQSClient awsSQSClient;
+	AmazonSQS awsSQSClient;
 	
 	/**
 	 * Mapping from a job type to a queue URL
@@ -56,9 +57,7 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		// Map each type to its queue;
 		toTypeToQueueURLMap = new HashMap<AsynchJobType, String>(AsynchJobType.values().length);
 		for(AsynchJobType type: AsynchJobType.values()){
-			CreateQueueRequest cqRequest = new CreateQueueRequest(type.getQueueName());
-			CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
-			String qUrl = cqResult.getQueueUrl();
+			String qUrl = this.awsSQSClient.getQueueUrl(type.getQueueName()).getQueueUrl();
 			toTypeToQueueURLMap.put(type, qUrl);
 		}
 	}

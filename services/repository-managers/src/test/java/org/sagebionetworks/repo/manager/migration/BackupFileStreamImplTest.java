@@ -4,13 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -24,10 +28,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
@@ -35,8 +41,10 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.StreamException;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BackupFileStreamImplTest {
@@ -60,6 +68,10 @@ public class BackupFileStreamImplTest {
 	
 	List<MigratableDatabaseObject<?,?>> rowsToWrite;
 	
+	DBOCredential credentialOne;
+	DBOCredential credentialTwo;
+	List<MigratableDatabaseObject<?, ?>> credentials;
+	
 	int maximumRowsPerFile;
 	
 	@Before
@@ -72,7 +84,7 @@ public class BackupFileStreamImplTest {
 		when(mockTypeProvider.getObjectForType(MigrationType.ACL_ACCESS_TYPE)).thenReturn(new DBOResourceAccessType());
 		when(mockTypeProvider.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
 		when(mockTypeProvider.getObjectForType(MigrationType.NODE_REVISION)).thenReturn(new DBORevision());
-		
+		when(mockTypeProvider.getObjectForType(MigrationType.CREDENTIAL)).thenReturn(new DBOCredential());
 		
 		byteArrayOutputStream = new ByteArrayOutputStream();
 		zipOutputStream = new ZipOutputStream(byteArrayOutputStream);
@@ -99,6 +111,17 @@ public class BackupFileStreamImplTest {
 		rowsToWrite = Lists.newArrayList(dboNodeOne, dboNodeTwo, dboRevisionOne, dboRevisionTwo);
 		
 		maximumRowsPerFile = 1000;
+		
+		credentialOne = new DBOCredential();
+		credentialOne.setPassHash("adminHash");
+		credentialOne.setSecretKey("adminKey");
+		credentialOne.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		credentialTwo = new DBOCredential();
+		credentialTwo.setPassHash("hashTwo");
+		credentialTwo.setSecretKey("keyTwo");
+		credentialTwo.setPrincipalId(456L);
+		credentials = Lists.newArrayList(credentialOne, credentialTwo);
 	}
 	
 	@Test
@@ -445,6 +468,61 @@ public class BackupFileStreamImplTest {
 			allResults.add(row);
 		}
 		assertTrue(allResults.isEmpty());
+	}
+	
+	@Test
+	public void testWriteBatchToStreamTableName() throws IOException {
+		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
+		MigrationType type = MigrationType.CREDENTIAL;
+		StringWriter writer = new StringWriter();
+		// call under test
+		backupFileStream.writeBatchToStream(credentials, type, aliasType, writer);
+		String xml = writer.toString();
+		assertTrue(xml.contains(credentialOne.getTableMapping().getTableName()));
+		assertTrue(xml.contains(""+credentialOne.getPrincipalId()));
+		assertTrue(xml.contains(""+credentialTwo.getPrincipalId()));
+	}
+
+	
+	@Test(expected = EmptyFileException.class)
+	public void testReadFileFromStreamEmptyFile() throws Exception {
+		StringInputStream input = new StringInputStream("");
+		int index = 0;
+		String fileName = BackupFileStreamImpl.createFileName(MigrationType.CREDENTIAL, index);
+		// Call under test
+		backupFileStream.readFileFromStream(input, backupAliasType, fileName);
+	}
+	
+	@Test
+	public void testReadFileFromStreamNotXML() throws Exception {
+		StringInputStream input = new StringInputStream("This is not xml");
+		int index = 0;
+		String fileName = BackupFileStreamImpl.createFileName(MigrationType.CREDENTIAL, index);
+		// Call under test
+		try {
+			backupFileStream.readFileFromStream(input, backupAliasType, fileName);
+			fail();
+		} catch (Exception e) {
+			assertTrue(e.getCause() instanceof StreamException);
+		}
+	}
+	
+	@Test
+	public void testReadFileFromStream() throws Exception {
+		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
+		MigrationType type = MigrationType.CREDENTIAL;
+		StringWriter writer = new StringWriter();
+		backupFileStream.writeBatchToStream(credentials, type, aliasType, writer);
+		String xml = writer.toString();
+		
+		StringInputStream input = new StringInputStream(xml);
+		int index = 0;
+		String fileName = BackupFileStreamImpl.createFileName(MigrationType.CREDENTIAL, index);
+		// Call under test
+		List<MigratableDatabaseObject<?, ?>> results = backupFileStream.readFileFromStream(input, backupAliasType, fileName);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(credentialTwo, results.get(1));
 	}
 	
 }

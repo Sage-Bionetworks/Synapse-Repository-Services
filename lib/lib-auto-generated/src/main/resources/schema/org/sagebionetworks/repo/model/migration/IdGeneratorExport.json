@@ -1,0 +1,9 @@
+{
+	"description": "Export script for the ID generator.",
+	"properties": {
+		"exportScript": {
+			"type": "string",
+			"description": "The SQL statement to be used to re-create the ID generator database."
+		}
+	}
+}

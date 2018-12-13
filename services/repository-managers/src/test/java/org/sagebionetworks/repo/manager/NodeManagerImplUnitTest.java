@@ -10,7 +10,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,15 +25,18 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -42,7 +44,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -87,6 +88,7 @@ public class NodeManagerImplUnitTest {
 	String parentId;
 	EntityType type;
 	Set<EntityType> entityTypesWithCountLimits;
+	String startEtag;
 	String newEtag;
 	Annotations annos;
 	
@@ -109,6 +111,7 @@ public class NodeManagerImplUnitTest {
 		
 		nodeId = "123";
 		parentId = "456";
+		startEtag = "startEtag";
 		newEtag = "newEtag";
 		
 		when(mockNode.getId()).thenReturn(nodeId);
@@ -116,9 +119,12 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("some name");
 		when(mockNodeDao.getNode(nodeId)).thenReturn(mockNode);
+		when(mockNode.getETag()).thenReturn(startEtag);
+		when(mockNodeDao.lockNode(anyString())).thenReturn(startEtag);
+		when(mockNodeDao.touch(any(Long.class), any(String.class))).thenReturn(newEtag);
 		
 		type = EntityType.file;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer()-1);
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer()-1);
 		// Types that have count limits
 		entityTypesWithCountLimits = Sets.newHashSet(EntityType.file, EntityType.folder, EntityType.link);
 				
@@ -129,11 +135,15 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccessActivity(any(UserInfo.class), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockActivityManager.doesActivityExist(anyString())).thenReturn(true);
 		
-		when(mockNodeDao.lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class))).thenReturn(newEtag);
+
 		
 		annos = new Annotations();
 		annos.setEtag("etag");
 		annos.addAnnotation("key", "value");
+		
+		when(mockNodeDao.getAnnotations(any(String.class))).thenReturn(new NamedAnnotations());
+		
+		when(mockNodeDao.isNodeAvailable(any(String.class))).thenReturn(true);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -239,6 +249,23 @@ public class NodeManagerImplUnitTest {
 		verify(mockNodeDao).getChildCount(parentId);
 	}
 	
+	@Test
+	public void testCreateNodeParentDoesNotExist() throws Exception {
+		String parenId = "syn123";
+		Node node = new Node();
+		node.setName("foo");
+		node.setParentId("syn123");
+		node.setNodeType(EntityType.folder);
+		when(mockNodeDao.isNodeAvailable(parenId)).thenReturn(false);
+		try {
+			// call under test
+			this.nodeManager.createNode(node, mockUserInfo);
+			fail();
+		} catch (NotFoundException e) {
+			assertTrue(e.getMessage().contains(parenId+" does not exist"));
+		}
+	}
+	
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateNodeNoUpload() throws Exception {
 		// Test creating a new node with nothing but the name and type set
@@ -274,6 +301,7 @@ public class NodeManagerImplUnitTest {
 		newNode.setNodeType(EntityType.folder);  // in reality it would be a 'FileEntity'
 		newNode.setFileHandleId(fileHandleId);
 		newNode.setParentId(parentId);
+		newNode.setETag(startEtag);
 		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
 		
 		// make sure the mock is ready
@@ -368,6 +396,7 @@ public class NodeManagerImplUnitTest {
 		node.setName("testUpdateNode");
 		node.setNodeType(EntityType.folder);	
 		node.setParentId(parentId);
+		node.setETag(startEtag);
 		String activityId = "8439208403928402";
 		node.setActivityId(activityId);		
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -400,7 +429,8 @@ public class NodeManagerImplUnitTest {
 		node.setId(nodeId);
 		node.setParentId(parentId);
 		node.setName("testUpdateNode");
-		node.setNodeType(EntityType.folder);		
+		node.setNodeType(EntityType.folder);
+		node.setETag(startEtag);
 		String activityId = "8439208403928402";
 		node.setActivityId(activityId);			
 		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
@@ -491,6 +521,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getParentId()).thenReturn(parentId);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("some name");
+		when(mockNode.getETag()).thenReturn(startEtag);
 		
 		// update for real
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -526,6 +557,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getParentId()).thenReturn(parentId);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("some name");
+		when(mockNode.getETag()).thenReturn(startEtag);
 		
 		// update for real
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -533,6 +565,29 @@ public class NodeManagerImplUnitTest {
 		nodeManager.deleteActivityLinkToNode(mockUserInfo, nodeId);
 		verify(mockNode).setActivityId(NodeDAO.DELETE_ACTIVITY_VALUE);		
 		verify(mockNodeDao).updateNode(mockNode);		
+	}
+	
+	@Test
+	public void testUpdate() {
+		// call under test
+		nodeManager.update(mockUserInfo, mockNode);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).touch(mockUserInfo.getId(), mockNode.getId());
+	}
+	
+	@Test
+	public void testUpdateConflictException() {
+		when(mockNode.getETag()).thenReturn("wrongEtag");
+		// call under test
+		try {
+			nodeManager.update(mockUserInfo, mockNode);
+			fail();
+		} catch (ConflictingUpdateException e) {
+			// expected
+			assertTrue(e.getMessage().contains(mockNode.getId()));
+		}
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao, never()).touch(any(Long.class), anyString());
 	}
 	
 	@Test
@@ -562,6 +617,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getParentId()).thenReturn(authorizedParentId);
 		when(mockNode.getNodeType()).thenReturn(EntityType.table);
 		when(mockNode.getName()).thenReturn("some name");
+		when(mockNode.getETag()).thenReturn(startEtag);
 		
 		// authorized	
 		nodeManager.update(mockUserInfo, mockNode);
@@ -670,28 +726,6 @@ public class NodeManagerImplUnitTest {
 		named.setEtag("etag");
 
 		nodeManager.update(mockUserInfo, mockNode, named, false);
-	}
-
-	@Test
-	public void testPromoteVersionAuthorized() throws Exception {
-		String nodeId = "123";
-		long versionNumber = 1L;
-		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Node mockNode = mock(Node.class);
-		when(mockNodeDao.getNodeForVersion(nodeId, versionNumber)).thenReturn(mockNode);
-		List<VersionInfo> versionInfoList = new ArrayList<VersionInfo>();
-		versionInfoList.add(mock(VersionInfo.class));
-		when(mockNodeDao.getVersionsOfEntity(nodeId, 0, 1)).thenReturn(versionInfoList);
-		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, versionNumber);
-		verify(mockNodeDao, times(1)).lockNodeAndIncrementEtag(eq(nodeId), anyString());
-		verify(mockNodeDao, times(1)).createNewVersion(mockNode);
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testPromoteVersionUnauthorized() throws Exception {
-		String nodeId = "123";
-		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
 	}
 
 	@Test
@@ -865,13 +899,13 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testValidateChildCountFileOver(){
 		EntityType type = EntityType.file;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer());
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer());
 		try {
 			nodeManager.validateChildCount(parentId, type);
 			fail();
 		} catch (IllegalArgumentException e) {
 			// expected
-			assertTrue(e.getMessage().contains(""+StackConfiguration.getMaximumNumberOfEntitiesPerContainer()));
+			assertTrue(e.getMessage().contains(""+StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer()));
 			assertTrue(e.getMessage().contains(parentId));
 		}
 	}
@@ -886,7 +920,7 @@ public class NodeManagerImplUnitTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateChildCountFolderOver(){
 		type = EntityType.folder;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer());
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer());
 		nodeManager.validateChildCount(parentId, type);
 	}
 	
@@ -900,7 +934,7 @@ public class NodeManagerImplUnitTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateChildCountLinkOver(){
 		type = EntityType.link;
-		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfiguration.getMaximumNumberOfEntitiesPerContainer());
+		when(mockNodeDao.getChildCount(parentId)).thenReturn(StackConfigurationSingleton.singleton().getMaximumNumberOfEntitiesPerContainer());
 		nodeManager.validateChildCount(parentId, type);
 	}
 	
@@ -918,7 +952,7 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testValidateChildCountParentTrash(){
-		parentId = StackConfiguration.getTrashFolderEntityIdStatic();
+		parentId = StackConfigurationSingleton.singleton().getTrashFolderEntityId();
 		nodeManager.validateChildCount(parentId, type);
 		// no check should occur for a move to the trash
 		verify(mockNodeDao, never()).getChildCount(anyString());
@@ -926,7 +960,7 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testValidateChildCountParentRoot(){
-		parentId = StackConfiguration.getRootFolderEntityIdStatic();
+		parentId = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 		nodeManager.validateChildCount(parentId, type);
 		// no check should occur for a create in root
 		verify(mockNodeDao, never()).getChildCount(anyString());
@@ -943,5 +977,33 @@ public class NodeManagerImplUnitTest {
 		annos.addAnnotation("one", "value");
 		annos.addAnnotation("one", 1.2);
 		nodeManager.validateAnnotations(annos);
+	}
+	
+	@Test
+	public void testUpdateAnnotations() {
+		Annotations updated = new Annotations();
+		updated.setEtag(startEtag);
+		updated.setId(nodeId);
+		// call under test
+		nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
+	}
+	
+	@Test
+	public void testUpdateAnnotationsConflict() {
+		Annotations updated = new Annotations();
+		updated.setEtag("wrongEtag");
+		updated.setId(nodeId);
+		try {
+			// call under test
+			nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+			fail();
+		} catch (ConflictingUpdateException e) {
+			// expected
+			assertTrue(e.getMessage().contains(nodeId));
+		} 
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao, never()).touch(any(Long.class), anyString());
 	}
 }

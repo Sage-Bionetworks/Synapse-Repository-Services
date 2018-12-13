@@ -12,8 +12,12 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -23,8 +27,11 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -34,6 +41,9 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class SubscriptionManagerImplTest {
 
@@ -45,6 +55,9 @@ public class SubscriptionManagerImplTest {
 	private SubscriptionDAO mockDao;
 	@Mock
 	private AccessControlListDAO mockAclDao;
+	@Captor
+	ArgumentCaptor<SubscriptionListRequest> subscriptionRequestCapture;
+	
 	private SubscriptionManagerImpl manager;
 	private Topic topic;
 	private String objectId;
@@ -52,6 +65,9 @@ public class SubscriptionManagerImplTest {
 	private Long userId;
 	private Long anotherUser;
 	private Subscription sub;
+	private Set<Long> projectIds;
+	private List<Subscription> subscriptions;
+	private Long totalCount;
 
 	@Before
 	public void before() {
@@ -76,6 +92,27 @@ public class SubscriptionManagerImplTest {
 		userInfo.setGroups(groups);
 		sub = new Subscription();
 		sub.setObjectId(objectId);
+		
+		// default filter is a simple pass through
+		doAnswer(new Answer<Set<Long>>() {
+			@Override
+			public Set<Long> answer(InvocationOnMock invocation) throws Throwable {
+				// return the benefactors unmodified.
+				return (Set<Long>) invocation.getArguments()[1];
+			}
+		}).when(mockAclDao).getAccessibleBenefactors(anySetOf(Long.class), anySetOf(Long.class), any(ObjectType.class),
+				any(ACCESS_TYPE.class));
+		
+		projectIds = Sets.newHashSet(123L,456L);
+		when(mockDao.getAllProjectsUserHasThreadSubs(any(String.class))).thenReturn(projectIds);
+		when(mockDao.getAllProjectsUserHasForumSubs(any(String.class))).thenReturn(projectIds);
+		
+		Subscription sub = new Subscription();
+		sub.setObjectId("123");
+		subscriptions = Lists.newArrayList(sub);
+		when(mockDao.listSubscriptions(any(SubscriptionListRequest.class))).thenReturn(subscriptions);
+		totalCount = 101L;
+		when(mockDao.listSubscriptionsCount(any(SubscriptionListRequest.class))).thenReturn(totalCount);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -150,6 +187,35 @@ public class SubscriptionManagerImplTest {
 		assertEquals(sub, manager.get(userInfo, subscriptionId.toString()));
 	}
 
+	@Test
+	public void testGetAllProjectsUserHasSubscriptionsOther() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.DATA_ACCESS_SUBMISSION;
+		// call under test
+		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		assertEquals(null, projects);
+		verifyNoMoreInteractions(mockDao);
+		verifyNoMoreInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testGetAllProjectsUserHasSubscriptionsForum() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		// call under test
+		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		assertEquals(projectIds, projects);
+		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+	}
+	
+	@Test
+	public void testGetAllProjectsUserHasSubscriptionsThread() {
+		SubscriptionObjectType objectType = SubscriptionObjectType.THREAD;
+		// call under test
+		Set<Long> projects = manager.getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		assertEquals(projectIds, projects);
+		verify(mockDao).getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
+		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidUserInfo() {
@@ -175,108 +241,136 @@ public class SubscriptionManagerImplTest {
 		manager.getList(userInfo, request);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetListInvalidTopicForDataAccessSubmission() {
-		SubscriptionRequest request = new SubscriptionRequest();
-		request.setObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION);
-		List<String> ids = new ArrayList<String>(1);
-		ids.add(objectId);
-		request.setIdList(ids);
-		manager.getList(userInfo, request);
-	}
-
 	@Test
-	public void testGetListForThread() {
-		SubscriptionRequest request = new SubscriptionRequest();
-		request.setObjectType(SubscriptionObjectType.THREAD);
-		List<String> ids = new ArrayList<String>(1);
-		ids.add(objectId);
-		request.setIdList(ids);
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.listSubscriptionForThread(userId.toString(), ids)).thenReturn(results);
-		assertEquals(results, manager.getList(userInfo, request));
-	}
-
-	@Test
-	public void testGetListForForum() {
+	public void testGetList() {
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(SubscriptionObjectType.FORUM);
 		List<String> ids = new ArrayList<String>(1);
 		ids.add(objectId);
 		request.setIdList(ids);
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.listSubscriptionForForum(userId.toString(), ids)).thenReturn(results);
-		assertEquals(results, manager.getList(userInfo, request));
+		request.setSortByType(SortByType.CREATED_ON);
+		request.setSortDirection(SortDirection.DESC);
+		// call under test
+		SubscriptionPagedResults results = manager.getList(userInfo, request);
+		assertNotNull(results);
+		assertEquals(subscriptions, results.getResults());
+		// size of the results are used for the total in this case.
+		assertEquals(new Long(subscriptions.size()), results.getTotalNumberOfResults());
+		// validate the passed parameters
+		verify(mockDao).listSubscriptions(subscriptionRequestCapture.capture());
+		SubscriptionListRequest passedRequest = subscriptionRequestCapture.getValue();
+		assertEquals(userInfo.getId().toString(), passedRequest.getSubscriberId());
+		assertEquals(ids, passedRequest.getObjectIds());
+		assertEquals(SubscriptionObjectType.FORUM, passedRequest.getObjectType());
+		assertEquals(SortByType.CREATED_ON, passedRequest.getSortByType());
+		assertEquals(SortDirection.DESC, passedRequest.getSortDirection());
+		// count is not used in this case
+		verify(mockDao, never()).listSubscriptionsCount(any(SubscriptionListRequest.class));
 	}
-
+	
 	@Test
-	public void testGetListForDataAccessSubmissionStatus() {
-		SubscriptionRequest request = new SubscriptionRequest();
-		request.setObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		List<String> ids = new ArrayList<String>(1);
-		ids.add(objectId);
-		request.setIdList(ids);
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.listSubscriptions(userId.toString(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS, ids)).thenReturn(results);
-		assertEquals(results, manager.getList(userInfo, request));
+	public void testGetAll() {
+		Long limit = 9L;
+		Long offset = 8L;
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		SortByType sortByType = SortByType.SUBSCRIBER_ID;
+		SortDirection sortDirection = SortDirection.ASC;
+		// call under test
+		SubscriptionPagedResults results = manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
+		assertNotNull(results);
+		assertEquals(subscriptions, results.getResults());
+		assertEquals(totalCount, results.getTotalNumberOfResults());
+		
+		// validate the passed parameters
+		verify(mockDao).listSubscriptions(subscriptionRequestCapture.capture());
+		SubscriptionListRequest passedRequest = subscriptionRequestCapture.getValue();
+		assertEquals(userInfo.getId().toString(), passedRequest.getSubscriberId());
+		assertEquals(projectIds, passedRequest.getProjectIds());
+		assertEquals(objectType, passedRequest.getObjectType());
+		assertEquals(sortByType, passedRequest.getSortByType());
+		assertEquals(sortDirection, passedRequest.getSortDirection());
+		assertEquals(limit, passedRequest.getLimit());
+		assertEquals(offset, passedRequest.getOffset());
+		// count should be called
+		verify(mockDao).listSubscriptionsCount(passedRequest);
+		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+	}
+	
+	@Test
+	public void testGetAllNullOptional() {
+		Long limit = 9L;
+		Long offset = 8L;
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		// sort is optional
+		SortByType sortByType = null;
+		SortDirection sortDirection = null;
+		// call under test
+		SubscriptionPagedResults results = manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
+		assertNotNull(results);
+		assertEquals(subscriptions, results.getResults());
+		assertEquals(totalCount, results.getTotalNumberOfResults());
+		
+		// validate the passed parameters
+		verify(mockDao).listSubscriptions(subscriptionRequestCapture.capture());
+		SubscriptionListRequest passedRequest = subscriptionRequestCapture.getValue();
+		assertEquals(userInfo.getId().toString(), passedRequest.getSubscriberId());
+		assertEquals(projectIds, passedRequest.getProjectIds());
+		assertEquals(objectType, passedRequest.getObjectType());
+		assertEquals(null, passedRequest.getSortByType());
+		assertEquals(null, passedRequest.getSortDirection());
+		assertEquals(limit, passedRequest.getLimit());
+		assertEquals(offset, passedRequest.getOffset());
+		// count should be called
+		verify(mockDao).listSubscriptionsCount(passedRequest);
+		verify(mockDao).getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+		verify(mockAclDao).getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllNullLimit() {
+		Long limit = null;
+		Long offset = 8L;
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		SortByType sortByType = SortByType.SUBSCRIBER_ID;
+		SortDirection sortDirection = SortDirection.ASC;
+		// call under test
+		 manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllNullOffset() {
+		Long limit = 9L;
+		Long offset = null;
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		SortByType sortByType = SortByType.SUBSCRIBER_ID;
+		SortDirection sortDirection = SortDirection.ASC;
+		// call under test
+		 manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllNullType() {
+		Long limit = 9L;
+		Long offset = 8L;
+		SubscriptionObjectType objectType = null;
+		SortByType sortByType = SortByType.SUBSCRIBER_ID;
+		SortDirection sortDirection = SortDirection.ASC;
+		// call under test
+		 manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetAllInvalidUserInfo() {
-		manager.getAll(null, 10L, 0L, null);
+	public void testGetAllNullUser() {
+		Long limit = 9L;
+		Long offset = 8L;
+		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
+		SortByType sortByType = SortByType.SUBSCRIBER_ID;
+		SortDirection sortDirection = SortDirection.ASC;
+		userInfo = null;
+		// call under test
+		 manager.getAll(userInfo, limit, offset, objectType, sortByType, sortDirection);
 	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAllInvalidLimit() {
-		manager.getAll(userInfo, null, 0L, null);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAllInvalidOffset() {
-		manager.getAll(userInfo, 10L, null, null);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAllInvalidObjectType() {
-		manager.getAll(userInfo, 10L, 0L, null);
-	}
-
-	@Test
-	public void testGetAllThreadSubscriptions() {
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		Set<Long> projectIds = new HashSet<Long>();
-		when(mockDao.getAllThreadSubscriptions(userId.toString(), 10L, 0L, projectIds )).thenReturn(results);
-		when(mockDao.getAllProjectsUserHasThreadSubs(userId.toString())).thenReturn(projectIds);
-		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
-		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.THREAD));
-	}
-
-	@Test
-	public void testGetAllForForum() {
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		Set<Long> projectIds = new HashSet<Long>();
-		when(mockDao.getAllForumSubscriptions(userId.toString(), 10L, 0L, projectIds )).thenReturn(results);
-		when(mockDao.getAllProjectsUserHasForumSubs(userId.toString())).thenReturn(projectIds);
-		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
-		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.FORUM));
-	}
-
-	@Test
-	public void testGetAllSubscriptionForDataAccessSubmission() {
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.getAllSubscriptions(userId.toString(), 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION)).thenReturn(results);
-		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
-		verifyZeroInteractions(mockAclDao);
-	}
-
-	@Test
-	public void testGetAllForDataAccessSubmissionStatus() {
-		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.getAllSubscriptions(userId.toString(), 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS)).thenReturn(results);
-		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS));
-		verifyZeroInteractions(mockAclDao);
-	}
-
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteInvalidUserInfo() {
 		manager.delete(null, "1");

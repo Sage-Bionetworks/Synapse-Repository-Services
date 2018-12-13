@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.manager.search;
 
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
-import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
-import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
 import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
 
 import java.io.IOException;
@@ -14,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -39,6 +37,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.search.SearchUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -72,11 +71,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	static { // initialize SEARCHABLE_NODE_ANNOTATIONS
 		// NOTE: ORDER MATTERS. Earlier annotation key names will be preferred over later ones if both keys are present.
 		Map<String, List<String>> searchableNodeAnnotations = new HashMap<>();
-		searchableNodeAnnotations.put(FIELD_DISEASE, Collections.unmodifiableList(Arrays.asList("disease")));
-		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue", "tissue_tumor", "sampleSource", "tissueType")));
-		searchableNodeAnnotations.put(FIELD_PLATFORM, Collections.unmodifiableList(Arrays.asList("platform", "platformDesc", "platformVendor")));
-		searchableNodeAnnotations.put(FIELD_NUM_SAMPLES, Collections.unmodifiableList(Arrays.asList("numSamples", "num_samples", "number_of_samples")));
+		searchableNodeAnnotations.put(FIELD_DIAGNOSIS, Collections.unmodifiableList(Arrays.asList("diagnosis")));
+		searchableNodeAnnotations.put(FIELD_TISSUE, Collections.unmodifiableList(Arrays.asList("tissue")));
 		searchableNodeAnnotations.put(FIELD_CONSORTIUM, Collections.unmodifiableList(Arrays.asList("consortium")));
+		searchableNodeAnnotations.put(FIELD_ORGAN, Collections.unmodifiableList(Arrays.asList("organ")));
 
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
@@ -95,7 +93,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @throws IOException 
 	 * @throws DatastoreException 
 	 */
-	public Document formulateFromBackup(Node node) throws NotFoundException, DatastoreException, IOException {
+	public Document formulateFromBackup(Node node) throws NotFoundException, DatastoreException {
 		if (node.getId() == null)
 			throw new IllegalArgumentException("node.id cannot be null");
 		String benefactorId = nodeDao.getBenefactor(node.getId());
@@ -147,38 +145,17 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 		// The description contains the entity description and all wiki page
 		// text
-		StringBuilder descriptionValue = new StringBuilder();
-		if (wikiPagesText != null) {
-			descriptionValue.append(wikiPagesText);
-		}
-		// Set the description
-		fields.setDescription(descriptionValue.toString());
+		String descriptionValue = wikiPagesText != null ? wikiPagesText : "";
+		// Set user generated description after sanitizing it
+		fields.setDescription(SearchUtil.stripUnsupportedUnicodeCharacters(descriptionValue));
 
 		fields.setCreated_by(node.getCreatedByPrincipalId().toString());
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
 		fields.setModified_by(node.getModifiedByPrincipalId().toString());
 		fields.setModified_on(node.getModifiedOn().getTime() / 1000);
 
-		// Stuff in this field any extra copies of data that you would like to
-		// boost in free text search
-		List<String> boost = new ArrayList<String>();
-		fields.setBoost(boost);
-		boost.add(node.getName());
-		boost.add(node.getName());
-		boost.add(node.getName());
-		boost.add(node.getId());
-		boost.add(node.getId());
-		boost.add(node.getId());
-
 		// Annotations
 		addAnnotationsToSearchDocument(fields, annos);
-
-		// References, just put the node id to which the reference refers. Not
-		// currently adding the version or the type of the reference (e.g.,
-		// code/input/output)
-		if (null != node.getReference()) {
-			fields.setReferences(Arrays.asList(node.getReference().getTargetId()));
-		}
 
 		// READ and UPDATE ACLs
 		List<String> readAclValues = new ArrayList<String>();
@@ -235,17 +212,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
 
 		//set the values for the document fields
-		fields.setDisease(getSearchIndexFieldValue(firstAnnotationValues, FIELD_DISEASE));
+		fields.setDiagnosis(getSearchIndexFieldValue(firstAnnotationValues, FIELD_DIAGNOSIS));
 		fields.setConsortium(getSearchIndexFieldValue(firstAnnotationValues, FIELD_CONSORTIUM));
 		fields.setTissue(getSearchIndexFieldValue(firstAnnotationValues, FIELD_TISSUE));
-		fields.setPlatform(getSearchIndexFieldValue(firstAnnotationValues, FIELD_PLATFORM));
-		try {
-			fields.setNum_samples(NumberUtils.createLong(getSearchIndexFieldValue(firstAnnotationValues, FIELD_NUM_SAMPLES)));
-		}catch (NumberFormatException e){
-			/* If the user did not provide a numeric value for FIELD_NUM_SAMPLES
-			   then that value will not be added to the search index. This is not considered an error.
-			 */
-		}
+		fields.setOrgan(getSearchIndexFieldValue(firstAnnotationValues, FIELD_ORGAN));
 
 	}
 
@@ -269,7 +239,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
 		for(String key: anno.keySet()){
 			Object value = anno.getSingleValue(key);
-			if(!(value instanceof byte[])) {
+			if( value != null && !(value instanceof byte[])) {
 				annoValuesMap.putIfAbsent(key.toLowerCase(), value.toString());
 			}
 		}
@@ -285,7 +255,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		for(String possibleAnnotationName: SEARCHABLE_NODE_ANNOTATIONS.get(indexFieldKey)){
 			String value = firsAnnotationValues.get(possibleAnnotationName.toLowerCase());
 			if(value != null){
-				return value;
+				//sanitize user generated values
+				return SearchUtil.stripUnsupportedUnicodeCharacters(value);
 			}
 		}
 		return null;
@@ -293,8 +264,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 
 	@Override
-	public Document formulateSearchDocument(String nodeId)
-			throws DatastoreException, NotFoundException, IOException {
+	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException {
 		if (nodeId == null)
 			throw new IllegalArgumentException("NodeId cannot be null");
 		Node node = nodeDao.getNode(nodeId);
@@ -323,7 +293,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @throws DatastoreException
 	 * @throws IOException 
 	 */
-	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException {
+	public String getAllWikiPageText(String nodeId) throws DatastoreException {
 		// Lookup all wiki pages for this node
 		try {
 			long limit = 100L;
@@ -347,6 +317,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				builder.append(markdownString);
 			}
 			return builder.toString();
+		} catch (IOException e){
+			throw new RuntimeException(e);
 		} catch (NotFoundException e) {
 			// There is no WikiPage for this node.
 			return null;

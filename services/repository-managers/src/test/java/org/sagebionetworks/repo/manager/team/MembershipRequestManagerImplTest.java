@@ -21,13 +21,17 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -44,14 +48,22 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class MembershipRequestManagerImplTest {
 	
+	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	private MembershipRequestManagerImpl membershipRequestManagerImpl;
+	@Mock
 	private MembershipRequestDAO mockMembershipRequestDAO;
+	@Mock
 	private UserProfileManager mockUserProfileManager;
+	@Mock
 	private TeamDAO mockTeamDAO;
+	@Mock
 	private AccessRequirementDAO mockAccessRequirementDAO;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
@@ -60,17 +72,13 @@ public class MembershipRequestManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockMembershipRequestDAO = Mockito.mock(MembershipRequestDAO.class);
-		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
-		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl();
 		ReflectionTestUtils.setField(membershipRequestManagerImpl, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(membershipRequestManagerImpl, "membershipRequestDAO", mockMembershipRequestDAO);
 		ReflectionTestUtils.setField(membershipRequestManagerImpl, "userProfileManager", mockUserProfileManager);
 		ReflectionTestUtils.setField(membershipRequestManagerImpl, "teamDAO", mockTeamDAO);
 		ReflectionTestUtils.setField(membershipRequestManagerImpl, "accessRequirementDAO", mockAccessRequirementDAO);
+		ReflectionTestUtils.setField(membershipRequestManagerImpl, "tokenGenerator", mockTokenGenerator);
 
 		userInfo = new UserInfo(false);
 		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));
@@ -219,7 +227,7 @@ public class MembershipRequestManagerImplTest {
 			String teamName = "test-team";
 			String requesterMessage = "The requester sends the following message: <Blockquote> Please let me in your team. </Blockquote> ";
 			String adminId = teamAdmins.get(i);
-			String oneClickJoin = EmailUtils.createOneClickJoinTeamLink(acceptRequestEndpoint, adminId, userId, teamId, mrs.getCreatedOn());
+			String oneClickJoin = EmailUtils.createOneClickJoinTeamLink(acceptRequestEndpoint, adminId, userId, teamId, mrs.getCreatedOn(), mockTokenGenerator);
 			String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
 					"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
 					"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 

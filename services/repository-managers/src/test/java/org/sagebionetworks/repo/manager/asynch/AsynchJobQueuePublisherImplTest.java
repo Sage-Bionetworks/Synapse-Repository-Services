@@ -4,11 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -35,9 +38,11 @@ public class AsynchJobQueuePublisherImplTest {
 	public void testPublishRoundTrip() throws Exception{
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setJobId("123");
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn8786");
-		body.setUploadFileHandleId("333");
+		UploadToTableRequest uploadToTableRequest = new UploadToTableRequest();
+		uploadToTableRequest.setTableId("syn8786");
+		uploadToTableRequest.setUploadFileHandleId("333");
+		TableUpdateTransactionRequest body = new TableUpdateTransactionRequest();
+		body.setChanges(Collections.singletonList(uploadToTableRequest));
 		status.setRequestBody(body);
 		// publish it
 		asynchJobQueuePublisher.publishMessage(status);
@@ -46,7 +51,7 @@ public class AsynchJobQueuePublisherImplTest {
 		assertNotNull(message);
 		assertEquals(status.getJobId(), message.getBody());
 		// Delete the message
-		asynchJobQueuePublisher.deleteMessage(AsynchJobType.UPLOAD_CSV_TO_TABLE, message);
+		asynchJobQueuePublisher.deleteMessage(AsynchJobType.TABLE_UPDATE_TRANSACTION, message);
 	}
 
 	/**
@@ -56,7 +61,7 @@ public class AsynchJobQueuePublisherImplTest {
 	public Message waitForOneMessage() throws InterruptedException {
 		long start = System.currentTimeMillis();
 		while(true){
-			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.UPLOAD_CSV_TO_TABLE);
+			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.TABLE_UPDATE_TRANSACTION);
 			if(message != null){
 				return message;
 			}else{

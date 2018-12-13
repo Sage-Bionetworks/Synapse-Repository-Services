@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
@@ -40,8 +41,8 @@ public class IT101Administration {
 	public static void beforeClass() throws Exception {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 	}
 	
 	@Before
@@ -144,5 +145,13 @@ public class IT101Administration {
 	@Test
 	public void testClearAllLocks() throws SynapseException{
 		adminSynapse.clearAllLocks();
+	}
+	
+	@Test
+	public void testCreateIdGeneratorExport() throws SynapseException {
+		// call under test
+		IdGeneratorExport export = adminSynapse.createIdGeneratorExport();
+		assertNotNull(export);
+		assertNotNull(export.getExportScript());
 	}
 }

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -130,13 +131,14 @@ public interface TableServices {
 	 * @return
 	 */
 	public Long getMaxRowsPerPage(List<ColumnModel> models);
-
+	
+	
 	/**
 	 * Get the default columns for a view of the given type.
-	 * @param valueOf
+	 * @param viewTypeMask 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultViewColumnsForType(ViewType valueOf);
+	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask);
 
 	/**
 	 * Get the possible ColumnModel definitions based on annotations for a given view.
@@ -153,6 +155,6 @@ public interface TableServices {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, ViewType type,
+	ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope,
 			String nextPageToken);
 }

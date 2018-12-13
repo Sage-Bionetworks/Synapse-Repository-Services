@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -45,6 +46,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -463,6 +465,24 @@ public abstract class BaseController {
 		return handleException(ex, request, false);
 	}
 
+
+	/**
+	 * PLFM-3574 -- throw a 400-level error when a client uses the wrong verb on
+	 * an existing call
+	 * @param ex the exception thrown by Spring when a method is called that isn't supported
+	 * @param request the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+	@ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+	public @ResponseBody
+	ErrorResponse handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
+															   HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
+
+
 	/**
 	 * Haven't been able to get this one to happen yet
 	 * 
@@ -679,7 +699,7 @@ public abstract class BaseController {
 	 */
 	private ErrorResponse handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace) {
 		// Always log the stack trace on develop stacks
-		if (fullTrace || StackConfiguration.isDevelopStack()) {
+		if (fullTrace || StackConfigurationSingleton.singleton().isDevelopStack()) {
 			// Print the full stack trace
 			log.error("Handling " + request.toString(), ex);
 		} else {
@@ -804,6 +824,7 @@ public abstract class BaseController {
 			HttpServletResponse response) {
 		return handleException(ex, request, false);
 	}
+
 
 	@ExceptionHandler(UnexpectedRollbackException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)

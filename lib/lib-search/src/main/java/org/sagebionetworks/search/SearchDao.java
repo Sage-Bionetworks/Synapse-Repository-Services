@@ -1,6 +1,7 @@
 package org.sagebionetworks.search;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -25,29 +26,18 @@ public interface SearchDao {
 	 * @param toCreate
 	 */
 	void createOrUpdateSearchDocument(Document toCreate);
-	 
-	 /**
-	 * Create or update a batch of search documents
-	 * 
-	 * @param batch
-	 */
-	void createOrUpdateSearchDocument(List<Document> batch);
-	 
-	 /**
-	 * Delete a document using its id.
-	 * 
-	 * @param docIdToDelete
-	 */
-	void deleteDocument(String docIdToDelete);
-	 
-	 /**
+
+	/**
 	 * Delete all documents with the passed set of document ids.
 	 * 
 	 * @param docIdsToDelete
 	 */
+	@Deprecated
 	void deleteDocuments(Set<String> docIdsToDelete);
-	 
-	 /**
+
+	void sendDocuments(Iterator<Document> documentIterator);
+
+	/**
 	 * Execute a query.
 	 * 
 	 * @param search

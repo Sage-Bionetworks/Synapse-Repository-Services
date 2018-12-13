@@ -35,7 +35,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -61,9 +63,10 @@ public class TableViewManagerImplTest {
 	List<String> schema;
 	List<String> scope;
 	String viewId;
-	ViewType viewType;
+	Long viewType;
 	
 	Set<Long> scopeIds;
+	ViewScope viewScope;
 	long rowCount;
 	List<Row> rows;
 	long viewCRC;
@@ -93,7 +96,11 @@ public class TableViewManagerImplTest {
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		
 		viewId = "syn555";
-		viewType = ViewType.file;
+		viewType =ViewTypeMask.File.getMask();
+		
+		viewScope = new ViewScope();
+		viewScope.setScope(scope);
+		viewScope.setViewTypeMask(viewType);
 		
 		doAnswer(new Answer<ColumnModel>(){
 			@Override
@@ -171,19 +178,19 @@ public class TableViewManagerImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySetOf(Long.class), any(ViewType.class));
+		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySetOf(Long.class), any(Long.class));
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 	}
 	
 	@Test
 	public void testSetViewSchemaAndScope(){
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		// the size should be validated
 		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
+		verify(columnModelManager).bindColumnToObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
@@ -196,7 +203,7 @@ public class TableViewManagerImplTest {
 		}
 		try {
 			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 			fail();
 		} catch (IllegalArgumentException e) {
 			// expected
@@ -209,27 +216,57 @@ public class TableViewManagerImplTest {
 	public void testSetViewSchemaAndScopeWithNullSchema(){
 		schema = null;
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnToObject(userInfo, null, viewId);
+		verify(columnModelManager).bindColumnToObject(null, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
 	@Test
 	public void testSetViewSchemaAndScopeWithNullScope(){
-		scope = null;
+		viewScope.setScope(null);
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
-		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
+		verify(columnModelManager).bindColumnToObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetViewSchemaAndScopeWithNullType(){
-		viewType = null;
+		viewScope.setViewType(null);
+		viewScope.setViewTypeMask(null);
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		
+	}
+	
+	/**
+	 * Project cannot be combined with anything else.
+	 */
+	@Test
+	public void testSetViewSchemaAndScopeWithProjectCombinedWithOtherTypes(){
+		long mask = ViewTypeMask.Project.getMask() | ViewTypeMask.File.getMask();
+		viewScope.setViewTypeMask(mask);
+		try {
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals(TableViewManagerImpl.PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE, e.getMessage());
+		}
+	}
+	
+	/**
+	 * Project cannot be combined with anything else.
+	 */
+	@Test
+	public void testSetViewSchemaAndScopeWithProjectOnly(){
+		long mask = ViewTypeMask.Project.getMask();
+		viewScope.setViewTypeMask(mask);
+		// call under test
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), mask);
 	}
 	
 	@Test
@@ -289,7 +326,7 @@ public class TableViewManagerImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
 		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
-		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
+		when(columnModelManager.bindColumnToObject(newColumnIds, viewId)).thenReturn(schema);
 		
 		// call under test
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
@@ -320,7 +357,7 @@ public class TableViewManagerImplTest {
 		}
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
 		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
-		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
+		when(columnModelManager.getAndValidateColumnModels(newColumnIds)).thenReturn(schema);
 		
 		try {
 			// call under test

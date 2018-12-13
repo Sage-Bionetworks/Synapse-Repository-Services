@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -30,7 +30,7 @@ public class LogDAOImpl implements LogDAO {
 	Logger log = LogManager.getLogger(LogDAOImpl.class);
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private AmazonS3 s3Client;
 	private int stackInstanceNumber;
 	private String stackInstancePrefixString;
 	private String bucketName;

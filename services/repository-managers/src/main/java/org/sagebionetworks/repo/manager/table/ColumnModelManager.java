@@ -50,13 +50,14 @@ public interface ColumnModelManager {
 	public List<ColumnModel> createColumnModels(UserInfo user, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get a list of column models for the given list of IDs
+	 * Get a list of column models for the given list of IDs.
 	 * @param ids
-	 * @return
+	 * @return The result order will match the order of the requested IDs.
+	 * 
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getAndValidateColumnModels(List<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns models bound to a Table.
@@ -86,7 +87,7 @@ public interface ColumnModelManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> bindColumnToObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Remove all column bindings for an object
@@ -155,5 +156,12 @@ public interface ColumnModelManager {
 	 * @return
 	 */
 	public List<String> getColumnIdForTable(String id);
+
+	/**
+	 * Get the column models bound to this object.
+	 * @param tableId
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModelsForObject(String tableId);
 }
 

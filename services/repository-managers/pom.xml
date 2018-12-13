@@ -165,58 +165,43 @@
 		<dependency>
 			<groupId>com.atlassian.jira</groupId>
 			<artifactId>jira-rest-java-client-api</artifactId>
-			<version>2.0.0-m19</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.atlassian.jira</groupId>
 			<artifactId>jira-rest-java-client-core</artifactId>
-			<version>2.0.0-m19</version>
 		</dependency>
 
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>${org.json.version}</version>
-		</dependency>
-
-		<!-- Convert .pdf to .png -->
-		<dependency>
-			<groupId>org.apache.pdfbox</groupId>
-			<artifactId>pdfbox</artifactId>
-			<version>1.8.10</version>
 		</dependency>
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt</artifactId>
-			<version>0.7.0</version>
 		</dependency>
 
 		<!-- jsonwebtoken seems to need this JSON library -->
 		<dependency>
 			<groupId>com.googlecode.json-simple</groupId>
 			<artifactId>json-simple</artifactId>
-			<version>1.1</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>1.55</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
-			<version>1.55</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-ext-jdk15on</artifactId>
-			<version>1.55</version>
 		</dependency>
 	</dependencies>
 
@@ -255,22 +240,6 @@
 				<configuration>
 					<argLine>-Xmx1024m -Xms128m</argLine>
 				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>schema-to-pojo-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<configuration>
-							<sourceDirectory>src/test/resources/test-schemas</sourceDirectory>
-							<outputDirectory>${project.build.directory}/auto-generated</outputDirectory>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>

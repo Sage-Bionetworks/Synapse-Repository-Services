@@ -24,6 +24,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -69,8 +70,8 @@ public class IT501SynapseJavaClientMessagingTest {
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
@@ -242,7 +243,7 @@ public class IT501SynapseJavaClientMessagingTest {
 				oneToTwo = synapseOne.sendMessage(oneToTwo);
 				cleanup.add(oneToTwo.getId());
 			} catch (SynapseServerException e) {
-				if (e.getStatusCode()==429) {
+				if (e instanceof SynapseTooManyRequestsException) {
 					gotNerfed = true;
 					break;
 				}

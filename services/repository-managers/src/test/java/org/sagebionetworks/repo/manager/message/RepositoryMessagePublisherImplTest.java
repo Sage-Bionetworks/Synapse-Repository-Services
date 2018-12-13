@@ -10,13 +10,17 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.AmazonSNS;
 
 /**
  * Unit test for RepositoryMessagePublisherImpl.
@@ -24,25 +28,26 @@ import com.amazonaws.services.sns.AmazonSNSClient;
  * @author John
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class RepositoryMessagePublisherImplTest {
-	
+
 	ChangeMessage message;
+	@Mock
 	TransactionalMessenger mockTransactionalMessanger;
-	AmazonSNSClient mockAwsSNSClient;
-	
+	@Mock
+	AmazonSNS mockAwsSNSClient;
+
+	@InjectMocks
 	RepositoryMessagePublisherImpl messagePublisher;
 	
 	@Before
 	public void before(){
-		mockTransactionalMessanger = Mockito.mock(TransactionalMessenger.class);
-		mockAwsSNSClient = Mockito.mock(AmazonSNSClient.class);
 		message = new ChangeMessage();
 		message.setChangeNumber(123l);
 		message.setTimestamp(new Date());
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectId("syn456");
 		message.setObjectType(ObjectType.ENTITY);
-		messagePublisher = new RepositoryMessagePublisherImpl("prefix", "name", mockTransactionalMessanger, mockAwsSNSClient);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

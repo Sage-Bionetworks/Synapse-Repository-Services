@@ -4,6 +4,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -71,7 +73,7 @@ public class SubscriptionController extends BaseController{
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ALL, method = RequestMethod.POST)
 	public @ResponseBody Subscription subscribeAll(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM) SubscriptionObjectType objectType) {
+			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM) SubscriptionObjectType objectType){
 		return serviceProvider.getSubscriptionService().subscribeAll(userId, objectType);
 	}
 
@@ -119,6 +121,8 @@ public class SubscriptionController extends BaseController{
 	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @param objectType - User can use this param to filter the results by the type of object they subscribed to.
+	 * @param sortByType - When provided, the results will be sorted by this type.
+	 * @param sortDirection- When provided, the results will be sorted in this direction.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -127,8 +131,10 @@ public class SubscriptionController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM) SubscriptionObjectType objectType) {
-		return serviceProvider.getSubscriptionService().getAll(userId, limit, offset, objectType);
+			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM) SubscriptionObjectType objectType,
+			@RequestParam(value = ServiceConstants.SUBSCRIPTION_SORT_TYPE_PARAM, required=false) SortByType sortByType,
+			@RequestParam(value = ServiceConstants.SUBSCRIPTION_SORT_DIRECTION_PARAM, required=false) SortDirection sortDirection) {
+		return serviceProvider.getSubscriptionService().getAll(userId, limit, offset, objectType, sortByType, sortDirection);
 	}
 
 	/**

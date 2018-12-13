@@ -102,6 +102,9 @@ public class UserProfileUtils {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
+		if(dbo.getCreatedOn() != null) {
+			dto.setCreatedOn(new Date(dbo.getCreatedOn()));
+		}
 		return dto;
 	}
 	

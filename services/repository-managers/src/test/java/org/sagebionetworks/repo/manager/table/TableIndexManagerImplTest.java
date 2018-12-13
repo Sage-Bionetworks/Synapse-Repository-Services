@@ -44,7 +44,8 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
@@ -90,8 +91,9 @@ public class TableIndexManagerImplTest {
 	String tokenString;
 	List<String> scopeSynIds;
 	Set<Long> scopeIds;
+	ViewScope scope;
 	
-	ViewType viewType;
+	Long viewType;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -149,11 +151,14 @@ public class TableIndexManagerImplTest {
 		tokenString = nextPageToken.toToken();
 		scopeSynIds = Lists.newArrayList("syn123","syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
-		viewType = ViewType.file;
-		when(mockManagerSupport.getViewType(tableId)).thenReturn(viewType);
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(ViewType.class), anyLong(), anyLong())).thenReturn(schema);
+		viewType = ViewTypeMask.File.getMask();
+		when(mockManagerSupport.getViewTypeMask(tableId)).thenReturn(viewType);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, viewType)).thenReturn(containerIds);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
+		scope = new ViewScope();
+		scope.setScope(scopeSynIds);
+		scope.setViewTypeMask(viewType);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -239,7 +244,7 @@ public class TableIndexManagerImplTest {
 		boolean isTableView = false;
 		// call under test
 		manager.setIndexSchema(tableId, isTableView, mockCallback, schema);
-		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
@@ -250,7 +255,7 @@ public class TableIndexManagerImplTest {
 		boolean isTableView = false;
 		// call under test
 		manager.setIndexSchema(tableId, isTableView, mockCallback, new LinkedList<ColumnModel>());
-		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(new LinkedList<>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 
@@ -321,7 +326,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
-		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(newColumn));
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(newColumn.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
@@ -349,7 +354,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
-		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(new LinkedList<ColumnModel>());
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(new LinkedList<>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
@@ -389,7 +394,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testPopulateViewFromEntityReplication(){
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
@@ -405,7 +410,7 @@ public class TableIndexManagerImplTest {
 	 */
 	@Test
 	public void testPopulateViewFromEntityReplicationMissingEtagColumn(){
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
@@ -420,7 +425,7 @@ public class TableIndexManagerImplTest {
 	 */
 	@Test
 	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
@@ -432,7 +437,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testPopulateViewFromEntityReplicationNullViewType(){
-		ViewType viewType = null;
+		viewType = null;
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
@@ -441,7 +446,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testPopulateViewFromEntityReplicationScopeNull(){
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = null;
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
@@ -450,7 +455,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testPopulateViewFromEntityReplicationSchemaNull(){
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = null;
 		// call under test
@@ -459,7 +464,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testPopulateViewFromEntityReplicationCallbackNull(){
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		mockCallback = null;
@@ -469,7 +474,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception{
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
@@ -482,7 +487,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationUnknownCause() throws Exception{
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// setup a failure
@@ -500,7 +505,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationKnownCause() throws Exception{
-		ViewType viewType = ViewType.file;
+		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		
@@ -559,7 +564,7 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForContainerHasNextPage(){
 		List<ColumnModel> pagePluseOne = new LinkedList<ColumnModel>(schema);
 		pagePluseOne.add(new ColumnModel());
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(ViewType.class), anyLong(), anyLong())).thenReturn(pagePluseOne);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(pagePluseOne);
 		nextPageToken =  new NextPageToken(schema.size(), 0L);
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, nextPageToken.toToken());
@@ -567,7 +572,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, nextPageToken.getLimit()+1, nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	
@@ -589,7 +594,7 @@ public class TableIndexManagerImplTest {
 		assertNotNull(results.getResults());
 		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
-		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(anySet(), any(ViewType.class), anyLong(), anyLong());
+		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong());
 	}
 	
 	
@@ -620,7 +625,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -630,17 +635,17 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull(){
 		viewType = null;
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		// should default to file view.
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewType.file, nextPageToken.getLimit()+1, nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
-		scopeSynIds = null;
+		scope.setScope(null);
 		// call under test
-		manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
+		manager.getPossibleColumnModelsForScope(scope, tokenString);
 	}
 	
 	/**

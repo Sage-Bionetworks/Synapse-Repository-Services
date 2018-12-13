@@ -64,7 +64,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns currently bound to an object in the order they were bound.
@@ -75,6 +75,14 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @throws NotFoundException
 	 */
 	public List<ColumnModel> getColumnModelsForObject(String tableId) throws DatastoreException;
+	
+	/**
+	 * Get the column IDs for the given Object.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public List<String> getColumnModelIdsForObject(String tableId);
 	
 	/**
 	 * Delete a column model using its ID.  Note: Only a column model that is not currently in use can be deleted.
@@ -101,7 +109,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @return True if the this object was not already bound to this object.
 	 * @throws NotFoundException 
 	 */
-	public int bindColumnToObject(List<String> columnIds, String objectId) throws NotFoundException;
+	public int bindColumnToObject(List<ColumnModel> columnModels, String objectId) throws NotFoundException;
 	
 	/**
 	 * List all objects that are bound to a set of column IDs.

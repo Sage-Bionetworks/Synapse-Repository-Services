@@ -1,0 +1,9 @@
+{
+  "description": "JSON schema for DOI Metadata Title.",
+  "properties": {
+    "title":{
+      "type":"string",
+      "description":"Required. A name or title by which a resource is known"
+    }
+  }
+}
