@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_NAME;
@@ -627,6 +628,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 				}
+				if(dto.getIsInSynapseStorage() != null) {
+					ps.setBoolean(parameterIndex++, dto.getIsInSynapseStorage());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BOOLEAN);
+				}
 			}
 
 			@Override
@@ -699,7 +705,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					if(rs.wasNull()){
 						dto.setFileSizeBytes(null);
 					}
-					
+					dto.setIsInSynapseStorage(rs.getBoolean(ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE));
+					if(rs.wasNull()) {
+						dto.setIsInSynapseStorage(null);
+					}
+
 					return dto;
 				}}, entityId);
 		} catch (DataAccessException e) {

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -335,6 +336,17 @@ public class NodeUtilsTest {
 		assertEquals(new Long(123), dbo.getOwner());
 		assertNotNull(dbo.getReference());
 	}
+
+	@Test
+	public void testIsBucketSynapseStorage() {
+		String synapseBucket = StackConfigurationSingleton.singleton().getS3Bucket();
+		assertTrue(NodeUtils.isBucketSynapseStorage(synapseBucket));
+
+		String notSynapseBucket = "s3://my.personal.bucket";
+		assertFalse(NodeUtils.isBucketSynapseStorage(notSynapseBucket));
+
+		assertNull(NodeUtils.isBucketSynapseStorage(null));
+	}
 	
 	Node createDefaultNode() {
 		Node node = new Node();
@@ -360,8 +372,8 @@ public class NodeUtilsTest {
 		node.setVersionComment("aComment");
 		return node;
 	}
-	
-	
+
+
 	/**
 	 * Helper to create a string of a given size
 	 * @param size

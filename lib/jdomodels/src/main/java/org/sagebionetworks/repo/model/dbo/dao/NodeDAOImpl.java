@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
@@ -315,7 +316,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N." + COL_NODE_NAME
 			+ ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
 			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
-			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_ANNOS_BLOB + ", F." + COL_FILES_CONTENT_SIZE
+			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_ANNOS_BLOB + ", F." + COL_FILES_CONTENT_SIZE +
+			", F." + COL_FILES_BUCKET_NAME
 			+ " FROM " + JOIN_NODE_REVISION_FILES+" WHERE N."
 			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ") ORDER BY N."+COL_NODE_ID+" ASC";
 	
@@ -366,7 +368,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
-	
+
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
 		@Override
 		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -1601,6 +1603,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setFileSizeBytes(rs.getLong(COL_FILES_CONTENT_SIZE));
 				if(rs.wasNull()) {
 					dto.setFileSizeBytes(null);
+				}
+				dto.setIsInSynapseStorage(NodeUtils.isBucketSynapseStorage(rs.getString(COL_FILES_BUCKET_NAME)));
+				if (rs.wasNull()) {
+					dto.setIsInSynapseStorage(null);
 				}
 				Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
 				if(blob != null){
