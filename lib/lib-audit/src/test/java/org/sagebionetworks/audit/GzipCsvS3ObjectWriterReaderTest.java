@@ -17,6 +17,7 @@ import org.sagebionetworks.csv.utils.ExampleObject;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
 public class GzipCsvS3ObjectWriterReaderTest {
 
@@ -60,7 +61,7 @@ public class GzipCsvS3ObjectWriterReaderTest {
 		// Can we read the results?
 		List<ExampleObject> results = reader.readFromStream(inCapture.getValue());
 		assertEquals(data, results);
-		assertEquals("attachment; filename="+key+";", metaCapture.getValue().getContentDisposition());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(key), metaCapture.getValue().getContentDisposition());
 		assertEquals("application/x-gzip", metaCapture.getValue().getContentType());
 		assertEquals("gzip", metaCapture.getValue().getContentEncoding());
 		assertTrue(metaCapture.getValue().getContentLength() > 1);

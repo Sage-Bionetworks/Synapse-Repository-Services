@@ -11,6 +11,7 @@ import org.sagebionetworks.csv.utils.ObjectCSVWriter;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
 /**
  * A writer that writes csv.gz object files to S3.
@@ -71,7 +72,7 @@ public class GzipCsvS3ObjectWriter<T> {
 		ObjectMetadata om = new ObjectMetadata();
 		om.setContentType("application/x-gzip");
 		om.setContentEncoding("gzip");
-		om.setContentDisposition("attachment; filename=" + key + ";");
+		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(key));
 		om.setContentLength(bytes.length);
 		awsS3Client.putObject(bucket, key, in, om);
 	}

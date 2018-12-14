@@ -23,6 +23,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
 /**
  * This class helps write records to a file and push the file to S3.
@@ -70,7 +71,7 @@ public class ObjectCSVDAO<T> {
 		ObjectMetadata om = new ObjectMetadata();
 		om.setContentType("application/x-gzip");
 		om.setContentEncoding("gzip");
-		om.setContentDisposition("attachment; filename=" + key + ";");
+		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(key));
 		om.setContentLength(bytes.length);
 		s3Client.putObject(bucketName, key, in, om);
 		return key;

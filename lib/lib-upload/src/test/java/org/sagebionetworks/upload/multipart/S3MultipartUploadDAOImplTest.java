@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
@@ -51,6 +52,7 @@ public class S3MultipartUploadDAOImplTest {
 	String key;
 	MultipartUploadRequest request;
 	String uploadId;
+	String filename;
 
 	
 	@Before
@@ -59,9 +61,11 @@ public class S3MultipartUploadDAOImplTest {
 		
 		bucket = "someBucket";
 		key = "somKey";
+		filename = "foo.txt";
+
 		request = new MultipartUploadRequest();
 		request.setContentMD5Hex("8356accbaa8bfc6ddc6c612224c6c9b3");
-		request.setFileName("foo.txt");
+		request.setFileName(filename);
 		request.setContentType("text/plain");
 		uploadId = "someUploadId";
 		
@@ -81,7 +85,7 @@ public class S3MultipartUploadDAOImplTest {
 		verify(mockS3Client).initiateMultipartUpload(capture.capture());
 		assertEquals(bucket, capture.getValue().getBucketName());
 		assertEquals(key, capture.getValue().getKey());
-		assertEquals("attachment; filename=foo.txt", capture.getValue().getObjectMetadata().getContentDisposition());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(filename), capture.getValue().getObjectMetadata().getContentDisposition());
 		assertEquals("text/plain", capture.getValue().getObjectMetadata().getContentType());
 		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", capture.getValue().getObjectMetadata().getContentMD5());
 		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());

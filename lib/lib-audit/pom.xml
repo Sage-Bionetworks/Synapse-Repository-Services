@@ -68,6 +68,10 @@
 			<artifactId>spring-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>org.sagebionetworks</groupId>
+            <artifactId>lib-utils</artifactId>
+        </dependency>
 
-	</dependencies>
+    </dependencies>
 </project>
