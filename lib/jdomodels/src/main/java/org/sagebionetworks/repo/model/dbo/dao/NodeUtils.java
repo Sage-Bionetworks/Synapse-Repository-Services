@@ -386,4 +386,12 @@ public class NodeUtils {
 		}
 		return versionNumber;
 	}
+
+	/**
+	 * Determines if a given bucket is Synapse storage.
+	 */
+	public static Boolean isBucketSynapseStorage(String bucketName) {
+		if (bucketName == null) return null;
+		return bucketName.equals(StackConfigurationSingleton.singleton().getS3Bucket());
+	}
 }

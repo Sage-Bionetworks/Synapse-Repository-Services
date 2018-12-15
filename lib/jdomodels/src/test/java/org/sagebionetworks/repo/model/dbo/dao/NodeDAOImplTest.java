@@ -2798,7 +2798,8 @@ public class NodeDAOImplTest {
 		assertEquals(file.getModifiedOn(), fileDto.getModifiedOn());
 		assertEquals(new Long(Long.parseLong(file.getFileHandleId())), fileDto.getFileHandleId());
 		assertEquals(fileHandle.getContentSize(), fileDto.getFileSizeBytes());
-		
+		assertEquals(NodeUtils.isBucketSynapseStorage(fileHandle.getBucketName()), fileDto.getIsInSynapseStorage());
+
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());
 		List<AnnotationDTO> expected = Lists.newArrayList(
