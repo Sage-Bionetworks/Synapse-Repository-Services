@@ -6,10 +6,9 @@ package org.sagebionetworks.repo.model;
  */
 public class SynapseStorageProjectStats {
 
-	Long id;
+	String id;
 	String projectName;
 	Long size;
-	Double proportion;
 
 	/**
 	 *
@@ -18,15 +17,13 @@ public class SynapseStorageProjectStats {
 	 * @param size Size of all files in the project in Synapse storage
 	 * @param proportion The proportion of Synapse storage this project takes up
 	 */
-	public SynapseStorageProjectStats(Long id, String projectName, Long size, Double proportion) {
+	public SynapseStorageProjectStats(String id, String projectName, Long size) {
 		this.id = id;
 		this.projectName = projectName;
 		this.size = size;
-		this.proportion = proportion;
 	}
-	
-	
-	public Long getId() {
+
+	public String getId() {
 		return id;
 	}
 
@@ -38,15 +35,10 @@ public class SynapseStorageProjectStats {
 		return size;
 	}
 
-	public Double getProportion() {
-		return proportion;
-	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((proportion == null) ? 0 : proportion.hashCode());
 		result = prime * result + ((size == null) ? 0 : size.hashCode());
 		result = prime * result + ((projectName == null) ? 0 : projectName.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
@@ -61,11 +53,6 @@ public class SynapseStorageProjectStats {
 		if (getClass() != obj.getClass())
 			return false;
 		SynapseStorageProjectStats other = (SynapseStorageProjectStats) obj;
-		if (proportion == null) {
-			if (other.proportion != null)
-				return false;
-		} else if (!proportion.equals(other.proportion))
-			return false;
 		if (size == null) {
 			if (other.size != null)
 				return false;

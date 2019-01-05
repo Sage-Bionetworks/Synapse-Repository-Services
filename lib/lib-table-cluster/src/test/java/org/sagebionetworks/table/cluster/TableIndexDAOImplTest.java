@@ -26,6 +26,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -1943,7 +1944,14 @@ public class TableIndexDAOImplTest {
 		boolean alterTemp = false;
 		alterTableAsNeeded(tableId, changes, alterTemp);
 	}
-	
+
+	@Test
+	public void generateProjectStatistics() {
+		List<SynapseStorageProjectStats> data = tableIndexDAO.getSynapseStorageStats();
+		// TODO: It seems to work...how do i test this
+		fail("Write an actual test suite you dummy");
+	}
+
 	/**
 	 * Create update or delete the given rows in the current table.
 	 * @param rows

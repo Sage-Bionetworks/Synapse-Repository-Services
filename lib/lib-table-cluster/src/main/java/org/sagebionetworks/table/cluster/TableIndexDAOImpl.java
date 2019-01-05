@@ -94,13 +94,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			+ ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_ID + " IN (:rowIds)";
 
 	public static final String SQL_SELECT_PROJECTS_BY_SIZE =
-			"SELECT t1."+ENTITY_REPLICATION_COL_PROJECT_ID + ", t1.PROJECT_SIZE_BYTES, " +
-					"t2." +ENTITY_REPLICATION_COL_NAME
-					+ " FROM (SELECT " + ENTITY_REPLICATION_COL_PROJECT_ID + ", "
+			"SELECT t1."+ENTITY_REPLICATION_COL_PROJECT_ID + ", t2." + ENTITY_REPLICATION_COL_NAME + ", t1.PROJECT_SIZE_BYTES "
+		+ " FROM (SELECT " + ENTITY_REPLICATION_COL_PROJECT_ID + ", "
 					+ " SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") AS PROJECT_SIZE_BYTES"
-					+ " FROM " + ENTITY_REPLICATION_TABLE + "WHERE " + ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
+					+ " FROM " + ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
 					+ " GROUP BY " + ENTITY_REPLICATION_COL_PROJECT_ID + ") t1," + ENTITY_REPLICATION_TABLE + " t2"
-					+ " WHERE t1." + ENTITY_REPLICATION_COL_PROJECT_ID + " = t2." + ENTITY_REPLICATION_COL_ID;
+					+ " WHERE t1." + ENTITY_REPLICATION_COL_PROJECT_ID + " = t2." + ENTITY_REPLICATION_COL_ID
+					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
 
 	/**
 	 * The MD5 used for tables with no schema.
@@ -961,7 +961,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public List<SynapseStorageProjectStats> getSynapseStorageStats() {
-		return template.queryForList(SQL_SELECT_PROJECTS_BY_SIZE, SynapseStorageProjectStats.class);
+		return template.query(
+				SQL_SELECT_PROJECTS_BY_SIZE,
+				(rs, rowNum) -> {
+					SynapseStorageProjectStats stats = new SynapseStorageProjectStats(rs.getString(1), rs.getString(2), rs.getLong(3));
+					return stats;
+				});
+
 	}
 
 }
