@@ -6,11 +6,11 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
@@ -411,4 +411,9 @@ public interface TableIndexDAO {
 	 */
 	public long getSumOfFileSizes(List<Long> rowIds);
 
+	/**
+	 * Get the statistics about Synapse storage usage per-project.
+	 * @return
+	 */
+	public List<SynapseStorageProjectStats> getSynapseStorageStats();
 }

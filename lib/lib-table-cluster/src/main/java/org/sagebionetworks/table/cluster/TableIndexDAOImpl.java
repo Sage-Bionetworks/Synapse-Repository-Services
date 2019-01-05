@@ -53,6 +53,7 @@ import javax.sql.DataSource;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -91,6 +92,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
 			+ ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_ID + " IN (:rowIds)";
+
+	public static final String SQL_SELECT_PROJECTS_BY_SIZE =
+			"SELECT t1."+ENTITY_REPLICATION_COL_PROJECT_ID + ", t1.PROJECT_SIZE_BYTES, " +
+					"t2." +ENTITY_REPLICATION_COL_NAME
+					+ " FROM (SELECT " + ENTITY_REPLICATION_COL_PROJECT_ID + ", "
+					+ " SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") AS PROJECT_SIZE_BYTES"
+					+ " FROM " + ENTITY_REPLICATION_TABLE + "WHERE " + ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
+					+ " GROUP BY " + ENTITY_REPLICATION_COL_PROJECT_ID + ") t1," + ENTITY_REPLICATION_TABLE + " t2"
+					+ " WHERE t1." + ENTITY_REPLICATION_COL_PROJECT_ID + " = t2." + ENTITY_REPLICATION_COL_ID;
 
 	/**
 	 * The MD5 used for tables with no schema.
@@ -947,6 +957,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			sum =  0L;
 		}
 		return sum;
+	}
+
+	@Override
+	public List<SynapseStorageProjectStats> getSynapseStorageStats() {
+		return template.queryForList(SQL_SELECT_PROJECTS_BY_SIZE, SynapseStorageProjectStats.class);
 	}
 
 }
