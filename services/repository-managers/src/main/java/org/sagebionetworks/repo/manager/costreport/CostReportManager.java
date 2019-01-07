@@ -1,0 +1,29 @@
+package org.sagebionetworks.repo.manager.costreport;
+
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.costreport.DownloadCostReportRequest;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+
+/**
+ * Business logic for table queries.
+ *
+ */
+public interface CostReportManager {
+
+	/**
+	 * Generate a cost report and stream the results to the passed CSVWriter. This method will stream over
+	 * the rows and will not keep the row data in memory. This method can be used to stream over results sets that are
+	 * larger than the available system memory, as long as the caller does not hold the resulting rows in memory.
+	 *
+	 * @param user The caller to authorize
+	 * @param request The
+	 * @param writer
+	 * @return
+	 * @throws NotFoundException
+	 * @throws LockUnavilableException
+	 */
+	void writeCostReport(ProgressCallback progressCallback, UserInfo user, DownloadCostReportRequest request, CSVWriterStream writer) throws NotFoundException, LockUnavilableException;
+}

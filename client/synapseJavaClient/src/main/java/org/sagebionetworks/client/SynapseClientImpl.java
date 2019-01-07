@@ -549,6 +549,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
 	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
 
+	public static final String COST_REPORT = "/costReport";
+
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
 	 */

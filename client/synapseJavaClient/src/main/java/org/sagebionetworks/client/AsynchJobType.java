@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
+import static org.sagebionetworks.client.SynapseClientImpl.COST_REPORT;
 import static org.sagebionetworks.client.SynapseClientImpl.DOI;
 import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_ADD;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
@@ -16,6 +17,7 @@ import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREV
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.costreport.DownloadCostReportResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
@@ -45,7 +47,8 @@ public enum AsynchJobType {
 	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class, RestEndpointType.file),
 	TableTransaction(TABLE_TRANSACTION, TableUpdateTransactionResponse.class, RestEndpointType.repo),
 	Doi(DOI, DoiResponse .class, RestEndpointType.repo),
-	AddFileToDownloadList(DOWNLOAD_LIST_ADD, AddFileToDownloadListResponse.class,  RestEndpointType.file);
+	AddFileToDownloadList(DOWNLOAD_LIST_ADD, AddFileToDownloadListResponse.class,  RestEndpointType.file),
+	DownloadCostReport(COST_REPORT, DownloadCostReportResponse.class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;

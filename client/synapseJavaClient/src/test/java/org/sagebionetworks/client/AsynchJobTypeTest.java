@@ -177,4 +177,12 @@ public class AsynchJobTypeTest {
 		String expected = "/doi/async/get/abcdefgh";
 		assertEquals(actual, expected);
 	}
+
+	@Test
+	public void testCostReport(){
+		AsynchJobType type = AsynchJobType.DownloadCostReport;
+		String actual = type.getResultUrl(token, (String) null);
+		String expected = "/costReport/get/abcdefgh";
+		assertEquals(actual, expected);
+	}
 }

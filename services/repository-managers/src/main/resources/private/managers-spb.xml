@@ -523,4 +523,7 @@
 		class="org.sagebionetworks.repo.manager.ObjectTypeManagerImpl"
 		scope="singleton" />
 
+	<bean id="costReportManager"
+		  class="org.sagebionetworks.repo.manager.costreport.CostReportManagerImpl"
+		  scope="singleton"/>
 </beans>
