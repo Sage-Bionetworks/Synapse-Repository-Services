@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.costreport.DownloadCostReportRequest;
-import org.sagebionetworks.repo.model.costreport.DownloadCostReportResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
@@ -13,6 +11,8 @@ import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -50,7 +50,7 @@ public enum AsynchJobType  {
 	
 	ADD_FILES_TO_DOWNLOAD_LIST(AddFileToDownloadListRequest.class, AddFileToDownloadListResponse.class),
 
-	COST_REPORT(DownloadCostReportRequest.class, DownloadCostReportResponse.class);
+	STORAGE_REPORT(DownloadStorageReportRequest.class, DownloadStorageReportResponse.class);
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;

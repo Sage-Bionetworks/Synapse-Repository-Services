@@ -170,13 +170,23 @@ public interface AuthorizationManager {
 	AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
 
 	/**
-	 * 
+	 *
 	 * @param userInfo
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
 	boolean isACTTeamMemberOrAdmin(UserInfo userInfo)
+			throws DatastoreException, UnauthorizedException;
+
+	/**
+	 *
+	 * @param userInfo
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	boolean isStorageReportTeamMemberOrAdmin(UserInfo userInfo)
 			throws DatastoreException, UnauthorizedException;
 
 	/**

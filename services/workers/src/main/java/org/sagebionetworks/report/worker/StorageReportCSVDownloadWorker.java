@@ -1,4 +1,4 @@
-package org.sagebionetworks.costreport.worker;
+package org.sagebionetworks.report.worker;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -9,15 +9,15 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
-import org.sagebionetworks.repo.manager.costreport.CostReportManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
+import org.sagebionetworks.repo.manager.report.StorageReportManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.costreport.DownloadCostReportRequest;
-import org.sagebionetworks.repo.model.costreport.DownloadCostReportResponse;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.table.worker.ProgressingCSVWriterStream;
 import org.sagebionetworks.table.worker.UploadProgressListener;
 import org.sagebionetworks.util.Clock;
@@ -37,14 +37,14 @@ import au.com.bytecode.opencsv.CSVWriter;
  * @author jmhill
  *
  */
-public class CostReportCSVDownloadWorker implements MessageDrivenRunner {
+public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 
-	static private Logger log = LogManager.getLogger(CostReportCSVDownloadWorker.class);
+	static private Logger log = LogManager.getLogger(StorageReportCSVDownloadWorker.class);
 
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	private CostReportManager costReportManager;
+	private StorageReportManager storageReportManager;
 	@Autowired
 	private UserManager userManger;
 	@Autowired
@@ -62,7 +62,7 @@ public class CostReportCSVDownloadWorker implements MessageDrivenRunner {
 		CSVWriter writer = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			DownloadCostReportRequest request = AsynchJobUtils.extractRequestBody(status, DownloadCostReportRequest.class);
+			DownloadStorageReportRequest request = AsynchJobUtils.extractRequestBody(status, DownloadStorageReportRequest.class);
 			// The CSV data will first be written to this file.
 			temp = File.createTempFile(fileName, ".csv");
 			writer = new CSVWriter(new FileWriter(temp));
@@ -70,7 +70,7 @@ public class CostReportCSVDownloadWorker implements MessageDrivenRunner {
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, 0L, 0L, status.getJobId(), clock);
 			// Execute the actual query and stream the results to the file.
 			try{
-				costReportManager.writeCostReport(progressCallback, user, request, stream);
+				storageReportManager.writeStorageReport(progressCallback, user, request, stream);
 			}finally{
 				writer.close();
 			}
@@ -80,7 +80,7 @@ public class CostReportCSVDownloadWorker implements MessageDrivenRunner {
 			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, 0L, 0L, 0L, asynchJobStatusManager, status.getJobId());
 			String contentType = "text/csv";
 			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
-			DownloadCostReportResponse result = new DownloadCostReportResponse();
+			DownloadStorageReportResponse result = new DownloadStorageReportResponse();
 			result.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle

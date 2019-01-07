@@ -277,10 +277,10 @@ public class UrlHelpers {
 	public static final String PROJECT_SETTINGS_BY_ID = "/projectSettings" + ID;
 	public static final String PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE = "/projectSettings/{projectId}/type/{type}";
 
-	// Synapse Storage cost report
-	public static final String COST_REPORT = "/costReport";
-	public static final String COST_REPORT_ASYNC_START = COST_REPORT + ASYNC_START_REQUEST;
-	public static final String COST_REPORT_ASYNC_GET = COST_REPORT + ASYNC_GET_REQUEST;
+	// Synapse storage report
+	public static final String STORAGE_REPORT = "/storageReport";
+	public static final String STORAGE_REPORT_ASYNC_START = STORAGE_REPORT + ASYNC_START_REQUEST;
+	public static final String STORAGE_REPORT_ASYNC_GET = STORAGE_REPORT + ASYNC_GET_REQUEST;
 
 	/**
 	 * The base URL for Synapse objects's type (a.k.a. EntityHeader)

@@ -458,11 +458,16 @@
             <property name="id" value="464532" />
             <property name="name" value="Synapse Access and Compliance Team" />
         </bean>
-        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
-            <property name="id" value="4" />
-            <property name="name" value="Trusted Message Senders" />
-            <property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />
-           </bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="4" />
+			<property name="name" value="Trusted Message Senders" />
+			<property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="5" />
+			<property name="name" value="Synapse Report Team" />
+			<property name="description" value="Team for users authorized to generate reports about general resource usage and costs incurred by Synapse" />
+		</bean>
        </util:list>
 		
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
@@ -523,7 +528,7 @@
 		class="org.sagebionetworks.repo.manager.ObjectTypeManagerImpl"
 		scope="singleton" />
 
-	<bean id="costReportManager"
-		  class="org.sagebionetworks.repo.manager.costreport.CostReportManagerImpl"
+	<bean id="storageReportManager"
+		  class="org.sagebionetworks.repo.manager.report.StorageReportManagerImpl"
 		  scope="singleton"/>
 </beans>

@@ -4,8 +4,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.costreport.DownloadCostReportRequest;
-import org.sagebionetworks.repo.model.costreport.DownloadCostReportResponse;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -22,12 +22,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Provides REST APIs for generating Cost Reports. These may only be used by the Cost Report Team.
+ * Provides REST APIs for generating Storage Reports. These may only be used by the Synapse Report Team.
  */
-@ControllerInfo(displayName="Cost Report Services", path="repo/v1")
+@ControllerInfo(displayName="Storage Report Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class CostReportController extends BaseController {
+public class StorageReportController extends BaseController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;
@@ -35,19 +35,19 @@ public class CostReportController extends BaseController {
 	/**
 	 * Asynchronously creates a report detailing the usage of Synapse storage with project-level resolution.
 	 * Retrieve the results with
-	 * <a href="${GET.costReport.async.get.asyncToken}">GET /costReport/async/get/{asyncToken}</a>.
-	 * @param userId The ID of the user making the call. This call can only be made by users in the Cost Report team.
-	 * @param request A request containing a the type of cost report to generate
+	 * <a href="${GET.storageReport.async.get.asyncToken}">GET /storageReport/async/get/{asyncToken}</a>.
+	 * @param userId The ID of the user making the call. This call can only be made by users in the Synapse Report team.
+	 * @param request A request containing a the type of storage report to generate
 	 * @return The asynchronous job ID
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	@RequestMapping(value = {UrlHelpers.COST_REPORT_ASYNC_START}, method = RequestMethod.POST)
+	@RequestMapping(value = {UrlHelpers.STORAGE_REPORT_ASYNC_START}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public @ResponseBody
 	AsyncJobId
-	generateCostReportCsv(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-					  @RequestBody DownloadCostReportRequest request) throws NotFoundException, UnauthorizedException {
+	generateStorageReportCsv(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+					  @RequestBody DownloadStorageReportRequest request) throws NotFoundException, UnauthorizedException {
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
@@ -56,21 +56,21 @@ public class CostReportController extends BaseController {
 	}
 
 	/**
-	 * Get the results of a call to <a href="${POST.costReport.async.start}">POST /costReport/async/start</a>
+	 * Get the results of a call to <a href="${POST.storageReport.async.start}">POST /storageReport/async/start</a>
 	 * @param userId The ID of the user making the call
 	 * @param asyncToken The async job token from the create/update call
 	 * @return The results of the call, including a pre-signed URL to download the report.
 	 * @throws Throwable
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.COST_REPORT_ASYNC_GET, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.STORAGE_REPORT_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	DownloadCostReportResponse getCostReportResults(
+	DownloadStorageReportResponse getStorageReportResults(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
-		return (DownloadCostReportResponse) jobStatus.getResponseBody();
+		return (DownloadStorageReportResponse) jobStatus.getResponseBody();
 	}
 }

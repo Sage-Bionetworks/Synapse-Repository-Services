@@ -1,5 +1,5 @@
 {
-	"description": "The response body of an asynchronous cost report CSV download job.",
+	"description": "The response body of an asynchronous storage report CSV download job.",
 	"implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"

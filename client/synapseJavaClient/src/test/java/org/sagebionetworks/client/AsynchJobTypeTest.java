@@ -179,10 +179,10 @@ public class AsynchJobTypeTest {
 	}
 
 	@Test
-	public void testCostReport(){
-		AsynchJobType type = AsynchJobType.DownloadCostReport;
+	public void testStorageReport(){
+		AsynchJobType type = AsynchJobType.DownloadStorageReport;
 		String actual = type.getResultUrl(token, (String) null);
-		String expected = "/costReport/get/abcdefgh";
+		String expected = "/storageReport/get/abcdefgh";
 		assertEquals(actual, expected);
 	}
 }
