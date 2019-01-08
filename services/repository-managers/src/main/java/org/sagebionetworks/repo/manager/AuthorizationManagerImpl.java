@@ -334,7 +334,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public boolean isStorageReportTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
+	public boolean isReportTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
 		if(userInfo.getGroups() != null) {
 			if(userInfo.getGroups().contains(TeamConstants.SYNAPSE_REPORT_TEAM_ID)) return true;

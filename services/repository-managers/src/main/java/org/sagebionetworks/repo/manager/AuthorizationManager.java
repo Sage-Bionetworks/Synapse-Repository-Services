@@ -186,7 +186,7 @@ public interface AuthorizationManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	boolean isStorageReportTeamMemberOrAdmin(UserInfo userInfo)
+	boolean isReportTeamMemberOrAdmin(UserInfo userInfo)
 			throws DatastoreException, UnauthorizedException;
 
 	/**

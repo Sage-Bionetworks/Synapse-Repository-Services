@@ -70,7 +70,7 @@ public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, 0L, 0L, status.getJobId(), clock);
 			// Execute the actual query and stream the results to the file.
 			try{
-				storageReportManager.writeStorageReport(progressCallback, user, request, stream);
+				storageReportManager.writeStorageReport(user, request, stream);
 			}finally{
 				writer.close();
 			}

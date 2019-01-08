@@ -12,7 +12,7 @@
 			"description": "The type of storage report to generate. The default is \"all_projects\"",
 			"enum": [
 				{
-					"name": "all_projects",
+					"name": "ALL_PROJECTS",
 					"description": "Generates a storage report including all projects."
 				}
 			]

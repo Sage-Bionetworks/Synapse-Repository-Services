@@ -25,5 +25,5 @@ public interface StorageReportManager {
 	 * @throws NotFoundException
 	 * @throws LockUnavilableException
 	 */
-	void writeStorageReport(ProgressCallback progressCallback, UserInfo user, DownloadStorageReportRequest request, CSVWriterStream writer) throws NotFoundException, LockUnavilableException;
+	void writeStorageReport(UserInfo user, DownloadStorageReportRequest request, CSVWriterStream writer) throws NotFoundException, LockUnavilableException;
 }
