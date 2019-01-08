@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.report;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.SynapseStorageProjectStats;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
@@ -45,7 +45,7 @@ public class StorageReportManagerImpl implements StorageReportManager {
 				String[] row = new String[3];
 				row[0] = rowData.getId();
 				row[1] = rowData.getProjectName();
-				row[2] = rowData.getSize().toString();
+				row[2] = rowData.getSizeInBytes().toString();
 				writer.writeNext(row);
 			}
 		} else {

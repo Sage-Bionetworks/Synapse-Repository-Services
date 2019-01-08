@@ -53,7 +53,7 @@ import javax.sql.DataSource;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.SynapseStorageProjectStats;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -964,7 +964,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return template.query(
 				SQL_SELECT_PROJECTS_BY_SIZE,
 				(rs, rowNum) -> {
-					SynapseStorageProjectStats stats = new SynapseStorageProjectStats(rs.getString(1), rs.getString(2), rs.getLong(3));
+					SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
+					stats.setId(rs.getString(1));
+					stats.setProjectName(rs.getString(2));
+					stats.setSizeInBytes(rs.getLong(3));
 					return stats;
 				});
 

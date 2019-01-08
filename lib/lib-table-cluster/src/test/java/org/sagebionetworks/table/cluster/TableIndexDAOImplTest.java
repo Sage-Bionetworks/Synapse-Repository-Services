@@ -26,8 +26,8 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -51,7 +51,6 @@ import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
@@ -1990,11 +1989,11 @@ public class TableIndexDAOImplTest {
 		// Note project 2 is bigger so it will be first
 		assertEquals(project2.getId().toString(), data.get(0).getId());
 		assertEquals(project2.getName(), data.get(0).getProjectName());
-		assertEquals(file3Size, data.get(0).getSize()); // Note file4 is not in Synapse storage
+		assertEquals(file3Size, data.get(0).getSizeInBytes()); // Note file4 is not in Synapse storage
 
 		assertEquals(project1.getId().toString(), data.get(1).getId());
 		assertEquals(project1.getName(), data.get(1).getProjectName());
-		assertEquals((Long) (file1Size + file2Size), data.get(1).getSize());
+		assertEquals((Long) (file1Size + file2Size), data.get(1).getSizeInBytes());
 	}
 
 	/**

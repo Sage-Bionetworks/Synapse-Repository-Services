@@ -14,7 +14,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.report.StorageReportManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.SynapseStorageProjectStats;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
@@ -60,7 +60,10 @@ public class StorageReportManagerImplTest {
 		ReflectionTestUtils.setField(storageReportManager, "authorizationManager", mockAuthorizationManager);
 		when(mockAuthorizationManager.isReportTeamMemberOrAdmin(adminUser)).thenReturn(true);
 
-		projectStats = new SynapseStorageProjectStats(projectId, projectName, projectSize);
+		projectStats = new SynapseStorageProjectStats();
+		projectStats.setId(projectId);
+		projectStats.setProjectName(projectName);
+		projectStats.setSizeInBytes(projectSize);
 	}
 
 	@Test
