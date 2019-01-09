@@ -7,7 +7,7 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 /**
- * Business logic for table queries.
+ * Business logic for creating reports about Synapse storage usage statistics.
  *
  */
 public interface StorageReportManager {
