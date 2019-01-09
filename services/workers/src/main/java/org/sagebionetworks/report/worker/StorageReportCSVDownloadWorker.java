@@ -31,10 +31,8 @@ import com.amazonaws.services.sqs.model.Message;
 import au.com.bytecode.opencsv.CSVWriter;
 
 /**
- * This worker will stream the results of a table SQL query to a local CSV file and upload the file
+ * This worker will generate a Synapse storage report saved in a local CSV file, and will upload the file
  * to S3 as a FileHandle.
- * 
- * @author jmhill
  *
  */
 public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
@@ -80,15 +78,12 @@ public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, 0L, 0L, 0L, asynchJobStatusManager, status.getJobId());
 			String contentType = "text/csv";
 			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
+
 			DownloadStorageReportResponse result = new DownloadStorageReportResponse();
 			result.setResultsFileHandleId(fileHandle.getId());
-			// Create the file
-			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch (LockUnavilableException e){
-			// This just means we cannot do this right now.  We can try again later.
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
-			// Throwing this will put the message back on the queue in 5 seconds.
 			throw new RecoverableMessageException();
 		}catch(Throwable e){
 			// Attempt to translate the exception into a 'user-friendly' message.
