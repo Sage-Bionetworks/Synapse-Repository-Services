@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.report;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.web.NotFoundException;

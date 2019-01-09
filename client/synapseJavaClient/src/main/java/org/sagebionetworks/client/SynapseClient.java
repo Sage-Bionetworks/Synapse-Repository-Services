@@ -171,6 +171,8 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
+import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -3104,4 +3106,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
 
+	String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException;
+
+	DownloadStorageReportResponse generateStorageReportAsyncGet(String asyncJobToken) throws SynapseException;
 }
