@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,6 +17,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
@@ -39,12 +41,14 @@ public class ITDownloadStorageReportTest {
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		adminSynapse.addTeamMember(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.SYNAPSE_REPORT_GROUP.getPrincipalId().toString(), userToDelete.toString(), "https://www.synapse.org/#Team:", "https://www.synapse.org/#unsub:");
+
 		SynapseClientHelper.setEndpoints(synapse);
 	}
 
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
+		try { adminSynapse.deleteUser(userToDelete); } catch (SynapseException e) { }
 	}
 
 	@Test
@@ -67,11 +71,11 @@ public class ITDownloadStorageReportTest {
 		String csvReportFileHandleId = response.getResultsFileHandleId();
 		File tempFile;
 		try {
-			tempFile = File.createTempFile("ITStorageReport", "csv");
+			tempFile = File.createTempFile("ITStorageReport", ".csv");
 			synapse.downloadFromFileHandleTemporaryUrl(csvReportFileHandleId, tempFile);
 			tempFile.deleteOnExit();
-			String csvContents = tempFile.toString();
-			assertTrue(csvContents.startsWith("projectId,projectName,sizeInBytes\n"));
+			String csvContents = FileUtils.readFileToString(tempFile);
+			assertTrue(csvContents.startsWith("\"projectId\",\"projectName\",\"sizeInBytes\"\n"));
 		} catch (IOException e) {
 			fail("IO Exception encountered when getting filehandle URL");
 		}
