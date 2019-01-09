@@ -413,6 +413,29 @@ public class AuthorizationManagerImplUnitTest {
 		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(userInfo));
 	}
 
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdmin_Admin() {
+		UserInfo adminInfo = new UserInfo(true);
+		assertTrue(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
+	}
+
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdminNullGroups() {
+		UserInfo adminInfo = new UserInfo(false);
+		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
+	}
+
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdmin_ACT() {
+		userInfo.getGroups().add(TeamConstants.SYNAPSE_REPORT_TEAM_ID);
+		assertTrue(authorizationManager.isACTTeamMemberOrAdmin(userInfo));
+	}
+
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdmin_NONE() {
+		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(userInfo));
+	}
+
 	private static RestrictableObjectDescriptor createEntitySubjectId() {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
