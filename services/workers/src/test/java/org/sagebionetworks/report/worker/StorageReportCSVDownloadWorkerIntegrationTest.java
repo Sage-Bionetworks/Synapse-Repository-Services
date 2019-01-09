@@ -1,5 +1,6 @@
 package org.sagebionetworks.report.worker;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -14,9 +15,9 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,9 +25,13 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
+import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -46,7 +51,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
-	private ReplicationMessageManager replicationMessageManager;
+	private ConnectionFactory tableConnectionFactory;
 
 
 	Long adminUser;
@@ -125,9 +130,18 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 	public void testCreateReport() throws Exception {
 		DownloadStorageReportRequest request = new DownloadStorageReportRequest();
 		request.setReportType(StorageReportType.ALL_PROJECTS);
+		waitForEntityReplication(project2Id);
 		DownloadStorageReportResponse response = startAndWaitForJob(adminUserInfo, request, DownloadStorageReportResponse.class);
 		assertNotNull(response);
 		assertNotNull(response.getResultsFileHandleId());
+
+		// Verify that the CSV can be downloaded via the filehandle, and the contents are as expected
+		// (A CSV with project ID, project name, size, ordered descending)
+		String csvContents = fileHandleManager.downloadFileToString(response.getResultsFileHandleId());
+		String expectedContents = "\" projectId\",\"projectName\",\"sizeInBytes\"\n" +
+				"\"" + project2.getId() + "\",\"" + project2.getName() + "\",\"8\"" +
+				"\"" + project1.getId() + "\",\"" + project1.getName() + "\",\"4\"";
+		assertEquals(expectedContents, csvContents);
 	}
 
 
@@ -154,6 +168,29 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 				break;
 			case COMPLETE:
 				return (T)status.getResponseBody();
+			}
+		}
+	}
+
+	/**
+	 * Wait for EntityReplication to show the given etag for the given entityId.
+	 *
+	 * @param entityId
+	 * @return
+	 * @throws InterruptedException
+	 */
+	private EntityDTO waitForEntityReplication(String entityId) throws InterruptedException{
+		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
+		long start = System.currentTimeMillis();
+		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
+		while(true){
+			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
+			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
+				assertTrue("Timed out waiting for table view status change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
+				Thread.sleep(1000);
+			}else{
+				return dto;
 			}
 		}
 	}
