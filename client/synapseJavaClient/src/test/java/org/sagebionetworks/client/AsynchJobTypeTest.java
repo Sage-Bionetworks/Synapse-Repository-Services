@@ -182,7 +182,7 @@ public class AsynchJobTypeTest {
 	public void testStorageReport(){
 		AsynchJobType type = AsynchJobType.DownloadStorageReport;
 		String actual = type.getResultUrl(token, (String) null);
-		String expected = "/storageReport/get/abcdefgh";
+		String expected = "/storageReport/async/get/abcdefgh";
 		assertEquals(actual, expected);
 	}
 }
