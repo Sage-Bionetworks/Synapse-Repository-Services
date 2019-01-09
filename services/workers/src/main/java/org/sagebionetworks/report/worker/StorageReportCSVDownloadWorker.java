@@ -46,7 +46,7 @@ public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 	@Autowired
 	private StorageReportManager storageReportManager;
 	@Autowired
-	private UserManager userManger;
+	private UserManager userManager;
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
@@ -61,7 +61,7 @@ public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 		File temp = null;
 		CSVWriter writer = null;
 		try{
-			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
+			UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
 			DownloadStorageReportRequest request = AsynchJobUtils.extractRequestBody(status, DownloadStorageReportRequest.class);
 			// The CSV data will first be written to this file.
 			temp = File.createTempFile(fileName, ".csv");
