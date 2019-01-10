@@ -96,7 +96,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 						.getId().toString(), new Date(), "abcdefgh".getBytes(StandardCharsets.UTF_8), "foo3.txt",
 				ContentType.TEXT_PLAIN, null);
 
-		// Files in project 1
+		// Files in project 1, content size total should be 0 + 4 = 4
 		file1 = new FileEntity();
 		file1.setName("file1.txt");
 		file1.setParentId(project1Id);
@@ -109,7 +109,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		file2.setDataFileHandleId(fileHandle2.getId());
 		file2Id = entityManager.createEntity(adminUserInfo, file2, null);
 
-		// File in project 2, mark one as NOT in synapse storage
+		// File in project 2, content size total should be 8
 		file3 = new FileEntity();
 		file3.setName("file3.txt");
 		file3.setParentId(project2Id);
@@ -139,8 +139,8 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		// (A CSV with project ID, project name, size, ordered descending)
 		String csvContents = fileHandleManager.downloadFileToString(response.getResultsFileHandleId());
 		String expectedContents = "\" projectId\",\"projectName\",\"sizeInBytes\"\n" +
-				"\"" + project2.getId() + "\",\"" + project2.getName() + "\",\"8\"" +
-				"\"" + project1.getId() + "\",\"" + project1.getName() + "\",\"4\"";
+				"\"" + project2Id + "\",\"" + project2.getName() + "\",\"8\"" +
+				"\"" + project1Id + "\",\"" + project1.getName() + "\",\"4\"";
 		assertEquals(expectedContents, csvContents);
 	}
 
