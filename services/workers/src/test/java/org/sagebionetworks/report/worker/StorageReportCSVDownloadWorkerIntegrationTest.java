@@ -115,6 +115,11 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		file3.setParentId(project2Id);
 		file3.setDataFileHandleId(fileHandle3.getId());
 		file3Id = entityManager.createEntity(adminUserInfo, file3, null);
+		waitForEntityReplication(project1Id);
+		waitForEntityReplication(project2Id);
+		waitForEntityReplication(file1Id);
+		waitForEntityReplication(file2Id);
+		waitForEntityReplication(file3Id);
 	}
 	
 	@After
@@ -130,7 +135,6 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 	public void testCreateReport() throws Exception {
 		DownloadStorageReportRequest request = new DownloadStorageReportRequest();
 		request.setReportType(StorageReportType.ALL_PROJECTS);
-		waitForEntityReplication(project2Id);
 		DownloadStorageReportResponse response = startAndWaitForJob(adminUserInfo, request, DownloadStorageReportResponse.class);
 		assertNotNull(response);
 		assertNotNull(response.getResultsFileHandleId());
@@ -138,9 +142,9 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		// Verify that the CSV can be downloaded via the filehandle, and the contents are as expected
 		// (A CSV with project ID, project name, size, ordered descending)
 		String csvContents = fileHandleManager.downloadFileToString(response.getResultsFileHandleId());
-		String expectedContents = "\" projectId\",\"projectName\",\"sizeInBytes\"\n" +
-				"\"" + project2Id + "\",\"" + project2.getName() + "\",\"8\"" +
-				"\"" + project1Id + "\",\"" + project1.getName() + "\",\"4\"";
+		String expectedContents = "\"projectId\",\"projectName\",\"sizeInBytes\"\n" +
+				"\"" + project2Id + "\",\"" + project2.getName() + "\",\"8\"\n" +
+				"\"" + project1Id + "\",\"" + project1.getName() + "\",\"4\"\n";
 		assertEquals(expectedContents, csvContents);
 	}
 
