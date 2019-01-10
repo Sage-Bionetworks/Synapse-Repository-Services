@@ -74,7 +74,7 @@ public class StorageReportManagerImplTest {
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;
 		String[] expectedHeader = {"projectId", "projectName", "sizeInBytes"};
-		String[] expectedData = {projectId, projectName, projectSize.toString()};
+		String[] expectedData = {"syn" + projectId, projectName, projectSize.toString()};
 		InOrder orderVerifier = Mockito.inOrder(mockCsvWriter);
 		orderVerifier.verify(mockCsvWriter).writeNext(expectedHeader);
 		orderVerifier.verify(mockCsvWriter).writeNext(expectedData);
@@ -89,7 +89,7 @@ public class StorageReportManagerImplTest {
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;
 		String[] expectedHeader = {"projectId", "projectName", "sizeInBytes"};
-		String[] expectedData = {projectId, projectName, projectSize.toString()};
+		String[] expectedData = {"syn" + projectId, projectName, projectSize.toString()};
 		InOrder orderVerifier = Mockito.inOrder(mockCsvWriter);
 		orderVerifier.verify(mockCsvWriter).writeNext(expectedHeader);
 		orderVerifier.verify(mockCsvWriter).writeNext(expectedData);

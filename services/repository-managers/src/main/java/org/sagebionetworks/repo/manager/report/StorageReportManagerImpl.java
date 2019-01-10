@@ -43,7 +43,7 @@ public class StorageReportManagerImpl implements StorageReportManager {
 
 			for (SynapseStorageProjectStats rowData : projectStatsList) {
 				String[] row = new String[3];
-				row[0] = rowData.getId();
+				row[0] = "syn" + rowData.getId();
 				row[1] = rowData.getProjectName();
 				row[2] = rowData.getSizeInBytes().toString();
 				writer.writeNext(row);

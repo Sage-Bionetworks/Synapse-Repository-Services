@@ -139,8 +139,8 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		// (A CSV with project ID, project name, size, ordered descending)
 		String csvContents = fileHandleManager.downloadFileToString(response.getResultsFileHandleId());
 		String expectedContents = "\" projectId\",\"projectName\",\"sizeInBytes\"\n" +
-				"\"syn" + project2Id + "\",\"" + project2.getName() + "\",\"8\"" +
-				"\"syn" + project1Id + "\",\"" + project1.getName() + "\",\"4\"";
+				"\"" + project2Id + "\",\"" + project2.getName() + "\",\"8\"" +
+				"\"" + project1Id + "\",\"" + project1.getName() + "\",\"4\"";
 		assertEquals(expectedContents, csvContents);
 	}
 
