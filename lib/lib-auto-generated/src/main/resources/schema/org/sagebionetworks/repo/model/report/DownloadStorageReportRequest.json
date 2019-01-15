@@ -1,0 +1,21 @@
+{
+	"description": "A Storage Report CSV download request.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"reportType": {
+			"name": "StorageReportType",
+			"type": "string",
+			"description": "The type of storage report to generate. The default is \"all_projects\"",
+			"enum": [
+				{
+					"name": "ALL_PROJECTS",
+					"description": "Generates a storage report including all projects."
+				}
+			]
+		}
+	}
+}

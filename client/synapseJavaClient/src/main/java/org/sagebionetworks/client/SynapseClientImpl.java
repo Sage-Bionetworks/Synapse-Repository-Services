@@ -204,6 +204,9 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
+import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -548,6 +551,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String DOWNLOAD_ORDER = "/download/order";
 	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
 	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
+
+	public static final String STORAGE_REPORT = "/storageReport";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -5227,6 +5232,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(newDataType, "newDataType");
 		String url = ENTITY + "/" + entityId + "/datatype?type="+newDataType.name();
 		return putJSONEntity(getRepoEndpoint(), url, null, DataTypeResponse.class);
+	}
+
+	@Override
+	public String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException {
+		DownloadStorageReportRequest request = new DownloadStorageReportRequest();
+		request.setReportType(reportType);
+		return startAsynchJob(AsynchJobType.DownloadStorageReport, request);
+	}
+
+	@Override
+	public DownloadStorageReportResponse generateStorageReportAsyncGet(String asyncJobToken) throws SynapseException {
+		String url = STORAGE_REPORT + ASYNC_GET + asyncJobToken;
+		return getJSONEntity(getRepoEndpoint(), url, DownloadStorageReportResponse.class);
 	}
 
 }

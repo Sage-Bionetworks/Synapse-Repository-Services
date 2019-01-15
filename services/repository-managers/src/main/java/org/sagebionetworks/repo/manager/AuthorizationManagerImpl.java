@@ -332,7 +332,16 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		return false;
 	}
-	
+
+	@Override
+	public boolean isReportTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
+		if (userInfo.isAdmin()) return true;
+		if(userInfo.getGroups() != null) {
+			if(userInfo.getGroups().contains(TeamConstants.SYNAPSE_REPORT_TEAM_ID)) return true;
+		}
+		return false;
+	}
+
 	/**
 	 * Checks whether the parent (or other ancestors) are subject to access restrictions and, if so, whether 
 	 * userInfo is a member of the ACT.

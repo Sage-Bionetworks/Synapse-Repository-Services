@@ -27,6 +27,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -50,7 +51,6 @@ import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
@@ -1943,7 +1943,59 @@ public class TableIndexDAOImplTest {
 		boolean alterTemp = false;
 		alterTableAsNeeded(tableId, changes, alterTemp);
 	}
-	
+
+	@Test
+	public void generateProjectStatistics() {
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L, 4L, 5L, 6L));
+
+		// Set up some data to test
+		EntityDTO project1 = createEntityDTO(1L, EntityType.project, 0);
+		EntityDTO project2 = createEntityDTO(2L, EntityType.project, 0);
+
+		project1.setName("Project Name One");
+		project2.setName("Project Name Two");
+
+		EntityDTO file1 = createEntityDTO(3L, EntityType.file, 0);
+		EntityDTO file2 = createEntityDTO(4L, EntityType.file, 0);
+		EntityDTO file3 = createEntityDTO(5L, EntityType.file, 0);
+		EntityDTO file4 = createEntityDTO(6L, EntityType.file, 0);
+
+		file1.setIsInSynapseStorage(true);
+		file2.setIsInSynapseStorage(true);
+		file3.setIsInSynapseStorage(true);
+		file4.setIsInSynapseStorage(false); // !!
+
+		final Long file1Size = 120L;
+		final Long file2Size = 280L;
+		final Long file3Size = 492824L;
+		final Long file4Size = 100L;
+		file1.setFileSizeBytes(file1Size);
+		file2.setFileSizeBytes(file2Size);
+		file3.setFileSizeBytes(file3Size);
+		file4.setFileSizeBytes(file4Size);
+
+		file1.setProjectId(1L);
+		file2.setProjectId(1L);
+		file3.setProjectId(2L);
+		file4.setProjectId(2L);
+
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project1, project2, file1, file2, file3, file4));
+
+		// Call under test
+		List<SynapseStorageProjectStats> data = tableIndexDAO.getSynapseStorageStats();
+
+		assertEquals(2, data.size()); // 2 projects
+		// Note project 2 is bigger so it will be first
+		assertEquals(project2.getId().toString(), data.get(0).getId());
+		assertEquals(project2.getName(), data.get(0).getProjectName());
+		assertEquals(file3Size, data.get(0).getSizeInBytes()); // Note file4 is not in Synapse storage
+
+		assertEquals(project1.getId().toString(), data.get(1).getId());
+		assertEquals(project1.getName(), data.get(1).getProjectName());
+		assertEquals((Long) (file1Size + file2Size), data.get(1).getSizeInBytes());
+	}
+
 	/**
 	 * Create update or delete the given rows in the current table.
 	 * @param rows
