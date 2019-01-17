@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.util.Callback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -415,5 +416,5 @@ public interface TableIndexDAO {
 	 * Get the statistics about Synapse storage usage per-project.
 	 * @return
 	 */
-	public List<SynapseStorageProjectStats> getSynapseStorageStats();
+	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
 }

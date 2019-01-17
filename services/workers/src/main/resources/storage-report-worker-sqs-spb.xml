@@ -27,7 +27,7 @@
 									<bean class="org.sagebionetworks.report.worker.StorageReportCSVDownloadWorker"/>
 								</property>
 								<property name="semaphoreLockKey" value="storageReportWorker" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('STORAGE_REPORT')}" />
 								<property name="gate">

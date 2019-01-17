@@ -1,15 +1,17 @@
 package org.sagebionetworks.report.worker;
 
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.io.File;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -26,10 +28,8 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -39,7 +39,9 @@ public class StorageReportCSVDownloadWorkerTest {
 	
 	public static final long MAX_WAIT_MS = 1000 * 60;
 
+	@InjectMocks
 	private StorageReportCSVDownloadWorker storageReportWorker;
+
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
@@ -50,6 +52,10 @@ public class StorageReportCSVDownloadWorkerTest {
 	private AsynchronousJobStatus mockStatus;
 	@Mock
 	private FileHandleManager mockFileHandleManager;
+	@Mock
+	private FileProvider mockFileProvider;
+	@Mock
+	private File mockTempFile;
 	@Mock
 	private Clock mockClock;
 	@Mock
@@ -63,23 +69,16 @@ public class StorageReportCSVDownloadWorkerTest {
 	private static final Message message = new Message();
 
 	@Before
-	public void before(){
-
+	public void before() throws Exception {
 		request = new DownloadStorageReportRequest();
 		request.setReportType(StorageReportType.ALL_PROJECTS);
 		adminUser = new UserInfo(true);
 		adminUser.setId(adminUserId);
-		storageReportWorker = new StorageReportCSVDownloadWorker();
 
 		resultS3FileHandle = new S3FileHandle();
 		resultS3FileHandle.setId(resultS3FileHandleId);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockTempFile);
 		when(mockFileHandleManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(resultS3FileHandle);
-		ReflectionTestUtils.setField(storageReportWorker, "storageReportManager", mockStorageReportManager);
-		ReflectionTestUtils.setField(storageReportWorker, "asynchJobStatusManager", mockAsyncMgr);
-		ReflectionTestUtils.setField(storageReportWorker, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(storageReportWorker, "fileHandleManager", mockFileHandleManager);
-		ReflectionTestUtils.setField(storageReportWorker, "clock", mockClock);
-		ReflectionTestUtils.setField(storageReportWorker, "tableExceptionTranslator", mockTableExceptionTranslator);
 	}
 
 	@Test
@@ -98,24 +97,7 @@ public class StorageReportCSVDownloadWorkerTest {
 		// Verify that a file was uploaded with the file handle manager
 		verify(mockFileHandleManager).multipartUploadLocalFile(any(LocalFileUploadRequest.class));
 		verify(mockAsyncMgr).setComplete(any(String.class), any(DownloadStorageReportResponse.class));
-	}
-
-
-	@Test
-	public void testRecoverable() throws Exception {
-		when(mockAsyncMgr.lookupJobStatus(message.getBody())).thenReturn(mockStatus);
-		when(mockStatus.getRequestBody()).thenReturn(request);
-		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
-		doThrow(new LockUnavilableException()).when(mockStorageReportManager).writeStorageReport(any(UserInfo.class), any(DownloadStorageReportRequest.class), any(CSVWriterStream.class));
-		try { // Call under test
-			storageReportWorker.run(null, message);
-			fail();
-		} catch(RecoverableMessageException e) {
-			// As expected.
-		}
-		verify(mockAsyncMgr, never()).setJobFailed(any(String.class), any(Throwable.class));
-		verify(mockAsyncMgr, never()).setComplete(any(String.class), any(DownloadStorageReportResponse.class));
+		verify(mockTempFile).delete();
 	}
 
 	@Test

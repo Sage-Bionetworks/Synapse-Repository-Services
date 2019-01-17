@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -960,17 +961,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<SynapseStorageProjectStats> getSynapseStorageStats() {
-		return template.query(
-				SQL_SELECT_PROJECTS_BY_SIZE,
-				(rs, rowNum) -> {
-					SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
-					stats.setId(rs.getString(1));
-					stats.setProjectName(rs.getString(2));
-					stats.setSizeInBytes(rs.getLong(3));
-					return stats;
-				});
-
+	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback) {
+		// We use spring to create create the prepared statement
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		namedTemplate.query(SQL_SELECT_PROJECTS_BY_SIZE, rs -> {
+			SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
+			stats.setId(rs.getString(1));
+			stats.setProjectName(rs.getString(2));
+			stats.setSizeInBytes(rs.getLong(3));
+			callback.invoke(stats);
+		});
 	}
-
 }
