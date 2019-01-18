@@ -33,7 +33,7 @@ public class ImagePreviewGeneratorTest {
 				// call under test
 				ImagePreviewGenerator.loadImageWithSizeCheck(in, ImagePreviewGenerator.MAX_IMAGE_SIZE);
 				fail();
-			} catch (IllegalArgumentException e) {
+			} catch (PreviewGenerationNotSupportedException e) {
 				assertTrue(ImagePreviewGenerator.IMAGE_EXCEEDS_THE_MAXIMUM_SIZE.equals(e.getMessage()));
 			}
 		}

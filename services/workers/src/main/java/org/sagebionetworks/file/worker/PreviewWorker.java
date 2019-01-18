@@ -5,9 +5,11 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupportedException;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -46,7 +48,7 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 			// Ignore all non-file messages.
 			if (ObjectType.FILE == changeMessage.getObjectType()
 					&& (ChangeType.CREATE == changeMessage.getChangeType() || ChangeType.UPDATE == changeMessage
-							.getChangeType())) {
+					.getChangeType())) {
 				// This is a file message so look up the file
 				FileHandle metadata = previewManager
 						.getFileMetadata(changeMessage.getObjectId());
@@ -65,12 +67,18 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 				} else if (metadata instanceof ProxyFileHandle) {
 					// we need to add support for this
 					log.warn("Currently do not support previews for ProxyFileHandles");
+				} else if (metadata instanceof ExternalObjectStoreFileHandle) {
+					//we have no permission to access the file contents so we can't generate a preview
 				} else {
 					// We will never be able to process such a message.
 					throw new IllegalArgumentException("Unknown file type: "
 							+ metadata.getClass().getName());
 				}
 			}
+		} catch (PreviewGenerationNotSupportedException e){
+			//preview was not able to be generated for the file
+			log.info("Preview generator determined it was impossible to generate a preview for this because "
+					+ e.getMessage() + " " + changeMessage);
 		} catch (NotFoundException e) {
 			// we can ignore messages for files that no longer exist.
 		} catch (IllegalArgumentException e) {
