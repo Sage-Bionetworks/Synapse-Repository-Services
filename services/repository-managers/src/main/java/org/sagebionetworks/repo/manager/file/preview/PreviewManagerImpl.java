@@ -175,7 +175,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		File tempUpload = null;
 		S3ObjectInputStream in = null;
 		OutputStream out = null;
-		try{
+		try {
 			// The upload file will hold the newly created preview file.
 			tempUpload = tempFileProvider.createTempFile("PreviewManagerImpl_upload", ".tmp");
 			S3Object s3Object = s3Client.getObject(new GetObjectRequest(metadata.getBucketName(), metadata.getKey()));
@@ -189,8 +189,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 			pfm.setBucketName(metadata.getBucketName());
 			pfm.setContentType(previewMetadata.getContentType());
 			pfm.setCreatedBy(metadata.getCreatedBy());
-			pfm.setFileName("preview"+previewMetadata.getExtension());
-			pfm.setKey(metadata.getCreatedBy()+"/"+UUID.randomUUID().toString());
+			pfm.setFileName("preview" + previewMetadata.getExtension());
+			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
 			pfm.setContentSize(tempUpload.length());
 			// Upload this to S3
 			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
@@ -203,8 +203,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
 			// done
 			return pfm;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException("Error generating preview for file handle " + metadata.toString(), e);
 		}finally{
 			// apparently, aborting (which also closes the stream) is an optimization for closing large streams that
 			// aren't fully read (see docs on the S3ObjectInputStream)

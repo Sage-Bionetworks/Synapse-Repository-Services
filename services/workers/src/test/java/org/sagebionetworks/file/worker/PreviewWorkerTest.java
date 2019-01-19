@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupportedException;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -122,7 +123,17 @@ public class PreviewWorkerTest {
 		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
 	}
-	
+
+	@Test
+	public void testPreviewGenerationNotSupported() throws Exception {
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		PreviewGenerationNotSupportedException expectedException = new PreviewGenerationNotSupportedException("Test does not allow it!");
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		worker.run(mockProgressCallback, change);
+		verifyZeroInteractions(mockWorkerLogger);
+	}
+
 	@Test
 	public void testTemporarilyUnavailable() throws Exception{
 		// When the preview manager throws a TemporarilyUnavailableException
