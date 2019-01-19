@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -18,6 +19,7 @@ import org.sagebionetworks.csv.utils.ObjectCSVReader;
 import org.sagebionetworks.csv.utils.ObjectCSVWriter;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -29,6 +31,8 @@ import org.sagebionetworks.util.ContentDispositionUtils;
  * This class helps write records to a file and push the file to S3.
  */
 public class ObjectCSVDAO<T> {
+	private static final int S3_BATCH_OPERATION_LIMIT = 1000;
+
 	private AmazonS3 s3Client;
 	private int stackInstanceNumber;
 	private String bucketName;
@@ -139,10 +143,13 @@ public class ObjectCSVDAO<T> {
 			ObjectListing listing = s3Client.listObjects(bucketName, stackInstancePrefixString);
 			done = !listing.isTruncated();
 			// Delete all
-			if(listing.getObjectSummaries() != null){
-				for(S3ObjectSummary summary: listing.getObjectSummaries()){
-					s3Client.deleteObject(bucketName, summary.getKey());
-				}
+			List<S3ObjectSummary> objectSummaries = listing.getObjectSummaries();
+			if(objectSummaries != null && !objectSummaries.isEmpty()){
+				List<DeleteObjectsRequest.KeyVersion> keysToDelete = objectSummaries.stream()
+						.limit(S3_BATCH_OPERATION_LIMIT)
+						.map( objectSummary -> new DeleteObjectsRequest.KeyVersion(objectSummary.getKey()) )
+						.collect(Collectors.toList());
+				s3Client.deleteObjects(new DeleteObjectsRequest(bucketName).withKeys(keysToDelete));
 			}
 		}
 	}
