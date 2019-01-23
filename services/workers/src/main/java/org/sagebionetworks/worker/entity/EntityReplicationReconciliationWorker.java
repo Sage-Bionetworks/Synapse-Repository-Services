@@ -81,6 +81,7 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 
 	@Autowired
 	Clock clock;
+	
 
 
 	@Override
