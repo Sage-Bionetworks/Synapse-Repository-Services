@@ -1685,12 +1685,12 @@ public class TableIndexDAOImplTest {
 		List<IdAndEtag> results = tableIndexDAO.getEntityChildren(parentOneId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(file1.getId(), file1.getEtag(), 2L, 3L), results.get(0));
+		assertEquals(new IdAndEtag(file1.getId(), file1.getEtag(), 2L), results.get(0));
 		
 		results = tableIndexDAO.getEntityChildren(parentTwoId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(file2.getId(), file2.getEtag(), 2L, 3L), results.get(0));
+		assertEquals(new IdAndEtag(file2.getId(), file2.getEtag(), 2L), results.get(0));
 		
 		results = tableIndexDAO.getEntityChildren(parentThreeId);
 		assertNotNull(results);

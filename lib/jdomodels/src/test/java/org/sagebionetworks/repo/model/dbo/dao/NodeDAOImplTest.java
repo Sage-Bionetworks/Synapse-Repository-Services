@@ -3555,12 +3555,12 @@ public class NodeDAOImplTest {
 		List<IdAndEtag> results = nodeDao.getChildren(grandId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(parentId, parent.getETag(), parentId, grandId), results.get(0));
+		assertEquals(new IdAndEtag(parentId, parent.getETag(), parentId), results.get(0));
 		// call under test
 		results = nodeDao.getChildren(parentId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(childId, child.getETag(), parentId, grandId), results.get(0));
+		assertEquals(new IdAndEtag(childId, child.getETag(), parentId), results.get(0));
 		// call under test
 		results = nodeDao.getChildren(childId);
 		assertNotNull(results);

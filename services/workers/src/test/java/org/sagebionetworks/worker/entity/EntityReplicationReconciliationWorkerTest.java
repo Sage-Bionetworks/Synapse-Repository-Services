@@ -132,17 +132,17 @@ public class EntityReplicationReconciliationWorkerTest {
 		));
 		
 		// setup the check for the first parent.
-		truthOne = new IdAndEtag(111L, "et1");
-		truthTwo = new IdAndEtag(222L, "et2");
-		truthThree = new IdAndEtag(333L, "et3");
+		truthOne = new IdAndEtag(111L, "et1", 444L);
+		truthTwo = new IdAndEtag(222L, "et2", 444L);
+		truthThree = new IdAndEtag(333L, "et3", 444L);
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
 		// one matches the truth
-		replicaOne = new IdAndEtag(111L, "et1");
+		replicaOne = new IdAndEtag(111L, "et1", 444L);
 		// two does not match
-		replicaTwo = new IdAndEtag(222L, "no-match");
+		replicaTwo = new IdAndEtag(222L, "no-match", 444L);
 		// three does not exist in  replica
 		// four does not exist in truth.
-		replicaFour = new IdAndEtag(444L,	"et4");
+		replicaFour = new IdAndEtag(444L,"et4", 444L);
 		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		
 		IdList list = new IdList();
@@ -184,7 +184,7 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testCreateChange(){
-		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag");
+		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag",444L);
 		ChangeMessage message = worker.createChange(idAndEtag, ChangeType.DELETE);
 		assertNotNull(message);
 		assertEquals(""+idAndEtag.getId(), message.getObjectId());
@@ -226,9 +226,9 @@ public class EntityReplicationReconciliationWorkerTest {
 		Long parentId = 999L;
 		boolean parentInTrash = true;
 		// one matches the truth
-		IdAndEtag replicaOne = new IdAndEtag(111L, "et1");
+		IdAndEtag replicaOne = new IdAndEtag(111L, "et1",444L);
 		// two does not match
-		IdAndEtag replicaTwo = new IdAndEtag(222L, "et2");
+		IdAndEtag replicaTwo = new IdAndEtag(222L, "et2", 888L);
 		when(mockIndexDao.getEntityChildren(parentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
 		
 		// call under test

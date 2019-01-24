@@ -154,7 +154,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					+ " SUM(CRC32(CONCAT("+COL_NODE_ID
 					+",'-',"+COL_NODE_ETAG
 					+",'-',"+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
-					+",'-',"+FUNCTION_GET_ENTITY_PROJECT_ID+"("+COL_NODE_ID+")"
 							+ "))) AS 'CRC'"
 							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+")"
 									+ " GROUP BY "+COL_NODE_PARENT_ID;
@@ -163,7 +162,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			"SELECT "+COL_NODE_ID
 			+", "+COL_NODE_ETAG
 			+", "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
-			+", "+FUNCTION_GET_ENTITY_PROJECT_ID+"("+COL_NODE_ID+")"
 			+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ?";
 
 	private static final String SQL_SELECT_CHILD = "SELECT "+COL_NODE_ID
@@ -1809,11 +1807,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()) {
 					benefactorId = null;
 				}
-				Long projectId = rs.getLong(4);
-				if(rs.wasNull()) {
-					projectId = null;
-				}
-				return new IdAndEtag(id, etag, benefactorId, projectId);
+				return new IdAndEtag(id, etag, benefactorId);
 			}}, parentId);
 	}
 

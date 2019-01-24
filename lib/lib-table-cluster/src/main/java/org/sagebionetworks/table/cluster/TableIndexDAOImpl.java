@@ -881,11 +881,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				if(rs.wasNull()) {
 					benefactorId = null;
 				}
-				Long projectId = rs.getLong(ENTITY_REPLICATION_COL_PROJECT_ID);
-				if(rs.wasNull()) {
-					projectId = null;
-				}
-				return new IdAndEtag(id, etag, benefactorId, projectId);
+				return new IdAndEtag(id, etag, benefactorId);
 			}}, parentId);
 	}
 

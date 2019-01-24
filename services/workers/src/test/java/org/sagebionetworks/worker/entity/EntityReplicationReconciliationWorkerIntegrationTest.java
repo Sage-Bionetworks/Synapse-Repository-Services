@@ -107,7 +107,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	
 	/**
 	 * With PLFM_5352, there are cases where the benefactor can be out-of-date in the entity replication table.
-	 * The reconciliation process should detect cases where this can occur.
+	 * The reconciliation process should detect and repair these cases.
 	 * 
 	 * @throws InterruptedException
 	 */
@@ -124,8 +124,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		indexDao.addEntityData(null, Lists.newArrayList(dto));
 		
 		// trigger the reconciliation of the container.
-		Long projectParent = KeyFactory.stringToKey(project.getParentId());
-		List<Long> scope = Arrays.asList(projectParent);
+		List<Long> scope = KeyFactory.stringToKey(Lists.newArrayList(project.getParentId(), folder.getParentId(), folder.getId()));
 		replicationMessageManager.pushContainerIdsToReconciliationQueue(scope);
 		
 		// Wait for the benefactor to be fixed
