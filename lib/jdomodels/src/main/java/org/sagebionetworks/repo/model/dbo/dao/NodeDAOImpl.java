@@ -151,11 +151,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String SQL_SELECT_CHILD_CRC32 = 
 			"SELECT "+COL_NODE_PARENT_ID+","
-					+ " SUM(CRC32(CONCAT("+COL_NODE_ID+",\"-\","+COL_NODE_ETAG+"))) AS 'CRC'"
-							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+") GROUP BY "+COL_NODE_PARENT_ID;
+					+ " SUM(CRC32(CONCAT("+COL_NODE_ID
+					+",'-',"+COL_NODE_ETAG
+					+",'-',"+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
+							+ "))) AS 'CRC'"
+							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+")"
+									+ " GROUP BY "+COL_NODE_PARENT_ID;
 	
 	private static final String SQL_SELECT_CHILDREN_ID_AND_ETAG = 
-			"SELECT "+COL_NODE_ID+", "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ?";
+			"SELECT "+COL_NODE_ID
+			+", "+COL_NODE_ETAG
+			+", "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
+			+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ?";
 
 	private static final String SQL_SELECT_CHILD = "SELECT "+COL_NODE_ID
 			+ " FROM "+TABLE_NODE
@@ -1796,7 +1803,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					throws SQLException {
 				Long id = rs.getLong(COL_NODE_ID);
 				String etag = rs.getString(COL_NODE_ETAG);
-				return new IdAndEtag(id, etag);
+				Long benefactorId = rs.getLong(3);
+				if(rs.wasNull()) {
+					benefactorId = null;
+				}
+				return new IdAndEtag(id, etag, benefactorId);
 			}}, parentId);
 	}
 

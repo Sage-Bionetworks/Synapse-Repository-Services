@@ -3535,12 +3535,19 @@ public class NodeDAOImplTest {
 		// parent
 		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
 		parent.setParentId(grandparent.getId());
+		parent.setNodeType(EntityType.folder);
 		parent = nodeDao.createNewNode(parent);
 		Long parentId = KeyFactory.stringToKey(parent.getId());
 		toDelete.add(parent.getId());
+		
+		// add an acl for the parent
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(""+parentId, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		
 		// child
 		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
 		child.setParentId(parent.getId());
+		child.setNodeType(EntityType.file);
 		child = nodeDao.createNewNode(child);
 		Long childId = KeyFactory.stringToKey(child.getId());
 		toDelete.add(child.getId());
@@ -3548,12 +3555,12 @@ public class NodeDAOImplTest {
 		List<IdAndEtag> results = nodeDao.getChildren(grandId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(parentId, parent.getETag()), results.get(0));
+		assertEquals(new IdAndEtag(parentId, parent.getETag(), parentId), results.get(0));
 		// call under test
 		results = nodeDao.getChildren(parentId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(childId, child.getETag()), results.get(0));
+		assertEquals(new IdAndEtag(childId, child.getETag(), parentId), results.get(0));
 		// call under test
 		results = nodeDao.getChildren(childId);
 		assertNotNull(results);
