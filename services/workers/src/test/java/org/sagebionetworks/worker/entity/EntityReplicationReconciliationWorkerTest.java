@@ -225,10 +225,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		// setup some differences between the truth and replica.
 		Long parentId = 999L;
 		boolean parentInTrash = true;
-		// one matches the truth
-		IdAndEtag replicaOne = new IdAndEtag(111L, "et1",444L);
-		// two does not match
-		IdAndEtag replicaTwo = new IdAndEtag(222L, "et2", 888L);
 		when(mockIndexDao.getEntityChildren(parentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
 		
 		// call under test
@@ -247,6 +243,28 @@ public class EntityReplicationReconciliationWorkerTest {
 		verify(mockIndexDao).getEntityChildren(parentId);
 		// since the parent is in the trash this call should not be made
 		verify(mockNodeDao, never()).getChildren(parentId);
+	}
+	
+	@Test
+	public void testPLFM_5352BenefactorDoesNotMatch(){
+		// setup some differences between the truth and replica.
+		Long parentId = firstParentId;
+		boolean parentInTrash = false;
+		// The benefactor does not match
+		replicaOne.setBenefactorId(truthOne.getBenefactorId()+1);
+		when(mockIndexDao.getEntityChildren(parentId)).thenReturn(Lists.newArrayList(replicaOne));
+		
+		// call under test
+		List<ChangeMessage> result = worker.findChangesForParentId(mockProgressCallback, mockIndexDao, parentId, parentInTrash);
+		assertNotNull(result);
+		assertEquals(3, result.size());
+		// first should be updated
+		ChangeMessage message = result.get(0);
+		assertEquals(""+replicaOne.getId(), message.getObjectId());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
+		message = result.get(1);
+		assertEquals(""+replicaTwo.getId(), message.getObjectId());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	
 	@Test

@@ -21,6 +21,9 @@ public class IdAndEtag {
 		this.benefactorId = benefactor;
 	}
 	
+	public void setBenefactorId(Long benefactorId) {
+		this.benefactorId = benefactorId;
+	}
 	
 	public Long getId() {
 		return id;

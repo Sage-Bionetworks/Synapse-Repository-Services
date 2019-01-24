@@ -3,6 +3,7 @@ package org.sagebionetworks.worker.entity;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -226,7 +227,7 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 			ProgressCallback progressCallback, TableIndexDAO firstIndex,
 			Long outOfSynchParentId, boolean isParentInTrash) {
 		List<ChangeMessage> changes = new LinkedList<>();
-		Set<IdAndEtag> replicaChildren = new HashSet<>(
+		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
 				firstIndex.getEntityChildren(outOfSynchParentId));
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
