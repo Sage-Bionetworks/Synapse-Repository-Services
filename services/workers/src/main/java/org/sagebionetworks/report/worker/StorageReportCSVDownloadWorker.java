@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.table.worker.ProgressingCSVWriterStream;
 import org.sagebionetworks.table.worker.UploadProgressListener;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -50,28 +49,22 @@ public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 	private Clock clock;
 	@Autowired
 	private TableExceptionTranslator tableExceptionTranslator;
-	@Autowired
-	private FileProvider fileProvider;
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws Exception {
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		String fileName = "Job-"+status.getJobId();
 		File temp = null;
-		CSVWriter writer = null;
 		try {
 			UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
 			DownloadStorageReportRequest request = AsynchJobUtils.extractRequestBody(status, DownloadStorageReportRequest.class);
 			// The CSV data will first be written to this file.
-			temp = fileProvider.createTempFile(fileName, ".csv");
-			writer = new CSVWriter(new FileWriter(temp));
-			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
-			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, 0L, 0L, status.getJobId(), clock);
+			temp = File.createTempFile(fileName, ".csv");
 			// Execute the actual query and stream the results to the file.
-			try {
+			try (CSVWriter writer = new CSVWriter(new FileWriter(temp))){
+				// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
+				ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, 0L, 0L, status.getJobId(), clock);
 				storageReportManager.writeStorageReport(user, request, stream);
-			} finally {
-				writer.close();
 			}
 
 			// At this point we have the entire CSV written to a local file.
@@ -90,11 +83,6 @@ public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 			asynchJobStatusManager.setJobFailed(status.getJobId(), translatedException);
 			log.error("Worker Failed", e);
 		} finally {
-			if (writer != null) {
-				try {
-					writer.close();
-				} catch (Exception e2) {}
-			}
 			if (temp != null) {
 				temp.delete();
 			}

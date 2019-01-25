@@ -185,12 +185,10 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 	 */
 	private EntityDTO waitForEntityReplication(String entityId) throws InterruptedException{
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
-		long start = System.currentTimeMillis();
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		while(true){
 			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
-				assertTrue("Timed out waiting for table view status change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);
 			}else{

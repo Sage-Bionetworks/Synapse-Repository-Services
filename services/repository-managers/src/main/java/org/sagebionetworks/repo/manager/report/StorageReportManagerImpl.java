@@ -32,21 +32,27 @@ public class StorageReportManagerImpl implements StorageReportManager {
 
 		TableIndexDAO tableIndexDAO = connectionFactory.getFirstConnection();
 
-		if (request.getReportType() == null || request.getReportType().equals(StorageReportType.ALL_PROJECTS)) {
-			String[] header = {"projectId", "projectName", "sizeInBytes"};
-			writer.writeNext(header);
+		if (request.getReportType() == null) {
+			request.setReportType(StorageReportType.ALL_PROJECTS);
+		}
 
-			Callback<SynapseStorageProjectStats> callback = value -> {
-				String[] row = new String[3];
-				row[0] = "syn" + value.getId();
-				row[1] = value.getProjectName();
-				row[2] = value.getSizeInBytes().toString();
-				writer.writeNext(row);
-			};
+		switch (request.getReportType()) {
+			case ALL_PROJECTS:
+				String[] header = {"projectId", "projectName", "sizeInBytes"};
+				writer.writeNext(header);
 
-			tableIndexDAO.streamSynapseStorageStats(callback);
-		} else {
-			throw new IllegalArgumentException("Only storage reports of type \"ALL_PROJECTS\" are currently supported.");
+				Callback<SynapseStorageProjectStats> callback = value -> {
+					String[] row = new String[3];
+					row[0] = "syn" + value.getId();
+					row[1] = value.getProjectName();
+					row[2] = value.getSizeInBytes().toString();
+					writer.writeNext(row);
+				};
+
+				tableIndexDAO.streamSynapseStorageStats(callback);
+				break;
+			default:
+				throw new IllegalArgumentException("Only storage reports of type \"ALL_PROJECTS\" are currently supported.");
 		}
 	}
 }
