@@ -23,7 +23,7 @@ public class StorageReportManagerImpl implements StorageReportManager {
 
 	@Override
 	public void writeStorageReport(UserInfo user, DownloadStorageReportRequest request, CSVWriterStream writer)
-			throws NotFoundException, LockUnavilableException{
+			throws NotFoundException, LockUnavilableException {
 		// Verify that the user is in the authorized group.
 		UserInfo.validateUserInfo(user);
 		if (!authorizationManager.isReportTeamMemberOrAdmin(user)) {
