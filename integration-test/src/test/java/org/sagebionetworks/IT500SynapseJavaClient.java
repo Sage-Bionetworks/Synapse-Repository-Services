@@ -261,7 +261,6 @@ public class IT500SynapseJavaClient {
 			String datasetId = datasets.getJSONObject(0).getString("folder.id");
 
 			Folder aStoredDataset = synapseOne.getEntity(datasetId, Folder.class);
-			assertNotNull(aStoredDataset.getAnnotations());
 
 			Annotations annos = synapseOne.getAnnotations(datasetId);
 			assertNotNull(annos.getStringAnnotations());
@@ -479,7 +478,6 @@ public class IT500SynapseJavaClient {
 		Folder createdStudy = synapseOne.createEntity(study);
 		assertNotNull(createdStudy);
 		assertNotNull(createdStudy.getId());
-		assertNotNull(createdStudy.getUri());
 
 		String createdProjectId = createdStudy.getId();
 		Folder fromGet = synapseOne.getEntity(createdProjectId, Folder.class);

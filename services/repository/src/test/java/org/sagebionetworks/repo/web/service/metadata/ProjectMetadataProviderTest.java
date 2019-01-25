@@ -64,15 +64,6 @@ public class ProjectMetadataProviderTest {
 		when(mockForumManager.createForum(userInfo, projectId)).thenReturn(forum);
 
 	}
-	
-	// No projec specific metadata anymore
-	@Ignore
-	@Test
-	public void testAddTypeSpecificMetadata(){
-		// Mock the dataset and the request
-		provider.addTypeSpecificMetadata(project, mockRequest, null, EventType.GET);
-		assertEquals("/repo/v1/project/101/annotations", project.getAnnotations());
-	}
 
 	@Test
 	public void testEntityCreated() {

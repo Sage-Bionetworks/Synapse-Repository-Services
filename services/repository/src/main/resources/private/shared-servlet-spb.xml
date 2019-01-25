@@ -39,11 +39,6 @@
 				<ref bean="objectTypeSerializer" />
 			</list>
 		</property>
-		<property name="customModelAndViewResolvers">
-			<list>
-				<bean class="org.sagebionetworks.repo.web.ResponseHeaderResolver" />
-			</list>
-		</property>
 	</bean>
 	<!-- Setup our own JSON processing. -->
 	<bean id="jsonAnnotationExceptionHandler"
