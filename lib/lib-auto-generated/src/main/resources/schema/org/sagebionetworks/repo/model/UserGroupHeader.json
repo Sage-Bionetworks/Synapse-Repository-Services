@@ -55,17 +55,6 @@
 			"title": "Display Name",
 			"description": "This is deprecated and will always be null"
 		},
-		"pic": {
-			"type": "object",
-			"description": "picture attachment",
-			"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/access/public"
-				}
-			]
-		},
 		"isIndividual": {
 			"type": "boolean",
 			"description": "True if this is a user, false if it is a group",

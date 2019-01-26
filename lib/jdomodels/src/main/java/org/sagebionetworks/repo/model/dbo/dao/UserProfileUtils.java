@@ -166,7 +166,6 @@ public class UserProfileUtils {
 		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
-		ugh.setPic(up.getPic());
 		ugh.setUserName(userName);
 	}
 
