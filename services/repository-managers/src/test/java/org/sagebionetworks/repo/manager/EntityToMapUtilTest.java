@@ -24,11 +24,9 @@ public class EntityToMapUtilTest {
 		ds.setDescription("someDesc");
 		ds.setCreatedBy("magic");
 		ds.setCreatedOn(new Date(System.currentTimeMillis()));
-		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
-		ds.setUri("someUri");
-		
+
 		// Create the annotations from this object
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(ds, annos);

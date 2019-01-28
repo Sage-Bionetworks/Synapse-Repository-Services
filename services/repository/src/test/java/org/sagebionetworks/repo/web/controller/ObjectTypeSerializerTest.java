@@ -54,7 +54,6 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		project.setParentId("123");
 		project.setEtag("202");
 		project.setCreatedOn(new Date(System.currentTimeMillis()));
-		project.setUri("/project/123");
 		// Now write it to JSON
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		// Now write the object to the stream
@@ -77,7 +76,6 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		project.setParentId("123");
 		project.setEtag("202");
 		project.setCreatedOn(new Date(System.currentTimeMillis()));
-		project.setUri("/project/123");
 		// Now write it to JSON
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		// Now write the object to the stream
@@ -106,7 +104,6 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		project.setParentId("123");
 		project.setEtag("202");
 		project.setCreatedOn(new Date(System.currentTimeMillis()));
-		project.setUri("/project/123");
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		HttpOutputMessage message = new HttpOutputMessage() {
 			@Override

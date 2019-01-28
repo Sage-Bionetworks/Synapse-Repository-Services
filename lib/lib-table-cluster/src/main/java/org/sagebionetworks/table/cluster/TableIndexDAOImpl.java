@@ -877,7 +877,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				Long id = rs.getLong(TableConstants.ENTITY_REPLICATION_COL_ID);
 				String etag = rs.getString(ENTITY_REPLICATION_COL_ETAG);
-				return new IdAndEtag(id, etag);
+				Long benefactorId = rs.getLong(ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+				if(rs.wasNull()) {
+					benefactorId = null;
+				}
+				return new IdAndEtag(id, etag, benefactorId);
 			}}, parentId);
 	}
 

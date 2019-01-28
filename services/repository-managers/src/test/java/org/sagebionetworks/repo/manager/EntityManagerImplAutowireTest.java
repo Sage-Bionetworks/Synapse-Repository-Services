@@ -335,10 +335,8 @@ public class EntityManagerImplAutowireTest {
 		ds.setDescription("someDesc");
 		ds.setCreatedBy("magic");
 		ds.setCreatedOn(new Date(1001));
-		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
-		ds.setUri("someUri");
 		return ds;
 	}
 

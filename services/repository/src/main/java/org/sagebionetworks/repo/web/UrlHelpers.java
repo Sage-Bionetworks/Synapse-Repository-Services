@@ -1185,103 +1185,18 @@ public class UrlHelpers {
 		builder.append(entityId);
 		return builder.toString();
 	}
-	
-	/**
-	 * Set the base uri for any entity.
-	 * @param entity
-	 * @param request
-	 */
-	public static void setBaseUriForEntity(Entity entity, HttpServletRequest request){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(request == null) throw new IllegalArgumentException("Request cannot be null");
-		// First get the prefix
-		String prefix = UrlHelpers.getUrlPrefixFromRequest(request);
-		// Now build the uri.
-		String uri = UrlHelpers.createEntityUri(entity.getId(), entity.getClass(), prefix);
-		entity.setUri(uri);
-	}
-	
-	/**
-	 * Set the all of the Entity URLs (annotations, ACL)
-	 * @param entity
-	 */
-	public static void setAllEntityUrls(Entity entity){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-		// Add the annotations
-		entity.setAnnotations(entity.getUri()+ANNOTATIONS);
-		// Add the acl
-		entity.setAccessControlList(entity.getUri()+ACL);
-	}
-	
-	
-	/**
-	 * Set the URL of a versionable entity.
-	 * @param entity 
-	 */
-	public static void setVersionableUrl(VersionableEntity entity){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-		if(entity.getVersionNumber() == null) throw new IllegalArgumentException("Entity version number cannot be null");
-		// This URL wil list all version for this entity.
-		entity.setVersions(entity.getUri()+VERSION);
-		// This URL will reference this specific version of the entity.
-		entity.setVersionUrl(entity.getUri()+VERSION+"/"+entity.getVersionNumber());
-	}
-	
+
+
 	/**
 	 * 
 	 * @param entity
 	 * @param request
 	 */
 	public static void setAllUrlsForEntity(Entity entity, HttpServletRequest request){
-		// First set the base url
-		setBaseUriForEntity(entity, request);
-		// Set the Entity types
-		setAllEntityUrls(entity);
-		// Set the specialty types
-		// Versions
-		if(entity instanceof VersionableEntity){
-			setVersionableUrl((VersionableEntity)entity);
-		}
-		// Set the entity type
+		//TODO: replace callers with:
 		entity.setEntityType(entity.getClass().getName());
 	}
-	
-	/**
-	 * Helper method to validate all urs.
-	 * @param object
-	 */
-	public static void validateAllUrls(Entity object) {
-		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
-		EntityType type = EntityTypeUtils.getEntityTypeForClass(object.getClass());
-		String expectedBaseSuffix = UrlHelpers.ENTITY +"/"+object.getId();
-		if(!object.getUri().endsWith(expectedBaseSuffix)){
-			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());
-		}
-		String expected = object.getUri()+UrlHelpers.ANNOTATIONS;
-		if(!expected.equals(object.getAnnotations())){
-			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAnnotations());
-		}
-		expected =  object.getUri()+UrlHelpers.ACL;
-		if(!expected.equals(object.getAccessControlList())){
-			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAccessControlList());
-		}
-		// Versionable
-		if(object instanceof VersionableEntity){
-			VersionableEntity able = (VersionableEntity) object;
-			expected = object.getUri()+UrlHelpers.VERSION;
-			if(!expected.equals(able.getVersions())){
-				throw new IllegalArgumentException("Expected versions: "+expected+" but was: "+able.getVersions());
-			}
-			expected = object.getUri()+UrlHelpers.VERSION+"/"+able.getVersionNumber();
-			if(!expected.equals(able.getVersionUrl())){
-				throw new IllegalArgumentException("Expected versionUrl: "+expected+" but was: "+able.getVersionUrl());
-			}
-		}
-	}
-	
+
 	/**
 	 * Create an ACL redirect URL.
 	 * @param request - The initial request.

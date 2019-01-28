@@ -17,9 +17,7 @@ public class ProjectTest {
 		JSONObjectAdapter adapter1 = new JSONObjectAdapterImpl();
 		JSONObjectAdapter adapter2 = new JSONObjectAdapterImpl();
 		Date d = new Date();
-		
-		p1.setAccessControlList("/acl");
-		p1.setAnnotations("/annotations");
+
 		p1.setCreatedBy("createdBy");
 		p1.setCreatedOn(d);
 		p1.setDescription("description");
@@ -29,7 +27,6 @@ public class ProjectTest {
 		p1.setModifiedOn(d);
 		p1.setName("name");
 		p1.setParentId("0");
-		p1.setUri("uri");
 
 		adapter1 = p1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
