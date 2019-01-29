@@ -1,7 +1,17 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Resource;
 
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -21,6 +31,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.util.ResourceUtils;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
 	public static final String LOGIN_FAIL_ATTEMPT_METRIC_UNIT = "Count";
@@ -38,6 +50,19 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public static final int MAX_CONCURRENT_LOCKS = 10;
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
+
+	//Passwords that are very common and used in dictionary attacks. https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/10k-most-common.txt
+	public static final Set<String> BANNED_COMMON_PASSWORDS;
+	static {
+		try (Stream<String> lineStream = Files.lines(ResourceUtils.getFile("classpath:10k-most-common-passwords.txt").toPath())){
+			BANNED_COMMON_PASSWORDS = lineStream
+					.map(String::toLowerCase)
+					.collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -100,6 +125,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@WriteTransaction
 	public void changePassword(Long principalId, String password) {
 		ValidateArgument.requirement(password.length() >= PASSWORD_MIN_LENGTH, "Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
+		//check against most common password list: https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/10k-most-common.txt
+		ValidateArgument.requirement(!BANNED_COMMON_PASSWORDS.contains(password.toLowerCase()),
+				"This password is known to be a commonly used password and will easily be discovered by a password dictionary attack. " +
+						"Please choose a more unique password!");
+
 		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(principalId, passHash);
 	}

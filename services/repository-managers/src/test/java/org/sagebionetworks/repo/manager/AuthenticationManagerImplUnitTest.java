@@ -136,6 +136,11 @@ public class AuthenticationManagerImplUnitTest {
 		authManager.changePassword(userId, invalidPassword);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testChangePassword_commonlyUsedPassword(){
+		authManager.changePassword(userId, "123456789");
+	}
+
 	@Test
 	public void testChangePasswordWithValidPassword() {
 		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH);
