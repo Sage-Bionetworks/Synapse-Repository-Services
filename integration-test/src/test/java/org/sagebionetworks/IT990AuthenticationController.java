@@ -38,7 +38,7 @@ public class IT990AuthenticationController {
 	private static SynapseClient synapse;
 	private static String email;
 	private static String username;
-	private static final String PASSWORD = "password";
+	private static final String PASSWORD = "password"+UUID.randomUUID().toString();
 	private static String receipt = null;
 	
 	@BeforeClass 

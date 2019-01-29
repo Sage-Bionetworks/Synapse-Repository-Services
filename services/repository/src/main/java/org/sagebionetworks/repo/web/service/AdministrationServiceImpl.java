@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.BannedPasswords;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -76,7 +77,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	TransactionSynchronizationProxy transactionSynchronizationManager;
-	
+
+	@Autowired
+	BannedPasswords bannedPasswords;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -154,6 +157,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		DBOTermsOfUseAgreement touAgreement = null;
 		DBOSessionToken token = null;
 		if (userSpecs.getPassword() != null) {
+			ValidateArgument.requirement(!bannedPasswords.isPasswordBanned(userSpecs.getPassword()),
+					"Even though this is a test account, please do not create an account with a commonly used password");
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
 		if (userSpecs.getSession() != null) {

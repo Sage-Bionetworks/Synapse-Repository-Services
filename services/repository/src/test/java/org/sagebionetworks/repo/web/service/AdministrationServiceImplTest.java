@@ -2,15 +2,20 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.BannedPasswords;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
@@ -18,6 +23,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -33,6 +39,7 @@ import org.springframework.test.util.ReflectionTestUtils;
  * @author John
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class AdministrationServiceImplTest {
 
 	@Mock
@@ -47,7 +54,10 @@ public class AdministrationServiceImplTest {
 	DBOChangeDAO mockChangeDAO;
 	@Mock
 	IdGenerator mockIdGenerator;
-	
+	@Mock
+	BannedPasswords mockBannedPasswords;
+
+	@InjectMocks
 	AdministrationServiceImpl adminService;
 	
 	Long nonAdminUserId = 98345L;
@@ -58,14 +68,6 @@ public class AdministrationServiceImplTest {
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
-		MockitoAnnotations.initMocks(this);
-		adminService = new AdministrationServiceImpl();
-		ReflectionTestUtils.setField(adminService, "objectTypeSerializer", mockObjectTypeSerializer);
-		ReflectionTestUtils.setField(adminService, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(adminService, "stackStatusManager", mockStackStatusManager);
-		ReflectionTestUtils.setField(adminService, "messageSyndication", mockMessageSyndication);
-		ReflectionTestUtils.setField(adminService, "changeDAO", mockChangeDAO);
-		ReflectionTestUtils.setField(adminService, "idGenerator", mockIdGenerator);
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);
@@ -73,6 +75,7 @@ public class AdministrationServiceImplTest {
 		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		exportScript = "the export script";
 		when(mockIdGenerator.createRestoreScript()).thenReturn(exportScript);
+		when(mockBannedPasswords.isPasswordBanned(anyString())).thenReturn(false);
 	}	
 	
 	@Test (expected=UnauthorizedException.class)
@@ -146,5 +149,14 @@ public class AdministrationServiceImplTest {
 	public void testCreateIdGeneratorExportNonAdmin() {
 		// call under test
 		this.adminService.createIdGeneratorExport(nonAdminUserId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateOrGetTestUser_bannedPassword(){
+		String bannedPassword = "hunter2";
+		when(mockBannedPasswords.isPasswordBanned(bannedPassword)).thenReturn(true);
+		NewIntegrationTestUser testUser = new NewIntegrationTestUser();
+		testUser.setPassword(bannedPassword);
+		adminService.createOrGetTestUser(adminUserId, testUser);
 	}
 }
