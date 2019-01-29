@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.fileupload.FileItemHeaders;
 import org.apache.commons.fileupload.FileItemStream;
 import org.junit.After;
 import org.junit.Before;
@@ -78,34 +79,6 @@ public class MessageToUserWorkerIntegrationTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		final URL url = MessageToUserWorkerIntegrationTest.class.getClassLoader().getResource("Message.txt");
-		FileItemStream fis = new FileItemStream() {
-
-			@Override
-			public InputStream openStream() throws IOException {
-				return url.openStream();
-			}
-
-			@Override
-			public String getContentType() {
-				return "application/text";
-			}
-
-			@Override
-			public String getName() {
-				return "Message.txt";
-			}
-
-			@Override
-			public String getFieldName() {
-				return "none";
-			}
-
-			@Override
-			public boolean isFormField() {
-				return false;
-			}
-			
-		};
 		S3FileHandle handle = fileHandleManager.createCompressedFileFromString(fromUserInfo.getId().toString(), new Date(), "my dog has fleas");
 		fileHandleId = handle.getId();
 		
