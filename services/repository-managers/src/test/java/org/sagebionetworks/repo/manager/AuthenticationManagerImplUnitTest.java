@@ -4,19 +4,25 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
 
+import java.util.Collections;
+
 import org.apache.commons.lang.RandomStringUtils;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
@@ -31,9 +37,11 @@ import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AuthenticationManagerImplUnitTest {
 
-	private AuthenticationManager authManager;
+	@InjectMocks
+	private AuthenticationManagerImpl authManager;
 	@Mock
 	private AuthenticationDAO mockAuthDAO;
 	@Mock
@@ -44,6 +52,8 @@ public class AuthenticationManagerImplUnitTest {
 	private AuthenticationReceiptDAO mockAuthReceiptDAO;
 	@Mock
 	private Consumer mockConsumer;
+	@Mock
+	private BannedPasswordSetProvider mockBannedPasswordSetProvider;
 	
 	final Long userId = 12345L;
 //	final String username = "AuthManager@test.org";
@@ -62,13 +72,7 @@ public class AuthenticationManagerImplUnitTest {
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
-
-		authManager = new AuthenticationManagerImpl();
-		ReflectionTestUtils.setField(authManager, "authDAO", mockAuthDAO);
-		ReflectionTestUtils.setField(authManager, "userGroupDAO", mockUserGroupDAO);
-		ReflectionTestUtils.setField(authManager, "authenticationThrottleMemoryCountingSemaphore", mockUsernameThrottleGate);
-		ReflectionTestUtils.setField(authManager, "authReceiptDAO", mockAuthReceiptDAO);
-		ReflectionTestUtils.setField(authManager, "consumer", mockConsumer);
+		when(mockBannedPasswordSetProvider.getBannedPasswordSet()).thenReturn(Collections.emptySet());
 	}
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
@@ -134,6 +138,14 @@ public class AuthenticationManagerImplUnitTest {
 	public void testChangePasswordWithInvalidPassword() {
 		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH-1);
 		authManager.changePassword(userId, invalidPassword);
+	}
+
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testChangePasswordWithBannedCommonPassword() {
+		String bannedPassword = "password123";
+		when(mockBannedPasswordSetProvider.getBannedPasswordSet()).thenReturn(Collections.singleton(bannedPassword));
+		authManager.changePassword(userId, bannedPassword);
 	}
 
 	@Test
