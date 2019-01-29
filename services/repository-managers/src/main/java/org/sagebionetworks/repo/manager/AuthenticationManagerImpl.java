@@ -1,12 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -26,7 +21,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.ResourceUtils;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
 	public static final String LOGIN_FAIL_ATTEMPT_METRIC_UNIT = "Count";
@@ -57,7 +51,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private Consumer consumer;
 	@Autowired
-	private BannedPasswordSetProvider bannedPasswordSetProvider;
+	private BannedPasswords bannedPasswords;
 
 	private void logAttemptAfterAccountIsLocked(long principalId) {
 		ProfileData loginFailAttemptExceedLimit = new ProfileData();
@@ -109,8 +103,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@WriteTransaction
 	public void changePassword(Long principalId, String password) {
 		ValidateArgument.requirement(password.length() >= PASSWORD_MIN_LENGTH, "Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
-		//check against most common password list: https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/10k-most-common.txt
-		ValidateArgument.requirement(!bannedPasswordSetProvider.getBannedPasswordSet().contains(password.toLowerCase()),
+		ValidateArgument.requirement(!bannedPasswords.isPasswordBanned(password),
 				"This password is known to be a commonly used password and will easily be discovered by a password dictionary attack. " +
 						"Please choose a more unique password!");
 

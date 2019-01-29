@@ -248,7 +248,7 @@
 		
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 
-	<bean id="bannedPasswordSetProvider" class="org.sagebionetworks.repo.manager.BannedPasswordSetProvider"/>
+	<bean id="bannedPasswords" class="org.sagebionetworks.repo.manager.BannedPasswordsImpl"/>
 	
 	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSimpleEmailServiceClient"/>

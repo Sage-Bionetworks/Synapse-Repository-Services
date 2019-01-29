@@ -34,8 +34,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
-import org.sagebionetworks.securitytools.PBKDF2Utils;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthenticationManagerImplUnitTest {
@@ -53,7 +51,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private Consumer mockConsumer;
 	@Mock
-	private BannedPasswordSetProvider mockBannedPasswordSetProvider;
+	private BannedPasswordsImpl mockBannedPasswords;
 	
 	final Long userId = 12345L;
 //	final String username = "AuthManager@test.org";
@@ -72,7 +70,7 @@ public class AuthenticationManagerImplUnitTest {
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
-		when(mockBannedPasswordSetProvider.getBannedPasswordSet()).thenReturn(Collections.emptySet());
+		when(mockBannedPasswords.isPasswordBanned(anyString())).thenReturn(false);
 	}
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
@@ -144,7 +142,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testChangePasswordWithBannedCommonPassword() {
 		String bannedPassword = "password123";
-		when(mockBannedPasswordSetProvider.getBannedPasswordSet()).thenReturn(Collections.singleton(bannedPassword));
+		when(mockBannedPasswords.isPasswordBanned(bannedPassword)).thenReturn(true);
 		authManager.changePassword(userId, bannedPassword);
 	}
 
