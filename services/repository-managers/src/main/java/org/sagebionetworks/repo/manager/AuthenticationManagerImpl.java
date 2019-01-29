@@ -45,18 +45,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
-	//Passwords that are very common and used in dictionary attacks. https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/10k-most-common.txt
-	public static final Set<String> BANNED_COMMON_PASSWORDS;
-	static {
-		try (Stream<String> lineStream = Files.lines(ResourceUtils.getFile("classpath:10k-most-common-passwords.txt").toPath())){
-			BANNED_COMMON_PASSWORDS = lineStream
-					.map(String::toLowerCase)
-					.collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -68,6 +56,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private MemoryCountingSemaphore authenticationThrottleMemoryCountingSemaphore;
 	@Autowired
 	private Consumer consumer;
+	@Autowired
+	private BannedPasswordSetProvider bannedPasswordSetProvider;
 
 	private void logAttemptAfterAccountIsLocked(long principalId) {
 		ProfileData loginFailAttemptExceedLimit = new ProfileData();
@@ -120,7 +110,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public void changePassword(Long principalId, String password) {
 		ValidateArgument.requirement(password.length() >= PASSWORD_MIN_LENGTH, "Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
 		//check against most common password list: https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/10k-most-common.txt
-		ValidateArgument.requirement(!BANNED_COMMON_PASSWORDS.contains(password.toLowerCase()),
+		ValidateArgument.requirement(!bannedPasswordSetProvider.getBannedPasswordSet().contains(password.toLowerCase()),
 				"This password is known to be a commonly used password and will easily be discovered by a password dictionary attack. " +
 						"Please choose a more unique password!");
 
