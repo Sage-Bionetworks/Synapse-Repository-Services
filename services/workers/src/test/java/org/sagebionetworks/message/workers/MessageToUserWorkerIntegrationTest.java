@@ -76,7 +76,6 @@ public class MessageToUserWorkerIntegrationTest {
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
-		final URL url = MessageToUserWorkerIntegrationTest.class.getClassLoader().getResource("Message.txt");
 		S3FileHandle handle = fileHandleManager.createCompressedFileFromString(fromUserInfo.getId().toString(), new Date(), "my dog has fleas");
 		fileHandleId = handle.getId();
 		
