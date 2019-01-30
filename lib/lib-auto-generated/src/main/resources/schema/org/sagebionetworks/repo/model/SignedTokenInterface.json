@@ -2,6 +2,9 @@
 	"description": "Interface for signed tokens",
 	"type": "interface",
 	"properties": {
+		"concreteType": {
+			"type": "string"
+		},
 		"hmac": {
 			"type": "string",
 			"description": "The hash message authentication code for the message."
