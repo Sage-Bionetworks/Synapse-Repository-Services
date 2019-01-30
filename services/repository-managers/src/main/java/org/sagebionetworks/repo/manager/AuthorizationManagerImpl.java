@@ -673,7 +673,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		try {
 			tokenGenerator.validateToken(token);
 		} catch (UnauthorizedException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + " (" + e.getMessage() + ")");
 		}
 		if (accessType == ACCESS_TYPE.READ) {
 			return AuthorizationManagerUtil.AUTHORIZED;
@@ -687,7 +687,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		try {
 			tokenGenerator.validateToken(token);
 		} catch (UnauthorizedException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + " (" + e.getMessage() + ")");
 		}
 		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(miId) && accessType == ACCESS_TYPE.UPDATE) {
 			return AuthorizationManagerUtil.AUTHORIZED;

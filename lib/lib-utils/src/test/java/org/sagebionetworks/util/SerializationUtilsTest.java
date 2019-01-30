@@ -1,8 +1,11 @@
 package org.sagebionetworks.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 
 public class SerializationUtilsTest {
 
@@ -11,7 +14,7 @@ public class SerializationUtilsTest {
 		JSONEntitySample entity = new JSONEntitySample();
 		entity.setStringField("foo");
 		String ser = SerializationUtils.serializeAndHexEncode(entity);
-		JSONEntitySample copy = SerializationUtils.hexDecodeAndDeserialize(ser, JSONEntitySample.class);
+		JSONEntity copy = SerializationUtils.hexDecodeAndDeserialize(ser, JSONEntity.class);
 		assertEquals(entity, copy);
 	}
 	
