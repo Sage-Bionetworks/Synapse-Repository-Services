@@ -28,11 +28,11 @@ public class PasswordValidatorImpl implements PasswordValidator {
 	public void validatePassword(String password) {
 		ValidateArgument.required(password, "password");
 		if (password.length() < PASSWORD_MIN_LENGTH){
-			throw new PasswordValidatorException("Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
+			throw new InvalidPasswordException("Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
 		}
 
 		if (bannedPasswordSet.contains(password.toLowerCase())){
-			throw new PasswordValidatorException("This password is known to be a commonly used password. Please choose a more unique password!");
+			throw new InvalidPasswordException("This password is known to be a commonly used password. Please choose a more unique password!");
 		}
 
 	}

@@ -24,7 +24,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.manager.password.PasswordValidatorException;
+import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.LockedException;
@@ -135,10 +135,10 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testChangePasswordWithInvalidPassword() {
 		String bannedPassword = "password123";
-		doThrow(PasswordValidatorException.class).when(mockBannedPasswords).validatePassword(bannedPassword);
+		doThrow(InvalidPasswordException.class).when(mockBannedPasswords).validatePassword(bannedPassword);
 		try {
 			authManager.changePassword(userId, bannedPassword);
-		} catch (PasswordValidatorException e){
+		} catch (InvalidPasswordException e){
 			verify(mockBannedPasswords).validatePassword(bannedPassword);
 			verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 		}

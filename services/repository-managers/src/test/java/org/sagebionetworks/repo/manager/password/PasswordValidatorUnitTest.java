@@ -1,17 +1,12 @@
 package org.sagebionetworks.repo.manager.password;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.password.PasswordValidatorImpl.PASSWORD_MIN_LENGTH;
 
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
-import java.util.StringJoiner;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
@@ -23,7 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.core.io.Resource;
-import sun.nio.ch.IOUtil;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PasswordValidatorUnitTest {
@@ -61,13 +55,13 @@ public class PasswordValidatorUnitTest {
 		passwordValidator.validatePassword(null);
 	}
 
-	@Test(expected=PasswordValidatorException.class)
+	@Test(expected= InvalidPasswordException.class)
 	public void testValidatePassword_lengthTooShort() {
 		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH-1);
 		passwordValidator.validatePassword(invalidPassword);
 	}
 
-	@Test(expected = PasswordValidatorException.class)
+	@Test(expected = InvalidPasswordException.class)
 	public void testValidatePassword_caseInsensitiveBannedPassword(){
 		passwordValidator.validatePassword("PaSsWoRd");
 	}

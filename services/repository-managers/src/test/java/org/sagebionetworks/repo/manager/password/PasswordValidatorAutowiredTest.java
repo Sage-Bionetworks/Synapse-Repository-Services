@@ -5,12 +5,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.UUID;
-
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -29,7 +26,7 @@ public class PasswordValidatorAutowiredTest {
 			//test for some password that definitely should be in the banned password set (or it would be a terribly curated set)
 			passwordValidator.validatePassword("password");
 			fail("expected exception");
-		}catch (PasswordValidatorException e){
+		}catch (InvalidPasswordException e){
 			//expected
 		}
 	}

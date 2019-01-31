@@ -7,7 +7,7 @@ public interface PasswordValidator {
 	/**
 	 * Checks if the password meets requirements
 	 * @param password
-	 * @throws PasswordValidatorException when the requirements are not met
+	 * @throws InvalidPasswordException when the requirements are not met
 	 */
 	void validatePassword(String password);
 }
