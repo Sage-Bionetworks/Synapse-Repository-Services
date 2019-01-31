@@ -872,9 +872,8 @@ public abstract class BaseController {
 	@ExceptionHandler(InvalidPasswordException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handlePasswordValidatorException(AmazonServiceException ex,
-			HttpServletRequest request,
-			HttpServletResponse response) {
+	ErrorResponse handleInvalidPasswordException(InvalidPasswordException ex,
+												 HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
 }
