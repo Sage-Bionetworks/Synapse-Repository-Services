@@ -52,7 +52,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private Consumer mockConsumer;
 	@Mock
-	private PasswordValidatorImpl mockBannedPasswords;
+	private PasswordValidatorImpl mockPassswordValidator;
 	
 	final Long userId = 12345L;
 //	final String username = "AuthManager@test.org";
@@ -135,11 +135,11 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testChangePasswordWithInvalidPassword() {
 		String bannedPassword = "password123";
-		doThrow(InvalidPasswordException.class).when(mockBannedPasswords).validatePassword(bannedPassword);
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(bannedPassword);
 		try {
 			authManager.changePassword(userId, bannedPassword);
 		} catch (InvalidPasswordException e){
-			verify(mockBannedPasswords).validatePassword(bannedPassword);
+			verify(mockPassswordValidator).validatePassword(bannedPassword);
 			verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 		}
 	}
@@ -148,7 +148,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testChangePasswordWithValidPassword() {
 		String validPassword = UUID.randomUUID().toString();
 		authManager.changePassword(userId, validPassword);
-		verify(mockBannedPasswords).validatePassword(validPassword);
+		verify(mockPassswordValidator).validatePassword(validPassword);
 		verify(mockAuthDAO).changePassword(anyLong(), anyString());
 	}
 

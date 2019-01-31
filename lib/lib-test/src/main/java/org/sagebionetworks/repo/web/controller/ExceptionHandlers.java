@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.EOFException;
 
+
 /**
  * list of exception handlers to test. One on one relationship with BaseController, and BaseControllerTest makes sure
  * all handlers are represented here. The actual test happens in IT500SynapseJavaClient
@@ -69,7 +70,8 @@ public class ExceptionHandlers {
 				new ExceptionType("org.sagebionetworks.schema.adapter.JSONObjectAdapterException", false),
 				new ExceptionType(EOFException.class.getName(), false),
 				new ExceptionType("org.sagebionetworks.repo.queryparser.ParseException", false),
-				new ExceptionType("org.springframework.transaction.UnexpectedRollbackException", true)),
+				new ExceptionType("org.springframework.transaction.UnexpectedRollbackException", true),
+				new ExceptionType("org.sagebionetworks.repo.manager.password.InvalidPasswordException", true)),
 		new TestEntry(406,
 				new ExceptionType("org.springframework.web.HttpMediaTypeNotAcceptableException", false)),
 		new TestEntry(415,

@@ -32,7 +32,7 @@ public class PasswordValidatorImpl implements PasswordValidator {
 		}
 
 		if (bannedPasswordSet.contains(password.toLowerCase())){
-			throw new InvalidPasswordException("This password is known to be a commonly used password. Please choose a more unique password!");
+			throw new InvalidPasswordException("This password is known to be a commonly used password. Please choose another password!");
 		}
 
 	}
