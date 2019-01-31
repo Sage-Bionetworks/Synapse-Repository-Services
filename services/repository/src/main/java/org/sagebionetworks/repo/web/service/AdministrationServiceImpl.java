@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -76,7 +77,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	TransactionSynchronizationProxy transactionSynchronizationManager;
-	
+
+	@Autowired
+	PasswordValidator passwordValidator;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -154,6 +157,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		DBOTermsOfUseAgreement touAgreement = null;
 		DBOSessionToken token = null;
 		if (userSpecs.getPassword() != null) {
+			passwordValidator.validatePassword(userSpecs.getPassword());
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
 		if (userSpecs.getSession() != null) {

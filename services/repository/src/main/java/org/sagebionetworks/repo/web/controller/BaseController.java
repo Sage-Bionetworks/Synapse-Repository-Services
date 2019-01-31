@@ -11,8 +11,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -867,5 +867,13 @@ public abstract class BaseController {
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex.getCause(), request, true);
+	}
+
+	@ExceptionHandler(InvalidPasswordException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleInvalidPasswordException(InvalidPasswordException ex,
+												 HttpServletRequest request) {
+		return handleException(ex, request, false);
 	}
 }

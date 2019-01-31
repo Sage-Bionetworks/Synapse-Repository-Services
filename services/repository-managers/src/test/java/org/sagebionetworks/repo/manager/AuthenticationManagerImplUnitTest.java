@@ -4,21 +4,28 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
 
-import org.apache.commons.lang.RandomStringUtils;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
+import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -28,12 +35,12 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
-import org.sagebionetworks.securitytools.PBKDF2Utils;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AuthenticationManagerImplUnitTest {
 
-	private AuthenticationManager authManager;
+	@InjectMocks
+	private AuthenticationManagerImpl authManager;
 	@Mock
 	private AuthenticationDAO mockAuthDAO;
 	@Mock
@@ -44,6 +51,8 @@ public class AuthenticationManagerImplUnitTest {
 	private AuthenticationReceiptDAO mockAuthReceiptDAO;
 	@Mock
 	private Consumer mockConsumer;
+	@Mock
+	private PasswordValidatorImpl mockPassswordValidator;
 	
 	final Long userId = 12345L;
 //	final String username = "AuthManager@test.org";
@@ -62,13 +71,6 @@ public class AuthenticationManagerImplUnitTest {
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
-
-		authManager = new AuthenticationManagerImpl();
-		ReflectionTestUtils.setField(authManager, "authDAO", mockAuthDAO);
-		ReflectionTestUtils.setField(authManager, "userGroupDAO", mockUserGroupDAO);
-		ReflectionTestUtils.setField(authManager, "authenticationThrottleMemoryCountingSemaphore", mockUsernameThrottleGate);
-		ReflectionTestUtils.setField(authManager, "authReceiptDAO", mockAuthReceiptDAO);
-		ReflectionTestUtils.setField(authManager, "consumer", mockConsumer);
 	}
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
@@ -130,16 +132,23 @@ public class AuthenticationManagerImplUnitTest {
 		authManager.setTermsOfUseAcceptance(userId, null);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testChangePasswordWithInvalidPassword() {
-		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH-1);
-		authManager.changePassword(userId, invalidPassword);
+		String bannedPassword = "password123";
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(bannedPassword);
+		try {
+			authManager.changePassword(userId, bannedPassword);
+		} catch (InvalidPasswordException e){
+			verify(mockPassswordValidator).validatePassword(bannedPassword);
+			verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
+		}
 	}
 
 	@Test
 	public void testChangePasswordWithValidPassword() {
-		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH);
-		authManager.changePassword(userId, invalidPassword);
+		String validPassword = UUID.randomUUID().toString();
+		authManager.changePassword(userId, validPassword);
+		verify(mockPassswordValidator).validatePassword(validPassword);
 		verify(mockAuthDAO).changePassword(anyLong(), anyString());
 	}
 
