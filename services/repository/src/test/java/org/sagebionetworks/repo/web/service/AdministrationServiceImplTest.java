@@ -12,10 +12,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.BannedPasswords;
+import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
@@ -31,7 +30,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Unit test for AdministrationServiceImpl
@@ -55,7 +53,7 @@ public class AdministrationServiceImplTest {
 	@Mock
 	IdGenerator mockIdGenerator;
 	@Mock
-	BannedPasswords mockBannedPasswords;
+	PasswordValidator mockPasswordValidator;
 
 	@InjectMocks
 	AdministrationServiceImpl adminService;
@@ -75,7 +73,7 @@ public class AdministrationServiceImplTest {
 		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		exportScript = "the export script";
 		when(mockIdGenerator.createRestoreScript()).thenReturn(exportScript);
-		when(mockBannedPasswords.isPasswordBanned(anyString())).thenReturn(false);
+		when(mockPasswordValidator.validatePassword(anyString())).thenReturn(false);
 	}	
 	
 	@Test (expected=UnauthorizedException.class)
@@ -154,7 +152,7 @@ public class AdministrationServiceImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateOrGetTestUser_bannedPassword(){
 		String bannedPassword = "hunter2";
-		when(mockBannedPasswords.isPasswordBanned(bannedPassword)).thenReturn(true);
+		when(mockPasswordValidator.validatePassword(bannedPassword)).thenReturn(true);
 		NewIntegrationTestUser testUser = new NewIntegrationTestUser();
 		testUser.setPassword(bannedPassword);
 		adminService.createOrGetTestUser(adminUserId, testUser);

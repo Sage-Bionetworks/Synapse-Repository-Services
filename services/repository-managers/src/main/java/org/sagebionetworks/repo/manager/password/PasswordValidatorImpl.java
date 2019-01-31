@@ -1,10 +1,8 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.password;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -13,31 +11,39 @@ import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.util.ResourceUtils;
 
 
-public class BannedPasswordsImpl implements BannedPasswords{
-	//from https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/10k-most-common.txt
-	@Value("classpath:10k-most-common-passwords.txt")
+public class PasswordValidatorImpl implements PasswordValidator {
+	static final int PASSWORD_MIN_LENGTH = 8;
+
+	//from https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/10-million-password-list-top-100000.txt
+	@Value("classpath:10-million-password-list-top-100000.txt")
 	private Resource bannedPasswordsFile;
 
-	private Set<String> bannedPasswordSet;
+	Set<String> bannedPasswordSet;
 
 	@Override
-	public boolean isPasswordBanned(String password) {
+	public void validatePassword(String password) {
 		ValidateArgument.required(password, "password");
-		return bannedPasswordSet.contains(password.toLowerCase());
+		if (password.length() < PASSWORD_MIN_LENGTH){
+			throw new PasswordValidatorException("Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
+		}
+
+		if (bannedPasswordSet.contains(password.toLowerCase())){
+			throw new PasswordValidatorException("This password is known to be a commonly used password. Please choose a more unique password!");
+		}
+
 	}
 
 	//Called by Spring after fields are injected to initialize the bannedPasswordSet
 	@PostConstruct
 	public void afterPropertiesSet() throws Exception {
-		try (Stream<String> lineStream =
+		try (Stream<String> passwordPerLineStream =
 					 new BufferedReader( new InputStreamReader(bannedPasswordsFile.getInputStream()) ).lines()){
-			bannedPasswordSet = lineStream
+			bannedPasswordSet = passwordPerLineStream
+					.filter(password -> password.length() >= PASSWORD_MIN_LENGTH)
 					.map(String::toLowerCase)
 					.collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
 		} catch (IOException e) {

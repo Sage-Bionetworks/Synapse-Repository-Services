@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -11,9 +12,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
 
-import java.util.Collections;
-
-import org.apache.commons.lang.RandomStringUtils;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +24,8 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.repo.manager.password.PasswordValidatorException;
+import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -51,7 +52,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private Consumer mockConsumer;
 	@Mock
-	private BannedPasswordsImpl mockBannedPasswords;
+	private PasswordValidatorImpl mockBannedPasswords;
 	
 	final Long userId = 12345L;
 //	final String username = "AuthManager@test.org";
@@ -70,7 +71,6 @@ public class AuthenticationManagerImplUnitTest {
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
-		when(mockBannedPasswords.isPasswordBanned(anyString())).thenReturn(false);
 	}
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
@@ -132,24 +132,23 @@ public class AuthenticationManagerImplUnitTest {
 		authManager.setTermsOfUseAcceptance(userId, null);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testChangePasswordWithInvalidPassword() {
-		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH-1);
-		authManager.changePassword(userId, invalidPassword);
-	}
-
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testChangePasswordWithBannedCommonPassword() {
 		String bannedPassword = "password123";
-		when(mockBannedPasswords.isPasswordBanned(bannedPassword)).thenReturn(true);
-		authManager.changePassword(userId, bannedPassword);
+		doThrow(PasswordValidatorException.class).when(mockBannedPasswords).validatePassword(bannedPassword);
+		try {
+			authManager.changePassword(userId, bannedPassword);
+		} catch (PasswordValidatorException e){
+			verify(mockBannedPasswords).validatePassword(bannedPassword);
+			verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
+		}
 	}
 
 	@Test
 	public void testChangePasswordWithValidPassword() {
-		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH);
-		authManager.changePassword(userId, invalidPassword);
+		String validPassword = UUID.randomUUID().toString();
+		authManager.changePassword(userId, validPassword);
+		verify(mockBannedPasswords).validatePassword(validPassword);
 		verify(mockAuthDAO).changePassword(anyLong(), anyString());
 	}
 

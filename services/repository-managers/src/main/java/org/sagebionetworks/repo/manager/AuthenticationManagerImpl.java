@@ -5,6 +5,7 @@ import java.util.Date;
 
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -31,8 +32,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final Long AUTHENTICATION_RECEIPT_LIMIT = 100L;
 
-	public static final int PASSWORD_MIN_LENGTH = 8;
-
 	public static final long LOCK_TIMOUTE_SEC = 5*60;
 
 	public static final int MAX_CONCURRENT_LOCKS = 10;
@@ -51,7 +50,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private Consumer consumer;
 	@Autowired
-	private BannedPasswords bannedPasswords;
+	private PasswordValidator passwordValidator;
 
 	private void logAttemptAfterAccountIsLocked(long principalId) {
 		ProfileData loginFailAttemptExceedLimit = new ProfileData();
@@ -102,10 +101,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Override
 	@WriteTransaction
 	public void changePassword(Long principalId, String password) {
-		ValidateArgument.requirement(password.length() >= PASSWORD_MIN_LENGTH, "Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
-		ValidateArgument.requirement(!bannedPasswords.isPasswordBanned(password),
-				"This password is known to be a commonly used password and will easily be discovered by a password dictionary attack. " +
-						"Please choose a more unique password!");
+		passwordValidator.validatePassword(password);
 
 		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(principalId, passHash);
