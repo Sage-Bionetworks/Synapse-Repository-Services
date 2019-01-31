@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.password.PasswordValidatorException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -867,5 +868,14 @@ public abstract class BaseController {
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex.getCause(), request, true);
+	}
+
+	@ExceptionHandler(PasswordValidatorException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handlePasswordValidatorException(AmazonServiceException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
 	}
 }
