@@ -6,6 +6,7 @@ import java.util.Date;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
+import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockout;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -38,6 +39,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
+	public static final String UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX = "login-";
+
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -46,11 +49,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private AuthenticationReceiptDAO authReceiptDAO;
 	@Autowired
-	private MemoryCountingSemaphore authenticationThrottleMemoryCountingSemaphore;
-	@Autowired
 	private Consumer consumer;
 	@Autowired
 	private PasswordValidator passwordValidator;
+	@Autowired
+	private UnsuccessfulAttemptLockout unsuccessfulAttemptLockout;
 
 	private void logAttemptAfterAccountIsLocked(long principalId) {
 		ProfileData loginFailAttemptExceedLimit = new ProfileData();
@@ -166,23 +169,27 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public LoginResponse login(Long principalId, String password, String authenticationReceipt) {
 		authReceiptDAO.deleteExpiredReceipts(principalId, System.currentTimeMillis());
 
-		Boolean hasValidReceipt = false;
-		String lockToken = null;
-		if (authenticationReceipt == null || !authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)) {
-			lockToken = authenticationThrottleMemoryCountingSemaphore.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
-			if (lockToken == null) {
-				logAttemptAfterAccountIsLocked(principalId);
-				throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
-			}
-		} else {
-			hasValidReceipt = true;
+		boolean hasValidReceipt = authenticationReceipt != null && authReceiptDAO.isValidReceipt(principalId, authenticationReceipt);
+
+		String unsuccessfulAttemptCheckKey = UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString();
+		//TODO: lock
+		if (!hasValidReceipt) {
+			unsuccessfulAttemptLockout.checkIsLockedOut(unsuccessfulAttemptCheckKey);
 		}
 
-		authenticateAndThrowException(principalId, password);
-		if (lockToken != null) {
-			authenticationThrottleMemoryCountingSemaphore.releaseLock(""+principalId, lockToken);
+		// check credentials
+		//TODO: someone successfully logs in w/ valid authenticationReceipt, should that clear the lockout?
+		//TODO: should unsuccessful login w/ valid receipt count towards lockout?
+		try {
+			authenticateAndThrowException(principalId, password);
+			unsuccessfulAttemptLockout.reportSuccess(unsuccessfulAttemptCheckKey);
+		} catch (UnauthenticatedException e){
+			//report failure and rethrow
+			unsuccessfulAttemptLockout.reportFailure(unsuccessfulAttemptCheckKey);
+			throw e;
 		}
 
+		//generate session tokens for user after successful check
 		Session session = getSessionToken(principalId);
 
 		String newReceipt = null;
