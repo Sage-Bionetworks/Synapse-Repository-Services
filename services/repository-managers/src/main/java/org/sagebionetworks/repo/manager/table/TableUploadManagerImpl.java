@@ -43,7 +43,7 @@ public class TableUploadManagerImpl implements TableUploadManager {
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, request.getUploadFileHandleId());
 			if(fileHandle.getContentSize() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
-				throw new IllegalArgumentException("Provided CSV files exceeds the maximum files size of "+FileConstants.MAX_FILE_SIZE_GB+" GB.");
+				throw new IllegalArgumentException("The provided CSV file exceeds the maximum size of "+FileConstants.MAX_FILE_SIZE_GB+" GB.");
 			}
 			// Get the schema for the table
 			List<ColumnModel> tableSchema = tableManagerSupport.getColumnModelsForTable(request.getTableId());
