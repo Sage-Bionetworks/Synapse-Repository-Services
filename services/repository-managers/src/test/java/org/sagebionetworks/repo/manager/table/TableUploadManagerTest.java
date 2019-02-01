@@ -179,6 +179,13 @@ public class TableUploadManagerTest {
 		verify(mockFile).delete();
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFileContentSizeNull() {
+		fileHandle.setContentSize(null);
+		// call under test
+		manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);
+	}
+	
 	/**
 	 * A case where the first line is skipped.
 	 * @throws Exception

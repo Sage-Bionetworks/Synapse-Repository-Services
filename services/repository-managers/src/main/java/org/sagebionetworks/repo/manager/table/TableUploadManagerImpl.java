@@ -42,6 +42,9 @@ public class TableUploadManagerImpl implements TableUploadManager {
 		try{
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, request.getUploadFileHandleId());
+			if(fileHandle.getContentSize() == null) {
+				throw new IllegalArgumentException("File content size cannot be null.");
+			}
 			if(fileHandle.getContentSize() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 				throw new IllegalArgumentException("The provided CSV file exceeds the maximum size of "+FileConstants.MAX_FILE_SIZE_GB+" GB.");
 			}
