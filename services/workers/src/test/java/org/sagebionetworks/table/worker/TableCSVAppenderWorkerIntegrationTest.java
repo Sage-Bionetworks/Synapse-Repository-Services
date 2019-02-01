@@ -538,6 +538,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		fileHandle.setPreviewId(fileHandle.getId());
+		fileHandle.setContentSize(tempFile.length());
 		// Upload the File to S3
 		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandles.add(fileHandle);
