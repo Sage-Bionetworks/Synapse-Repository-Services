@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.amazonaws.services.dynamodbv2.xspec.S;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
@@ -821,6 +822,12 @@ public class SqlConstants {
 	public static final String COL_THROTTLE_RULES_CALL_PERIOD = "PERIOD_IN_SECONDS";
 	public static final String COL_THROTTLE_RULES_MODIFIED_ON = "MODIFIED_ON";
 	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
+
+	//Unsucessful attempt lockout table (for login)
+	public static final String TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT = "UNSUCCESSFUL_ATTEMPT_LOCKOUT";
+	public static final String COL_UNSUCCESSFUL_ATTEMPT_KEY = "KEY";
+	public static final String COL_UNSUCCESSFUL_ATTEMPT_COUNT = "UNSUCESSFUL_ATTEMPT_COUNT";
+	public static final String COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC = "LOCKOUT_EXPIRATION";
 
 	// ResearchProject
 	public static final String DDL_RESEARCH_PROJECT = 							"schema/ResearchProject-ddl.sql";

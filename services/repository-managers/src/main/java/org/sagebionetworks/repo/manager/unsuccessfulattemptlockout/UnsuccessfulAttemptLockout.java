@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.manager.unsuccessfulattemptlockout;
  */
 public interface UnsuccessfulAttemptLockout {
 
+
 	/**
 	 * Report that an successful attempt has been made for this key.
 	 * @param key
