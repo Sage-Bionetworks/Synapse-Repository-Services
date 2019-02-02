@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_UNSUCC
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class UnsuccessfulAttemptLockoutDAOImpl implements UnsuccessfulAttemptLockoutDAO{
 
@@ -17,6 +16,9 @@ public class UnsuccessfulAttemptLockoutDAOImpl implements UnsuccessfulAttemptLoc
 	public static final String SELECT_ROW_EXPIRATION_AND_LOCK = "SELECT " + COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC
 			+ FROM_TABLE_FILTERED_BY_KEY
 			 + " FOR UPDATE";
+
+	public static final String SELECT_UNSUCCESSFUL_ATTEMPTS = "SELECT " + COL_UNSUCCESSFUL_ATTEMPT_COUNT
+			+ FROM_TABLE_FILTERED_BY_KEY;
 
 	public static final String REMOVE_LOCKOUT = "DELETE " + FROM_TABLE_FILTERED_BY_KEY;
 
@@ -28,25 +30,26 @@ public class UnsuccessfulAttemptLockoutDAOImpl implements UnsuccessfulAttemptLoc
 			+ " SET " + COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC + "=?" + " WHERE " + COL_UNSUCCESSFUL_ATTEMPT_KEY + " = ?";
 
 	@Autowired
-	JdbcTemplate namedParameterJdbcTemplate;
+	JdbcTemplate jdbcTemplate;
 
 	@Override
 	public long incrementNumFailedAttempts(String key) {
-		return 0;
+		jdbcTemplate.update(CREATE_OR_INCREMENT_ATTEMPT_COUNT, key);
+		return jdbcTemplate.queryForObject(SELECT_UNSUCCESSFUL_ATTEMPTS, Long.class, key);
 	}
 
 	@Override
-	public long setExpiration(String key, long expirationInSeconds) {
-		return 0;
+	public void setExpiration(String key, long expirationInSeconds) {
+		jdbcTemplate.update(UPDATE_EXPIRATION, expirationInSeconds, key);
 	}
 
 	@Override
 	public void removeLockout(String key) {
-
+		jdbcTemplate.update(REMOVE_LOCKOUT, key);
 	}
 
 	@Override
 	public Long isLockedOut(String key) {
-		return null;
+
 	}
 }
