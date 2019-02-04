@@ -259,7 +259,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(current));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
-		changeDBO.setKey(key);
+		changeDBO.setKeyNew(key);
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(0L);
 		changeDBO.setChangeType(TableChangeType.COLUMN.name());
@@ -304,7 +304,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			long versionNumber) throws IOException {
 		TableRowChange dto = getTableRowChange(tableId, versionNumber);
 		// Download the file from S3
-		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKeyNew());
 		try {
 			return ColumnModelUtils.readSchemaChangeFromGz(object.getObjectContent());
 		} finally {

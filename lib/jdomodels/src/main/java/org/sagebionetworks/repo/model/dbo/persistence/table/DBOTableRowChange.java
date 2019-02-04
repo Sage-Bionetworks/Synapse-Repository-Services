@@ -198,9 +198,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 			@Override
 			public DBOTableRowChange createDatabaseObjectFromBackup(DBOTableRowChange backup) {
-				if (backup.getChangeType() == null) {
-					// PLFM-4016
-					backup.setChangeType(TableChangeType.ROW.name());
+				if (TableChangeType.COLUMN.equals(TableChangeType.valueOf(backup.getChangeType()))) {
+					if(backup.getKeyNew() == null) {
+						if(backup.getKey() == null) {
+							throw new IllegalArgumentException("Column change missing both key and keyNew.");
+						}else {
+							backup.setKeyNew(backup.getKey());
+						}
+					}
 				}
 				return backup;
 			}
