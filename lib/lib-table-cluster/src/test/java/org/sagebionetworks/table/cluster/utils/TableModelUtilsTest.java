@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster.utils;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -14,7 +13,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -33,7 +31,6 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -61,7 +58,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 /**
@@ -149,166 +145,7 @@ public class TableModelUtilsTest {
 		validRowSet2 = new RawRowSet(ids, null, tableId, rows);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVNullModel() {
-		TableModelUtils.validateAndWriteToCSV(null, validRowSet, out);
-	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVNullRowSet() {
-		TableModelUtils.validateAndWriteToCSV(validModel, null, out);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVNullOut() {
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVNullHeaders() {
-		RawRowSet invalidRowSet = new RawRowSet(null, validRowSet.getEtag(), validRowSet.getTableId(), validRowSet.getRows());
-		TableModelUtils.validateAndWriteToCSV(validModel, invalidRowSet, out);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVNullRows() {
-		RawRowSet invalidRowSet = new RawRowSet(validRowSet.getIds(), validRowSet.getEtag(), validRowSet.getTableId(), null);
-		TableModelUtils.validateAndWriteToCSV(validModel, invalidRowSet, out);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVRowsEmpty() {
-		RawRowSet invalidRowSet = new RawRowSet(validRowSet.getIds(), validRowSet.getEtag(), validRowSet.getTableId(),
-				new LinkedList<Row>());
-		TableModelUtils.validateAndWriteToCSV(validModel, invalidRowSet, out);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVModelsEmpty() {
-		TableModelUtils.validateAndWriteToCSV(new LinkedList<ColumnModel>(), validRowSet, out);
-	}
-
-	@Test
-	public void testValidateAndWriteToCSVWrongValueSize() {
-		try {
-			validRowSet.getRows().get(0).getValues().add("too many");
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-			fail("Should have failed");
-		} catch (IllegalArgumentException e) {
-			assertEquals(
-					"Row.value size must be equal to the number of columns in the table.  The table has :2 columns and the passed Row.value has: 3 for row number: 0",
-					e.getMessage());
-		}
-	}
-
-	@Test
-	public void testValidateAndWriteToCSVRowIdNull() {
-		try {
-			validRowSet.getRows().get(0).setRowId(null);
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-			fail("Should have failed");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Row.rowId cannot be null for row number: 0", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testValidateAndWriteToCSVRowVersionNull() {
-		try {
-			validRowSet.getRows().get(1).setVersionNumber(null);
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-			fail("Should have failed");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Row.versionNumber cannot be null for row number: 1", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testValidateAndWriteToCSVHeaderMissmatch() {
-		try{
-			validRowSet.getIds().remove(0);
-			validRowSet.getIds().add(0, "3");
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-			fail("Should have failed");
-		} catch (IllegalArgumentException e) {
-			assertEquals("The Table's ColumnModels includes: name=two with id=2 but 2 was not found in the headers of the RowResults",
-					e.getMessage());
-		}
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateAndWriteToCSVEmptyValues() {
-		validRowSet.getRows().get(1).setValues(Lists.<String> newArrayList());
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-	}
-
-	@Test
-	public void testHappyCase() throws IOException {
-		// Write the following data
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-		String csv = outWritter.toString();
-		System.out.println(csv);
-		StringReader reader = new StringReader(csv);
-		// There should be two rows
-		CSVReader in = new CSVReader(reader);
-		List<String[]> results = in.readAll();
-		in.close();
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertArrayEquals(new String[] { "456", "2", "true", "9999" }, results.get(0));
-		assertArrayEquals(new String[] { "457", "2", "false", "0" }, results.get(1));
-	}
-
-	@Test
-	public void testHappyCaseWithTrailingLineBreak() throws IOException {
-		// Write the following data
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-		outWritter.write('\n');
-		String csv = outWritter.toString();
-		StringReader reader = new StringReader(csv);
-		// There should be two rows
-		CSVReader in = new CSVReader(reader);
-		List<String[]> results = in.readAll();
-		in.close();
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertArrayEquals(new String[] { "456", "2", "true", "9999" }, results.get(0));
-		assertArrayEquals(new String[] { "457", "2", "false", "0" }, results.get(1));
-	}
-
-	@Test
-	public void testHappyDeleteNullValues() throws IOException {
-		validRowSet.getRows().get(1).setValues(null);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-		String csv = outWritter.toString();
-		System.out.println(csv);
-		StringReader reader = new StringReader(csv);
-		// There should be two rows
-		CSVReader in = new CSVReader(reader);
-		List<String[]> results = in.readAll();
-		in.close();
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertArrayEquals(new String[] { "456", "2", "true", "9999" }, results.get(0));
-		assertArrayEquals(new String[] { "457", "2" }, results.get(1));
-	}
-
-	@Test
-	public void testHappyDeleteEmptyValues() throws IOException {
-		validRowSet.getRows().get(1).setValues(null);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-		String csv = outWritter.toString();
-		System.out.println(csv);
-		StringReader reader = new StringReader(csv);
-		// There should be two rows
-		CSVReader in = new CSVReader(reader);
-		List<String[]> results = in.readAll();
-		in.close();
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertArrayEquals(new String[] { "456", "2", "true", "9999" }, results.get(0));
-		assertArrayEquals(new String[] { "457", "2" }, results.get(1));
-	}
 
 	@Test
 	public void testValidateBoolean() {
@@ -627,144 +464,7 @@ public class TableModelUtilsTest {
 		it.next().setRowId(null);
 		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validSparseRowSet));
 	}
-	
-	@Test
-	public void testAssignRowIdsAndVersionNumbers_NoRowIdsNeeded() {
-		IdRange range = new IdRange();
-		range.setMaximumId(null);
-		range.setMinimumId(null);
-		range.setMaximumUpdateId(999l);
-		Long versionNumber = new Long(4);
-		range.setVersionNumber(versionNumber);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
-		// Validate each row was assigned a version number
-		for (Row row : validRowSet.getRows()) {
-			assertEquals(versionNumber, row.getVersionNumber());
-		}
-	}
-	
-	@Test
-	public void testAssignRowIdsAndVersionNumbers_MixedRowIdsNeeded() {
-		IdRange range = new IdRange();
-		range.setMaximumId(new Long(457));
-		range.setMinimumId(new Long(457));
-		range.setMaximumUpdateId(new Long(456));
-		Long versionNumber = new Long(4);
-		range.setVersionNumber(versionNumber);
-		validRowSet.getRows().get(1).setRowId(null);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
-		// Validate each row was assigned a version number
-		for (Row row : validRowSet.getRows()) {
-			assertEquals(versionNumber, row.getVersionNumber());
-		}
-		assertEquals(new Long(456), validRowSet.getRows().get(0).getRowId());
-		// The second row should have been provided
-		assertEquals(new Long(457), validRowSet.getRows().get(1).getRowId());
-	}
-	
-	@Test
-	public void testAssignRowIdsAndVersionNumbers_AllNeeded() {
-		IdRange range = new IdRange();
-		range.setMaximumId(new Long(101));
-		range.setMinimumId(new Long(100));
-		Long versionNumber = new Long(4);
-		range.setVersionNumber(versionNumber);
-		// Clear all the row ids
-		validRowSet.getRows().get(0).setRowId(null);
-		validRowSet.getRows().get(1).setRowId(null);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
-		// Validate each row was assigned a version number
-		for (Row row : validRowSet.getRows()) {
-			assertEquals(versionNumber, row.getVersionNumber());
-		}
-		assertEquals(new Long(100), validRowSet.getRows().get(0).getRowId());
-		// The second row should have been provided
-		assertEquals(new Long(101), validRowSet.getRows().get(1).getRowId());
-	}
-	
-	@Test
-	public void testAssignRowIdsAndVersionNumbers_NoneAllocatedButNeeded() {
-		IdRange range = new IdRange();
-		// no ids allocated
-		range.setMaximumId(null);
-		range.setMinimumId(null);
-		range.setMaximumUpdateId(999l);
-		Long versionNumber = new Long(4);
-		range.setVersionNumber(versionNumber);
-		// Clear all the row ids
-		validRowSet.getRows().get(1).setRowId(null);
-		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
-			fail("should have failed");
-		} catch (IllegalStateException e) {
-			assertEquals("RowSet required at least one row ID but none were allocated.", e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testAssignRowIdsAndVersionNumbers_NotEnoutAllocated() {
-		IdRange range = new IdRange();
-		// only allocate on id
-		range.setMaximumId(3l);
-		range.setMinimumId(3l);
-		range.setMaximumUpdateId(2l);
-		Long versionNumber = new Long(4);
-		range.setVersionNumber(versionNumber);
-		// Clear all the row ids
-		validRowSet.getRows().get(0).setRowId(null);
-		validRowSet.getRows().get(1).setRowId(null);
-		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
-			fail("should have failed");
-		} catch (IllegalStateException e) {
-			assertEquals("RowSet required more row IDs than were allocated.", e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testAssignRowIdsInvalidUpdateRowId() {
-		IdRange range = new IdRange();
-		// only allocate on id
-		range.setMaximumId(null);
-		range.setMinimumId(null);
-		range.setMaximumUpdateId(1l);
-		Long versionNumber = new Long(4);
-		range.setVersionNumber(versionNumber);
-		// Clear all the row ids
-		validRowSet.getRows().get(0).setRowId(0l);
-		validRowSet.getRows().get(1).setRowId(2l);
-		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
-			fail("should have failed");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Cannot update row: 2 because it does not exist.", e.getMessage());
-		}
-	}
 
-	@Test
-	public void testCSVRoundTrip() throws IOException {
-		// Write this to a string
-		StringWriter writer = new StringWriter();
-		CSVWriter csvWriter = new CSVWriter(writer);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
-		StringReader reader = new StringReader(writer.toString());
-		CSVReader csvReader = new CSVReader(reader);
-		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
-		assertNotNull(cloneRows);
-		assertEquals(validRowSet2.getRows(), cloneRows);
-	}
-
-	@Test
-	public void testCSVGZipRoundTrip() throws IOException {
-		// Write this to a string
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
-		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in);
-		assertNotNull(cloneRows);
-		assertEquals(validRowSet2.getRows(), cloneRows);
-	}
-	
 	@Test
 	public void testGetIds() {
 		List<String> expected = Lists.newArrayList("1", "2");
@@ -865,87 +565,6 @@ public class TableModelUtilsTest {
 		expected.put(101l, 501L);
 		expected.put(100l, 500L);
 		assertEquals(expected, TableModelUtils.getDistictValidRowIds(changeSet.rowIterator()));
-	}
-
-	@Test
-	public void testConvertToSchemaAndMerge() {
-		// Create two columns
-		List<ColumnModel> models = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "first", ColumnType.STRING),
-				TableModelTestUtils.createColumn(2L, "second", ColumnType.STRING));
-
-		// Create some data for this model
-		List<Row> v1Rows = TableModelTestUtils.createRows(models, 2);
-		RawRowSet v1Set = new RawRowSet(TableModelUtils.getIds(models), null, null, v1Rows);
-		IdRange range = new IdRange();
-		range.setVersionNumber(0l);
-		range.setMinimumId(0l);
-		range.setMaximumId(1l);
-		TableModelUtils.assignRowIdsAndVersionNumbers(v1Set, range);
-		// now remove column two
-		models.remove(1);
-		// Now add back two new columns one with a default value and one without
-		// three
-		models.add(TableModelTestUtils.createColumn(3L, "third", ColumnType.BOOLEAN));
-		// four
-		models.add(TableModelTestUtils.createColumn(4L, "fourth", ColumnType.STRING));
-
-		// Create some more data with the new schema
-		List<Row> v2Rows = TableModelTestUtils.createRows(models, 2);
-		RawRowSet v2Set = new RawRowSet(TableModelUtils.getIds(models), null, null, v2Rows);
-		range = new IdRange();
-		range.setVersionNumber(1l);
-		range.setMinimumId(2l);
-		range.setMaximumId(3l);
-		TableModelUtils.assignRowIdsAndVersionNumbers(v2Set, range);
-
-		// Now request the data in a different order
-		List<ColumnModel> newOrder = new LinkedList<ColumnModel>();
-		newOrder.add(models.get(2));
-		newOrder.add(models.get(0));
-		newOrder.add(models.get(1));
-		List<RawRowSet> all = Lists.newArrayList(v1Set, v2Set);
-		// Now get a single result set that contains all data in this new form
-		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder,
-				"syn123", null);
-		// System.out.println(converted.toString());
-		// This is what we expect to come back
-		List<Row> expectedRows = new LinkedList<Row>();
-		// one
-		Row row = new Row();
-		row.setRowId(0l);
-		row.setVersionNumber(0l);
-		row.setValues(Arrays.asList(new String[] { null, "string0", null }));
-		expectedRows.add(row);
-		// two
-		row = new Row();
-		row.setRowId(1l);
-		row.setVersionNumber(0l);
-		row.setValues(Arrays.asList(new String[] { null, "string1", null }));
-		expectedRows.add(row);
-		// three
-		row = new Row();
-		row.setRowId(2l);
-		row.setVersionNumber(1l);
-		row.setValues(Arrays.asList(new String[] { "string200000", "string0", "false" }));
-		expectedRows.add(row);
-		// four
-		row = new Row();
-		row.setRowId(3l);
-		row.setVersionNumber(1l);
-		row.setValues(Arrays.asList(new String[] { "string200001", "string1", "true" }));
-		expectedRows.add(row);
-
-		RawRowSet expected = new RawRowSet(TableModelUtils.getIds(newOrder), null, "syn123", expectedRows);
-		assertEquals(expected.getIds().size(), converted.getHeaders().size());
-		for (int i = 0; i < expected.getIds().size(); i++) {
-			assertEquals(expected.getIds().get(i).toString(), converted.getHeaders().get(i).getId());
-		}
-		assertEquals(expected.getTableId(), converted.getTableId());
-		assertEquals(expected.getEtag(), converted.getEtag());
-		assertEquals(expected.getRows().size(), converted.getRows().size());
-		for (int i = 0; i < expected.getRows().size(); i++) {
-			assertEquals(expected.getRows().get(i), converted.getRows().get(i));
-		}
 	}
 	
 	@Test

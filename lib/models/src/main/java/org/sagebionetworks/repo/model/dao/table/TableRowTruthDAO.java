@@ -6,8 +6,6 @@ import java.util.List;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.RawRowSet;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -62,19 +60,6 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public TableRowChange getLastTableRowChange(String tableId, TableChangeType changeType);
-
-	/**
-	 * Append a RowSet to a table.
-	 * 
-	 * @param tableId
-	 * @param models
-	 * @param delta
-	 * @return
-	 * @throws IOException
-	 */
-	@Deprecated
-	public void appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, RawRowSet delta)
-			throws IOException;
 	
 	/**
 	 * Append a SpareChangeSet to the given table.
@@ -108,18 +93,6 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 */
 	public List<ColumnChange> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
-		
-	/**
-	 * Fetch a change set for a given table and
-	 * 
-	 * @param rowsToGet
-	 * @param key
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 */
-	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns) throws IOException,
-			NotFoundException;
 	
 	/**
 	 * Fetch a sparse change set for a given table.

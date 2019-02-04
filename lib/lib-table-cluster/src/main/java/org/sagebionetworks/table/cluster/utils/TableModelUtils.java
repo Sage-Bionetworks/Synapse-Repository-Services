@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,7 +20,6 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.repo.model.HasEtag;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -51,13 +49,12 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.ValidateArgument;
 
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -101,37 +98,6 @@ public class TableModelUtils {
 			return Long.parseLong(sc.getId());
 		}
 	};
-
-	/**
-	 * This utility will validate and convert the passed RowSet to an output CSV written to a GZip stream.
-	 * 
-	 * @param models
-	 * @param set
-	 * @param out
-	 * @param isDeletion
-	 * @throws IOException
-	 */
-	@Deprecated
-	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RawRowSet set, OutputStream out) throws IOException {
-		GZIPOutputStream zipOut = null;
-		OutputStreamWriter osw = null;
-		CSVWriter csvWriter = null;
-		try{
-			zipOut = new GZIPOutputStream(out);
-			osw = new OutputStreamWriter(zipOut);
-			csvWriter = new CSVWriter(osw);
-			// Write the data to the the CSV.
-			TableModelUtils.validateAndWriteToCSV(models, set, csvWriter);
-		}finally{
-			if(csvWriter != null){
-				csvWriter.flush();
-				csvWriter.close();
-			}
-			if(out != null){
-				out.close();
-			}
-		}
-	}
 	
 	/**
 	 * Write a SparseChangeSetDto to the given output stream as GZIP compressed JSON.
@@ -158,105 +124,6 @@ public class TableModelUtils {
 		}
 	}
 
-	/**
-	 * This utility will validate and convert the passed RowSet to an output
-	 * CSV.
-	 * 
-	 * @param models
-	 * @param set
-	 */
-	public static void validateAndWriteToCSV(List<ColumnModel> models,
-			RawRowSet set, CSVWriter out) {
-		if (models == null)
-			throw new IllegalArgumentException("Models cannot be null");
-		validateRowSet(set);
-		if (out == null)
-			throw new IllegalArgumentException("CSVWriter cannot be null");
-		if (models.size() != set.getIds().size())
-			throw new IllegalArgumentException(
-					"RowSet.headers size must be equal to the number of columns in the table.  The table has :"
-							+ models.size()
-							+ " columns and the passed RowSet.headers has: "
-							+ set.getIds().size());
-		// Now map the index of each column
-		Map<String, Integer> columnIndexMap = createColumnIdToIndexMap(set);
-		// Process each row
-		int count = 0;
-		for (Row row : set.getRows()) {
-			if (row.getRowId() == null)
-				throw new IllegalArgumentException(
-						"Row.rowId cannot be null for row number: " + count);
-			if (row.getVersionNumber() == null)
-				throw new IllegalArgumentException(
-						"Row.versionNumber cannot be null for row number: "
-								+ count);
-			String[] finalRow;
-			if (row.getValues() == null) {
-				// only output rowId and rowVersion
-				finalRow = new String[2];
-			} else {
-				if (row.getValues().size() == 0)
-					throw new IllegalArgumentException("Row " + count
-							+ " has empty list of values");
-				if (models.size() != row.getValues().size())
-					throw new IllegalArgumentException(
-							"Row.value size must be equal to the number of columns in the table.  The table has :"
-									+ models.size()
-									+ " columns and the passed Row.value has: "
-									+ row.getValues().size()
-									+ " for row number: " + count);
-				// Convert the values to an array for quick lookup
-				String[] values = row.getValues().toArray(
-						new String[row.getValues().size()]);
-				// Prepare the final array which includes the ID and version
-				// number
-				// as the first two columns.
-				finalRow = new String[values.length + 2];
-				// Now process all of the columns as defined by the schema
-				for (int i = 0; i < models.size(); i++) {
-					ColumnModel cm = models.get(i);
-					Integer valueIndex = columnIndexMap.get(cm.getId());
-					if (valueIndex == null)
-						throw new IllegalArgumentException(
-								"The Table's ColumnModels includes: name="
-										+ cm.getName()
-										+ " with id="
-										+ cm.getId()
-										+ " but "
-										+ cm.getId()
-										+ " was not found in the headers of the RowResults");
-					// Get the value
-					String value = values[valueIndex];
-					// Validate the value against the model
-					value = validateRowValue(value, cm, i, valueIndex);
-					// Add the value to the final
-					finalRow[i + 2] = value;
-				}
-			}
-			finalRow[0] = row.getRowId().toString();
-			finalRow[1] = row.getVersionNumber().toString();
-			out.writeNext(finalRow);
-			count++;
-		}
-	}
-
-
-	/**
-	 * @param set
-	 */
-	@Deprecated
-	public static void validateRowSet(RawRowSet set) {
-		if (set == null)
-			throw new IllegalArgumentException("RowSet cannot be null");
-		;
-		if (set.getIds() == null)
-			throw new IllegalArgumentException("RowSet.ids cannot be null");
-		if (set.getRows() == null)
-			throw new IllegalArgumentException("RowSet.rows cannot be null");
-		if (set.getRows().size() < 1)
-			throw new IllegalArgumentException(
-					"RowSet.rows must contain at least one row.");
-	}
 	
 	/**
 	 * Validate the given SparseChangeSetDto.
@@ -409,18 +276,6 @@ public class TableModelUtils {
 		}
 		return columnType.parseValueForDatabaseRead(value);
 	}
-	
-	@Deprecated
-	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
-		validateRowSet(set);
-		int count = 0;
-		for (Row row : set.getRows()) {
-			if(isNullOrInvalid(row.getRowId())){
-				count++;
-			}
-		}
-		return count;
-	}
 
 	/**
 	 * Count all of the empty or invalid rows in the set
@@ -456,38 +311,6 @@ public class TableModelUtils {
 	 */
 	public static boolean isDeletedRow(Row row) {
 		return row.getValues() == null || row.getValues().size() == 0;
-	}
-
-	/**
-	 * Assign RowIDs and version numbers to each row in the set according to the passed range.
-	 * @param set
-	 * @param range
-	 */
-	@Deprecated
-	public static void assignRowIdsAndVersionNumbers(RawRowSet set, IdRange range) {
-		validateRowSet(set);
-		Long id = range.getMinimumId();
-		for (Row row : set.getRows()) {
-			// Set the version number for each row
-			row.setVersionNumber(range.getVersionNumber());
-			if(isNullOrInvalid(row.getRowId())){
-				if(range.getMinimumId() == null){
-					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
-				}
-				// This row needs an id.
-				row.setRowId(id);
-				id++;
-				// Validate we have not exceeded the rows
-				if(row.getRowId() > range.getMaximumId()){
-					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
-				}
-			}else{
-				// Validate the rowId is within range
-				if(row.getRowId() > range.getMaximumUpdateId()){
-					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
-				}
-			}
-		}
 	}
 	
 	/**
@@ -569,31 +392,6 @@ public class TableModelUtils {
 			row.setValues(values);
 			// Pass to the handler
 			handler.nextRow(row);
-		}
-	}
-	
-	/**
-	 * Read the passed Gzip CSV into a RowSet.
-	 * 
-	 * @param zippedStream
-	 * @param rowsToGet
-	 * @return
-	 * @throws IOException
-	 */
-	@Deprecated
-	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException {
-		GZIPInputStream zipIn = null;
-		InputStreamReader isr = null;
-		CSVReader csvReader = null;
-		try{
-			zipIn = new GZIPInputStream(zippedStream);
-			isr = new InputStreamReader(zipIn);
-			csvReader = new CSVReader(isr);
-			return readFromCSV(csvReader);
-		}finally{
-			if(csvReader != null){
-				csvReader.close();
-			}
 		}
 	}
 	

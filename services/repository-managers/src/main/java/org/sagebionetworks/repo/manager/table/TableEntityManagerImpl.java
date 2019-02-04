@@ -755,17 +755,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	@WriteTransactionReadCommitted
 	@Override
 	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException {
-		// If the new key is null then we need to translate from the old type to the new type.
-		if(change.getKeyNew() == null){
-			// Lookup the current schema
-			List<ColumnModel> currentSchema = columModelManager.getColumnModelsForObject(change.getTableId());
-			// fetch the old type.
-			RowSet oldRowSet = tableRowTruthDao.getRowSet(change.getTableId(), change.getRowVersion(), currentSchema);
-			// translate to the new sparse
-			SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(oldRowSet, currentSchema);
-			// upgrade this change using the new sparse change set.
-			change = tableRowTruthDao.upgradeToNewChangeSet(change.getTableId(), change.getRowVersion(), sparse.writeToDto());
-		}
+		ValidateArgument.required(change, "TableRowChange");
+		ValidateArgument.required(change.getKeyNew(), "TableRowChange.keyNew");
 		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);
 		List<ColumnModel> schema = columModelManager.getAndValidateColumnModels(dto.getColumnIds());
 		return new SparseChangeSet(dto, schema);
