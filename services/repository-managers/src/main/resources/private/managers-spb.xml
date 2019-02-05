@@ -86,12 +86,6 @@
 	
 	<bean name="userApiThrottleMemoryTimeBlockSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphoreImpl" scope="singleton"/>
 	
-	<bean name="authenticationThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
-		<constructor-arg index="0">
-		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
-		</constructor-arg>
-	</bean>	
-	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
 	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
@@ -247,6 +241,8 @@
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 		
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
+
+	<bean id="unsuccessfulAttemptLockout" class="org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.ExponentialBackoffUnsuccessfulAttemptLockoutImpl"/>
 
 	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
 	

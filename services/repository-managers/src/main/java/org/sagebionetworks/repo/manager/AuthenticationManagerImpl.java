@@ -7,7 +7,9 @@ import java.util.Date;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
+import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.AttemptResultReporter;
 import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockout;
+import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -42,6 +44,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final String UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX = "login-";
 
+	static final long REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD = 5; //TODO: what is good threshold value?
+
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -55,7 +59,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private PasswordValidator passwordValidator;
 	@Autowired
 	UnsuccessfulAttemptLockout unsuccessfulAttemptLockout;
-
 
 	private void logAttemptAfterAccountIsLocked(long principalId) {
 		ProfileData loginFailAttemptExceedLimit = new ProfileData();
@@ -199,17 +202,25 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@WriteTransactionReadCommitted
 	String authenticateWithLock(Long principalId, String password){
 
-		String unsuccessfulAttemptCheckKey = UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString();
 
-		unsuccessfulAttemptLockout.checkIsLockedOut(unsuccessfulAttemptCheckKey);
+		AttemptResultReporter loginAttemptReporter;
+		try {
+			loginAttemptReporter = unsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString());
+		} catch (UnsuccessfulAttemptLockoutException e){
+			if (e.getNumFailedAttempts() >= REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD){
+				logAttemptAfterAccountIsLocked(principalId);
+			}
+			throw e;
+		}
+
 
 		// check credentials
 		try {
 			authenticateAndThrowException(principalId, password);
-			unsuccessfulAttemptLockout.reportSuccess(unsuccessfulAttemptCheckKey);
+			loginAttemptReporter.reportSuccess();
 		} catch (UnauthenticatedException e){
 			//report failure and rethrow
-			unsuccessfulAttemptLockout.reportFailure(unsuccessfulAttemptCheckKey);
+			loginAttemptReporter.reportFailure();
 			throw e;
 		}
 

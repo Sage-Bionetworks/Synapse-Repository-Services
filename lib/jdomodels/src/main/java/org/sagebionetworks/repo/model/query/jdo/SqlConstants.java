@@ -825,8 +825,8 @@ public class SqlConstants {
 
 	//Unsucessful attempt lockout table (for login)
 	public static final String TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT = "UNSUCCESSFUL_ATTEMPT_LOCKOUT";
-	public static final String COL_UNSUCCESSFUL_ATTEMPT_KEY = "KEY";
-	public static final String COL_UNSUCCESSFUL_ATTEMPT_COUNT = "UNSUCESSFUL_ATTEMPT_COUNT";
+	public static final String COL_UNSUCCESSFUL_ATTEMPT_KEY = "ATTEMPT_KEY";
+	public static final String COL_UNSUCCESSFUL_ATTEMPT_COUNT = "UNSUCCESSFUL_ATTEMPT_COUNT";
 	public static final String COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC = "LOCKOUT_EXPIRATION";
 
 	// ResearchProject

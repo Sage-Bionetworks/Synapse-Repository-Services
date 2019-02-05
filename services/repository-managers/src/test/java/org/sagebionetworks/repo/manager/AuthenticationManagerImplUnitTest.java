@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.*;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
@@ -26,10 +28,14 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
+import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.AttemptResultReporter;
+import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockout;
+import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -46,13 +52,18 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private UserGroupDAO mockUserGroupDAO;
 	@Mock
-	private MemoryCountingSemaphore mockUsernameThrottleGate;
-	@Mock
 	private AuthenticationReceiptDAO mockAuthReceiptDAO;
 	@Mock
 	private Consumer mockConsumer;
 	@Mock
 	private PasswordValidatorImpl mockPassswordValidator;
+	@Mock
+	private UnsuccessfulAttemptLockout mockUnsuccessfulAttemptLockout;
+	@Mock
+	private AttemptResultReporter mockAttemptResultReporter;
+
+	@Mock
+	private UnsuccessfulAttemptLockoutException mockUnsuccessfulAttemptLockoutException;
 	
 	final Long userId = 12345L;
 //	final String username = "AuthManager@test.org";
@@ -71,6 +82,7 @@ public class AuthenticationManagerImplUnitTest {
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
+		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(anyString())).thenReturn(mockAttemptResultReporter);
 	}
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
@@ -79,7 +91,7 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_UNIT, arg.getUnit());
 		assertEquals((Double)LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE, arg.getValue());
 		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_NAME, arg.getName());
-		assertEquals(userId, arg.getDimension().get("UserId"));
+		assertEquals(userId.toString(), arg.getDimension().get("UserId"));
 	}
 
 	@Test
@@ -154,81 +166,90 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testLoginWithoutReceipt(){
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("lock");
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		authManager.login(userId, "fake password", null);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockUsernameThrottleGate).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
+		verify(mockAttemptResultReporter).reportSuccess();
 		verify(mockAuthReceiptDAO).createNewReceipt(userId);
-		verify(mockUsernameThrottleGate).releaseLock(anyString(), anyString());
 	}
 
 	@Test
 	public void testLoginWithInvalidReceipt(){
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("lock");
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 		authManager.login(userId, "fake password", receipt);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockUsernameThrottleGate).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
+		verify(mockAttemptResultReporter).reportSuccess();
 		verify(mockAuthReceiptDAO).createNewReceipt(userId);
-		verify(mockUsernameThrottleGate).releaseLock(anyString(), anyString());
+	}
+
+	@Test
+	public void testLoginWithInvalidReceiptAndWrongPassword(){
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
+		UnauthenticatedException expectedException = new UnauthenticatedException("password bad!");
+		when(mockAuthDAO.checkUserCredentials(anyLong(), anyString())).thenThrow(expectedException);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+		try {
+			authManager.login(userId, "fake password", receipt);
+			fail("expected exception to be thrown");
+		} catch (UnauthenticatedException e){
+			//expected the exception to be rethrown
+			assertSame(expectedException, e);
+		}
+		verify(mockAttemptResultReporter).reportFailure();
+
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
 	}
 
 	@Test
 	public void testLoginWithValidReceipt(){
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("lock");
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 		authManager.login(userId, "fake password", receipt);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockUsernameThrottleGate, never()).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verifyZeroInteractions(mockUnsuccessfulAttemptLockout);
+		verifyZeroInteractions(mockAttemptResultReporter);
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockUsernameThrottleGate, never()).releaseLock(anyString(), anyString());
 		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
 	}
 
 	@Test
 	public void testLoginWithInvalidReceiptAndOverReceiptLimit(){
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("lock");
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
 		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 		authManager.login(userId, "fake password", receipt);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockUsernameThrottleGate).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
+		verify(mockAttemptResultReporter).reportSuccess();
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockUsernameThrottleGate).releaseLock(anyString(), anyString());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
 	}
 
 	@Test
-	public void testLoginWithValidReceiptAndOverLimit(){
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("lock");
+	public void testLoginWithInvalidReceiptAndWithinLockoutPeriod(){
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
-		String receipt = "receipt";
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
-		authManager.login(userId, "fake password", receipt);
-		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockUsernameThrottleGate, never()).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockUsernameThrottleGate, never()).releaseLock(anyString(), anyString());
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
-	}
-
-	@Test (expected=LockedException.class)
-	public void testLoginWithInvalidReceiptAndOverFailAttemptLimit(){
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn(null);
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
+		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(anyString())).thenThrow(mockUnsuccessfulAttemptLockoutException);
+		when(mockUnsuccessfulAttemptLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD);
 		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-		authManager.login(userId, "fake password", receipt);
+		try {
+			authManager.login(userId, "fake password", receipt);
+			fail("expected exception to be thrown");
+		} catch (UnsuccessfulAttemptLockoutException e){
+			//expected
+		}
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockUsernameThrottleGate).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
+		verifyZeroInteractions(mockAttemptResultReporter);
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockUsernameThrottleGate, never()).releaseLock(anyString(), anyString());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
 		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
 		verify(mockConsumer).addProfileData(captor.capture());
@@ -236,16 +257,38 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
+	public void testLoginWithInvalidReceiptAndWithinLockoutPeriodBelowCloudwatchReportThreshold(){
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
+		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(anyString())).thenThrow(mockUnsuccessfulAttemptLockoutException);
+		when(mockUnsuccessfulAttemptLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD - 1);
+
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+		try {
+			authManager.login(userId, "fake password", receipt);
+			fail("expected exception to be thrown");
+		} catch (UnsuccessfulAttemptLockoutException e){
+			//expected
+		}
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
+		verifyZeroInteractions(mockAttemptResultReporter);
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
+		//verify never logged on cloudwatch
+		verifyZeroInteractions(mockConsumer);
+	}
+
+	@Test
 	public void testLoginWithValidReceiptAndOverFailAttemptLimit(){
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn(null);
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
 		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 		authManager.login(userId, "fake password", receipt);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockUsernameThrottleGate, never()).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verifyZeroInteractions(mockUnsuccessfulAttemptLockout);
+		verifyZeroInteractions(mockAttemptResultReporter);
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockUsernameThrottleGate, never()).releaseLock(anyString(), anyString());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
 		verify(mockConsumer, never()).addProfileData(any(ProfileData.class));
 	}

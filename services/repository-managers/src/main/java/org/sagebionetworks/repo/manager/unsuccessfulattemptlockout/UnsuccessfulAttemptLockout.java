@@ -3,25 +3,14 @@ package org.sagebionetworks.repo.manager.unsuccessfulattemptlockout;
 /**
  * Package to manage
  */
-public interface UnsuccessfulAttemptLockout {
-
-
-	/**
-	 * Report that an successful attempt has been made for this key.
-	 * @param key
-	 */
-	public void reportSuccess(String key);
+public interface UnsuccessfulAttemptLockout { //TODO: rename. too close w/ UnsuccessfulAttemptLockoutDAO
 
 	/**
-	 * Report that an unsuccessful attempt has been made for this key.
-	 * @param key
-	 */
-	public void reportFailure(String key);
-
-	/**
-	 * Check if the key is currently being locked out from any attempts at the moment
-	 * @param key
+	 * Check if the key is currently being locked out from any attempts at the moment.
+	 *
+	 * @param key the key used to identify an attempt
 	 * @throws UnsuccessfulAttemptLockoutException if the key is currently locked out from making further attempts
+	 * @return AttemptResultReporter which an be used to report the success or failure of this attempt
 	 */
-	public void checkIsLockedOut(String key);
+	public AttemptResultReporter checkIsLockedOut(String key);
 }
