@@ -484,7 +484,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(COL_TABLE_ROW_KEY_NEW);
 			}
-		}, tableIdLong, tableIdLong);
+		}, tableIdLong);
 	}
 
 	public String getS3Bucket() {
