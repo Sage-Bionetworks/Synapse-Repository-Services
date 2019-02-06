@@ -2043,15 +2043,17 @@ public class SQLUtilsTest {
 	
 	
 	/**
-	 * The original fix to PLFM-4260 involved throwing an exception when trying to map a string
-	 * annotation to a boolean column.  However, the fix for PLFM-4864 involved changing
-	 * how we copy data from the ANNOTATION_REPLICATION table to views. We now only copy
-	 * data from ANNOTATION_REPLICATION from columns that match the view column type.
-	 * As a result, the only type of exception that can occur is when a string annotation
-	 * is too large of for a string column.
-	 * This means the condition in PLFM-4260 no longer result in an error so we should 
-	 * not throw an exception for this case.
-	 * 
+	 * <p>
+	 * The original fix to PLFM-4260 involved throwing an exception when trying to
+	 * map a string annotation to a boolean column. However, the fix for PLFM-4864
+	 * involved changing how we copy data from the ANNOTATION_REPLICATION table to
+	 * views. We now only copy data from ANNOTATION_REPLICATION from columns that
+	 * match the view column type. As a result, the only type of exception that can
+	 * occur is when a string annotation is too large of for a string column.
+	 * </p>
+	 * This means the original condition in PLFM-4260 will no longer result in an
+	 * error, so we should not throw an exception for this case.
+	 * <p>
 	 * This is part of the fix for PLFM-5348.
 	 */
 	@Test
