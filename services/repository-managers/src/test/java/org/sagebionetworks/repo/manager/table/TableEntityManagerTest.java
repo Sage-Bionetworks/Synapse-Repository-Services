@@ -1330,44 +1330,26 @@ public class TableEntityManagerTest {
 		}
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testGetSparseChangeSetNewKeyNull() throws NotFoundException, IOException{
 		Long versionNumber = 101L;
-		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
 		TableRowChange change = new TableRowChange();
 		change.setTableId(tableId);
 		change.setRowVersion(versionNumber);
 		change.setKey("oldKey");
 		// when the new key is null the change set needs to be upgraded.
 		change.setKeyNew(null);
-		when(mockTruthDao.getRowSet(tableId, versionNumber, models)).thenReturn(set);
-		when(mockTruthDao.upgradeToNewChangeSet(tableId, versionNumber, dto)).thenReturn(change);
-		when(mockTruthDao.getRowSet(change)).thenReturn(dto);
 		// call under test
-		SparseChangeSet result = manager.getSparseChangeSet(change);
-		assertNotNull(result);
-		// change set should be upgraded.
-		verify(mockTruthDao).upgradeToNewChangeSet(tableId, versionNumber, dto);
+		manager.getSparseChangeSet(change);
 	}
 	
-	@Test
-	public void testGetSparseChangeSetNewKeyExists() throws NotFoundException, IOException{
-		Long versionNumber = 101L;
-		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
-		TableRowChange change = new TableRowChange();
-		change.setTableId(tableId);
-		change.setRowVersion(versionNumber);
-		change.setKey("oldKey");
-		// the new key exists for this case.
-		change.setKeyNew("newKey");
-		when(mockTruthDao.getRowSet(tableId, versionNumber, models)).thenReturn(set);
-		when(mockTruthDao.getRowSet(change)).thenReturn(dto);
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSparseChangeSetNewChangeNull() throws NotFoundException, IOException{
+		TableRowChange change = null;
 		// call under test
-		SparseChangeSet result = manager.getSparseChangeSet(change);
-		assertNotNull(result);
-		// should not be upgraded since it already has.
-		verify(mockTruthDao, never()).upgradeToNewChangeSet(anyString(), anyLong(), any(SparseChangeSetDto.class));
+		manager.getSparseChangeSet(change);
 	}
+	
 	
 	/**
 	 * Test added for PLFM-4284 which was caused by incorrect row size

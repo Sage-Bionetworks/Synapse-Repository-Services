@@ -1,6 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_BUCKET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_COL_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_COUNT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY_NEW;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_TABLE_ROW_CHANGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,7 +20,6 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -29,7 +39,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		new FieldColumn("createdBy", COL_TABLE_ROW_CREATED_BY),
 		new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON),
 		new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
-		new FieldColumn("key", COL_TABLE_ROW_KEY),
 		new FieldColumn("keyNew", COL_TABLE_ROW_KEY_NEW),
 		new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
 		new FieldColumn("changeType", COL_TABLE_ROW_TYPE),
@@ -62,7 +71,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				change.setCreatedBy(rs.getLong(COL_TABLE_ROW_CREATED_BY));
 				change.setCreatedOn(rs.getLong(COL_TABLE_ROW_CREATED_ON));
 				change.setBucket(rs.getString(COL_TABLE_ROW_BUCKET));
-				change.setKey(rs.getString(COL_TABLE_ROW_KEY));
 				change.setKeyNew(rs.getString(COL_TABLE_ROW_KEY_NEW));
 				change.setRowCount(rs.getLong(COL_TABLE_ROW_COUNT));
 				change.setChangeType(rs.getString(COL_TABLE_ROW_TYPE));
@@ -198,9 +206,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 			@Override
 			public DBOTableRowChange createDatabaseObjectFromBackup(DBOTableRowChange backup) {
-				if (backup.getChangeType() == null) {
-					// PLFM-4016
-					backup.setChangeType(TableChangeType.ROW.name());
+				if (TableChangeType.COLUMN.equals(TableChangeType.valueOf(backup.getChangeType()))) {
+					if(backup.getKeyNew() == null) {
+						if(backup.getKey() == null) {
+							throw new IllegalArgumentException("Column change missing both key and keyNew.");
+						}else {
+							backup.setKeyNew(backup.getKey());
+						}
+					}
 				}
 				return backup;
 			}
