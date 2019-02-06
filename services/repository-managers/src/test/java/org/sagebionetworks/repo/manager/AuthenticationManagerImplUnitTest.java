@@ -172,6 +172,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
 		verify(mockAttemptResultReporter).reportSuccess();
 		verify(mockAuthReceiptDAO).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
 
 	@Test
@@ -184,6 +185,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
 		verify(mockAttemptResultReporter).reportSuccess();
 		verify(mockAuthReceiptDAO).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
 
 	@Test
@@ -205,6 +207,8 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX+userId);
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+
 	}
 
 	@Test

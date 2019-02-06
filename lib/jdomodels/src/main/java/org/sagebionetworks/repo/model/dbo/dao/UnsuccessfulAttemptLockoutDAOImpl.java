@@ -13,23 +13,23 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 public class UnsuccessfulAttemptLockoutDAOImpl implements UnsuccessfulAttemptLockoutDAO {
 
-	public static final String FROM_TABLE_FILTERED_BY_KEY = " FROM " + TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT
+	private static final String FROM_TABLE_FILTERED_BY_KEY = " FROM " + TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT
 			+ " WHERE " + COL_UNSUCCESSFUL_ATTEMPT_KEY + " = ?";
 
-	public static final String SELECT_ROW_EXPIRATION_AND_LOCK = "SELECT CASE WHEN " + COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC + " <= CURRENT_TIMESTAMP THEN null ELSE " + " UNIX_TIMESTAMP(" + COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC + ") END"
+	private static final String SELECT_EXPIRATION_AND_LOCK_ROW = "SELECT CASE WHEN " + COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC + " <= CURRENT_TIMESTAMP THEN null ELSE " + " UNIX_TIMESTAMP(" + COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC + ") END"
 			+ FROM_TABLE_FILTERED_BY_KEY
 			 + " FOR UPDATE";
 
-	public static final String SELECT_UNSUCCESSFUL_ATTEMPTS = "SELECT " + COL_UNSUCCESSFUL_ATTEMPT_COUNT
+	private static final String SELECT_UNSUCCESSFUL_ATTEMPTS = "SELECT " + COL_UNSUCCESSFUL_ATTEMPT_COUNT
 			+ FROM_TABLE_FILTERED_BY_KEY;
 
-	public static final String REMOVE_LOCKOUT = "DELETE " + FROM_TABLE_FILTERED_BY_KEY;
+	private static final String REMOVE_LOCKOUT = "DELETE " + FROM_TABLE_FILTERED_BY_KEY;
 
-	public static final String CREATE_OR_INCREMENT_ATTEMPT_COUNT = "INSERT INTO " + TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT
+	private static final String CREATE_OR_INCREMENT_ATTEMPT_COUNT = "INSERT INTO " + TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT
 			+ " (" + COL_UNSUCCESSFUL_ATTEMPT_KEY + "," + COL_UNSUCCESSFUL_ATTEMPT_COUNT+","+COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC+")"
 			+ " VALUES (?, 1, CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE " + COL_UNSUCCESSFUL_ATTEMPT_COUNT + "=" + COL_UNSUCCESSFUL_ATTEMPT_COUNT + "+1";
 
-	public static final String UPDATE_EXPIRATION = "UPDATE " + TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT
+	private static final String UPDATE_EXPIRATION = "UPDATE " + TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT
 			+ " SET " + COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC + "=CURRENT_TIMESTAMP + INTERVAL ? SECOND" + " WHERE " + COL_UNSUCCESSFUL_ATTEMPT_KEY + "=?";
 
 	@Autowired
@@ -62,16 +62,15 @@ public class UnsuccessfulAttemptLockoutDAOImpl implements UnsuccessfulAttemptLoc
 
 	@WriteTransactionReadCommitted
 	@Override
-	public Long getLockoutExpirationTimestamp(String key) {
-		//TODO: better name that implies that only non-expired timestamps will be returned
+	public Long getUnexpiredLockoutTimestampSec(String key) {
 		try {
-			return jdbcTemplate.queryForObject(SELECT_ROW_EXPIRATION_AND_LOCK, Long.class, key);
+			return jdbcTemplate.queryForObject(SELECT_EXPIRATION_AND_LOCK_ROW, Long.class, key);
 		}catch (EmptyResultDataAccessException e){
 			return null;
 		}
 	}
 
-	void truncateTable(){
+	public void truncateTable(){
 		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT);
 	}
 }

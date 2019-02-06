@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.unsuccessfulattemptlockout;
 
 /**
  * Exception that is thrown when an attempt is being made while the lockout is still in place.
+ * @see UnsuccessfulAttemptLockout#checkIsLockedOut(String key)
  */
 public class UnsuccessfulAttemptLockoutException extends RuntimeException{
 	final long lockoutExpirationTimestampSec;

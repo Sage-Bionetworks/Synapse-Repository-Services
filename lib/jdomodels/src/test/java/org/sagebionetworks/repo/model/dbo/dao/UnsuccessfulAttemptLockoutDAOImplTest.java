@@ -7,8 +7,10 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -17,14 +19,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class UnsuccessfulAttemptLockoutDAOImplTest {
 	@Autowired
-	UnsuccessfulAttemptLockoutDAOImpl dao;
+	UnsuccessfulAttemptLockoutDAO dao;
 
 	String key = "key1";
-
-	@Before
-	public void setUp(){
-
-	}
 
 	@After
 	public void cleanUp(){
@@ -45,22 +42,22 @@ public class UnsuccessfulAttemptLockoutDAOImplTest {
 	}
 
 	@Test
-	public void testGetLockoutExpirationTimestamp_noEntryExists(){
+	public void testGetUnexpiredLockoutTimestampSec_noEntryExists(){
 		dao.truncateTable();
-		assertNull(dao.getLockoutExpirationTimestamp(key));
+		assertNull(dao.getUnexpiredLockoutTimestampSec(key));
 	}
 
 	@Test
-	public void testGetLockoutExpirationTimestamp_lessThanCurrentTimestamp(){
+	public void testGetUnexpiredLockoutTimestampSec_lessThanCurrentTimestamp(){
 		dao.incrementNumFailedAttempts(key);
-		assertNull(dao.getLockoutExpirationTimestamp(key));
+		assertNull(dao.getUnexpiredLockoutTimestampSec(key));
 	}
 
 	@Test
-	public void testGetLockoutExpirationTimestamp_greaterThanCurrentTimestamp(){
+	public void testGetUnexpiredLockoutTimestampSec_greaterThanCurrentTimestamp(){
 		dao.incrementNumFailedAttempts(key);
 		dao.setExpiration(key, 4000);
-		assertNotNull(dao.getLockoutExpirationTimestamp(key));
+		assertNotNull(dao.getUnexpiredLockoutTimestampSec(key));
 	}
 
 	@Test
@@ -68,20 +65,20 @@ public class UnsuccessfulAttemptLockoutDAOImplTest {
 		//create a lockout entry that is later removed
 		dao.incrementNumFailedAttempts(key);
 		dao.setExpiration(key, 9001L);
-		assertNotNull(dao.getLockoutExpirationTimestamp(key));
+		assertNotNull(dao.getUnexpiredLockoutTimestampSec(key));
 
 		//create a lockout entry that will not be removed
 		String key2 = "key2";
 		dao.incrementNumFailedAttempts(key2);
 		dao.setExpiration(key2, 420L);
-		assertNotNull(dao.getLockoutExpirationTimestamp(key2));
+		assertNotNull(dao.getUnexpiredLockoutTimestampSec(key2));
 
 		//method under test
 		dao.removeLockout(key);
 
 		//assert only key1 removed
-		assertNull(dao.getLockoutExpirationTimestamp(key));
-		assertNotNull(dao.getLockoutExpirationTimestamp(key2));
+		assertNull(dao.getUnexpiredLockoutTimestampSec(key));
+		assertNotNull(dao.getUnexpiredLockoutTimestampSec(key2));
 	}
 
 	@Test
@@ -89,14 +86,14 @@ public class UnsuccessfulAttemptLockoutDAOImplTest {
 		long lockDuration = 400L;
 		dao.incrementNumFailedAttempts(key);
 
-		//set lock and sleep for 2 seconds
+		//set lock and sleep for 1 second
 		dao.setExpiration(key, lockDuration);
-		long oldExpiration = dao.getLockoutExpirationTimestamp(key);
+		long oldExpiration = dao.getUnexpiredLockoutTimestampSec(key);
 		Thread.sleep(1000);
 
 		//set lock again with the same duration
 		dao.setExpiration(key, lockDuration);
-		long newExpiration = dao.getLockoutExpirationTimestamp(key);
+		long newExpiration = dao.getUnexpiredLockoutTimestampSec(key);
 
 		assertTrue(oldExpiration < newExpiration);
 	}

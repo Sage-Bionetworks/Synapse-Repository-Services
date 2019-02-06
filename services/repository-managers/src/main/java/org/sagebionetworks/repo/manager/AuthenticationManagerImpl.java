@@ -44,7 +44,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final String UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX = "login-";
 
-	static final long REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD = 5; //TODO: what is good threshold value?
+	static final long REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD = 11;
 
 
 	@Autowired
@@ -193,6 +193,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		//check credentials
 		authenticateAndThrowException(principalId, password);
 
+		//replace the authentication receipt if under limit
 		if (authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
 			return authReceiptDAO.replaceReceipt(principalId, validatedAuthenticationReciept);
 		}
@@ -207,14 +208,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		try {
 			loginAttemptReporter = unsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString());
 		} catch (UnsuccessfulAttemptLockoutException e){
+			//log to cloudwatch and rethrow exception if too many consecutive unsuccessful logins.
 			if (e.getNumFailedAttempts() >= REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD){
 				logAttemptAfterAccountIsLocked(principalId);
 			}
 			throw e;
 		}
 
-
-		// check credentials
+		// check credentials and report success/failure of check
 		try {
 			authenticateAndThrowException(principalId, password);
 			loginAttemptReporter.reportSuccess();
@@ -224,6 +225,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw e;
 		}
 
+		//generate a new authentication receipt if under limit
 		if(authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
 			return authReceiptDAO.createNewReceipt(principalId);
 		}

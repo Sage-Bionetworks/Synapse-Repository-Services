@@ -12,7 +12,7 @@ public class ExponentialBackoffUnsuccessfulAttemptLockoutImpl implements Unsucce
 	@WriteTransactionReadCommitted
 	@Override
 	public AttemptResultReporter checkIsLockedOut(String key) {
-		Long lockoutTime = unsuccessfulAttemptLockoutDAO.getLockoutExpirationTimestamp(key);
+		Long lockoutTime = unsuccessfulAttemptLockoutDAO.getUnexpiredLockoutTimestampSec(key);
 		if (lockoutTime != null){
 			//TODO: handle in base controller
 			throw new UnsuccessfulAttemptLockoutException(
