@@ -2043,7 +2043,18 @@ public class SQLUtilsTest {
 	
 	
 	/**
-	 * This is a test for PLFM-4260 where a boolean column was mapped to a string annotation.
+	 * <p>
+	 * The original fix to PLFM-4260 involved throwing an exception when trying to
+	 * map a string annotation to a boolean column. However, the fix for PLFM-4864
+	 * involved changing how we copy data from the ANNOTATION_REPLICATION table to
+	 * views. We now only copy data from ANNOTATION_REPLICATION from columns that
+	 * match the view column type. As a result, the only type of exception that can
+	 * occur is when a string annotation is too large of for a string column.
+	 * </p>
+	 * This means the original condition in PLFM-4260 will no longer result in an
+	 * error, so we should not throw an exception for this case.
+	 * <p>
+	 * This is part of the fix for PLFM-5348.
 	 */
 	@Test
 	public void testDetermineCauseOfExceptionWrongType() {
@@ -2056,18 +2067,8 @@ public class SQLUtilsTest {
 		annotationModel.setName("foo");
 		annotationModel.setColumnType(ColumnType.STRING);
 		annotationModel.setMaximumSize(11L);
-		try {
-			// call under test
-			SQLUtils.determineCauseOfException(oringal, columnModel,
-					annotationModel);
-			fail("Should have failed.");
-		} catch (IllegalArgumentException expected) {
-			assertEquals(
-					"Cannot insert an annotation value of type STRING into column 'foo' which is of type BOOLEAN.",
-					expected.getMessage());
-			// the cause should be kept
-			assertEquals(oringal, expected.getCause());
-		}
+		// call under test - this should not throw an exception
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
 	}
 	
 	@Test
@@ -2120,6 +2121,7 @@ public class SQLUtilsTest {
 			assertEquals(oringal, expected.getCause());
 		}
 	}
+	
 	
 	@Test
 	public void testGetViewScopeFilterColumnForType() {

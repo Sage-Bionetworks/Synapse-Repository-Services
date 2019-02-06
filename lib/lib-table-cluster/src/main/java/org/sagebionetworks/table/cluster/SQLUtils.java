@@ -1548,10 +1548,17 @@ public class SQLUtils {
 	/**
 	 * Determine if an incompatibility between the passed two columns is the
 	 * cause of the passed exception.
-	 * 
+	 * <p>
+	 * The fix for PLFM-5348 was to change this method to only throw an exception
+	 * for the case where an annotation string value is too large for a view
+	 * string column.
+	 * </p>
 	 * @param exception
 	 * @param annotationMetadata
 	 * @param columnMetadata
+	 * @throws IllegalArgumentException if both the view column type and annotation type
+	 * are strings, and the annotation value size is larger than the view column size.
+	 * No other case will throw an exception.
 	 */
 	public static void determineCauseOfException(Exception exception,
 			ColumnModel columnModel, ColumnModel annotationModel) {
@@ -1578,18 +1585,6 @@ public class SQLUtils {
 										+ annotationModel.getMaximumSize()
 										+ " characters.", exception);
 					}
-				}
-				// do the column types match?
-				if (!columnModel.getColumnType().equals(
-						annotationModel.getColumnType())) {
-					throw new IllegalArgumentException(
-							"Cannot insert an annotation value of type "
-									+ annotationType
-									+ " into column '"
-									+ columnModel.getName()
-									+ "' which is of type "
-									+ columnModel.getColumnType() + ".",
-							exception);
 				}
 			}
 		}
