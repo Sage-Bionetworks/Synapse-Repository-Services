@@ -109,7 +109,6 @@ public class IT970UserProfileController {
 	@Test 
 	public void testFavoriteCrud() throws Exception {
 		Project entity = new Project();
-		entity.setEntityType(Project.class.getName());
 		entity = synapse.createEntity(entity);
 		entitiesToDelete.add(entity.getId());
 		
@@ -135,7 +134,6 @@ public class IT970UserProfileController {
 	@Test
 	public void testMyProjects() throws Exception {
 		Project entity = new Project();
-		entity.setEntityType(Project.class.getName());
 		entity.setName("aa");
 		entity = synapse.createEntity(entity);
 		entitiesToDelete.add(entity.getId());
@@ -148,7 +146,6 @@ public class IT970UserProfileController {
 		synapse.updateACL(acl);
 
 		Folder folder = new Folder();
-		folder.setEntityType(Folder.class.getName());
 		folder.setParentId(entity.getId());
 		folder.setName("folder1");
 		folder = synapse.createEntity(folder);
@@ -158,7 +155,6 @@ public class IT970UserProfileController {
 		Thread.sleep(1000);
 		Project entity2 = new Project();
 		entity2.setName("bb");
-		entity2.setEntityType(Project.class.getName());
 		entity2 = synapse.createEntity(entity2);
 		entitiesToDelete.add(entity2.getId());
 

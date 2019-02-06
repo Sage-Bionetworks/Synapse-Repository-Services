@@ -1188,16 +1188,6 @@ public class UrlHelpers {
 
 
 	/**
-	 * 
-	 * @param entity
-	 * @param request
-	 */
-	public static void setAllUrlsForEntity(Entity entity, HttpServletRequest request){
-		//TODO: replace callers with:
-		entity.setEntityType(entity.getClass().getName());
-	}
-
-	/**
 	 * Create an ACL redirect URL.
 	 * @param request - The initial request.
 	 * @param type - The type of the redirect entity.

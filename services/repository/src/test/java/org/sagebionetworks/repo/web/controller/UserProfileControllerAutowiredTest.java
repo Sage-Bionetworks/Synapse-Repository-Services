@@ -162,7 +162,6 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	public void testFavoriteCRUD() throws Exception {
 		// create an entity
 		Project proj = new Project();
-		proj.setEntityType(Project.class.getName());
 		proj = entityService.createEntity(adminUserId, proj, null, mockRequest);
 		entityIdsToDelete.add(proj.getId());
 		

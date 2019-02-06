@@ -28,7 +28,6 @@ public class EntityCreator {
 		toCreate.setDescription("A detailed description");
 		toCreate.setEtag("335");
 		toCreate.setParentId("1");
-		toCreate.setEntityType(Folder.class.getName());
 		return toCreate;
 	}
 

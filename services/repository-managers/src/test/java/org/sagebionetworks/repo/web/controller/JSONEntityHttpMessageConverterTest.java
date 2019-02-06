@@ -137,7 +137,6 @@ public class JSONEntityHttpMessageConverterTest {
 		ExampleEntity entity = new ExampleEntity();
 		entity.setName("name");
 		// this version requires a class name fo the entity type.
-		entity.setEntityType(ExampleEntity.class.getName());
 		entity.setDoubleList(new ArrayList<Double>());
 		entity.getDoubleList().add(123.45);
 		entity.getDoubleList().add(4.56);

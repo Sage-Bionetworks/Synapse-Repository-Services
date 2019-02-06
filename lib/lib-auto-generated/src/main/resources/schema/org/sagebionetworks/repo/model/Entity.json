@@ -52,11 +52,6 @@
 			"type": "string",
 			"description": "The ID of the Entity that is the parent of this Entity."
 		},
-		"entityType": {
-			"type": "string",
-			"description": "This field is deprecated and will be removed in future versions of Synapse",
-			"transient": true
-		},
         "concreteType":{
             "type":"string",
             "description":"Indicates which implementation of Entity this object represents. It should be set to one of the following: org.sagebionetworks.repo.model.Project, org.sagebionetworks.repo.model.Folder, or org.sagebionetworks.repo.model.FileEntity."

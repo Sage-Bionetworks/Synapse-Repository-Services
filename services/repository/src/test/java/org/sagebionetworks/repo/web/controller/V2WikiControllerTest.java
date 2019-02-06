@@ -161,7 +161,6 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testEntityWikiCRUD() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity.setEntityType(Project.class.getName());
 		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
 		// Test all wiki CRUD for an entity
 		doWikiCRUDForOwnerObject(entity.getId(), ObjectType.ENTITY);
@@ -170,7 +169,6 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
 		entity = new Project();
-		entity.setEntityType(Project.class.getName());
 		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
 
 		// create an entity
@@ -389,7 +387,6 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testWikiOrderHintReadUpdateForOwnerObject() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity.setEntityType(Project.class.getName());
 		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
 		
 		String ownerId = entity.getId();
