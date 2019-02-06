@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY_NEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
@@ -82,12 +81,11 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " = ? AND " + COL_TABLE_ROW_VERSION + " = ?";
 	
 	private static final String SQL_LIST_ALL_KEYS = "SELECT "
-			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY+" IS NOT NULL"
+			+ COL_TABLE_ROW_KEY_NEW + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL"
 					+ " UNION SELECT "+COL_TABLE_ROW_KEY_NEW+ " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL";
 	
 	private static final String SQL_LIST_ALL_KEYS_FOR_TABLE = "SELECT "
-			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?"
-					+ " UNION SELECT "+COL_TABLE_ROW_KEY_NEW+ " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?";
+			+ COL_TABLE_ROW_KEY_NEW + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?";
 	
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
@@ -469,7 +467,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					@Override
 					public String mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
-						return rs.getString(COL_TABLE_ROW_KEY);
+						return rs.getString(COL_TABLE_ROW_KEY_NEW);
 					}
 				});
 	}
@@ -484,7 +482,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return jdbcTemplate.query(SQL_LIST_ALL_KEYS_FOR_TABLE, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getString(COL_TABLE_ROW_KEY);
+				return rs.getString(COL_TABLE_ROW_KEY_NEW);
 			}
 		}, tableIdLong, tableIdLong);
 	}
