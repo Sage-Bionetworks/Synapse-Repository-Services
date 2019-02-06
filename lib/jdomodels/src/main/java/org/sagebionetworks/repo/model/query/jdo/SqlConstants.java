@@ -824,6 +824,7 @@ public class SqlConstants {
 	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
 
 	//Unsucessful attempt lockout table (for login)
+	public static final String DDL_UNSUCCESSFUL_ATTEMPT_LOCKOUT = "schema/UnsuccessfulAttemptLockout-ddl.sql";
 	public static final String TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT = "UNSUCCESSFUL_ATTEMPT_LOCKOUT";
 	public static final String COL_UNSUCCESSFUL_ATTEMPT_KEY = "ATTEMPT_KEY";
 	public static final String COL_UNSUCCESSFUL_ATTEMPT_COUNT = "UNSUCCESSFUL_ATTEMPT_COUNT";
