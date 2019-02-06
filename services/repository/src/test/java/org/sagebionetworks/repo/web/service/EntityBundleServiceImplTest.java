@@ -120,22 +120,18 @@ public class EntityBundleServiceImplTest {
 		// Entities
 		project = new Project();
 		project.setName(DUMMY_PROJECT);
-		project.setEntityType(project.getClass().getName());
-		
+
 		study = new Folder();
 		study.setName(DUMMY_STUDY_1);
-		study.setEntityType(study.getClass().getName());
 		study.setParentId(project.getId());
 
 		studyWithId = new Folder();
 		studyWithId.setName(DUMMY_STUDY_1);
-		studyWithId.setEntityType(study.getClass().getName());
 		studyWithId.setParentId(project.getId());
 		studyWithId.setId(STUDY_ID);
 
 		file = new FileEntity();
 		file.setName(DUMMY_FILE);
-		file.setEntityType(file.getClass().getName());
 		file.setParentId(studyWithId.getId());
 		file.setVersionNumber(FILE_VERSION);
 		file.setId(FILE_ID);

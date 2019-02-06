@@ -337,7 +337,6 @@ public class IT500SynapseJavaClient {
 		//  do not know what you are getting until it arrives.
 		Project clone = (Project) synapseOne.getEntityById(project.getId());
 		assertNotNull(clone);
-		assertNotNull(clone.getEntityType());
 		assertEquals(project.getId(), clone.getId());
 		
 		// Get the entity annotations
@@ -559,7 +558,6 @@ public class IT500SynapseJavaClient {
 		// Create an entity		
 		Folder s1 = new Folder();
 		s1.setName("Dummy Study 1");
-		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(project.getId());
 		
 		// Create annotations for this entity

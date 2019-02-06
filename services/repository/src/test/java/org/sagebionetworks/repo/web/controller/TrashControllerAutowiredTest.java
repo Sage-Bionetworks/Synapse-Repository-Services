@@ -70,7 +70,6 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		child = new Folder();
 		child.setName("TrashControllerAutowiredTest.child");
 		child.setParentId(parent.getId());
-		child.setEntityType(Folder.class.getName());
 		child = servletTestHelper.createEntity(dispatchServlet, child, testUserId);
 		Assert.assertNotNull(child);
 		Assert.assertEquals(parent.getId(), child.getParentId());
@@ -149,7 +148,6 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		child2 = new Link();
 		child2.setName("TrashControllerAutowiredTest.link");
 		child2.setParentId(parent.getId());
-		child2.setEntityType(Link.class.getName());
 		child2 = servletTestHelper.createEntity(dispatchServlet, child2, testUserId);
 
 		// Move the Link to the trash can

@@ -152,8 +152,6 @@ public class EntityServiceImpl implements EntityService {
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 
-		// Add the type specific metadata that is common to all objects.
-		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata
 		if(providers != null) {
 			for (EntityProvider<? extends Entity> provider : providers) {
@@ -388,10 +386,6 @@ public class EntityServiceImpl implements EntityService {
 				}
 			}
 		}
-	}
-
-	private <T extends Entity> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
-		UrlHelpers.setAllUrlsForEntity(entity, request);
 	}
 
 	private void addServiceSpecificMetadata(String id, Annotations annotations,

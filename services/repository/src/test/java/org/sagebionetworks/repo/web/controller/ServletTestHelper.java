@@ -295,7 +295,6 @@ public class ServletTestHelper {
 	public <T extends Entity> T createEntity(
 			HttpServlet dispatchServlet, T entity, Long userId,
 			Map<String, String> extraParams) throws Exception {
-		entity.setEntityType(entity.getClass().getName());
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ENTITY, userId, entity);
