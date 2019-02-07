@@ -1,17 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-
-import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.AttemptResultReporter;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockout;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -19,20 +9,14 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
-import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
-	public static final String LOGIN_FAIL_ATTEMPT_METRIC_UNIT = "Count";
 
-	public static final double LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE = 1.0;
-
-	public static final String LOGIN_FAIL_ATTEMPT_METRIC_NAME = "LoginFailAttemptExceedLimit";
 
 	public static final Long AUTHENTICATION_RECEIPT_LIMIT = 100L;
 
@@ -42,10 +26,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
-	public static final String UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX = "login-";
-
-	static final long REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD = 11;
-
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -53,23 +33,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private AuthenticationReceiptDAO authReceiptDAO;
-	@Autowired
-	private Consumer consumer;
+
 	@Autowired
 	private PasswordValidator passwordValidator;
-	@Autowired
-	UnsuccessfulAttemptLockout unsuccessfulAttemptLockout;
 
-	private void logAttemptAfterAccountIsLocked(long principalId) {
-		ProfileData loginFailAttemptExceedLimit = new ProfileData();
-		loginFailAttemptExceedLimit.setNamespace(this.getClass().getName());
-		loginFailAttemptExceedLimit.setName(LOGIN_FAIL_ATTEMPT_METRIC_NAME);
-		loginFailAttemptExceedLimit.setValue(LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE);
-		loginFailAttemptExceedLimit.setUnit(LOGIN_FAIL_ATTEMPT_METRIC_UNIT);
-		loginFailAttemptExceedLimit.setTimestamp(new Date());
-		loginFailAttemptExceedLimit.setDimension(Collections.singletonMap("UserId", ""+principalId));
-		consumer.addProfileData(loginFailAttemptExceedLimit);
-	}
+	@Autowired
+	private AuthenticationManagerUtil authUtil;
 	
 	@Override
 	public Long getPrincipalId(String sessionToken) {
@@ -174,62 +143,30 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public LoginResponse login(Long principalId, String password, String authenticationReceipt) {
 		authReceiptDAO.deleteExpiredReceipts(principalId, System.currentTimeMillis());
 
-		String newAuthenticationReceipt;
+		boolean validAuthReceipt = authenticationReceipt != null && authReceiptDAO.isValidReceipt(principalId, authenticationReceipt);
+
 		//callers that have previously logged in successfully are able to bypass lockout caused by failed attempts
-		if(authenticationReceipt != null && authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)){
-			newAuthenticationReceipt = authenticateWithoutLock(principalId, password, authenticationReceipt);
-		}else {
-			newAuthenticationReceipt = authenticateWithLock(principalId, password);
+		boolean correctCredentials = validAuthReceipt ? authUtil.checkPassword(principalId, password) : authUtil.authenticateWithLock(principalId, password);
+		if(!correctCredentials){
+			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
 
+		String newAuthenticationReceipt = createOrRefreshAuthenticationReceipt(principalId, authenticationReceipt, validAuthReceipt);
 		//generate session tokens for user after successful check
 		Session session = getSessionToken(principalId);
 		return createLoginResponse(session, newAuthenticationReceipt);
 	}
 
-	@WriteTransactionReadCommitted
-	String authenticateWithoutLock(Long principalId, String password, String validatedAuthenticationReciept){
-
-		//check credentials
-		authenticateAndThrowException(principalId, password);
-
-		//replace the authentication receipt if under limit
-		if (authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
-			return authReceiptDAO.replaceReceipt(principalId, validatedAuthenticationReciept);
-		}
-		return null;
-	}
-
-	@WriteTransactionReadCommitted
-	String authenticateWithLock(Long principalId, String password){
-
-
-		AttemptResultReporter loginAttemptReporter;
-		try {
-			loginAttemptReporter = unsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString());
-		} catch (UnsuccessfulAttemptLockoutException e){
-			//log to cloudwatch and rethrow exception if too many consecutive unsuccessful logins.
-			if (e.getNumFailedAttempts() >= REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD){
-				logAttemptAfterAccountIsLocked(principalId);
+	private String createOrRefreshAuthenticationReceipt(Long principalId, String authenticationReceipt, boolean validAuthReceipt) {
+		String newAuthenticationReceipt = null;
+		if(validAuthReceipt) {
+			newAuthenticationReceipt = authReceiptDAO.replaceReceipt(principalId, authenticationReceipt);
+		} else {
+			if (authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
+				newAuthenticationReceipt = authReceiptDAO.createNewReceipt(principalId);
 			}
-			throw e;
 		}
-
-		// check credentials and report success/failure of check
-		try {
-			authenticateAndThrowException(principalId, password);
-			loginAttemptReporter.reportSuccess();
-		} catch (UnauthenticatedException e){
-			//report failure and rethrow
-			loginAttemptReporter.reportFailure();
-			throw e;
-		}
-
-		//generate a new authentication receipt if under limit
-		if(authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
-			return authReceiptDAO.createNewReceipt(principalId);
-		}
-		return null;
+		return newAuthenticationReceipt;
 	}
 
 	/**
@@ -247,15 +184,4 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return response;
 	}
 
-	/**
-	 * Check username, password combination
-	 * 
-	 * @param principalId
-	 * @param password
-	 */
-	private void authenticateAndThrowException(Long principalId, String password) {
-		byte[] salt = authDAO.getPasswordSalt(principalId);
-		String passHash = PBKDF2Utils.hashPassword(password, salt);
-		authDAO.checkUserCredentials(principalId, passHash);
-	}
 }

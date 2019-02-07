@@ -19,9 +19,9 @@ public interface UnsuccessfulAttemptLockoutDAO {
 	/**
 	 * Set a new expiration for the lockout of the given key
 	 * @param key identifies the lockout
-	 * @param expirationSecondsFromNow Second from the current timestamp, after which the lockout will expire.
+	 * @param expirationMillisecondsFromNow Milliseconds from the current timestamp, after which the lockout will expire.
 	 */
-	public void setExpiration(String key, long expirationSecondsFromNow);
+	public void setExpiration(String key, long expirationMillisecondsFromNow);
 
 	/**
 	 * Removes the lockout for the specific key
@@ -30,12 +30,12 @@ public interface UnsuccessfulAttemptLockoutDAO {
 	public void removeLockout(String key);
 
 	/**
-	 * Gets the Unix Timestamp (in Seconds) for when the lockout of the key will expire
+	 * Gets the Unix Timestamp (in milliseconds) for when the lockout of the key will expire
 	 * @param key identifies the lockout
 	 * @return null if the key's lockout has expired or does have a lockout at all
 	 * a Long representing the Unix timestamp (in seconds) of when the lockout will expire
 	 */
-	public Long getUnexpiredLockoutTimestampSec(String key);
+	public Long getUnexpiredLockoutTimestampMillis(String key);
 
 	void truncateTable();
 }

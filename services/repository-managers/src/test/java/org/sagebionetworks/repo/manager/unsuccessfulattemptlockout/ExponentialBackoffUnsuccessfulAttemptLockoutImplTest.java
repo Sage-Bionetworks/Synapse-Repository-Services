@@ -28,7 +28,7 @@ public class ExponentialBackoffUnsuccessfulAttemptLockoutImplTest {
 
 	@Test
 	public void testCheckIsLockedOut_IsLockedOut() {
-		when(mockUnsuccessfulAttemptLockoutDAO.getUnexpiredLockoutTimestampSec(key)).thenReturn(12345L);
+		when(mockUnsuccessfulAttemptLockoutDAO.getUnexpiredLockoutTimestampMillis(key)).thenReturn(12345L);
 
 		try {
 			//method under test
@@ -41,7 +41,7 @@ public class ExponentialBackoffUnsuccessfulAttemptLockoutImplTest {
 
 	@Test
 	public void testCheckIsLockedOut_IsNotLockedOut(){
-		when(mockUnsuccessfulAttemptLockoutDAO.getUnexpiredLockoutTimestampSec(key)).thenReturn(null);
+		when(mockUnsuccessfulAttemptLockoutDAO.getUnexpiredLockoutTimestampMillis(key)).thenReturn(null);
 
 		assertEquals(new ExponentialBackoffAttemptReporter(key, mockUnsuccessfulAttemptLockoutDAO),
 				lockout.checkIsLockedOut(key));

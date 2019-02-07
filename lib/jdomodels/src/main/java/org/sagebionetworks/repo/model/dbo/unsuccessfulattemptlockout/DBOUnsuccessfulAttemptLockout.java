@@ -2,14 +2,13 @@ package org.sagebionetworks.repo.model.dbo.unsuccessfulattemptlockout;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_ATTEMPT_COUNT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_ATTEMPT_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_UNSUCCESSFUL_ATTEMPT_LOCKOUT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.amazonaws.services.glue.model.Database;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -18,7 +17,7 @@ public class DBOUnsuccessfulAttemptLockout implements DatabaseObject<DBOUnsucces
 	public static final FieldColumn[] FIELD_COLUMNS = {
 			new FieldColumn("attemptKey", COL_UNSUCCESSFUL_ATTEMPT_KEY).withIsPrimaryKey(true),
 			new FieldColumn("unsuccessfulAttemptCount", COL_UNSUCCESSFUL_ATTEMPT_COUNT),
-			new FieldColumn("lockoutExpiration", COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC)
+			new FieldColumn("lockoutExpiration", COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS)
 	};
 
 	private String attemptKey;
@@ -53,7 +52,7 @@ public class DBOUnsuccessfulAttemptLockout implements DatabaseObject<DBOUnsucces
 				DBOUnsuccessfulAttemptLockout mapped = new DBOUnsuccessfulAttemptLockout();
 				mapped.setAttemptKey(resultSet.getString(COL_UNSUCCESSFUL_ATTEMPT_KEY));
 				mapped.setUnsuccessfulAttemptCount(resultSet.getLong(COL_UNSUCCESSFUL_ATTEMPT_COUNT));
-				mapped.setLockoutExpiration(resultSet.getLong(COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_SEC));
+				mapped.setLockoutExpiration(resultSet.getLong(COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS));
 				return mapped;
 			}
 		};

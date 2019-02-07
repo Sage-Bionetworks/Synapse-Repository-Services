@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.unsuccessfulattemptlockout;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
+import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class ExponentialBackoffAttemptReporter implements AttemptResultReporter{
@@ -14,17 +15,18 @@ public class ExponentialBackoffAttemptReporter implements AttemptResultReporter{
 		this.dao = dao;
 	}
 
-	@WriteTransactionReadCommitted
+	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public void reportSuccess() {
 		dao.removeLockout(attemptKey);
 	}
 
-	@WriteTransactionReadCommitted
+	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public void reportFailure() {
 		long numFailed = dao.incrementNumFailedAttempts(attemptKey);
-		dao.setExpiration(attemptKey, 1 << numFailed);
+		long lockDurationMilliseconds = 1 << numFailed;
+		dao.setExpiration(attemptKey, lockDurationMilliseconds);
 	}
 
 	@Override

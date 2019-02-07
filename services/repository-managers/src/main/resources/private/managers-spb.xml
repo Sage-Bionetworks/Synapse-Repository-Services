@@ -239,7 +239,9 @@
 	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
-		
+
+	<bean id="authManagerUtil" class="org.sagebionetworks.repo.manager.AuthenticationManagerUtilImpl" />
+
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 
 	<bean id="unsuccessfulAttemptLockout" class="org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.ExponentialBackoffUnsuccessfulAttemptLockoutImpl"/>
