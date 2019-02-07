@@ -140,7 +140,6 @@ public class IT500SynapseJavaClient {
 		bootstrappedTeams.add("2"); // Administrators
 		bootstrappedTeams.add("464532"); // Access and Compliance Team
 		bootstrappedTeams.add("4"); // Trusted message senders
-		bootstrappedTeams.add("5"); // Synapse reports team
 	}
 	
 	private long getBootstrapCountPlus(long number) {

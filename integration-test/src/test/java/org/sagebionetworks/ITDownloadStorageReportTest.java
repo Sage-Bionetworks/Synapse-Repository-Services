@@ -1,13 +1,7 @@
 package org.sagebionetworks;
 
 import static org.aspectj.bridge.MessageUtil.fail;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,10 +10,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 
 public class ITDownloadStorageReportTest {
@@ -41,8 +32,6 @@ public class ITDownloadStorageReportTest {
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		adminSynapse.addTeamMember(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.SYNAPSE_REPORT_GROUP.getPrincipalId().toString(), userToDelete.toString(), "https://www.synapse.org/#Team:", "https://www.synapse.org/#unsub:");
-
 		SynapseClientHelper.setEndpoints(synapse);
 	}
 
@@ -52,32 +41,18 @@ public class ITDownloadStorageReportTest {
 	}
 
 	@Test
-	public void generateReportAndGet() throws SynapseException, InterruptedException {
+	public void generateReportUnauthorized() throws SynapseException, InterruptedException {
 		String jobToken = synapse.generateStorageReportAsyncStart(StorageReportType.ALL_PROJECTS);
-		DownloadStorageReportResponse response =  null;
-		boolean csvCreated = false;
-		while (!csvCreated) {
+		boolean jobProcessed = false;
+		while (!jobProcessed) {
 			Thread.sleep(RETRY_TIME);
 			try {
-				response = synapse.generateStorageReportAsyncGet(jobToken);
-				if (response.getResultsFileHandleId() != null) {
-					csvCreated = true;
-				}
-			} catch (SynapseResultNotReadyException e) {
-				assertNotEquals(e.getJobStatus().getJobState(), AsynchJobState.FAILED);
+				synapse.generateStorageReportAsyncGet(jobToken);
+				fail("Expected exception");
+			} catch (SynapseForbiddenException e) {
+				// As expected
+				break;
 			}
-		}
-
-		String csvReportFileHandleId = response.getResultsFileHandleId();
-		File tempFile;
-		try {
-			tempFile = File.createTempFile("ITStorageReport", ".csv");
-			synapse.downloadFromFileHandleTemporaryUrl(csvReportFileHandleId, tempFile);
-			tempFile.deleteOnExit();
-			String csvContents = FileUtils.readFileToString(tempFile);
-			assertTrue(csvContents.startsWith("\"projectId\",\"projectName\",\"sizeInBytes\"\n"));
-		} catch (IOException e) {
-			fail("IO Exception encountered when getting filehandle URL");
 		}
 	}
 }

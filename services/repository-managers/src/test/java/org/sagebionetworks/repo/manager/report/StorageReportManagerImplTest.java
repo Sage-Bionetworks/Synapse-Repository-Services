@@ -1,46 +1,43 @@
-package org.sagebionetworks.repo.manager.report.doi;
+package org.sagebionetworks.repo.manager.report;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
-
-import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.report.StorageReportManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.StorageReportType;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StorageReportManagerImplTest {
 
-	private StorageReportManagerImpl storageReportManager;
-
-
 	@Mock
 	private ConnectionFactory mockConnectionFactory;
-
-	@Mock
-	private TableIndexDAO mockTableIndexDao;
-
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
-
+	@Mock
+	private TableIndexDAO mockTableIndexDao;
 	@Mock
 	private CSVWriterStream mockCsvWriter;
+
+	@InjectMocks
+	StorageReportManagerImpl storageReportManager;
 
 	private static final UserInfo adminUser = new UserInfo(true);
 	private static final DownloadStorageReportRequest request = new DownloadStorageReportRequest();
@@ -54,10 +51,7 @@ public class StorageReportManagerImplTest {
 	@Before
 	public void before() {
 		adminUser.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		storageReportManager = new StorageReportManagerImpl();
-		ReflectionTestUtils.setField(storageReportManager, "connectionFactory", mockConnectionFactory);
 		when(mockConnectionFactory.getFirstConnection()).thenReturn(mockTableIndexDao);
-		ReflectionTestUtils.setField(storageReportManager, "authorizationManager", mockAuthorizationManager);
 		when(mockAuthorizationManager.isReportTeamMemberOrAdmin(adminUser)).thenReturn(true);
 
 		projectStats = new SynapseStorageProjectStats();
@@ -69,7 +63,11 @@ public class StorageReportManagerImplTest {
 	@Test
 	public void writeStorageReportAllProjects() {
 		request.setReportType(StorageReportType.ALL_PROJECTS);
-		when(mockTableIndexDao.getSynapseStorageStats()).thenReturn(Collections.singletonList(projectStats));
+		doAnswer(invocation -> {
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgumentAt(0, Callback.class);
+			callback.invoke(projectStats);
+			return null;
+		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;
@@ -83,8 +81,11 @@ public class StorageReportManagerImplTest {
 	@Test
 	public void writeStorageReportNullReportType() {
 		request.setReportType(null);
-		// Behavior should be the same as ALL_PROJECTS
-		when(mockTableIndexDao.getSynapseStorageStats()).thenReturn(Collections.singletonList(projectStats));
+		doAnswer(invocation -> {
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgumentAt(0, Callback.class);
+			callback.invoke(projectStats);
+			return null;
+		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;

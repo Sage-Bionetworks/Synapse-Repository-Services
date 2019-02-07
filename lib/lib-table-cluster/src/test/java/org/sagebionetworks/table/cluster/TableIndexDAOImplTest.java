@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -1982,18 +1984,21 @@ public class TableIndexDAOImplTest {
 
 		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project1, project2, file1, file2, file3, file4));
 
+		List<SynapseStorageProjectStats> result = new ArrayList<>();
+
+		Callback<SynapseStorageProjectStats> callback = result::add;
 		// Call under test
-		List<SynapseStorageProjectStats> data = tableIndexDAO.getSynapseStorageStats();
+		tableIndexDAO.streamSynapseStorageStats(callback);
 
-		assertEquals(2, data.size()); // 2 projects
+		assertEquals(2, result.size()); // 2 projects
 		// Note project 2 is bigger so it will be first
-		assertEquals(project2.getId().toString(), data.get(0).getId());
-		assertEquals(project2.getName(), data.get(0).getProjectName());
-		assertEquals(file3Size, data.get(0).getSizeInBytes()); // Note file4 is not in Synapse storage
+		assertEquals(project2.getId().toString(), result.get(0).getId());
+		assertEquals(project2.getName(), result.get(0).getProjectName());
+		assertEquals(file3Size, result.get(0).getSizeInBytes()); // Note file4 is not in Synapse storage
 
-		assertEquals(project1.getId().toString(), data.get(1).getId());
-		assertEquals(project1.getName(), data.get(1).getProjectName());
-		assertEquals((Long) (file1Size + file2Size), data.get(1).getSizeInBytes());
+		assertEquals(project1.getId().toString(), result.get(1).getId());
+		assertEquals(project1.getName(), result.get(1).getProjectName());
+		assertEquals((Long) (file1Size + file2Size), result.get(1).getSizeInBytes());
 	}
 
 	/**
