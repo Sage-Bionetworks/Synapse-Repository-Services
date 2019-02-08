@@ -77,7 +77,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@WriteTransaction
-	public void changePassword(Long principalId, String password) {
+	public void setPassword(Long principalId, String password) {
 		passwordValidator.validatePassword(password);
 
 		String passHash = PBKDF2Utils.hashPassword(password, null);
@@ -143,24 +143,36 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public LoginResponse login(Long principalId, String password, String authenticationReceipt) {
 		authReceiptDAO.deleteExpiredReceipts(principalId, System.currentTimeMillis());
 
-		boolean validAuthReceipt = authenticationReceipt != null && authReceiptDAO.isValidReceipt(principalId, authenticationReceipt);
+		String validAuthReceipt = null;
+		if (authenticationReceipt != null && authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)){
+			validAuthReceipt = authenticationReceipt;
+		}
 
 		//callers that have previously logged in successfully are able to bypass lockout caused by failed attempts
-		boolean correctCredentials = validAuthReceipt ? authUtil.checkPassword(principalId, password) : authUtil.checkPasswordWithLock(principalId, password);
+		boolean correctCredentials = validAuthReceipt != null ? authUtil.checkPassword(principalId, password) : authUtil.checkPasswordWithLock(principalId, password);
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
 
-		String newAuthenticationReceipt = createOrRefreshAuthenticationReceipt(principalId, authenticationReceipt, validAuthReceipt);
+		return getLoginResponseAfterSuccessfulAuthentication(principalId, validAuthReceipt);
+	}
+
+	@Override
+	public LoginResponse loginWithNoPasswordCheck(long principalId){
+		return getLoginResponseAfterSuccessfulAuthentication(principalId, null);
+	}
+
+	private LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String validatedAuthenticationReciept){
+		String newAuthenticationReceipt = createOrRefreshAuthenticationReceipt(principalId, validatedAuthenticationReciept);
 		//generate session tokens for user after successful check
 		Session session = getSessionToken(principalId);
 		return createLoginResponse(session, newAuthenticationReceipt);
 	}
 
-	private String createOrRefreshAuthenticationReceipt(Long principalId, String authenticationReceipt, boolean validAuthReceipt) {
+	private String createOrRefreshAuthenticationReceipt(Long principalId, String validatedAuthenticationReciept) {
 		String newAuthenticationReceipt = null;
-		if(validAuthReceipt) {
-			newAuthenticationReceipt = authReceiptDAO.replaceReceipt(principalId, authenticationReceipt);
+		if(validatedAuthenticationReciept != null) {
+			newAuthenticationReceipt = authReceiptDAO.replaceReceipt(principalId, validatedAuthenticationReciept);
 		} else {
 			if (authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
 				newAuthenticationReceipt = authReceiptDAO.createNewReceipt(principalId);

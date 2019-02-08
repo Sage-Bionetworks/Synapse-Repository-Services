@@ -244,7 +244,7 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(LAST_NAME, user.getLastName());
 		assertEquals(USER_NAME, user.getUserName());
 		assertEquals(EMAIL, user.getEmail());
-		verify(mockAuthManager).changePassword(USER_ID, PASSWORD);
+		verify(mockAuthManager).setPassword(USER_ID, PASSWORD);
 		verify(mockAuthManager).login(USER_ID, PASSWORD, null);
 	}
 

@@ -106,7 +106,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		Long principalId = authManager.checkSessionToken(request.getSessionToken(), false);
-		authManager.changePassword(principalId, request.getPassword());
+		authManager.setPassword(principalId, request.getPassword());
 		authManager.invalidateSessionToken(request.getSessionToken());
 	}
 	

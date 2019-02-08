@@ -17,9 +17,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -45,7 +42,7 @@ public class AuthenticationManagerImplAutowiredTest {
 			createdUserId = userManager.createUser(newUser);
 
 			String password = UUID.randomUUID().toString();
-			authenticationManager.changePassword(createdUserId, password);
+			authenticationManager.setPassword(createdUserId, password);
 
 			assertNotNull(authenticationManager.login(createdUserId, password, null));
 		}

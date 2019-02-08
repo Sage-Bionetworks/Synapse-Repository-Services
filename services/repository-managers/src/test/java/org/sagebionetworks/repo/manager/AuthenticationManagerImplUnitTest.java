@@ -9,7 +9,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
@@ -19,28 +18,18 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.AttemptResultReporter;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockout;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
-import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthenticationManagerImplUnitTest {
@@ -128,11 +117,11 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testChangePasswordWithInvalidPassword() {
+	public void testSetPasswordWithInvalidPassword() {
 		String bannedPassword = "password123";
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(bannedPassword);
 		try {
-			authManager.changePassword(userId, bannedPassword);
+			authManager.setPassword(userId, bannedPassword);
 		} catch (InvalidPasswordException e) {
 			verify(mockPassswordValidator).validatePassword(bannedPassword);
 			verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
@@ -140,9 +129,9 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testChangePasswordWithValidPassword() {
+	public void testSetPasswordWithValidPassword() {
 		String validPassword = UUID.randomUUID().toString();
-		authManager.changePassword(userId, validPassword);
+		authManager.setPassword(userId, validPassword);
 		verify(mockPassswordValidator).validatePassword(validPassword);
 		verify(mockAuthDAO).changePassword(anyLong(), anyString());
 	}
