@@ -13,6 +13,25 @@ import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * (PLFM-5355)
+ * This is in its own class instead of being a part of AuthenticationManagerImpl because:
+ *
+ *
+ * Methods that have Spring's Advice annotations (such as our DB Transaction annotations)
+ * only work when called from an outside class because Spring proxies our classes.
+ *
+ * AuthenticationManagerImpl already uses an annotation to start a
+ * Transaction for session tokens and Auth receipts
+ *
+ * Credential checks are in a separate class so that Spring can start a separate transaction that tracks the success/failure
+ * of login attempts for users.
+ *
+ * If these methods were, instead, helper methods within AuthenticationManagerImpl,
+ * there would only be a SINGLE transaction and any Exceptions thrown (e.g. exception stating wrong user/pass credentials)
+ * in AuthenticationManagerImpl would trigger a total transaction rollback, thus discarding the tracking of login attempts.
+ *
+ */
 public class AuthenticationManagerUtilImpl implements AuthenticationManagerUtil {
 	public static final String LOGIN_FAIL_ATTEMPT_METRIC_UNIT = "Count";
 
@@ -20,9 +39,7 @@ public class AuthenticationManagerUtilImpl implements AuthenticationManagerUtil 
 
 	public static final String LOGIN_FAIL_ATTEMPT_METRIC_NAME = "LoginFailAttemptExceedLimit";
 
-
 	public static final String UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX = "login-";
-
 
 	static final long REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD = 11;
 
@@ -63,7 +80,7 @@ public class AuthenticationManagerUtilImpl implements AuthenticationManagerUtil 
 
 	@Override
 	@RequiresNewReadCommitted
-	public boolean authenticateWithLock(Long principalId, String password){
+	public boolean checkPasswordWithLock(Long principalId, String password){
 		AttemptResultReporter loginAttemptReporter;
 		try {
 			loginAttemptReporter = unsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString());

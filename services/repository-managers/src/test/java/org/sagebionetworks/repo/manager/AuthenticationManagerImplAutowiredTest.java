@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,13 +24,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AuthenticationManagerImplAutowiredTest {
-
 	@Autowired
 	AuthenticationManager authenticationManager;
 
 	@Autowired
 	UserManager userManager;
 
+	@Autowired
+	UnsuccessfulAttemptLockoutDAO unsuccessfulAttemptLockoutDAO;
 
 	Long createdUserId = null;
 
@@ -51,14 +53,14 @@ public class AuthenticationManagerImplAutowiredTest {
 
 	@After
 	public void tearDown(){
-		if(createdUserId != null){
+		if(createdUserId != null) {
 			userManager.deletePrincipal(new UserInfo(true, 42L), createdUserId);
 		}
+		unsuccessfulAttemptLockoutDAO.truncateTable();
 	}
+
 	@Test
 	public void testLoginWrongPassword_Lockout(){
-
-
 		String wrongPassword = "hunter2";
 		try {
 			for (int i = 0; i < 10; i++) {

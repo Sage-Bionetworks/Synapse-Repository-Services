@@ -54,47 +54,27 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private AuthenticationReceiptDAO mockAuthReceiptDAO;
 	@Mock
-	private Consumer mockConsumer;
-	@Mock
 	private PasswordValidatorImpl mockPassswordValidator;
 	@Mock
-	private UnsuccessfulAttemptLockout mockUnsuccessfulAttemptLockout;
-	@Mock
-	private AttemptResultReporter mockAttemptResultReporter;
+	private AuthenticationManagerUtil mockAuthenticationManagerUtil;
 
-	@Mock
-	private UnsuccessfulAttemptLockoutException mockUnsuccessfulAttemptLockoutException;
 
 	final Long userId = 12345L;
 	//	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
 	final String synapseSessionToken = "synapsesessiontoken";
-	final byte[] salt = new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 	@Before
 	public void setUp() throws Exception {
-		MockitoAnnotations.initMocks(this);
-
-		when(mockAuthDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
 		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
 
 		UserGroup ug = new UserGroup();
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
-		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(anyString())).thenReturn(mockAttemptResultReporter);
-		when(mockAuthDAO.checkUserCredentials(anyLong(), anyString())).thenReturn(true);
+		when(mockAuthenticationManagerUtil.checkPasswordWithLock(userId, password)).thenReturn(true);
+		when(mockAuthenticationManagerUtil.checkPassword(userId, password)).thenReturn(true);
 	}
-	//TODO: UNCOMMENT AND MOVE OUT
-
-//	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
-//		ProfileData arg = captor.getValue();
-//		assertEquals(AuthenticationManagerImpl.class.getName(), arg.getNamespace());
-//		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_UNIT, arg.getUnit());
-//		assertEquals((Double) LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE, arg.getValue());
-//		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_NAME, arg.getName());
-//		assertEquals(userId.toString(), arg.getDimension().get("UserId"));
-//	}
 
 	@Test
 	public void testGetSessionToken() throws Exception {
@@ -166,122 +146,116 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockPassswordValidator).validatePassword(validPassword);
 		verify(mockAuthDAO).changePassword(anyLong(), anyString());
 	}
-//
-//	@Test
-//	public void testLoginWithoutReceipt() {
-//		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
-//		authManager.login(userId, "fake password", null);
-//		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-//		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
-//		verify(mockAttemptResultReporter).reportSuccess();
-//		verify(mockAuthReceiptDAO).createNewReceipt(userId);
-//		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
-//	}
-//
-//	@Test
-//	public void testLoginWithInvalidReceipt() {
-//		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
-//		String receipt = "receipt";
-//		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-//		authManager.login(userId, "fake password", receipt);
-//		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-//		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
-//		verify(mockAttemptResultReporter).reportSuccess();
-//		verify(mockAuthReceiptDAO).createNewReceipt(userId);
-//		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
-//	}
-//
-//	@Test
-//	public void testLoginWithInvalidReceiptAndWrongPassword() {
-//		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
-//		when(mockAuthDAO.checkUserCredentials(anyLong(), anyString())).thenReturn(false);
-//		String receipt = "receipt";
-//		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-//		try {
-//			authManager.login(userId, "fake password", receipt);
-//			fail("expected exception to be thrown");
-//		} catch (UnauthenticatedException e) {
-//			//expected the exception to be thrown
-//		}
-//		verify(mockAttemptResultReporter).reportFailure();
-//
-//		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-//		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
-//		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
-//		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
-//
-//	}
-//
-//	@Test
-//	public void testLoginWithValidReceipt() {
-//		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
-//		String receipt = "receipt";
-//		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
-//		authManager.login(userId, "fake password", receipt);
-//		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-//		verifyZeroInteractions(mockUnsuccessfulAttemptLockout);
-//		verifyZeroInteractions(mockAttemptResultReporter);
-//		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-//		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
-//	}
-//
-//	@Test
-//	public void testLoginWithInvalidReceiptAndOverReceiptLimit() {
-//		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
-//		String receipt = "receipt";
-//		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-//		authManager.login(userId, "fake password", receipt);
-//		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-//		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
-//		verify(mockAttemptResultReporter).reportSuccess();
-//		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-//		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
-//	}
-//
-//	@Test
-//	public void testLoginWithInvalidReceiptAndWithinLockoutPeriod() {
-//		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
-//		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(anyString())).thenThrow(mockUnsuccessfulAttemptLockoutException);
-//		when(mockUnsuccessfulAttemptLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD);
-//		String receipt = "receipt";
-//		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-//		try {
-//			authManager.login(userId, "fake password", receipt);
-//			fail("expected exception to be thrown");
-//		} catch (UnsuccessfulAttemptLockoutException e) {
-//			//expected
-//		}
-//		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-//		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
-//		verifyZeroInteractions(mockAttemptResultReporter);
-//		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-//		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
-//		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
-//		verify(mockConsumer).addProfileData(captor.capture());
-//		validateLoginFailAttemptMetricData(captor, userId);
-//	}
-//
-//	@Test
-//	public void testLoginWithInvalidReceiptAndWithinLockoutPeriodBelowCloudwatchReportThreshold() {
-//		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
-//		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(anyString())).thenThrow(mockUnsuccessfulAttemptLockoutException);
-//		when(mockUnsuccessfulAttemptLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD - 1);
-//
-//		String receipt = "receipt";
-//		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-//		try {
-//			authManager.login(userId, "fake password", receipt);
-//			fail("expected exception to be thrown");
-//		} catch (UnsuccessfulAttemptLockoutException e) {
-//			//expected
-//		}
-//		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-//		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
-//		verifyZeroInteractions(mockAttemptResultReporter);
-//		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-//		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
-//		//verify never logged on cloudwatch
-//		verifyZeroInteractions(mockConsumer);
-//	}
+
+	@Test
+	public void testLoginWithoutReceipt() {
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
+
+		//method under test
+		authManager.login(userId, password, null);
+
+		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
+		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockAuthReceiptDAO).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+	}
+
+	@Test
+	public void testLoginWithInvalidReceipt() {
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+
+		//method under test
+		authManager.login(userId, password, receipt);
+
+		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
+		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockAuthReceiptDAO).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+	}
+
+	@Test
+	public void testLoginWithInvalidReceiptAndWrongPassword() {
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+		when(mockAuthenticationManagerUtil.checkPasswordWithLock(userId, password)).thenReturn(false);
+
+
+		try {
+			//method under test
+			authManager.login(userId, password, receipt);
+			fail("expected exception to be thrown");
+		} catch (UnauthenticatedException e) {
+			//expected the exception to be thrown
+		}
+
+		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
+		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+	}
+
+
+	@Test
+	public void testLoginWithInvalidReceiptAndOverReceiptLimit() {
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+
+		//method under test
+		authManager.login(userId, password, receipt);
+
+		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
+		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
+	}
+
+	@Test
+	public void testLoginWithValidReceipt() {
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
+
+
+		authManager.login(userId, password, receipt);
+
+		verify(mockAuthenticationManagerUtil).checkPassword(userId, password);
+		verify(mockAuthenticationManagerUtil, never()).checkPasswordWithLock(userId, password);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
+	}
+
+	@Test
+	public void testLoginWithValidReceiptAndWrongPassword() {
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
+		when(mockAuthenticationManagerUtil.checkPassword(userId, password)).thenReturn(false);
+
+
+		try {
+			//method under test
+			authManager.login(userId, password, receipt);
+			fail("expected exception to be thrown");
+		} catch (UnauthenticatedException e) {
+			//expected the exception to be thrown
+		}
+
+		verify(mockAuthenticationManagerUtil).checkPassword(userId, password);
+		verify(mockAuthenticationManagerUtil, never()).checkPasswordWithLock(userId, password);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+	}
+
+
 
 }

@@ -6,5 +6,5 @@ public interface AuthenticationManagerUtil {
 	boolean checkPassword(Long principalId, String password);
 
 	@RequiresNewReadCommitted
-	boolean authenticateWithLock(Long principalId, String password);
+	boolean checkPasswordWithLock(Long principalId, String password);
 }
