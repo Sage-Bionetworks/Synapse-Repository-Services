@@ -87,7 +87,7 @@ public class ExceptionHandlers {
 				new ExceptionType("org.sagebionetworks.repo.model.TooManyRequestsException", true)),
 		new TestEntry(423,
 				new ExceptionType("org.sagebionetworks.repo.model.LockedException", true),
-				new ExceptionType("org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException", true)),
+				new ExceptionType("org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException", true)),
 		new TestEntry(410,
 				new ExceptionType("org.sagebionetworks.repo.web.DeprecatedServiceException", true)),
 		new TestEntry(503,

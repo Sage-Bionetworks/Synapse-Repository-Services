@@ -38,7 +38,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private PasswordValidator passwordValidator;
 
 	@Autowired
-	private AuthenticationManagerUtil authUtil;
+	private UserCredentialValidator authUtil;
 	
 	@Override
 	public Long getPrincipalId(String sessionToken) {

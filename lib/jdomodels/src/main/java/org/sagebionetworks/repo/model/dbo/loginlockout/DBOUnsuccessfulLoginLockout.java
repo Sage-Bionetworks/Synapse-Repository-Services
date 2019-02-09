@@ -1,0 +1,84 @@
+package org.sagebionetworks.repo.model.dbo.loginlockout;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_LOGIN_COUNT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_LOGIN_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_UNSUCCESSFUL_LOGIN_LOCKOUT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
+
+public class DBOUnsuccessfulLoginLockout implements DatabaseObject<DBOUnsuccessfulLoginLockout> {
+	public static final FieldColumn[] FIELD_COLUMNS = {
+			new FieldColumn("attemptKey", COL_UNSUCCESSFUL_LOGIN_KEY).withIsPrimaryKey(true),
+			new FieldColumn("unsuccessfulLoginCount", COL_UNSUCCESSFUL_LOGIN_COUNT),
+			new FieldColumn("lockoutExpiration", COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS)
+	};
+
+	private String attemptKey;
+	private	long unsuccessfulLoginCount;
+	private long lockoutExpiration;
+
+	@Override
+	public TableMapping<DBOUnsuccessfulLoginLockout> getTableMapping() {
+		return new TableMapping<DBOUnsuccessfulLoginLockout>() {
+			@Override
+			public String getTableName() {
+				return TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return DDL_UNSUCCESSFUL_LOGIN_LOCKOUT;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELD_COLUMNS;
+			}
+
+			@Override
+			public Class<? extends DBOUnsuccessfulLoginLockout> getDBOClass() {
+				return DBOUnsuccessfulLoginLockout.class;
+			}
+
+			@Override
+			public DBOUnsuccessfulLoginLockout mapRow(ResultSet resultSet, int i) throws SQLException {
+				DBOUnsuccessfulLoginLockout mapped = new DBOUnsuccessfulLoginLockout();
+				mapped.setAttemptKey(resultSet.getString(COL_UNSUCCESSFUL_LOGIN_KEY));
+				mapped.setUnsuccessfulLoginCount(resultSet.getLong(COL_UNSUCCESSFUL_LOGIN_COUNT));
+				mapped.setLockoutExpiration(resultSet.getLong(COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS));
+				return mapped;
+			}
+		};
+	}
+
+	public String getAttemptKey() {
+		return attemptKey;
+	}
+
+	public void setAttemptKey(String attemptKey) {
+		this.attemptKey = attemptKey;
+	}
+
+	public long getUnsuccessfulLoginCount() {
+		return unsuccessfulLoginCount;
+	}
+
+	public void setUnsuccessfulLoginCount(long unsuccessfulLoginCount) {
+		this.unsuccessfulLoginCount = unsuccessfulLoginCount;
+	}
+
+	public long getLockoutExpiration() {
+		return lockoutExpiration;
+	}
+
+	public void setLockoutExpiration(long lockoutExpiration) {
+		this.lockoutExpiration = lockoutExpiration;
+	}
+}

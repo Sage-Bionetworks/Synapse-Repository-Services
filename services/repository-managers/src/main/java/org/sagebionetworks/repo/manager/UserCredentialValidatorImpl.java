@@ -5,9 +5,9 @@ import java.util.Date;
 
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.AttemptResultReporter;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockout;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
+import org.sagebionetworks.repo.manager.loginlockout.AttemptResultReporter;
+import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
+import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -32,7 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * in AuthenticationManagerImpl would trigger a total transaction rollback, thus discarding the tracking of login attempts.
  *
  */
-public class AuthenticationManagerUtilImpl implements AuthenticationManagerUtil {
+public class UserCredentialValidatorImpl implements UserCredentialValidator {
 	public static final String LOGIN_FAIL_ATTEMPT_METRIC_UNIT = "Count";
 
 	public static final double LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE = 1.0;
@@ -48,7 +48,7 @@ public class AuthenticationManagerUtilImpl implements AuthenticationManagerUtil 
 	AuthenticationDAO authDAO;
 
 	@Autowired
-	UnsuccessfulAttemptLockout unsuccessfulAttemptLockout;
+	UnsuccessfulLoginLockout unsuccessfulLoginLockout;
 
 	@Autowired
 	private Consumer consumer;
@@ -83,8 +83,8 @@ public class AuthenticationManagerUtilImpl implements AuthenticationManagerUtil 
 	public boolean checkPasswordWithLock(Long principalId, String password){
 		AttemptResultReporter loginAttemptReporter;
 		try {
-			loginAttemptReporter = unsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString());
-		} catch (UnsuccessfulAttemptLockoutException e){
+			loginAttemptReporter = unsuccessfulLoginLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString());
+		} catch (UnsuccessfulLoginLockoutException e){
 			//log to cloudwatch and rethrow exception if too many consecutive unsuccessful logins.
 			if (e.getNumFailedAttempts() >= REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD){
 				logAttemptAfterAccountIsLocked(principalId);

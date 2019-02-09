@@ -4,15 +4,14 @@ import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.AuthenticationManagerUtilImpl.LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE;
-import static org.sagebionetworks.repo.manager.AuthenticationManagerUtilImpl.LOGIN_FAIL_ATTEMPT_METRIC_NAME;
-import static org.sagebionetworks.repo.manager.AuthenticationManagerUtilImpl.LOGIN_FAIL_ATTEMPT_METRIC_UNIT;
-import static org.sagebionetworks.repo.manager.AuthenticationManagerUtilImpl.REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD;
-import static org.sagebionetworks.repo.manager.AuthenticationManagerUtilImpl.UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX;
+import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE;
+import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_NAME;
+import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_UNIT;
+import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD;
+import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,29 +22,29 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.AttemptResultReporter;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockout;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
+import org.sagebionetworks.repo.manager.loginlockout.AttemptResultReporter;
+import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
+import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AuthenticationManagerUtilImplTest {
+public class UserCredentialValidatorImplTest {
 
 	@Mock
 	private AttemptResultReporter mockAttemptResultReporter;
 	@Mock
-	private UnsuccessfulAttemptLockout mockUnsuccessfulAttemptLockout;
+	private UnsuccessfulLoginLockout mockUnsuccessfulLoginLockout;
 	@Mock
 	private AuthenticationDAO mockAuthDAO;
 	@Mock
 	private Consumer mockConsumer;
 
 	@Mock
-	private UnsuccessfulAttemptLockoutException mockUnsuccessfulAttemptLockoutException;
+	private UnsuccessfulLoginLockoutException mockUnsuccessfulLoginLockoutException;
 
 	@InjectMocks
-	private AuthenticationManagerUtilImpl authenticationManagerUtil;
+	private UserCredentialValidatorImpl authenticationManagerUtil;
 
 	final Long userId = 12345L;
 	final byte[] salt = new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -58,7 +57,7 @@ public class AuthenticationManagerUtilImplTest {
 
 
 		when(mockAuthDAO.checkUserCredentials(anyLong(), anyString())).thenReturn(true);
-		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId)).thenReturn(mockAttemptResultReporter);
+		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId)).thenReturn(mockAttemptResultReporter);
 	}
 
 	@Test
@@ -83,36 +82,36 @@ public class AuthenticationManagerUtilImplTest {
 
 	@Test
 	public void testCheckPasswordWithLock_IsLockedOut_lessThanLogThreshold(){
-		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId)).thenThrow(mockUnsuccessfulAttemptLockoutException);
-		when(mockUnsuccessfulAttemptLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD - 1);
+		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
+		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD - 1);
 
 		try{
 			//method under test
 			authenticationManagerUtil.checkPasswordWithLock(userId, password);
 			fail("expected exception to be thrown");
-		} catch (UnsuccessfulAttemptLockoutException e) {
+		} catch (UnsuccessfulLoginLockoutException e) {
 			//expected
 		}
 
-		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
+		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
 		verifyZeroInteractions(mockAttemptResultReporter);
 		verifyZeroInteractions(mockConsumer);
 	}
 
 	@Test
 	public void testCheckPasswordWithLock_IsLockedOut_GreaterThanEqualLogThreshold(){
-		when(mockUnsuccessfulAttemptLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId)).thenThrow(mockUnsuccessfulAttemptLockoutException);
-		when(mockUnsuccessfulAttemptLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD);
+		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
+		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD);
 
 		try{
 			//method under test
 			authenticationManagerUtil.checkPasswordWithLock(userId, password);
 			fail("expected exception to be thrown");
-		} catch (UnsuccessfulAttemptLockoutException e) {
+		} catch (UnsuccessfulLoginLockoutException e) {
 			//expected
 		}
 
-		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
+		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
 		verifyZeroInteractions(mockAttemptResultReporter);
 		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
 		verify(mockConsumer).addProfileData(captor.capture());
@@ -128,7 +127,7 @@ public class AuthenticationManagerUtilImplTest {
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verify(mockAttemptResultReporter).reportSuccess();
-		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
+		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
 		verifyZeroInteractions(mockConsumer);
 	}
 
@@ -141,14 +140,14 @@ public class AuthenticationManagerUtilImplTest {
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verify(mockAttemptResultReporter).reportFailure();
-		verify(mockUnsuccessfulAttemptLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
+		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + userId);
 		verifyZeroInteractions(mockConsumer);
 	}
 
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
 		ProfileData arg = captor.getValue();
-		assertEquals(AuthenticationManagerUtilImpl.class.getName(), arg.getNamespace());
+		assertEquals(UserCredentialValidatorImpl.class.getName(), arg.getNamespace());
 		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_UNIT, arg.getUnit());
 		assertEquals((Double) LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE, arg.getValue());
 		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_NAME, arg.getName());

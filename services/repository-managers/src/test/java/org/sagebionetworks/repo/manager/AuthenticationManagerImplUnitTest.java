@@ -45,7 +45,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private PasswordValidatorImpl mockPassswordValidator;
 	@Mock
-	private AuthenticationManagerUtil mockAuthenticationManagerUtil;
+	private UserCredentialValidator mockUserCredentialValidator;
 
 
 	final Long userId = 12345L;
@@ -61,8 +61,8 @@ public class AuthenticationManagerImplUnitTest {
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
-		when(mockAuthenticationManagerUtil.checkPasswordWithLock(userId, password)).thenReturn(true);
-		when(mockAuthenticationManagerUtil.checkPassword(userId, password)).thenReturn(true);
+		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(true);
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 	}
 
 	@Test
@@ -143,8 +143,8 @@ public class AuthenticationManagerImplUnitTest {
 		//method under test
 		authManager.login(userId, password, null);
 
-		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
-		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO).createNewReceipt(userId);
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
@@ -159,8 +159,8 @@ public class AuthenticationManagerImplUnitTest {
 		//method under test
 		authManager.login(userId, password, receipt);
 
-		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
-		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO).createNewReceipt(userId);
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
@@ -171,7 +171,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-		when(mockAuthenticationManagerUtil.checkPasswordWithLock(userId, password)).thenReturn(false);
+		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(false);
 
 
 		try {
@@ -182,8 +182,8 @@ public class AuthenticationManagerImplUnitTest {
 			//expected the exception to be thrown
 		}
 
-		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
-		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
@@ -199,8 +199,8 @@ public class AuthenticationManagerImplUnitTest {
 		//method under test
 		authManager.login(userId, password, receipt);
 
-		verify(mockAuthenticationManagerUtil, never()).checkPassword(userId, password);
-		verify(mockAuthenticationManagerUtil).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
@@ -215,8 +215,8 @@ public class AuthenticationManagerImplUnitTest {
 
 		authManager.login(userId, password, receipt);
 
-		verify(mockAuthenticationManagerUtil).checkPassword(userId, password);
-		verify(mockAuthenticationManagerUtil, never()).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithLock(userId, password);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
 		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
@@ -227,7 +227,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
-		when(mockAuthenticationManagerUtil.checkPassword(userId, password)).thenReturn(false);
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
 
 
 		try {
@@ -238,8 +238,8 @@ public class AuthenticationManagerImplUnitTest {
 			//expected the exception to be thrown
 		}
 
-		verify(mockAuthenticationManagerUtil).checkPassword(userId, password);
-		verify(mockAuthenticationManagerUtil, never()).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithLock(userId, password);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());

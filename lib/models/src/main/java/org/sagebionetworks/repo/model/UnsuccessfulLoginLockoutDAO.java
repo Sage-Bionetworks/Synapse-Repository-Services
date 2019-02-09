@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model;
 
-public interface UnsuccessfulAttemptLockoutDAO {
+public interface UnsuccessfulLoginLockoutDAO {
 
 	/**
 	 * Increments the number of failed attempts by 1 and returns the new value.

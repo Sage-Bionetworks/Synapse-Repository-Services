@@ -9,9 +9,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.UnsuccessfulAttemptLockoutException;
+import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
+import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ public class AuthenticationManagerImplAutowiredTest {
 	UserManager userManager;
 
 	@Autowired
-	UnsuccessfulAttemptLockoutDAO unsuccessfulAttemptLockoutDAO;
+	UnsuccessfulLoginLockoutDAO unsuccessfulLoginLockoutDAO;
 
 	Long createdUserId = null;
 
@@ -53,26 +53,27 @@ public class AuthenticationManagerImplAutowiredTest {
 		if(createdUserId != null) {
 			userManager.deletePrincipal(new UserInfo(true, 42L), createdUserId);
 		}
-		unsuccessfulAttemptLockoutDAO.truncateTable();
+		unsuccessfulLoginLockoutDAO.truncateTable();
 	}
 
 	@Test
-	public void testLoginWrongPassword_Lockout(){
+	public void testLoginWrongPassword_Lockout() throws InterruptedException {
 		String wrongPassword = "hunter2";
 		try {
 			for (int i = 0; i < 10; i++) {
 				try {
 					authenticationManager.login(createdUserId, wrongPassword, null);
+					Thread.sleep(10);
 					fail("expected exception to be throw for wrong password");
 				} catch (UnauthenticatedException e) {
 					//expected
 				}
 			}
-		} catch (UnsuccessfulAttemptLockoutException e){
+		} catch (UnsuccessfulLoginLockoutException e){
 			//expected. return early to avoid fail condition
 			return;
 		}
 
-		fail("expected UnsuccessfulAttemptLockoutException to be thrown after many failed login attempts");
+		fail("expected UnsuccessfulLoginLockoutException to be thrown after many failed login attempts");
 	}
 }

@@ -823,12 +823,12 @@ public class SqlConstants {
 	public static final String COL_THROTTLE_RULES_MODIFIED_ON = "MODIFIED_ON";
 	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
 
-	//Unsucessful attempt lockout table (for login)
-	public static final String DDL_UNSUCCESSFUL_ATTEMPT_LOCKOUT = "schema/UnsuccessfulAttemptLockout-ddl.sql";
-	public static final String TABLE_UNSUCCESSFUL_ATTEMPT_LOCKOUT = "UNSUCCESSFUL_ATTEMPT_LOCKOUT";
-	public static final String COL_UNSUCCESSFUL_ATTEMPT_KEY = "ATTEMPT_KEY";
-	public static final String COL_UNSUCCESSFUL_ATTEMPT_COUNT = "UNSUCCESSFUL_ATTEMPT_COUNT";
-	public static final String COL_UNSUCCESSFUL_ATTEMPT_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS = "LOCKOUT_EXPIRATION";
+	//Unsucessful login lockout table
+	public static final String DDL_UNSUCCESSFUL_LOGIN_LOCKOUT = "schema/UnsuccessfulLoginLockout-ddl.sql";
+	public static final String TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT = "UNSUCCESSFUL_LOGIN_LOCKOUT";
+	public static final String COL_UNSUCCESSFUL_LOGIN_KEY = "ATTEMPT_KEY";
+	public static final String COL_UNSUCCESSFUL_LOGIN_COUNT = "UNSUCCESSFUL_ATTEMPT_COUNT";
+	public static final String COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS = "LOCKOUT_EXPIRATION";
 
 	// ResearchProject
 	public static final String DDL_RESEARCH_PROJECT = 							"schema/ResearchProject-ddl.sql";

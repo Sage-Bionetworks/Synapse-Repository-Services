@@ -1,10 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
-
-public interface AuthenticationManagerUtil {
+public interface UserCredentialValidator {
 	boolean checkPassword(Long principalId, String password);
 
-	@RequiresNewReadCommitted
 	boolean checkPasswordWithLock(Long principalId, String password);
 }

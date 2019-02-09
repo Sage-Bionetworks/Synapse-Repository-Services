@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
+import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -16,9 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class UnsuccessfulAttemptLockoutDAOImplAutowiredTest {
+public class UnsuccessfulLoginLockoutDAOImplAutowiredTest {
 	@Autowired
-	UnsuccessfulAttemptLockoutDAO dao;
+	UnsuccessfulLoginLockoutDAO dao;
 
 	String key = "key1";
 

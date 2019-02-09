@@ -240,11 +240,11 @@
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 
-	<bean id="authManagerUtil" class="org.sagebionetworks.repo.manager.AuthenticationManagerUtilImpl" />
+	<bean id="authManagerUtil" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
 
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 
-	<bean id="unsuccessfulAttemptLockout" class="org.sagebionetworks.repo.manager.unsuccessfulattemptlockout.ExponentialBackoffUnsuccessfulAttemptLockoutImpl"/>
+	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffUnsuccessfulLoginLockoutImpl"/>
 
 	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
 	

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.unsuccessfulattemptlockout;
+package org.sagebionetworks.repo.manager.loginlockout;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -10,15 +10,15 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
+import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ExponentialBackoffUnsuccessfulAttemptLockoutImplTest {
+public class ExponentialBackoffUnsuccessfulLoginLockoutImplTest {
 	@Mock
-	UnsuccessfulAttemptLockoutDAO mockUnsuccessfulAttemptLockoutDAO;
+	UnsuccessfulLoginLockoutDAO mockUnsuccessfulLoginLockoutDAO;
 
 	@InjectMocks
-	ExponentialBackoffUnsuccessfulAttemptLockoutImpl lockout;
+	ExponentialBackoffUnsuccessfulLoginLockoutImpl lockout;
 
 	String key = "keyyyyyyyyy";
 
@@ -28,22 +28,22 @@ public class ExponentialBackoffUnsuccessfulAttemptLockoutImplTest {
 
 	@Test
 	public void testCheckIsLockedOut_IsLockedOut() {
-		when(mockUnsuccessfulAttemptLockoutDAO.getUnexpiredLockoutTimestampMillis(key)).thenReturn(12345L);
+		when(mockUnsuccessfulLoginLockoutDAO.getUnexpiredLockoutTimestampMillis(key)).thenReturn(12345L);
 
 		try {
 			//method under test
 			lockout.checkIsLockedOut(key);
 			fail("expected exception to be thrown");
-		} catch (UnsuccessfulAttemptLockoutException e){
+		} catch (UnsuccessfulLoginLockoutException e){
 			//expected
 		}
 	}
 
 	@Test
 	public void testCheckIsLockedOut_IsNotLockedOut(){
-		when(mockUnsuccessfulAttemptLockoutDAO.getUnexpiredLockoutTimestampMillis(key)).thenReturn(null);
+		when(mockUnsuccessfulLoginLockoutDAO.getUnexpiredLockoutTimestampMillis(key)).thenReturn(null);
 
-		assertEquals(new ExponentialBackoffAttemptReporter(key, mockUnsuccessfulAttemptLockoutDAO),
+		assertEquals(new ExponentialBackoffAttemptReporter(key, mockUnsuccessfulLoginLockoutDAO),
 				lockout.checkIsLockedOut(key));
 	}
 }

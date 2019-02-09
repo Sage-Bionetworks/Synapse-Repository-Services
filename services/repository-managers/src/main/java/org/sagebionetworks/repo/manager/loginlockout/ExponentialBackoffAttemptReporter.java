@@ -1,16 +1,15 @@
-package org.sagebionetworks.repo.manager.unsuccessfulattemptlockout;
+package org.sagebionetworks.repo.manager.loginlockout;
 
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.UnsuccessfulAttemptLockoutDAO;
+import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class ExponentialBackoffAttemptReporter implements AttemptResultReporter{
-	private final UnsuccessfulAttemptLockoutDAO dao;
+	private final UnsuccessfulLoginLockoutDAO dao;
 	private final String attemptKey;
 
-	ExponentialBackoffAttemptReporter(String attemptKey, UnsuccessfulAttemptLockoutDAO dao){
+	ExponentialBackoffAttemptReporter(String attemptKey, UnsuccessfulLoginLockoutDAO dao){
 		this.attemptKey = attemptKey;
 		this.dao = dao;
 	}

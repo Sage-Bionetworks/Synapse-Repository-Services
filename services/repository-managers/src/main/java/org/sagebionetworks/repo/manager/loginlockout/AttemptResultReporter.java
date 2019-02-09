@@ -1,8 +1,8 @@
-package org.sagebionetworks.repo.manager.unsuccessfulattemptlockout;
+package org.sagebionetworks.repo.manager.loginlockout;
 
 /**
  * Used to report success or failure on an attempt.
- * @see UnsuccessfulAttemptLockout#checkIsLockedOut(String key)
+ * @see UnsuccessfulLoginLockout#checkIsLockedOut(String key)
  */
 public interface AttemptResultReporter {
 	void reportSuccess();

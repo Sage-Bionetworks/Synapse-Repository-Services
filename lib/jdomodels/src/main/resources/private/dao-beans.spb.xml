@@ -323,5 +323,5 @@
 
 	<!-- DAO for blocking repeated unsuccessful attempts -->
 	<bean id="unsuccessfulAtteptLockoutDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.UnsuccessfulAttemptLockoutDAOImpl"/>
+		class="org.sagebionetworks.repo.model.dbo.dao.UnsuccessfulLoginLockoutDAOImpl"/>
 </beans>
