@@ -14,7 +14,6 @@ public class ExponentialBackoffUnsuccessfulLoginLockoutImpl implements Unsuccess
 	public AttemptResultReporter checkIsLockedOut(String key) {
 		Long lockoutTime = unsuccessfulLoginLockoutDAO.getUnexpiredLockoutTimestampMillis(key);
 		if (lockoutTime != null){
-			//TODO: handle in base controller
 			throw new UnsuccessfulLoginLockoutException(
 					"You locked out from making any additional attempts until " + lockoutTime,
 					lockoutTime,

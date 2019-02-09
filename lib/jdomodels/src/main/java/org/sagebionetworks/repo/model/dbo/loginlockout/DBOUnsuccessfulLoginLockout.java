@@ -15,12 +15,12 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 public class DBOUnsuccessfulLoginLockout implements DatabaseObject<DBOUnsuccessfulLoginLockout> {
 	public static final FieldColumn[] FIELD_COLUMNS = {
-			new FieldColumn("attemptKey", COL_UNSUCCESSFUL_LOGIN_KEY).withIsPrimaryKey(true),
+			new FieldColumn("userId", COL_UNSUCCESSFUL_LOGIN_KEY).withIsPrimaryKey(true),
 			new FieldColumn("unsuccessfulLoginCount", COL_UNSUCCESSFUL_LOGIN_COUNT),
 			new FieldColumn("lockoutExpiration", COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS)
 	};
 
-	private String attemptKey;
+	private long userId;
 	private	long unsuccessfulLoginCount;
 	private long lockoutExpiration;
 
@@ -50,7 +50,7 @@ public class DBOUnsuccessfulLoginLockout implements DatabaseObject<DBOUnsuccessf
 			@Override
 			public DBOUnsuccessfulLoginLockout mapRow(ResultSet resultSet, int i) throws SQLException {
 				DBOUnsuccessfulLoginLockout mapped = new DBOUnsuccessfulLoginLockout();
-				mapped.setAttemptKey(resultSet.getString(COL_UNSUCCESSFUL_LOGIN_KEY));
+				mapped.setUserId(resultSet.getLong(COL_UNSUCCESSFUL_LOGIN_KEY));
 				mapped.setUnsuccessfulLoginCount(resultSet.getLong(COL_UNSUCCESSFUL_LOGIN_COUNT));
 				mapped.setLockoutExpiration(resultSet.getLong(COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS));
 				return mapped;
@@ -58,12 +58,12 @@ public class DBOUnsuccessfulLoginLockout implements DatabaseObject<DBOUnsuccessf
 		};
 	}
 
-	public String getAttemptKey() {
-		return attemptKey;
+	public long getUserId() {
+		return userId;
 	}
 
-	public void setAttemptKey(String attemptKey) {
-		this.attemptKey = attemptKey;
+	public void setUserId(long userId) {
+		this.userId = userId;
 	}
 
 	public long getUnsuccessfulLoginCount() {

@@ -826,8 +826,8 @@ public class SqlConstants {
 	//Unsucessful login lockout table
 	public static final String DDL_UNSUCCESSFUL_LOGIN_LOCKOUT = "schema/UnsuccessfulLoginLockout-ddl.sql";
 	public static final String TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT = "UNSUCCESSFUL_LOGIN_LOCKOUT";
-	public static final String COL_UNSUCCESSFUL_LOGIN_KEY = "ATTEMPT_KEY";
-	public static final String COL_UNSUCCESSFUL_LOGIN_COUNT = "UNSUCCESSFUL_ATTEMPT_COUNT";
+	public static final String COL_UNSUCCESSFUL_LOGIN_KEY = "USER_ID";
+	public static final String COL_UNSUCCESSFUL_LOGIN_COUNT = "UNSUCCESSFUL_LOGIN_COUNT";
 	public static final String COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS = "LOCKOUT_EXPIRATION";
 
 	// ResearchProject
