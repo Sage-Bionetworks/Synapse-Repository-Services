@@ -103,24 +103,14 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testCheckUserCredentials() throws Exception {
 		// Valid combination
-		Long principalId = authDAO.checkUserCredentials(userId, credential.getPassHash());
-		assertEquals(credential.getPrincipalId(), principalId);
+		assertTrue(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
 		// Invalid combinations
-		try {
-			authDAO.checkUserCredentials(userId, "Blargle");
-			fail("That combination should not have succeeded");
-		} catch (UnauthenticatedException e) { }
-		
-		try {
-			authDAO.checkUserCredentials(-99, credential.getPassHash());
-			fail("That combination should not have succeeded");
-		} catch (UnauthenticatedException e) { }
-		
-		try {
-			authDAO.checkUserCredentials(-100, "Blargle");
-			fail("That combination should not have succeeded");
-		} catch (UnauthenticatedException e) { }
+		assertFalse(authDAO.checkUserCredentials(userId, "Blargle"));
+
+		assertFalse(authDAO.checkUserCredentials(-99, credential.getPassHash()));
+
+		assertFalse(authDAO.checkUserCredentials(-100, "Blargle"));
 	}
 	
 	@Test
@@ -132,7 +122,7 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testSigningOffOnlySignsOffOneDomain() {
 		// Log in to none, log out
-		authDAO.checkUserCredentials(userId, credential.getPassHash());
+		assertTrue(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		Session session = authDAO.getSessionTokenIfValid(userId);
 		authDAO.deleteSessionToken(sessionToken.getSessionToken());
 
@@ -235,17 +225,16 @@ public class DBOAuthenticationDAOImplTest {
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 	}
 	
-	@Test(expected=UnauthenticatedException.class)
+	@Test
 	public void testChangePassword() throws Exception {
 		// The original credentials should authenticate correctly
-		Long principalId = authDAO.checkUserCredentials(userId, credential.getPassHash());
-		assertEquals(credential.getPrincipalId(), principalId);
+		assertTrue(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
 		// Change the password and try to authenticate again
 		authDAO.changePassword(credential.getPrincipalId(), "Bibbity Boppity BOO!");
 		
 		// This time it should fail
-		authDAO.checkUserCredentials(userId, credential.getPassHash());
+		assertFalse(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 	}
 	
 	@Test

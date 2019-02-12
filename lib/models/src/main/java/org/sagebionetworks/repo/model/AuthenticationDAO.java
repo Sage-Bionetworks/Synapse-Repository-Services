@@ -18,10 +18,9 @@ public interface AuthenticationDAO {
 
 	/**
 	 * Check to see if this user's credentials match.
-	 * @return The UserID of corresponding to the credentials
-	 * @throws UnauthorizedException If the username or password are incorrect
+	 * @return true if the credentials are correct, false otherwise.
 	 */
-	public Long checkUserCredentials(long principalId, String passHash);
+	public boolean checkUserCredentials(long principalId, String passHash);
 	
 	/**
 	 * Updates the timestamp associated with the user's session token it needed.

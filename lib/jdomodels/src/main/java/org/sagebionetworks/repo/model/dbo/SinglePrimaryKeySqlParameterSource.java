@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.util.Objects;
+
 import org.springframework.jdbc.core.namedparam.AbstractSqlParameterSource;
 
 public class SinglePrimaryKeySqlParameterSource extends AbstractSqlParameterSource {
@@ -24,5 +26,19 @@ public class SinglePrimaryKeySqlParameterSource extends AbstractSqlParameterSour
 		if (lastParamName != null && !paramName.equals(lastParamName)) {
 			throw new IllegalStateException("SinglePrimaryKeySqlParameterSource used with table with multiple primary keys");
 		}
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		SinglePrimaryKeySqlParameterSource that = (SinglePrimaryKeySqlParameterSource) o;
+		return Objects.equals(value, that.value) &&
+				Objects.equals(lastParamName, that.lastParamName);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(value, lastParamName);
 	}
 }

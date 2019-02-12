@@ -35,7 +35,7 @@ public interface AuthenticationManager {
 	/**
 	 * Changes a user's password
 	 */
-	public void changePassword(Long principalId, String password);
+	public void setPassword(Long principalId, String password);
 	
 	/** 
 	 * Gets the user's secret key
@@ -64,11 +64,18 @@ public interface AuthenticationManager {
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
 
 	/**
-	 * 
+	 *
 	 * @param principalId
 	 * @param password
 	 * @param authenticationReceipt
 	 * @return
 	 */
 	public LoginResponse login(Long principalId, String password, String authenticationReceipt);
+
+	/**
+	 * Bypass password check and just create a login response for the user.
+	 * @param principalId
+	 * @return
+	 */
+	public LoginResponse loginWithNoPasswordCheck(long principalId);
 }

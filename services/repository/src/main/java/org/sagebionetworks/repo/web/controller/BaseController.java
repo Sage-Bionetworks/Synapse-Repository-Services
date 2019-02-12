@@ -15,6 +15,7 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
+import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -808,8 +809,22 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.LOCKED)
 	public @ResponseBody
 	ErrorResponse handleLockedException(LockedException ex,
-			HttpServletRequest request,
-			HttpServletResponse response) {
+
+										HttpServletRequest request,
+										HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+
+
+	/**
+	 * This is thrown when the requested object is being locked
+	 */
+	@ExceptionHandler(UnsuccessfulLoginLockoutException.class)
+	@ResponseStatus(HttpStatus.LOCKED)
+	public @ResponseBody
+	ErrorResponse handleLockedException(UnsuccessfulLoginLockoutException ex,
+										HttpServletRequest request,
+										HttpServletResponse response) {
 		return handleException(ex, request, false);
 	}
 

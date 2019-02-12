@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.UUID;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -65,8 +64,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			" FROM "+TABLE_SESSION_TOKEN+
 			" WHERE "+COL_SESSION_TOKEN_PRINCIPAL_ID+" = ?";
 	
-	private static final String SELECT_ID_BY_EMAIL_AND_PASSWORD =
-			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+
+	private static final String SELECT_COUNT_BY_EMAIL_AND_PASSWORD =
+			"SELECT COUNT(*)"+
 			" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
 				" AND "+SqlConstants.COL_USER_GROUP_ID+"= ?"+
@@ -147,12 +146,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	public Long checkUserCredentials(long principalId, String passHash) {
-		try {
-			return jdbcTemplate.queryForObject(SELECT_ID_BY_EMAIL_AND_PASSWORD, new SingleColumnRowMapper<Long>(), principalId, passHash);
-		} catch (EmptyResultDataAccessException e) {
-			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e);
-		}
+	public boolean checkUserCredentials(long principalId, String passHash) {
+		return jdbcTemplate.queryForObject(SELECT_COUNT_BY_EMAIL_AND_PASSWORD, Long.class, principalId, passHash) > 0;
 	}
 	
 	@Override

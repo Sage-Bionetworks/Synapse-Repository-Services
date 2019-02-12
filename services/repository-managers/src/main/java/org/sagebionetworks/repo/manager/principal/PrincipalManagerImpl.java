@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.principal.AccountCreationToken;
@@ -124,9 +123,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		newUser.setUserName(accountSetupInfo.getUsername());
 		long newPrincipalId = userManager.createUser(newUser);
 		
-		authManager.changePassword(newPrincipalId, accountSetupInfo.getPassword());
-		String authenticationReceipt = null;
-		return authManager.login(newPrincipalId, accountSetupInfo.getPassword(), authenticationReceipt);
+		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
+		return authManager.loginWithNoPasswordCheck(newPrincipalId);
 	}
 
 	@Override
