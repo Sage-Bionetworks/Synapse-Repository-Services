@@ -1,46 +1,30 @@
 package org.sagebionetworks.repo.model;
 
+import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
+
 public interface UnsuccessfulLoginLockoutDAO {
-
-
-	public UnsuccessfulLoginLockoutDTO getUnsuccessfulLoginLockoutInfo(long userId);
-
-	public long getDatabaseTimestamp();
+	/**
+	 *
+	 * @param userId principal ID of the user
+	 * @return UnsuccessfulLoginLockoutDTO of the given userId. null if it does not exist
+	 */
+	UnsuccessfulLoginLockoutDTO getUnsuccessfulLoginLockoutInfoIfExist(long userId);
 
 	/**
-	 * Increments the number of failed attempts by 1 and returns the new value.
-	 * @param key identifies the lockout
-	 * @return the new number of failed attempts after incrementing by 1
+	 *
+	 * @return unix timestamp in milliseconds of the database time
 	 */
-	public long incrementNumFailedAttempts(String key);
+	long getDatabaseTimestampMillis();
 
 	/**
-	 * Get current number of failed attempts for this lockout
-	 * @param key identifies the lockout
-	 * @return number of failed attempts for this lockout
+	 * Creates the DTO if it does not already exist. Otherwise updates an existing one with the new information
+	 * @param dto dto to be created or updated
 	 */
-	public long getNumFailedAttempts(String key);
+	void createOrUpdateUnsuccessfulLoginLockoutInfo(UnsuccessfulLoginLockoutDTO dto);
 
 	/**
-	 * Set a new expiration for the lockout of the given key
-	 * @param key identifies the lockout
-	 * @param expirationMillisecondsFromNow Milliseconds from the current timestamp, after which the lockout will expire.
+	 * Delete a the UnsuccessfulLoginLockoutDTO associated with the given userId
+	 * @param userId principal ID of the user
 	 */
-	public void setExpiration(String key, long expirationMillisecondsFromNow);
-
-	/**
-	 * Removes the lockout for the specific key
-	 * @param key identifies the lockout
-	 */
-	public void removeLockout(String key);
-
-	/**
-	 * Gets the Unix Timestamp (in milliseconds) for when the lockout of the key will expire
-	 * @param key identifies the lockout
-	 * @return null if the key's lockout has expired or does have a lockout at all
-	 * a Long representing the Unix timestamp (in seconds) of when the lockout will expire
-	 */
-	public Long getUnexpiredLockoutTimestampMillis(String key);
-
-	void truncateTable();
+	void deleteUnsuccessfulLoginLockoutInfo(long userId);
 }

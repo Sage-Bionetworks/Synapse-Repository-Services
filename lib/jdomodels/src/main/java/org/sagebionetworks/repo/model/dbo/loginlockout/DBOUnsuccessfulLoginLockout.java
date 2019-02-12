@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_UNSUCC
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -80,5 +81,20 @@ public class DBOUnsuccessfulLoginLockout implements DatabaseObject<DBOUnsuccessf
 
 	public void setLockoutExpiration(long lockoutExpiration) {
 		this.lockoutExpiration = lockoutExpiration;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		DBOUnsuccessfulLoginLockout that = (DBOUnsuccessfulLoginLockout) o;
+		return userId == that.userId &&
+				unsuccessfulLoginCount == that.unsuccessfulLoginCount &&
+				lockoutExpiration == that.lockoutExpiration;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(userId, unsuccessfulLoginCount, lockoutExpiration);
 	}
 }

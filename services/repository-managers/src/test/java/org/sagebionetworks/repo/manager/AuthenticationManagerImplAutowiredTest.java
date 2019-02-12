@@ -53,7 +53,6 @@ public class AuthenticationManagerImplAutowiredTest {
 		if(createdUserId != null) {
 			userManager.deletePrincipal(new UserInfo(true, 42L), createdUserId);
 		}
-		unsuccessfulLoginLockoutDAO.truncateTable();
 	}
 
 	@Test

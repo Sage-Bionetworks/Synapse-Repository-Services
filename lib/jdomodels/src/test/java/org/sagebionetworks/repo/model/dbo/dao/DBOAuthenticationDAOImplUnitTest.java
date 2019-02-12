@@ -34,8 +34,8 @@ public class DBOAuthenticationDAOImplUnitTest {
 		mockClock = Mockito.mock(Clock.class);
 		authDao = new DBOAuthenticationDAOImpl();
 		ReflectionTestUtils.setField(authDao, "jdbcTemplate", mockJdbcTemplate);
-		ReflectionTestUtils.setField(authDao, "userGroupDAO", mockUserGroupDao);
-		ReflectionTestUtils.setField(authDao, "basicDAO", mockBasicDao);
+		ReflectionTestUtils.setField(authDao, "userGroupDao", mockUserGroupDao);
+		ReflectionTestUtils.setField(authDao, "basicDao", mockBasicDao);
 		ReflectionTestUtils.setField(authDao, "clock", mockClock);
 		
 		principalId = 789;

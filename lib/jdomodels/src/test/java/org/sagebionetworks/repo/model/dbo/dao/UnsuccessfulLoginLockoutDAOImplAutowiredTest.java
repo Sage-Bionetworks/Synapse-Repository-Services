@@ -6,9 +6,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
+import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -19,88 +25,60 @@ import org.springframework.transaction.annotation.Transactional;
 public class UnsuccessfulLoginLockoutDAOImplAutowiredTest {
 	@Autowired
 	UnsuccessfulLoginLockoutDAO dao;
+	
+	@Autowired
+	UserGroupDAO userGroupDao;
+	
+	@Autowired
+	DBOBasicDao basicDao;
 
-	String key = "key1";
+	Long userId;
+
+
+	@Before
+	public void setUp(){
+		if(userId == null) {
+			// Initialize a UserGroup
+			UserGroup ug = new UserGroup();
+			ug.setIsIndividual(true);
+			userId = userGroupDao.create(ug);
+
+			// Make a row of Credentials
+			DBOCredential credential = new DBOCredential();
+			credential.setPrincipalId(userId);
+			credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
+			credential.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+			credential = basicDao.createNew(credential);
+		}
+	}
 
 	@After
 	public void cleanUp(){
-		dao.truncateTable();
+		if(userId != null) {
+			userGroupDao.delete(userId.toString());
+		}
 	}
 
-	@Test
 	@Transactional
-	public void testIncrementNumFailedAttempts_updateAfterCreate(){
-		assertEquals(1L, dao.incrementNumFailedAttempts(key));
-		assertEquals(2L, dao.incrementNumFailedAttempts(key));
-		assertEquals(3L, dao.incrementNumFailedAttempts(key));
-	}
-
 	@Test
-	@Transactional
-	public void testIncrementNumFailedAttempts_differentKeys(){
-		assertEquals(1L, dao.incrementNumFailedAttempts(key));
-		assertEquals(1L, dao.incrementNumFailedAttempts("key2"));
-	}
+	public void testRoundTrip(){
+		//try to get DTO before creation
+		assertNull(dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
 
-	@Test
-	@Transactional
-	public void testGetUnexpiredLockoutTimestampSec_noEntryExists(){
-		dao.truncateTable();
-		assertNull(dao.getUnexpiredLockoutTimestampMillis(key));
-	}
+		//create new DTO and fetch it from database
+		UnsuccessfulLoginLockoutDTO dto = new UnsuccessfulLoginLockoutDTO(userId)
+				.withUnsuccessfulLoginCount(42)
+				.withLockoutExpiration(134560984923L);
+		dao.createOrUpdateUnsuccessfulLoginLockoutInfo(dto);
+		assertEquals(dto, dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
 
-	@Test
-	@Transactional
-	public void testGetUnexpiredLockoutTimestampSec_lessThanEqualCurrentTimestamp(){
-		dao.incrementNumFailedAttempts(key);
-		assertNull(dao.getUnexpiredLockoutTimestampMillis(key));
-	}
+		//update the DTO
+		dto.withLockoutExpiration(128).withLockoutExpiration(2L);
+		dao.createOrUpdateUnsuccessfulLoginLockoutInfo(dto);
+		assertEquals(dto, dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
 
-	@Test
-	@Transactional
-	public void testGetUnexpiredLockoutTimestampSec_greaterThanCurrentTimestamp(){
-		dao.incrementNumFailedAttempts(key);
-		dao.setExpiration(key, 4000);
-		assertNotNull(dao.getUnexpiredLockoutTimestampMillis(key));
-	}
-
-	@Test
-	@Transactional
-	public void testRemoveLockout(){
-		//create a lockout entry that is later removed
-		dao.incrementNumFailedAttempts(key);
-		dao.setExpiration(key, 9001L);
-		assertNotNull(dao.getUnexpiredLockoutTimestampMillis(key));
-
-		//create a lockout entry that will not be removed
-		String key2 = "key2";
-		dao.incrementNumFailedAttempts(key2);
-		dao.setExpiration(key2, 420L);
-		assertNotNull(dao.getUnexpiredLockoutTimestampMillis(key2));
-
-		//method under test
-		dao.removeLockout(key);
-
-		//assert only key1 removed
-		assertNull(dao.getUnexpiredLockoutTimestampMillis(key));
-		assertNotNull(dao.getUnexpiredLockoutTimestampMillis(key2));
-	}
-
-	@Test
-	@Transactional
-	public void testSetExpiration() throws InterruptedException {
-		long lockDuration = 400L;
-		dao.incrementNumFailedAttempts(key);
-
-		//set lock and sleep for 1 second
-		dao.setExpiration(key, lockDuration);
-		long oldExpiration = dao.getUnexpiredLockoutTimestampMillis(key);
-		Thread.sleep(500);
-
-		//set lock again with the same duration
-		dao.setExpiration(key, lockDuration);
-		long newExpiration = dao.getUnexpiredLockoutTimestampMillis(key);
-
-		assertTrue(oldExpiration < newExpiration);
+		//delete the DTO
+		dao.deleteUnsuccessfulLoginLockoutInfo(userId);
+		assertNull(dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
 	}
 }

@@ -39,9 +39,8 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 
 	public static final String LOGIN_FAIL_ATTEMPT_METRIC_NAME = "LoginFailAttemptExceedLimit";
 
-	public static final String UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX = "login-";
-
-	static final long REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD = 11;
+	//2^18 ~= 4.369 minutes. Once users have to wait that long, report lockout
+	static final long REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD = 18;
 
 
 	@Autowired
@@ -83,7 +82,7 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 	public boolean checkPasswordWithLock(Long principalId, String password){
 		AttemptResultReporter loginAttemptReporter;
 		try {
-			loginAttemptReporter = unsuccessfulLoginLockout.checkIsLockedOut(UNSUCCESSFUL_LOGIN_ATTEMPT_KEY_PREFIX + principalId.toString());
+			loginAttemptReporter = unsuccessfulLoginLockout.checkIsLockedOut(principalId);
 		} catch (UnsuccessfulLoginLockoutException e){
 			//log to cloudwatch and rethrow exception if too many consecutive unsuccessful logins.
 			if (e.getNumFailedAttempts() >= REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD){

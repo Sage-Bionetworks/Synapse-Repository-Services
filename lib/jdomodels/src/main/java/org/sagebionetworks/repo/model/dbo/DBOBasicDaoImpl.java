@@ -301,7 +301,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	@Override
-	public long getDatabaseTimestamp() {
+	public long getDatabaseTimestampMillis() {
 		return jdbcTemplate.queryForObject(GET_DATABASE_UNIX_TIMESTAMP_MILLIS, Long.class);
 	}
 

@@ -12,5 +12,5 @@ public interface UnsuccessfulLoginLockout { //TODO: rename. too close w/ Unsucce
 	 * @throws UnsuccessfulLoginLockoutException if the key is currently locked out from making further attempts
 	 * @return AttemptResultReporter which an be used to report the success or failure of this next attempt
 	 */
-	public AttemptResultReporter checkIsLockedOut(String key);
+	public AttemptResultReporter checkIsLockedOut(long key);
 }
