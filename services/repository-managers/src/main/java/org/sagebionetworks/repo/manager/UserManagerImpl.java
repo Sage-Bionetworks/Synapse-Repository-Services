@@ -37,12 +37,10 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import com.google.common.collect.Lists;
 
 public class UserManagerImpl implements UserManager {
-	
-	public static final String MESSAGE_CANNOT_AUTHENTICATE_AS_TEAM = "Cannot authenticate as team. Only users can authenticate.";
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
 	private UserProfileManager userProfileManger;
 	
@@ -247,11 +245,8 @@ public class UserManagerImpl implements UserManager {
 	public PrincipalAlias lookupUserForAuthentication(String alias) {
 		// Lookup the user
 		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(alias);
-		if(pa == null) {
+		if(pa == null || AliasType.TEAM_NAME.equals(pa.getType())) {
 			throw new NotFoundException("Did not find a user with alias: "+alias);
-		}
-		if(AliasType.TEAM_NAME.equals(pa.getType())) {
-			throw new UnauthenticatedException(MESSAGE_CANNOT_AUTHENTICATE_AS_TEAM);
 		}
 		return pa;
 	}

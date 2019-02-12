@@ -234,8 +234,8 @@ public class UserManagerImplUnitTest {
 			// call under test
 			userManager.lookupUserForAuthentication(alias);
 			fail();
-		} catch (UnauthenticatedException e) {
-			assertEquals("Cannot authenticate as team. Only users can authenticate.",e.getMessage());
+		} catch (NotFoundException e) {
+			assertEquals("Did not find a user with alias: alias",e.getMessage());
 		}
 	}
 	
