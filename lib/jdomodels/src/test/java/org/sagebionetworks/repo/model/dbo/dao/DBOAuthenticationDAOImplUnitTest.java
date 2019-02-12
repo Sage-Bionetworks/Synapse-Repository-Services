@@ -4,11 +4,15 @@ import static org.junit.Assert.*;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Matchers;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.util.Clock;
@@ -17,27 +21,24 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DBOAuthenticationDAOImplUnitTest {
 
+	@Mock
 	JdbcTemplate mockJdbcTemplate;
+	@Mock
 	UserGroupDAO mockUserGroupDao;
+	@Mock
 	DBOBasicDao mockBasicDao;
+	@Mock
 	Clock mockClock;
+
+	@InjectMocks
 	DBOAuthenticationDAOImpl authDao;
 	long principalId;
 	
 	@Before
 	public void before(){
-		mockJdbcTemplate = Mockito.mock(JdbcTemplate.class);
-		mockUserGroupDao = Mockito.mock(UserGroupDAO.class);
-		mockBasicDao = Mockito.mock(DBOBasicDao.class);
-		mockClock = Mockito.mock(Clock.class);
-		authDao = new DBOAuthenticationDAOImpl();
-		ReflectionTestUtils.setField(authDao, "jdbcTemplate", mockJdbcTemplate);
-		ReflectionTestUtils.setField(authDao, "userGroupDao", mockUserGroupDao);
-		ReflectionTestUtils.setField(authDao, "basicDao", mockBasicDao);
-		ReflectionTestUtils.setField(authDao, "clock", mockClock);
-		
 		principalId = 789;
 	}
 	
