@@ -240,7 +240,7 @@
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 
-	<bean id="authManagerUtil" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
+	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
 
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 

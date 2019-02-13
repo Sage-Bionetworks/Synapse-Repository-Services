@@ -76,9 +76,5 @@ public class UnsuccessfulLoginLockoutDAOImplAutowiredTest {
 		dto.withLockoutExpiration(128).withLockoutExpiration(2L);
 		dao.createOrUpdateUnsuccessfulLoginLockoutInfo(dto);
 		assertEquals(dto, dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
-
-		//delete the DTO
-		dao.deleteUnsuccessfulLoginLockoutInfo(userId);
-		assertNull(dao.getUnsuccessfulLoginLockoutInfoIfExist(userId));
 	}
 }

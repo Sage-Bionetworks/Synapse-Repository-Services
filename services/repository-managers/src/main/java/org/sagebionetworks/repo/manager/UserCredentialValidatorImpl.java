@@ -5,7 +5,7 @@ import java.util.Date;
 
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.manager.loginlockout.AttemptResultReporter;
+import org.sagebionetworks.repo.manager.loginlockout.LoginAttemptResultReporter;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
@@ -80,7 +80,7 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 	@Override
 	@RequiresNewReadCommitted
 	public boolean checkPasswordWithLock(Long principalId, String password){
-		AttemptResultReporter loginAttemptReporter;
+		LoginAttemptResultReporter loginAttemptReporter;
 		try {
 			loginAttemptReporter = unsuccessfulLoginLockout.checkIsLockedOut(principalId);
 		} catch (UnsuccessfulLoginLockoutException e){

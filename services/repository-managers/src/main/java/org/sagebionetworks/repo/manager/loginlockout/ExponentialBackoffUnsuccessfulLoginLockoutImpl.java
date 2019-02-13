@@ -12,7 +12,7 @@ public class ExponentialBackoffUnsuccessfulLoginLockoutImpl implements Unsuccess
 	//Caller of this should be using a NEW, SEPARATE transaction from their business logic code
 	@RequiresNewReadCommitted
 	@Override
-	public AttemptResultReporter checkIsLockedOut(long key) {
+	public LoginAttemptResultReporter checkIsLockedOut(long key) {
 		// Use database's unix timestamp for expiration check
 		// instead of this machine's timestamp to avoid time sync issues across all machines
 		UnsuccessfulLoginLockoutDTO lockoutInfo = unsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(key);
@@ -21,11 +21,12 @@ public class ExponentialBackoffUnsuccessfulLoginLockoutImpl implements Unsuccess
 			lockoutInfo = new UnsuccessfulLoginLockoutDTO(key);
 		}
 
-		if (unsuccessfulLoginLockoutDAO.getDatabaseTimestampMillis() < lockoutInfo.getLockoutExpiration()){
+		final long databaseTime = unsuccessfulLoginLockoutDAO.getDatabaseTimestampMillis();
+		if (databaseTime < lockoutInfo.getLockoutExpiration()){
 			throw new UnsuccessfulLoginLockoutException(
 					lockoutInfo.getLockoutExpiration(),
 					lockoutInfo.getUnsuccessfulLoginCount());
 		}
-		return new ExponentialBackoffAttemptReporter(lockoutInfo, unsuccessfulLoginLockoutDAO);
+		return new ExponentialBackoffLoginAttemptReporter(lockoutInfo, unsuccessfulLoginLockoutDAO);
 	}
 }
