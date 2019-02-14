@@ -37,7 +37,7 @@ public interface PrincipalAliasDAO {
 	 * @param alias
 	 * @return
 	 */
-	public PrincipalAlias findPrincipalWithAlias(String alias);
+	public PrincipalAlias findPrincipalWithAlias(String alias, AliasType... aliasTypes);
 	
 	/**
 	 * List all aliases for a given principal.

@@ -69,6 +69,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_LIST_ALIASES_BY_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_GET_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
+	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS_AND_FILTER_BY_TYPES = SQL_FIND_PRINCIPAL_WITH_ALIAS + " AND " + COL_PRINCIPAL_ALIAS_TYPE + " IN (?)";
 	private static final String SQL_IS_ALIAS_AVAILABLE = "SELECT COUNT(*) FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
 	private static final String SET_BIND_VAR = "principalIdSet";
 	private static final String SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" IN (:"+SET_BIND_VAR+") ORDER BY "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
@@ -186,11 +187,16 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	}
 	
 	@Override
-	public PrincipalAlias findPrincipalWithAlias(String alias) {
+	public PrincipalAlias findPrincipalWithAlias(String alias, AliasType... aliasTypes) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
 		String unique = AliasUtils.getUniqueAliasName(alias);
 		try {
-			DBOPrincipalAlias dbo = jdbcTemplate.queryForObject(SQL_FIND_PRINCIPAL_WITH_ALIAS, principalAliasMapper, unique);
+			DBOPrincipalAlias dbo;
+			if(aliasTypes.length == 0) {
+				dbo = jdbcTemplate.queryForObject(SQL_FIND_PRINCIPAL_WITH_ALIAS, principalAliasMapper, unique);
+			} else{
+				dbo = jdbcTemplate.queryForObject(SQL_FIND_PRINCIPAL_WITH_ALIAS_AND_FILTER_BY_TYPES, principalAliasMapper, unique, aliasTypes);
+			}
 			return AliasUtils.createDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// no match
