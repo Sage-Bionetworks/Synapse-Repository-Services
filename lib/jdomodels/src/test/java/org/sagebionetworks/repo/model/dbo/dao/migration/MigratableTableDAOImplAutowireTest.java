@@ -34,9 +34,11 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -501,5 +503,79 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedTwo.setMaximumId(ids.get(2)+1);
 		List<IdRange> expected = Lists.newArrayList(expectedOne, expectedTwo);
 		assertEquals(expected, range);
+	}
+	
+	@Test
+	public void testCalculateBatchChecksums() {
+		// Create files with a predictable ID range.
+		idGenerator.reserveId(10L, IdType.FILE_IDS);
+		fileHandleDao.truncateTable();
+		List<Long> files = new LinkedList<>();
+		for (int i = 0; i < 10; i++) {
+			S3FileHandle file = TestUtils.createS3FileHandle(creatorUserGroupId,
+					""+i);
+			file = (S3FileHandle) fileHandleDao.createFile(file);
+			files.add(Long.parseLong(file.getId()));
+			filesToDelete.add(file.getId());
+		}
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(files.get(0));
+		request.setMaximumId(files.get(9));
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		List<RangeChecksum> range = this.migratableTableDAO.calculateBatchChecksums(request);
+		assertNotNull(range);
+		assertEquals(4, range.size());
+		
+		Long firstBinNumber = request.getMinimumId()/request.getBatchSize();
+		// zero
+		RangeChecksum sum = range.get(0);
+		assertNotNull(sum);
+		assertEquals(firstBinNumber, sum.getBinNumber());
+		assertEquals(files.get(0), sum.getMinimumId());
+		assertEquals(files.get(2), sum.getMaximumId());
+		assertEquals(request.getBatchSize(), sum.getCount());
+		assertNotNull(sum.getChecksum());
+		// one
+		sum = range.get(1);
+		assertNotNull(sum);
+		assertEquals(new Long(firstBinNumber+1L), sum.getBinNumber());
+		assertEquals(files.get(3), sum.getMinimumId());
+		assertEquals(files.get(5), sum.getMaximumId());
+		assertEquals(request.getBatchSize(), sum.getCount());
+		assertNotNull(sum.getChecksum());
+		// two
+		sum = range.get(2);
+		assertNotNull(sum);
+		assertEquals(new Long(firstBinNumber+2L), sum.getBinNumber());
+		assertEquals(files.get(6), sum.getMinimumId());
+		assertEquals(files.get(8), sum.getMaximumId());
+		assertEquals(request.getBatchSize(), sum.getCount());
+		assertNotNull(sum.getChecksum());
+		// three
+		sum = range.get(3);
+		assertNotNull(sum);
+		assertEquals(new Long(firstBinNumber+3L), sum.getBinNumber());
+		assertEquals(files.get(9), sum.getMinimumId());
+		assertEquals(files.get(9), sum.getMaximumId());
+		assertEquals(new Long(1), sum.getCount());
+		assertNotNull(sum.getChecksum());
+	}
+	
+	@Test
+	public void testCalculateBatchChecksumsEmptyTable() {
+		fileHandleDao.truncateTable();
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		List<RangeChecksum> range = this.migratableTableDAO.calculateBatchChecksums(request);
+		assertNotNull(range);
+		assertTrue(range.isEmpty());
 	}
 }
