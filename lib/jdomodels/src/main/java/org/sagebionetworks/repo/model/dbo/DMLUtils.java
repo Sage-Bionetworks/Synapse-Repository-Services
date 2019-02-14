@@ -9,8 +9,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.RowMapper;
 
-import com.amazonaws.services.glue.model.Column;
-
 /**
  * Utility for generating Data Manipulation Language (DML) statements.
  *  

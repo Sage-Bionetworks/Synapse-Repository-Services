@@ -7,10 +7,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.junit.After;
@@ -577,5 +575,72 @@ public class MigratableTableDAOImplAutowireTest {
 		List<RangeChecksum> range = this.migratableTableDAO.calculateBatchChecksums(request);
 		assertNotNull(range);
 		assertTrue(range.isEmpty());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsRequestNull() {
+		BatchChecksumRequest request = null;
+		// call under test
+		this.migratableTableDAO.calculateBatchChecksums(request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsNullBatch() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(null);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		this.migratableTableDAO.calculateBatchChecksums(request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsNullMin() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(null);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		this.migratableTableDAO.calculateBatchChecksums(request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsNullMax() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(null);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		this.migratableTableDAO.calculateBatchChecksums(request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsNullSalt() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt(null);
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		this.migratableTableDAO.calculateBatchChecksums(request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsNullType() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(null);
+		// call under test
+		this.migratableTableDAO.calculateBatchChecksums(request);
 	}
 }
