@@ -56,5 +56,18 @@ public class ExponentialBackoffLoginAttemptReporter implements LoginAttemptResul
 						.withLockoutExpiration(dao.getDatabaseTimestampMillis() + lockDurationMilliseconds));
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		ExponentialBackoffLoginAttemptReporter that = (ExponentialBackoffLoginAttemptReporter) o;
+		return reported == that.reported &&
+				dao.equals(that.dao) &&
+				lockoutInfo.equals(that.lockoutInfo);
+	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(dao, lockoutInfo, reported);
+	}
 }
