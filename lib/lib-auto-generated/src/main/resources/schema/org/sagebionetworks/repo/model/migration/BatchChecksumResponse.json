@@ -1,0 +1,19 @@
+{
+	"description": "Response of a BatchChecksumRequest",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminResponse"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
+		}
+	],
+	"properties": {
+    	"cheksums": {
+      		"type": "array",
+      		"items": {
+				"$ref": "org.sagebionetworks.repo.model.migration.RangeChecksum"
+      		}
+    	}
+	}
+}

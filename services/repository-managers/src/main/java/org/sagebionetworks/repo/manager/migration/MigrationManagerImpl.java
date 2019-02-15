@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
+import org.sagebionetworks.repo.model.migration.BatchChecksumResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.IdRange;
@@ -39,6 +41,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -583,6 +586,17 @@ public class MigrationManagerImpl implements MigrationManager {
 				request.getMinimumId(), request.getMaximumId(), request.getOptimalRowsPerRange());
 		CalculateOptimalRangeResponse response = new CalculateOptimalRangeResponse();
 		response.setRanges(ranges);
+		response.setMigrationType(request.getMigrationType());
+		return response;
+	}
+
+	@Override
+	public BatchChecksumResponse calculateBatchChecksums(UserInfo user, BatchChecksumRequest request) {
+		ValidateArgument.required(user, "User");
+		validateUser(user);
+		List<RangeChecksum> batches = migratableTableDao.calculateBatchChecksums(request);
+		BatchChecksumResponse response = new BatchChecksumResponse();
+		response.setCheksums(batches);
 		response.setMigrationType(request.getMigrationType());
 		return response;
 	}
