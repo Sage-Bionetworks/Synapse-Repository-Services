@@ -31,10 +31,11 @@ public interface PrincipalAliasDAO {
 	 * @throws NotFoundException 
 	 */
 	public PrincipalAlias getPrincipalAlias(Long aliasId) throws NotFoundException;
-	
+
 	/**
-	 * Find a principal by an alias
+	 * Find a principal by an alias. If aliasTypes are passed in, will check that the principal is one of the aliasTypes.
 	 * @param alias
+	 * @param aliasTypes optional.
 	 * @return
 	 */
 	public PrincipalAlias findPrincipalWithAlias(String alias, AliasType... aliasTypes);

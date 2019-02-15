@@ -98,7 +98,7 @@ public class AuthenticationServiceImplTest {
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(2222L);
 		principalAlias.setType(AliasType.USER_NAME);
-		when(mockUserManager.lookupUserForAuthentication(alias)).thenReturn(principalAlias);
+		when(mockUserManager.lookupUserByUsernameOrEmail(alias)).thenReturn(principalAlias);
 		
 		loginRequest = new LoginRequest();
 		loginRequest.setAuthenticationReceipt("receipt");
@@ -110,7 +110,7 @@ public class AuthenticationServiceImplTest {
 		loginResponse.setAuthenticationReceipt("newReceipt");
 		loginResponse.setSessionToken("sessionToken");
 		
-		when(mockUserManager.lookupUserForAuthentication(loginRequest.getUsername())).thenReturn(principalAlias);
+		when(mockUserManager.lookupUserByUsernameOrEmail(loginRequest.getUsername())).thenReturn(principalAlias);
 		when(mockAuthenticationManager.login(principalAlias.getPrincipalId(), loginRequest.getPassword(), loginRequest.getAuthenticationReceipt())).thenReturn(loginResponse);
 	}
 	
@@ -157,7 +157,7 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserForAuthentication(info.getUsersVerifiedEmail())).thenReturn(alias);
+		when(mockUserManager.lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail())).thenReturn(alias);
 		Session session = new Session();
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
@@ -199,7 +199,7 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserForAuthentication(info.getUsersVerifiedEmail())).thenReturn(alias);
+		when(mockUserManager.lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail())).thenReturn(alias);
 		Session session = new Session();
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
@@ -264,7 +264,7 @@ public class AuthenticationServiceImplTest {
 	@Test
 	public void testLoginNotFound() {
 		// NotFoundException should be converted to UnauthenticatedException;
-		when(mockUserManager.lookupUserForAuthentication(loginRequest.getUsername())).thenThrow(new NotFoundException("does not exist"));
+		when(mockUserManager.lookupUserByUsernameOrEmail(loginRequest.getUsername())).thenThrow(new NotFoundException("does not exist"));
 		try {
 			// call under test
 			service.login(loginRequest);

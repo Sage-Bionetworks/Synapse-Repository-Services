@@ -122,7 +122,7 @@ public class PrincipalAliasDaoImplTest {
 	}
 	
 	@Test
-	public void testFindPrincipalForAlias() throws NotFoundException{
+	public void testFindPrincipalForAlias(){
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
 		alias.setType(AliasType.USER_EMAIL);
@@ -135,6 +135,22 @@ public class PrincipalAliasDaoImplTest {
 		
 		// this alias does not exist
 		assertNull(principalAliasDao.findPrincipalWithAlias(UUID.randomUUID().toString()));
+	}
+
+	@Test
+	public void testFindPrincipalForAliasWithTypeFilter(){
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setPrincipalId(principalId);
+
+		PrincipalAlias expected = principalAliasDao.bindAliasToPrincipal(alias);
+
+		PrincipalAlias actual = principalAliasDao.findPrincipalWithAlias(alias.getAlias(), AliasType.USER_EMAIL, AliasType.USER_NAME);
+		assertEquals(expected, actual);
+
+		// this alias does not exist
+		assertNull(principalAliasDao.findPrincipalWithAlias(alias.getAlias(), AliasType.TEAM_NAME));
 	}
 	
 	@Test (expected=NotFoundException.class)
