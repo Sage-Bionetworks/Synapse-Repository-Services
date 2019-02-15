@@ -22,9 +22,11 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,6 +116,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> batchChecksumSqlMap = new HashMap<>();
 	private Map<MigrationType, String> migrationTypeCountSqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
@@ -223,6 +226,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		checksumRangeSqlMap.put(type, sumCrc);
 		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
 		checksumTableSqlMap.put(type, checksumTable);
+		String batchChecksumSql = DMLUtils.createSelectBatchChecksumStatement(mapping);
+		this.batchChecksumSqlMap.put(type, batchChecksumSql);
 		// Does this type have an etag?
 		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
 		if(etag != null){
@@ -593,5 +598,31 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			}
 		}
 		return DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMapping);
+	}
+
+	@Override
+	public List<RangeChecksum> calculateBatchChecksums(BatchChecksumRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		ValidateArgument.required(request.getMinimumId(), "request.minimumId");
+		ValidateArgument.required(request.getMaximumId(), "request.maximumId");
+		ValidateArgument.required(request.getBatchSize(), "request.batchSize");
+		ValidateArgument.required(request.getSalt(), "request.salt");
+		// Lookup the SQL for this type
+		String sql = this.batchChecksumSqlMap.get(request.getMigrationType());
+		return this.jdbcTemplate.query(sql, new RowMapper<RangeChecksum>() {
+
+			@Override
+			public RangeChecksum mapRow(ResultSet rs, int rowNum) throws SQLException {
+				RangeChecksum result = new RangeChecksum();
+				result.setBinNumber(rs.getLong(1));
+				result.setCount(rs.getLong(2));
+				result.setMinimumId(rs.getLong(3));
+				result.setMaximumId(rs.getLong(4));
+				result.setChecksum(rs.getString(5));
+				return result;
+			}
+		}, request.getBatchSize(), request.getSalt(), request.getSalt(), request.getMinimumId(),
+				request.getMaximumId());
 	}
 }

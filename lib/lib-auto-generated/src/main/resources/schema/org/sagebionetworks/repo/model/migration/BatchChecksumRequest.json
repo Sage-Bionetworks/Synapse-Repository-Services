@@ -1,0 +1,29 @@
+{
+	"description": "Get n number of checksums for the given ID range.  The given ID range will be batched into sub-ranges and the checksum for each batch will be calculated.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.HasMigrationType"
+		}
+	],
+	"properties": {
+		"salt": {
+			"description": "Client generated salt to be added to each checksum",
+			"type": "string"
+		},
+		"minimumId": {
+			"description": "The minimum ID defining the full range of rows (inclusive).",
+			"type": "integer"
+		},
+		"maximumId": {
+			"description": "The maximum ID defining the full range of rows (inclusive).",
+			"type": "integer"
+		},
+		"batchSize": {
+			"description": "The size of each batch of IDs",
+			"type": "integer"
+		}
+	}
+}
