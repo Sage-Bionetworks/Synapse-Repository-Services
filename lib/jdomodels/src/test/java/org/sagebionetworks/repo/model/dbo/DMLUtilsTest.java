@@ -234,6 +234,38 @@ public class DMLUtilsTest {
 		System.out.println(sql);
 		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
+	
+	@Test
+	public void testBuilderConcatSumBitXorCRC32WithEtag() {
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DMLUtils.builderConcatSumBitXorCRC32(builder, migrateableMappingEtagAndId);
+		assertEquals(" CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?)))", builder.toString());
+	}
+	
+	@Test
+	public void testBuilderCountMinMax() {
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DMLUtils.builderBinCountMinMax(builder, mapping);
+		assertEquals(" `ID` DIV ? AS BIN, COUNT(*), MIN(`ID`), MAX(`ID`)", builder.toString());
+	}
+	
+	@Test
+	public void testBuildWhereBackupIdBetween() {
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DMLUtils.buildWhereBackupIdBetween(builder, mapping);
+		assertEquals(" WHERE `ID` BETWEEN ? AND  ?", builder.toString());
+	}
+	
+	@Test
+	public void testBuilderConcatSumBitXorCRC32WithNoEtag() {
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		DMLUtils.builderConcatSumBitXorCRC32(builder, migrateableMappingNoEtag);
+		assertEquals(" CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?)))", builder.toString());
+	}
 
 	@Test
 	public void testCreateSelectChecksumStatementWithEtagColumn() {
@@ -251,6 +283,19 @@ public class DMLUtilsTest {
 		assertNotNull(sql);
 		System.out.println(sql);
 		assertEquals(expectedSql, sql);
+	}
+	
+	@Test
+	public void testCreateSelectBatchChecksumStatement() {
+		// call under test
+		String sql = DMLUtils.createSelectBatchChecksumStatement(mapping);
+		assertEquals("SELECT"
+				+ " `ID` DIV ? AS BIN"
+				+ ", COUNT(*)"
+				+ ", MIN(`ID`)"
+				+ ", MAX(`ID`),"
+				+ " CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?))))"
+				+ " FROM SOME_TABLE WHERE `ID` BETWEEN ? AND  ? GROUP BY BIN", sql);
 	}
 
 	@Test

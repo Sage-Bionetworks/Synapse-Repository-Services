@@ -132,5 +132,11 @@ public class StubFileMetadataDao implements FileHandleDao {
 		return metadata;
 	}
 
+	@Override
+	public void truncateTable() {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }

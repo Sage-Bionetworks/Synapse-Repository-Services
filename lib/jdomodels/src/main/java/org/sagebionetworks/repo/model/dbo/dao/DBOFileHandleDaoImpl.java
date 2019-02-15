@@ -321,4 +321,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		basicDao.createBatch(dbos);
 	}
 
+	@WriteTransactionReadCommitted
+	@Override
+	public void truncateTable() {
+		jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
+	}
+
 }

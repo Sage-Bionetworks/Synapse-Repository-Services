@@ -7,9 +7,11 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 
 /**
  * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
@@ -142,5 +144,12 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @return
 	 */
 	public String getPrimaryCardinalitySql(MigrationType node);
+
+	/**
+	 * Calculate a batch of checksums for the given type and ID range.
+	 * @param request
+	 * @return
+	 */
+	public List<RangeChecksum> calculateBatchChecksums(BatchChecksumRequest request);
 
 }

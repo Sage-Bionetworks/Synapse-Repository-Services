@@ -132,4 +132,9 @@ public interface FileHandleDao {
 	 * @param toCreate
 	 */
 	public void createBatch(List<FileHandle> toCreate);
+	
+	/**
+	 * Deleted all file data
+	 */
+	public void truncateTable();
 }
