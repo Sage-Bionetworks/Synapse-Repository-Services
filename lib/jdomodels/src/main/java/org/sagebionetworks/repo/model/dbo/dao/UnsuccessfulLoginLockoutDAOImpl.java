@@ -44,11 +44,6 @@ public class UnsuccessfulLoginLockoutDAOImpl implements UnsuccessfulLoginLockout
 		basicDao.createOrUpdate(translateDTOToDBO(dto));
 	}
 
-	@MandatoryWriteReadCommittedTransaction
-	public void deleteUnsuccessfulLoginLockoutInfo(long userId){
-		basicDao.deleteObjectByPrimaryKey(DBOUnsuccessfulLoginLockout.class, new SinglePrimaryKeySqlParameterSource(userId));
-	}
-
 	static UnsuccessfulLoginLockoutDTO translateDBOToDTO(DBOUnsuccessfulLoginLockout dbo){
 		if(dbo == null){
 			return null;
