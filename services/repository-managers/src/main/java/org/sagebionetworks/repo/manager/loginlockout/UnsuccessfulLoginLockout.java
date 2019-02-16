@@ -10,7 +10,7 @@ public interface UnsuccessfulLoginLockout { //TODO: rename. too close w/ Unsucce
 	 *
 	 * @param key the key used to identify an attempt
 	 * @throws UnsuccessfulLoginLockoutException if the key is currently locked out from making further attempts
-	 * @return AttemptResultReporter which an be used to report the success or failure of this next attempt
+	 * @return LoginAttemptResultReporter which an be used to report the success or failure of this next attempt
 	 */
-	public AttemptResultReporter checkIsLockedOut(long key);
+	public LoginAttemptResultReporter checkIsLockedOut(long key);
 }

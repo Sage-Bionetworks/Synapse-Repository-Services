@@ -108,12 +108,5 @@ public class UnsuccessfulLoginLockoutDAOImplUnitTest {
 
 		verify(mockBasicDao).createOrUpdate(dbo);
 	}
-
-	@Test
-	public void deleteUnsuccessfulLoginLockoutInfo(){
-		dao.deleteUnsuccessfulLoginLockoutInfo(userId);
-
-		verify(mockBasicDao).deleteObjectByPrimaryKey(DBOUnsuccessfulLoginLockout.class, expectedSqlParameterSource);
-	}
 }
 

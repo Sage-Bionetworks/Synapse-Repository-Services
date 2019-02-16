@@ -7,46 +7,67 @@ import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 
-public class ExponentialBackoffAttemptReporter implements AttemptResultReporter{
+public class ExponentialBackoffLoginAttemptReporter implements LoginAttemptResultReporter {
 	private final UnsuccessfulLoginLockoutDAO dao;
 	private UnsuccessfulLoginLockoutDTO lockoutInfo;
 
-	ExponentialBackoffAttemptReporter(UnsuccessfulLoginLockoutDTO lockoutInfo, final UnsuccessfulLoginLockoutDAO dao){
+	private boolean reported;
+
+	ExponentialBackoffLoginAttemptReporter(UnsuccessfulLoginLockoutDTO lockoutInfo, final UnsuccessfulLoginLockoutDAO dao){
 		ValidateArgument.required(lockoutInfo, "lockoutInfo");
 		ValidateArgument.required(dao, "dao");
 
 		this.dao = dao;
-		this.lockoutInfo = lockoutInfo;
+
+		this.lockoutInfo = new UnsuccessfulLoginLockoutDTO(lockoutInfo.getUserId())
+				.withUnsuccessfulLoginCount(lockoutInfo.getUnsuccessfulLoginCount())
+				.withLockoutExpiration(lockoutInfo.getLockoutExpiration());
+
+		this.reported = false;
 	}
 
 	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public void reportSuccess() {
-		dao.deleteUnsuccessfulLoginLockoutInfo(lockoutInfo.getUserId());
+		if(reported){
+			return;
+		}
+		this.reported = true;
+
+		dao.createOrUpdateUnsuccessfulLoginLockoutInfo(lockoutInfo
+				.withLockoutExpiration(0)
+				.withUnsuccessfulLoginCount(0));
 	}
 
 	@MandatoryWriteReadCommittedTransaction
 	@Override
 	public void reportFailure() {
+		if(reported){
+			return;
+		}
+		this.reported = true;
+
 		final long incrementedUnsuccessfulLoginCount = lockoutInfo.getUnsuccessfulLoginCount() + 1;
 		final long lockDurationMilliseconds = 1 << incrementedUnsuccessfulLoginCount;
 
 		dao.createOrUpdateUnsuccessfulLoginLockoutInfo(
-				lockoutInfo.withUnsuccessfulLoginCount(incrementedUnsuccessfulLoginCount)
-				.withLockoutExpiration(dao.getDatabaseTimestampMillis() + lockDurationMilliseconds));
+				lockoutInfo
+						.withUnsuccessfulLoginCount(incrementedUnsuccessfulLoginCount)
+						.withLockoutExpiration(dao.getDatabaseTimestampMillis() + lockDurationMilliseconds));
 	}
 
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
-		ExponentialBackoffAttemptReporter that = (ExponentialBackoffAttemptReporter) o;
-		return dao.equals(that.dao) &&
+		ExponentialBackoffLoginAttemptReporter that = (ExponentialBackoffLoginAttemptReporter) o;
+		return reported == that.reported &&
+				dao.equals(that.dao) &&
 				lockoutInfo.equals(that.lockoutInfo);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(dao, lockoutInfo);
+		return Objects.hash(dao, lockoutInfo, reported);
 	}
 }

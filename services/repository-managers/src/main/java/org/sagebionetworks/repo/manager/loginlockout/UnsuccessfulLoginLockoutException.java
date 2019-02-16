@@ -8,9 +8,9 @@ public class UnsuccessfulLoginLockoutException extends RuntimeException{
 	final long lockoutExpirationTimestampSec;
 	final long numFailedAttempts;
 
-	public UnsuccessfulLoginLockoutException(final long lockoutExpirationTimestampSec, final long numFailedAttempts){
-		super("You locked out from making any additional login attempts until " + lockoutExpirationTimestampSec);
-		this.lockoutExpirationTimestampSec = lockoutExpirationTimestampSec;
+	public UnsuccessfulLoginLockoutException(final long currentTimestampMilis, final long lockoutExpirationTimestampMillis, final long numFailedAttempts){
+		super("You locked out from making any additional login attempts for " + (lockoutExpirationTimestampMillis - currentTimestampMilis) + " milliseconds");
+		this.lockoutExpirationTimestampSec = lockoutExpirationTimestampMillis;
 		this.numFailedAttempts = numFailedAttempts;
 	}
 

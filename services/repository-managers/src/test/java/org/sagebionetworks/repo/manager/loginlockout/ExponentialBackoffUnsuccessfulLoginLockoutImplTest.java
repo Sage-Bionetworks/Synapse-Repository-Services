@@ -51,7 +51,7 @@ public class ExponentialBackoffUnsuccessfulLoginLockoutImplTest {
 	public void testCheckIsLockedOut_IsNotLockedOut_becauseDAOreturnedNull(){
 		when(mockUnsuccessfulLoginLockoutDAO.getUnsuccessfulLoginLockoutInfoIfExist(userId)).thenReturn(null);
 
-		assertEquals(new ExponentialBackoffAttemptReporter(unsuccessfulLoginLockoutInfo, mockUnsuccessfulLoginLockoutDAO),
+		assertEquals(new ExponentialBackoffLoginAttemptReporter(unsuccessfulLoginLockoutInfo, mockUnsuccessfulLoginLockoutDAO),
 				lockout.checkIsLockedOut(userId));
 	}
 
@@ -59,7 +59,7 @@ public class ExponentialBackoffUnsuccessfulLoginLockoutImplTest {
 	public void testCheckIsLockedOut_IsNotLockedOut_becauseDAOreturnedInfoWithExpired(){
 		unsuccessfulLoginLockoutInfo.setLockoutExpiration(databaseTimestampMillis);
 
-		assertEquals(new ExponentialBackoffAttemptReporter(unsuccessfulLoginLockoutInfo, mockUnsuccessfulLoginLockoutDAO),
+		assertEquals(new ExponentialBackoffLoginAttemptReporter(unsuccessfulLoginLockoutInfo, mockUnsuccessfulLoginLockoutDAO),
 				lockout.checkIsLockedOut(userId));
 	}
 }

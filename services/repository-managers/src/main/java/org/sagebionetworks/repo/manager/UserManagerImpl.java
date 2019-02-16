@@ -242,10 +242,10 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	@Override
-	public PrincipalAlias lookupUserForAuthentication(String alias) {
+	public PrincipalAlias lookupUserByUsernameOrEmail(String alias) {
 		// Lookup the user
-		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(alias);
-		if(pa == null || AliasType.TEAM_NAME.equals(pa.getType())) {
+		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(alias, AliasType.USER_EMAIL, AliasType.USER_NAME);
+		if(pa == null) {
 			throw new NotFoundException("Did not find a user with alias: "+alias);
 		}
 		return pa;

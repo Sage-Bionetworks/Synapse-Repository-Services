@@ -22,9 +22,4 @@ public interface UnsuccessfulLoginLockoutDAO {
 	 */
 	void createOrUpdateUnsuccessfulLoginLockoutInfo(UnsuccessfulLoginLockoutDTO dto);
 
-	/**
-	 * Delete a the UnsuccessfulLoginLockoutDTO associated with the given userId
-	 * @param userId principal ID of the user
-	 */
-	void deleteUnsuccessfulLoginLockoutInfo(long userId);
 }

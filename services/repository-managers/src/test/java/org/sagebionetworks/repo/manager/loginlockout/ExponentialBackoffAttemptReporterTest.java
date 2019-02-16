@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.manager.loginlockout;
 
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -24,22 +24,22 @@ public class ExponentialBackoffAttemptReporterTest {
 
 	UnsuccessfulLoginLockoutDTO lockoutInfo;
 
-	ExponentialBackoffAttemptReporter reporter;
+	ExponentialBackoffLoginAttemptReporter reporter;
 
 	@Before
 	public void setUp() throws Exception {
 		lockoutInfo = new UnsuccessfulLoginLockoutDTO(userId).withUnsuccessfulLoginCount(unsuccessfulLoginCount);
-		reporter = new ExponentialBackoffAttemptReporter(lockoutInfo, mockUnsuccessfulLoginLockoutDAO);
+		reporter = new ExponentialBackoffLoginAttemptReporter(lockoutInfo, mockUnsuccessfulLoginLockoutDAO);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testConstructor_nullDTO(){
-		new ExponentialBackoffAttemptReporter(null, mockUnsuccessfulLoginLockoutDAO);
+		new ExponentialBackoffLoginAttemptReporter(null, mockUnsuccessfulLoginLockoutDAO);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testConstructor_nullDAO(){
-		new ExponentialBackoffAttemptReporter(lockoutInfo, null);
+		new ExponentialBackoffLoginAttemptReporter(lockoutInfo, null);
 	}
 
 
@@ -47,7 +47,7 @@ public class ExponentialBackoffAttemptReporterTest {
 	public void testReportSuccess() {
 		reporter.reportSuccess();
 
-		verify(mockUnsuccessfulLoginLockoutDAO).deleteUnsuccessfulLoginLockoutInfo(userId);
+		verify(mockUnsuccessfulLoginLockoutDAO).createOrUpdateUnsuccessfulLoginLockoutInfo(new UnsuccessfulLoginLockoutDTO(userId));
 		verifyNoMoreInteractions(mockUnsuccessfulLoginLockoutDAO);
 	}
 
@@ -64,6 +64,16 @@ public class ExponentialBackoffAttemptReporterTest {
 
 		verify(mockUnsuccessfulLoginLockoutDAO).getDatabaseTimestampMillis();
 		verify(mockUnsuccessfulLoginLockoutDAO).createOrUpdateUnsuccessfulLoginLockoutInfo(expected);
+		verifyNoMoreInteractions(mockUnsuccessfulLoginLockoutDAO);
+	}
+
+	@Test
+	public void testReportSuccessAndReportFailureIdempotent(){
+		reporter.reportSuccess();
+		reporter.reportFailure();
+		reporter.reportSuccess();
+
+		verify(mockUnsuccessfulLoginLockoutDAO, times(1)).createOrUpdateUnsuccessfulLoginLockoutInfo(new UnsuccessfulLoginLockoutDTO(userId));
 		verifyNoMoreInteractions(mockUnsuccessfulLoginLockoutDAO);
 	}
 }

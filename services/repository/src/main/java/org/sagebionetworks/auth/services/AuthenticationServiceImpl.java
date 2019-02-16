@@ -148,13 +148,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public Long getUserId(String username) throws NotFoundException {
-		PrincipalAlias pa = userManager.lookupUserForAuthentication(username);
+		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(username);
 		return pa.getPrincipalId();
 	}
 
 	@Override
 	public void sendPasswordEmail(String email) throws NotFoundException {
-		PrincipalAlias pa = userManager.lookupUserForAuthentication(email);
+		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
 		sendPasswordEmail(pa.getPrincipalId());
 	}
 
@@ -176,7 +176,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
 		// This is the ID of the user within the provider's system.
-		PrincipalAlias emailAlias = userManager.lookupUserForAuthentication(providedInfo.getUsersVerifiedEmail());
+		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
 		// Return the user's session token
 		return authManager.getSessionToken(emailAlias.getPrincipalId());
 	}
@@ -226,7 +226,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
 		try {
 			// Lookup the user.
-			PrincipalAlias pa = userManager.lookupUserForAuthentication(request.getUsername());
+			PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(request.getUsername());
 
 			// Fetch the user's session token
 			return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
@@ -238,6 +238,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public PrincipalAlias lookupUserForAuthentication(String alias) {
-		return userManager.lookupUserForAuthentication(alias);
+		return userManager.lookupUserByUsernameOrEmail(alias);
 	}
 }

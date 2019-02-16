@@ -21,7 +21,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.manager.loginlockout.AttemptResultReporter;
+import org.sagebionetworks.repo.manager.loginlockout.LoginAttemptResultReporter;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
@@ -31,7 +31,7 @@ import org.sagebionetworks.securitytools.PBKDF2Utils;
 public class UserCredentialValidatorImplTest {
 
 	@Mock
-	private AttemptResultReporter mockAttemptResultReporter;
+	private LoginAttemptResultReporter mockLoginAttemptResultReporter;
 	@Mock
 	private UnsuccessfulLoginLockout mockUnsuccessfulLoginLockout;
 	@Mock
@@ -56,7 +56,7 @@ public class UserCredentialValidatorImplTest {
 
 
 		when(mockAuthDAO.checkUserCredentials(anyLong(), anyString())).thenReturn(true);
-		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(userId)).thenReturn(mockAttemptResultReporter);
+		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(userId)).thenReturn(mockLoginAttemptResultReporter);
 	}
 
 	@Test
@@ -93,7 +93,7 @@ public class UserCredentialValidatorImplTest {
 		}
 
 		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
-		verifyZeroInteractions(mockAttemptResultReporter);
+		verifyZeroInteractions(mockLoginAttemptResultReporter);
 		verifyZeroInteractions(mockConsumer);
 	}
 
@@ -111,7 +111,7 @@ public class UserCredentialValidatorImplTest {
 		}
 
 		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
-		verifyZeroInteractions(mockAttemptResultReporter);
+		verifyZeroInteractions(mockLoginAttemptResultReporter);
 		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
 		verify(mockConsumer).addProfileData(captor.capture());
 		validateLoginFailAttemptMetricData(captor, userId);
@@ -125,7 +125,7 @@ public class UserCredentialValidatorImplTest {
 		assertTrue(authenticationManagerUtil.checkPasswordWithLock(userId, password));
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verify(mockAttemptResultReporter).reportSuccess();
+		verify(mockLoginAttemptResultReporter).reportSuccess();
 		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockConsumer);
 	}
@@ -138,7 +138,7 @@ public class UserCredentialValidatorImplTest {
 		assertFalse(authenticationManagerUtil.checkPasswordWithLock(userId, password));
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verify(mockAttemptResultReporter).reportFailure();
+		verify(mockLoginAttemptResultReporter).reportFailure();
 		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockConsumer);
 	}

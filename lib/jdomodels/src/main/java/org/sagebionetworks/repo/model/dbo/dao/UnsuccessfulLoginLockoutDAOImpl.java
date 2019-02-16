@@ -1,25 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_LOGIN_COUNT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_LOGIN_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UNSUCCESSFUL_LOGIN_LOCKOUT_EXPIRATION_TIMESTAMP_MILLIS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_UNSUCCESSFUL_LOGIN_LOCKOUT;
 
-import org.apache.commons.lang.Validate;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.loginlockout.DBOUnsuccessfulLoginLockout;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class UnsuccessfulLoginLockoutDAOImpl implements UnsuccessfulLoginLockoutDAO {
 
@@ -50,12 +42,6 @@ public class UnsuccessfulLoginLockoutDAOImpl implements UnsuccessfulLoginLockout
 	public void createOrUpdateUnsuccessfulLoginLockoutInfo(UnsuccessfulLoginLockoutDTO dto) {
 		ValidateArgument.required(dto, "dto");
 		basicDao.createOrUpdate(translateDTOToDBO(dto));
-	}
-
-	@MandatoryWriteReadCommittedTransaction
-	@Override
-	public void deleteUnsuccessfulLoginLockoutInfo(long userId){
-		basicDao.deleteObjectByPrimaryKey(DBOUnsuccessfulLoginLockout.class, new SinglePrimaryKeySqlParameterSource(userId));
 	}
 
 	static UnsuccessfulLoginLockoutDTO translateDBOToDTO(DBOUnsuccessfulLoginLockout dbo){
