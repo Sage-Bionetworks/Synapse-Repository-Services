@@ -225,7 +225,6 @@ public class DMLUtils {
 		StringBuilder main = new StringBuilder();
 		main.append("DELETE FROM ");
 		main.append(mapping.getTableName());
-		main.append(" WHERE ");
 		addBackupRange(main, mapping);
 		return main.toString();
 	}
@@ -285,7 +284,7 @@ public class DMLUtils {
 		builderConcatSumBitXorCRC32(builder, mapping);
 		builder.append(") FROM ");
 		builder.append(mapping.getTableName());
-		buildWhereBackupIdInRange(mapping, builder);
+		buildWhereBackupIdBetween(builder, mapping);
 		return builder.toString();
 	}
 	
@@ -371,40 +370,32 @@ public class DMLUtils {
 		builder.append(")");		
 	}
 	
-	private static void buildWhereBackupIdInRange(TableMapping mapping, StringBuilder builder) {
-		String idColName = getBackupIdColumnName(mapping).getColumnName();
-		builder.append(" WHERE `");
-		builder.append(idColName);
-		builder.append("` >= ? AND `");
-		builder.append(idColName);
-		builder.append("` <= ?");
-		return;
-	}
-	
+	/**
+	 * 'WHERE `ID` BETWEEN ? AND ?'
+	 * @param builder
+	 * @param mapping
+	 */
 	public static void buildWhereBackupIdBetween(StringBuilder builder, TableMapping mapping) {
 		String idColName = getBackupIdColumnName(mapping).getColumnName();
 		builder.append(" WHERE `");
 		builder.append(idColName);
-		builder.append("` BETWEEN ? AND  ?");
+		builder.append("` BETWEEN ? AND ?");
 		return;
 	}
 	
 	
 	/**
-	 * 'ID' >= :BIND_MIN_ID AND 'ID' < BIND_MAX_ID
+	 * 'WHERE`ID` BETWEEN :BIND_MIN_ID AND :BIND_MAX_ID'
 	 * @param builder
 	 * @param mapping
 	 */
 	private static void addBackupRange(StringBuilder builder, TableMapping mapping) {
-		builder.append("`");
-		builder.append(getBackupIdColumnName(mapping).getColumnName());
-		builder.append("`");
-		builder.append(" >= :");
+		String idColName = getBackupIdColumnName(mapping).getColumnName();
+		builder.append(" WHERE `");
+		builder.append(idColName);
+		builder.append("` BETWEEN :");
 		builder.append(BIND_MIN_ID);
-		builder.append(" AND `");
-		builder.append(getBackupIdColumnName(mapping).getColumnName());
-		builder.append("`");
-		builder.append(" < :");
+		builder.append(" AND :");
 		builder.append(BIND_MAX_ID);
 	}
 	
@@ -461,7 +452,6 @@ public class DMLUtils {
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT * FROM ");
 		builder.append(mapping.getTableName());
-		builder.append(" WHERE ");
 		addBackupRange(builder, mapping);
 		return builder.toString();
 	}
@@ -598,7 +588,7 @@ public class DMLUtils {
 		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
 		builder.append(" >= :").append(BIND_MIN_ID).append(" AND P0.");
 		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
-		builder.append(" < :").append(BIND_MAX_ID);
+		builder.append(" <= :").append(BIND_MAX_ID);
 		builder.append(" ORDER BY P0.").append(primaryBackupColumnName).append(" ASC");
 		return builder.toString();
 	}
@@ -636,7 +626,7 @@ public class DMLUtils {
 		builder.append(primaryBackupIdColumnName);
 		builder.append(" >= :").append(BIND_MIN_ID).append(" AND P.");
 		builder.append(primaryBackupIdColumnName);
-		builder.append(" < :").append(BIND_MAX_ID);
+		builder.append(" <= :").append(BIND_MAX_ID);
 		builder.append(" GROUP BY P.");
 		builder.append(primaryBackupIdColumnName);
 		return builder.toString();
