@@ -421,8 +421,7 @@ public class MigrationManagerImplAutowireTest {
 		request.setAliasType(backupType);
 		request.setBatchSize(batchSize);
 		request.setMinimumId(minId);
-		// +1 since maxId is exclusive.
-		request.setMaximumId(maxId+1);
+		request.setMaximumId(maxId);
 		// call under test
 		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
 		assertNotNull(backupResponse);

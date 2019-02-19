@@ -350,7 +350,7 @@ public class MigratableTableDAOImplAutowireTest {
 		
 		// Stream over the results
 		long minId = ids.get(0);
-		long maxId = ids.get(2);
+		long maxId = ids.get(1);
 		long batchSize  = 1;
 		Iterable<MigratableDatabaseObject<?,?>> it = migratableTableDAO.streamDatabaseObjects(MigrationType.COLUMN_MODEL, minId, maxId, batchSize);
 		List<DBOColumnModel> results = new LinkedList<>();
@@ -358,7 +358,7 @@ public class MigratableTableDAOImplAutowireTest {
 			assertTrue(data instanceof DBOColumnModel);
 			results.add((DBOColumnModel) data);
 		}
-		// the maxID is exclusive so the last value should be excluded.
+		// third should be excluded.
 		assertEquals(2, results.size());
 		assertEquals(one.getId(), results.get(0).getId().toString());
 		assertEquals(two.getId(), results.get(1).getId().toString());
@@ -387,7 +387,7 @@ public class MigratableTableDAOImplAutowireTest {
 		
 		// Stream over the results
 		long minId = ids.get(0);
-		long maxId = ids.get(2);
+		long maxId = ids.get(1);
 		// should exclude last row since max is exclusive
 		int count = migratableTableDAO.deleteByRange(MigrationType.COLUMN_MODEL, minId, maxId);
 		assertEquals(2, count);
@@ -433,9 +433,9 @@ public class MigratableTableDAOImplAutowireTest {
 				+ " (SELECT P.ID, + COUNT(S.OWNER_NODE_ID) AS CARD"
 				+ " FROM JDONODE AS P"
 				+ " LEFT JOIN JDOREVISION AS S ON (P.ID =  S.OWNER_NODE_ID)"
-				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID) T0"
 				+ " ON (P0.ID = T0.ID)"
-				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
 		String sql = migratableTableDAO.getPrimaryCardinalitySql(MigrationType.NODE);
 		assertEquals(expected, sql);
@@ -450,15 +450,15 @@ public class MigratableTableDAOImplAutowireTest {
 				+ " (SELECT P.ID, + COUNT(S.WIKI_ID) AS CARD FROM V2_WIKI_PAGE AS P"
 				+ " LEFT JOIN V2_WIKI_ATTACHMENT_RESERVATION AS S"
 				+ " ON (P.ID =  S.WIKI_ID)"
-				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID) T0"
 				+ " ON (P0.ID = T0.ID)"
 				+ " JOIN"
 				+ " (SELECT P.ID, + COUNT(S.WIKI_ID) AS CARD FROM V2_WIKI_PAGE AS P"
 				+ " LEFT JOIN V2_WIKI_MARKDOWN AS S"
 				+ " ON (P.ID =  S.WIKI_ID)"
-				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T1"
+				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID) T1"
 				+ " ON (P0.ID = T1.ID)"
-				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
 		String sql = migratableTableDAO.getPrimaryCardinalitySql(MigrationType.V2_WIKI_PAGE);
 		assertEquals(expected, sql);

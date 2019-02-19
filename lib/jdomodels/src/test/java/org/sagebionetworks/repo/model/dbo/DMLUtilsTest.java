@@ -214,7 +214,7 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.createDeleteByBackupIdRange(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` >= :BMINID AND `ID` < :BMAXID", sql);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID", sql);
 	}
 
 	@Test
@@ -256,7 +256,7 @@ public class DMLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		DMLUtils.buildWhereBackupIdBetween(builder, mapping);
-		assertEquals(" WHERE `ID` BETWEEN ? AND  ?", builder.toString());
+		assertEquals(" WHERE `ID` BETWEEN ? AND ?", builder.toString());
 	}
 	
 	@Test
@@ -269,7 +269,9 @@ public class DMLUtilsTest {
 
 	@Test
 	public void testCreateSelectChecksumStatementWithEtagColumn() {
-		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
+		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))),"
+				+ " '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))))"
+				+ " FROM SOME_TABLE WHERE `ID` BETWEEN ? AND ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -278,7 +280,8 @@ public class DMLUtilsTest {
 
 	@Test
 	public void testCreateSelectChecksumStatementWithoutEtagColumn() {
-		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
+		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?))))"
+				+ " FROM SOME_TABLE WHERE `ID` BETWEEN ? AND ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingNoEtag);
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -295,7 +298,7 @@ public class DMLUtilsTest {
 				+ ", MIN(`ID`)"
 				+ ", MAX(`ID`),"
 				+ " CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?))))"
-				+ " FROM SOME_TABLE WHERE `ID` BETWEEN ? AND  ? GROUP BY BIN", sql);
+				+ " FROM SOME_TABLE WHERE `ID` BETWEEN ? AND ? GROUP BY BIN", sql);
 	}
 
 	@Test
@@ -318,7 +321,7 @@ public class DMLUtilsTest {
 
 	@Test
 	public void testGetBackupRangeBatch() {
-		String expectedSql = "SELECT * FROM SOME_TABLE WHERE `ID` >= :BMINID AND `ID` < :BMAXID";
+		String expectedSql = "SELECT * FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID";
 		String sql = DMLUtils.getBackupRangeBatch(mapping);
 		assertEquals(expectedSql, sql);
 	}
@@ -330,7 +333,7 @@ public class DMLUtilsTest {
 				"SELECT P.ID, + COUNT(S.OWNER_ID) AS CARD"
 				+ " FROM SOME_TABLE AS P"
 				+ " LEFT JOIN SECONDARY_ONE AS S ON (P.ID =  S.OWNER_ID)"
-				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID";
+				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID";
 		TableMapping primaryMapping = mapping;
 		String sql = DMLUtils.createCardinalitySubQueryForSecondary(primaryMapping, secondaryOne);
 		assertEquals(expectedSql, sql);
@@ -346,16 +349,16 @@ public class DMLUtilsTest {
 				+ " FROM SOME_TABLE AS P"
 				+ " LEFT JOIN SECONDARY_ONE AS S"
 				+ " ON (P.ID =  S.OWNER_ID)"
-				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T0"
+				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID) T0"
 				+ " ON (P0.ID = T0.ID)"
 				+ " JOIN"
 				+ " (SELECT P.ID, + COUNT(S.ROOT_ID) AS CARD"
 				+ " FROM SOME_TABLE AS P"
 				+ " LEFT JOIN SECONDARY_TWO AS S"
 				+ " ON (P.ID =  S.ROOT_ID)"
-				+ " WHERE P.ID >= :BMINID AND P.ID < :BMAXID GROUP BY P.ID) T1"
+				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID) T1"
 				+ " ON (P0.ID = T1.ID)"
-				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
 		TableMapping primaryMapping = mapping;
 		List<TableMapping> secondaryMappings = Lists.newArrayList(secondaryOne, secondaryTwo);
@@ -368,7 +371,7 @@ public class DMLUtilsTest {
 		String expectedSql = 
 				"SELECT P0.ID, 1  AS CARD"
 				+ " FROM SOME_TABLE AS P0"
-				+ " WHERE P0.ID >= :BMINID AND P0.ID < :BMAXID"
+				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
 		TableMapping primaryMapping = mapping;
 		List<TableMapping> secondaryMappings = new LinkedList<>();
