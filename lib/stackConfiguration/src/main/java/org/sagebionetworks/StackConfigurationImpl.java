@@ -461,7 +461,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getSharedS3BackupBucket() {
-		return configuration.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
+		return getStack()+configuration.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
 	}
 
 	public String getGoogleAppsOAuthAccessTokenSecret() {
