@@ -67,6 +67,14 @@ public class StackConfigurationImplUnitTest {
 		verify(mockProperties).getProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME);
 		verify(mockProperties).getProperty(doiPrefixPropertyName);
 	}
+	
+	@Test
+	public void testGetSharedS3BackupBucket() {
+		String stackName = "prod";
+		when(mockProperties.getProperty(StackConstants.STACK_PROPERTY_NAME)).thenReturn(stackName);
+		when(mockProperties.getProperty("org.sagebionetworks.shared.s3.backup.bucket")).thenReturn(".bucket");
+		assertEquals("prod.bucket", config.getSharedS3BackupBucket());
+	}
 
 
 	private static final String DOI_PREFIX_PROPERTY = "org.sagebionetworks.doi.prefix";
