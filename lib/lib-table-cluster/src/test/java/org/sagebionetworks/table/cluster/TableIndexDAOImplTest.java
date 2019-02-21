@@ -1833,7 +1833,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(tableId, results.getTableId());
 		assertEquals(1, results.getRows().size());
 		assertEquals("4", results.getRows().get(0).getValues().get(0));
-		assertEquals("5", results.getRows().get(0).getValues().get(1));
+		assertEquals("5.0", results.getRows().get(0).getValues().get(1));
 	}
 	
 	@Test

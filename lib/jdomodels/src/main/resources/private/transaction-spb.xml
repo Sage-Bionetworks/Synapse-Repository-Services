@@ -50,7 +50,7 @@
 		will ensure that we rollback for all exceptions -->
 	<tx:advice id="defaultWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
-			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="REPEATABLE_READ" />
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
 	<tx:advice id="readCommittedWriteTxRollbackAdvice" transaction-manager="txManager">
@@ -65,12 +65,12 @@
 	</tx:advice>	
 	<tx:advice id="defaultNewWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
-			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" isolation="REPEATABLE_READ" />
+			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
 	<tx:advice id="defaultMandatoryWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
-			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="REPEATABLE_READ" />
+			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
 	<tx:advice id="defaultMandatoryWriteReadCommittedTxRollbackAdvice" transaction-manager="txManager">
