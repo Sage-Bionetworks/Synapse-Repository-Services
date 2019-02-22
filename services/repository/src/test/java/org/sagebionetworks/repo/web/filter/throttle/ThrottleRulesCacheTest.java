@@ -20,7 +20,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
 import org.sagebionetworks.repo.model.throttle.ThrottleLimit;
 import org.sagebionetworks.repo.model.throttle.ThrottleRule;
-import org.sagebionetworks.repo.web.filter.throttle.ThrottleRulesCache;
 import org.springframework.test.util.ReflectionTestUtils;
 @RunWith(MockitoJUnitRunner.class)
 public class ThrottleRulesCacheTest {

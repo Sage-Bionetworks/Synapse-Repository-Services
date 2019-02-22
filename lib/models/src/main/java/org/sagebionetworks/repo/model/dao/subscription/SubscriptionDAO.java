@@ -5,7 +5,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 
 public interface SubscriptionDAO {
 

@@ -50,7 +50,7 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,7 +89,7 @@ public class NodeManagerImpl implements NodeManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.NodeManager#createNewNode(org.sagebionetworks.repo.model.Node, org.sagebionetworks.repo.model.UserInfo)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	@Deprecated
 	public String createNewNode(Node newNode, UserInfo userInfo)  throws DatastoreException,
@@ -101,7 +101,7 @@ public class NodeManagerImpl implements NodeManager {
 	/**
 	 * Create a new node
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node createNode(Node newNode, UserInfo userInfo)  throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
@@ -260,7 +260,7 @@ public class NodeManagerImpl implements NodeManager {
 		newNode.setModifiedOn(new Date(System.currentTimeMillis()));
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// First validate the username
@@ -275,7 +275,7 @@ public class NodeManagerImpl implements NodeManager {
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// First validate the username
@@ -313,7 +313,7 @@ public class NodeManagerImpl implements NodeManager {
 		return result;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
@@ -321,7 +321,7 @@ public class NodeManagerImpl implements NodeManager {
 		return update(userInfo, updated, null, false);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
@@ -461,7 +461,7 @@ public class NodeManagerImpl implements NodeManager {
 		return nodeDao.getAnnotationsForVersion(nodeId, versionNumber);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, AnnotationNameSpace namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
@@ -535,7 +535,7 @@ public class NodeManagerImpl implements NodeManager {
 		return nodeDao.getEntityPath(nodeId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node createNewNode(Node newNode, NamedAnnotations newAnnotations, UserInfo userInfo) throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
@@ -638,7 +638,7 @@ public class NodeManagerImpl implements NodeManager {
 		return activityManager.getActivity(userInfo, activityId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void setActivityForNode(UserInfo userInfo, String nodeId,
 			String activityId) throws NotFoundException, UnauthorizedException,
@@ -648,7 +648,7 @@ public class NodeManagerImpl implements NodeManager {
 		update(userInfo, toUpdate);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException {

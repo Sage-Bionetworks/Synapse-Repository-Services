@@ -5,10 +5,10 @@ import java.security.NoSuchAlgorithmException;
 
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
-import org.sagebionetworks.util.ContentDispositionUtils;
 
 public class TransferUtils {
 

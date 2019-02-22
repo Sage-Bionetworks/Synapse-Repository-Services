@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.TableChangeType;

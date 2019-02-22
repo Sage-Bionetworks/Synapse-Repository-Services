@@ -19,9 +19,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import com.google.common.collect.Lists;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Tests for CSVToRowIterator.

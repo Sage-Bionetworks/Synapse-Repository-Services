@@ -10,8 +10,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.conn.routing.RouteInfo.TunnelType;
-
 public class SingleThreadRunner<T> {
 	Future<T> future;
 	Callable<T> callable;

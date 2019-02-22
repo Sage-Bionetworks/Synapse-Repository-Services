@@ -7,11 +7,8 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.Preview;
-import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
 /**

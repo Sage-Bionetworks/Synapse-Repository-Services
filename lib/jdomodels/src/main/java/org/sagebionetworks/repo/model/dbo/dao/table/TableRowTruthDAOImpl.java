@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -131,7 +131,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange()
 			.getTableMapping();
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {
 		if (tableIdString == null)
@@ -194,7 +194,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta)
 			throws IOException {
@@ -220,7 +220,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return key;
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public TableRowChange upgradeToNewChangeSet(String tableIdString, long rowVersion, final SparseChangeSetDto newDto) throws IOException {
 		// Write the delta to S3

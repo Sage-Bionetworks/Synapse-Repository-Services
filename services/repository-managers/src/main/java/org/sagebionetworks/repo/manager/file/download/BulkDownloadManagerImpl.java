@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -75,7 +75,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	@Autowired
 	FileHandleManager fileHandleManager;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList addFilesFromFolder(UserInfo user, String folderId) {
 		ValidateArgument.required(user, "UserInfo");
@@ -123,7 +123,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		return list;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList addFilesFromQuery(UserInfo user, Query query)
 			throws DatastoreException, NotFoundException, TableFailedException, RecoverableMessageException {
@@ -168,7 +168,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList addFileHandleAssociations(UserInfo user, List<FileHandleAssociation> toAdd) {
 		ValidateArgument.required(user, "UserInfo");
@@ -176,7 +176,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		return attemptToAddFilesToUsersDownloadList(user, toAdd);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList removeFileHandleAssociations(UserInfo user, List<FileHandleAssociation> toRemove) {
 		ValidateArgument.required(user, "UserInfo");
@@ -190,7 +190,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		return bulkDownloadDao.getUsersDownloadList(user.getId().toString());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList clearDownloadList(UserInfo user) {
 		ValidateArgument.required(user, "UserInfo");
@@ -206,7 +206,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 		this.bulkDownloadDao.truncateAllDownloadDataForAllUsers();
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadOrder createDownloadOrder(UserInfo user, String zipFileName) {
 		ValidateArgument.required(user, "UserInfo");

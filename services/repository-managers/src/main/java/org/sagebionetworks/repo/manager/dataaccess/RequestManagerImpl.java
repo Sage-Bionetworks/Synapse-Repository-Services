@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ public class RequestManagerImpl implements RequestManager{
 	@Autowired
 	private SubmissionDAO submissionDao;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Request create(UserInfo userInfo, Request toCreate) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -129,7 +129,7 @@ public class RequestManagerImpl implements RequestManager{
 		return renewal;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public RequestInterface update(UserInfo userInfo, RequestInterface toUpdate)
 			throws NotFoundException, UnauthorizedException {
@@ -161,7 +161,7 @@ public class RequestManagerImpl implements RequestManager{
 		return requestDao.update(toUpdate);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public RequestInterface createOrUpdate(UserInfo userInfo, RequestInterface toCreateOrUpdate) {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
@@ -178,7 +178,7 @@ public class RequestManagerImpl implements RequestManager{
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.dataaccess.RequestManager#updateApprovedRequest(java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateApprovedRequest(String requestId) {
 		ValidateArgument.required(requestId, "requestId");

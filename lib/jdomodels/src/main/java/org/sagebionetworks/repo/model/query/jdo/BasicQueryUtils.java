@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.query.jdo;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.query.BasicQuery;

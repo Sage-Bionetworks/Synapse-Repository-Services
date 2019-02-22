@@ -12,7 +12,6 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.apache.http.entity.ContentType;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;

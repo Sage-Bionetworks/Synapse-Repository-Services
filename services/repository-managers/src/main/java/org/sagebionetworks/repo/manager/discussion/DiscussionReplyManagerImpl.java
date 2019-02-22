@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
+import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -55,7 +55,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionReplyBundle createReply(UserInfo userInfo,
 			CreateDiscussionReply createReply) throws IOException {
@@ -97,7 +97,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		return reply;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo,
 			String replyId, UpdateReplyMessage newMessage) throws IOException {
@@ -117,7 +117,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
 		checkPermission(userInfo, replyId, ACCESS_TYPE.MODERATE);

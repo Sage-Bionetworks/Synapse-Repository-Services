@@ -1,12 +1,11 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.OrderingSpecification;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 public class SortSpecificationTest {
 	

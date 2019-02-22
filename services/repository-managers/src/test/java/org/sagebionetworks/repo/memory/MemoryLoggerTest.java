@@ -23,7 +23,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.memory.MemoryLogger;
 import org.sagebionetworks.util.Clock;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;

@@ -7,14 +7,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -23,15 +20,13 @@ import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class DBOTrashCanDaoImpl implements TrashCanDao {
 	private static final String NUM_DAYS_PARAM_NAME = "num_days_param";
@@ -313,7 +308,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	}
 	
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int delete(List<Long> nodeIds) throws DatastoreException, NotFoundException {
 		ValidateArgument.required(nodeIds, "nodeIds");

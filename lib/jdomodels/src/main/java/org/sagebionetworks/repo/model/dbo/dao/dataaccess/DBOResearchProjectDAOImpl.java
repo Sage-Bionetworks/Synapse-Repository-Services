@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESEARCH_PROJECT;
 
 import java.util.UUID;
 
@@ -9,7 +12,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -43,7 +46,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 
 	private final RowMapper<DBOResearchProject> MAPPER = new DBOResearchProject().getTableMapping();
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public ResearchProject create(ResearchProject toCreate) {
 		toCreate.setId(idGenerator.generateNewId(IdType.RESEARCH_PROJECT_ID).toString());
@@ -67,7 +70,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public ResearchProject update(ResearchProject toUpdate) throws NotFoundException {
 		DBOResearchProject dbo = new DBOResearchProject();
@@ -77,7 +80,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 		return get(toUpdate.getId());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(String id) {
 		jdbcTemplate.update(SQL_DELETE, id);

@@ -1,11 +1,9 @@
 package org.sagebionetworks.upload.multipart;
 
 import java.net.URL;
-import java.util.List;
 
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
-import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 
 /**

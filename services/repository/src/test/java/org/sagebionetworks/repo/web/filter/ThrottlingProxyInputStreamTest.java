@@ -1,12 +1,11 @@
 package org.sagebionetworks.repo.web.filter;
 
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
 import javax.servlet.ServletInputStream;
 
 import org.junit.Before;

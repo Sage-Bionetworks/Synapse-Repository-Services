@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,7 +19,7 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 	@Autowired
 	AuthorizationManager authorizationManager;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DataTypeResponse changeObjectsDataType(UserInfo userInfo, String objectId, ObjectType objectType,
 			DataType dataType) {

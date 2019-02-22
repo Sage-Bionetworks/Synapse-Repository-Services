@@ -22,9 +22,10 @@ import static org.sagebionetworks.search.awscloudsearch.CloudSearchFieldConstant
 import java.util.ArrayList;
 import java.util.List;
 
-import com.amazonaws.services.cloudsearchv2.model.IndexField;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 import org.sagebionetworks.util.ValidateArgument;
+
+import com.amazonaws.services.cloudsearchv2.model.IndexField;
 
 /**
  * This class tracks all of the fields used in CloudSearch and provides mapping from fields listed in Synapse's API

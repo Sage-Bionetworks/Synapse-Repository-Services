@@ -9,8 +9,6 @@ import java.util.UUID;
 
 import javax.servlet.ServletException;
 
-import junit.framework.Assert;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +24,8 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import junit.framework.Assert;
 
 /**
  * Autowired test for AsynchronousJobController

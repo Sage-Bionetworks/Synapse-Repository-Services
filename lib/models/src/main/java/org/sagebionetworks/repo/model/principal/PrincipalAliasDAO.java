@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.principal;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.web.NotFoundException;

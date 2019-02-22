@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.message;
 
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-
 /**
  * The observer pattern applied to Transactional Messenger.
  * @author John

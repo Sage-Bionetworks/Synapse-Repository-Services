@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
+
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -9,7 +10,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public ResearchProject create(UserInfo userInfo, ResearchProject toCreate) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -76,7 +77,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		return rp;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public ResearchProject update(UserInfo userInfo, ResearchProject toUpdate)
 			throws NotFoundException, UnauthorizedException {
@@ -107,7 +108,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		return toUpdate;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public ResearchProject createOrUpdate(UserInfo userInfo, ResearchProject toCreateOrUpdate) {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");

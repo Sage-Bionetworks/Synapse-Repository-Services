@@ -1,13 +1,9 @@
 package org.sagebionetworks.repo.web;
 
-import java.util.StringJoiner;
-
 import javax.servlet.ServletRequest;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang3.tuple.Triple;
-import org.sagebionetworks.common.util.PathNormalizer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 public class HttpRequestIdentifierUtils {

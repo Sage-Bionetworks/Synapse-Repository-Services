@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.Entity;
-
 /**
  * Allows methods to return an entity with its annotations.
  * 

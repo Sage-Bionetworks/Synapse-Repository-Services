@@ -25,8 +25,6 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Lists;
-
 public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHelper {
 
 	@Autowired

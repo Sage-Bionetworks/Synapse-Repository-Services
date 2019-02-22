@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.throttle;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_CALL_PERIOD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_MAX_CALLS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_NORMALIZED_URI;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_THROTTLE_RULES;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -8,7 +12,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
 import org.sagebionetworks.repo.model.throttle.ThrottleRule;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -45,7 +49,7 @@ public class DBOThrottleRulesDAOImpl implements ThrottleRulesDAO {
 		return jdbcTemplate.query(SQL_GET_THROTTLES, THROTTLE_RULE_ROW_MAPPER);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int addThrottle(ThrottleRule throttleRule) {
 		ValidateArgument.required(throttleRule, "throttleRule");

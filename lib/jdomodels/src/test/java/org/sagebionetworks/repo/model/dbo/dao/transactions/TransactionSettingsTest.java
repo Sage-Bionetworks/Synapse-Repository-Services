@@ -8,12 +8,10 @@ import java.util.concurrent.Callable;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ThreadStepper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.IllegalTransactionStateException;
 
 /**
  * This test is designed to ensure we rollback transaction on the types of exceptions that we expect. There is currently
@@ -137,149 +135,9 @@ public class TransactionSettingsTest {
 		stepper.run();
 	}
 
-	@Test
-	public void validateRequiredTransaction() {
-		final Long id = 2l;
-		final ThreadStepper stepper = new ThreadStepper(10);
-		transactionValidator.setStringNoTransaction(id, "none");
-		stepper.add(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				transactionValidator.required(new Callable<String>() {
-					@Override
-					public String call() throws Exception {
-						stepper.stepDone("no write yet");
-						stepper.waitForStepDone("verify no write yet");
-						transactionValidator.setStringNoTransaction(id, "written");
-						stepper.stepDone("written");
-						stepper.waitForStepDone("verify still no write yet");
-						return null;
-					}
-				});
-				stepper.stepDone("committed");
-				stepper.waitForStepDone("verify commit");
-				return null;
-			}
-		});
-		stepper.add(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				stepper.waitForStepDone("no write yet");
-				assertEquals("none", transactionValidator.getString(id));
-				stepper.stepDone("verify no write yet");
-				stepper.waitForStepDone("written");
-				assertEquals("none", transactionValidator.getString(id));
-				stepper.stepDone("verify still no write yet");
-				stepper.waitForStepDone("committed");
-				assertEquals("written", transactionValidator.getString(id));
-				stepper.stepDone("verify commit");
-				return null;
-			}
-		});
-		stepper.run();
-	}
 
-	@Test
-	public void validateRequiredTransactionRollback() {
-		final Long id = 2l;
-		final ThreadStepper stepper = new ThreadStepper(10);
-		transactionValidator.setStringNoTransaction(id, "none");
-		stepper.add(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				try {
-					transactionValidator.required(new Callable<String>() {
-						@Override
-						public String call() throws Exception {
-							stepper.stepDone("no write yet");
-							stepper.waitForStepDone("verify no write yet");
-							transactionValidator.setStringNoTransaction(id, "written");
-							stepper.stepDone("written");
-							stepper.waitForStepDone("verify still no write yet");
-							throw new Exception("test");
-						}
-					});
-					fail("shouldn't get here");
-				} catch (Exception e) {
-					assertEquals("test", e.getMessage());
-					assertEquals(Exception.class, e.getClass());
-					stepper.stepDone("rollback");
-					stepper.waitForStepDone("verify rollback");
-				}
-				return null;
-			}
-		});
-		stepper.add(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				stepper.waitForStepDone("no write yet");
-				assertEquals("none", transactionValidator.getString(id));
-				stepper.stepDone("verify no write yet");
-				stepper.waitForStepDone("written");
-				assertEquals("none", transactionValidator.getString(id));
-				stepper.stepDone("verify still no write yet");
-				stepper.waitForStepDone("rollback");
-				assertEquals("none", transactionValidator.getString(id));
-				stepper.stepDone("verify rollback");
-				return null;
-			}
-		});
-		stepper.run();
-	}
 
-	@Test
-	public void validateMandatoryTransaction() throws Exception {
-		assertEquals("done", transactionValidator.required(new Callable<String>() {
-			@Override
-			public String call() throws Exception {
-				return transactionValidator.mandatory(new Callable<String>() {
-					@Override
-					public String call() throws Exception {
-						return "done";
-					}
-				});
-			}
-		}));
 
-		try {
-			transactionValidator.mandatory(new Callable<String>() {
-				@Override
-				public String call() throws Exception {
-					fail("Should not get here");
-					return "done";
-				}
-			});
-			fail("Should have failed");
-		} catch (IllegalTransactionStateException e) {
-		}
-	}
-
-	@Test
-	public void validateMandatoryReadCommittedTransaction() throws Exception {
-		assertEquals("done", transactionValidator.required(new Callable<String>() {
-			@Override
-			public String call() throws Exception {
-				return transactionValidator.mandatoryReadCommitted(new Callable<String>() {
-					@Override
-					public String call() throws Exception {
-						return "done";
-					}
-				});
-			}
-		}));
-
-		try {
-			transactionValidator.mandatoryReadCommitted(new Callable<String>() {
-				@Override
-				public String call() throws Exception {
-					fail("Should not get here");
-					return "done";
-				}
-			});
-			fail("Should have failed");
-		} catch (IllegalTransactionStateException e) {
-		}
-	}
 
 	
 	@Test
@@ -332,7 +190,7 @@ public class TransactionSettingsTest {
 	}
 	
 	@Test
-	public void validateRequiresNewReadCommitted() throws Exception {
+	public void validateNewWriteTransaction() throws Exception {
 		final Long idOne = 4l;
 		final Long idTwo = 5l;
 		try{
@@ -344,7 +202,7 @@ public class TransactionSettingsTest {
 					// Change the value within this transaction.
 					transactionValidator.setStringNoTransaction(idOne, "shouldRollback");
 					// Change the value in a new transaction
-					transactionValidator.requiresNewReadCommitted(new Callable<String>() {
+					transactionValidator.NewWriteTransaction(new Callable<String>() {
 						
 						@Override
 						public String call() throws Exception {

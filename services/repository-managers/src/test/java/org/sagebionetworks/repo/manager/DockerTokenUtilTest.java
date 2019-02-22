@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.docker.RegistryEventAction.*;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
+
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,7 +14,6 @@ import java.util.Set;
 
 import org.apache.commons.net.util.Base64;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 
 public class DockerTokenUtilTest {
 	

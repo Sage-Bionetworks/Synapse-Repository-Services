@@ -35,16 +35,12 @@ import java.util.List;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * The database object for a Submission to a Synapse Evaluation

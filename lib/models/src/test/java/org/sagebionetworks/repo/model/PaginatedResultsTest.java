@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -10,9 +12,6 @@ import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-
-import static org.mockito.Mockito.*;
-
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;

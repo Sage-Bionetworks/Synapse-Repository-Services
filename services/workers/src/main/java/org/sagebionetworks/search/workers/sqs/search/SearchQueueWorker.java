@@ -1,13 +1,10 @@
 package org.sagebionetworks.search.workers.sqs.search;
 
-import java.io.IOException;
 import java.util.List;
 
-import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
-import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.search.SearchManager;
@@ -15,6 +12,8 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 
 /**
  * This worker updates the search index based on messages received

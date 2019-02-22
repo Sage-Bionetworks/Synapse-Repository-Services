@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager.password;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.commons.lang.RandomStringUtils;

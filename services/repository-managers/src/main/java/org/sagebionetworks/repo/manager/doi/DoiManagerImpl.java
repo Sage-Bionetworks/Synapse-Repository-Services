@@ -17,8 +17,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +69,7 @@ public class DoiManagerImpl implements DoiManager {
 		return association;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	public Doi createOrUpdateDoi(final UserInfo user, final Doi dto) throws RecoverableMessageException {
 		if (dto.getObjectId() == null) {
 			throw new IllegalArgumentException("Object ID cannot be null");

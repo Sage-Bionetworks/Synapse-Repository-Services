@@ -13,8 +13,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.amazonaws.services.rds.AmazonRDSClient;
-
 /**
  * Note: For the first pass at this feature we are only using one database.
  * This will be extended in the future.

@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODataType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -45,7 +45,7 @@ public class DataTypeDaoImpl implements DataTypeDao {
 	@Autowired
 	private IdGenerator idgenerator;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DataTypeResponse changeDataType(Long userId, String objectIdString, ObjectType objectType,
 			DataType dataType) {

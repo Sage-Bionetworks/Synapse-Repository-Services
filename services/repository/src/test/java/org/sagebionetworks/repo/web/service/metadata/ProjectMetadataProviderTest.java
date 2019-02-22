@@ -1,12 +1,11 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -17,8 +16,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.repo.web.service.metadata.EventType;
-import org.sagebionetworks.repo.web.service.metadata.ProjectMetadataProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class ProjectMetadataProviderTest {

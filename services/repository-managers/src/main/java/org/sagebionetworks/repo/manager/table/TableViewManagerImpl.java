@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +52,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableViewManager#setViewSchemaAndScope(org.sagebionetworks.repo.model.UserInfo, java.util.List, java.util.List, java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
 			ViewScope scope, String viewIdString) {
@@ -92,7 +92,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		 return tableManagerSupport.getColumnModelsForTable(tableId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId,
 			List<ColumnChange> changes, List<String> orderedColumnIds) {
@@ -132,7 +132,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @return The EntityId.
 	 * 
 	 */
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public void updateEntityInView(UserInfo user,
 			List<ColumnModel> tableSchema, SparseRowDto row) {

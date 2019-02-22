@@ -1,12 +1,9 @@
 package org.sagebionetworks.repo.manager.trash;
 
 import java.sql.Timestamp;
-import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;

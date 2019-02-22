@@ -100,7 +100,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -433,14 +433,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ IDS_PARAM_NAME+")";
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		Node node = createNewNode(dto);
 		return node.getId();
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node bootstrapNode(Node node, long id) {
 		ValidateArgument.required(node, "Entity");
@@ -450,7 +450,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return create(node);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node createNewNode(Node node) throws NotFoundException, DatastoreException, InvalidModelException {
 		ValidateArgument.required(node, "Entity");
@@ -514,7 +514,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		throw e;
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
@@ -564,7 +564,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public boolean delete(String id) throws DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
@@ -575,7 +575,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int delete(List<Long> ids) throws DatastoreException{
 		ValidateArgument.required(ids, "ids");
@@ -592,7 +592,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException {
 		// Get the version in question
@@ -762,7 +762,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return currentTag;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
 		if (updatedNode == null) {
@@ -800,7 +800,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
 
@@ -859,7 +859,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		});
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void afterPropertiesSet() throws Exception {
 
@@ -1832,14 +1832,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return results;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String touch(Long userId, String nodeIdString) {
 		ChangeType changeType = ChangeType.UPDATE;
 		return touch(userId, nodeIdString, changeType);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String touch(Long userId, String nodeIdString, ChangeType changeType) {
 		ValidateArgument.required(userId, "UserId");

@@ -53,27 +53,12 @@
 			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
-	<tx:advice id="readCommittedWriteTxRollbackAdvice" transaction-manager="txManager">
-		<tx:attributes>
-			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
-		</tx:attributes>
-	</tx:advice>
-	<tx:advice id="requiresNewReadCommittedRollbackAdvice" transaction-manager="txManager">
-		<tx:attributes>
-			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" isolation="READ_COMMITTED" />
-		</tx:attributes>
-	</tx:advice>	
 	<tx:advice id="defaultNewWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
 			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
 	<tx:advice id="defaultMandatoryWriteTxRollbackAdvice" transaction-manager="txManager">
-		<tx:attributes>
-			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
-		</tx:attributes>
-	</tx:advice>
-	<tx:advice id="defaultMandatoryWriteReadCommittedTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
 			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
@@ -86,17 +71,7 @@
 		<aop:pointcut id="defaultWrites"
 			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultWrites" advice-ref="defaultWriteTxRollbackAdvice" />
-	</aop:config>
-	<aop:config>
-		<aop:pointcut id="readCommittedWrites"
-			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted)" />
-		<aop:advisor pointcut-ref="readCommittedWrites" advice-ref="readCommittedWriteTxRollbackAdvice" />
-	</aop:config>
-	<aop:config>
-		<aop:pointcut id="requiresNewReadCommitted"
-			expression="@annotation(org.sagebionetworks.repo.transactions.RequiresNewReadCommitted)" />
-		<aop:advisor pointcut-ref="requiresNewReadCommitted" advice-ref="requiresNewReadCommittedRollbackAdvice" />
-	</aop:config>			
+	</aop:config>		
 	<aop:config>
 		<aop:pointcut id="defaultNewWrites"
 			expression="@annotation(org.sagebionetworks.repo.transactions.NewWriteTransaction)" />
@@ -106,11 +81,6 @@
 		<aop:pointcut id="defaultMandatoryWrites"
 					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
-	</aop:config>
-	<aop:config>
-		<aop:pointcut id="defaultMandatoryWritesReadCommitted"
-					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction)" />
-		<aop:advisor pointcut-ref="defaultMandatoryWritesReadCommitted" advice-ref="defaultMandatoryWriteReadCommittedTxRollbackAdvice" />
 	</aop:config>
 
 	<!-- Transaction Manager for PMF -->

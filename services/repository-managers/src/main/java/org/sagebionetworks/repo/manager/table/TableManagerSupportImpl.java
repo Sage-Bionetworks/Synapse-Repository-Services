@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,8 +43,8 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -131,7 +130,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
 	 */
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException {
 		try {
@@ -169,7 +168,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#setTableToProcessingAndTriggerUpdate(java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId) {
 		ValidateArgument.required(tableId, "tableId");
@@ -184,7 +183,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return tableStatusDAO.getTableStatus(tableId);
 	}
 
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableId,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
@@ -192,7 +191,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, tableChangeEtag);
 	}
 
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public void attemptToSetTableStatusToFailed(String tableId,
 			String resetToken, Exception error)
@@ -204,7 +203,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
 	}
 
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public void attemptToUpdateTableProgress(String tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
@@ -216,7 +215,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#startTableProcessing(java.lang.String)
 	 */
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public String startTableProcessing(String tableId) {
 		return tableStatusDAO.resetTableStatusToProcessing(tableId);
@@ -569,7 +568,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return results;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void rebuildTable(UserInfo userInfo, String tableId) {
 		if (!userInfo.isAdmin())

@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +22,7 @@ public class ForumManagerImpl implements ForumManager {
 	@Autowired
 	private AuthorizationManager authorizationManager;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Forum createForum(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);
@@ -39,7 +39,7 @@ public class ForumManagerImpl implements ForumManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Forum getForumByProjectId(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);

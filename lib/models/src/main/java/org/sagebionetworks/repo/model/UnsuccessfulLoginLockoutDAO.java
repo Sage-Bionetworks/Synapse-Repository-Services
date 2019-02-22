@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
-
 public interface UnsuccessfulLoginLockoutDAO {
 	/**
 	 *

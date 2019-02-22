@@ -1,5 +1,7 @@
 package org.sagebionetworks.file.worker;
 
+import javax.imageio.IIOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
@@ -20,8 +22,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import javax.imageio.IIOException;
 
 /**
  * This worker process file create messages. When a file is created without a

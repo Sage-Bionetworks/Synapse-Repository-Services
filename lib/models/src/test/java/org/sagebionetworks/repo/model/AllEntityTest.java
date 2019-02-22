@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 
 public class AllEntityTest {
 	

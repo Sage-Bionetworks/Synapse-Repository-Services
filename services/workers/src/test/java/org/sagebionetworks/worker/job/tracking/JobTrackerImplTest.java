@@ -1,6 +1,8 @@
 package org.sagebionetworks.worker.job.tracking;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,8 +13,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.worker.job.tracking.JobTrackerImpl;
-import org.sagebionetworks.worker.job.tracking.TrackedData;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)

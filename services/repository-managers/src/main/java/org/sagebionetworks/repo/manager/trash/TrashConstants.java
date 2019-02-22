@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.trash;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 

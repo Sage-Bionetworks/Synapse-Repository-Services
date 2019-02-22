@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +42,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	@Autowired
 	private AccessControlListDAO aclDao;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Subscription create(UserInfo userInfo, Topic toSubscribe) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -54,7 +54,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		return subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Subscription subscribeAll(UserInfo userInfo, SubscriptionObjectType toSubscribe) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -136,7 +136,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		return projectIds;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(UserInfo userInfo, String subscriptionId) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -153,7 +153,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteAll(UserInfo userInfo) {
 		ValidateArgument.required(userInfo, "userInfo");

@@ -15,7 +15,6 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.Content;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.amazonaws.util.StringInputStream;
 
 /**
  * This wrapper around the Amazon SES client allows us to suppress sending

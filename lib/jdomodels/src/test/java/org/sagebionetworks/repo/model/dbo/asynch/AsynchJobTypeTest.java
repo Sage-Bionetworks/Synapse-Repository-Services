@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 
 public class AsynchJobTypeTest {
 

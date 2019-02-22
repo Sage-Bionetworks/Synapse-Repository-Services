@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -43,7 +43,7 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void setViewScopeAndType(Long viewId, Set<Long> containerIds, Long viewTypeMask) {
 		ValidateArgument.required(viewId, "viewId");
@@ -75,7 +75,7 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 		return new HashSet<Long>(list);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	public void truncateAll(){
 		jdbcTemplate.update(SQL_TRUNCATE_TABLE);
 	}
