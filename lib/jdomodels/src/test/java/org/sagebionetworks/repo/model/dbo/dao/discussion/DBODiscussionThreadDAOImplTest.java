@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -408,14 +409,22 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> expected = new ArrayList<DiscussionThreadBundle>();
 		expected.addAll(Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1)));
 		assertEquals("sorted by number of replies",
-				expected.toString(),
-				threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, true, DiscussionFilter.NO_FILTER).toString());
+				getIds(expected),
+				getIds(threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, true, DiscussionFilter.NO_FILTER)));
 
 		expected.clear();
 		expected.addAll(Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0)));
 		assertEquals("sorted by number of replies desc",
-				expected.toString(),
-				threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, false, DiscussionFilter.NO_FILTER).toString());
+				getIds(expected),
+				getIds(threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, false, DiscussionFilter.NO_FILTER)));
+	}
+	
+	List<String> getIds(List<DiscussionThreadBundle> input){
+		List<String> results = new LinkedList<>();
+		for(DiscussionThreadBundle bundle: input) {
+			results.add(bundle.getId());
+		}
+		return results;
 	}
 
 	@Test
