@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -362,7 +363,7 @@ public class MembershipInvitationManagerImplTest {
 				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
 		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertNotNull(mimeMessage.getSubject());
-		assertTrue(body.contains(mis.getTeamId()));
+		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
 		assertTrue(body.contains(teamName));
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(acceptInvitationEndpoint));
