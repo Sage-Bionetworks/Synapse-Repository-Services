@@ -184,7 +184,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 
@@ -199,7 +199,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 	}
@@ -219,7 +219,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 	}
@@ -330,7 +330,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 	}
