@@ -75,7 +75,14 @@ public class BeanTest implements ApplicationContextAware {
 			"getEtagForUpdate",
 			"getForumByProjectId",
 			"getForUpdate",
-			"getAccessRequirementForUpdate");
+			"getAccessRequirementForUpdate",
+			"getThread",
+			"checkPasswordWithLock",
+			"getTableStatusOrCreateIfNotExists",
+			"getUsersDownloadListForUpdate",
+			"getDoiAssociationForUpdate",
+			"getUnsuccessfulLoginLockoutInfoIfExist",
+			"checkIsLockedOut");
 
 	@Test
 	public void testNoGetterWriteTransactions() {

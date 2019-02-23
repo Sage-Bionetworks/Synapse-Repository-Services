@@ -32,7 +32,6 @@ public class UnsuccessfulLoginLockoutDAOImpl implements UnsuccessfulLoginLockout
 		return translateDBOToDTO(basicDao.getObjectByPrimaryKeyIfExists(DBOUnsuccessfulLoginLockout.class, new SinglePrimaryKeySqlParameterSource(userId)));
 	}
 
-	@MandatoryWriteTransaction
 	public long getDatabaseTimestampMillis() {
 		return basicDao.getDatabaseTimestampMillis();
 	}

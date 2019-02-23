@@ -751,8 +751,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		return columModelManager.getColumnIdForTable(id);
 	}
 
-
-	@WriteTransaction
+	
 	@Override
 	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException {
 		ValidateArgument.required(change, "TableRowChange");

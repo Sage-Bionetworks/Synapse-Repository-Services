@@ -7,6 +7,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * When used on a method, a transaction must already exists, for this method to
+ * join. It is invalid call a mandatory annotated method outside of a
+ * transaction.
+ * </p>
+ * Transaction-isolation-level = READ_COMMITED.
+ *
+ */
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
