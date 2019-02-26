@@ -80,7 +80,7 @@ docker run --name ${rds_container_name} \
 -e MYSQL_USER=${rds_user_name} \
 -e MYSQL_PASSWORD=${rds_password} \
 -v /etc/localtime:/etc/localtime:ro \
--d mysql:5.6
+-d mysql:8.0.15
 
 # make sure RDS is ready to go
 sleep 20
