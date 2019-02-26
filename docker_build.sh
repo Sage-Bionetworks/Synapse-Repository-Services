@@ -88,6 +88,7 @@ sleep 20
 tables_schema_name=${rds_user_name}tables
 docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "CREATE SCHEMA ${tables_schema_name};"
 docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "GRANT ALL ON ${tables_schema_name}.* TO '${rds_user_name}'@'%';"
+docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "log_bin_trust_function_creators = 1;"
 
 # create build container and run build
 docker run -i --rm --name ${build_container_name} \
