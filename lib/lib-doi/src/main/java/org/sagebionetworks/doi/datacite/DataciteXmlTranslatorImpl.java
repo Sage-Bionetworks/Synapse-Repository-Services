@@ -19,6 +19,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
@@ -40,7 +41,7 @@ import org.xml.sax.SAXException;
 public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	public DataciteMetadata translate(String xml) {
-		if (xml.equals("")) {
+		if (StringUtils.isBlank(xml)) {
 			return new Doi();
 		}
 		Document dom = parseXml(xml);
