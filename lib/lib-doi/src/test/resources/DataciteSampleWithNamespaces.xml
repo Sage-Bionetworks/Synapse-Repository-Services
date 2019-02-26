@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns0:resource xmlns:ns0="http://datacite.org/schema/kernel-4"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://datacite.org/schema/kernel-4
+            http://schema.datacite.org/meta/kernel-4.1/metadata.xsd">
+    <ns0:identifier identifierType="DOI">10.0000/SYN0000000</ns0:identifier>
+    <ns0:creators>
+        <ns0:creator>
+            <ns0:creatorName>Last, First</ns0:creatorName>
+            <ns0:nameIdentifier schemeURI="http://orcid.org/" nameIdentifierScheme="ORCID">0123-4567-8987-789X</ns0:nameIdentifier>
+            <ns0:nameIdentifier schemeURI="http://www.insi.org/" nameIdentifierScheme="ISNI">9876-5432-1012-456X</ns0:nameIdentifier>
+        </ns0:creator>
+        <ns0:creator>
+            <ns0:creatorName>Sample name</ns0:creatorName>
+        </ns0:creator>
+    </ns0:creators>
+    <ns0:titles>
+        <ns0:title>Some title 1</ns0:title>
+        <ns0:title>Some other title 2</ns0:title>
+    </ns0:titles>
+    <ns0:publisher>Synapse</ns0:publisher>
+    <ns0:publicationYear>2000</ns0:publicationYear>
+    <ns0:resourceType resourceTypeGeneral="Dataset"></ns0:resourceType>
+</ns0:resource>

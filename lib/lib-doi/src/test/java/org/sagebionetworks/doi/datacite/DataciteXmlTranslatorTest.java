@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
@@ -48,8 +49,10 @@ public class DataciteXmlTranslatorTest {
 
 	@Before
 	public void before() throws Exception {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
 		// Create a new document builder for each test
-		documentBuilder = DocumentBuilderFactoryImpl.newInstance().newDocumentBuilder();
+		documentBuilder = dbf.newDocumentBuilder();
 
 		// Create expected metadata to compare to results
 		expectedMetadata = new Doi();
@@ -167,4 +170,27 @@ public class DataciteXmlTranslatorTest {
 		DataciteMetadata metadata = translator.translate(xml);
 		assertEquals(expectedMetadata, metadata);
 	}
+
+	@Test
+	public void translateBlankDocumentTest_PLFM5403() {
+		// Load the resource containing XML
+		String xml = "";
+
+		DataciteXmlTranslatorImpl translator = new DataciteXmlTranslatorImpl();
+		// Unit under test
+		DataciteMetadata metadata = translator.translate(xml);
+		assertEquals(new Doi(), metadata);
+	}
+
+	@Test
+	public void translateWithNamespaces_PLFM5403() throws Exception {
+		ClassLoader loader = this.getClass().getClassLoader();
+		String xml = IOUtils.toString(loader.getResourceAsStream("DataciteSampleWithNamespaces.xml"));
+
+		DataciteXmlTranslatorImpl translator = new DataciteXmlTranslatorImpl();
+		// Unit under test
+		DataciteMetadata metadata = translator.translate(xml);
+		assertEquals(expectedMetadata, metadata);
+	}
+
 }
