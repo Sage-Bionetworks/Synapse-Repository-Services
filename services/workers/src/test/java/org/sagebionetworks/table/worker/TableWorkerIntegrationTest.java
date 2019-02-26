@@ -620,7 +620,7 @@ public class TableWorkerIntegrationTest {
 		String groupSql = " group by " + schema.get(0).getName();
 		String orderSql = " order by " + schema.get(0).getName() + " asc";
 
-		sql = "select * from " + tableId + groupSql + orderSql + " limit 100";
+		sql = "select "+schema.get(0).getName()+" from " + tableId + groupSql + orderSql + " limit 100";
 		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
 		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowSet.getRows().get(0).getValues().get(0), queryResultBundle.getQueryResult().getQueryResults().getRows().get(0)
