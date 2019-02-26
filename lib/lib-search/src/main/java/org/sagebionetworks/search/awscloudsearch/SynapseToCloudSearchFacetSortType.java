@@ -1,9 +1,5 @@
 package org.sagebionetworks.search.awscloudsearch;
 
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
-
 import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 
 /**

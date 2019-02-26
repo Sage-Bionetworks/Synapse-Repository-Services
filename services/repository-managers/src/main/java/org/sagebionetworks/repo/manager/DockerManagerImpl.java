@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,7 +108,7 @@ public class DockerManagerImpl implements DockerManager {
 	 * Process (push, pull) event notifications from Docker Registry
 	 * @param registryEvents
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void dockerRegistryNotification(DockerRegistryEventList registryEvents) {
 		for (DockerRegistryEvent event : registryEvents.getEvents()) {

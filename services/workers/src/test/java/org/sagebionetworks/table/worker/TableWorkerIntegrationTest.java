@@ -514,14 +514,14 @@ public class TableWorkerIntegrationTest {
 		queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
 		assertEquals(ColumnType.DOUBLE, queryResult.getQueryResults().getHeaders().get(0).getColumnType());
 		assertEquals("ss", queryResult.getQueryResults().getHeaders().get(0).getName());
-		compareValues(new String[] { "1.5", "4.5", "6" }, queryResult.getQueryResults());
+		compareValues(new String[] { "1.5", "4.5", "6.0" }, queryResult.getQueryResults());
 
 		sql = "select sum(number) from " + tableId + " group by number order by sum(number) asc";
 		query.setSql(sql);
 		queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
 		assertEquals(ColumnType.DOUBLE, queryResult.getQueryResults().getHeaders().get(0).getColumnType());
 		assertEquals("SUM(number)", queryResult.getQueryResults().getHeaders().get(0).getName());
-		compareValues(new String[] { "1.5", "4.5", "6" }, queryResult.getQueryResults());
+		compareValues(new String[] { "1.5", "4.5", "6.0" }, queryResult.getQueryResults());
 	}
 
 
@@ -620,7 +620,7 @@ public class TableWorkerIntegrationTest {
 		String groupSql = " group by " + schema.get(0).getName();
 		String orderSql = " order by " + schema.get(0).getName() + " asc";
 
-		sql = "select * from " + tableId + groupSql + orderSql + " limit 100";
+		sql = "select "+schema.get(0).getName()+" from " + tableId + groupSql + orderSql + " limit 100";
 		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
 		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowSet.getRows().get(0).getValues().get(0), queryResultBundle.getQueryResult().getQueryResults().getRows().get(0)
@@ -966,9 +966,9 @@ public class TableWorkerIntegrationTest {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "coldouble", ColumnType.DOUBLE)));
 		createTableWithSchema();
-		Double[] doubles = { Double.NaN, null, Double.NEGATIVE_INFINITY, -Double.MAX_VALUE, -1.0, 0.0, 1.0, 3e42, Double.MAX_VALUE,
+		Double[] doubles = { Double.NaN, Double.NEGATIVE_INFINITY, -Double.MAX_VALUE+1.0E307, -1.0, 0.0, 1.0, 3e42, Double.MAX_VALUE-1.0E307,
 				Double.POSITIVE_INFINITY };
-		String[] expected = { "NaN", null, "-Infinity", "-1.7976931348623157e308", "-1", "0", "1", "3e42", "1.7976931348623157e308",
+		String[] expected = { "NaN", "-Infinity", "-1.6976931348623157e308", "-1", "0", "1", "3e42", "1.6976931348623157e308",
 				"Infinity" };
 		assertEquals(doubles.length, expected.length);
 		// Now add some data
@@ -1024,7 +1024,7 @@ public class TableWorkerIntegrationTest {
 		queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
-		assertEquals("0", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
+		assertEquals("0.0", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 	}
 
 	@Test

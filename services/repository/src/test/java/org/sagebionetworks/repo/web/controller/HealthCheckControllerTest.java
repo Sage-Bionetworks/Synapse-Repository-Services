@@ -5,8 +5,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  *

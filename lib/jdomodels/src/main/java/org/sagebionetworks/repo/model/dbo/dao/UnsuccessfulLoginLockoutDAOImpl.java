@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.loginlockout.DBOUnsuccessfulLoginLockout;
-import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,7 +23,7 @@ public class UnsuccessfulLoginLockoutDAOImpl implements UnsuccessfulLoginLockout
 	@Autowired
 	JdbcTemplate jdbcTemplate;
 
-	@MandatoryWriteReadCommittedTransaction
+	@MandatoryWriteTransaction
 	@Override
 	public UnsuccessfulLoginLockoutDTO getUnsuccessfulLoginLockoutInfoIfExist(long userId) {
 		// lock credentials table because we need to guarantee there exists an entry to lock per user.
@@ -32,12 +32,11 @@ public class UnsuccessfulLoginLockoutDAOImpl implements UnsuccessfulLoginLockout
 		return translateDBOToDTO(basicDao.getObjectByPrimaryKeyIfExists(DBOUnsuccessfulLoginLockout.class, new SinglePrimaryKeySqlParameterSource(userId)));
 	}
 
-	@MandatoryWriteReadCommittedTransaction
 	public long getDatabaseTimestampMillis() {
 		return basicDao.getDatabaseTimestampMillis();
 	}
 
-	@MandatoryWriteReadCommittedTransaction
+	@MandatoryWriteTransaction
 	@Override
 	public void createOrUpdateUnsuccessfulLoginLockoutInfo(UnsuccessfulLoginLockoutDTO dto) {
 		ValidateArgument.required(dto, "dto");

@@ -47,7 +47,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -117,7 +117,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	}
 
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
@@ -135,7 +135,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		return results;
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
 			PartialRowSet partial, ProgressCallback progressCallback)
@@ -161,7 +161,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	}
 	
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete) throws DatastoreException, NotFoundException,
 			IOException {
@@ -186,14 +186,14 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		return result;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteAllRows(String tableId) {
 		Validate.required(tableId, "tableId");
 		tableRowTruthDao.deleteAllRowDataForTable(tableId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException {
@@ -519,7 +519,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		return indexDao.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void setTableSchema(final UserInfo userInfo, final List<String> columnIds,
 			final String id) {
@@ -751,8 +751,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		return columModelManager.getColumnIdForTable(id);
 	}
 
-
-	@WriteTransactionReadCommitted
+	
 	@Override
 	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException {
 		ValidateArgument.required(change, "TableRowChange");
@@ -763,7 +762,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	}
 
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteTableIfDoesNotExist(String tableId) {
 		if(!tableManagerSupport.doesTableExist(tableId)) {
@@ -772,13 +771,13 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void setTableAsDeleted(String deletedId) {
 		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteTable(String deletedId) {
 		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);

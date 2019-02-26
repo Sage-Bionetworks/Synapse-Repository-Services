@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.manager.password;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.password.PasswordValidatorImpl.PASSWORD_MIN_LENGTH;
 
 import java.io.InputStream;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
@@ -18,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.core.io.Resource;
+
+import com.google.common.collect.Sets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PasswordValidatorUnitTest {

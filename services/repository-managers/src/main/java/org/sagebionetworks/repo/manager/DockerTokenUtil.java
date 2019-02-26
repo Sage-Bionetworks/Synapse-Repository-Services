@@ -1,10 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-
 import java.io.ByteArrayInputStream;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
@@ -25,9 +20,12 @@ import org.apache.commons.net.util.Base64;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.model.docker.RegistryEventAction;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 public class DockerTokenUtil {
 

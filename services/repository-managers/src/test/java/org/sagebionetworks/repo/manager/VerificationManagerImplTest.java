@@ -16,14 +16,14 @@ import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUBMITTED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUSPENDED;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.lang.IllegalArgumentException;
-
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.manager.team.TeamConstants;

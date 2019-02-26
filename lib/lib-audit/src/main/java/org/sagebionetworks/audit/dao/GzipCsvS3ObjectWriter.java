@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.csv.utils.ObjectCSVWriter;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import org.sagebionetworks.util.ContentDispositionUtils;
 
 /**
  * A writer that writes csv.gz object files to S3.

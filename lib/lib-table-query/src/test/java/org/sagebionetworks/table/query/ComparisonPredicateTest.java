@@ -9,7 +9,6 @@ import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.CompOp;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
-import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;

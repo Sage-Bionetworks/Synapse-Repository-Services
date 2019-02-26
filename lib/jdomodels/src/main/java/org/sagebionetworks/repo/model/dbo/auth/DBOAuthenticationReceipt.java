@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_USER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_RECEIPT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATION_RECEIPT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_AUTHENTICATION_RECEIPT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_EXPIRATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_RECEIPT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_AUTHENTICATION_RECEIPT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATION_RECEIPT;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

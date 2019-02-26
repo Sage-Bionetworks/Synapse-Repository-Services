@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartErrors;
 import org.sagebionetworks.repo.model.file.PartMD5;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -191,7 +191,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#deleteUploadStatus
 	 * (long, java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteUploadStatus(long userId, String hash) {
 		ValidateArgument.required(userId, "UserId");
@@ -208,7 +208,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * (long, java.lang.String,
 	 * org.sagebionetworks.repo.model.file.MultipartUploadRequest)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public CompositeMultipartUploadStatus createUploadStatus(
 			CreateMultipartRequest createRequest) {
@@ -298,7 +298,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#addPartToUpload
 	 * (java.lang.String, int, java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void addPartToUpload(String uploadId, int partNumber,
 			String partMD5Hex) {
@@ -323,7 +323,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#setPartToFailed
 	 * (java.lang.String, int, java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void setPartToFailed(String uploadId, int partNumber,
 			String errorDetails) {
@@ -455,7 +455,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#setUploadComplete
 	 * (java.lang.String, java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public CompositeMultipartUploadStatus setUploadComplete(String uploadId,
 			String fileHandleId) {

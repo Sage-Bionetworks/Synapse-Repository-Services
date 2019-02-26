@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.manager.loginlockout.LoginAttemptResultReporter;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -78,7 +78,7 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 	}
 
 	@Override
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	public boolean checkPasswordWithLock(Long principalId, String password){
 		LoginAttemptResultReporter loginAttemptReporter;
 		try {

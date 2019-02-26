@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dao;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;

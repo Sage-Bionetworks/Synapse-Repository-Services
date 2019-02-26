@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
-import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class ExponentialBackoffLoginAttemptReporter implements LoginAttemptResultReporter {
@@ -26,7 +26,7 @@ public class ExponentialBackoffLoginAttemptReporter implements LoginAttemptResul
 		this.reported = false;
 	}
 
-	@MandatoryWriteReadCommittedTransaction
+	@MandatoryWriteTransaction
 	@Override
 	public void reportSuccess() {
 		if(reported){
@@ -39,7 +39,7 @@ public class ExponentialBackoffLoginAttemptReporter implements LoginAttemptResul
 				.withUnsuccessfulLoginCount(0));
 	}
 
-	@MandatoryWriteReadCommittedTransaction
+	@MandatoryWriteTransaction
 	@Override
 	public void reportFailure() {
 		if(reported){

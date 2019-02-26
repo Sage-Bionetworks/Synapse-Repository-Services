@@ -1,6 +1,8 @@
 package org.sagebionetworks.ids;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -28,7 +30,7 @@ public class IdGeneratorConcurrencyTest {
 	
 	// The number of ms to allow this test to run before failing.
 	private int TIME_OUT = 1000*10; // ten seconds
-	private int numberOfThreads = 8;
+	private int numberOfThreads = 2;
 	
 	@Test
 	public void testConcurrentThreads() throws InterruptedException{

@@ -1,22 +1,38 @@
 package org.sagebionetworks.doi.datacite;
 
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATORS;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR_NAME;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER_SCHEME;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLICATION_YEAR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE_GENERAL;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.TITLES;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
-import org.sagebionetworks.repo.model.doi.v2.*;
+import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
+import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
 
 /*
  * Translates DataCite metadata from XML to our DoiV2 object.

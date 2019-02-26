@@ -8,10 +8,9 @@ import java.util.zip.ZipOutputStream;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-
-import com.amazonaws.event.ProgressListener;
 
 /**
  * A data access object used to support bulk file download.  This abstraction contains 

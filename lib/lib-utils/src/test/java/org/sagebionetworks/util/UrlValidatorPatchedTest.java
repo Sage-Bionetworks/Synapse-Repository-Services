@@ -1,6 +1,7 @@
 package org.sagebionetworks.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.commons.validator.routines.UrlValidator;
 import org.junit.Test;

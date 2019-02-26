@@ -9,7 +9,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
@@ -30,7 +29,7 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,7 +171,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		// Progress can only be updated if the stack is in read-write mode.

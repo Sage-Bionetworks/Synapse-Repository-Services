@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -53,7 +53,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	@Autowired
 	StackConfiguration stackConfig;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
 			ProgressCallback progressCallback, UserInfo userInfo,

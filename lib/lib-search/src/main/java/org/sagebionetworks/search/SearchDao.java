@@ -1,16 +1,12 @@
 package org.sagebionetworks.search;
 
-import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
+
+import org.sagebionetworks.repo.model.search.Document;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import org.apache.http.client.ClientProtocolException;
-import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
  * Abstraction for interacting with the search index.

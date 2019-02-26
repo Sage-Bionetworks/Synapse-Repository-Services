@@ -360,7 +360,7 @@ public class DBOBuilder<T> {
 			String fkName = StringUtils.isEmpty(entry.annotation.name()) ? makeFkName(fieldName, tableName) : entry.annotation.name();
 			lines.add("constraint " + fkName + " foreign key (" + escapeName(fieldName) + ") references "
 					+ escapeName(entry.annotation.table()) + " (" + escapeName(entry.annotation.field()) + ")"
-					+ (entry.annotation.cascadeDelete() ? " on delete cascade" : ""));
+					+ (entry.annotation.cascadeDelete() ? " on delete cascade" : " on delete restrict"));
 		}
 
 		Table tableAnnotation = clazz.getAnnotation(Table.class);

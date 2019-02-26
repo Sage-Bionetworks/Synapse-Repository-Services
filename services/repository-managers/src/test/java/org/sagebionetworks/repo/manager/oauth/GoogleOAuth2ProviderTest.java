@@ -1,7 +1,12 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.*;
-import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.FAMILY_NAME;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.GIVEN_NAME;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.ID;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.VERIFIED_EMAIL;
 
 import org.json.JSONException;
 import org.json.JSONObject;

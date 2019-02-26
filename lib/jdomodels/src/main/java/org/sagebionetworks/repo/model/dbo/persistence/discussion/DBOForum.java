@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FORUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

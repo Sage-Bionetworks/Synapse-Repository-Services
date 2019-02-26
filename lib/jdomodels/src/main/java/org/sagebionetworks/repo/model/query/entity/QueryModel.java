@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.query.entity;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.table.TableConstants;
 

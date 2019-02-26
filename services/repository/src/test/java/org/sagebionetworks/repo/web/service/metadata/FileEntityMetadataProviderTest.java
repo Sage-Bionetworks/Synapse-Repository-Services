@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;

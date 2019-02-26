@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -70,7 +70,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * org.sagebionetworks.repo.model.file.MultipartUploadRequest,
 	 * java.lang.Boolean)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user,
 			MultipartUploadRequest request, Boolean forceRestart) {
@@ -317,7 +317,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public AddPartResponse addMultipartPart(UserInfo user, String uploadId,
 			Integer partNumber, String partMD5Hex) {
@@ -360,7 +360,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return response;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MultipartUploadStatus completeMultipartUpload(UserInfo user,
 			String uploadId) {
@@ -462,7 +462,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public S3FileHandle createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
 		// Convert all of the data to a file handle.

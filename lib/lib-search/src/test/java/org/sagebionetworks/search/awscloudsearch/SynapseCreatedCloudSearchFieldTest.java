@@ -9,6 +9,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.amazonaws.services.cloudsearchv2.model.DateArrayOptions;
 import com.amazonaws.services.cloudsearchv2.model.DateOptions;
 import com.amazonaws.services.cloudsearchv2.model.DoubleArrayOptions;
@@ -22,12 +26,6 @@ import com.amazonaws.services.cloudsearchv2.model.LiteralArrayOptions;
 import com.amazonaws.services.cloudsearchv2.model.LiteralOptions;
 import com.amazonaws.services.cloudsearchv2.model.TextArrayOptions;
 import com.amazonaws.services.cloudsearchv2.model.TextOptions;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 public class SynapseCreatedCloudSearchFieldTest {
 

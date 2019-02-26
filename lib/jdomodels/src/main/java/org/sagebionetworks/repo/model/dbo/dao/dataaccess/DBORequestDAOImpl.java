@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_REQUEST;
 
 import java.util.UUID;
 
@@ -10,7 +13,7 @@ import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -44,7 +47,7 @@ public class DBORequestDAOImpl implements RequestDAO{
 
 	private static final RowMapper<DBORequest> MAPPER = new DBORequest().getTableMapping();
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Request create(Request toCreate) {
 		toCreate.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_REQUEST_ID).toString());
@@ -67,7 +70,7 @@ public class DBORequestDAOImpl implements RequestDAO{
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public RequestInterface update(RequestInterface toUpdate) throws NotFoundException {
 		DBORequest dbo = new DBORequest();

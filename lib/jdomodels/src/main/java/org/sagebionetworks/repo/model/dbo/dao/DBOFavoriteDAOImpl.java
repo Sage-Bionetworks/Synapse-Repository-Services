@@ -22,7 +22,6 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;

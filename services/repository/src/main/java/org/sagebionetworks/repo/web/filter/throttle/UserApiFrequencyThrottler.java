@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.filter.throttle;
 
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.generateCloudwatchProfiledata;
 
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;

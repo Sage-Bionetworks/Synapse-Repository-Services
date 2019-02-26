@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.web.filter;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -10,9 +14,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.AccessInterceptor;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Test that we capture what is expected from the header.

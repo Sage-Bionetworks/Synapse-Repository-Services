@@ -14,10 +14,10 @@ import org.mockito.Mockito;
 import org.sagebionetworks.audit.dao.GzipCsvS3ObjectReader;
 import org.sagebionetworks.audit.dao.GzipCsvS3ObjectWriter;
 import org.sagebionetworks.csv.utils.ExampleObject;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import org.sagebionetworks.util.ContentDispositionUtils;
 
 public class GzipCsvS3ObjectWriterReaderTest {
 

@@ -80,7 +80,7 @@ docker run --name ${rds_container_name} \
 -e MYSQL_USER=${rds_user_name} \
 -e MYSQL_PASSWORD=${rds_password} \
 -v /etc/localtime:/etc/localtime:ro \
--d mysql:5.6
+-d mysql:8.0.15
 
 # make sure RDS is ready to go
 sleep 20
@@ -88,6 +88,7 @@ sleep 20
 tables_schema_name=${rds_user_name}tables
 docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "CREATE SCHEMA ${tables_schema_name};"
 docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "GRANT ALL ON ${tables_schema_name}.* TO '${rds_user_name}'@'%';"
+docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "set global log_bin_trust_function_creators=1;"
 
 # create build container and run build
 docker run -i --rm --name ${build_container_name} \

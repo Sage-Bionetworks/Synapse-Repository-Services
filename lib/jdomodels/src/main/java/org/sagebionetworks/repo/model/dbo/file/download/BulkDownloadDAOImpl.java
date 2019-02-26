@@ -1,12 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.file.download;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_FILE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_ORDER_TOTAL_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_ORDER;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,7 +43,7 @@ import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,7 +96,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList addFilesToDownloadList(String ownerId, List<FileHandleAssociation> toAdd) {
 		ValidateArgument.required(ownerId, "ownerId");
@@ -104,7 +111,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		return getUsersDownloadList(ownerId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList removeFilesFromDownloadList(String ownerId, final List<FileHandleAssociation> toRemove) {
 		ValidateArgument.required(ownerId, "ownerId");
@@ -150,7 +157,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		return deleteSQL.toString();
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList clearDownloadList(String ownerId) {
 		ValidateArgument.required(ownerId, "ownerId");
@@ -175,7 +182,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		return getUsersDownloadList(ownerPrincipalId, forUpdate);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DownloadList getUsersDownloadListForUpdate(String ownerPrincipalId) {
 		boolean forUpdate = true;
@@ -219,7 +226,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	 * 
 	 * @param principalId
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	public void touchUsersDownloadList(long principalId) {
 		DBODownloadList toUpdate = new DBODownloadList();
 		toUpdate.setEtag(UUID.randomUUID().toString());
@@ -323,7 +330,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 		return item;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void truncateAllDownloadDataForAllUsers() {
 		this.jdbcTemplate.update(SQL_TRUNCATE_ALL_DOWNLOAD_LISTS_FOR_ALL_USERS);

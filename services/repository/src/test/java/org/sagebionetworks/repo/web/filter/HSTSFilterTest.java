@@ -13,7 +13,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.web.filter.HSTSFilter;
 
 public class HSTSFilterTest {
 	private HSTSFilter filter;

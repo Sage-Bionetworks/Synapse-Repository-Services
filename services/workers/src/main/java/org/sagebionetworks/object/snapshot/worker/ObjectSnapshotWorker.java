@@ -5,8 +5,8 @@ import java.util.List;
 
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordWriterFactory;
 import org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordWriter;
+import org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordWriterFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 
 public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 

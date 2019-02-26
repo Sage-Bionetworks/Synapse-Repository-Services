@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -48,7 +47,6 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -186,7 +184,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 
@@ -201,7 +199,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 	}
@@ -221,7 +219,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 	}
@@ -332,7 +330,7 @@ public class ProjectStatsWorkerIntegrationTest {
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
-				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+				return projectStatsForUser.size() == 1 && !projectStatsForUser.get(0).getEtag().equals(input.getEtag());
 			}
 		}));
 	}

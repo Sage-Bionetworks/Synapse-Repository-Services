@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -25,8 +27,6 @@ import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import junit.framework.Assert;
-
-import static org.junit.Assert.*;
 
 public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 

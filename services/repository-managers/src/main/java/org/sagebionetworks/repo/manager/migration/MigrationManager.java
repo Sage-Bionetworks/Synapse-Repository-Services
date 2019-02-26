@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;

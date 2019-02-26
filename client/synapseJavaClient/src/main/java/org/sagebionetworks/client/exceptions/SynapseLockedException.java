@@ -1,7 +1,5 @@
 package org.sagebionetworks.client.exceptions;
 
-import org.apache.http.HttpStatus;
-
 /**
  * Throw for HTTP status code of 423.
  *

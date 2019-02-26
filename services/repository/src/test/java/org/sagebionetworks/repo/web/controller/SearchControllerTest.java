@@ -28,9 +28,9 @@ import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.base.Predicate;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Test for the search controller

@@ -1,30 +1,23 @@
 package org.sagebionetworks.search;
 
-import static org.junit.Assert.*;
-
-import com.amazonaws.services.cloudsearchdomain.model.Hit;
-import com.amazonaws.services.cloudsearchdomain.model.Hits;
-import com.amazonaws.services.cloudsearchdomain.model.SearchException;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import org.apache.commons.collections.ArrayStack;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.mockito.Matchers.anyListOf;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -35,24 +28,16 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
-import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
-
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
-
-import javax.print.Doc;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import com.amazonaws.services.cloudsearchdomain.model.Hit;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
+import com.amazonaws.services.cloudsearchdomain.model.SearchException;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 
 /**

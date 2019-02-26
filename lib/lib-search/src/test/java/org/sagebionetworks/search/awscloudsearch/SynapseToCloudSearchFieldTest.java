@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.amazonaws.services.cloudsearchv2.model.IndexField;
-import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
-import com.google.common.collect.Sets;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
+
+import com.amazonaws.services.cloudsearchv2.model.IndexField;
+import com.google.common.collect.Sets;
 
 public class SynapseToCloudSearchFieldTest {
 

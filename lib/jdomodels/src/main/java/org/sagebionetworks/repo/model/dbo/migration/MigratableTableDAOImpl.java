@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -511,7 +511,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
 		ValidateArgument.required(batch, "batch");
@@ -542,7 +542,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		});
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int deleteByRange(final MigrationType type, final long minimumId, final long maximumId) {
 		ValidateArgument.required(type,"MigrationType");

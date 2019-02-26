@@ -1,7 +1,5 @@
 package org.sagebionetworks.asynchronous.workers.changes;
 
-import java.util.List;
-
 import org.sagebionetworks.workers.util.Gate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration;
 

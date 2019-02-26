@@ -2,11 +2,11 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 
 public interface SubmissionDAO {
 

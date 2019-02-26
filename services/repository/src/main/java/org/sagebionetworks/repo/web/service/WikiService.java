@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
-import java.net.URL;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;

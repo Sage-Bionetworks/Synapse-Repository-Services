@@ -3,11 +3,7 @@ package org.sagebionetworks.repo.web.filter.throttle;
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTLED_HTTP_STATUS;
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.isMigrationAdmin;
 
-import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.web.HttpRequestIdentifier;
-import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.io.IOException;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -15,7 +11,12 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import java.io.IOException;
+
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.web.HttpRequestIdentifier;
+import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class RequestThrottleFilter implements Filter {
 
