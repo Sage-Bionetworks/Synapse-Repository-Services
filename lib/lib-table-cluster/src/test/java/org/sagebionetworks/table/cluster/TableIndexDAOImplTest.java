@@ -607,7 +607,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(set, schema);
 		// Now create the query
 		SqlQuery query = new SqlQueryBuilder(
-				"select foo, bar from "
+				"select foo, sum(bar) from "
 						+ tableId
 						+ " where foo is not null group by foo order by bar desc limit 1 offset 0",
 				schema).build();
