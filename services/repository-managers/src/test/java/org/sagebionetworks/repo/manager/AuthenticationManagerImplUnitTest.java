@@ -11,7 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.AUTHENTICATION_RECEIPT_LIMIT;
+import static org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl.AUTHENTICATION_RECEIPT_LIMIT;
 
 import java.util.UUID;
 
@@ -21,6 +21,9 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.omg.CORBA.DynAnyPackage.Invalid;
+import org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl;
+import org.sagebionetworks.repo.manager.authentication.PasswordChangeRequiredException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
@@ -243,6 +246,18 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+	}
+
+	@Test
+	public void testLoginWithPasswordNotMatchingRequirements(){
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
+
+		try {
+			authManager.login(userId, password, null);
+			fail("expected exception to be thrown");
+		} catch (PasswordChangeRequiredException e){
+			//expected
+		}
 	}
 
 

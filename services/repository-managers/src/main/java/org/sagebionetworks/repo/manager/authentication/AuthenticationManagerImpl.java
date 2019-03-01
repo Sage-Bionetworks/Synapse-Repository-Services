@@ -1,5 +1,8 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.authentication;
 
+import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.UserCredentialValidator;
+import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -139,7 +142,13 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@WriteTransaction
 	@Override
-	public LoginResponse login(Long principalId, String password, String authenticationReceipt) {
+	public LoginResponse login(Long principalId, String password, String authenticationReceipt){
+		try{
+			passwordValidator.validatePassword(password);
+		} catch (InvalidPasswordException e){
+			throw new PasswordChangeRequiredException("You must change your password before continuing.");
+		}
+
 		authReceiptDAO.deleteExpiredReceipts(principalId, System.currentTimeMillis());
 
 		String validAuthReceipt = null;

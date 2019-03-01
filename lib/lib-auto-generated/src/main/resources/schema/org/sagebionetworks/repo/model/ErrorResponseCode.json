@@ -1,0 +1,10 @@
+{
+	"description": "A code to be used by clients to handle the error.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "PASSWORD_CHANGE_REQUIRED",
+			"description": "The user's password must be changed."
+		}
+	]
+}

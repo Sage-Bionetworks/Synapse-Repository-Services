@@ -242,7 +242,7 @@
 
 	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
 
-	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
+	<bean id="authManager" class="org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl" />
 
 	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffUnsuccessfulLoginLockoutImpl"/>
 

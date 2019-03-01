@@ -4,6 +4,10 @@
         "reason": {
             "type":"string",
             "description":"The reason for the error"
+        },
+        "errorCode": {
+            "$ref": "org.sagebionetworks.repo.model.ErrorResponseCode",
+            "description": "A code to be used by clients to handle the error."
         }
     }
 }
