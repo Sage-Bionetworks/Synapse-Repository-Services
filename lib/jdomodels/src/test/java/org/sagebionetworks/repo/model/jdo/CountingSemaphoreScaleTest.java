@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -11,7 +9,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
-import org.sagebionetworks.repo.model.semaphore.SynchronizedCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -41,11 +38,7 @@ public class CountingSemaphoreScaleTest {
 		countingSemaphore.releaseAllLocks();
 
 	}
-	
-	@Test
-	public void testSemaphoreType(){
-		assertTrue(countingSemaphore instanceof SynchronizedCountingSemaphore);
-	}
+
 	
 	@Ignore
 	@Test
