@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -43,6 +45,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @RunWith(MockitoJUnitRunner.class)
 public class AuthenticationServiceImplTest {
 
+	@InjectMocks
 	private AuthenticationServiceImpl service;
 	
 	@Mock
@@ -76,25 +79,15 @@ public class AuthenticationServiceImplTest {
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
 		
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockOAuthManager = Mockito.mock(OAuthManager.class);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(userInfo);
 		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		
-		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true)))
 				.thenReturn(userId);
-		
-		mockMessageManager = Mockito.mock(MessageManager.class);
-		
-		service = new AuthenticationServiceImpl();
-		ReflectionTestUtils.setField(service, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(service, "authManager", mockAuthenticationManager);
-		ReflectionTestUtils.setField(service, "messageManager", mockMessageManager);
-		ReflectionTestUtils.setField(service, "oauthManager", mockOAuthManager);
-		
+
 		alias = "alias";
 		principalAlias = new PrincipalAlias();
+		principalAlias.setPrincipalId(userId);
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(2222L);
 		principalAlias.setType(AliasType.USER_NAME);
@@ -271,5 +264,28 @@ public class AuthenticationServiceImplTest {
 		} catch (UnauthenticatedException e) {
 			assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e.getMessage());
 		}
+	}
+
+	@Test
+	public void testChangePassword(){
+		ChangePasswordWithToken changePassword = new ChangePasswordWithToken();
+
+		service.changePassword(changePassword);
+
+		verify(mockAuthenticationManager).changePassword(changePassword);
+	}
+
+	@Test
+	public void testSendPasswordResetEmail(){
+		String email = "user@test.com";
+		String passwordResetToken = "you can do it!";
+		when(mockUserManager.lookupUserByUsernameOrEmail(email)).thenReturn(principalAlias);
+		when(mockAuthenticationManager.createPasswordResetToken(principalAlias.getPrincipalId())).thenReturn(passwordResetToken);
+
+		service.sendPasswordResetEmail(email);
+
+		verify(mockAuthenticationManager).createPasswordResetToken(principalAlias.getPrincipalId());
+		verify(mockMessageManager).sendNewPasswordResetEmail(email, passwordResetToken);
+
 	}
 }

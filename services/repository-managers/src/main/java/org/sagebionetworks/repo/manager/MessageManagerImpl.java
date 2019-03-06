@@ -593,7 +593,7 @@ public class MessageManagerImpl implements MessageManager {
 		messageDAO.deleteMessage(messageId);
 	}
 	
-	
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException {
@@ -622,6 +622,12 @@ public class MessageManagerImpl implements MessageManager {
 				.withIsNotificationMessage(true)
 				.build();
 		sesClient.sendRawEmail(sendEmailRequest);
+	}
+
+	@Override
+	@WriteTransaction
+	public void sendNewPasswordResetEmail(String email, String passwordResetToken){
+		//TODO: implement
 	}
 	
 	@Override

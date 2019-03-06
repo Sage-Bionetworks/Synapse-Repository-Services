@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -50,13 +51,21 @@ public interface AuthenticationService {
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
+	@Deprecated
 	public void sendPasswordEmail(Long userId) throws NotFoundException;
-	
+
 	/**
 	 * Changes the password of the user
 	 * Also invalidates the user's session token
 	 */
+	@Deprecated
 	public void changePassword(ChangePasswordRequest request) throws NotFoundException;
+
+	/**
+	 * Changes the password of the user
+	 * Also invalidates the user's session token
+	 */
+	public void changePassword(ChangePasswordInterface request) throws NotFoundException;
 	
 	/**
 	 * Identifies a user via session token and signs that user's terms of use
@@ -92,7 +101,16 @@ public interface AuthenticationService {
 	 */
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
 
+
+	@Deprecated
 	public void sendPasswordEmail(String email) throws NotFoundException;
+
+	/**
+	 * Sends a password reset email to the user
+	 * @param email
+	 * @throws NotFoundException
+	 */
+	public void sendPasswordResetEmail(String email) throws NotFoundException;
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 

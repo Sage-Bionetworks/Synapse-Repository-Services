@@ -9,12 +9,16 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
@@ -85,7 +89,48 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(principalId, passHash);
 	}
-	
+
+	public void changePassword(ChangePasswordInterface changePasswordInterface){
+		ValidateArgument.required(changePasswordInterface, "changePasswordInterface");
+
+		long principalId;
+		if(changePasswordInterface instanceof ChangePasswordWithCurrentPassword){
+			principalId = validateChangePasswordWithOldPassword((ChangePasswordWithCurrentPassword) changePasswordInterface);
+		}else if (changePasswordInterface instanceof ChangePasswordWithToken){
+			principalId = validateChangePasswordWithToken((ChangePasswordWithToken) changePasswordInterface);
+		}else{
+			throw new IllegalArgumentException("Unknown implementation of ChangePasswordInterface");
+		}
+
+		setPassword(principalId, changePasswordInterface.getNewPassword());
+		//todo: send confirmation email for changing password?
+
+	}
+
+	long validateChangePasswordWithOldPassword(ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword) {
+		ValidateArgument.required(changePasswordWithCurrentPassword, "changePasswordWithCurrentPassword");
+		ValidateArgument.required(changePasswordWithCurrentPassword.getUsername(), "changePasswordWithCurrentPassword.userName");
+		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
+		ValidateArgument.required(changePasswordWithCurrentPassword.getNewPassword(), "changePasswordWithCurrentPassword.newPassword");
+
+		//Ensure that if the current password is invalid, only allow the user to reset via emailed token
+		try {
+			passwordValidator.validatePassword(changePasswordWithCurrentPassword.getCurrentPassword());
+		} catch (InvalidPasswordException e){
+			throw new IllegalArgumentException("You may only attempt to reset your password via email",e);
+		}
+
+		passwordValidator.validatePassword(changePasswordWithCurrentPassword.getNewPassword());
+
+		authUtil.checkPasswordWithLock();
+
+		//TODO: implement
+	}
+
+	long validateChangePasswordWithToken(ChangePasswordWithToken changePasswordWithToken){
+		//TODO: implement
+	}
+
 	@Override
 	public String getSecretKey(Long principalId) throws NotFoundException {
 		return authDAO.getSecretKey(principalId);
@@ -124,6 +169,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		
 		return session;
+	}
+
+	@Override
+	public String createPasswordResetToken(long principalId) throws NotFoundException {
+		//TODO: Implement
+		return null;
 	}
 
 	@Override

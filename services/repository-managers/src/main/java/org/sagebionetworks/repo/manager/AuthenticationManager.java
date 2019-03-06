@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -33,11 +34,16 @@ public interface AuthenticationManager {
 	public void invalidateSessionToken(String sessionToken);
 	
 	/**
-	 * Changes a user's password
+	 * Set a user's password without any authorization checks
 	 */
 	public void setPassword(Long principalId, String password);
-	
-	/** 
+
+	/**
+	 * Change a user's password after checking the validity of the request by checking the user's old password
+	 */
+	public void changePassword(ChangePasswordInterface changePasswordWithOldPassword);
+
+	/**
 	 * Gets the user's secret key
 	 */
 	public String getSecretKey(Long principalId) throws NotFoundException;
@@ -52,6 +58,11 @@ public interface AuthenticationManager {
 	 * If the user's token is invalid or expired, a new one is created and returned
 	 */
 	public Session getSessionToken(long principalId) throws NotFoundException;
+
+	/**
+	 * Creates a token tha can be used to reset a user's password
+	 */
+	public String createPasswordResetToken(long principalId) throws NotFoundException;
 	
 	/**
 	 * Returns whether the user has accepted the terms of use

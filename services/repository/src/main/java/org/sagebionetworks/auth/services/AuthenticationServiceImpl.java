@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -80,7 +81,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new DatastoreException("Could not find user that was just created", e);
 		}
 	}
-	
+
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public void sendPasswordEmail(Long principalId) throws NotFoundException {
@@ -109,7 +111,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		authManager.setPassword(principalId, request.getPassword());
 		authManager.invalidateSessionToken(request.getSessionToken());
 	}
-	
+
+	@Override
+	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
+		authManager.changePassword(request);
+	}
+
 	@Override
 	@WriteTransaction
 	public void signTermsOfUse(Session session) throws NotFoundException {
@@ -152,10 +159,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return pa.getPrincipalId();
 	}
 
+	@Deprecated
 	@Override
 	public void sendPasswordEmail(String email) throws NotFoundException {
 		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
 		sendPasswordEmail(pa.getPrincipalId());
+	}
+
+	@Override
+	public void sendPasswordResetEmail(String email) throws NotFoundException {
+		//TODO: should we be throwing exception when user not found?
+		// We currently do, but this could leak whether or not a user is registered.
+		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
+
+		String passwordRestToken = authManager.createPasswordResetToken(pa.getPrincipalId());
+
+		messageManager.sendNewPasswordResetEmail(email, passwordRestToken);
 	}
 
 	@Override
