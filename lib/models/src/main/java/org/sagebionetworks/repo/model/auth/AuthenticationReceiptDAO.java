@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.auth;
+package org.sagebionetworks.repo.model.auth;
 
 public interface AuthenticationReceiptDAO {
 

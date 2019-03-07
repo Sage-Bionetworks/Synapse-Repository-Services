@@ -27,7 +27,7 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.loginlockout.LoginAttemptResultReporter;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 
 @RunWith(MockitoJUnitRunner.class)

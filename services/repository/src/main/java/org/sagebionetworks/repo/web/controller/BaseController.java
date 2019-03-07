@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.manager.authentication.PasswordChangeRequiredException;
+import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -916,12 +916,12 @@ public abstract class BaseController {
 		return handleException(ex, request, false);
 	}
 
-	@ExceptionHandler(PasswordChangeRequiredException.class)
+	@ExceptionHandler(PasswordResetViaEmailRequiredException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody
-	ErrorResponse handlePasswordChangeRequiredException(PasswordChangeRequiredException ex,
+	ErrorResponse handlePasswordChangeRequiredException(PasswordResetViaEmailRequiredException ex,
 														HttpServletRequest request){
 		//TODO: test that error respose code exists
-		return handleException(ex, request, false, ErrorResponseCode.PASSWORD_CHANGE_REQUIRED);
+		return handleException(ex, request, false, ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED);
 	}
 }

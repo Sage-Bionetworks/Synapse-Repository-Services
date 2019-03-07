@@ -21,18 +21,17 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.omg.CORBA.DynAnyPackage.Invalid;
 import org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl;
-import org.sagebionetworks.repo.manager.authentication.PasswordChangeRequiredException;
+import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthenticationManagerImplUnitTest {
@@ -255,7 +254,7 @@ public class AuthenticationManagerImplUnitTest {
 		try {
 			authManager.login(userId, password, null);
 			fail("expected exception to be thrown");
-		} catch (PasswordChangeRequiredException e){
+		} catch (PasswordResetViaEmailRequiredException e){
 			//expected
 		}
 	}

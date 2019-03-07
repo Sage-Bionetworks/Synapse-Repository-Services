@@ -12,7 +12,7 @@
 		},
 		"authenticationReceipt": {
 			"type": "string",
-			"description": "The most recent authentication receipt given to the last success login from this machine, using this client"
+			"description": "Optional. The most recent authentication receipt given to the last success login from this machine, using this client"
 		}
 	}
 }

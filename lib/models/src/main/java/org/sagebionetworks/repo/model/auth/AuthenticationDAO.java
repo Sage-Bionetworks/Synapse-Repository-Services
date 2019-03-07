@@ -1,8 +1,9 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.auth;
 
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -58,7 +59,13 @@ public interface AuthenticationDAO {
 	 * Nullifies the session token
 	 */
 	public void deleteSessionToken(String sessionToken);
-	
+
+	/**
+	 * Nullifies the session token for a user. This is idempotent.
+	 * @param principalId id of the user for which the session token will be nullified.
+	 */
+	public void deleteSessionToken(long principalId);
+
 	/**
 	 * Looks for the given session token
 	 * @return The principal ID of the holder

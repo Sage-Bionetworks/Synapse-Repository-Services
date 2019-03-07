@@ -3,8 +3,8 @@
 	"type": "string",
 	"enum": [
 		{
-			"name": "PASSWORD_CHANGE_REQUIRED",
-			"description": "The user's password must be changed."
+			"name": "PASSWORD_RESET_VIA_EMAIL_REQUIRED",
+			"description": "The user's password must be reset."
 		}
 	]
 }

@@ -11,11 +11,12 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO{
+public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO {
 	public static final Long EXPIRATION_PERIOD = 3*24*60*60*1000L;
 
 	private static final String SQL_SELECT = "SELECT "+COL_AUTHENTICATION_RECEIPT_ID
