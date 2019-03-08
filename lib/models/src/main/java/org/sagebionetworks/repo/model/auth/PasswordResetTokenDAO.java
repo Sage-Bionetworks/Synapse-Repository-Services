@@ -7,9 +7,16 @@ public interface PasswordResetTokenDAO {
 	 * @param principalId
 	 * @return
 	 */
-	public String createNewResetToken(long principalId);
+	public String createOrRefreshResetToken(long principalId, long expirationDurationMillis);
 
-	public Long getUserIdIfValid(String token);
+	/**
+	 * If the token has not already expired, use the hash of the reset token to find the user's Id.
+	 * @param tokenHash
+	 * @return
+	 */
+	public Long getUserIdIfValidHash(String tokenHash);
+
+	public void nullifyToken(long userId);
 }
 
 

@@ -41,6 +41,14 @@ public class DBOAuthenticationReceiptDAOImplTest {
 	}
 
 	@Test
+	public void testIsValidReceipt_expired() throws InterruptedException {
+		//expire after 1 millisecond
+		receipt = authReceiptDao.createNewReceipt(userId, 1);
+		Thread.sleep(3);
+		assertFalse(authReceiptDao.isValidReceipt(userId, receipt));
+	}
+
+	@Test
 	public void testCreate(){
 		receipt = authReceiptDao.createNewReceipt(userId);
 		assertTrue(authReceiptDao.isValidReceipt(userId, receipt));

@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -172,7 +170,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		// We currently do, but this could leak whether or not a user is registered.
 		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
 
-		String passwordRestToken = authManager.createPasswordResetToken(pa.getPrincipalId());
+		String passwordRestToken = authManager.createOrRefreshPasswordResetToken(pa.getPrincipalId());
 
 		messageManager.sendNewPasswordResetEmail(email, passwordRestToken);
 	}
@@ -240,19 +238,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public LoginResponse login(LoginRequest request) {
-		ValidateArgument.required(request, "request");
-		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
-		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		try {
-			// Lookup the user.
-			PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(request.getUsername());
-
-			// Fetch the user's session token
-			return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
-		} catch (NotFoundException e) {
-			// see PLFM-3914
-			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e);
-		}
+		return authManager.login(request);
 	}
 
 	@Override

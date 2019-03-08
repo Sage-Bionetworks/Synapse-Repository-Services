@@ -128,8 +128,8 @@ public interface AuthenticationService {
 	 * Authenticates username and password combination
 	 * User can use an authentication receipt from previous login to skip extra security checks
 	 * 
-	 * @return a session token if valid
-	 * @throws UnauthorizedException If the credentials are incorrect
+	 * @return a LoginResponse if username/password is valid
+	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
-	public LoginResponse login(LoginRequest request) throws NotFoundException;
+	public LoginResponse login(LoginRequest request);
 }

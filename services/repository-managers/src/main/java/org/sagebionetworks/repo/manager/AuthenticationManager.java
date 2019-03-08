@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -62,7 +63,7 @@ public interface AuthenticationManager {
 	/**
 	 * Creates a token tha can be used to reset a user's password
 	 */
-	public String createPasswordResetToken(long principalId) throws NotFoundException;
+	public String createOrRefreshPasswordResetToken(long principalId) throws NotFoundException;
 	
 	/**
 	 * Returns whether the user has accepted the terms of use
@@ -74,14 +75,13 @@ public interface AuthenticationManager {
 	 */
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
 
+
 	/**
-	 *
-	 * @param principalId
-	 * @param password
-	 * @param authenticationReceipt
+	 * Log user in using information form the LoginRequest
+	 * @param request
 	 * @return
 	 */
-	public LoginResponse login(Long principalId, String password, String authenticationReceipt);
+	public LoginResponse login(LoginRequest request);
 
 	/**
 	 * Bypass password check and just create a login response for the user.

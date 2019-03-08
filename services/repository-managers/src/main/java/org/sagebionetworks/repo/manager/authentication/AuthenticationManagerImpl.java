@@ -12,11 +12,13 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetTokenDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -34,6 +36,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public static final int MAX_CONCURRENT_LOCKS = 10;
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
+
+	public static final long PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS = 20 * 60 * 1000; //20 minutes
 
 
 	@Autowired
@@ -102,23 +106,24 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public void changePassword(ChangePasswordInterface changePasswordInterface){
 		ValidateArgument.required(changePasswordInterface, "changePasswordInterface");
 
-		long principalId;
+		final long userId;
 		if(changePasswordInterface instanceof ChangePasswordWithCurrentPassword){
-			principalId = validateChangePasswordAuthorization((ChangePasswordWithCurrentPassword) changePasswordInterface);
+			userId = changePasswordWithCurrentPassword((ChangePasswordWithCurrentPassword) changePasswordInterface);
 		}else if (changePasswordInterface instanceof ChangePasswordWithToken){
-			principalId = validateChangePasswordAuthorization((ChangePasswordWithToken) changePasswordInterface);
+			userId = changePasswordWithToken((ChangePasswordWithToken) changePasswordInterface);
 		}else{
 			throw new IllegalArgumentException("Unknown implementation of ChangePasswordInterface");
 		}
 
-		setPassword(principalId, changePasswordInterface.getNewPassword());
-
-		authDAO.deleteSessionToken(principalId);
-		//todo: send confirmation email for changing password?
-
+		authDAO.deleteSessionToken(userId);
 	}
 
-	long validateChangePasswordAuthorization(ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword) {
+	/**
+	 *
+	 * @param changePasswordWithCurrentPassword
+	 * @return id of user for which password change occurred
+	 */
+	long changePasswordWithCurrentPassword(ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword) {
 		ValidateArgument.required(changePasswordWithCurrentPassword, "changePasswordWithCurrentPassword");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getUsername(), "changePasswordWithCurrentPassword.userName");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
@@ -131,20 +136,31 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new PasswordResetViaEmailRequiredException("You may only attempt to reset your password via email");
 		}
 
-		long userId = principalAliasDAO.findPrincipalWithAlias(changePasswordWithCurrentPassword.getUsername(), AliasType.USER_EMAIL, AliasType.USER_NAME)
-				.getPrincipalId();
-
-		//we can ignore the return value here because we are not generating a new authentication receipt
+		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
+		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
+
+		//change password
+		setPassword(userId, changePasswordWithCurrentPassword.getNewPassword());
 
 		return userId;
 	}
 
-	long validateChangePasswordAuthorization(ChangePasswordWithToken changePasswordWithToken){ //TODO: make into class that has a cleanUp() method to delete password.
-		Long userId = passwordResetTokenDAO.getUserIdIfValid(changePasswordWithToken.getPasswordChangeToken());
+	/**
+	 *
+	 * @param changePasswordWithToken
+	 * @return id of user for which password change occurred
+	 */
+	long changePasswordWithToken(ChangePasswordWithToken changePasswordWithToken){
+		PBKDF2Utils.hashPassword(changePasswordWithToken.getPasswordChangeToken());
+		Long userId = passwordResetTokenDAO.getUserIdIfValidHash();
 		if (userId == null){
 			throw new IllegalArgumentException("passwordChangeToken is invalid or has already expired. Please request a password reset again.");
 		}
+
+		setPassword(userId, changePasswordWithToken.getNewPassword());
+
+		passwordResetTokenDAO.nullifyToken(changePasswordWithToken.getPasswordChangeToken());
 
 		return userId;
 	}
@@ -190,9 +206,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	public String createPasswordResetToken(long principalId) throws NotFoundException {
-		//TODO: Implement
-		return null;
+	public String createOrRefreshPasswordResetToken(long userId) throws NotFoundException {
+		return passwordResetTokenDAO.createOrRefreshResetToken(userId, PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS);
 	}
 
 	@Override
@@ -211,18 +226,26 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@WriteTransaction
 	@Override
-	public LoginResponse login(Long principalId, String password, String authenticationReceipt){
+	public LoginResponse login(LoginRequest request){ //TODO: test and pull in implementation from deprecated method
+		ValidateArgument.required(request, "loginRequest");
+		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
+		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+
+		final long userId = findUserIdForAuthentication(request.getUsername());
+		final String password = request.getPassword();
+		final String authenticationReceipt = request.getAuthenticationReceipt();
+
 		try{
 			passwordValidator.validatePassword(password);
-		} catch (InvalidPasswordException e){
+		} catch (InvalidPasswordException e){ //TODO: test
 			throw new PasswordResetViaEmailRequiredException("You must change your password before continuing.");
 		}
 
-		authReceiptDAO.deleteExpiredReceipts(principalId, System.currentTimeMillis());
+		authReceiptDAO.deleteExpiredReceipts(userId, System.currentTimeMillis());
 
-		String validAuthReceipt = validateAuthReceiptAndCheckPassword(principalId, password, authenticationReceipt);
+		String validAuthReceipt = validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
 
-		return getLoginResponseAfterSuccessfulAuthentication(principalId, validAuthReceipt);
+		return getLoginResponseAfterSuccessfulAuthentication(userId, validAuthReceipt);
 	}
 
 	/**
@@ -233,7 +256,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @return authenticationReceipt if it is valid and password check passed. null, if the authenticationReceipt was invalid, but password check passed.
 	 * @throws UnauthenticatedException if password check failed
 	 */
-	private String validateAuthReceiptAndCheckPassword(Long principalId, String password, String authenticationReceipt) {
+	String validateAuthReceiptAndCheckPassword(final Long principalId, final String password, final String authenticationReceipt) {
 		String validAuthReceipt = null;
 		if (authenticationReceipt != null && authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)){
 			validAuthReceipt = authenticationReceipt;
@@ -284,6 +307,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		response.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
 		response.setAuthenticationReceipt(newReceipt);
 		return response;
+	}
+
+	long findUserIdForAuthentication(final String usernameOrEmail){
+		PrincipalAlias principalAlias = principalAliasDAO.findPrincipalWithAlias(usernameOrEmail, AliasType.USER_EMAIL, AliasType.USER_NAME);
+		if (principalAlias == null){
+			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
+		}
+		return principalAlias.getPrincipalId();
 	}
 
 }

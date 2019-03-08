@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
@@ -40,7 +39,6 @@ import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthenticationServiceImplTest {
@@ -280,11 +278,11 @@ public class AuthenticationServiceImplTest {
 		String email = "user@test.com";
 		String passwordResetToken = "you can do it!";
 		when(mockUserManager.lookupUserByUsernameOrEmail(email)).thenReturn(principalAlias);
-		when(mockAuthenticationManager.createPasswordResetToken(principalAlias.getPrincipalId())).thenReturn(passwordResetToken);
+		when(mockAuthenticationManager.createOrRefreshPasswordResetToken(principalAlias.getPrincipalId())).thenReturn(passwordResetToken);
 
 		service.sendPasswordResetEmail(email);
 
-		verify(mockAuthenticationManager).createPasswordResetToken(principalAlias.getPrincipalId());
+		verify(mockAuthenticationManager).createOrRefreshPasswordResetToken(principalAlias.getPrincipalId());
 		verify(mockMessageManager).sendNewPasswordResetEmail(email, passwordResetToken);
 
 	}

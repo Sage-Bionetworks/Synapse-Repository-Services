@@ -20,6 +20,15 @@ public interface AuthenticationReceiptDAO {
 	public String createNewReceipt(long userId);
 
 	/**
+	 * Create a new receipt for that will expire after expirationPeriodMillis milliseconds.
+	 *
+	 * @param userId
+	 * @param expirationPeriodMillis
+	 * @return the newly created receipt
+	 */
+	public String createNewReceipt(long userId, long expirationPeriodMillis);
+
+	/**
 	 * Replace the old receipt with a new one
 	 * 
 	 * @param userId
