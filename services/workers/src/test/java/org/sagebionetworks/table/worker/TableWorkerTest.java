@@ -479,7 +479,6 @@ public class TableWorkerTest {
 		trc.setEtag("etag");
 		trc.setRowVersion(0L);
 		trc.setRowCount(12L);
-		trc.setIds(currentColumnIds);
 		trc.setChangeType(TableChangeType.ROW);
 		
 		when(mockTableEntityManager.getSparseChangeSet(trc)).thenReturn(sparseRowset1);
@@ -524,12 +523,10 @@ public class TableWorkerTest {
 	
 	@Test
 	public void testApplyColumnChange() throws IOException{
-		List<String> columnIds = Lists.newArrayList("222");
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(0L);
 		trc.setRowCount(12L);
-		trc.setIds(columnIds);
 		trc.setChangeType(TableChangeType.COLUMN);
 		
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(111L);

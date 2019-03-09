@@ -893,17 +893,6 @@ public class TableModelUtils {
 		return map;
 	}
 
-
-	/**
-	 * Map the column id to the column index.
-	 * 
-	 * @param rowset
-	 * @return
-	 */
-	public static Map<String, Integer> createColumnIdToIndexMap(TableRowChange rowChange) {
-		return createColumnIdToIndexMap(rowChange.getIds());
-	}
-
 	/**
 	 * Map the column id to the column index.
 	 * 

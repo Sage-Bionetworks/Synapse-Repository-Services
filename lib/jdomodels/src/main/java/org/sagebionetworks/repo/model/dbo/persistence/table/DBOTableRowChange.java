@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_BUCKET;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_COL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_COUNT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_CREATED_ON;
@@ -35,7 +34,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		new FieldColumn("tableId", COL_TABLE_ROW_TABLE_ID, true).withIsBackupId(true),
 		new FieldColumn("rowVersion", COL_TABLE_ROW_VERSION, true),
 		new FieldColumn("etag", COL_TABLE_ROW_TABLE_ETAG),
-		new FieldColumn("columnIds", COL_TABLE_ROW_COL_IDS),
 		new FieldColumn("createdBy", COL_TABLE_ROW_CREATED_BY),
 		new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON),
 		new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
@@ -67,7 +65,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				change.setTableId(rs.getLong(COL_TABLE_ROW_TABLE_ID));
 				change.setRowVersion(rs.getLong(COL_TABLE_ROW_VERSION));
 				change.setEtag(rs.getString(COL_TABLE_ROW_TABLE_ETAG));
-				change.setColumnIds(rs.getString(COL_TABLE_ROW_COL_IDS));
 				change.setCreatedBy(rs.getLong(COL_TABLE_ROW_CREATED_BY));
 				change.setCreatedOn(rs.getLong(COL_TABLE_ROW_CREATED_ON));
 				change.setBucket(rs.getString(COL_TABLE_ROW_BUCKET));

@@ -13,11 +13,6 @@
             "type": "string",
             "description": "The etag of this change"
         },
-        "ids": {
-            "description": "The list of ColumnModels ID that describes the rows of this change.",
-            "type": "array",
-            "items": {"type": "string"}
-        },
         "createdOn": {
             "type": "string",
             "format": "date-time",
