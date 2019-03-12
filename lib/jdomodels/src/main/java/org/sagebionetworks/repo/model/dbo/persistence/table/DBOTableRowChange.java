@@ -25,23 +25,20 @@ import org.sagebionetworks.repo.model.table.TableChangeType;
 
 /**
  * Database object for the TableEntity row changes.
+ * 
  * @author John
  *
  */
 public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowChange, DBOTableRowChange> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("tableId", COL_TABLE_ROW_TABLE_ID, true).withIsBackupId(true),
-		new FieldColumn("rowVersion", COL_TABLE_ROW_VERSION, true),
-		new FieldColumn("etag", COL_TABLE_ROW_TABLE_ETAG),
-		new FieldColumn("createdBy", COL_TABLE_ROW_CREATED_BY),
-		new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON),
-		new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
-		new FieldColumn("keyNew", COL_TABLE_ROW_KEY_NEW),
-		new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
-		new FieldColumn("changeType", COL_TABLE_ROW_TYPE),
-	};
-	
+			new FieldColumn("tableId", COL_TABLE_ROW_TABLE_ID, true).withIsBackupId(true),
+			new FieldColumn("rowVersion", COL_TABLE_ROW_VERSION, true),
+			new FieldColumn("etag", COL_TABLE_ROW_TABLE_ETAG), new FieldColumn("createdBy", COL_TABLE_ROW_CREATED_BY),
+			new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON), new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
+			new FieldColumn("keyNew", COL_TABLE_ROW_KEY_NEW), new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
+			new FieldColumn("changeType", COL_TABLE_ROW_TYPE),};
+
 	private Long tableId;
 	private String etag;
 	private Long rowVersion;
@@ -53,14 +50,13 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private String keyNew;
 	private Long rowCount;
 	private String changeType;
-	
+
 	@Override
 	public TableMapping<DBOTableRowChange> getTableMapping() {
 		return new TableMapping<DBOTableRowChange>() {
 
 			@Override
-			public DBOTableRowChange mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
+			public DBOTableRowChange mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOTableRowChange change = new DBOTableRowChange();
 				change.setTableId(rs.getLong(COL_TABLE_ROW_TABLE_ID));
 				change.setRowVersion(rs.getLong(COL_TABLE_ROW_VERSION));
@@ -167,7 +163,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	public void setKey(String key) {
 		this.key = key;
 	}
-	
+
 	public String getChangeType() {
 		return changeType;
 	}
@@ -178,6 +174,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	/**
 	 * This new key will replace old key.
+	 * 
 	 * @return
 	 */
 	public String getKeyNew() {
@@ -186,6 +183,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	/**
 	 * This new key will replace the old key.
+	 * 
 	 * @param keyNew
 	 */
 	public void setKeyNew(String keyNew) {
@@ -204,10 +202,10 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			@Override
 			public DBOTableRowChange createDatabaseObjectFromBackup(DBOTableRowChange backup) {
 				if (TableChangeType.COLUMN.equals(TableChangeType.valueOf(backup.getChangeType()))) {
-					if(backup.getKeyNew() == null) {
-						if(backup.getKey() == null) {
+					if (backup.getKeyNew() == null) {
+						if (backup.getKey() == null) {
 							throw new IllegalArgumentException("Column change missing both key and keyNew.");
-						}else {
+						} else {
 							backup.setKeyNew(backup.getKey());
 						}
 					}
@@ -233,7 +231,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	}
 
 	@Override
-	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
 
@@ -242,16 +240,12 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
-		result = prime * result
-				+ ((columnIds == null) ? 0 : columnIds.hashCode());
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((columnIds == null) ? 0 : columnIds.hashCode());
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
-		result = prime * result
-				+ ((rowVersion == null) ? 0 : rowVersion.hashCode());
+		result = prime * result + ((rowVersion == null) ? 0 : rowVersion.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
 		return result;
 	}
@@ -310,11 +304,9 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	@Override
 	public String toString() {
-		return "DBOTableRowChange [tableId=" + tableId + ", etag=" + etag
-				+ ", rowVersion=" + rowVersion + ", columnIds=" + columnIds
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", bucket=" + bucket + ", key=" + key + ", rowCount="
-				+ rowCount + "]";
+		return "DBOTableRowChange [tableId=" + tableId + ", etag=" + etag + ", rowVersion=" + rowVersion
+				+ ", columnIds=" + columnIds + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", bucket="
+				+ bucket + ", key=" + key + ", rowCount=" + rowCount + "]";
 	}
 
 }
