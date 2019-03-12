@@ -392,7 +392,7 @@ public class DBOBuilder<T> {
 				type = "bigint(20)";
 			} else if (fieldClazz == String.class) {
 				if (fieldAnnotation.varchar() != 0) {
-					type = "VARCHAR(" + fieldAnnotation.varchar() + ") CHARACTER SET latin1 COLLATE latin1_bin";
+					type = "VARCHAR(" + fieldAnnotation.varchar() + ") CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci";
 				} else if (fieldAnnotation.fixedchar() != 0) {
 					type = "CHAR(" + fieldAnnotation.fixedchar() + ")";
 				} else if (fieldAnnotation.etag()) {
