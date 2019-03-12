@@ -54,8 +54,6 @@ import com.amazonaws.services.s3.model.S3Object;
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
-	private static final String SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY = "UPDATE "+TABLE_ROW_CHANGE+" SET "+COL_TABLE_ROW_KEY_NEW+" = ? WHERE "+COL_TABLE_ROW_TABLE_ID+" = ? AND "+COL_TABLE_ROW_VERSION+" =?";
-
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
 
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
@@ -218,22 +216,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		basicDao.createNew(changeDBO);
 		return key;
-	}
-	
-	@WriteTransaction
-	@Override
-	public TableRowChange upgradeToNewChangeSet(String tableIdString, long rowVersion, final SparseChangeSetDto newDto) throws IOException {
-		// Write the delta to S3
-		String key = saveToS3(new WriterCallback() {
-			@Override
-			public void write(OutputStream out) throws IOException {
-				TableModelUtils.writeSparesChangeSetToGz(newDto, out);
-			}
-		});
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		// Set the new key only.
-		jdbcTemplate.update(SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY, key, tableId, rowVersion);
-		return getTableRowChange(tableIdString, rowVersion);
 	}
 	
 	@Override

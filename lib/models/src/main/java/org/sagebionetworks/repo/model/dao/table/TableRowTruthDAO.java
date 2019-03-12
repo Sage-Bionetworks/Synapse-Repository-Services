@@ -152,16 +152,5 @@ public interface TableRowTruthDAO {
 	 * 
 	 */
 	public void truncateAllRowData();
-
-	/**
-	 * Upgrade and existing change set using the new SparseChangeSetDto.
-	 * @param tableId
-	 * @param rowVersion
-	 * @param writeToDto
-	 * @return The new key of the change set.
-	 * @throws IOException 
-	 */
-	public TableRowChange upgradeToNewChangeSet(String tableId, long rowVersion,
-			SparseChangeSetDto newDto) throws IOException;	
 	
 }

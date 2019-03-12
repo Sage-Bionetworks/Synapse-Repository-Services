@@ -396,7 +396,6 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_TABLE_ID		= "TABLE_ID";
 	public static final String COL_TABLE_ROW_TABLE_ETAG		= "ETAG";
 	public static final String COL_TABLE_ROW_VERSION		= "ROW_VERSION";
-	public static final String COL_TABLE_ROW_COL_IDS		= "COLUMN_IDS";
 	public static final String COL_TABLE_ROW_CREATED_BY		= "CREATED_BY";
 	public static final String COL_TABLE_ROW_CREATED_ON		= "CREATED_ON";
 	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
