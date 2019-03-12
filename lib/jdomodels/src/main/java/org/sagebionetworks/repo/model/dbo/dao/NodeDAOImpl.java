@@ -344,7 +344,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		" ORDER BY " + LAST_ACCESSED_OR_CREATED;
 
 	private static final String SELECT_NAME_ORDER =
-		" ORDER BY n." + COL_NODE_NAME + " COLLATE 'latin1_general_ci'";
+		" ORDER BY n." + COL_NODE_NAME ;
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.

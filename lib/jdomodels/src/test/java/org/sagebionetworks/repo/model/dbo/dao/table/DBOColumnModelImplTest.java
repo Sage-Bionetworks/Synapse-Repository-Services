@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.codec.binary.Hex;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -452,6 +454,26 @@ public class DBOColumnModelImplTest {
 			results.add(cm);
 		}
 		return results;
+	}
+	
+	/**
+	 * Ensure we can write a UTF-8 column name to the database.
+	 * 
+	 * @throws UnsupportedEncodingException
+	 */
+	@Test
+	public void testPLFM_5429() throws UnsupportedEncodingException {
+		String name = "Aβ ELISA/WB";
+		byte[] latin = name.getBytes("ISO-8859-1");
+		System.out.println("Latin: "+Hex.encodeHexString(latin));
+		byte[] utf8 = name.getBytes("UTF-8");
+		System.out.println("utf-8: "+Hex.encodeHexString(utf8));
+		
+		ColumnModel column = new ColumnModel();
+		column.setName(name);
+		column.setColumnType(ColumnType.STRING);
+		column.setMaximumSize(10L);
+		columnModelDao.createColumnModel(column).getId();
 	}
 
 }

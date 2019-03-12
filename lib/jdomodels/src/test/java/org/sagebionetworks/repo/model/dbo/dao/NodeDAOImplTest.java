@@ -2299,7 +2299,7 @@ public class NodeDAOImplTest {
 		Long limit = 10L;
 		Long offset = 1L;
 		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
-		assertEquals(" ORDER BY n.NAME COLLATE 'latin1_general_ci' DESC limit :limitVal offset :offsetVal", result);
+		assertEquals(" ORDER BY n.NAME DESC limit :limitVal offset :offsetVal", result);
 		assertEquals(limit, parameters.get("limitVal"));
 		assertEquals(offset, parameters.get("offsetVal"));
 	}
