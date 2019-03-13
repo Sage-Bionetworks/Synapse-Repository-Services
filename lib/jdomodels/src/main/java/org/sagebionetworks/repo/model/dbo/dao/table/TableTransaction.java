@@ -9,16 +9,16 @@ import java.util.Date;
  */
 public class TableTransaction {
 	
-	Long transactionNumber;
+	Long transactionId;
 	String tableId;
 	Long startedBy;
 	Date startedOn;
 	
-	public Long getTransactionNumber() {
-		return transactionNumber;
+	public Long getTransactionId() {
+		return transactionId;
 	}
-	public TableTransaction withTransactionNumber(Long transactionNumber) {
-		this.transactionNumber = transactionNumber;
+	public TableTransaction withTransactionId(Long transactionNumber) {
+		this.transactionId = transactionNumber;
 		return this;
 	}
 	public String getTableId() {
@@ -49,7 +49,7 @@ public class TableTransaction {
 		result = prime * result + ((startedBy == null) ? 0 : startedBy.hashCode());
 		result = prime * result + ((startedOn == null) ? 0 : startedOn.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
-		result = prime * result + ((transactionNumber == null) ? 0 : transactionNumber.hashCode());
+		result = prime * result + ((transactionId == null) ? 0 : transactionId.hashCode());
 		return result;
 	}
 	@Override
@@ -76,16 +76,16 @@ public class TableTransaction {
 				return false;
 		} else if (!tableId.equals(other.tableId))
 			return false;
-		if (transactionNumber == null) {
-			if (other.transactionNumber != null)
+		if (transactionId == null) {
+			if (other.transactionId != null)
 				return false;
-		} else if (!transactionNumber.equals(other.transactionNumber))
+		} else if (!transactionId.equals(other.transactionId))
 			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
-		return "TableTransaction [transactionNumber=" + transactionNumber + ", tableId=" + tableId + ", startedBy="
+		return "TableTransaction [transactionNumber=" + transactionId + ", tableId=" + tableId + ", startedBy="
 				+ startedBy + ", startedOn=" + startedOn + "]";
 	}
 

@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
@@ -30,7 +31,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 	Long transactionId;
 	Long tableId;
 	Long startedBy;
-	Date startedOn;
+	Timestamp startedOn;
 
 	public Long getTransactionId() {
 		return transactionId;
@@ -60,7 +61,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 		return startedOn;
 	}
 
-	public void setStartedOn(Date startedOn) {
+	public void setStartedOn(Timestamp startedOn) {
 		this.startedOn = startedOn;
 	}
 
@@ -77,7 +78,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 				DBOTableTransaction dto = new DBOTableTransaction();
 				dto.setTransactionId(rs.getLong(COL_TABLE_TRX_ID));
 				dto.setTableId(rs.getLong(COL_TABLE_TABLE_ID));
-				dto.setStartedOn(rs.getDate(COL_TABLE_TRX_STARTED_ON));
+				dto.setStartedOn(rs.getTimestamp(COL_TABLE_TRX_STARTED_ON));
 				dto.setStartedBy(rs.getLong(COL_TABLE_TRX_STARTED_BY));
 				return dto;
 			}

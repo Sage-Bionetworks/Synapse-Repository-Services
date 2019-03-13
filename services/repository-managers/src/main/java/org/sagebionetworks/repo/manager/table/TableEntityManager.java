@@ -68,13 +68,6 @@ public interface TableEntityManager {
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
-	 * Delete all rows from a table.
-	 * 
-	 * @param models
-	 */
-	public void deleteAllRows(String id);
-
-	/**
 	 * Append all rows from the provided iterator into the a table. This method
 	 * will batch rows into optimum sized RowSets.
 	 * 

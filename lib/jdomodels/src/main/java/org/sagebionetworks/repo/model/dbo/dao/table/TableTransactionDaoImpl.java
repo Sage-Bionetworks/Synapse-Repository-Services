@@ -1,59 +1,73 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_TRANSACTION;
+
+import java.sql.Timestamp;
+
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableTransaction;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TABLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_STARTED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_STARTED_ON;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_TRANSACTION;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class TableTransactionDaoImpl implements TableTransactionDao {
 
-	private static final String SQL_INSERT_TRX = "INSERT INTO " + TABLE_TABLE_TRANSACTION + " (" + COL_TABLE_TRX_ID
-			+ "," + COL_TABLE_TABLE_ID + "," + COL_TABLE_TRX_STARTED_BY + "," + COL_TABLE_TRX_STARTED_ON + ")"
-			+ " VALUES (?,?,?,CURRENT_TIMESTAMP)";
+	private static final String SQL_DELETE_TABLE = "DELETE FROM " + TABLE_TABLE_TRANSACTION + " WHERE "
+			+ COL_TABLE_TABLE_ID + " = ?";
 
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private DBOBasicDao basicDao;
 
-	@MandatoryWriteTransaction
+	@WriteTransaction
 	@Override
 	public long startTransaction(String tableIdString, Long userId) {
 		ValidateArgument.required(tableIdString, "tableId");
 		ValidateArgument.required(userId, "userId");
-		long transactionId = idGenerator.generateNewId(IdType.TABLE_TRANSACTION_ID);
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		jdbcTemplate.update(SQL_INSERT_TRX, transactionId, tableId, userId);
-		return transactionId;
+		DBOTableTransaction dbo = new DBOTableTransaction();
+		dbo.setTransactionId(idGenerator.generateNewId(IdType.TABLE_TRANSACTION_ID));
+		dbo.setTableId(KeyFactory.stringToKey(tableIdString));
+		dbo.setStartedBy(userId);
+		dbo.setStartedOn(new Timestamp(System.currentTimeMillis()));
+		dbo = basicDao.createNew(dbo);
+		return dbo.getTransactionId();
 	}
 
 	@Override
 	public TableTransaction getTransaction(Long transactionId) {
 		ValidateArgument.required(transactionId, "transactionId");
-		return jdbcTemplate.queryForObject("", new RowMapper<TableTransaction>() {
+		DBOTableTransaction dbo = basicDao.getObjectByPrimaryKey(DBOTableTransaction.class,
+				new SinglePrimaryKeySqlParameterSource(transactionId));
+		return dboToDto(dbo);
+	}
 
-			@Override
-			public TableTransaction mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return new TableTransaction().withTransactionNumber(rs.getLong(COL_TABLE_TRX_ID))
-						.withTableId(KeyFactory.keyToString(rs.getLong(COL_TABLE_TABLE_ID)))
-						.withStartedBy(rs.getLong(COL_TABLE_TRX_STARTED_BY))
-						.withStartedOn(rs.getDate(COL_TABLE_TRX_STARTED_ON));
-			}
-		});
+	/**
+	 * Convert from the DBO to the DTO
+	 * 
+	 * @param dbo
+	 * @return
+	 */
+	public static TableTransaction dboToDto(DBOTableTransaction dbo) {
+		return new TableTransaction().withTransactionId(dbo.getTransactionId())
+				.withTableId(KeyFactory.keyToString(dbo.getTableId())).withStartedBy(dbo.getStartedBy())
+				.withStartedOn(dbo.getStartedOn());
+	}
+
+	@WriteTransaction
+	@Override
+	public int deleteTable(String tableIdString) {
+		ValidateArgument.required(tableIdString, "tableId");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		return jdbcTemplate.update(SQL_DELETE_TABLE, tableId);
 	}
 
 }

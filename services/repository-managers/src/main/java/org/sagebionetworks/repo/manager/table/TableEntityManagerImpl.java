@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -97,6 +98,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	TransactionTemplate readCommitedTransactionTemplate;
 	@Autowired
 	TableUploadManager tableUploadManager;
+	@Autowired
+	TableTransactionDao tableTransactionDao;
 	
 	/**
 	 * Injected via spring
@@ -184,13 +187,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
-	}
-
-	@WriteTransaction
-	@Override
-	public void deleteAllRows(String tableId) {
-		Validate.required(tableId, "tableId");
-		tableRowTruthDao.deleteAllRowDataForTable(tableId);
 	}
 
 	@WriteTransaction
@@ -781,7 +777,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	@Override
 	public void deleteTable(String deletedId) {
 		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
-		deleteAllRows(deletedId);
+		tableRowTruthDao.deleteAllRowDataForTable(deletedId);
+		tableTransactionDao.deleteTable(deletedId);
 	}
 
 }

@@ -32,12 +32,14 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -54,6 +56,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -94,7 +97,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -102,6 +104,7 @@ import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVReader;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableEntityManagerTest {
 	
 	@Mock
@@ -128,12 +131,16 @@ public class TableEntityManagerTest {
 	TableIndexManager mockIndexManager;
 	@Mock
 	TableUploadManager mockTableUploadManager;
+	@Mock
+	TableTransactionDao mockTableTransactionDao;
+	@InjectMocks
+	TableEntityManagerImpl manager;
+	
 	@Captor
 	ArgumentCaptor<List<String>> stringListCaptor;
 
 	List<ColumnModel> models;
 	
-	TableEntityManagerImpl manager;
 	UserInfo user;
 	String tableId;
 	Long tableIdLong;
@@ -160,17 +167,6 @@ public class TableEntityManagerTest {
 	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		
-		manager = new TableEntityManagerImpl();
-		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
-		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
-		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
-		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
-		ReflectionTestUtils.setField(manager, "tableUploadManager", mockTableUploadManager);
-		
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
@@ -902,6 +898,7 @@ public class TableEntityManagerTest {
 		manager.deleteTable(tableId);
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
+		verify(mockTableTransactionDao).deleteTable(tableId);
 	}
 	
 	@Test

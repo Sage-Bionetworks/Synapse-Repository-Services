@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class TableRowChangeUtils {
 	/**
@@ -17,8 +18,7 @@ public class TableRowChangeUtils {
 	 * @return
 	 */
 	public static TableRowChange ceateDTOFromDBO(DBOTableRowChange dbo) {
-		if (dbo == null)
-			throw new IllegalArgumentException("dbo cannot be null");
+		ValidateArgument.required(dbo, "dbo");
 		TableRowChange dto = new TableRowChange();
 		dto.setTableId(KeyFactory.keyToString(dbo.getTableId()));
 		dto.setRowVersion(dbo.getRowVersion());
@@ -40,8 +40,7 @@ public class TableRowChangeUtils {
 	 * @return
 	 */
 	public static DBOTableRowChange createDBOFromDTO(TableRowChange dto) {
-		if (dto == null)
-			throw new IllegalArgumentException("dto cannot be null");
+		ValidateArgument.required(dto, "dto");
 		DBOTableRowChange dbo = new DBOTableRowChange();
 		dbo.setTableId(KeyFactory.stringToKey(dto.getTableId()));
 		dbo.setRowVersion(dto.getRowVersion());
@@ -63,8 +62,7 @@ public class TableRowChangeUtils {
 	 * @return
 	 */
 	public static List<TableRowChange> ceateDTOFromDBO(List<DBOTableRowChange> dbos) {
-		if (dbos == null)
-			throw new IllegalArgumentException("DBOs cannot be null");
+		ValidateArgument.required(dbos, "dbos");
 		List<TableRowChange> dtos = new LinkedList<TableRowChange>();
 		for (DBOTableRowChange dbo : dbos) {
 			TableRowChange dto = ceateDTOFromDBO(dbo);

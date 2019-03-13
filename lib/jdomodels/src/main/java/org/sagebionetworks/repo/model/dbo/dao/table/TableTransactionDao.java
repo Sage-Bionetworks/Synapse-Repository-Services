@@ -10,12 +10,21 @@ public interface TableTransactionDao {
 	 * @return Returns the transaction number for the newly created transaction.
 	 */
 	long startTransaction(String tableId, Long userId);
-	
+
 	/**
-	 * Get 
+	 * Get
+	 * 
 	 * @param transactionId
 	 * @return
 	 */
 	TableTransaction getTransaction(Long transactionId);
+
+	/**
+	 * Delete all transaction data for a given table.
+	 * 
+	 * @param tableId
+	 * @return Number of transactions deleted.
+	 */
+	public int deleteTable(String tableId);
 
 }
