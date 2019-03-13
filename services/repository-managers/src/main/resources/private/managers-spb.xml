@@ -247,6 +247,8 @@
 	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffUnsuccessfulLoginLockoutImpl"/>
 
 	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
+
+	<bean id="passwordResetTokenGenerator" class="org.sagebionetworks.repo.manager.authentication.PasswordResetTokenGeneratorImpl"/>
 	
 	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSimpleEmailServiceClient"/>

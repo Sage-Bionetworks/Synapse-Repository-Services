@@ -22,7 +22,7 @@ public interface AuthenticationDAO {
 	 * @return true if the credentials are correct, false otherwise.
 	 */
 	public boolean checkUserCredentials(long principalId, String passHash);
-	
+
 	/**
 	 * Updates the timestamp associated with the user's session token it needed.
 	 * Unconditionally updating the timestamp of a session token was cuasing users to be
@@ -82,7 +82,26 @@ public interface AuthenticationDAO {
 	 * Returns the salt used to hash the user's password
 	 */
 	public byte[] getPasswordSalt(long principalId) throws NotFoundException;
-	
+
+	/**
+	 * Returns the password hash for a user
+	 * @param principalId user's Id
+	 * @return password hash for user
+	 */
+	public String getPasswordHash(long principalId);
+
+	/**
+	 * Returns the last timestamp in milliseconds the user was able to login successfully using username/password.
+	 * @param userId ID of the user
+	 * @return timestamp in milliseconds
+	 */
+	public Long getLastLoginTimestamp(long userId);
+
+	/**
+	 * Updates the last timestamp in milliseconds the user was able to login successfully using username/password to the current timestamp.
+	 */
+	public void touchLastLoginTimestamp();
+
 	/**
 	 * Changes a user's password
 	 */

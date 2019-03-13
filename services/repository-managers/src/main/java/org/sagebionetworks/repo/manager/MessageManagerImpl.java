@@ -627,7 +627,7 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public void sendNewPasswordResetEmail(String email, String passwordResetToken){
-		//TODO: implement
+		//TODO: implement and also change template
 	}
 	
 	@Override

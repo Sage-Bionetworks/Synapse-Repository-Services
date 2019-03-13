@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_LAST_LOGIN_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
@@ -152,7 +153,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public boolean checkUserCredentials(long principalId, String passHash) {
 		return jdbcTemplate.queryForObject(SELECT_COUNT_BY_EMAIL_AND_PASSWORD, Long.class, principalId, passHash) > 0;
 	}
-	
+
 	@Override
 	@WriteTransaction
 	public boolean revalidateSessionTokenIfNeeded(long principalId) {
@@ -245,18 +246,31 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public byte[] getPasswordSalt(long principalId) throws NotFoundException {
-		String passHash;
-		try {
-			passHash = jdbcTemplate.queryForObject(SELECT_PASSWORD, new SingleColumnRowMapper<String>(), principalId);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("User (" + principalId + ") does not exist");
-		}
+		String passHash = getPasswordHash(principalId);
 		if (passHash == null) {
 			return null;
 		}
 		return PBKDF2Utils.extractSalt(passHash);
 	}
-	
+
+	@Override
+	public String getPasswordHash(long principalId) {
+		try {
+			return jdbcTemplate.queryForObject(SELECT_PASSWORD, new SingleColumnRowMapper<String>(), principalId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("User (" + principalId + ") does not exist");
+		}
+	}
+
+	public Long getLastLoginTimestamp(long userId){
+
+	}
+
+
+	public void touchLastLoginTimestamp(){
+
+	}
+
 	@Override
 	@WriteTransaction
 	public void changePassword(long principalId, String passHash) {

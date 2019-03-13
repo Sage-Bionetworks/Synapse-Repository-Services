@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.PasswordResetTokenDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -37,7 +36,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
-	public static final long PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS = 20 * 60 * 1000; //20 minutes
 
 
 	@Autowired
@@ -57,7 +55,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
-	private PasswordResetTokenDAO passwordResetTokenDAO;
+	private PasswordResetTokenGenerator passwordResetTokenGenerator;
 	
 	@Override
 	public Long getPrincipalId(String sessionToken) {
@@ -152,15 +150,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @return id of user for which password change occurred
 	 */
 	long changePasswordWithToken(ChangePasswordWithToken changePasswordWithToken){
-		PBKDF2Utils.hashPassword(changePasswordWithToken.getPasswordChangeToken());
-		Long userId = passwordResetTokenDAO.getUserIdIfValidHash();
-		if (userId == null){
-			throw new IllegalArgumentException("passwordChangeToken is invalid or has already expired. Please request a password reset again.");
-		}
-
-		setPassword(userId, changePasswordWithToken.getNewPassword());
-
-		passwordResetTokenDAO.nullifyToken(changePasswordWithToken.getPasswordChangeToken());
 
 		return userId;
 	}
