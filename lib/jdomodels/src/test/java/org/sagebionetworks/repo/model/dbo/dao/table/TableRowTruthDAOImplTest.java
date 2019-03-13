@@ -7,21 +7,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -51,9 +46,6 @@ public class TableRowTruthDAOImplTest {
 	@Autowired
 	FileHandleDao fileHandleDao;
 
-	@Autowired
-	private IdGenerator idGenerator;
-
 	protected String creatorUserGroupId;
 
 	
@@ -77,31 +69,6 @@ public class TableRowTruthDAOImplTest {
 				} catch (Exception e) {}
 			}
 		}
-	}
-	
-	/**
-	 * Create some test fileHandle.
-	 * @param count
-	 * @return
-	 */
-	private List<S3FileHandle> createFileHandles(int count){
-		List<S3FileHandle> created = new LinkedList<S3FileHandle>();
-		for(int i=0; i<count; i++){
-			S3FileHandle fh = new S3FileHandle();
-			fh.setCreatedBy(creatorUserGroupId);
-			fh.setCreatedOn(new Date());
-			fh.setBucketName("bucket");
-			fh.setKey("mainFileKey");
-			fh.setEtag("etag");
-			fh.setFileName("foo.bar");
-			fh.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-			fh.setEtag(UUID.randomUUID().toString());
-			fh.setPreviewId(fh.getId());
-			fh = (S3FileHandle) fileHandleDao.createFile(fh);
-			fileHandleIds.add(fh.getId());
-			created.add(fh);
-		}
-		return created;
 	}
 
 	@Test

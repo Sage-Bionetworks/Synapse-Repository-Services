@@ -383,6 +383,14 @@ public class SqlConstants {
 	public static final String COL_CM_BYTES					= "BYTES";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
+	// Table transaction tracking.
+	public static final String TABLE_TABLE_TRANSACTION 	= "TABLE_TRANSACTION";
+	public static final String COL_TABLE_TRX_ID		 	= "TRX_ID";
+	public static final String COL_TABLE_TABLE_ID 		= "TABLE_ID";
+	public static final String COL_TABLE_TRX_STARTED_BY = "STARTED_BY";
+	public static final String COL_TABLE_TRX_STARTED_ON = "STARTED_ON";
+	public static final String DDL_TABLE_TRANSACTION	= "schema/TableTransaction-ddl.sql";
+	
 	// This table controls IDs issued to TableEntities.
 	public static final String TABLE_TABLE_ID_SEQUENCE		= "TABLE_ID_SEQUENCE";
 	public static final String COL_ID_SEQUENCE_TABLE_ID		= "TABLE_ID";

@@ -6,6 +6,7 @@ import java.util.List;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -31,6 +32,8 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	TableEntityManager tableEntityManager;
 	@Autowired
 	TableIndexConnectionFactory tableIndexConnectionFactory;
+	@Autowired
+	TableTransactionDao transactionDao;
 
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
@@ -168,6 +171,8 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	TableUpdateTransactionResponse doIntransactionUpdateTable(TransactionStatus status,
 			ProgressCallback callback, UserInfo userInfo,
 			TableUpdateTransactionRequest request) {
+		// Start a new table transaction and get a transaction number.
+		long transactionNumber = transactionDao.startTransaction(request.getEntityId(), userInfo.getId());
 		// execute each request
 		List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
 		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
