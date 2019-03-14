@@ -257,13 +257,17 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
+		result = prime * result + ((changeType == null) ? 0 : changeType.hashCode());
 		result = prime * result + ((columnIds == null) ? 0 : columnIds.hashCode());
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
+		result = prime * result + ((keyNew == null) ? 0 : keyNew.hashCode());
+		result = prime * result + ((rowCount == null) ? 0 : rowCount.hashCode());
 		result = prime * result + ((rowVersion == null) ? 0 : rowVersion.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
+		result = prime * result + ((transactionId == null) ? 0 : transactionId.hashCode());
 		return result;
 	}
 
@@ -280,6 +284,11 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			if (other.bucket != null)
 				return false;
 		} else if (!bucket.equals(other.bucket))
+			return false;
+		if (changeType == null) {
+			if (other.changeType != null)
+				return false;
+		} else if (!changeType.equals(other.changeType))
 			return false;
 		if (columnIds == null) {
 			if (other.columnIds != null)
@@ -306,6 +315,16 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				return false;
 		} else if (!key.equals(other.key))
 			return false;
+		if (keyNew == null) {
+			if (other.keyNew != null)
+				return false;
+		} else if (!keyNew.equals(other.keyNew))
+			return false;
+		if (rowCount == null) {
+			if (other.rowCount != null)
+				return false;
+		} else if (!rowCount.equals(other.rowCount))
+			return false;
 		if (rowVersion == null) {
 			if (other.rowVersion != null)
 				return false;
@@ -316,6 +335,11 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				return false;
 		} else if (!tableId.equals(other.tableId))
 			return false;
+		if (transactionId == null) {
+			if (other.transactionId != null)
+				return false;
+		} else if (!transactionId.equals(other.transactionId))
+			return false;
 		return true;
 	}
 
@@ -323,7 +347,8 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	public String toString() {
 		return "DBOTableRowChange [tableId=" + tableId + ", etag=" + etag + ", rowVersion=" + rowVersion
 				+ ", columnIds=" + columnIds + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", bucket="
-				+ bucket + ", key=" + key + ", rowCount=" + rowCount + "]";
+				+ bucket + ", key=" + key + ", keyNew=" + keyNew + ", rowCount=" + rowCount + ", changeType="
+				+ changeType + ", transactionId=" + transactionId + "]";
 	}
 
 }
