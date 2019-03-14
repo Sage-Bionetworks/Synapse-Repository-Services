@@ -10,7 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_RO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_TABLE_ROW_CHANGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,7 +40,8 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
 			new FieldColumn("keyNew", COL_TABLE_ROW_KEY_NEW),
 			new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
-			new FieldColumn("changeType", COL_TABLE_ROW_TYPE),};
+			new FieldColumn("changeType", COL_TABLE_ROW_TYPE),
+			new FieldColumn("transactionId", COL_TABLE_ROW_TRX_ID),};
 
 	private Long tableId;
 	private String etag;
@@ -53,6 +54,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private String keyNew;
 	private Long rowCount;
 	private String changeType;
+	private Long transactionId;
 
 	@Override
 	public TableMapping<DBOTableRowChange> getTableMapping() {
@@ -70,6 +72,10 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				change.setKeyNew(rs.getString(COL_TABLE_ROW_KEY_NEW));
 				change.setRowCount(rs.getLong(COL_TABLE_ROW_COUNT));
 				change.setChangeType(rs.getString(COL_TABLE_ROW_TYPE));
+				long transactionId = rs.getLong(COL_TABLE_ROW_TRX_ID);
+				if(!rs.wasNull()) {
+					change.setTransactionId(transactionId);
+				}
 				return change;
 			}
 
@@ -93,6 +99,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				return DBOTableRowChange.class;
 			}
 		};
+	}
+
+	public Long getTransactionId() {
+		return transactionId;
+	}
+
+	public void setTransactionId(Long transactionId) {
+		this.transactionId = transactionId;
 	}
 
 	public Long getRowCount() {

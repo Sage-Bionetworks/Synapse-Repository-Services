@@ -172,13 +172,13 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 			ProgressCallback callback, UserInfo userInfo,
 			TableUpdateTransactionRequest request) {
 		// Start a new table transaction and get a transaction number.
-		long transactionNumber = transactionDao.startTransaction(request.getEntityId(), userInfo.getId());
+		long transactionId = transactionDao.startTransaction(request.getEntityId(), userInfo.getId());
 		// execute each request
 		List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
 		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
 		response.setResults(results);
 		for(TableUpdateRequest change: request.getChanges()){
-			TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change);
+			TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change, transactionId);
 			results.add(changeResponse);
 		}
 		return response;

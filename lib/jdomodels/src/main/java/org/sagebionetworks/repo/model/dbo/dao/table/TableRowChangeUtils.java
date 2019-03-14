@@ -30,6 +30,7 @@ public class TableRowChangeUtils {
 		dto.setKeyNew(dbo.getKeyNew());
 		dto.setRowCount(dbo.getRowCount());
 		dto.setChangeType(TableChangeType.valueOf(dbo.getChangeType()));
+		dto.setTransactionId(dbo.getTransactionId());
 		return dto;
 	}
 
@@ -52,6 +53,7 @@ public class TableRowChangeUtils {
 		dbo.setKeyNew(dto.getKeyNew());
 		dbo.setRowCount(dto.getRowCount());
 		dbo.setChangeType(dto.getChangeType().name());
+		dbo.setTransactionId(dto.getTransactionId());
 		return dbo;
 	}
 

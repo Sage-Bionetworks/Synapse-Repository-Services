@@ -29,6 +29,8 @@ public class TableRowChangeUtilsTest {
 		dto.setEtag("someEtag");
 		dto.setRowCount(999L);
 		dto.setChangeType(TableChangeType.ROW);
+		dto.setTransactionId(222L);
+		
 		// To DBO
 		DBOTableRowChange dbo = TableRowChangeUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);
@@ -51,6 +53,7 @@ public class TableRowChangeUtilsTest {
 		dto.setEtag("someEtag");
 		dto.setRowCount(999L);
 		dto.setChangeType(TableChangeType.ROW);
+		dto.setTransactionId(null);
 		// To DBO
 		DBOTableRowChange dbo = TableRowChangeUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);

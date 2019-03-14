@@ -215,6 +215,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "TABLE_TRANSACTION",
+			"description": "Tracks all table transactions."
+		},
+		{
 			"name": "TABLE_SEQUENCE",
 			"description": "TODO: Auto-generated description"
 		},
@@ -317,10 +321,6 @@
 		{
 			"name": "DATA_TYPE",
 			"description": "TODO: Auto-generated description"
-		},
-		{
-			"name": "TABLE_TRANSACTION",
-			"description": "Tracks all table transactions."
 		},
 		{
 			"name": "CHANGE",

@@ -194,7 +194,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	@WriteTransaction
 	@Override
-	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta)
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId)
 			throws IOException {
 		// Write the delta to S3
 		String key = saveToS3(new WriterCallback() {
@@ -214,13 +214,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		changeDBO.setChangeType(TableChangeType.ROW.name());
+		changeDBO.setTransactionId(transactionId);
 		basicDao.createNew(changeDBO);
 		return key;
 	}
 	
 	@Override
 	public long appendSchemaChangeToTable(String userId, String tableId,
-			List<String> current, final List<ColumnChange> changes) throws IOException {
+			List<String> current, final List<ColumnChange> changes, long transactionId) throws IOException {
 		
 		long coutToReserver = 1;
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
@@ -243,6 +244,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(0L);
 		changeDBO.setChangeType(TableChangeType.COLUMN.name());
+		changeDBO.setTransactionId(transactionId);
 		basicDao.createNew(changeDBO);
 		return range.getVersionNumber();
 	}

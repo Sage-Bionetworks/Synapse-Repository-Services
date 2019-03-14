@@ -72,6 +72,8 @@ public class TableEntityTransactionManagerTest {
 	UserInfo userInfo;
 
 	TableUpdateTransactionResponse response;
+	
+	Long transactionId;
 
 	@SuppressWarnings("unchecked")
 	@Before
@@ -105,6 +107,9 @@ public class TableEntityTransactionManagerTest {
 				return callback.doInTransaction(mockTransactionStatus);
 			}
 		}).when(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
+		
+		transactionId = 987L;
+		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
 	}
 
 	@Test
@@ -236,7 +241,7 @@ public class TableEntityTransactionManagerTest {
 	public void testUpdateTableWithTransactionWithExclusiveLock(){
 		// call under test
 		manager.updateTableWithTransactionWithExclusiveLock(progressCallback, userInfo, request);
-		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest);
+		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest, transactionId);
 		verify(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
 	}
 	
@@ -245,6 +250,6 @@ public class TableEntityTransactionManagerTest {
 		// call under test
 		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
-		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class));
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
 	}
 }
