@@ -196,7 +196,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@Override
 	public String createOrRefreshPasswordResetToken(long userId) throws NotFoundException {
-		return passwordResetTokenDAO.createOrRefreshResetToken(userId, PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS);
+		return passwordResetTokenGenerator.getToken(userId);
 	}
 
 	@Override
@@ -234,7 +234,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 		String validAuthReceipt = validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
 
-		return getLoginResponseAfterSuccessfulAuthentication(userId, validAuthReceipt);
+		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId, validAuthReceipt);
 	}
 
 	/**
@@ -261,13 +261,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@Override
 	public LoginResponse loginWithNoPasswordCheck(long principalId){
-		return getLoginResponseAfterSuccessfulAuthentication(principalId, null);
+		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, null);
 	}
 
-	private LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String validatedAuthenticationReciept){
+	private LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String validatedAuthenticationReciept){
 		String newAuthenticationReceipt = createOrRefreshAuthenticationReceipt(principalId, validatedAuthenticationReciept);
 		//generate session tokens for user after successful check
 		Session session = getSessionToken(principalId);
+		authDAO.touchLastLoginTimestamp(principalId);
 		return createLoginResponse(session, newAuthenticationReceipt);
 	}
 

@@ -626,8 +626,34 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@WriteTransaction
-	public void sendNewPasswordResetEmail(String email, String passwordResetToken){
-		//TODO: implement and also change template
+	public void sendNewPasswordResetEmail(long userId, String passwordResetUrlPrefix, String email, String passwordResetToken){
+		//TODO: Change template and test
+		EmailUtils.validateSynapsePortalHost(passwordResetUrlPrefix);
+
+		String subject = "Set Synapse Password";
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+
+		String alias = principalAliasDAO.getUserName(userId);
+		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
+		String displayName = EmailUtils.getDisplayName(userProfile);
+
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
+
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
+		String webLink = passwordResetUrlPrefix + passwordResetToken;
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
+		String messageBody = EmailUtils.readMailTemplate("message/NewPasswordResetTemplate.txt", fieldValues);
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
+				.withRecipientEmail(email)
+				.withSubject(subject)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
+				.withSenderUserName(alias)
+				.withSenderDisplayName(displayName)
+				.withUserId(Long.toString(userId))
+				.withIsNotificationMessage(true)
+				.build();
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	@Override

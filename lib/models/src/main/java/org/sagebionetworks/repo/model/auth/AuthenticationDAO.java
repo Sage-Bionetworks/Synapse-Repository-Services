@@ -100,7 +100,7 @@ public interface AuthenticationDAO {
 	/**
 	 * Updates the last timestamp in milliseconds the user was able to login successfully using username/password to the current timestamp.
 	 */
-	public void touchLastLoginTimestamp();
+	public void touchLastLoginTimestamp(long principalId);
 
 	/**
 	 * Changes a user's password

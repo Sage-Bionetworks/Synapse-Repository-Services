@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_LAST_LOGIN_TIME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
@@ -34,6 +35,9 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 
 	@Field(name = COL_SESSION_TOKEN_SESSION_TOKEN, varchar = 100)
 	private String sessionToken;
+
+	@Field(name = COL_SESSION_TOKEN_LAST_LOGIN_TIME)
+	private Date lastLogin;
 
 	@Override
 	public TableMapping<DBOSessionToken> getTableMapping() {
