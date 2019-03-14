@@ -42,7 +42,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback, long transactionId)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -58,7 +58,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 */
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
-			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException;
+			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback progressCallback, long transactionId) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete a set of rows from a table.
@@ -66,13 +66,6 @@ public interface TableEntityManager {
 	 */
 	public RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete)
 			throws DatastoreException, NotFoundException, IOException;
-
-	/**
-	 * Delete all rows from a table.
-	 * 
-	 * @param models
-	 */
-	public void deleteAllRows(String id);
 
 	/**
 	 * Append all rows from the provided iterator into the a table. This method
@@ -97,7 +90,7 @@ public interface TableEntityManager {
 	 * @throws IOException
 	 */
 	TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
-			RowReferenceSet results, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException;
+			RowReferenceSet results, ProgressCallback progressCallback, long transactionId) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * List the changes that have been applied to a table.
@@ -227,7 +220,7 @@ public interface TableEntityManager {
 	 * @return
 	 */
 	public TableUpdateResponse updateTable(ProgressCallback callback,
-			UserInfo userInfo, TableUpdateRequest change);
+			UserInfo userInfo, TableUpdateRequest change, long transactionId);
 
 	/**
 	 * Get the schema for the table.

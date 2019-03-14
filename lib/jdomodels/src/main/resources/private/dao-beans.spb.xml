@@ -211,6 +211,11 @@
 		scope="singleton">
 	</bean>
 	
+	<bean id="tableTransactionDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDaoImpl"
+		scope="singleton">
+	</bean>
+	
 	<bean id="asynchJobStatusDao"
 		class="org.sagebionetworks.repo.model.dbo.asynch.AsynchJobStatusDAOImpl"
 		scope="singleton">

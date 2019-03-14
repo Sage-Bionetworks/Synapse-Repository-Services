@@ -52,6 +52,10 @@
                     "description": "TODO: Auto-generated description"
                 }
             ]
+        },
+        "transactionId": {
+            "type": "integer",
+            "description": "The ID of the transaction that this change belongs to."
         }
     }
 }

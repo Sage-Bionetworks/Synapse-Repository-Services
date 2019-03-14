@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -111,6 +112,9 @@ public class MigrationManagerImplAutowireTest {
 
 	@Autowired
 	IdGenerator idGenerator;
+	
+	@Autowired
+	TableTransactionDao tableTransactionDao;
 
 	private List<String> toDelete;
 	private UserInfo adminUser;
@@ -191,7 +195,8 @@ public class MigrationManagerImplAutowireTest {
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback);
+		long transactionId = tableTransactionDao.startTransaction(tableId, adminUser.getId());
+		tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback, transactionId);
 	}
 	
 	@After

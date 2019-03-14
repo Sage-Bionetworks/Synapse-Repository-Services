@@ -32,12 +32,14 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -54,6 +56,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -94,7 +97,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -102,6 +104,7 @@ import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVReader;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableEntityManagerTest {
 	
 	@Mock
@@ -128,12 +131,16 @@ public class TableEntityManagerTest {
 	TableIndexManager mockIndexManager;
 	@Mock
 	TableUploadManager mockTableUploadManager;
+	@Mock
+	TableTransactionDao mockTableTransactionDao;
+	@InjectMocks
+	TableEntityManagerImpl manager;
+	
 	@Captor
 	ArgumentCaptor<List<String>> stringListCaptor;
 
 	List<ColumnModel> models;
 	
-	TableEntityManagerImpl manager;
 	UserInfo user;
 	String tableId;
 	Long tableIdLong;
@@ -157,20 +164,11 @@ public class TableEntityManagerTest {
 	List<ColumnChangeDetails> columChangedetails;
 	List<String> newColumnIds;
 	
+	Long transactionId;
+	
 	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		
-		manager = new TableEntityManagerImpl();
-		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
-		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
-		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
-		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
-		ReflectionTestUtils.setField(manager, "tableUploadManager", mockTableUploadManager);
-		
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
@@ -310,12 +308,14 @@ public class TableEntityManagerTest {
 		range3.setMinimumId(51L);
 		
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyInt())).thenReturn(range, range2, range3);
+		
+		transactionId = 987L;
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
-		manager.appendRows(user, tableId, set, mockProgressCallback);
+		manager.appendRows(user, tableId, set, mockProgressCallback, transactionId);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -323,7 +323,7 @@ public class TableEntityManagerTest {
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
-				null, mockProgressCallback);
+				null, mockProgressCallback, transactionId);
 	}
 	
 	@Test
@@ -336,7 +336,7 @@ public class TableEntityManagerTest {
 		
 		int rowCount = rawSet.getRows().size();
 		// Call under test
-		RowReferenceSet refSet = manager.appendRowsToTable(user, models, sparseChangeSet);
+		RowReferenceSet refSet = manager.appendRowsToTable(user, models, sparseChangeSet, transactionId);
 		assertNotNull(refSet);
 		assertEquals(tableId, refSet.getTableId());
 		assertEquals(range.getEtag(), refSet.getEtag());
@@ -364,12 +364,12 @@ public class TableEntityManagerTest {
 		// row level conflict test
 		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 0L);
 		// save the row set
-		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto());
+		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto(), transactionId);
 	}
 	
 	@Test
 	public void testAppendRowsHappy() throws DatastoreException, NotFoundException, IOException{
-		RowReferenceSet results = manager.appendRows(user, tableId, set, mockProgressCallback);
+		RowReferenceSet results = manager.appendRows(user, tableId, set, mockProgressCallback, transactionId);
 		assertNotNull(results);
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
@@ -392,7 +392,7 @@ public class TableEntityManagerTest {
 		range.setMinimumId(1000L);
 		when(mockTruthDao.reserveIdsInRange(any(String.class), anyLong())).thenReturn(range);
 		try {
-			manager.appendRows(user, tableId, set, mockProgressCallback);
+			manager.appendRows(user, tableId, set, mockProgressCallback, transactionId);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertEquals(TableEntityManagerImpl.MAXIMUM_TABLE_SIZE_EXCEEDED, e.getMessage());
@@ -401,7 +401,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testAppendPartialRowsHappy() throws DatastoreException, NotFoundException, IOException {
-		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback);
+		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback, transactionId);
 		assertNotNull(results);
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
@@ -412,7 +412,7 @@ public class TableEntityManagerTest {
 	public void testAppendPartialRowsSizeTooLarge() throws DatastoreException, NotFoundException, IOException {
 		manager.setMaxBytesPerRequest(1);
 		try {
-			manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback);
+			manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback, transactionId);
 			fail("Should have failed");
 		} catch (IllegalArgumentException e) {
 			assertEquals(String.format(TableModelUtils.EXCEEDS_MAX_SIZE_TEMPLATE, 1), e.getMessage());
@@ -434,7 +434,7 @@ public class TableEntityManagerTest {
 		partialSet.setTableId(tableId);
 		partialSet.setRows(Arrays.asList(partialRow));
 		try {
-			manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback);
+			manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback, transactionId);
 			fail("Should have failed since a column name was used and not an ID.");
 		} catch (IllegalArgumentException e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
@@ -445,7 +445,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
 		RowReferenceSet results = new RowReferenceSet();
-		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback, transactionId);
 		assertNotNull(response);
 		assertTrue(response instanceof UploadToTableResult);
 		UploadToTableResult uploadToTableResult = (UploadToTableResult)response;
@@ -470,7 +470,7 @@ public class TableEntityManagerTest {
 		String etag = "etag";
 		RowReferenceSet results = new RowReferenceSet();
 		// call under test
-		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSetWithRowIds.writeToDto().getRows().iterator(), etag, results, mockProgressCallback);
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSetWithRowIds.writeToDto().getRows().iterator(), etag, results, mockProgressCallback, transactionId);
 		assertNotNull(response);
 		
 		// a rowIds should be assigned to each row.
@@ -485,7 +485,7 @@ public class TableEntityManagerTest {
 		String etag = "etag";
 		RowReferenceSet results = new RowReferenceSet();
 		// call under test
-		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSetWithRowIds.writeToDto().getRows().iterator(), etag, results, mockProgressCallback);
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSetWithRowIds.writeToDto().getRows().iterator(), etag, results, mockProgressCallback, transactionId);
 		assertNotNull(response);
 		// no rowIds should be reserved. Each row should already have a rowId.
 		long idsToReserve = 0;
@@ -507,7 +507,7 @@ public class TableEntityManagerTest {
 		tooBigSet.setHeaders(TableModelUtils.getSelectColumns(models));
 		tooBigSet.setRows(rows);
 		try {
-			manager.appendRows(user, tableId, tooBigSet, mockProgressCallback);
+			manager.appendRows(user, tableId, tooBigSet, mockProgressCallback, transactionId);
 			fail("The passed RowSet should have been too large");
 		} catch (IllegalArgumentException e) {
 			assertEquals(String.format(TableModelUtils.EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest), e.getMessage());
@@ -521,7 +521,7 @@ public class TableEntityManagerTest {
 		// With this max, there should be three batches (4,8,2)
 		manager.setMaxBytesPerChangeSet(actualSizeFristRowBytes*3);
 		RowReferenceSet results = new RowReferenceSet();
-		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback, transactionId);
 		assertNotNull(response);
 		assertTrue(response instanceof UploadToTableResult);
 		UploadToTableResult uploadToTableResult = (UploadToTableResult)response;
@@ -556,7 +556,7 @@ public class TableEntityManagerTest {
 		assertNotNull(deleteRows);
 
 		// verify the correct row set was generated
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
@@ -663,9 +663,9 @@ public class TableEntityManagerTest {
 		replace.setRows(replaceRows);
 		
 		// call under test
-		manager.appendRows(user, tableId, replace, mockProgressCallback);
+		manager.appendRows(user, tableId, replace, mockProgressCallback, transactionId);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
@@ -687,9 +687,9 @@ public class TableEntityManagerTest {
 		updateRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		replace.setRows(updateRows);
 
-		manager.appendRows(user, tableId, replace, mockProgressCallback);
+		manager.appendRows(user, tableId, replace, mockProgressCallback, transactionId);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
@@ -803,7 +803,7 @@ public class TableEntityManagerTest {
 		RowReferenceSet results = new RowReferenceSet();
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
-				results, mockProgressCallback);
+				results, mockProgressCallback, transactionId);
 	}
 	
 	@Test (expected=ReadOnlyException.class)
@@ -815,7 +815,7 @@ public class TableEntityManagerTest {
 		RowReferenceSet results = new RowReferenceSet();
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
-				results, mockProgressCallback);
+				results, mockProgressCallback, transactionId);
 	}
 	
 	@Test
@@ -902,6 +902,7 @@ public class TableEntityManagerTest {
 		manager.deleteTable(tableId);
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
+		verify(mockTableTransactionDao).deleteTable(tableId);
 	}
 	
 	@Test
@@ -1070,7 +1071,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testUpdateTable() throws IOException{
 		// call under test.
-		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
@@ -1080,8 +1081,8 @@ public class TableEntityManagerTest {
 		UploadToTableRequest request = new UploadToTableRequest();
 		request.setTableId(tableId);
 		// call under test.
-		manager.updateTable(mockProgressCallbackVoid, user, request);
-		verify(mockTableUploadManager).uploadCSV(mockProgressCallbackVoid, user, request, manager);
+		manager.updateTable(mockProgressCallbackVoid, user, request, transactionId);
+		verify(mockTableUploadManager).uploadCSV(eq(mockProgressCallbackVoid), eq(user), eq(request), any(UploadRowProcessor.class));
 		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
 	
@@ -1090,7 +1091,7 @@ public class TableEntityManagerTest {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(partialSet);
 		// call under test.
-		manager.updateTable(mockProgressCallbackVoid, user, request);
+		manager.updateTable(mockProgressCallbackVoid, user, request, transactionId);
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.ROW);
 		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
@@ -1099,28 +1100,28 @@ public class TableEntityManagerTest {
 	public void testUpdateTableNullProgress() throws IOException{
 		mockProgressCallbackVoid = null;
 		// call under test.
-		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateTableNullUser() throws IOException{
 		user = null;
 		// call under test.
-		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateTableNullRequset() throws IOException{
 		schemaChangeRequest = null;
 		// call under test.
-		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateTableUnkownRequset() throws IOException{
 		TableUpdateRequest unknown = Mockito.mock(TableUpdateRequest.class);
 		// call under test.
-		manager.updateTable(mockProgressCallbackVoid, user, unknown);
+		manager.updateTable(mockProgressCallbackVoid, user, unknown, transactionId);
 	}
 	
 	@Test
@@ -1128,7 +1129,7 @@ public class TableEntityManagerTest {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(partialSet);
 		// call under test
-		TableUpdateResponse response = manager.appendToTable(mockProgressCallback, user, request);
+		TableUpdateResponse response = manager.appendToTable(mockProgressCallback, user, request, transactionId);
 		assertNotNull(response);
 		assertTrue(response instanceof RowReferenceSetResults);
 		RowReferenceSetResults  rrsr = (RowReferenceSetResults) response;
@@ -1142,7 +1143,7 @@ public class TableEntityManagerTest {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(set);
 		// call under test
-		TableUpdateResponse response = manager.appendToTable(mockProgressCallback, user, request);
+		TableUpdateResponse response = manager.appendToTable(mockProgressCallback, user, request, transactionId);
 		assertNotNull(response);
 		assertTrue(response instanceof RowReferenceSetResults);
 		RowReferenceSetResults  rrsr = (RowReferenceSetResults) response;
@@ -1155,7 +1156,7 @@ public class TableEntityManagerTest {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(null);
 		// call under test
-		manager.appendToTable(mockProgressCallback, user, request);
+		manager.appendToTable(mockProgressCallback, user, request, transactionId);
 	}
 	
 	@Test
@@ -1163,11 +1164,11 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.bindColumnToObject(newColumnIds, tableId)).thenReturn(models);
 		List<String> newSchemaIdsLong = TableModelUtils.getIds(models);
 		// call under test.
-		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
+		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
-		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges());
+		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges(), transactionId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 
@@ -1189,12 +1190,12 @@ public class TableEntityManagerTest {
 		schemaChangeRequest.setOrderedColumnIds(newColumnIds);
 		when(mockColumModelManager.bindColumnToObject(newColumnIds, tableId)).thenReturn(models);
 		// call under test.
-		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
+		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), newColumnIds);
 		verify(mockColumModelManager).bindColumnToObject(newColumnIds, tableId);
-		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class));
+		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class), anyLong());
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
