@@ -2368,7 +2368,7 @@ public class TableWorkerIntegrationTest {
 	 */
 	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException {
 		long transactionId = tableTransactionDao.startTransaction(tableId, user.getId());
-		return tableEntityManager.appendRows(adminUserInfo, tableId,
+		return tableEntityManager.appendRows(user, tableId,
 				delta, mockPprogressCallback, transactionId);
 	}
 	
