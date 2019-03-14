@@ -25,7 +25,6 @@ public class PasswordResetTokenGeneratorImpl implements PasswordResetTokenGenera
 
 	public static final long PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS = 20 * 60 * 1000; //20 minutes
 
-	private static final String DELIMITER = ".";
 
 	@Override
 	public PasswordResetSignedToken getToken(long userId){
@@ -59,12 +58,10 @@ public class PasswordResetTokenGeneratorImpl implements PasswordResetTokenGenera
 	String createValidityHash(long userId){
 		/*
 		The concatenation of the user's password hash and the user's authentication receipt.
-		This ensures that in the event of:
-		1. Password change - Password hash changes even if it is changed to the exact same password since the salt is randomly generated on every password change
-		2. Successful login - Last login timestamp changes
-		Any of these events occurring would therefore change the validity hash and consequently invalidate the token.
+		This ensures that in the event of a password change the token becomes invalid.
+		Password hash changes even if it is changed to the exact same password since the salt is randomly generated on every password change
 		 */
-		String data = authenticationDAO.getPasswordHash(userId) + DELIMITER + authenticationDAO.getLastLoginTimestamp(userId);
+		String data = authenticationDAO.getPasswordHash(userId);
 		return DigestUtils.sha256Hex(data);
 	}
 

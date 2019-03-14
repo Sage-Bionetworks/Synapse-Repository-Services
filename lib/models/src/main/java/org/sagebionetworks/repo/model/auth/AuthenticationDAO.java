@@ -91,18 +91,6 @@ public interface AuthenticationDAO {
 	public String getPasswordHash(long principalId);
 
 	/**
-	 * Returns the last timestamp in milliseconds the user was able to login successfully using username/password.
-	 * @param userId ID of the user
-	 * @return timestamp in milliseconds
-	 */
-	public Long getLastLoginTimestamp(long userId);
-
-	/**
-	 * Updates the last timestamp in milliseconds the user was able to login successfully using username/password to the current timestamp.
-	 */
-	public void touchLastLoginTimestamp(long principalId);
-
-	/**
 	 * Changes a user's password
 	 */
 	public void changePassword(long principalId, String passHash);

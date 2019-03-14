@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_LAST_LOGIN_TIME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
@@ -75,17 +74,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			" SET "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"= ?"+
 			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?";
 
-	private static final String SELECT_LAST_LOGIN =
-			"SELECT " + COL_SESSION_TOKEN_LAST_LOGIN_TIME +
-			" FROM " + TABLE_SESSION_TOKEN +
-			" WHERE " + COL_SESSION_TOKEN_PRINCIPAL_ID + " = ?";
-
-	private static final String UPDATE_LAST_LOGIN =
-			"UPDATE " + TABLE_SESSION_TOKEN+
-			" SET " + COL_SESSION_TOKEN_LAST_LOGIN_TIME + " = ? "+
-			" WHERE " + COL_SESSION_TOKEN_PRINCIPAL_ID + " = ?";
-
-	private static final String IF_VALID_SUFFIX = 
+	private static final String IF_VALID_SUFFIX =
 			" AND "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"> ?";
 	
 	// NOTE: Neither in this version, or the prior version, were you selecting by user's name
@@ -270,19 +259,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("User (" + principalId + ") does not exist");
 		}
-	}
-
-	public Long getLastLoginTimestamp(long userId) {//TODO: test
-		try {
-			return jdbcTemplate.queryForObject(SELECT_LAST_LOGIN, Long.class, userId);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("User (" + userId + ") does not exist");
-		}
-	}
-
-
-	public void touchLastLoginTimestamp(long userId){ //TODO: test
-		jdbcTemplate.update(UPDATE_LAST_LOGIN, clock.currentTimeMillis(), userId);
 	}
 
 	@Override

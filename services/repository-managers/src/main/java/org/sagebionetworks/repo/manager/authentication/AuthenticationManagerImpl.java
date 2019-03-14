@@ -268,7 +268,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		String newAuthenticationReceipt = createOrRefreshAuthenticationReceipt(principalId, validatedAuthenticationReciept);
 		//generate session tokens for user after successful check
 		Session session = getSessionToken(principalId);
-		authDAO.touchLastLoginTimestamp(principalId);
 		return createLoginResponse(session, newAuthenticationReceipt);
 	}
 
