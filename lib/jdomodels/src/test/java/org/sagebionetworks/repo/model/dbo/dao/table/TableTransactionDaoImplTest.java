@@ -45,10 +45,31 @@ public class TableTransactionDaoImplTest {
 		assertEquals(1, tableTransactionDao.deleteTable(tableId));
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testStartTransactionNullTableId() {
+		tableId = null;
+		// call under test
+		tableTransactionDao.startTransaction(tableId, userId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testStartTransactionNullUserd() {
+		userId = null;
+		// call under test
+		tableTransactionDao.startTransaction(tableId, userId);
+	}
+	
 	@Test (expected=NotFoundException.class)
 	public void testGetNotFound() {
 		// call under test
 		tableTransactionDao.getTransaction(-1L);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetNullId() {
+		Long id = null;
+		// call under test
+		tableTransactionDao.getTransaction(id);
 	}
 	
 	@Test
@@ -69,5 +90,12 @@ public class TableTransactionDaoImplTest {
 		// should still be able to get two
 		assertNotNull(tableTransactionDao.getTransaction(twoOne));
 		assertEquals(1, tableTransactionDao.deleteTable(tableTwoId));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteNullTableId() {
+		tableId = null;
+		// call under test
+		tableTransactionDao.deleteTable(tableId);
 	}
 }
