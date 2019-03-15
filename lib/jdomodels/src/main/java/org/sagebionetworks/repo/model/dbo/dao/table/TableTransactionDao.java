@@ -21,7 +21,7 @@ public interface TableTransactionDao {
 	 * @param startedOn
 	 * @return
 	 */
-	long startTransaction(String tableId, Long userId, Timestamp startedOn);
+	long startTransaction(String tableId, Long userId, Long startedOn);
 
 	/**
 	 * Get

@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableTransaction;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -48,18 +48,22 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 			}
 		}
 	}
-	
+	/**
+	 * Find an existing transaction to match the provided change.  If 
+	 * a match cannot be found create a new transaction.
+	 * @param rowChange
+	 */
 	public void findOrCreateTransaction(DBOTableRowChange rowChange) {
 		Long transactionId = null;
 		// Attempt to match the previous change's transaction to this change.
 		DBOTableTransaction previousTransaction = getPreviousTransaction(rowChange);
 		if(previousTransaction != null) {
 			if(previousTransaction.getStartedBy().equals(rowChange.getCreatedBy())) {
-				if(rowChange.getCreatedOn() < previousTransaction.getStartedOn().getTime()) {
+				// The same user created this change as the previous change.
+				if(rowChange.getCreatedOn() < previousTransaction.getStartedOn()) {
 					throw new IllegalStateException("Table change createdOn is less than previous changes's transaction startedOn: "+rowChange);
 				}
-				// The same user created this change as the previous change.
-				if(previousTransaction.getStartedOn().getTime() + ONE_HOUR_MS >= rowChange.getCreatedOn()) {
+				if(previousTransaction.getStartedOn() + ONE_HOUR_MS >= rowChange.getCreatedOn()) {
 					// The previous change was started within one hour of this change.
 					transactionId = previousTransaction.getTransactionId();
 				}
@@ -80,7 +84,7 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 	 * @return
 	 */
 	public long startTransactionForChange(DBOTableRowChange rowChange) {
-		return tableTransactionDao.startTransaction(""+rowChange.getTableId(), rowChange.getCreatedBy(), new Timestamp(rowChange.getCreatedOn()));
+		return tableTransactionDao.startTransaction(""+rowChange.getTableId(), rowChange.getCreatedBy(), rowChange.getCreatedOn());
 	}
 	
 	/**
@@ -91,15 +95,18 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 	public DBOTableTransaction getPreviousTransaction(DBOTableRowChange rowChange) {
 		try {
 			// Find the previous row version
-			long previousRowVersion = jdbcTemplate.queryForObject(
-					"SELECT MAX(ROW_VERSION) FROM TABLE_ROW_CHANGE WHERE TABLE_ID = ? ROW_VERSION < ?",
+			Long previousRowVersion = jdbcTemplate.queryForObject(
+					"SELECT MAX(ROW_VERSION) FROM TABLE_ROW_CHANGE WHERE TABLE_ID = ? AND ROW_VERSION < ?",
 					Long.class, rowChange.getTableId(), rowChange.getRowVersion());
+			if(previousRowVersion == null) {
+				return null;
+			}
 			// Lookup the transaction for the previous vesion.s
 			return jdbcTemplate.queryForObject("SELECT T.* FROM TABLE_TRANSACTION T"
 					+ " JOIN TABLE_ROW_CHANGE C ON (T.TABLE_ID = C.TABLE_ID AND T.TRX_ID = C.TRX_ID)"
 					+ " WHERE C.TABLE_ID = ? AND C.ROW_VERSION = ?", TRANSACTION_MAPPER,
 					rowChange.getTableId(), previousRowVersion);
-		} catch (DataAccessException e) {
+		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
 	}
