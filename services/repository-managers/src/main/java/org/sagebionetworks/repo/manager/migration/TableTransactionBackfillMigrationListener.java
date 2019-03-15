@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransaction;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableTransaction;
@@ -14,8 +13,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
 public class TableTransactionBackfillMigrationListener implements MigrationTypeListener {
 	
 	@Autowired
@@ -23,8 +20,6 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 	
 	@Autowired
 	JdbcTemplate jdbcTemplate;
-	
-	public static Long FIRST_CHANGE = 0L;
 	
 	public static long ONE_HOUR_MS = 1000L*60L;
 	
@@ -56,12 +51,9 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 	
 	public void findOrCreateTransaction(DBOTableRowChange rowChange) {
 		Long transactionId = null;
-		if(FIRST_CHANGE.equals(rowChange.getRowVersion())){
-			// First change of this table to start a new transaction
-			transactionId = startTransactionForChange(rowChange);
-		}else {
-			// Attempt to match the previous change's transaction to this change.
-			DBOTableTransaction previousTransaction = getPreviousTransaction(rowChange);
+		// Attempt to match the previous change's transaction to this change.
+		DBOTableTransaction previousTransaction = getPreviousTransaction(rowChange);
+		if(previousTransaction != null) {
 			if(previousTransaction.getStartedBy().equals(rowChange.getCreatedBy())) {
 				if(rowChange.getCreatedOn() < previousTransaction.getStartedOn().getTime()) {
 					throw new IllegalStateException("Table change createdOn is less than previous changes's transaction startedOn: "+rowChange);
@@ -73,7 +65,7 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 				}
 			}
 		}
-		
+
 		if(transactionId == null) {
 			// no match found so start a new transaction for this change
 			transactionId = startTransactionForChange(rowChange);
@@ -108,7 +100,7 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 					+ " WHERE C.TABLE_ID = ? AND C.ROW_VERSION = ?", TRANSACTION_MAPPER,
 					rowChange.getTableId(), previousRowVersion);
 		} catch (DataAccessException e) {
-			throw new IllegalStateException("Failed to find a previous transaction for "+rowChange, e);
+			return null;
 		}
 	}
 	
