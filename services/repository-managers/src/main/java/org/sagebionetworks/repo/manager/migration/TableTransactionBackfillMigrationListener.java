@@ -21,7 +21,7 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 	@Autowired
 	JdbcTemplate jdbcTemplate;
 	
-	public static long ONE_HOUR_MS = 1000L*60L;
+	public static long ONE_MINUTE = 1000L*60L;
 	
 	RowMapper<DBOTableTransaction> TRANSACTION_MAPPER = new DBOTableTransaction().getTableMapping();
 
@@ -91,7 +91,7 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 			return jdbcTemplate.queryForObject("SELECT T.TRX_ID FROM TABLE_TRANSACTION T"
 					+ " JOIN TABLE_ROW_CHANGE C ON (T.TABLE_ID = C.TABLE_ID AND T.TRX_ID = C.TRX_ID)"
 					+ " WHERE C.TABLE_ID = ? AND C.ROW_VERSION = ? AND C.CREATED_BY = ? AND C.CREATED_ON > ?", Long.class,
-					rowChange.getTableId(), previousRowVersion, rowChange.getCreatedBy(), rowChange.getCreatedOn() - ONE_HOUR_MS);
+					rowChange.getTableId(), previousRowVersion, rowChange.getCreatedBy(), rowChange.getCreatedOn() - ONE_MINUTE);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
