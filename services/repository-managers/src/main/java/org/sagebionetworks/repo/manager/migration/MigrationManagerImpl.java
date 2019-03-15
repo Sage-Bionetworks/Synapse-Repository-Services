@@ -470,7 +470,8 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param aliasType
 	 * @return
 	 */
-	RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
+	@Override
+	public RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
 			BackupAliasType backupAliasType, long batchSize) {
 		RestoreTypeResponse response = new RestoreTypeResponse();
 		if(!this.migratableTableDao.isMigrationTypeRegistered(primaryType)) {

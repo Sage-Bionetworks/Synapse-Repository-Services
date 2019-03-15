@@ -57,7 +57,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 		this.startedBy = startedBy;
 	}
 
-	public Date getStartedOn() {
+	public Timestamp getStartedOn() {
 		return startedOn;
 	}
 

@@ -30,16 +30,27 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 
 	@WriteTransaction
 	@Override
-	public long startTransaction(String tableIdString, Long userId) {
+	public long startTransaction(String tableIdString, Long userId, Timestamp startedOn) {
 		ValidateArgument.required(tableIdString, "tableId");
 		ValidateArgument.required(userId, "userId");
 		DBOTableTransaction dbo = new DBOTableTransaction();
 		dbo.setTransactionId(idGenerator.generateNewId(IdType.TABLE_TRANSACTION_ID));
 		dbo.setTableId(KeyFactory.stringToKey(tableIdString));
 		dbo.setStartedBy(userId);
-		dbo.setStartedOn(new Timestamp(System.currentTimeMillis()));
+		if(startedOn == null) {
+			dbo.setStartedOn(new Timestamp(System.currentTimeMillis()));
+		}else {
+			dbo.setStartedOn(startedOn);
+		}
 		dbo = basicDao.createNew(dbo);
 		return dbo.getTransactionId();
+	}
+	
+	@WriteTransaction
+	@Override
+	public long startTransaction(String tableId, Long userId) {
+		Timestamp startedOn = null;
+		return startTransaction(tableId, userId, startedOn);
 	}
 
 	@Override
@@ -69,5 +80,6 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		return jdbcTemplate.update(SQL_DELETE_TABLE, tableId);
 	}
+
 
 }

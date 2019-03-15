@@ -269,6 +269,7 @@
 			ref="stackConfiguration.migrationBackupBatchMax" />
 		<property name="migrationListeners" >
 			<list>
+			<bean id="tableChangeTransactoinBackfill" class="org.sagebionetworks.repo.manager.migration.TableTransactionBackfillMigrationListener"/>
 			</list>
 		</property>
 	</bean>
