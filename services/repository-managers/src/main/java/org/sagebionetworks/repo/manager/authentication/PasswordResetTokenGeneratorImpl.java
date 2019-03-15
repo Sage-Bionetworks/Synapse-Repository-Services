@@ -23,7 +23,7 @@ public class PasswordResetTokenGeneratorImpl implements PasswordResetTokenGenera
 	@Autowired
 	AuthenticationDAO authenticationDAO;
 
-	public static final long PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS = 20 * 60 * 1000; //20 minutes
+	public static final long PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS = 24 * 60 * 60 * 1000; //24 hours
 
 
 	@Override

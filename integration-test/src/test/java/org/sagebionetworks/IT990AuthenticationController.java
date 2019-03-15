@@ -231,4 +231,6 @@ public class IT990AuthenticationController {
 	public void testUnbindExternalId() throws SynapseException {
 		synapse.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
 	}
+
+	//TODO: test new password reset
 }

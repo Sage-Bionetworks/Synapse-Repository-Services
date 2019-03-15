@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -101,19 +102,22 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		authDAO.changePassword(principalId, passHash);
 	}
 
-	public void changePassword(ChangePasswordInterface changePasswordInterface){
+	public long changePassword(ChangePasswordInterface changePasswordInterface){
 		ValidateArgument.required(changePasswordInterface, "changePasswordInterface");
 
 		final long userId;
 		if(changePasswordInterface instanceof ChangePasswordWithCurrentPassword){
-			userId = changePasswordWithCurrentPassword((ChangePasswordWithCurrentPassword) changePasswordInterface);
+			userId = validateChangePassword((ChangePasswordWithCurrentPassword) changePasswordInterface);
 		}else if (changePasswordInterface instanceof ChangePasswordWithToken){
-			userId = changePasswordWithToken((ChangePasswordWithToken) changePasswordInterface);
+			userId = validateChangePassword((ChangePasswordWithToken) changePasswordInterface);
 		}else{
 			throw new IllegalArgumentException("Unknown implementation of ChangePasswordInterface");
 		}
 
+		//change password and invalidate previous session token
+		setPassword(userId, changePasswordInterface.getNewPassword());
 		authDAO.deleteSessionToken(userId);
+		return userId;
 	}
 
 	/**
@@ -121,25 +125,22 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @param changePasswordWithCurrentPassword
 	 * @return id of user for which password change occurred
 	 */
-	long changePasswordWithCurrentPassword(ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword) {
+	long validateChangePassword(ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword) {
 		ValidateArgument.required(changePasswordWithCurrentPassword, "changePasswordWithCurrentPassword");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getUsername(), "changePasswordWithCurrentPassword.userName");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getNewPassword(), "changePasswordWithCurrentPassword.newPassword");
 
-		//Ensure that if the current password is invalid, only allow the user to reset via emailed token
+		//Ensure that if the current password is a weak password, only allow the user to reset via emailed token
 		try {
 			passwordValidator.validatePassword(changePasswordWithCurrentPassword.getCurrentPassword());
 		} catch (InvalidPasswordException e){
-			throw new PasswordResetViaEmailRequiredException("You may only attempt to reset your password via email");
+			throw new PasswordResetViaEmailRequiredException("You may only attempt to change your password via email");
 		}
 
 		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
 		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
-
-		//change password
-		setPassword(userId, changePasswordWithCurrentPassword.getNewPassword());
 
 		return userId;
 	}
@@ -149,9 +150,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @param changePasswordWithToken
 	 * @return id of user for which password change occurred
 	 */
-	long changePasswordWithToken(ChangePasswordWithToken changePasswordWithToken){
+	long validateChangePassword(ChangePasswordWithToken changePasswordWithToken){
+		if(!passwordResetTokenGenerator.isValidToken(changePasswordWithToken.getPasswordChangeToken())){
+			throw new UnauthenticatedException("Password reset token is invalid");
+		}
 
-		return userId;
+		return Long.parseLong(changePasswordWithToken.getPasswordChangeToken().getUserId());
 	}
 
 	@Override
@@ -195,7 +199,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	public String createOrRefreshPasswordResetToken(long userId) throws NotFoundException {
+	public PasswordResetSignedToken createPasswordResetToken(long userId) throws NotFoundException {
 		return passwordResetTokenGenerator.getToken(userId);
 	}
 

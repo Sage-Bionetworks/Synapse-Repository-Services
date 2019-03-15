@@ -110,7 +110,7 @@ public interface AuthenticationService {
 	 * @param email
 	 * @throws NotFoundException
 	 */
-	public void sendPasswordResetEmail(String email) throws NotFoundException;
+	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String usernameOrEmail);
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 

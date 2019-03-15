@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -626,24 +628,59 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@WriteTransaction
-	public void sendNewPasswordResetEmail(long userId, String passwordResetUrlPrefix, String email, String passwordResetToken){
-		//TODO: Change template and test
-		EmailUtils.validateSynapsePortalHost(passwordResetUrlPrefix);
+	public void sendNewPasswordResetEmail(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken){
+		ValidateArgument.required(passwordResetToken, "passwordResetToken");
+		ValidateArgument.required(passwordResetUrlPrefix, "passwordResetPrefix");
 
-		String subject = "Set Synapse Password";
+		String webLink = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
+		//TODO: Test
+		EmailUtils.validateSynapsePortalHost(webLink);
+
+		long userId = Long.parseLong(passwordResetToken.getUserId());
+
+
+		String subject = "Reset Synapse Password";
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
 
 		String alias = principalAliasDAO.getUserName(userId);
 		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
 		String displayName = EmailUtils.getDisplayName(userProfile);
 
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
-
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		String webLink = passwordResetUrlPrefix + passwordResetToken;
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
-		String messageBody = EmailUtils.readMailTemplate("message/NewPasswordResetTemplate.txt", fieldValues);
+
+		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
+		String email = getEmailForUser(userId);
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
+				.withRecipientEmail(email)
+				.withSubject(subject)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
+				.withSenderUserName(alias)
+				.withSenderDisplayName(displayName)
+				.withUserId(Long.toString(userId))
+				.withIsNotificationMessage(true)
+				.build();
+		sesClient.sendRawEmail(sendEmailRequest);
+	}
+
+	@Override
+	public void sendPasswordChangeConfirmationEmail(long userId){
+		String subject = "Your Synapse Password Has Been Changed";
+		Map<String,String> fieldValues = new HashMap<String,String>();
+
+		String alias = principalAliasDAO.getUserName(userId);
+		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
+		String displayName = EmailUtils.getDisplayName(userProfile);
+
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
+
+		//TODO: what is synapse support email address?? fill that in to template
+		String messageBody = EmailUtils.readMailTemplate("message/PasswordChangeConfirmationTemplate.txt", fieldValues);
+		String email = getEmailForUser(userId);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)

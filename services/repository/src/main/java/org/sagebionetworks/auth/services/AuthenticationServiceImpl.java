@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -25,9 +27,11 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
+
 
 	@Autowired
 	private UserManager userManager;
@@ -112,7 +116,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
-		authManager.changePassword(request);
+		final long userId = authManager.changePassword(request);
+		messageManager.sendPasswordChangeConfirmationEmail(userId);
 	}
 
 	@Override
@@ -165,14 +170,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public void sendPasswordResetEmail(String email) throws NotFoundException {
-		//TODO: should we be throwing exception when user not found?
-		// We currently do, but this could leak whether or not a user is registered.
-		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
-
-		String passwordRestToken = authManager.createOrRefreshPasswordResetToken(pa.getPrincipalId());
-
-		messageManager.sendNewPasswordResetEmail(email, passwordRestToken);
+	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String email) {
+		try {
+			PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
+			PasswordResetSignedToken passwordRestToken = authManager.createPasswordResetToken(pa.getPrincipalId());
+			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken);
+		}catch (NotFoundException e){
+			//should not indicate that a email/user could not be found
+		}
 	}
 
 	@Override

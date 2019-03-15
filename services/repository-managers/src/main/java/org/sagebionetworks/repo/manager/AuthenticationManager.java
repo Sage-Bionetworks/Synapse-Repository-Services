@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -41,8 +42,9 @@ public interface AuthenticationManager {
 
 	/**
 	 * Change a user's password after checking the validity of the request by checking the user's old password
+	 * @return id of the user whose password has been changed
 	 */
-	public void changePassword(ChangePasswordInterface changePasswordWithOldPassword);
+	public long changePassword(ChangePasswordInterface changePasswordWithOldPassword);
 
 	/**
 	 * Gets the user's secret key
@@ -63,7 +65,7 @@ public interface AuthenticationManager {
 	/**
 	 * Creates a token tha can be used to reset a user's password
 	 */
-	public String createOrRefreshPasswordResetToken(long principalId) throws NotFoundException;
+	public PasswordResetSignedToken createPasswordResetToken(long principalId) throws NotFoundException;
 	
 	/**
 	 * Returns whether the user has accepted the terms of use

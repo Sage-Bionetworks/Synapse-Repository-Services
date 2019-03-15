@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -102,7 +103,7 @@ public class AuthenticationServiceImplTest {
 		loginResponse.setSessionToken("sessionToken");
 		
 		when(mockUserManager.lookupUserByUsernameOrEmail(loginRequest.getUsername())).thenReturn(principalAlias);
-		when(mockAuthenticationManager.login(principalAlias.getPrincipalId(), loginRequest.getPassword(), loginRequest.getAuthenticationReceipt())).thenReturn(loginResponse);
+		when(mockAuthenticationManager.login(loginRequest)).thenReturn(loginResponse);
 	}
 	
 	@Test
@@ -267,23 +268,26 @@ public class AuthenticationServiceImplTest {
 	@Test
 	public void testChangePassword(){
 		ChangePasswordWithToken changePassword = new ChangePasswordWithToken();
+		when(mockAuthenticationManager.changePassword(changePassword)).thenReturn(userId);
+
 
 		service.changePassword(changePassword);
 
 		verify(mockAuthenticationManager).changePassword(changePassword);
+		verify(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
 	}
 
 	@Test
 	public void testSendPasswordResetEmail(){
 		String email = "user@test.com";
-		String passwordResetToken = "you can do it!";
+		String passwordResetUrlPrefix = "synapse.org";
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		when(mockUserManager.lookupUserByUsernameOrEmail(email)).thenReturn(principalAlias);
-		when(mockAuthenticationManager.createOrRefreshPasswordResetToken(principalAlias.getPrincipalId())).thenReturn(passwordResetToken);
+		when(mockAuthenticationManager.createPasswordResetToken(principalAlias.getPrincipalId())).thenReturn(token);
 
-		service.sendPasswordResetEmail(email);
+		service.sendPasswordResetEmail(passwordResetUrlPrefix, email);
 
-		verify(mockAuthenticationManager).createOrRefreshPasswordResetToken(principalAlias.getPrincipalId());
-		verify(mockMessageManager).sendNewPasswordResetEmail(email, passwordResetToken);
-
+		verify(mockAuthenticationManager).createPasswordResetToken(principalAlias.getPrincipalId());
+		verify(mockMessageManager).sendNewPasswordResetEmail(email, token);
 	}
 }

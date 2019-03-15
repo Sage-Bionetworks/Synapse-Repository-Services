@@ -169,7 +169,12 @@ public class AuthorizationConstants {
 	 * A request parameter for specifying the portal endpoint for unsubscribing from email
 	 */
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
-	
+
+	/**
+	 * Request parameter for specifying the portal endpoint for resetting user's password.
+	 */
+	public static final String PASSWORD_RESET_PARAM = "passwordResetEndpoint";
+
 	/**
 	 * Request parameter for the Docker authorization request.
 	 * 
