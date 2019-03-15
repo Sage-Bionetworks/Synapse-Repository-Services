@@ -54,22 +54,8 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 	 * @param rowChange
 	 */
 	public void findOrCreateTransaction(DBOTableRowChange rowChange) {
-		Long transactionId = null;
 		// Attempt to match the previous change's transaction to this change.
-		DBOTableTransaction previousTransaction = getPreviousTransaction(rowChange);
-		if(previousTransaction != null) {
-			if(previousTransaction.getStartedBy().equals(rowChange.getCreatedBy())) {
-				// The same user created this change as the previous change.
-				if(rowChange.getCreatedOn() < previousTransaction.getStartedOn()) {
-					throw new IllegalStateException("Table change createdOn is less than previous changes's transaction startedOn: "+rowChange);
-				}
-				if(previousTransaction.getStartedOn() + ONE_HOUR_MS >= rowChange.getCreatedOn()) {
-					// The previous change was started within one hour of this change.
-					transactionId = previousTransaction.getTransactionId();
-				}
-			}
-		}
-
+		Long transactionId = getPreviousTransactionIdIfMatches(rowChange);
 		if(transactionId == null) {
 			// no match found so start a new transaction for this change
 			transactionId = startTransactionForChange(rowChange);
@@ -92,7 +78,7 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 	 * @param rowChange
 	 * @return
 	 */
-	public DBOTableTransaction getPreviousTransaction(DBOTableRowChange rowChange) {
+	public Long getPreviousTransactionIdIfMatches(DBOTableRowChange rowChange) {
 		try {
 			// Find the previous row version
 			Long previousRowVersion = jdbcTemplate.queryForObject(
@@ -101,11 +87,11 @@ public class TableTransactionBackfillMigrationListener implements MigrationTypeL
 			if(previousRowVersion == null) {
 				return null;
 			}
-			// Lookup the transaction for the previous vesion.s
-			return jdbcTemplate.queryForObject("SELECT T.* FROM TABLE_TRANSACTION T"
+			// Lookup the transaction for the previous change if it matches this user and is within an hour
+			return jdbcTemplate.queryForObject("SELECT T.TRX_ID FROM TABLE_TRANSACTION T"
 					+ " JOIN TABLE_ROW_CHANGE C ON (T.TABLE_ID = C.TABLE_ID AND T.TRX_ID = C.TRX_ID)"
-					+ " WHERE C.TABLE_ID = ? AND C.ROW_VERSION = ?", TRANSACTION_MAPPER,
-					rowChange.getTableId(), previousRowVersion);
+					+ " WHERE C.TABLE_ID = ? AND C.ROW_VERSION = ? AND C.CREATED_BY = ? AND C.CREATED_ON > ?", Long.class,
+					rowChange.getTableId(), previousRowVersion, rowChange.getCreatedBy(), rowChange.getCreatedOn() - ONE_HOUR_MS);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
