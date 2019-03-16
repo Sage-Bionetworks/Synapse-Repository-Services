@@ -678,7 +678,6 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 
-		//TODO: what is synapse support email address?? fill that in to template
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordChangeConfirmationTemplate.txt", fieldValues);
 		String email = getEmailForUser(userId);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()

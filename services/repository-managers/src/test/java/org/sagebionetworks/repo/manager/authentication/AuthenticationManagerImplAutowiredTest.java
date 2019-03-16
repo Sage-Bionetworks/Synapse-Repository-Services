@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -9,10 +9,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,6 +35,7 @@ public class AuthenticationManagerImplAutowiredTest {
 
 	Long createdUserId = null;
 
+	LoginRequest loginRequest;
 	@Before
 	public void setup(){
 		if(createdUserId == null) {
@@ -42,9 +46,12 @@ public class AuthenticationManagerImplAutowiredTest {
 			createdUserId = userManager.createUser(newUser);
 
 			String password = UUID.randomUUID().toString();
+			loginRequest.setUsername(newUser.getUserName());
+			loginRequest.setPassword(password);
 			authenticationManager.setPassword(createdUserId, password);
 
-			assertNotNull(authenticationManager.login(createdUserId, password, null));
+
+			assertNotNull(authenticationManager.login(loginRequest));
 		}
 	}
 
@@ -61,7 +68,7 @@ public class AuthenticationManagerImplAutowiredTest {
 		try {
 			for (int i = 0; i < 10; i++) {
 				try {
-					authenticationManager.login(createdUserId, wrongPassword, null);
+					authenticationManager.login(loginRequest);
 					Thread.sleep(10);
 					fail("expected exception to be throw for wrong password");
 				} catch (UnauthenticatedException e) {

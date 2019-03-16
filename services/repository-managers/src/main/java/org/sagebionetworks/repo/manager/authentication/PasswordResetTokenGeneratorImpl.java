@@ -23,6 +23,9 @@ public class PasswordResetTokenGeneratorImpl implements PasswordResetTokenGenera
 	@Autowired
 	AuthenticationDAO authenticationDAO;
 
+	@Autowired
+	Clock clock;
+
 	public static final long PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS = 24 * 60 * 60 * 1000; //24 hours
 
 
@@ -45,11 +48,11 @@ public class PasswordResetTokenGeneratorImpl implements PasswordResetTokenGenera
 	}
 
 	PasswordResetSignedToken createUnsignedToken(long userId){
-		Date now = new Date();
+		final long now = clock.currentTimeMillis();
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		token.setUserId(Long.toString(userId));
-		token.setCreatedOn(now);
-		token.setExpiresOn(new Date(now.getTime() + PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS));
+		token.setCreatedOn(new Date(now));
+		token.setExpiresOn(new Date(now + PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS));
 		token.setValidity(createValidityHash(userId));
 
 		return token;

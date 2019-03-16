@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl;
 import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
@@ -30,8 +31,12 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthenticationManagerImplUnitTest {
@@ -49,11 +54,17 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private UserCredentialValidator mockUserCredentialValidator;
 
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
 
 	final Long userId = 12345L;
-	//	final String username = "AuthManager@test.org";
+	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
 	final String synapseSessionToken = "synapsesessiontoken";
+	final String receipt = "receipt";
+
+	LoginRequest loginRequest;
+
 
 	@Before
 	public void setUp() throws Exception {
@@ -65,6 +76,16 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
 		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
+
+		PrincipalAlias principalAlias = new PrincipalAlias();
+		principalAlias.setPrincipalId(userId);
+
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME)).thenReturn(principalAlias);
+
+		loginRequest = new LoginRequest();
+		loginRequest.setPassword(password);
+		loginRequest.setUsername(username);
+		loginRequest.setAuthenticationReceipt(receipt);
 	}
 
 	@Test
@@ -142,8 +163,9 @@ public class AuthenticationManagerImplUnitTest {
 	public void testLoginWithoutReceipt() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 
+		loginRequest.setAuthenticationReceipt(null);
 		//method under test
-		authManager.login(userId, password, null);
+		authManager.login(loginRequest);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
@@ -159,7 +181,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 
 		//method under test
-		authManager.login(userId, password, receipt);
+		authManager.login(loginRequest);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
@@ -178,7 +200,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		try {
 			//method under test
-			authManager.login(userId, password, receipt);
+			authManager.login(loginRequest);
 			fail("expected exception to be thrown");
 		} catch (UnauthenticatedException e) {
 			//expected the exception to be thrown
@@ -199,7 +221,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 
 		//method under test
-		authManager.login(userId, password, receipt);
+		authManager.login(loginRequest);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
@@ -211,11 +233,10 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testLoginWithValidReceipt() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
-		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 
 
-		authManager.login(userId, password, receipt);
+		authManager.login(loginRequest);
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithLock(userId, password);
@@ -227,14 +248,13 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testLoginWithValidReceiptAndWrongPassword() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
-		String receipt = "receipt";
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
 
 
 		try {
 			//method under test
-			authManager.login(userId, password, receipt);
+			authManager.login(loginRequest);
 			fail("expected exception to be thrown");
 		} catch (UnauthenticatedException e) {
 			//expected the exception to be thrown
@@ -252,7 +272,7 @@ public class AuthenticationManagerImplUnitTest {
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 
 		try {
-			authManager.login(userId, password, null);
+			authManager.login(loginRequest);
 			fail("expected exception to be thrown");
 		} catch (PasswordResetViaEmailRequiredException e){
 			//expected
