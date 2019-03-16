@@ -12,7 +12,7 @@ public class TableTransaction {
 	Long transactionId;
 	String tableId;
 	Long startedBy;
-	Date startedOn;
+	Long startedOn;
 	
 	public Long getTransactionId() {
 		return transactionId;
@@ -35,10 +35,10 @@ public class TableTransaction {
 		this.startedBy = startedBy;
 		return this;
 	}
-	public Date getStartedOn() {
+	public Long getStartedOn() {
 		return startedOn;
 	}
-	public TableTransaction withStartedOn(Date startedOn) {
+	public TableTransaction withStartedOn(Long startedOn) {
 		this.startedOn = startedOn;
 		return this;
 	}

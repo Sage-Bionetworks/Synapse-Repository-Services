@@ -31,7 +31,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 	Long transactionId;
 	Long tableId;
 	Long startedBy;
-	Timestamp startedOn;
+	Long startedOn;
 
 	public Long getTransactionId() {
 		return transactionId;
@@ -57,11 +57,11 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 		this.startedBy = startedBy;
 	}
 
-	public Date getStartedOn() {
+	public Long getStartedOn() {
 		return startedOn;
 	}
 
-	public void setStartedOn(Timestamp startedOn) {
+	public void setStartedOn(Long startedOn) {
 		this.startedOn = startedOn;
 	}
 
@@ -78,7 +78,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 				DBOTableTransaction dto = new DBOTableTransaction();
 				dto.setTransactionId(rs.getLong(COL_TABLE_TRX_ID));
 				dto.setTableId(rs.getLong(COL_TABLE_TABLE_ID));
-				dto.setStartedOn(rs.getTimestamp(COL_TABLE_TRX_STARTED_ON));
+				dto.setStartedOn(rs.getLong(COL_TABLE_TRX_STARTED_ON));
 				dto.setStartedBy(rs.getLong(COL_TABLE_TRX_STARTED_BY));
 				return dto;
 			}

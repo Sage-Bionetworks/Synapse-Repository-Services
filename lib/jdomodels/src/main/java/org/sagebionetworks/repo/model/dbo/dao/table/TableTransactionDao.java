@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import java.sql.Timestamp;
+
 public interface TableTransactionDao {
 
 	/**
@@ -10,6 +12,16 @@ public interface TableTransactionDao {
 	 * @return Returns the transaction number for the newly created transaction.
 	 */
 	long startTransaction(String tableId, Long userId);
+	
+	/**
+	 * Start a new transaction for the given table, user, and started on time.
+	 * 
+	 * @param tableId
+	 * @param userId
+	 * @param startedOn
+	 * @return
+	 */
+	long startTransaction(String tableId, Long userId, Long startedOn);
 
 	/**
 	 * Get

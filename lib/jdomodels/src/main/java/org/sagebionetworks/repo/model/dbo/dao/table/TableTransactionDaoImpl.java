@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TABLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_TRANSACTION;
 
-import java.sql.Timestamp;
-
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -30,16 +28,27 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 
 	@WriteTransaction
 	@Override
-	public long startTransaction(String tableIdString, Long userId) {
+	public long startTransaction(String tableIdString, Long userId, Long startedOn) {
 		ValidateArgument.required(tableIdString, "tableId");
 		ValidateArgument.required(userId, "userId");
 		DBOTableTransaction dbo = new DBOTableTransaction();
 		dbo.setTransactionId(idGenerator.generateNewId(IdType.TABLE_TRANSACTION_ID));
 		dbo.setTableId(KeyFactory.stringToKey(tableIdString));
 		dbo.setStartedBy(userId);
-		dbo.setStartedOn(new Timestamp(System.currentTimeMillis()));
+		if(startedOn == null) {
+			dbo.setStartedOn(System.currentTimeMillis());
+		}else {
+			dbo.setStartedOn(startedOn);
+		}
 		dbo = basicDao.createNew(dbo);
 		return dbo.getTransactionId();
+	}
+	
+	@WriteTransaction
+	@Override
+	public long startTransaction(String tableId, Long userId) {
+		Long startedOn = null;
+		return startTransaction(tableId, userId, startedOn);
 	}
 
 	@Override
@@ -69,5 +78,6 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		return jdbcTemplate.update(SQL_DELETE_TABLE, tableId);
 	}
+
 
 }
