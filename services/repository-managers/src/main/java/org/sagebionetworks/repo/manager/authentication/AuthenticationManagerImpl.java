@@ -126,10 +126,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @return id of user for which password change occurred
 	 */
 	long validateChangePassword(ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword) {
-		ValidateArgument.required(changePasswordWithCurrentPassword, "changePasswordWithCurrentPassword");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getUsername(), "changePasswordWithCurrentPassword.userName");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
-		ValidateArgument.required(changePasswordWithCurrentPassword.getNewPassword(), "changePasswordWithCurrentPassword.newPassword");
 
 		//Ensure that if the current password is a weak password, only allow the user to reset via emailed token
 		try {
