@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
@@ -93,10 +94,12 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 
+
 		PrincipalAlias principalAlias = new PrincipalAlias();
 		principalAlias.setPrincipalId(userId);
 
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME)).thenReturn(principalAlias);
+		when(mockAuthReceiptDAO.createNewReceipt(userId)).thenReturn(receipt);
 
 		loginRequest = new LoginRequest();
 		loginRequest.setPassword(password);
@@ -219,13 +222,57 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	//TODO: test getLoginResponseAfterSuccessfulPasswordAuthentication
+	///////////////////////////////////////////////////////////
+	// getLoginResponseAfterSuccessfulPasswordAuthentication ()
+	///////////////////////////////////////////////////////////
+	@Test
+	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
+		String newReceipt = "uwu";
+		when(mockAuthReceiptDAO.replaceReceipt(userId, receipt)).thenReturn(newReceipt);
+
+		//method under test
+		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, receipt);
+
+		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
+		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
+
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
+	}
+
+	@Test
+	public void testGetLoginResponseAfterSuccessfulAuthentication_nullReciept_underReceiptLimit(){
+		//method under test
+		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, null);
+
+		assertEquals(receipt, loginResponse.getAuthenticationReceipt());
+		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
+
+		verify(mockAuthReceiptDAO).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(),anyString());
+	}
+
+	@Test
+	public void testGetLoginResponseAfterSuccessfulAuthentication_nullReciept_overReceiptLimit(){
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+
+		//method under test
+		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, null);
+
+		assertEquals(null, loginResponse.getAuthenticationReceipt());
+		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
+
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
+	}
 
 	///////////////////////////////////////////
 	// validateAuthReceiptAndCheckPassword()
 	////////////////////////////////////////////
 
 	@Test
-	public void testLoginWithoutReceipt() {
+	public void testValidateAuthReceiptAndCheckPassword_WithoutReceipt() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 
 		//method under test
@@ -233,12 +280,10 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
-		verify(mockAuthReceiptDAO).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
 
 	@Test
-	public void testLoginWithInvalidReceipt() {
+	public void testValidateAuthReceiptAndCheckPassword_WithInvalidReceipt() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 
@@ -247,12 +292,10 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
-		verify(mockAuthReceiptDAO).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
 
 	@Test
-	public void testLoginWithInvalidReceiptAndWrongPassword() {
+	public void testValidateAuthReceiptAndCheckPassword_WithInvalidReceiptAndWrongPassword() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(false);
@@ -272,23 +315,8 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
 
-
 	@Test
-	public void testLoginWithInvalidReceiptAndOverReceiptLimit() {
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-
-		//method under test
-		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
-
-		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
-	}
-
-	@Test
-	public void testLoginWithValidReceipt() {
+	public void testValidateAuthReceiptAndCheckPassword_WithValidReceipt() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 
@@ -297,12 +325,10 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithLock(userId, password);
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
 	}
 
 	@Test
-	public void testLoginWithValidReceiptAndWrongPassword() {
+	public void testValidateAuthReceiptAndCheckPassword_WithValidReceiptAndWrongPassword() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
