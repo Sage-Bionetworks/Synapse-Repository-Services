@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -43,6 +44,7 @@ public class TransactionBackfillTest {
 	 * 
 	 * @throws IOException
 	 */
+	@Ignore
 	@Test
 	public void testBackFillLocal() throws IOException {
 		String localFile = "C:/Users/jhill/Downloads/prod-255-TABLE_SEQUENCE-e36f4bd3-f0ce-4b2d-ac0e-762fff3acbae.zip";
