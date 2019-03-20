@@ -46,6 +46,7 @@ public class AuthenticationManagerImplAutowiredTest {
 			createdUserId = userManager.createUser(newUser);
 
 			String password = UUID.randomUUID().toString();
+			loginRequest = new LoginRequest();
 			loginRequest.setUsername(newUser.getUserName());
 			loginRequest.setPassword(password);
 			authenticationManager.setPassword(createdUserId, password);
@@ -65,6 +66,7 @@ public class AuthenticationManagerImplAutowiredTest {
 	@Test
 	public void testLoginWrongPassword_Lockout() throws InterruptedException {
 		String wrongPassword = "hunter2";
+		loginRequest.setPassword(wrongPassword);
 		try {
 			for (int i = 0; i < 10; i++) {
 				try {
