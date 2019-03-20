@@ -4237,7 +4237,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword = new ChangePasswordWithCurrentPassword();
 		changePasswordWithCurrentPassword.setUsername(username);
-		changePasswordWithCurrentPassword.setUsername(currentPassword);
+		changePasswordWithCurrentPassword.setCurrentPassword(currentPassword);
 		changePasswordWithCurrentPassword.setNewPassword(newPassword);
 		changePasswordWithCurrentPassword.setAuthenticationReceipt(authenticationReceipt);
 		changePassword(changePasswordWithCurrentPassword);

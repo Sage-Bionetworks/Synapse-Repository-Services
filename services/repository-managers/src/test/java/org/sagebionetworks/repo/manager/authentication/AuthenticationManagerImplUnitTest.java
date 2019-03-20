@@ -491,6 +491,16 @@ public class AuthenticationManagerImplUnitTest {
 			}
 
 			@Override
+			public String getConcreteType() {
+				return null;
+			}
+
+			@Override
+			public void setConcreteType(String concreteType) {
+
+			}
+
+			@Override
 			public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
 				return null;
 			}
