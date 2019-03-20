@@ -422,6 +422,22 @@ public class MessageManagerImplUnitTest {
 
 
 	@Test
+	public void testSendPasswordChangeConfirmationEmail() throws Exception{
+		messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("noreply@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.contains("Your password for your Synapse account has been changed."));
+	}
+
+
+	@Test
 	public void testSendDeliveryFailureEmail() throws Exception {
 		List<String> errors = new ArrayList<String>();
 		messageManager.sendDeliveryFailureEmail(MESSAGE_ID, errors);
