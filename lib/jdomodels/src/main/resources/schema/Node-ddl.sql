@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `JDONODE` (
   `CREATED_ON` bigint(20) NOT NULL,
   `CURRENT_REV_NUM` bigint(20) DEFAULT NULL,
   `ETAG` char(36) NOT NULL,
-  `NAME` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
+  `NAME` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `NODE_TYPE` ENUM('project', 'folder', 'link','file','table','entityview','dockerrepo') NOT NULL,
   `PARENT_ID` bigint(20) DEFAULT NULL,
   `ALIAS` varchar(64) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,

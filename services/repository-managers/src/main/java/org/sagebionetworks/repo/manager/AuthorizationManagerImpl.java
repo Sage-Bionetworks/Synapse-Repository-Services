@@ -70,7 +70,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(
 			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
-	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
+	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can access it directly by its ID.  FileHandleId = '%1$s', UserId = '%2$s'";
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
 
 	@Autowired

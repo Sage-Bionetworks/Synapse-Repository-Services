@@ -211,6 +211,11 @@
 		scope="singleton">
 	</bean>
 	
+	<bean id="tableTransactionDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDaoImpl"
+		scope="singleton">
+	</bean>
+	
 	<bean id="asynchJobStatusDao"
 		class="org.sagebionetworks.repo.model.dbo.asynch.AsynchJobStatusDAOImpl"
 		scope="singleton">
@@ -287,14 +292,9 @@
 	
 	<!-- A singleton counting semaphore with all method synchronized to serialize lock acquisition on each machine -->
 	<bean id="countingSemaphore"
-		class="org.sagebionetworks.repo.model.semaphore.SynchronizedCountingSemaphore"
+		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl"
 		scope="singleton">
-		<constructor-arg index="0">
-			<bean class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
-				<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-				<constructor-arg ref="txManager" index="1"></constructor-arg>
-			</bean>
-		</constructor-arg>
+		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
 	</bean>	
 	
 	<!-- DAO for API Call Throttle-->

@@ -2299,7 +2299,7 @@ public class NodeDAOImplTest {
 		Long limit = 10L;
 		Long offset = 1L;
 		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
-		assertEquals(" ORDER BY n.NAME COLLATE 'latin1_general_ci' DESC limit :limitVal offset :offsetVal", result);
+		assertEquals(" ORDER BY n.NAME DESC limit :limitVal offset :offsetVal", result);
 		assertEquals(limit, parameters.get("limitVal"));
 		assertEquals(offset, parameters.get("offsetVal"));
 	}
@@ -3631,5 +3631,23 @@ public class NodeDAOImplTest {
 		assertTrue(afterTouch.getModifiedOn().getTime() > start.getModifiedOn().getTime());
 		assertEquals(user2Id, afterTouch.getModifiedByPrincipalId());
 		assertEquals(user1Id, start.getCreatedByPrincipalId());
+	}
+	
+	@Test
+	public void testPLFM_5439() {
+		// Create two nodes with the same parent that differ by case only
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		// child one
+		Node one = NodeTestUtils.createNew("Foo", creatorUserGroupId);
+		one.setParentId(parent.getId());
+		one = nodeDao.createNewNode(one);
+		toDelete.add(one.getId());
+		// child two
+		Node two = NodeTestUtils.createNew("foo", creatorUserGroupId);
+		two.setParentId(parent.getId());
+		two = nodeDao.createNewNode(two);
+		toDelete.add(two.getId());
 	}
 }

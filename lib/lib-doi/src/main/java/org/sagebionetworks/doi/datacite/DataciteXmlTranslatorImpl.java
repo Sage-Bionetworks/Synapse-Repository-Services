@@ -16,9 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
@@ -40,6 +41,9 @@ import org.xml.sax.SAXException;
 public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	public DataciteMetadata translate(String xml) {
+		if (StringUtils.isBlank(xml)) {
+			return new Doi();
+		}
 		Document dom = parseXml(xml);
 		return translateUtil(dom);
 	}
@@ -61,7 +65,9 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 	static Document parseXml(String xml) {
 		Document dom = null;
 		try {
-			DocumentBuilder documentBuilder = DocumentBuilderFactoryImpl.newInstance().newDocumentBuilder();
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setNamespaceAware(true);
+			DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
 			dom = documentBuilder.parse(new InputSource(new StringReader(xml)));
 		} catch (ParserConfigurationException e) {
 			throw new RuntimeException("Error occurred while configuring XML parser", e);
@@ -81,9 +87,9 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	static DoiCreator getCreator(Element creatorElement) {
 		DoiCreator creator = new DoiCreator();
-		creator.setCreatorName(creatorElement.getElementsByTagName(CREATOR_NAME).item(0).getTextContent());
+		creator.setCreatorName(creatorElement.getElementsByTagNameNS("*", CREATOR_NAME).item(0).getTextContent());
 
-		NodeList idNodes = creatorElement.getElementsByTagName(NAME_IDENTIFIER);
+		NodeList idNodes = creatorElement.getElementsByTagNameNS("*", NAME_IDENTIFIER);
 		if (idNodes.getLength() > 0) {
 			List<DoiNameIdentifier> ids = new ArrayList<>();
 			for (int i = 0; i < idNodes.getLength(); i++) {
@@ -98,8 +104,8 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	static List<DoiCreator> getCreators(Document dom) {
 		List<DoiCreator> creators = new ArrayList<>();
-		Element creatorsElement = (Element)dom.getElementsByTagName(CREATORS).item(0);
-		NodeList creatorList = creatorsElement.getElementsByTagName(CREATOR);
+		Element creatorsElement = (Element)dom.getElementsByTagNameNS("*", CREATORS).item(0);
+		NodeList creatorList = creatorsElement.getElementsByTagNameNS("*", CREATOR);
 		for (int i = 0; i < creatorList.getLength(); i++) {
 			creators.add(getCreator((Element)creatorList.item(i)));
 		}
@@ -114,7 +120,7 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	static List<DoiTitle> getTitles(Document dom) {
 		List<DoiTitle> titles = new ArrayList<>();
-		NodeList titleList = ((Element)dom.getElementsByTagName(TITLES).item(0)).getElementsByTagName("title");
+		NodeList titleList = ((Element)dom.getElementsByTagNameNS("*", TITLES).item(0)).getElementsByTagNameNS("*", "title");
 		for (int i = 0; i < titleList.getLength(); i++) {
 			titles.add(getTitle(titleList.item(i)));
 		}
@@ -122,12 +128,12 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 	}
 
 	static String getPublicationYear(Document dom) {
-		return dom.getElementsByTagName(PUBLICATION_YEAR).item(0).getTextContent();
+		return dom.getElementsByTagNameNS("*", PUBLICATION_YEAR).item(0).getTextContent();
 	}
 
 	static DoiResourceType getResourceType(Document dom) {
 		DoiResourceType resourceType = null;
-		Node xmlResourceType = dom.getElementsByTagName(RESOURCE_TYPE).item(0);
+		Node xmlResourceType = dom.getElementsByTagNameNS("*", RESOURCE_TYPE).item(0);
 		if (xmlResourceType != null) {
 			resourceType = new DoiResourceType();
 			resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.valueOf(xmlResourceType

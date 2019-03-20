@@ -54,8 +54,6 @@ import com.amazonaws.services.s3.model.S3Object;
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
-	private static final String SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY = "UPDATE "+TABLE_ROW_CHANGE+" SET "+COL_TABLE_ROW_KEY_NEW+" = ? WHERE "+COL_TABLE_ROW_TABLE_ID+" = ? AND "+COL_TABLE_ROW_VERSION+" =?";
-
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
 
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
@@ -196,7 +194,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	@WriteTransaction
 	@Override
-	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta)
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId)
 			throws IOException {
 		// Write the delta to S3
 		String key = saveToS3(new WriterCallback() {
@@ -216,29 +214,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		changeDBO.setChangeType(TableChangeType.ROW.name());
+		changeDBO.setTransactionId(transactionId);
 		basicDao.createNew(changeDBO);
 		return key;
 	}
 	
-	@WriteTransaction
-	@Override
-	public TableRowChange upgradeToNewChangeSet(String tableIdString, long rowVersion, final SparseChangeSetDto newDto) throws IOException {
-		// Write the delta to S3
-		String key = saveToS3(new WriterCallback() {
-			@Override
-			public void write(OutputStream out) throws IOException {
-				TableModelUtils.writeSparesChangeSetToGz(newDto, out);
-			}
-		});
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		// Set the new key only.
-		jdbcTemplate.update(SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY, key, tableId, rowVersion);
-		return getTableRowChange(tableIdString, rowVersion);
-	}
-	
 	@Override
 	public long appendSchemaChangeToTable(String userId, String tableId,
-			List<String> current, final List<ColumnChange> changes) throws IOException {
+			List<String> current, final List<ColumnChange> changes, long transactionId) throws IOException {
 		
 		long coutToReserver = 1;
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
@@ -261,6 +244,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(0L);
 		changeDBO.setChangeType(TableChangeType.COLUMN.name());
+		changeDBO.setTransactionId(transactionId);
 		basicDao.createNew(changeDBO);
 		return range.getVersionNumber();
 	}
