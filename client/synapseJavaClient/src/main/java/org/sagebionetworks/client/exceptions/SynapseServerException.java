@@ -32,6 +32,11 @@ public abstract class SynapseServerException extends SynapseException {
 		super(cause);
 	}
 
+	public SynapseServerException(String message, ErrorResponseCode errorResponseCode){
+		super(message);
+		this.errorResponseCode = errorResponseCode;
+	}
+
 	public ErrorResponseCode getErrorResponseCode() {
 		return errorResponseCode;
 	}

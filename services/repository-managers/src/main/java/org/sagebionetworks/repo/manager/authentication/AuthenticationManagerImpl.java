@@ -129,13 +129,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(changePasswordWithCurrentPassword.getUsername(), "changePasswordWithCurrentPassword.userName");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
 
-		//Ensure that if the current password is a weak password, only allow the user to reset via emailed token
-		try {
-			passwordValidator.validatePassword(changePasswordWithCurrentPassword.getCurrentPassword());
-		} catch (InvalidPasswordException e){
-			throw new PasswordResetViaEmailRequiredException("You may only attempt to change your password via email");
-		}
-
 		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
 		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
@@ -226,12 +219,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		final String password = request.getPassword();
 		final String authenticationReceipt = request.getAuthenticationReceipt();
 
-		try{
-			passwordValidator.validatePassword(password);
-		} catch (InvalidPasswordException e){ //TODO: test
-			throw new PasswordResetViaEmailRequiredException("You must change your password before continuing.");
-		}
-
 		authReceiptDAO.deleteExpiredReceipts(userId, System.currentTimeMillis());
 
 		String validAuthReceipt = validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
@@ -258,6 +245,15 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
+
+		// Now that the password has been verified,
+		// ensure that if the current password is a weak password, only allow the user to reset via emailed token
+		try{
+			passwordValidator.validatePassword(password);
+		} catch (InvalidPasswordException e){
+			throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
+		}
+
 		return validAuthReceipt;
 	}
 

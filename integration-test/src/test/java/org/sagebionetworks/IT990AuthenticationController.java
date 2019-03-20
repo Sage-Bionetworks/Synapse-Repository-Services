@@ -106,6 +106,19 @@ public class IT990AuthenticationController {
 	}
 
 	@Test
+	public void testChangePasswordWithOldPassword() throws Exception {
+		String testNewPassword = "newPassword"+UUID.randomUUID();
+		synapse.changePassword(username, PASSWORD, testNewPassword, null);
+		LoginRequest request = new LoginRequest();
+		request.setUsername(username);
+		request.setPassword(testNewPassword);
+		synapse.login(request);
+
+		//change password back
+		synapse.changePassword(username, testNewPassword, PASSWORD,null);
+	}
+
+	@Test
 	public void testSignTermsViaSessionToken() throws Exception {
 		String sessionToken = synapse.getCurrentSessionToken();
 		

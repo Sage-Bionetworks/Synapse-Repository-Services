@@ -177,10 +177,13 @@ public class AuthenticationManagerImplUnitTest {
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(bannedPassword);
 		try {
 			authManager.setPassword(userId, bannedPassword);
+			fail();
 		} catch (InvalidPasswordException e) {
-			verify(mockPassswordValidator).validatePassword(bannedPassword);
-			verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
+			//expected
 		}
+
+		verify(mockPassswordValidator).validatePassword(bannedPassword);
+		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 	}
 
 	@Test
@@ -196,14 +199,7 @@ public class AuthenticationManagerImplUnitTest {
 	///////////////
 	@Test
 	public void testLoginWithPasswordNotMatchingRequirements(){
-		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 
-		try {
-			authManager.login(loginRequest);
-			fail("expected exception to be thrown");
-		} catch (PasswordResetViaEmailRequiredException e){
-			//expected
-		}
 	}
 
 	@Test
@@ -221,7 +217,6 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
 	}
 
-	//TODO: test getLoginResponseAfterSuccessfulPasswordAuthentication
 	///////////////////////////////////////////////////////////
 	// getLoginResponseAfterSuccessfulPasswordAuthentication ()
 	///////////////////////////////////////////////////////////
@@ -348,6 +343,42 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
 
+	@Test
+	public void testValidateAuthReceiptAndCheckPassword_WeakPassword_NotUsersActualPassword(){
+		//case where someone tries to brute force a weak password such as "password123", but is not the user's actual password
+
+		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(false);
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
+
+		try {
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+			fail("expected exception to be thrown");
+		} catch (UnauthenticatedException e){
+			//expected
+		}
+
+		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockPassswordValidator, never()).validatePassword(password);
+	}
+
+	@Test
+	public void testValidateAuthReceiptAndCheckPassword_WeakPassword_PassPasswordCheck(){
+		//case where someone's actual password is a weak password such as "password123"
+
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
+
+		try {
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+			fail("expected exception to be thrown");
+		} catch (PasswordResetViaEmailRequiredException e){
+			//expected
+			assertEquals("You must change your password via email reset.", e.getMessage());
+		}
+
+		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
+	}
+
 
 
 	////////////////////////////////
@@ -394,13 +425,6 @@ public class AuthenticationManagerImplUnitTest {
 	public void testValidateChangePassword_withCurrentPassword_nullCurrentPassword(){
 		changePasswordWithCurrentPassword.setCurrentPassword(null);
 
-		//method under test
-		authManager.validateChangePassword(changePasswordWithCurrentPassword);
-	}
-
-	@Test(expected = PasswordResetViaEmailRequiredException.class)
-	public void testValidateChangePassword_withCurrentPassword_weakCurrentPassword(){
-		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 		//method under test
 		authManager.validateChangePassword(changePasswordWithCurrentPassword);
 	}
@@ -482,6 +506,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testChangePassword_withCurrentPassword(){
 		Long changedPasswordUserId = authManager.changePassword(changePasswordWithCurrentPassword);
 
+		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		assertEquals(userId, changedPasswordUserId);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
 		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
@@ -493,10 +518,30 @@ public class AuthenticationManagerImplUnitTest {
 	public void testChangePassword_withToken(){
 		Long changedPasswordUserId = authManager.changePassword(changePasswordWithToken);
 
+		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		assertEquals(userId, changedPasswordUserId);
 		verifyZeroInteractions(mockUserCredentialValidator);
 		verify(mockPasswordResetTokenGenerator).isValidToken(passwordResetSignedToken);
 		verify(mockAuthDAO).deleteSessionToken(userId);
 		verify(mockAuthDAO).changePassword(eq(userId), anyString());
+	}
+
+	@Test
+	public void testChangePassword_weakNewPassword(){
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(newChangedPassword);
+
+		try {
+			//method under test
+			Long changedPasswordUserId = authManager.changePassword(changePasswordWithCurrentPassword);
+			fail();
+		} catch (InvalidPasswordException e){
+			//expected
+		}
+
+		verify(mockPassswordValidator).validatePassword(newChangedPassword);
+		verifyZeroInteractions(mockPasswordResetTokenGenerator);
+		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockAuthDAO, never()).deleteSessionToken(userId);
+		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 	}
 }

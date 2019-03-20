@@ -27,6 +27,7 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ErrorResponseCode;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
@@ -60,15 +61,17 @@ public class ClientUtils {
 	 */
 	public static void checkStatusCodeAndThrowException(SimpleHttpResponse response) throws SynapseException {
 		ValidateArgument.required(response, "response");
-		if (is200sStatusCode(response.getStatusCode())) {
+		final int statusCode = response.getStatusCode();
+		if (is200sStatusCode(statusCode)) {
 			return;
 		}
 		String content = response.getContent();
 
 		try{
-			EntityFactory.createEntityFromJSONString(content, ErrorResponse.class);
-		}catch (Exception e){
-			throwException(response.getStatusCode(), content);
+			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(content, ErrorResponse.class);
+			throwException(statusCode, errorResponse.getReason(), errorResponse.getErrorCode());
+		}catch (JSONObjectAdapterException e){
+			throwException(statusCode, content);
 		}
 
 	}
@@ -95,7 +98,7 @@ public class ClientUtils {
 		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
 			throw new SynapseTooManyRequestsException(reasonStr, errorResponseCode);
 		}else {
-			throw new UnknownSynapseServerException(statusCode, reasonStr, errorResponseCode);
+			throw new UnknownSynapseServerException(statusCode, reasonStr, null, errorResponseCode);
 		}
 	}
 
@@ -162,14 +165,16 @@ public class ClientUtils {
 	public static void throwException(int statusCode, JSONObject responseBody) throws SynapseException {
 		ValidateArgument.requirement(!is200sStatusCode(statusCode), "Only support non 200s statusCode.");
 		String reasonStr = null;
-		if (responseBody!=null) {
-			try {
-				reasonStr = responseBody.getString(ERROR_REASON_TAG);
-			} catch (JSONException e) {
-				throw new SynapseClientException(e);
-			}
+		if (responseBody==null) {
+			throwException(statusCode, null, null);
 		}
-		throwException(statusCode, reasonStr);
+
+		try {
+			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONObject(responseBody, ErrorResponse.class);
+			throwException(statusCode, errorResponse.getReason(), errorResponse.getErrorCode());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 	/**
