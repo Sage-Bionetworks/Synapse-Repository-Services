@@ -217,7 +217,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@WriteTransaction
 	@Override
-	public LoginResponse login(LoginRequest request){ //TODO: test and pull in implementation from deprecated method
+	public LoginResponse login(LoginRequest request){
 		ValidateArgument.required(request, "loginRequest");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");

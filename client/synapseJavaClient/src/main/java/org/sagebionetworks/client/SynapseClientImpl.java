@@ -99,7 +99,9 @@ import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -4228,6 +4230,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		change.setSessionToken(sessionToken);
 		change.setPassword(newPassword);
 		voidPost(getAuthEndpoint(), "/user/password", change, null);
+	}
+
+	@Override
+	public void changePassword(String username, String currentPassword, String newPassword, String authenticationReceipt)
+			throws SynapseException {
+		ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword = new ChangePasswordWithCurrentPassword();
+		changePasswordWithCurrentPassword.setUsername(username);
+		changePasswordWithCurrentPassword.setUsername(currentPassword);
+		changePasswordWithCurrentPassword.setNewPassword(newPassword);
+		changePasswordWithCurrentPassword.setAuthenticationReceipt(authenticationReceipt);
+		changePassword(changePasswordWithCurrentPassword);
+	}
+
+	@Override
+	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException {
+		voidPost(getAuthEndpoint(), "/user/changePassword", changePasswordRequest, null);
 	}
 
 	@Override

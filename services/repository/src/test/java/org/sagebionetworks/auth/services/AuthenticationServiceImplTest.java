@@ -288,6 +288,6 @@ public class AuthenticationServiceImplTest {
 		service.sendPasswordResetEmail(passwordResetUrlPrefix, email);
 
 		verify(mockAuthenticationManager).createPasswordResetToken(principalAlias.getPrincipalId());
-		verify(mockMessageManager).sendNewPasswordResetEmail(email, token);
+		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token);
 	}
 }

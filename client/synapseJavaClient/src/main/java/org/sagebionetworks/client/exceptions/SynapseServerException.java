@@ -4,6 +4,8 @@
 package org.sagebionetworks.client.exceptions;
 
 
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+
 /**
  * 
  * Abstraction for exception from the server-side.
@@ -12,6 +14,7 @@ package org.sagebionetworks.client.exceptions;
 public abstract class SynapseServerException extends SynapseException {
 
 	private static final long serialVersionUID = 1L;
+	private ErrorResponseCode errorResponseCode;
 
 	public SynapseServerException() {
 		super();
@@ -29,4 +32,7 @@ public abstract class SynapseServerException extends SynapseException {
 		super(cause);
 	}
 
+	public ErrorResponseCode getErrorResponseCode() {
+		return errorResponseCode;
+	}
 }

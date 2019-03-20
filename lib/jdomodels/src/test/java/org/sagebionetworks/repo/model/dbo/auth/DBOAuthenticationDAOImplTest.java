@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.auth;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -327,5 +327,15 @@ public class DBOAuthenticationDAOImplTest {
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey(), secretKey);
+	}
+
+	@Test
+	public void testDeleteSessionToken_byPrincipalId(){
+		String sessionToken = authDAO.changeSessionToken(userId, null);
+		assertNotNull(authDAO.getSessionTokenIfValid(userId).getSessionToken());
+
+		//method under test
+		authDAO.deleteSessionToken(userId);
+		assertNull(authDAO.getSessionTokenIfValid(userId).getSessionToken());
 	}
 }

@@ -4,7 +4,7 @@
 	"enum": [
 		{
 			"name": "PASSWORD_RESET_VIA_EMAIL_REQUIRED",
-			"description": "The user's password must be reset."
+			"description": "The user's password must be reset via email."
 		}
 	]
 }

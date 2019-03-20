@@ -25,6 +25,9 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
+import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -48,40 +51,51 @@ public class ClientUtils {
 	/**
 	 * Checks to see if the statusCode is in [200,300) range. If it is not,
 	 * throws an exception.
-	 * 
+	 *
 	 * This method is used to check the SimpleHttpResponse that has expected
 	 * content in non JSON format.
-	 * 
+	 *
 	 * @param response
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	public static void checkStatusCodeAndThrowException(SimpleHttpResponse response) throws SynapseException {
 		ValidateArgument.required(response, "response");
 		if (is200sStatusCode(response.getStatusCode())) {
 			return;
 		}
-		throwException(response.getStatusCode(), response.getContent());
+		String content = response.getContent();
+
+		try{
+			EntityFactory.createEntityFromJSONString(content, ErrorResponse.class);
+		}catch (Exception e){
+			throwException(response.getStatusCode(), content);
+		}
+
 	}
 
 	public static void throwException(int statusCode, String reasonStr) throws SynapseException {
+		throwException(statusCode, reasonStr, null);
+	}
+
+	public static void throwException(int statusCode, String reasonStr, ErrorResponseCode errorResponseCode) throws SynapseException{
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-			throw new SynapseUnauthorizedException(reasonStr);
+			throw new SynapseUnauthorizedException(reasonStr, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
-			throw new SynapseForbiddenException(reasonStr);
+			throw new SynapseForbiddenException(reasonStr, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
-			throw new SynapseNotFoundException(reasonStr);
+			throw new SynapseNotFoundException(reasonStr, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
-			throw new SynapseBadRequestException(reasonStr);
+			throw new SynapseBadRequestException(reasonStr, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_LOCKED) {
-			throw new SynapseLockedException(reasonStr);
+			throw new SynapseLockedException(reasonStr, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_PRECONDITION_FAILED) {
-			throw new SynapseConflictingUpdateException(reasonStr);
+			throw new SynapseConflictingUpdateException(reasonStr, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_GONE) {
-			throw new SynapseDeprecatedServiceException(reasonStr);
+			throw new SynapseDeprecatedServiceException(reasonStr, errorResponseCode);
 		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
-			throw new SynapseTooManyRequestsException(reasonStr);
+			throw new SynapseTooManyRequestsException(reasonStr, errorResponseCode);
 		}else {
-			throw new UnknownSynapseServerException(statusCode, reasonStr);
+			throw new UnknownSynapseServerException(statusCode, reasonStr, errorResponseCode);
 		}
 	}
 

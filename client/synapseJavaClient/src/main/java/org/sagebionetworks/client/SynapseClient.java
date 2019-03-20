@@ -80,6 +80,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -1734,7 +1735,25 @@ public interface SynapseClient extends BaseClient {
 	 * Changes the registering user's password
 	 */
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
-	
+
+	/**
+	 * Change password for a user
+	 * @param username username to identify the user
+	 * @param currentPassword the user's current password
+	 * @param newPassword the new password for the user
+	 * @param authenticationReceipt Optional. Authentication receipt from a previous, successful login.
+	 * @throws SynapseException
+	 */
+	public void changePassword(String username, String currentPassword, String newPassword, String authenticationReceipt)
+			throws SynapseException;
+
+	/**
+	 * Change password for user
+	 * @param changePasswordRequest the request object for changing the user's password
+	 * @throws SynapseException
+	 */
+	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
+
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
