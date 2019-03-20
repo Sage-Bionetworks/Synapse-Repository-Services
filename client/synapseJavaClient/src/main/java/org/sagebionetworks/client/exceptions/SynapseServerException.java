@@ -33,7 +33,11 @@ public abstract class SynapseServerException extends SynapseException {
 	}
 
 	public SynapseServerException(String message, ErrorResponseCode errorResponseCode){
-		super(message);
+		this(message, null, errorResponseCode);
+	}
+
+	public SynapseServerException(String message, Throwable cause, ErrorResponseCode errorResponseCode){
+		super(message, cause);
 		this.errorResponseCode = errorResponseCode;
 	}
 

@@ -1730,7 +1730,9 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
-	
+
+	public void sendNewPasswordResetEmail(String passwordResetEndpoint, String email) throws SynapseException;
+
 	/**
 	 * Changes the registering user's password
 	 */

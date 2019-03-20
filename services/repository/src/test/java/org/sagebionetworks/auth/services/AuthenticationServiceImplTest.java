@@ -4,7 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -285,9 +288,24 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.lookupUserByUsernameOrEmail(email)).thenReturn(principalAlias);
 		when(mockAuthenticationManager.createPasswordResetToken(principalAlias.getPrincipalId())).thenReturn(token);
 
+		//method under test
 		service.sendPasswordResetEmail(passwordResetUrlPrefix, email);
 
 		verify(mockAuthenticationManager).createPasswordResetToken(principalAlias.getPrincipalId());
 		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token);
+	}
+
+	@Test
+	public void testSendPasswordResetEmail_UserNotFound(){
+		String email = "user@test.com";
+		String passwordResetUrlPrefix = "synapse.org";
+		when(mockUserManager.lookupUserByUsernameOrEmail(email)).thenThrow(NotFoundException.class);
+
+		//method under test
+		service.sendPasswordResetEmail(passwordResetUrlPrefix, email);
+
+		//expect no errors to be throw but the token should never be generated and sent
+		verify(mockAuthenticationManager, never()).createPasswordResetToken(anyLong());
+		verify(mockMessageManager, never()).sendNewPasswordResetEmail(anyString(), any());
 	}
 }

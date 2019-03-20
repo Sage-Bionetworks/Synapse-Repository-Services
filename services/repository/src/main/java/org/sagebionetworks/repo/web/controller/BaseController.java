@@ -921,7 +921,6 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handlePasswordChangeRequiredException(PasswordResetViaEmailRequiredException ex,
 														HttpServletRequest request){
-		//TODO: test that error respose code exists
 		return handleException(ex, request, false, ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED);
 	}
 }
