@@ -242,11 +242,13 @@
 
 	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
 
-	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
+	<bean id="authManager" class="org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl" />
 
 	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffUnsuccessfulLoginLockoutImpl"/>
 
 	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
+
+	<bean id="passwordResetTokenGenerator" class="org.sagebionetworks.repo.manager.authentication.PasswordResetTokenGeneratorImpl"/>
 	
 	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSimpleEmailServiceClient"/>

@@ -36,6 +36,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.repo.model.ErrorResponseCode;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -74,6 +75,20 @@ public class ClientUtilsTest {
 		JSONObject response = new JSONObject();
 		response.put(ERROR_REASON_TAG, "test");
 		ClientUtils.throwException(401, response);
+	}
+
+	@Test
+	public void testThrowExceptionWithJSONResponseAndErrorCode() throws Exception{
+		JSONObject response = new JSONObject();
+		response.put(ERROR_REASON_TAG, "test");
+		response.put("errorCode", "PASSWORD_RESET_VIA_EMAIL_REQUIRED");
+
+		try {
+			ClientUtils.throwException(401, response);
+		}catch (SynapseUnauthorizedException e){
+			assertEquals("test", e.getMessage());
+			assertEquals(ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED, e.getErrorResponseCode());
+		}
 	}
 
 	@Test (expected = SynapseUnauthorizedException.class)
@@ -152,6 +167,18 @@ public class ClientUtilsTest {
 			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
 		} catch (SynapseNotFoundException e) {
 			assertEquals("some reason", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testCheckStatusCodeAndThrowException_JSONResponseContent() throws Exception{
+		when(mockResponse.getStatusCode()).thenReturn(400);
+		when(mockResponse.getContent()).thenReturn("{\"reason\":\"some reason\",\"errorCode\":\"PASSWORD_RESET_VIA_EMAIL_REQUIRED\"}");
+		try {
+			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
+		} catch (SynapseBadRequestException e) {
+			assertEquals("some reason", e.getMessage());
+			assertEquals(ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED, e.getErrorResponseCode());
 		}
 	}
 

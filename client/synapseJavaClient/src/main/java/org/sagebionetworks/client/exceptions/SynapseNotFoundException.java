@@ -1,5 +1,7 @@
 package org.sagebionetworks.client.exceptions;
 
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+
 /**
  * Throw for HTTP status code of 404.
  *
@@ -24,4 +26,7 @@ public class SynapseNotFoundException extends SynapseServerException {
 		super(cause);
 	}
 
+	public SynapseNotFoundException(String message, ErrorResponseCode errorResponseCode) {
+		super(message, errorResponseCode);
+	}
 }

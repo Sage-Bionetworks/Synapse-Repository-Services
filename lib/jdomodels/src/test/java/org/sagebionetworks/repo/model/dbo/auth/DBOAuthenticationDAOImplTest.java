@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.auth;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -16,13 +16,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -326,5 +327,15 @@ public class DBOAuthenticationDAOImplTest {
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey(), secretKey);
+	}
+
+	@Test
+	public void testDeleteSessionToken_byPrincipalId(){
+		String sessionToken = authDAO.changeSessionToken(userId, null);
+		assertNotNull(authDAO.getSessionTokenIfValid(userId).getSessionToken());
+
+		//method under test
+		authDAO.deleteSessionToken(userId);
+		assertNull(authDAO.getSessionTokenIfValid(userId).getSessionToken());
 	}
 }

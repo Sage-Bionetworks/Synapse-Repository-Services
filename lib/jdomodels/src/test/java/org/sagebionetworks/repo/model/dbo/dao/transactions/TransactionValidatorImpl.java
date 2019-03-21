@@ -94,7 +94,6 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	 */
 	public void initialize() throws IOException{
 		// Create the test table if needed.
-		String url = stackConfiguration.getRepositoryDatabaseConnectionUrl();
 		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
 		String tableName = TRANS_TEST;
 		String sql = String.format(DDLUtilsImpl.TABLE_EXISTS_SQL_FORMAT, tableName, schema);

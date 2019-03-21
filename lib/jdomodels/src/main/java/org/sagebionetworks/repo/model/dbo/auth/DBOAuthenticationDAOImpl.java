@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.auth;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -73,8 +73,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
 			" SET "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"= ?"+
 			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?";
-	
-	private static final String IF_VALID_SUFFIX = 
+
+	private static final String IF_VALID_SUFFIX =
 			" AND "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"> ?";
 	
 	// NOTE: Neither in this version, or the prior version, were you selecting by user's name
@@ -86,10 +86,15 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			+ "AND st."+COL_SESSION_TOKEN_VALIDATED_ON+" > ?";
 
 	
-	private static final String NULLIFY_SESSION_TOKEN = 
+	private static final String NULLIFY_SESSION_TOKEN =
 			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
 			" SET "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
 			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
+
+	private static final String NULLIFY_SESSION_TOKEN_FOR_PRINCIPAL_ID =
+			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
+			" SET "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
+			" WHERE "+ COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?";
 
 	private static final String SELECT_PRINCIPAL_BY_TOKEN = 
 			"SELECT "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+
@@ -147,7 +152,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public boolean checkUserCredentials(long principalId, String passHash) {
 		return jdbcTemplate.queryForObject(SELECT_COUNT_BY_EMAIL_AND_PASSWORD, Long.class, principalId, passHash) > 0;
 	}
-	
+
 	@Override
 	@WriteTransaction
 	public boolean revalidateSessionTokenIfNeeded(long principalId) {
@@ -213,6 +218,13 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
+	@WriteTransaction
+	public void deleteSessionToken(long principalId) {
+		userGroupDAO.touch(principalId);
+		jdbcTemplate.update(NULLIFY_SESSION_TOKEN_FOR_PRINCIPAL_ID, principalId);
+	}
+
+	@Override
 	public Long getPrincipal(String sessionToken) {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN,new SingleColumnRowMapper<Long>(), sessionToken); 
@@ -233,18 +245,22 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public byte[] getPasswordSalt(long principalId) throws NotFoundException {
-		String passHash;
-		try {
-			passHash = jdbcTemplate.queryForObject(SELECT_PASSWORD, new SingleColumnRowMapper<String>(), principalId);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("User (" + principalId + ") does not exist");
-		}
+		String passHash = getPasswordHash(principalId);
 		if (passHash == null) {
 			return null;
 		}
 		return PBKDF2Utils.extractSalt(passHash);
 	}
-	
+
+	@Override
+	public String getPasswordHash(long principalId) {
+		try {
+			return jdbcTemplate.queryForObject(SELECT_PASSWORD, new SingleColumnRowMapper<String>(), principalId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("User (" + principalId + ") does not exist");
+		}
+	}
+
 	@Override
 	@WriteTransaction
 	public void changePassword(long principalId, String passHash) {

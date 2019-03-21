@@ -1,5 +1,7 @@
 package org.sagebionetworks.client.exceptions;
 
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+
 /**
  * Exception throw for HTTP status code 429.
  *
@@ -27,4 +29,7 @@ public class SynapseTooManyRequestsException extends SynapseServerException {
 		super(cause);
 	}
 
+	public SynapseTooManyRequestsException(String message, ErrorResponseCode errorResponseCode) {
+		super(message, errorResponseCode);
+	}
 }
