@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -18,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1999,6 +2002,22 @@ public class TableIndexDAOImplTest {
 		assertEquals(project1.getId().toString(), result.get(1).getId());
 		assertEquals(project1.getName(), result.get(1).getProjectName());
 		assertEquals((Long) (file1Size + file2Size), result.get(1).getSizeInBytes());
+	}
+	
+	@Test
+	public void testPLFM_5445() throws UnsupportedEncodingException, DecoderException {
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "aString", ColumnType.STRING));
+		createOrUpdateTable(schema, tableId, isView);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 1);
+		// This is the value from the test.
+		String value = new String(Hex.decodeHex("F09D9C85".toCharArray()), "UTF-8");
+		// first row is in the past
+		rows.get(0).getValues().set(0, value);
+
+		// apply the rows
+		createOrUpdateOrDeleteRows(rows, schema);
 	}
 
 	/**
