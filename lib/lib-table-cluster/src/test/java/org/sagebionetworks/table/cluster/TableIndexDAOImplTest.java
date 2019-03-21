@@ -2011,7 +2011,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 1);
-		// This is the value from the test.
+		// This is the value from the issue.
 		String value = new String(Hex.decodeHex("F09D9C85".toCharArray()), "UTF-8");
 		// first row is in the past
 		rows.get(0).getValues().set(0, value);
