@@ -241,7 +241,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 
 		//callers that have previously logged in successfully are able to bypass lockout caused by failed attempts
-		boolean correctCredentials = validAuthReceipt != null ? userCredentialValidator.checkPassword(principalId, password) : userCredentialValidator.checkPasswordWithLock(principalId, password);
+		boolean correctCredentials = validAuthReceipt != null ? userCredentialValidator.checkPassword(principalId, password) : userCredentialValidator.checkPasswordWithThrottling(principalId, password);
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}

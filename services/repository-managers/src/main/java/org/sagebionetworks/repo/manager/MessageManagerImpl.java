@@ -633,7 +633,6 @@ public class MessageManagerImpl implements MessageManager {
 		ValidateArgument.required(passwordResetUrlPrefix, "passwordResetPrefix");
 
 		String webLink = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
-		//TODO: Test
 		EmailUtils.validateSynapsePortalHost(webLink);
 
 		long userId = Long.parseLong(passwordResetToken.getUserId());
