@@ -692,7 +692,7 @@ public class IT100TableControllerTest {
 
 	@Test
 	public void testQueryAsync() throws Exception {
-		int columnCount = 10;
+		int columnCount = 16;
 		int stringSize = 1000;
 		int rowsNeeded = 40;
 

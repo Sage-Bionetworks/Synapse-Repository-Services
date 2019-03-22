@@ -572,7 +572,7 @@ public class TableModelUtilsTest {
 		long maxSize = 444;
 		char[] array = new char[(int) maxSize];
 		Arrays.fill(array, Character.MAX_VALUE);
-		int expected = new String(array).getBytes("UTF-8").length;
+		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, maxSize));
 	}
 	
@@ -581,7 +581,7 @@ public class TableModelUtilsTest {
 		long maxSize = 444;
 		char[] array = new char[(int) maxSize];
 		Arrays.fill(array, Character.MAX_VALUE);
-		int expected = new String(array).getBytes("UTF-8").length;
+		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LINK, maxSize));
 	}
 	
@@ -686,7 +686,7 @@ public class TableModelUtilsTest {
 		values.put("2", null);
 		values.put("3", "muchLonger");
 		row.setValues(values);
-		int expectedBytes = 448;
+		int expectedBytes = 416;
 		int actualBytes = TableModelUtils.calculateActualRowSize(row);
 		assertEquals(expectedBytes, actualBytes);
 	}
@@ -706,7 +706,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(3434, allBytes);
+		assertEquals(4528, allBytes);
 	}
 
 	@Test

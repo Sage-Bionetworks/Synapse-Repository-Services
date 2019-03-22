@@ -4,15 +4,14 @@ import java.io.UnsupportedEncodingException;
 
 public class ColumnConstants {
 
-	public static final int MAX_BYTES_PER_CHAR_UTF_8;
-	static{
-		char[] chars = new char[]{Character.MAX_VALUE};
-		try {
-			MAX_BYTES_PER_CHAR_UTF_8 = new String(chars).getBytes("UTF-8").length;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
+	/**
+	 * With the upgrade to MySQL 8, the default character set for
+	 * tables changed from 'utf8' to 'utf8mb4'  The old 'utf8' is not a 
+	 * 'true' utf-8 as it is limited to only three bytes per character or less.  True
+	 * utf-8 requires a maximum of 4 bytes per character or less.  MySQL addressed
+	 * this issue by adding a 'utf8mb4' which means utf-8 max bytes 4.;
+	 */
+	public static final int MAX_BYTES_PER_CHAR_UTF_8 = 4;
 	
 	/**
 	 * The maximum number of bytes of a boolean when represented as a string.
