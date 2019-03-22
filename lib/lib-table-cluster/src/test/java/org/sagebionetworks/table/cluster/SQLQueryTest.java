@@ -942,7 +942,7 @@ public class SQLQueryTest {
 		
 		SqlQuery copy = new SqlQueryBuilder(newModel, original).build();
 		assertEquals("SELECT _C111_ AS bar, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
-		assertEquals(3L, copy.getParameters().get("b0"));
+		assertEquals(2L, copy.getParameters().get("b0"));
 		assertEquals(overideOffset, copy.getParameters().get("b1"));
 		assertEquals(tableSchema, copy.getTableSchema());
 		assertEquals(maxBytesPerPage, copy.maxBytesPerPage);
