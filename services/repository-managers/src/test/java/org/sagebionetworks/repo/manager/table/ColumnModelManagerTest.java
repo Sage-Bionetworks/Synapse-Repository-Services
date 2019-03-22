@@ -112,7 +112,7 @@ public class ColumnModelManagerTest {
 		underLimitSchemaIds = Lists.newArrayList();
 		underLimitSchema = Lists.newArrayList();
 		// Currently the breaking point is 23 string columns of size 1000.
-		for(int i=0; i<21; i++){
+		for(int i=0; i<16; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
 			cm.setMaximumSize(1000L);
 			underLimitSchema.add(cm);
@@ -121,8 +121,8 @@ public class ColumnModelManagerTest {
 		
 		overLimitSchemaIds = Lists.newArrayList();
 		overLimitSchema = Lists.newArrayList();
-		// Currently the breaking point is 23 string columns of size 1000.
-		for(int i=0; i<23; i++){
+		// Currently the breaking point is 17 string columns of size 1000.
+		for(int i=0; i<17; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
 			cm.setMaximumSize(1000L);
 			overLimitSchema.add(cm);
@@ -491,8 +491,8 @@ public class ColumnModelManagerTest {
 	public void testValidateSchemaSizeUnderLimit(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
-		// Currently the breaking point is 23 string columns of size 1000.
-		for(int i=0; i<21; i++){
+		// Currently the breaking point is 16 string columns of size 1000.
+		for(int i=0; i<16; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
 			cm.setMaximumSize(1000L);
 			schema.add(cm);
