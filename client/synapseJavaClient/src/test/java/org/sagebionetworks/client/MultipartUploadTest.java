@@ -111,7 +111,7 @@ public class MultipartUploadTest {
 
 		when(
 				mockClient.startMultipartUpload(
-						any(MultipartUploadRequest.class), any(Boolean.class)))
+						any(), any()))
 				.thenReturn(startStatus);
 
 		completeStatus = new MultipartUploadStatus();
@@ -311,7 +311,7 @@ public class MultipartUploadTest {
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(
-				any(MultipartUploadRequest.class), any(Boolean.class));
+				any(), any());
 		verify(mockClient, times(1)).getMultipartPresignedUrlBatch(
 				any(BatchPresignedUploadUrlRequest.class));
 		verify(mockClient, times(1)).putFileToURL(any(URL.class),
@@ -338,7 +338,7 @@ public class MultipartUploadTest {
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(
-				any(MultipartUploadRequest.class), any(Boolean.class));
+				any(), any());
 		verify(mockClient, never()).getMultipartPresignedUrlBatch(
 				any(BatchPresignedUploadUrlRequest.class));
 		verify(mockClient, never()).putFileToURL(any(URL.class),

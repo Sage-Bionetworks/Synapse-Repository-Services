@@ -4,6 +4,8 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
@@ -13,6 +15,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import jdk.internal.util.xml.impl.Input;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -169,8 +172,10 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test (expected = TemporarilyUnavailableException.class)
-	public void testSendDocuments_IOException(){
-		when(mockDocumentBatch.getNewInputStream()).thenThrow(IOException.class);
+	public void testSendDocuments_IOException() throws IOException {
+		InputStream mockInputStream = mock(InputStream.class);
+		when(mockDocumentBatch.getNewInputStream()).thenReturn(mockInputStream);
+		doThrow(IOException.class).when(mockInputStream).close();
 
 		//method under test
 		cloudSearchDomainClientAdapter.sendDocuments(Iterators.emptyIterator());

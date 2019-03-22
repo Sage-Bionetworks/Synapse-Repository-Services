@@ -67,10 +67,10 @@ public class SynapseTest {
 		synapse = new SynapseClientImpl();
 		synapse.setSimpleHttpClient(mockClient);
 
-		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockClient.put(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+		when(mockClient.get(any())).thenReturn(mockResponse);
+		when(mockClient.delete(any())).thenReturn(mockResponse);
+		when(mockClient.put(any(), any())).thenReturn(mockResponse);
+		when(mockClient.post(any(), any())).thenReturn(mockResponse);
 
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
 		LoginRequest request = new LoginRequest();

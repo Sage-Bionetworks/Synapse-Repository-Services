@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -325,7 +326,7 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testPostJson() throws Exception{
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString()))
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{}");
@@ -344,7 +345,7 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testPutJson() throws Exception{
-		when(mockClient.put(any(SimpleHttpRequest.class), anyString()))
+		when(mockClient.put(any(SimpleHttpRequest.class), isNull()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{}");
@@ -382,7 +383,7 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testPostStringDirect() throws Exception{
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString()))
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("content");
@@ -424,7 +425,7 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testPutJSONEntity() throws Exception {
-		when(mockClient.put(any(SimpleHttpRequest.class), anyString()))
+		when(mockClient.put(any(SimpleHttpRequest.class), isNull()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
@@ -434,7 +435,7 @@ public class BaseClientImplTest {
 				baseClient.putJSONEntity("https://repo-prod.prod.sagebase.org",
 						"/entityId", null, EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).put(captor.capture(), anyString());
+		verify(mockClient).put(captor.capture(), isNull());
 		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
@@ -452,13 +453,13 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testVoidPut() throws Exception {
-		when(mockClient.put(any(SimpleHttpRequest.class), anyString()))
+		when(mockClient.put(any(SimpleHttpRequest.class), isNull()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
 		baseClient.voidPut("https://repo-prod.prod.sagebase.org", "/entityId", null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).put(captor.capture(), anyString());
+		verify(mockClient).put(captor.capture(), isNull());
 		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
@@ -480,7 +481,7 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testPostJSONEntity() throws Exception {
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString()))
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
@@ -490,7 +491,7 @@ public class BaseClientImplTest {
 				baseClient.postJSONEntity("https://repo-prod.prod.sagebase.org",
 						"/entityId", null, EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).post(captor.capture(), anyString());
+		verify(mockClient).post(captor.capture(), isNull());
 		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
@@ -508,13 +509,13 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testVoidPost() throws Exception {
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString()))
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
 		baseClient.voidPost("https://repo-prod.prod.sagebase.org", "/entityId", null, null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).post(captor.capture(), anyString());
+		verify(mockClient).post(captor.capture(), isNull());
 		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
