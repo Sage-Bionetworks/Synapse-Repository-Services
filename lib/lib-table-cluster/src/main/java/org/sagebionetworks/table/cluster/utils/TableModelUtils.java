@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.Collections;
@@ -745,7 +744,8 @@ public class TableModelUtils {
 	
 	
 	/**
-	 * Calculate the actual size of a row.
+	 * Calculate the amount of memory needed load the given row.
+	 * 
 	 * @param row
 	 * @return
 	 */
@@ -757,28 +757,17 @@ public class TableModelUtils {
 				// Include references to both the key and value and arrays
 				bytes += ColumnConstants.MINUMUM_ROW_VALUE_SIZE;
 				// Include the size of the key
-				bytes += getStringBytesSizeUTF8(key);
+				bytes += key.length()*(ColumnConstants.MAX_BYTES_PER_CHAR_MEMORY);
 				String value = row.getValues().get(key);
 				if (value != null) {
-					bytes += getStringBytesSizeUTF8(value);
+					bytes += value.length()
+							* (ColumnConstants.MAX_BYTES_PER_CHAR_MEMORY);
 				}
 			}
 		}
 		return bytes;
 	}
 	
-	/**
-	 * Get the size of the string as UTF-8 bytes.
-	 * @param value
-	 * @return
-	 */
-	public static int getStringBytesSizeUTF8(String value) {
-		try {
-			return value.getBytes("utf-8").length;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
 	
 	/**
 	 * Is a request within the maximum number of bytes per request?

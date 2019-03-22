@@ -14,6 +14,13 @@ public class ColumnConstants {
 	public static final int MAX_BYTES_PER_CHAR_UTF_8 = 4;
 	
 	/**
+	 * It appears that the amount of memory used per character
+	 * is dependent on the JVM implementation.  Four bytes
+	 * per character seems to be the maximum.
+	 */
+	public static final int MAX_BYTES_PER_CHAR_MEMORY = 4;
+	
+	/**
 	 * The maximum number of bytes of a boolean when represented as a string.
 	 */
 	public static final int MAX_BOOLEAN_BYTES_AS_STRING;
