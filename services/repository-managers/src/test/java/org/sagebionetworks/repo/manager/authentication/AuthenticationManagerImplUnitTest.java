@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import static org.hamcrest.CoreMatchers.any;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -19,14 +18,13 @@ import static org.sagebionetworks.repo.manager.authentication.AuthenticationMana
 import java.util.UUID;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
-import org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl;
-import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -91,7 +89,7 @@ public class AuthenticationManagerImplUnitTest {
 		ug.setId(userId.toString());
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(userId)).thenReturn(ug);
-		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(true);
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 
 
@@ -197,10 +195,6 @@ public class AuthenticationManagerImplUnitTest {
 	////////////////
 	// login()
 	///////////////
-	@Test
-	public void testLoginWithPasswordNotMatchingRequirements(){
-
-	}
 
 	@Test
 	public void testLogin(){
@@ -211,7 +205,7 @@ public class AuthenticationManagerImplUnitTest {
 		authManager.login(loginRequest);
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
-		verify(mockUserCredentialValidator, never()).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
 		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
@@ -274,7 +268,7 @@ public class AuthenticationManagerImplUnitTest {
 		authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 	}
 
 	@Test
@@ -286,14 +280,14 @@ public class AuthenticationManagerImplUnitTest {
 		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 	}
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithInvalidReceiptAndWrongPassword() {
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
-		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(false);
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
 
 		try {
@@ -305,7 +299,7 @@ public class AuthenticationManagerImplUnitTest {
 		}
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
@@ -319,7 +313,7 @@ public class AuthenticationManagerImplUnitTest {
 		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
-		verify(mockUserCredentialValidator, never()).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
 	}
 
 	@Test
@@ -338,7 +332,7 @@ public class AuthenticationManagerImplUnitTest {
 		}
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
-		verify(mockUserCredentialValidator, never()).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
 	}
@@ -347,7 +341,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testValidateAuthReceiptAndCheckPassword_WeakPassword_NotUsersActualPassword(){
 		//case where someone tries to brute force a weak password such as "password123", but is not the user's actual password
 
-		when(mockUserCredentialValidator.checkPasswordWithLock(userId, password)).thenReturn(false);
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 
 		try {
@@ -357,10 +351,12 @@ public class AuthenticationManagerImplUnitTest {
 			//expected
 		}
 
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator, never()).validatePassword(password);
 	}
 
+	//TODO: This is temporary. We should enforce this once the portal has switched over to using the new password reset APIs
+	@Ignore
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WeakPassword_PassPasswordCheck(){
 		//case where someone's actual password is a weak password such as "password123"
@@ -375,7 +371,7 @@ public class AuthenticationManagerImplUnitTest {
 			assertEquals("You must change your password via email reset.", e.getMessage());
 		}
 
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator).validatePassword(password);
 	}
 
@@ -438,9 +434,10 @@ public class AuthenticationManagerImplUnitTest {
 		//method under test
 		assertEquals(userId, validatedUserId);
 
-		verify(mockPassswordValidator).validatePassword(password);
+		//TODO: uncomment once we reenable password validation on login
+//		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 	}
 
 	/////////////////////////////////////////////////////////////
@@ -519,7 +516,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		assertEquals(userId, changedPasswordUserId);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).deleteSessionToken(userId);
 		verify(mockAuthDAO).changePassword(eq(userId), anyString());
 	}
@@ -550,7 +547,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
-		verify(mockUserCredentialValidator).checkPasswordWithLock(userId, password);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO, never()).deleteSessionToken(userId);
 		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 	}
