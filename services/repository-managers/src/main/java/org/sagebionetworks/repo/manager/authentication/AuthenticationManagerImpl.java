@@ -245,14 +245,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
-
-		// Now that the password has been verified,
-		// ensure that if the current password is a weak password, only allow the user to reset via emailed token
-		try{
-			passwordValidator.validatePassword(password);
-		} catch (InvalidPasswordException e){
-			throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
-		}
+//TODO: This is temporarily commented out. We should enforce this once the portal has switched over to using the new password reset APIs
+//		// Now that the password has been verified,
+//		// ensure that if the current password is a weak password, only allow the user to reset via emailed token
+//		try{
+//			passwordValidator.validatePassword(password);
+//		} catch (InvalidPasswordException e){
+//			throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
+//		}
 
 		return validAuthReceipt;
 	}

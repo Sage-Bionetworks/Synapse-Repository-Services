@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.manager.authentication.AuthenticationMana
 import java.util.UUID;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -354,6 +355,8 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockPassswordValidator, never()).validatePassword(password);
 	}
 
+	//TODO: This is temporary. We should enforce this once the portal has switched over to using the new password reset APIs
+	@Ignore
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WeakPassword_PassPasswordCheck(){
 		//case where someone's actual password is a weak password such as "password123"
@@ -431,7 +434,8 @@ public class AuthenticationManagerImplUnitTest {
 		//method under test
 		assertEquals(userId, validatedUserId);
 
-		verify(mockPassswordValidator).validatePassword(password);
+		//TODO: uncomment once we reenable password validation on login
+//		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 	}
