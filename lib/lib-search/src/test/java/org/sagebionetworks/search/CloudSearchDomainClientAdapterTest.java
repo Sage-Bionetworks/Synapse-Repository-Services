@@ -15,7 +15,6 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import jdk.internal.util.xml.impl.Input;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
