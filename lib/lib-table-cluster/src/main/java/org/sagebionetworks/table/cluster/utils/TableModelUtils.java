@@ -744,7 +744,8 @@ public class TableModelUtils {
 	
 	
 	/**
-	 * Calculate the actual size of a row.
+	 * Calculate the amount of memory needed load the given row.
+	 * 
 	 * @param row
 	 * @return
 	 */
@@ -756,16 +757,17 @@ public class TableModelUtils {
 				// Include references to both the key and value and arrays
 				bytes += ColumnConstants.MINUMUM_ROW_VALUE_SIZE;
 				// Include the size of the key
-				bytes += key.length()*(ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
+				bytes += key.length()*(ColumnConstants.MAX_BYTES_PER_CHAR_MEMORY);
 				String value = row.getValues().get(key);
 				if (value != null) {
 					bytes += value.length()
-							* (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
+							* (ColumnConstants.MAX_BYTES_PER_CHAR_MEMORY);
 				}
 			}
 		}
 		return bytes;
 	}
+	
 	
 	/**
 	 * Is a request within the maximum number of bytes per request?

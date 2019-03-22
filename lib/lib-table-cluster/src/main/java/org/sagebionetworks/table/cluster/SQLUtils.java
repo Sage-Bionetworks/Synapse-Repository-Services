@@ -72,7 +72,6 @@ public class SQLUtils {
 	private static final String CREATE_TABLE_LIKE = "CREATE TABLE %1$S LIKE %2$S";
 	private static final String TEMP = "TEMP";
 	private static final String IDX = "idx_";
-	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	public static final String FILE_ID_BIND = "bFIds";
 	public static final String ROW_ID_BIND = "bRI";
 	public static final String ROW_VERSION_BIND = "bRV";
