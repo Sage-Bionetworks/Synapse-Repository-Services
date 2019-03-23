@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -34,7 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -162,7 +163,7 @@ public class TableManagerSupportTest {
 		
 		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,333L,20L,21L,30L,31L));
 		
-		when(mockNodeDao.getAllContainerIds(anyListOf(Long.class), anyInt())).thenReturn(containersInScope);
+		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
 		
 		
 		// mirror passed columns.
@@ -552,7 +553,7 @@ public class TableManagerSupportTest {
 	public void testGetAllContainerIdsForScopeExpandedOverLimit() throws LimitExceededException{
 		// setup limit exceeded.
 		LimitExceededException exception = new LimitExceededException("too many");
-		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyListOf(Long.class), anyInt());
+		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyCollection(), anyInt());
 		// call under test
 		manager.getAllContainerIdsForScope(scope, viewType);
 	}

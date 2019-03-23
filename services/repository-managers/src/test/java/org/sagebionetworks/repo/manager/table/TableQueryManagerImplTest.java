@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyMapOf;
 import static org.mockito.ArgumentMatchers.anySetOf;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -44,7 +45,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -143,8 +144,6 @@ public class TableQueryManagerImplTest {
 	
 	@Before
 	public void before() throws Exception {
-		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
-		
 		tableId = "syn123";
 		user = new UserInfo(false, 7L);
 		
@@ -192,16 +191,6 @@ public class TableQueryManagerImplTest {
 				}
 				return true;
 			}
-		});	
-		// Just call the caller.
-		when(mockTableIndexDAO.executeInReadTransaction(any(TransactionCallback.class))).thenAnswer(new Answer<Void>() {
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				if (invocation == null)
-					return null;
-				TransactionCallback<Void> callable = (TransactionCallback<Void>) invocation.getArguments()[0];
-				return callable.doInTransaction(null);
-			}
 		});
 		
 		// Writer that captures lines
@@ -223,7 +212,6 @@ public class TableQueryManagerImplTest {
 		
 		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
-		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
 		HashSet<Long> subSet = Sets.newHashSet(444L);
 		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
@@ -464,9 +452,6 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationColumnsOnly() throws Exception {
-		Long count = 201L;
-		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withReturnColumnModels(true);
@@ -479,9 +464,6 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationSelectOnly() throws Exception {
-		Long count = 201L;
-		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withReturnSelectColumns(true);
@@ -513,9 +495,6 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNoCount() throws Exception {
-		Long count = 201L;
-		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
@@ -586,7 +565,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{	
-		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
+		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
 		expectedRangeResult.setSelectedMin(facetColumnRequest.getMin());
@@ -817,7 +796,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryBundleFacets() throws LockUnavilableException, TableUnavailableException, TableFailedException{
-		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
+		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);

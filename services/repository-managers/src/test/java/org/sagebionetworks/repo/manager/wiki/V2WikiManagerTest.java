@@ -20,9 +20,11 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -50,6 +52,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author hso
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class V2WikiManagerTest {
 	
 	@Mock
@@ -70,7 +73,6 @@ public class V2WikiManagerTest {
 	
 	@Before
 	public void before() {
-		MockitoAnnotations.initMocks(this);
 		user = new UserInfo(false, "987");
 		ownerId = "123";
 		ownerType = ObjectType.EVALUATION;
@@ -1009,6 +1011,7 @@ public class V2WikiManagerTest {
 		V2WikiOrderHint hint = new V2WikiOrderHint();
 		hint.setOwnerId("000");
 		hint.setEtag("etag");
+		hint.setOwnerObjectType(ObjectType.EVALUATION);
 		// return a different etag to trigger a conflict
 		when(mockWikiDao.lockWikiOwnersForUpdate(anyString())).thenReturn("etagUpdate!!!");
 		// setup allow

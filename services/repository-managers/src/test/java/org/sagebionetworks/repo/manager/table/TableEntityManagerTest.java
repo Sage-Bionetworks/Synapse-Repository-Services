@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -38,7 +40,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -283,7 +285,7 @@ public class TableEntityManagerTest {
 				}
 				return true;
 			}
-		}).when(mockTableIndexDAO).queryAsStream(any(ProgressCallback.class), any(SqlQuery.class), any(RowHandler.class));
+		}).when(mockTableIndexDAO).queryAsStream(isNull(), any(SqlQuery.class), any(RowHandler.class));
 		
 		range = new IdRange();
 		range.setEtag("rangeEtag");
@@ -306,11 +308,11 @@ public class TableEntityManagerTest {
 		range3.setMaximumUpdateId(50L);
 		range3.setMinimumId(51L);
 		
-		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyInt())).thenReturn(range, range2, range3);
+		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		
 		transactionId = 987L;
 	}
-	
+
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);

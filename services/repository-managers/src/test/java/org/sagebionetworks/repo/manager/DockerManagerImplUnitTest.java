@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -22,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -115,7 +114,7 @@ public class DockerManagerImplUnitTest {
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
-		when(entityManager.createEntity(any(UserInfo.class), any(Entity.class), any(String.class))).thenReturn(REPO_ENTITY_ID);
+		when(entityManager.createEntity(any(), any(), any())).thenReturn(REPO_ENTITY_ID);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -215,21 +214,18 @@ public class DockerManagerImplUnitTest {
 	
 	@Test
 	public void testDockerRegistryNotificationPushUnsupportedHost() {
-		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
-
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
 		
-		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
-		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+		verify(entityManager, never()).createEntity(any(), any(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), any());
 	}
 	
 	@Test
 	public void testDockerRegistryNotificationPushNotManifestMediaType() {
-		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, "application/octet-stream");
@@ -237,8 +233,8 @@ public class DockerManagerImplUnitTest {
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
 		
-		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
-		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+		verify(entityManager, never()).createEntity(any(), any(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), any());
 	}
 	
 	
@@ -249,7 +245,7 @@ public class DockerManagerImplUnitTest {
 
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
-		
+
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
 	}
@@ -260,8 +256,8 @@ public class DockerManagerImplUnitTest {
 				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
-		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
-		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+		verify(entityManager, never()).createEntity(any(), any(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), any());
 	}
 	@Test
 	public void testDockerRegistryNotificationMount() {
@@ -269,8 +265,8 @@ public class DockerManagerImplUnitTest {
 				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.mount, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
-		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
-		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+		verify(entityManager, never()).createEntity(any(), any(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), any());
 	}
 	
 	private static DockerCommit createCommit() {
@@ -292,7 +288,7 @@ public class DockerManagerImplUnitTest {
 		
 		verify(dockerCommitDao).createDockerCommit(REPO_ENTITY_ID, USER_ID, commit);
 		verify(transactionalMessenger).sendMessageAfterCommit(
-				eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), anyString(), eq(ChangeType.UPDATE));
+				eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), any(), eq(ChangeType.UPDATE));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -313,7 +309,7 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		DockerCommit commit = createCommit();
-		
+
 		// method under test
 		dockerManager.addDockerCommitToUnmanagedRespository(USER_INFO, REPO_ENTITY_ID, commit);
 	}
@@ -326,9 +322,7 @@ public class DockerManagerImplUnitTest {
 		
 		when(dockerCommitDao.listDockerTags(REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)).
 			thenReturn(commits);
-		
-		when(dockerCommitDao.countDockerCommits(REPO_ENTITY_ID)).thenReturn(2L);
-		
+
 		// method under test
 		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
@@ -342,7 +336,7 @@ public class DockerManagerImplUnitTest {
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-				
+
 		// method under test
 		dockerManager.listDockerTags(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);

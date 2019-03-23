@@ -1392,7 +1392,7 @@ public class FileHandleManagerImplTest {
 		String oldContentType = "oldContentType";
 		fileHandle.setContentType(oldContentType);
 		fileHandles.put("2", fileHandle);
-		when(mockFileHandleDao.getAllFileHandlesBatch(any(List.class))).thenReturn(fileHandles);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(fileHandles);
 		Long newId = 789L;
 		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(newId );
 

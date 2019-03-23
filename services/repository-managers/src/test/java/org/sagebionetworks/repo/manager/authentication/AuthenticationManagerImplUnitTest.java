@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl;
 import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;

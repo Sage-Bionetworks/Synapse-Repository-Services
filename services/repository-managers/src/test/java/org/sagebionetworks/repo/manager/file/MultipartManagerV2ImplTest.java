@@ -29,6 +29,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -76,10 +77,13 @@ public class MultipartManagerV2ImplTest {
 	@Mock
 	IdGenerator mockIdGenerator;
 
+	@InjectMocks
+	MultipartManagerV2Impl manager = new MultipartManagerV2Impl();
+
 	MultipartUploadRequest request;	
 	String requestJson;
 	String requestHash;
-	MultipartManagerV2Impl manager;
+
 	Boolean forceRestart;
 	
 	String uploadId;
@@ -190,12 +194,6 @@ public class MultipartManagerV2ImplTest {
 		}).when(mockS3multipartUploadDAO).createPreSignedPutUrl(anyString(), anyString(), anyString());
 		
 		forceRestart = null;
-		manager = new MultipartManagerV2Impl();
-		ReflectionTestUtils.setField(manager, "multipartUploadDAO", mockMultiparUploadDAO);
-		ReflectionTestUtils.setField(manager, "projectSettingsManager", mockProjectSettingsManager);
-		ReflectionTestUtils.setField(manager, "s3multipartUploadDAO", mockS3multipartUploadDAO);
-		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileHandleDao);
-		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -322,6 +320,7 @@ public class MultipartManagerV2ImplTest {
 		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
 		request.setUploadId(uplaodId);
 		request.setPartNumbers(Lists.newArrayList(1L, 2L));
+		request.setContentType("plain/text");
 		// call under test
 		BatchPresignedUploadUrlResponse response = manager.getBatchPresignedUploadUrls(userInfo, request);
 		assertNotNull(response);
