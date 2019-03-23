@@ -51,7 +51,7 @@ public class ThreadMessageBuilderFactoryTest {
 	String actorUsername;
 
 	@InjectMocks
-	ThreadMessageBuilderFactory factory = new ThreadMessageBuilderFactory();;
+	ThreadMessageBuilderFactory factory;
 	
 	@Before
 	public void before(){

@@ -79,7 +79,7 @@ public class BroadcastMessageManagerImplTest {
 	AuthorizationManager mockAuthManager;
 
 	@InjectMocks
-	BroadcastMessageManagerImpl manager = new BroadcastMessageManagerImpl();
+	BroadcastMessageManagerImpl manager;
 	ChangeMessage change;
 	List<Subscriber> subscribers;
 	Topic topic;

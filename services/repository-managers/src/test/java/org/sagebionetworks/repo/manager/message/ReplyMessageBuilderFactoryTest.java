@@ -58,7 +58,7 @@ public class ReplyMessageBuilderFactoryTest {
 	String actorUsername;
 
 	@InjectMocks
-	ReplyMessageBuilderFactory factory = new ReplyMessageBuilderFactory();;
+	ReplyMessageBuilderFactory factory;
 	
 	@Before
 	public void before(){

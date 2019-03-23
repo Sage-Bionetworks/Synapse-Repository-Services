@@ -78,7 +78,7 @@ public class MultipartManagerV2ImplTest {
 	IdGenerator mockIdGenerator;
 
 	@InjectMocks
-	MultipartManagerV2Impl manager = new MultipartManagerV2Impl();
+	MultipartManagerV2Impl manager;
 
 	MultipartUploadRequest request;	
 	String requestJson;
