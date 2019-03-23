@@ -1539,6 +1539,39 @@ public class TableIndexDAOImplTest {
 		assertEquals(expected, new HashSet<>(columns));
 	}
 	
+	/**
+	 * Test added for PLFM-5449.
+	 * Add two annotations keys to an entity that only differ by case.
+	 * 
+	 */
+	@Test
+	public void testCaseSensitiveAnnotationNamesPLFM_5449() {
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		// one
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 1);
+		file1.getAnnotations().clear();
+		file1.setParentId(333L);
+
+		String key = "someKey";
+		// lower
+		AnnotationDTO lower = new AnnotationDTO();
+		lower.setEntityId(file1.getId());
+		lower.setKey(key.toLowerCase());
+		lower.setType(AnnotationType.STRING);
+		lower.setValue("123");
+		file1.getAnnotations().add(lower);
+		//upper
+		AnnotationDTO upper = new AnnotationDTO();
+		upper.setEntityId(file1.getId());
+		upper.setKey(key.toUpperCase());
+		upper.setType(AnnotationType.STRING);
+		upper.setValue("123");
+		file1.getAnnotations().add(upper);
+		// call under test
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1));
+	}
+	
 	@Test
 	public void testExpandFromAggregation() {
 		
