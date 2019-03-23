@@ -79,7 +79,7 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 
 	@Override
 	@NewWriteTransaction
-	public boolean checkPasswordWithLock(Long principalId, String password){
+	public boolean checkPasswordWithThrottling(Long principalId, String password){
 		LoginAttemptResultReporter loginAttemptReporter;
 		try {
 			loginAttemptReporter = unsuccessfulLoginLockout.checkIsLockedOut(principalId);

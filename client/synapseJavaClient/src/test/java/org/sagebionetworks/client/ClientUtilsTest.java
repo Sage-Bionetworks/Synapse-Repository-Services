@@ -70,21 +70,35 @@ public class ClientUtilsTest {
 		assertFalse(ClientUtils.is200sStatusCode(300));
 	}
 
-	@Test (expected = SynapseUnauthorizedException.class)
-	public void testThrowExceptionWithJSONResponse() throws Exception{
+	@Test
+	public void testconvertResponseBodyToJSONAndThrowException_WithJSONResponse() throws Exception{
 		JSONObject response = new JSONObject();
 		response.put(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(401, response);
+
+		when(mockResponse.getStatusCode()).thenReturn(401);
+		when(mockResponse.getContent()).thenReturn(response.toString());
+
+		try {
+			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+			fail();
+		}catch (SynapseUnauthorizedException e){
+			assertEquals("test", e.getMessage());
+			assertEquals(null, e.getErrorResponseCode());
+		}
 	}
 
 	@Test
-	public void testThrowExceptionWithJSONResponseAndErrorCode() throws Exception{
+	public void testconvertResponseBodyToJSONAndThrowException_WithJSONResponseAndErrorCode() throws Exception{
 		JSONObject response = new JSONObject();
 		response.put(ERROR_REASON_TAG, "test");
 		response.put("errorCode", "PASSWORD_RESET_VIA_EMAIL_REQUIRED");
 
+		when(mockResponse.getStatusCode()).thenReturn(401);
+		when(mockResponse.getContent()).thenReturn(response.toString());
+
 		try {
-			ClientUtils.throwException(401, response);
+			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+			fail();
 		}catch (SynapseUnauthorizedException e){
 			assertEquals("test", e.getMessage());
 			assertEquals(ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED, e.getErrorResponseCode());

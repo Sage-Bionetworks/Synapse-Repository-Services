@@ -692,7 +692,7 @@ public class IT100TableControllerTest {
 
 	@Test
 	public void testQueryAsync() throws Exception {
-		int columnCount = 20;
+		int columnCount = 16;
 		int stringSize = 1000;
 		int rowsNeeded = 40;
 
@@ -738,7 +738,7 @@ public class IT100TableControllerTest {
 			}
 		});
 		
-		assertEquals(result.getMaxRowsPerPage().intValue(), result.getQueryResult().getQueryResults().getRows().size());
+		assertTrue(result.getMaxRowsPerPage().intValue() >= result.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowsNeeded, result.getQueryCount().intValue());
 		assertNotNull(result.getQueryResult().getNextPageToken());
 		

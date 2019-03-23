@@ -243,7 +243,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.STRING.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'", sql);
 	}
 	
 	@Test
@@ -251,7 +251,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = "foo";
 		String sql = ColumnTypeInfo.STRING.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING'", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -266,7 +266,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.LINK.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'LINK'", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'LINK'", sql);
 	}
 	
 	@Test
@@ -274,7 +274,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = "foo";
 		String sql = ColumnTypeInfo.LINK.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'LINK'", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'LINK'", sql);
 	}
 	
 	@Test
@@ -306,7 +306,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.LARGETEXT.toSql(inputSize, defaultValue);
-		assertEquals("MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'LARGETEXT'", sql);
+		assertEquals("MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'LARGETEXT'", sql);
 	}
 	
 	@Test
@@ -314,7 +314,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "bar";
 		String sql = ColumnTypeInfo.LARGETEXT.toSql(inputSize, defaultValue);
-		assertEquals("MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'bar' COMMENT 'LARGETEXT'", sql);
+		assertEquals("MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'bar' COMMENT 'LARGETEXT'", sql);
 	}
 	
 	@Test

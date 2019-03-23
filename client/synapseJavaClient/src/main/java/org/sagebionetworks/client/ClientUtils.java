@@ -65,40 +65,44 @@ public class ClientUtils {
 		if (is200sStatusCode(statusCode)) {
 			return;
 		}
-		String content = response.getContent();
 
-		try{
-			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(content, ErrorResponse.class);
-			throwException(statusCode, errorResponse.getReason(), errorResponse.getErrorCode());
-		}catch (JSONObjectAdapterException e){
-			throwException(statusCode, content);
+		throwException(statusCode, response.getContent());
+
+	}
+
+	public static void throwException(int statusCode, String reasonStr) throws SynapseException{
+		ErrorResponseCode errorResponseCode;
+		String errorMessage;
+
+		try {
+			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, ErrorResponse.class);
+			errorMessage = errorResponse.getReason();
+			errorResponseCode = errorResponse.getErrorCode();
+		} catch (JSONObjectAdapterException e){
+			//this is fine, just use the original reasonStr
+			errorMessage = reasonStr;
+			errorResponseCode = null;
 		}
 
-	}
 
-	public static void throwException(int statusCode, String reasonStr) throws SynapseException {
-		throwException(statusCode, reasonStr, null);
-	}
-
-	public static void throwException(int statusCode, String reasonStr, ErrorResponseCode errorResponseCode) throws SynapseException{
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-			throw new SynapseUnauthorizedException(reasonStr, errorResponseCode);
+			throw new SynapseUnauthorizedException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
-			throw new SynapseForbiddenException(reasonStr, errorResponseCode);
+			throw new SynapseForbiddenException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
-			throw new SynapseNotFoundException(reasonStr, errorResponseCode);
+			throw new SynapseNotFoundException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
-			throw new SynapseBadRequestException(reasonStr, errorResponseCode);
+			throw new SynapseBadRequestException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_LOCKED) {
-			throw new SynapseLockedException(reasonStr, errorResponseCode);
+			throw new SynapseLockedException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_PRECONDITION_FAILED) {
-			throw new SynapseConflictingUpdateException(reasonStr, errorResponseCode);
+			throw new SynapseConflictingUpdateException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_GONE) {
-			throw new SynapseDeprecatedServiceException(reasonStr, errorResponseCode);
+			throw new SynapseDeprecatedServiceException(errorMessage, errorResponseCode);
 		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
-			throw new SynapseTooManyRequestsException(reasonStr, errorResponseCode);
+			throw new SynapseTooManyRequestsException(errorMessage, errorResponseCode);
 		}else {
-			throw new UnknownSynapseServerException(statusCode, reasonStr, null, errorResponseCode);
+			throw new UnknownSynapseServerException(statusCode, errorMessage, null, errorResponseCode);
 		}
 	}
 
@@ -118,20 +122,14 @@ public class ClientUtils {
 	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response) throws SynapseException {
 		ValidateArgument.required(response, "response");
 		JSONObject json;
+
+		if (!is200sStatusCode(response.getStatusCode())) {
+			throwException(response.getStatusCode(), response.getContent());
+		}
+
 		try {
-			json = convertStringToJSONObject(response.getContent());
-			if (!is200sStatusCode(response.getStatusCode())) {
-				throwException(response.getStatusCode(), json);
-			}
-			return json;
+			return convertStringToJSONObject(response.getContent());
 		} catch (JSONException e) {
-			if (!is200sStatusCode(response.getStatusCode())) {
-				/* 
-				 * Even though the intended use of this method is for API that returns a JSON response,
-				 * Tomcat, Spring, and Amazon could throw a non Json format error.
-				 */
-				throwException(response.getStatusCode(), response.getContent());
-			}
 			/*
 			 * 200 status code return for an API that expected a JSON response,
 			 * but the response couldn't be converted to JSON
@@ -153,28 +151,6 @@ public class ClientUtils {
 			json = new JSONObject(toConvert);
 		}
 		return json;
-	}
-
-	/**
-	 * Used for response with JSON format
-	 * 
-	 * @param statusCode
-	 * @param responseBody
-	 * @throws SynapseException
-	 */
-	public static void throwException(int statusCode, JSONObject responseBody) throws SynapseException {
-		ValidateArgument.requirement(!is200sStatusCode(statusCode), "Only support non 200s statusCode.");
-		String reasonStr = null;
-		if (responseBody==null) {
-			throwException(statusCode, null, null);
-		}
-
-		try {
-			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONObject(responseBody, ErrorResponse.class);
-			throwException(statusCode, errorResponse.getReason(), errorResponse.getErrorCode());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
 	}
 
 	/**

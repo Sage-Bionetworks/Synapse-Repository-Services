@@ -83,13 +83,13 @@ public class UserCredentialValidatorImplTest {
 	}
 
 	@Test
-	public void testCheckPasswordWithLock_IsLockedOut_lessThanLogThreshold(){
+	public void testCheckPasswordWithThrottling_IsLockedOut_lessThanLogThreshold(){
 		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
 		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD - 1);
 
 		try{
 			//method under test
-			authenticationManagerUtil.checkPasswordWithLock(userId, password);
+			authenticationManagerUtil.checkPasswordWithThrottling(userId, password);
 			fail("expected exception to be thrown");
 		} catch (UnsuccessfulLoginLockoutException e) {
 			//expected
@@ -101,13 +101,13 @@ public class UserCredentialValidatorImplTest {
 	}
 
 	@Test
-	public void testCheckPasswordWithLock_IsLockedOut_GreaterThanEqualLogThreshold(){
+	public void testCheckPasswordWithThrottling_IsLockedOut_GreaterThanEqualLogThreshold(){
 		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
 		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD);
 
 		try{
 			//method under test
-			authenticationManagerUtil.checkPasswordWithLock(userId, password);
+			authenticationManagerUtil.checkPasswordWithThrottling(userId, password);
 			fail("expected exception to be thrown");
 		} catch (UnsuccessfulLoginLockoutException e) {
 			//expected
@@ -121,11 +121,11 @@ public class UserCredentialValidatorImplTest {
 	}
 
 	@Test
-	public void checkPasswordWithLock_RightPassword(){
+	public void checkPasswordWithThrottling_RightPassword(){
 		when(mockAuthDAO.checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt))).thenReturn(true);
 
 		//method under test
-		assertTrue(authenticationManagerUtil.checkPasswordWithLock(userId, password));
+		assertTrue(authenticationManagerUtil.checkPasswordWithThrottling(userId, password));
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verify(mockLoginAttemptResultReporter).reportSuccess();
@@ -134,11 +134,11 @@ public class UserCredentialValidatorImplTest {
 	}
 
 	@Test
-	public void checkPasswordWithLock_WrongPassword(){
+	public void checkPasswordWithThrottling_WrongPassword(){
 		when(mockAuthDAO.checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt))).thenReturn(false);
 
 		//method under test
-		assertFalse(authenticationManagerUtil.checkPasswordWithLock(userId, password));
+		assertFalse(authenticationManagerUtil.checkPasswordWithThrottling(userId, password));
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verify(mockLoginAttemptResultReporter).reportFailure();

@@ -77,7 +77,7 @@ public class BeanTest implements ApplicationContextAware {
 			"getForUpdate",
 			"getAccessRequirementForUpdate",
 			"getThread",
-			"checkPasswordWithLock",
+			"checkPasswordWithThrottling",
 			"getTableStatusOrCreateIfNotExists",
 			"getUsersDownloadListForUpdate",
 			"getDoiAssociationForUpdate",

@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.manager.authentication.PasswordResetToken
 
 import java.util.Date;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +46,7 @@ public class PasswordResetTokenGeneratorImplTest {
 	final String passwordHash = "Somebody once told me\n" +
 			"The world is gonna roll me\n" +
 			"I ain't the sharpest tool in the shed";
+	final String sha256OfPasswordHash = DigestUtils.sha256Hex(passwordHash);
 
 	final long currentTime = 420;
 
@@ -56,7 +58,7 @@ public class PasswordResetTokenGeneratorImplTest {
 		token.setCreatedOn(new Date(currentTime));
 		token.setExpiresOn(new Date(currentTime + PASSWORD_RESET_TOKEN_EXPIRATION_MILLIS));
 		token.setUserId("1337");
-		token.setValidity("e1c00300dc7f147b3ecf9ecc8d1dc6ddbb095da3262fe588f03e965334bad724");
+		token.setValidity(sha256OfPasswordHash);
 
 		when(mockAuthenticationDao.getPasswordHash(userId)).thenReturn(passwordHash);
 	}
