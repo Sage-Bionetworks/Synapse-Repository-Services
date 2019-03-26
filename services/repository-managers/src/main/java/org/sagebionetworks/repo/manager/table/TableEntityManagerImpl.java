@@ -77,7 +77,10 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	 */
 	public static final long MAXIMUM_VERSIONS_PER_TABLE = 30*1000;
 	
-	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
+	/**
+	 * See: PLFM-5456
+	 */
+	private static final int EXCLUSIVE_LOCK_TIMEOUT_SECONDS = 5;
 	
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
 	
@@ -525,7 +528,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			final String id) {
 		try {
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, id, EXCLUSIVE_LOCK_TIMEOUT_MS, new ProgressingCallable<Void>() {
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, id, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
 
 				@Override
 				public Void call(ProgressCallback callback) throws Exception {
