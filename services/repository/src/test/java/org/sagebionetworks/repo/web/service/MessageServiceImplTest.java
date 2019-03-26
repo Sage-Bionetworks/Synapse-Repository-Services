@@ -58,7 +58,7 @@ public class MessageServiceImplTest {
 		ReflectionTestUtils.setField(service, "userManager", userManager);
 		ReflectionTestUtils.setField(service, "cloudMailInManager", cloudMailInManager);
 		ReflectionTestUtils.setField(service, "fileHandleManager", fileHandleManager);
-		when(fileHandleManager.createCompressedFileFromString(anyString(), any(Date.class), anyString(), anyString())).thenReturn(mockS3FileHandle);
+		when(fileHandleManager.createCompressedFileFromString(anyString(), any(Date.class), any(), any())).thenReturn(mockS3FileHandle);
 		subject = "subject";
 		fileHandleId = "888";
 		when(mockS3FileHandle.getId()).thenReturn(fileHandleId);

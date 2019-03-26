@@ -59,7 +59,7 @@ public class TableTransactionWorkerTest {
 	@Mock
 	TableExceptionTranslator mockTableExceptionTranslator;
 	
-	
+
 	TableTransactionWorker worker;
 	
 	String jobId;
@@ -81,7 +81,7 @@ public class TableTransactionWorkerTest {
 		ReflectionTestUtils.setField(worker, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(worker, "tableTransactionManagerProvider", mockTransactionManagerProvider);
 		ReflectionTestUtils.setField(worker, "tableExceptionTranslator", mockTableExceptionTranslator);
-		
+
 		userId = 987L;
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
