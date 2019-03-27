@@ -14,7 +14,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -164,7 +163,7 @@ public class ProjectStatsManagerImplTest {
 		// call under test
 		manager.updateProjectStats(principalId, entityId, type, activityDate);
 		// should not be called
-		verify(mockProjectStatDao, never()).updateProjectStat(Matchers.<ProjectStat>anyVararg());
+		verify(mockProjectStatDao, never()).updateProjectStat(any());
 	}
 	
 	@Test
@@ -215,6 +214,6 @@ public class ProjectStatsManagerImplTest {
 		// call under test
 		manager.memberAddedToTeam(teamId, memberId, activityDate);
 		// should not be called
-		verify(mockProjectStatDao, never()).updateProjectStat(Matchers.<ProjectStat>anyVararg());
+		verify(mockProjectStatDao, never()).updateProjectStat(any());
 	}
 }

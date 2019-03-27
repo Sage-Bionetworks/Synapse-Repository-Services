@@ -7,7 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -25,7 +25,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -147,7 +146,7 @@ public class TableViewManagerImplTest {
 					results.add(field.getColumnModel());
 				}
 				return results;
-			}}).when(tableManagerSupport).getColumnModels(Matchers.<EntityField>anyVararg());
+			}}).when(tableManagerSupport).getColumnModels(any());
 		
 		namedAnnotations = new NamedAnnotations();
 		when(mockNodeManager.getAnnotations(any(UserInfo.class), anyString())).thenReturn(namedAnnotations);
@@ -188,7 +187,7 @@ public class TableViewManagerImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySetOf(Long.class), any(Long.class));
+		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySet(), any(Long.class));
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 	}
