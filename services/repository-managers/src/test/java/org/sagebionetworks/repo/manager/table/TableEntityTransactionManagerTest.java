@@ -11,20 +11,23 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -33,11 +36,11 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableEntityTransactionManagerTest {
 
 	@Mock
@@ -54,7 +57,10 @@ public class TableEntityTransactionManagerTest {
 	TableIndexManager tableIndexManager;
 	@Mock
 	TransactionStatus mockTransactionStatus;
+	@Mock
+	TableTransactionDao mockTransactionDao;
 
+	@InjectMocks
 	TableEntityTransactionManager manager;
 
 	TableStatus status;
@@ -66,22 +72,12 @@ public class TableEntityTransactionManagerTest {
 	UserInfo userInfo;
 
 	TableUpdateTransactionResponse response;
+	
+	Long transactionId;
 
 	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		manager = new TableEntityTransactionManager();
-		ReflectionTestUtils.setField(manager, "tableManagerSupport",
-				tableManagerSupport);
-		ReflectionTestUtils.setField(manager,
-				"readCommitedTransactionTemplate",
-				readCommitedTransactionTemplate);
-		ReflectionTestUtils.setField(manager, "tableEntityManager",
-				tableEntityManager);
-		ReflectionTestUtils.setField(manager, "tableIndexConnectionFactory",
-				tableIndexConnectionFactory);
-
 		userInfo = new UserInfo(false, 2222L);
 
 		tableId = "syn213";
@@ -111,6 +107,9 @@ public class TableEntityTransactionManagerTest {
 				return callback.doInTransaction(mockTransactionStatus);
 			}
 		}).when(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
+		
+		transactionId = 987L;
+		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
 	}
 
 	@Test
@@ -242,7 +241,15 @@ public class TableEntityTransactionManagerTest {
 	public void testUpdateTableWithTransactionWithExclusiveLock(){
 		// call under test
 		manager.updateTableWithTransactionWithExclusiveLock(progressCallback, userInfo, request);
-		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest);
+		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest, transactionId);
 		verify(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
+	}
+	
+	@Test
+	public void testDoIntransactionUpdateTable() throws RecoverableMessageException, TableUnavailableException {
+		// call under test
+		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
 	}
 }

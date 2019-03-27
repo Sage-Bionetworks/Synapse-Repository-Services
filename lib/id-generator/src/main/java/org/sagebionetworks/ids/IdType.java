@@ -46,7 +46,8 @@ public enum IdType {
 	DATA_ACCESS_SUBMISSION_ID(null),
 	DATA_ACCESS_SUBMISSION_SUBMITTER_ID(null),
 	DOWNLOAD_ORDER_ID(null),
-	DATA_TYPE_ID(null)
+	DATA_TYPE_ID(null),
+	TABLE_TRANSACTION_ID(null),
 	;
 	
 	Long startingId;

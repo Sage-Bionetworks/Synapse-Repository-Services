@@ -9,6 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -36,6 +37,14 @@ public class DBOAuthenticationReceiptDAOImplTest {
 
 	@Test
 	public void testReceiptInvalid() {
+		assertFalse(authReceiptDao.isValidReceipt(userId, receipt));
+	}
+
+	@Test
+	public void testIsValidReceipt_expired() throws InterruptedException {
+		//expire after 1 millisecond
+		receipt = authReceiptDao.createNewReceipt(userId, 1);
+		Thread.sleep(3);
 		assertFalse(authReceiptDao.isValidReceipt(userId, receipt));
 	}
 

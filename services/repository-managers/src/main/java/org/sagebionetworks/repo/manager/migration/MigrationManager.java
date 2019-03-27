@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
@@ -215,5 +217,16 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public BatchChecksumResponse calculateBatchChecksums(UserInfo user, BatchChecksumRequest req);
+
+	/**
+	 * Restore from a stream.
+	 * @param input
+	 * @param primaryType
+	 * @param backupAliasType
+	 * @param batchSize
+	 * @return
+	 */
+	RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType, BackupAliasType backupAliasType,
+			long batchSize);
 
 }

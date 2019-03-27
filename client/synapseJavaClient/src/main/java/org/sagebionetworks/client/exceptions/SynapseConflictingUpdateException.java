@@ -1,5 +1,7 @@
 package org.sagebionetworks.client.exceptions;
 
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+
 /**
  * Thrown when a conflict occurs on an update. This typically, means the object
  * that the caller is attempting to update has changed since it was last read.
@@ -27,4 +29,7 @@ public class SynapseConflictingUpdateException extends SynapseServerException {
 		super(cause);
 	}
 
+	public SynapseConflictingUpdateException(String message, ErrorResponseCode errorResponseCode) {
+		super(message, errorResponseCode);
+	}
 }

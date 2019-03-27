@@ -383,6 +383,14 @@ public class SqlConstants {
 	public static final String COL_CM_BYTES					= "BYTES";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
+	// Table transaction tracking.
+	public static final String TABLE_TABLE_TRANSACTION 	= "TABLE_TRANSACTION";
+	public static final String COL_TABLE_TRX_ID		 	= "TRX_ID";
+	public static final String COL_TABLE_TABLE_ID 		= "TABLE_ID";
+	public static final String COL_TABLE_TRX_STARTED_BY = "STARTED_BY";
+	public static final String COL_TABLE_TRX_STARTED_ON = "STARTED_ON";
+	public static final String DDL_TABLE_TRANSACTION	= "schema/TableTransaction-ddl.sql";
+	
 	// This table controls IDs issued to TableEntities.
 	public static final String TABLE_TABLE_ID_SEQUENCE		= "TABLE_ID_SEQUENCE";
 	public static final String COL_ID_SEQUENCE_TABLE_ID		= "TABLE_ID";
@@ -396,13 +404,13 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_TABLE_ID		= "TABLE_ID";
 	public static final String COL_TABLE_ROW_TABLE_ETAG		= "ETAG";
 	public static final String COL_TABLE_ROW_VERSION		= "ROW_VERSION";
-	public static final String COL_TABLE_ROW_COL_IDS		= "COLUMN_IDS";
 	public static final String COL_TABLE_ROW_CREATED_BY		= "CREATED_BY";
 	public static final String COL_TABLE_ROW_CREATED_ON		= "CREATED_ON";
 	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
 	public static final String COL_TABLE_ROW_KEY_NEW		= "S3_KEY";
 	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
 	public static final String COL_TABLE_ROW_TYPE			= "CHANGE_TYPE";
+	public static final String COL_TABLE_ROW_TRX_ID			= "TRX_ID";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
 	// Tracks view scope.
@@ -637,7 +645,7 @@ public class SqlConstants {
 	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_SESSION_TOKEN_VALIDATED_ON  = "VALIDATED_ON";
 	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
-	
+
 	// Terms of use agreement
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";

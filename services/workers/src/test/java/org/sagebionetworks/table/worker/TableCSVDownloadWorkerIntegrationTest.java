@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -102,6 +103,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	SemaphoreManager semphoreManager;
 	@Autowired
 	TableViewManager tableViewManager;
+	@Autowired
+	TableTransactionDao tableTransactionDao;
 	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -323,8 +326,9 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
+		long transactionId = tableTransactionDao.startTransaction(tableId, adminUserInfo.getId());
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
-				null, null, null);
+				null, null, null, transactionId);
 		return input;
 	}
 	

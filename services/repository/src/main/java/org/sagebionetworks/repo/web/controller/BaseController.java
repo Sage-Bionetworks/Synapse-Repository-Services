@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.ErrorResponseCode;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -596,7 +598,7 @@ public abstract class BaseController {
 		// Build and set the redirect URL
 		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX
 				+ UrlHelpers.createACLRedirectURL(request, ex.getBenefactorId());
-		return handleException(ex, request, message, false);
+		return handleException(ex, request, message, false, null);
 	}
 
 	/**
@@ -681,12 +683,31 @@ public abstract class BaseController {
 	 */
 	ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request, boolean fullTrace) {
+		return handleException(ex, request, fullTrace, null);
+	}
+
+	/**
+	 * Log the exception at the warning level and return an ErrorResponse
+	 * object. Child classes should override this method if they want to change
+	 * the behavior for all exceptions.
+	 *
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @param fullTrace Should the full stack trace of the exception be written to the log.
+	 * @param associatedErrorCode Optional. Used when an ErrorResponseCode should be associated with the Throwable.
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	ErrorResponse handleException(Throwable ex,
+								  HttpServletRequest request, boolean fullTrace,  ErrorResponseCode associatedErrorCode) {
 
 		String message = ex.getMessage();
 		if (message == null) {
 			message = ex.getClass().getName();
 		}
-		return handleException(ex, request, message, fullTrace);
+		return handleException(ex, request, message, fullTrace, associatedErrorCode);
 	}
 
 	/**
@@ -696,9 +717,11 @@ public abstract class BaseController {
 	 * @param ex the exception to be handled
 	 * @param request the client request
 	 * @param fullTrace Should the full stack trace of the exception be written to the log.
+	 * @param associatedErrorCode Optional. Used when an ErrorResponseCode should be associated with the Throwable.
 	 * @return an ErrorResponse object containing the exception reason or some other human-readable response
 	 */
-	private ErrorResponse handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace) {
+	private ErrorResponse handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace, ErrorResponseCode associatedErrorCode) {
+		// TODO: why do we need this logging behavior difference?
 		// Always log the stack trace on develop stacks
 		if (fullTrace || StackConfigurationSingleton.singleton().isDevelopStack()) {
 			// Print the full stack trace
@@ -710,6 +733,7 @@ public abstract class BaseController {
 
 		ErrorResponse er = new ErrorResponse();
 		er.setReason(message);
+		er.setErrorCode(associatedErrorCode);
 		return er;
 	}
 
@@ -890,5 +914,13 @@ public abstract class BaseController {
 	ErrorResponse handleInvalidPasswordException(InvalidPasswordException ex,
 												 HttpServletRequest request) {
 		return handleException(ex, request, false);
+	}
+
+	@ExceptionHandler(PasswordResetViaEmailRequiredException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public @ResponseBody
+	ErrorResponse handlePasswordChangeRequiredException(PasswordResetViaEmailRequiredException ex,
+														HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED);
 	}
 }

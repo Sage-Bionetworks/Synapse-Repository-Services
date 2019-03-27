@@ -40,6 +40,7 @@ public class IT990AuthenticationController {
 	private static String username;
 	private static final String PASSWORD = "password"+UUID.randomUUID().toString();
 	private static String receipt = null;
+	private static final String SYNAPSE_ENDPOINT = "https://www.synapse.org/";
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
@@ -106,6 +107,19 @@ public class IT990AuthenticationController {
 	}
 
 	@Test
+	public void testChangePasswordWithOldPassword() throws Exception {
+		String testNewPassword = "newPassword"+UUID.randomUUID();
+		synapse.changePassword(username, PASSWORD, testNewPassword, null);
+		LoginRequest request = new LoginRequest();
+		request.setUsername(username);
+		request.setPassword(testNewPassword);
+		synapse.login(request);
+
+		//change password back
+		synapse.changePassword(username, testNewPassword, PASSWORD,null);
+	}
+
+	@Test
 	public void testSignTermsViaSessionToken() throws Exception {
 		String sessionToken = synapse.getCurrentSessionToken();
 		
@@ -124,6 +138,12 @@ public class IT990AuthenticationController {
 	public void testSendEmailInvalidUser() throws Exception {
 		// There's no way a user like this exists :D
 		synapse.sendPasswordResetEmail("invalid-user-name@sagebase.org" + UUID.randomUUID());
+	}
+
+	@Test
+	public void testNewSendResetPasswordEmail() throws Exception {
+		// Note: non-production stacks do not send emails, but instead print a log message
+		synapse.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, email);
 	}
 	
 	@Test
@@ -231,4 +251,5 @@ public class IT990AuthenticationController {
 	public void testUnbindExternalId() throws SynapseException {
 		synapse.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
 	}
+
 }

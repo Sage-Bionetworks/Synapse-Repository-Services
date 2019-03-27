@@ -1017,7 +1017,11 @@ public class UrlHelpers {
 	public static final String AUTH_SESSION = "/session";
 	public static final String AUTH_USER = "/user";
 	public static final String AUTH_USER_PASSWORD = AUTH_USER + "/password";
+	public static final String AUTH_USER_CHANGE_PASSWORD = AUTH_USER + "/changePassword";
+
 	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
+	public static final String AUTH_USER_PASSWORD_RESET = AUTH_USER_PASSWORD + "/reset";
+
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 	

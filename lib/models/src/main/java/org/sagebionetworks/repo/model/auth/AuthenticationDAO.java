@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.auth;
 
 import java.util.Date;
 
@@ -21,7 +21,7 @@ public interface AuthenticationDAO {
 	 * @return true if the credentials are correct, false otherwise.
 	 */
 	public boolean checkUserCredentials(long principalId, String passHash);
-	
+
 	/**
 	 * Updates the timestamp associated with the user's session token it needed.
 	 * Unconditionally updating the timestamp of a session token was cuasing users to be
@@ -58,7 +58,13 @@ public interface AuthenticationDAO {
 	 * Nullifies the session token
 	 */
 	public void deleteSessionToken(String sessionToken);
-	
+
+	/**
+	 * Nullifies the session token for a user. This is idempotent.
+	 * @param principalId id of the user for which the session token will be nullified.
+	 */
+	public void deleteSessionToken(long principalId);
+
 	/**
 	 * Looks for the given session token
 	 * @return The principal ID of the holder
@@ -75,7 +81,14 @@ public interface AuthenticationDAO {
 	 * Returns the salt used to hash the user's password
 	 */
 	public byte[] getPasswordSalt(long principalId) throws NotFoundException;
-	
+
+	/**
+	 * Returns the password hash for a user
+	 * @param principalId user's Id
+	 * @return password hash for user
+	 */
+	public String getPasswordHash(long principalId);
+
 	/**
 	 * Changes a user's password
 	 */

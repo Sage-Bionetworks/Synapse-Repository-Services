@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -386,6 +387,53 @@ public class MessageManagerImplUnitTest {
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.indexOf(
 				"Please follow the link below to set your password.")>=0);
+	}
+
+
+	@Test
+	public void testSendNewPasswordResetEmail() throws Exception{
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("noreply@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.contains("Please follow the link below to set your password."));
+	}
+
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testSendNewPasswordResetEmail_DisallowedSnapsePrefix() throws Exception{
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+		String synapsePrefix = "https://NOTsynapse.org/";
+
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token);
+	}
+
+
+	@Test
+	public void testSendPasswordChangeConfirmationEmail() throws Exception{
+		messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("noreply@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.contains("Your password for your Synapse account has been changed."));
 	}
 
 

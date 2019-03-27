@@ -24,5 +24,5 @@ public interface UserCredentialValidator {
 	 * @throws UnsuccessfulLoginLockoutException If there has not been enough time between the last
 	 * unsuccessful password check for that user (previously returned false for that particular principalId)
 	 */
-	boolean checkPasswordWithLock(Long principalId, String password);
+	boolean checkPasswordWithThrottling(Long principalId, String password);
 }

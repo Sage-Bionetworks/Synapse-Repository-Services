@@ -1,19 +1,21 @@
 package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -25,10 +27,11 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
+
 
 	@Autowired
 	private UserManager userManager;
@@ -80,7 +83,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new DatastoreException("Could not find user that was just created", e);
 		}
 	}
-	
+
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public void sendPasswordEmail(Long principalId) throws NotFoundException {
@@ -109,7 +113,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		authManager.setPassword(principalId, request.getPassword());
 		authManager.invalidateSessionToken(request.getSessionToken());
 	}
-	
+
+	@Override
+	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
+		final long userId = authManager.changePassword(request);
+		messageManager.sendPasswordChangeConfirmationEmail(userId);
+	}
+
 	@Override
 	@WriteTransaction
 	public void signTermsOfUse(Session session) throws NotFoundException {
@@ -152,10 +162,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return pa.getPrincipalId();
 	}
 
+	@Deprecated
 	@Override
 	public void sendPasswordEmail(String email) throws NotFoundException {
 		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
 		sendPasswordEmail(pa.getPrincipalId());
+	}
+
+	@Override
+	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String email) {
+		try {
+			PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
+			PasswordResetSignedToken passwordRestToken = authManager.createPasswordResetToken(pa.getPrincipalId());
+			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken);
+		}catch (NotFoundException e){
+			//should not indicate that a email/user could not be found
+		}
 	}
 
 	@Override
@@ -221,19 +243,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public LoginResponse login(LoginRequest request) {
-		ValidateArgument.required(request, "request");
-		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
-		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		try {
-			// Lookup the user.
-			PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(request.getUsername());
-
-			// Fetch the user's session token
-			return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
-		} catch (NotFoundException e) {
-			// see PLFM-3914
-			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e);
-		}
+		return authManager.login(request);
 	}
 
 	@Override

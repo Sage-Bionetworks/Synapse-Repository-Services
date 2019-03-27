@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.auth;
+package org.sagebionetworks.repo.model.auth;
 
 public interface AuthenticationReceiptDAO {
 
@@ -18,6 +18,15 @@ public interface AuthenticationReceiptDAO {
 	 * @return the newly created receipt
 	 */
 	public String createNewReceipt(long userId);
+
+	/**
+	 * Create a new receipt for that will expire after expirationPeriodMillis milliseconds.
+	 *
+	 * @param userId
+	 * @param expirationPeriodMillis
+	 * @return the newly created receipt
+	 */
+	public String createNewReceipt(long userId, long expirationPeriodMillis);
 
 	/**
 	 * Replace the old receipt with a new one

@@ -1,5 +1,7 @@
 package org.sagebionetworks.client.exceptions;
 
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+
 /**
  * Unknown Synapse Server Exception
  *
@@ -47,10 +49,14 @@ public class UnknownSynapseServerException extends SynapseServerException {
 	 * @param arg1
 	 */
 	public UnknownSynapseServerException(int httpStatus, String message, Throwable cause) {
-		super(createMessage(httpStatus, message), cause);
-		this.statusCode=httpStatus;
+		this(httpStatus, message, cause, null);
 	}
-	
+
+	public UnknownSynapseServerException(int httpStatus, String message, Throwable cause, ErrorResponseCode errorResponseCode) {
+		super(createMessage(httpStatus, message), cause, errorResponseCode);
+		this.statusCode = httpStatus;
+	}
+
 	/**
 	 * Create a message from the status code and message.
 	 * @param httpStatus
