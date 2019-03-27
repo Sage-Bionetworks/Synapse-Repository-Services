@@ -150,4 +150,8 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		amazonS3.setBucketPolicy( bucketName,  policyText);
 	}
 
+	@Override
+    public AmazonS3 getAmazonClient() {
+		return amazonS3;
+	}
 }

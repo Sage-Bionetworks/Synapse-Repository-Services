@@ -6,6 +6,7 @@ import java.net.URL;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
@@ -76,5 +77,7 @@ public interface SynapseS3Client {
     
     public void setBucketPolicy(String bucketName, String policyText)
             throws SdkClientException, AmazonServiceException;
+    
+    public AmazonS3 getAmazonClient();
 
 }
