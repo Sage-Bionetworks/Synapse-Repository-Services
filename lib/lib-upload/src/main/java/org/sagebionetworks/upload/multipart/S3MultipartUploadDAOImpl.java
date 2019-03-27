@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -13,7 +14,6 @@ import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -32,7 +32,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 1000 * 60 * 15;
 
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	/*
 	 * (non-Javadoc)

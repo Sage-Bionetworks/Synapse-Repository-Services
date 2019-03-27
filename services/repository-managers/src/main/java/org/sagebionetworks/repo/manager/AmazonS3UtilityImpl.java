@@ -12,10 +12,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
@@ -35,7 +35,7 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	private static final String S3_BUCKET = StackConfigurationSingleton.singleton().getS3Bucket();
 	
 	@Autowired
-	AmazonS3 client;
+	SynapseS3Client client;
 
 
 	@Override

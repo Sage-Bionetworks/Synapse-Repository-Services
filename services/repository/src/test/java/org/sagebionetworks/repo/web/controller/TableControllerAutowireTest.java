@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -28,7 +29,6 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.Lists;
 
 import junit.framework.Assert;
@@ -42,7 +42,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	private Entity parent;
 	private Long adminUserId;

@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -24,7 +25,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
@@ -46,7 +46,7 @@ public class TableCSVAppenderPreviewWorkerTest {
 	@Mock
 	private FileHandleManager mockFileHandleManager;
 	@Mock
-	private AmazonS3 mockS3Client;
+	private SynapseS3Client mockS3Client;
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock

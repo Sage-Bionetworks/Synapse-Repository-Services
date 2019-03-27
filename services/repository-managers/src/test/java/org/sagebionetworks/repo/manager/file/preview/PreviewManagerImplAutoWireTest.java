@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -30,7 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -47,7 +47,7 @@ public class PreviewManagerImplAutoWireTest {
 	public UserManager userManager;
 
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;

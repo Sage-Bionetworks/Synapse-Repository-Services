@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -45,7 +46,6 @@ import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.StringInputStream;
 
@@ -65,7 +65,7 @@ public class TableUploadManagerTest {
 	@Mock
 	FileHandleManager  mockFileHandleManger;
 	@Mock
-	AmazonS3 mockS3Client;
+	SynapseS3Client mockS3Client;
 	@Mock
 	UploadRowProcessor rowProcessor;
 	@Mock

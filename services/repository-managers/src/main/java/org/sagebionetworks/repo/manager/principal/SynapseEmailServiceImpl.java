@@ -7,9 +7,9 @@ import java.io.UnsupportedEncodingException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.Content;
@@ -32,7 +32,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	private AmazonSimpleEmailService amazonSESClient;
 	
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 	
 	@Autowired
 	private StackConfiguration stackConfiguration;

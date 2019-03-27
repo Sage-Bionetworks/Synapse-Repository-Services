@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -48,7 +49,6 @@ import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Iterables;
 
@@ -73,7 +73,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Autowired
 	BackupFileStream backupFileStream;
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	@Autowired
 	FileProvider fileProvider;
 	

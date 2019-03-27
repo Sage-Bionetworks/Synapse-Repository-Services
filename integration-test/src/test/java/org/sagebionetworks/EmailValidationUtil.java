@@ -3,9 +3,8 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertTrue;
 
 import org.sagebionetworks.aws.AwsClientFactory;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.S3TestUtils;
-
-import com.amazonaws.services.s3.AmazonS3;
 
 /*
  * The methods in this class help read and validate emails (written as files when testing).
@@ -13,19 +12,19 @@ import com.amazonaws.services.s3.AmazonS3;
 public class EmailValidationUtil {
 	
 	public static boolean doesFileExist(String key, long maxWaitTimeInMillis) throws Exception {
-		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
+		SynapseS3Client s3Client = AwsClientFactory.createAmazonS3Client();
 		
 		return S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, maxWaitTimeInMillis);
 	}
 	
 	public static void deleteFile(String key) throws Exception {
-		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
+		SynapseS3Client s3Client = AwsClientFactory.createAmazonS3Client();
 		
 		S3TestUtils.deleteFile(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client);
 	}
 	
 	public static String readFile(String key) throws Exception {
-		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
+		SynapseS3Client s3Client = AwsClientFactory.createAmazonS3Client();
 		
 		return S3TestUtils.getObjectAsString(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client);
 	}

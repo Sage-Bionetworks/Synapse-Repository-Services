@@ -31,12 +31,13 @@ public class AwsClientFactory {
 	 * 
 	 * @return
 	 */
-	public static AmazonS3 createAmazonS3Client() {
+	public static SynapseS3Client createAmazonS3Client() {
 		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
 		builder.withRegion(Regions.US_EAST_1);
 		builder.withPathStyleAccessEnabled(true);
-		return builder.build();
+		AmazonS3 amazonS3 = builder.build();
+		return null; // TODO
 	}
 
 	/**

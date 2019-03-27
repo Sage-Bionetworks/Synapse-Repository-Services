@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -26,7 +27,6 @@ import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -42,7 +42,7 @@ import com.google.common.collect.Lists;
 public class S3MultipartUploadDAOImplTest {
 	
 	@Mock
-	AmazonS3 mockS3Client;
+	SynapseS3Client mockS3Client;
 	@Mock
 	InitiateMultipartUploadResult mockResult;
 	
