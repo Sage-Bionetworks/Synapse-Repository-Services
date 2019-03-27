@@ -154,4 +154,9 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
     public AmazonS3 getAmazonClient() {
 		return amazonS3;
 	}
+
+	@Override
+	public BucketCrossOriginConfiguration getBucketCrossOriginConfiguration(String bucketName) {
+		return amazonS3.getBucketCrossOriginConfiguration(bucketName);
+	}
 }

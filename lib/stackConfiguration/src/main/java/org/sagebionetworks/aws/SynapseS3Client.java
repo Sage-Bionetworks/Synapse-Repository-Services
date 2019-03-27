@@ -58,6 +58,8 @@ public interface SynapseS3Client {
     boolean doesObjectExist(String bucketName, String objectName)
             throws AmazonServiceException, SdkClientException;
     
+    public BucketCrossOriginConfiguration getBucketCrossOriginConfiguration(String bucketName);
+    
     public void setBucketCrossOriginConfiguration(String bucketName, BucketCrossOriginConfiguration bucketCrossOriginConfiguration);
     
     public URL generatePresignedUrl(GeneratePresignedUrlRequest generatePresignedUrlRequest)
