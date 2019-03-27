@@ -675,6 +675,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.shared.max.timeout.ms"));
 	}
 
+	@Override
+	public Integer getWriteReadSemaphoreRunnerMaxReaders(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.write.read.semaphore.runner.max.readers"));
+	}
+
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
 	 * before timing out.

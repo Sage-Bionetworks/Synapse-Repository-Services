@@ -78,8 +78,10 @@
     <bean id="stackConfiguration.semaphoreExclusiveMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
     <bean id="stackConfiguration.semaphoreSharedMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
 	
-	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
-	
+	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
+	<bean id="stackConfiguration.writeReadSemaphoreRunnerMaxReaders" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
 	<!-- Configuration for multi-part upload daemons. -->
 	<bean id="stackConfiguration.fileMultipartUploadDaemonTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		

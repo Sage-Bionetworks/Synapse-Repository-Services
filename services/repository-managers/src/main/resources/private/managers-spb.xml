@@ -313,16 +313,12 @@
 
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
-		
-	<bean id="writeReadSemaphore" class="org.sagebionetworks.database.semaphore.WriteReadSemaphoreImpl">
-		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-		<constructor-arg ref="txManager" index="1"></constructor-arg>
-	</bean>
 	
 	<bean id="writeReadSemaphoreRunner" class="org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunnerImpl">
-		<constructor-arg index="0" ref="writeReadSemaphore"/>
+		<constructor-arg index="0" ref="countingSemaphore"/>
 		<constructor-arg index="1"><bean class="org.sagebionetworks.common.util.ClockImpl"/>
 		</constructor-arg>
+		<constructor-arg index="2" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders"/>
 	</bean>
 	
 	<bean id="timeoutUtils" class="org.sagebionetworks.util.TimeoutUtils"/>
