@@ -37,7 +37,7 @@ public class AwsClientFactory {
 		builder.withRegion(Regions.US_EAST_1);
 		builder.withPathStyleAccessEnabled(true);
 		AmazonS3 amazonS3 = builder.build();
-		return null; // TODO
+		return new SynapseS3ClientImpl(amazonS3);
 	}
 
 	/**
