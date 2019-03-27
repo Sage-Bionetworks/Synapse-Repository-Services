@@ -128,14 +128,10 @@ public class TableTransactionWorkerTest {
 			}
 		}).when(mockProgressCallback).addProgressListener(any(ProgressListener.class));
 		
-		doAnswer(new Answer<RuntimeException>() {
-
-			@Override
-			public RuntimeException answer(InvocationOnMock invocation) throws Throwable {
-				Throwable exception = (Throwable) invocation.getArguments()[0];
-				translatedException = new RuntimeException("translated",exception);
-				return translatedException;
-			}
+		doAnswer(invocation -> {
+			Throwable exception = (Throwable) invocation.getArguments()[0];
+			translatedException = new RuntimeException("translated",exception);
+			return translatedException;
 		}).when(mockTableExceptionTranslator).translateException(any(Throwable.class));
 
 	}
@@ -179,7 +175,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
@@ -188,7 +184,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
@@ -197,7 +193,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
