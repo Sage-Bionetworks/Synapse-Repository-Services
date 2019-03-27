@@ -2,9 +2,9 @@ package org.sagebionetworks.client;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -111,7 +111,7 @@ public class MultipartUploadTest {
 
 		when(
 				mockClient.startMultipartUpload(
-						any(MultipartUploadRequest.class), any(Boolean.class)))
+						any(), any()))
 				.thenReturn(startStatus);
 
 		completeStatus = new MultipartUploadStatus();
@@ -311,7 +311,7 @@ public class MultipartUploadTest {
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(
-				any(MultipartUploadRequest.class), any(Boolean.class));
+				any(), any());
 		verify(mockClient, times(1)).getMultipartPresignedUrlBatch(
 				any(BatchPresignedUploadUrlRequest.class));
 		verify(mockClient, times(1)).putFileToURL(any(URL.class),
@@ -338,7 +338,7 @@ public class MultipartUploadTest {
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(
-				any(MultipartUploadRequest.class), any(Boolean.class));
+				any(), any());
 		verify(mockClient, never()).getMultipartPresignedUrlBatch(
 				any(BatchPresignedUploadUrlRequest.class));
 		verify(mockClient, never()).putFileToURL(any(URL.class),

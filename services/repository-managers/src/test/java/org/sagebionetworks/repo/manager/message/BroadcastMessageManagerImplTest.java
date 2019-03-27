@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -76,7 +77,8 @@ public class BroadcastMessageManagerImplTest {
 	UserManager mockUserManager;
 	@Mock
 	AuthorizationManager mockAuthManager;
-	
+
+	@InjectMocks
 	BroadcastMessageManagerImpl manager;
 	ChangeMessage change;
 	List<Subscriber> subscribers;
@@ -85,17 +87,7 @@ public class BroadcastMessageManagerImplTest {
 	@Before
 	public void before() throws Exception{
 		MockitoAnnotations.initMocks(this);
-		
-		manager = new BroadcastMessageManagerImpl();
-		ReflectionTestUtils.setField(manager, "subscriptionDAO", mockSubscriptionDAO);
-		ReflectionTestUtils.setField(manager, "broadcastMessageDao", mockBroadcastMessageDao);
-		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
-		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
-		ReflectionTestUtils.setField(manager, "sesClient", mockSesClient);
-		ReflectionTestUtils.setField(manager, "principalAliasDao", mockPrincipalAliasDao);
-		ReflectionTestUtils.setField(manager, "userProfileDao", mockUserProfileDao);
-		ReflectionTestUtils.setField(manager, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(manager, "authManager", mockAuthManager);
+
 		Map<ObjectType, MessageBuilderFactory> factoryMap = new HashMap<ObjectType, MessageBuilderFactory>();
 		factoryMap.put(ObjectType.REPLY, mockFactory);
 		manager.setMessageBuilderFactoryMap(factoryMap);
@@ -134,7 +126,8 @@ public class BroadcastMessageManagerImplTest {
 		
 		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
 		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
-		
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+
 	}
 	
 	@Test

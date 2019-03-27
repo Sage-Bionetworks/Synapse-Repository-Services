@@ -1,6 +1,7 @@
 package org.sagebionetworks.report.worker;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,7 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -59,6 +60,7 @@ public class StorageReportCSVDownloadWorkerTest {
 	S3FileHandle resultS3FileHandle;
 	String resultS3FileHandleId = "999";
 	private static final Message message = new Message();
+	String jobId;
 
 	@Before
 	public void before() throws Exception {
@@ -70,6 +72,8 @@ public class StorageReportCSVDownloadWorkerTest {
 		resultS3FileHandle = new S3FileHandle();
 		resultS3FileHandle.setId(resultS3FileHandleId);
 		when(mockFileHandleManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(resultS3FileHandle);
+		jobId = "jobId";
+		when(mockStatus.getJobId()).thenReturn(jobId);
 	}
 
 	@Test
@@ -87,7 +91,7 @@ public class StorageReportCSVDownloadWorkerTest {
 
 		// Verify that a file was uploaded with the file handle manager
 		verify(mockFileHandleManager).multipartUploadLocalFile(any(LocalFileUploadRequest.class));
-		verify(mockAsyncMgr).setComplete(any(String.class), any(DownloadStorageReportResponse.class));
+		verify(mockAsyncMgr).setComplete(eq(jobId), any(DownloadStorageReportResponse.class));
 	}
 
 	@Test
@@ -97,8 +101,10 @@ public class StorageReportCSVDownloadWorkerTest {
 		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
 		doThrow(new IllegalArgumentException()).when(mockStorageReportManager).writeStorageReport(any(UserInfo.class), any(DownloadStorageReportRequest.class), any(CSVWriterStream.class));
+		RuntimeException translatedException = new RuntimeException();
+		when(mockTableExceptionTranslator.translateException(any(IllegalArgumentException.class))).thenReturn(translatedException);
 		storageReportWorker.run(null, message);
 		verify(mockTableExceptionTranslator).translateException(any(Throwable.class));
-		verify(mockAsyncMgr).setJobFailed(any(String.class), any(Throwable.class));
+		verify(mockAsyncMgr).setJobFailed(jobId, translatedException);
 	}
 }

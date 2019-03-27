@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.report;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
@@ -11,7 +11,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -64,7 +64,7 @@ public class StorageReportManagerImplTest {
 	public void writeStorageReportAllProjects() {
 		request.setReportType(StorageReportType.ALL_PROJECTS);
 		doAnswer(invocation -> {
-			Callback<SynapseStorageProjectStats> callback = invocation.getArgumentAt(0, Callback.class);
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
 			callback.invoke(projectStats);
 			return null;
 		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));
@@ -82,7 +82,7 @@ public class StorageReportManagerImplTest {
 	public void writeStorageReportNullReportType() {
 		request.setReportType(null);
 		doAnswer(invocation -> {
-			Callback<SynapseStorageProjectStats> callback = invocation.getArgumentAt(0, Callback.class);
+			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
 			callback.invoke(projectStats);
 			return null;
 		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));

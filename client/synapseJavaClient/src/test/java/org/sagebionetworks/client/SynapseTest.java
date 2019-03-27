@@ -4,8 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -67,10 +67,10 @@ public class SynapseTest {
 		synapse = new SynapseClientImpl();
 		synapse.setSimpleHttpClient(mockClient);
 
-		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockClient.put(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+		when(mockClient.get(any())).thenReturn(mockResponse);
+		when(mockClient.delete(any())).thenReturn(mockResponse);
+		when(mockClient.put(any(), any())).thenReturn(mockResponse);
+		when(mockClient.post(any(), any())).thenReturn(mockResponse);
 
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
 		LoginRequest request = new LoginRequest();

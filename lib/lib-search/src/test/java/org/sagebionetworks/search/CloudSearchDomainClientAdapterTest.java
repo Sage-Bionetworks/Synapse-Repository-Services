@@ -3,7 +3,9 @@ package org.sagebionetworks.search;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
@@ -20,7 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -169,8 +171,10 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test (expected = TemporarilyUnavailableException.class)
-	public void testSendDocuments_IOException(){
-		when(mockDocumentBatch.getNewInputStream()).thenThrow(IOException.class);
+	public void testSendDocuments_IOException() throws IOException {
+		InputStream mockInputStream = mock(InputStream.class);
+		when(mockDocumentBatch.getNewInputStream()).thenReturn(mockInputStream);
+		doThrow(IOException.class).when(mockInputStream).close();
 
 		//method under test
 		cloudSearchDomainClientAdapter.sendDocuments(Iterators.emptyIterator());
