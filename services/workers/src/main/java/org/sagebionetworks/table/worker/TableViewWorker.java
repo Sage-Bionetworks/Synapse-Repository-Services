@@ -33,7 +33,10 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(TableViewWorker.class);
 	
-	public static int TIMEOUT_MS = 1000*60*10;
+	/**
+	 * See: PLFM-5456
+	 */
+	public static int TIMEOUT_SECONDS = 60*10;
 	public static int BATCH_SIZE_BYTES = 1024*1024*5; // 5 MBs
 
 	@Autowired
@@ -79,7 +82,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback outerCallback, final ChangeMessage message) throws RecoverableMessageException{
 		// get the exclusive lock to update the table
 		try {
-			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_MS, new ProgressingCallable<Void>() {
+			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
 
 				@Override
 				public Void call(ProgressCallback innerCallback)
