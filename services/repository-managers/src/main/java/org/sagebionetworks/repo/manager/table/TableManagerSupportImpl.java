@@ -60,8 +60,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
-	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
-	
 	public static final int MAX_CONTAINERS_PER_VIEW = 1000*10; // 10K;
 	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "
 			+ MAX_CONTAINERS_PER_VIEW
