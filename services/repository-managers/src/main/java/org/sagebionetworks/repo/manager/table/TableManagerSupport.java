@@ -211,35 +211,38 @@ public interface TableManagerSupport {
 
 	/**
 	 * <p>
-	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired,
-	 * the passed Callable will be run while holding lock. The lock will
-	 * automatically be release when the caller returns.
+	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired, the
+	 * passed Callable will be run while holding lock. The lock will automatically
+	 * be release when the caller returns.
 	 * </p>
 	 * There are several possible conditions that can occur.
 	 * <ul>
 	 * <li>An exclusive lock has already been issued to another caller. A
 	 * LockUnavilableException will be thrown for this case.</li>
 	 * <li>One or more non-exclusive locks have been issued for this table. When
-	 * this occurs, a reserve will placed that will block all new non-exclusive
-	 * and exclusive locks. A wait loop will be started to wait for all
-	 * outstanding non-exclusive locks to be release. Once all non-exclusive
-	 * locks are release, the exclusive lock will be issued and the passed
-	 * Caller will be run.</li>
+	 * this occurs, a reserve will placed that will block all new non-exclusive and
+	 * exclusive locks. A wait loop will be started to wait for all outstanding
+	 * non-exclusive locks to be release. Once all non-exclusive locks are release,
+	 * the exclusive lock will be issued and the passed Caller will be run.</li>
 	 * <li>Another caller has reserved the exclusive lock and is waiting for the
 	 * exclusive lock. A LockUnavilableException will be thrown for this case.</li>
-	 * <li>There are no outstanding non-exclusive locks, no executive lock
-	 * reserver, and no exclusive lock. For this case, the reserver and
-	 * exclusive lock will be acquired and the Callable will be run.</li>
+	 * <li>There are no outstanding non-exclusive locks, no executive lock reserver,
+	 * and no exclusive lock. For this case, the reserver and exclusive lock will be
+	 * acquired and the Callable will be run.</li>
 	 * </ul>
 	 * 
+	 * @param callback
 	 * @param tableId
+	 * @param timeoutSeconds The maximum number of seconds the lock should be held
+	 *                       before treated as expired.
 	 * @param runner
 	 * @return
+	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			String tableId, int timeoutMS, ProgressingCallable<R> runner)
+			String tableId, int timeoutSeconds, ProgressingCallable<R> runner)
 			throws Exception;
-
+	
 	/**
 	 * <p>
 	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
@@ -260,12 +263,16 @@ public interface TableManagerSupport {
 	 * non-exclusive lock will be issue and the passed Callable will be run.</li>
 	 * </ul>
 	 * 
+	 * @param callback
 	 * @param tableId
+	 * @param timeoutSeconds The maximum number of seconds the lock should be held
+	 *                       before treated as expired.
 	 * @param runner
 	 * @return
+	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, String tableId, int timeoutMS,
+			ProgressCallback callback, String tableId, int timeoutSeconds,
 			ProgressingCallable<R> runner) throws Exception;
 
 	/**
