@@ -32,17 +32,24 @@ import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.StringUtils;
 
+/*
+ * 
+ * This is a proxy for AmazonS3 (the S3 Client), exposing just the methods used by Synapse
+ * and, in each method, doing the job of figuring out which region the given bucket is in, 
+ * so that the S3 Client for that region is used.
+ * 
+ */
 public class SynapseS3ClientImpl implements SynapseS3Client {
-	
+
 	private Map<Region, AmazonS3> regionSpecificClients;
-	
+
 	private Map<String, Region> bucketLocation;
-	
+
 	public SynapseS3ClientImpl(Map<Region, AmazonS3> regionSpecificClients) {
 		this.regionSpecificClients=regionSpecificClients;
 		bucketLocation = Collections.synchronizedMap(new HashMap<String,Region>());
 	}
-	
+
 	public Region getRegionForBucket(String bucketName) {
 		Region result = bucketLocation.get(bucketName);
 		// TODO periodically purge cache
@@ -60,14 +67,14 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		bucketLocation.put(bucketName, result);
 		return result;
 	}
-	
+
 	public AmazonS3 getS3ClientForBucket(String bucket) {
 		Region region = getRegionForBucket(bucket);
 		return regionSpecificClients.get(region);
 	}
 
 	@Override
-    public AmazonS3 getDefaultAmazonClient() {
+	public AmazonS3 getDefaultAmazonClient() {
 		return regionSpecificClients.get(Region.US_Standard);
 	}
 
@@ -149,7 +156,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	public void setBucketCrossOriginConfiguration(String bucketName,
 			BucketCrossOriginConfiguration bucketCrossOriginConfiguration) {
 		getS3ClientForBucket(bucketName).setBucketCrossOriginConfiguration( bucketName,
-				 bucketCrossOriginConfiguration);
+				bucketCrossOriginConfiguration);
 	}
 
 	@Override
