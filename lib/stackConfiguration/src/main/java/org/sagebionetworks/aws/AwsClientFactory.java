@@ -1,5 +1,8 @@
 package org.sagebionetworks.aws;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
@@ -27,17 +30,21 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 public class AwsClientFactory {
 
 	/**
-	 * Create an instance of the AmazonS3 client using a credential chain.
+	 * Create all region-specific instances of the AmazonS3 client using a credential chain.
 	 * 
 	 * @return
 	 */
 	public static SynapseS3Client createAmazonS3Client() {
-		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withPathStyleAccessEnabled(true);
-		AmazonS3 amazonS3 = builder.build();
-		return new SynapseS3ClientImpl(amazonS3);
+		Map<Regions, AmazonS3> regionSpecificClients = new HashMap<Regions, AmazonS3>();
+		for (Regions region: Regions.values() ) {
+			AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
+			builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+			builder.withRegion(region);
+			builder.withPathStyleAccessEnabled(true);
+			AmazonS3 amazonS3 = builder.build();
+			regionSpecificClients.put(region, amazonS3);
+		}
+		return new SynapseS3ClientImpl(regionSpecificClients);
 	}
 
 	/**

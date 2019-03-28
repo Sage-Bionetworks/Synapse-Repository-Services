@@ -3,9 +3,11 @@ package org.sagebionetworks.aws;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -29,134 +31,146 @@ import com.amazonaws.services.s3.model.S3Object;
 
 public class SynapseS3ClientImpl implements SynapseS3Client {
 	
-	private AmazonS3 amazonS3;
+	private Map<Regions, AmazonS3> regionSpecificClients;
 	
-	public SynapseS3ClientImpl(AmazonS3 amazonS3) {
-		this.amazonS3=amazonS3;
+	public SynapseS3ClientImpl(Map<Regions, AmazonS3> regionSpecificClients) {
+		this.regionSpecificClients=regionSpecificClients;
+	}
+	
+	public Regions getRegionForBucket(String bucket) {
+		AmazonS3 amazonS3 = getDefaultAmazonClient();
+		String location = amazonS3.getBucketLocation(bucket);
+		// TODO if exception is thrown, add explanation that bucket policy should be checked
+		return Regions.fromName(location);
+	}
+	
+	public AmazonS3 getS3ClientForBucket(String bucket) {
+		Regions region = getRegionForBucket(bucket);
+		return regionSpecificClients.get(region);
+	}
+
+	@Override
+    public AmazonS3 getDefaultAmazonClient() {
+		return regionSpecificClients.get(Regions.US_EAST_1);
 	}
 
 	@Override
 	public ObjectMetadata getObjectMetadata(String bucketName, String key)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.getObjectMetadata(bucketName, key);
+		return getS3ClientForBucket(bucketName).getObjectMetadata(bucketName, key);
 	}
 
 	@Override
 	public void deleteObject(String bucketName, String key) throws SdkClientException, AmazonServiceException {
-		amazonS3.deleteObject( bucketName,  key);
+		getS3ClientForBucket(bucketName).deleteObject( bucketName,  key);
 	}
 
 	@Override
 	public DeleteObjectsResult deleteObjects(DeleteObjectsRequest deleteObjectsRequest)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.deleteObjects(deleteObjectsRequest);
+		return getS3ClientForBucket(deleteObjectsRequest.getBucketName()).deleteObjects(deleteObjectsRequest);
 	}
 
 	@Override
 	public PutObjectResult putObject(String bucketName, String key, InputStream input, ObjectMetadata metadata)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.putObject( bucketName,  key,  input,  metadata);
+		return getS3ClientForBucket(bucketName).putObject( bucketName,  key,  input,  metadata);
 	}
 
 	@Override
 	public PutObjectResult putObject(String bucketName, String key, File file)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.putObject( bucketName, key,  file);
+		return getS3ClientForBucket(bucketName).putObject( bucketName, key,  file);
 	}
 
 	@Override
 	public PutObjectResult putObject(PutObjectRequest putObjectRequest)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.putObject( putObjectRequest);
+		return getS3ClientForBucket(putObjectRequest.getBucketName()).putObject( putObjectRequest);
 	}
 
 	@Override
 	public S3Object getObject(String bucketName, String key) throws SdkClientException, AmazonServiceException {
-		return amazonS3.getObject( bucketName,  key);
+		return getS3ClientForBucket(bucketName).getObject( bucketName,  key);
 	}
 
 	@Override
 	public S3Object getObject(GetObjectRequest getObjectRequest) throws SdkClientException, AmazonServiceException {
-		return amazonS3.getObject( getObjectRequest);
+		return getS3ClientForBucket(getObjectRequest.getBucketName()).getObject( getObjectRequest);
 	}
 
 	@Override
 	public ObjectMetadata getObject(GetObjectRequest getObjectRequest, File destinationFile)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.getObject( getObjectRequest,  destinationFile);
+		return getS3ClientForBucket(getObjectRequest.getBucketName()).getObject( getObjectRequest,  destinationFile);
 	}
 
 	@Override
 	public ObjectListing listObjects(String bucketName, String prefix)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.listObjects( bucketName,  prefix);
+		return getS3ClientForBucket(bucketName).listObjects( bucketName,  prefix);
 	}
 
 	@Override
 	public ObjectListing listObjects(ListObjectsRequest listObjectsRequest)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.listObjects( listObjectsRequest);
+		return getS3ClientForBucket(listObjectsRequest.getBucketName()).listObjects( listObjectsRequest);
 	}
 
 	@Override
 	public Bucket createBucket(String bucketName) throws SdkClientException, AmazonServiceException {
-		return amazonS3.createBucket( bucketName);
+		return getDefaultAmazonClient().createBucket( bucketName);
 	}
 
 	@Override
 	public boolean doesObjectExist(String bucketName, String objectName)
 			throws AmazonServiceException, SdkClientException {
-		return amazonS3.doesObjectExist( bucketName,  objectName);
+		return getS3ClientForBucket(bucketName).doesObjectExist( bucketName,  objectName);
 	}
 
 	@Override
 	public void setBucketCrossOriginConfiguration(String bucketName,
 			BucketCrossOriginConfiguration bucketCrossOriginConfiguration) {
-		amazonS3.setBucketCrossOriginConfiguration( bucketName,
+		getS3ClientForBucket(bucketName).setBucketCrossOriginConfiguration( bucketName,
 				 bucketCrossOriginConfiguration);
 	}
 
 	@Override
 	public URL generatePresignedUrl(GeneratePresignedUrlRequest generatePresignedUrlRequest) throws SdkClientException {
-		return amazonS3.generatePresignedUrl( generatePresignedUrlRequest);
+		return getS3ClientForBucket(generatePresignedUrlRequest.getBucketName()).generatePresignedUrl( generatePresignedUrlRequest);
 	}
 
 	@Override
 	public InitiateMultipartUploadResult initiateMultipartUpload(InitiateMultipartUploadRequest request)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.initiateMultipartUpload( request);
+		return getS3ClientForBucket(request.getBucketName()).initiateMultipartUpload( request);
 	}
 
 	@Override
 	public CopyPartResult copyPart(CopyPartRequest copyPartRequest) throws SdkClientException, AmazonServiceException {
-		return amazonS3.copyPart( copyPartRequest);
+		return getS3ClientForBucket(copyPartRequest.getDestinationBucketName()).copyPart( copyPartRequest);
 	}
 
 	@Override
 	public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request)
 			throws SdkClientException, AmazonServiceException {
-		return amazonS3.completeMultipartUpload( request);
+		return getS3ClientForBucket(request.getBucketName()).completeMultipartUpload( request);
 	}
 
 	@Override
 	public void setBucketWebsiteConfiguration(String bucketName, BucketWebsiteConfiguration configuration)
 			throws SdkClientException, AmazonServiceException {
-		amazonS3.setBucketWebsiteConfiguration( bucketName,  configuration);
+		getS3ClientForBucket(bucketName).setBucketWebsiteConfiguration( bucketName,  configuration);
 	}
 
 	@Override
 	public void setBucketPolicy(String bucketName, String policyText)
 			throws SdkClientException, AmazonServiceException {
-		amazonS3.setBucketPolicy( bucketName,  policyText);
-	}
-
-	@Override
-    public AmazonS3 getAmazonClient() {
-		return amazonS3;
+		getS3ClientForBucket(bucketName).setBucketPolicy( bucketName,  policyText);
 	}
 
 	@Override
 	public BucketCrossOriginConfiguration getBucketCrossOriginConfiguration(String bucketName) {
-		return amazonS3.getBucketCrossOriginConfiguration(bucketName);
+		return getS3ClientForBucket(bucketName).getBucketCrossOriginConfiguration(bucketName);
 	}
 }
