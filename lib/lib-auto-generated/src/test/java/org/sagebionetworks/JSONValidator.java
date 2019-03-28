@@ -2,9 +2,10 @@ package org.sagebionetworks;
 
 import java.io.IOException;
 
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.map.ObjectMapper;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JSONValidator {
 	
@@ -16,7 +17,7 @@ public class JSONValidator {
 	 * @throws JsonParseException
 	 */
 	public static void validateJSON(final String json) throws IOException {
-		final JsonParser parser = new ObjectMapper().getJsonFactory().createJsonParser(json);			
+		final JsonParser parser = new ObjectMapper().getFactory().createParser(json);
 		while (parser.nextToken() != null) {}
 	}
 }

@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
