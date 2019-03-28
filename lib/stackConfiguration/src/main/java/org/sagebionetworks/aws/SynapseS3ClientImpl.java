@@ -3,6 +3,8 @@ package org.sagebionetworks.aws;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
@@ -34,16 +36,24 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	
 	private Map<Region, AmazonS3> regionSpecificClients;
 	
+	private Map<String, Region> bucketLocation;
+	
 	public SynapseS3ClientImpl(Map<Region, AmazonS3> regionSpecificClients) {
 		this.regionSpecificClients=regionSpecificClients;
+		bucketLocation = Collections.synchronizedMap(new HashMap<String,Region>());
 	}
 	
-	public Region getRegionForBucket(String bucket) {
+	public Region getRegionForBucket(String bucketName) {
+		Region result = bucketLocation.get(bucketName);
+		// TODO periodically purge cache
+		if (result!=null) return result;
 		AmazonS3 amazonS3 = getDefaultAmazonClient();
-		String location = amazonS3.getBucketLocation(bucket);
+		String location = amazonS3.getBucketLocation(bucketName);
 		// TODO if exception is thrown, add explanation that bucket policy should be checked
-		if (StringUtils.isNullOrEmpty(location)) return Region.US_Standard;
-		return Region.fromValue(location);
+		if (StringUtils.isNullOrEmpty(location)) result = Region.US_Standard;
+		result =  Region.fromValue(location);
+		bucketLocation.put(bucketName, result);
+		return result;
 	}
 	
 	public AmazonS3 getS3ClientForBucket(String bucket) {

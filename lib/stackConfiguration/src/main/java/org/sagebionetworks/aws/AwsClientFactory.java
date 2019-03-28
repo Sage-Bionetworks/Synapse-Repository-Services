@@ -29,6 +29,16 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
  *
  */
 public class AwsClientFactory {
+	
+	// There are (unfortunately) three different classes to handle:
+	// com.amazonaws.regions.Regions, with values like US_EAST_1, US_WEST_1, CA_CENTRAL_1
+	// com.amazonaws.regions.Region, with values like us-east-1, us-west-1, ca-central-1
+	// com.amazonaws.services.s3.model.Region with values like null (for us-east-1), us-west-1, ca-central-1
+	public static Region getS3RegionForAWSRegions(Regions awsRegion) {
+		if (awsRegion==Regions.US_EAST_1) return Region.US_Standard; // string value of Region.US_Standard is null!
+		com.amazonaws.regions.Region regionsRegion = com.amazonaws.regions.Region.getRegion(awsRegion);
+		return Region.fromValue(regionsRegion.getName());
+	}
 
 	/**
 	 * Create all region-specific instances of the AmazonS3 client using a credential chain.
@@ -36,16 +46,16 @@ public class AwsClientFactory {
 	 * @return
 	 */
 	public static SynapseS3Client createAmazonS3Client() {
-		Map<Region, AmazonS3> regionSpecificClients = new HashMap<Region, AmazonS3>();
-		for (Region region: Region.values() ) {
+		Map<Region, AmazonS3> regionSpecificS3Clients = new HashMap<Region, AmazonS3>();
+		for (Regions region: Regions.values() ) {
 			AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 			builder.withCredentials(SynapseCredentialProviderChain.getInstance());
-			builder.withRegion(region.name());
+			builder.withRegion(region);
 			builder.withPathStyleAccessEnabled(true);
 			AmazonS3 amazonS3 = builder.build();
-			regionSpecificClients.put(region, amazonS3);
+			regionSpecificS3Clients.put(getS3RegionForAWSRegions(region), amazonS3);
 		}
-		return new SynapseS3ClientImpl(regionSpecificClients);
+		return new SynapseS3ClientImpl(regionSpecificS3Clients);
 	}
 
 	/**
