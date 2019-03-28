@@ -54,8 +54,6 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.support.HandlerMethodInvocationException;
-import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMethodException;
 import org.springframework.web.util.NestedServletException;
 
 import com.amazonaws.AmazonServiceException;
@@ -376,25 +374,6 @@ public abstract class BaseController {
 	}
 
 	/**
-	 * This occurs for example when the matched handler method expects an HTTP
-	 * header not present in the request such as an ETag header.
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
-	 */
-	@ExceptionHandler(HandlerMethodInvocationException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public @ResponseBody
-	ErrorResponse handleMethodInvocationException(
-			HandlerMethodInvocationException ex, HttpServletRequest request) {
-		return handleException(ex, request, false);
-	}
-
-	/**
 	 * This occurs for example when the we send invalid JSON in the request
 	 * 
 	 * @param ex
@@ -482,25 +461,6 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
 															   HttpServletRequest request) {
-		return handleException(ex, request, false);
-	}
-
-
-	/**
-	 * Haven't been able to get this one to happen yet
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
-	 */
-	@ExceptionHandler(NoSuchRequestHandlingMethodException.class)
-	@ResponseStatus(HttpStatus.NOT_FOUND)
-	public @ResponseBody
-	ErrorResponse handleNoSuchRequestException(
-			NoSuchRequestHandlingMethodException ex, HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
 
