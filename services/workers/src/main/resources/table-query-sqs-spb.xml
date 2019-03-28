@@ -29,7 +29,7 @@
 									<bean class="org.sagebionetworks.table.worker.TableQueryWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableQueryWorker" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreMaxLockCount" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
@@ -68,7 +68,7 @@
 									<bean class="org.sagebionetworks.table.worker.TableQueryNextPageWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableQueryNextPageWorker" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreMaxLockCount" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"

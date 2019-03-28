@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_BYTES_PER_ROW;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -41,12 +44,6 @@ import com.google.common.collect.Lists;
 public class ColumnModelManagerImpl implements ColumnModelManager {
 
 	public static final String COLUMN_TYPE_ERROR_TEMPLATE = "A %1$s column cannot be changed to %2$s";
-	/**
-	 * This is the maximum number of bytes for a single row in MySQL.
-	 * This determines the maximum schema size for a table.
-	 */
-	public static final int MY_SQL_MAX_BYTES_PER_ROW = 64000;
-	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 152;
 	
 	@Autowired
 	ColumnModelDAO columnModelDao;

@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.manager.trash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -28,6 +28,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
@@ -78,7 +79,8 @@ public class TrashManagerImplTest {
 
 	@Mock
 	private StackConfiguration stackConfig;
-	
+
+	@InjectMocks
 	private TrashManagerImpl trashManager;
 	private long userID;
 	private long adminUserID;
@@ -109,7 +111,7 @@ public class TrashManagerImplTest {
 	public void setUp() throws Exception {
 		trashManager = new TrashManagerImpl();
 		MockitoAnnotations.initMocks(this);
-		
+
 		userID = 12345L;
 		userInfo = new UserInfo(false /*not admin*/);
 		userInfo.setId(userID);
@@ -122,6 +124,7 @@ public class TrashManagerImplTest {
 		nodeName = "testName.test";
 		nodeParentID = "syn489";
 		testNode = new Node();
+		testNode.setId(nodeID);
 		testNode.setName(nodeName);
 		testNode.setParentId(nodeParentID);
 		testNode.setNodeType(EntityType.file);
@@ -164,13 +167,7 @@ public class TrashManagerImplTest {
 			
 			
 		});
-		
-		setField(trashManager, "nodeDao", mockNodeDAO);
-		setField(trashManager, "aclDAO", mockAclDAO);
-		setField(trashManager, "trashCanDao", mockTrashCanDao);
-		setField(trashManager, "authorizationManager", mockAuthorizationManager);
-		setField(trashManager, "nodeManager", mockNodeManager);
-		setField(trashManager, "transactionalMessenger", mockTransactionalMessenger);
+
 		
 		when(mockNodeDAO.peekCurrentEtag(child1ID)).thenReturn(child1Etag);
 		when(mockNodeDAO.peekCurrentEtag(child2ID)).thenReturn(child2Etag);

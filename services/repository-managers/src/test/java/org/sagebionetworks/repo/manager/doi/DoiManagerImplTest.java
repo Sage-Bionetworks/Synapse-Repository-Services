@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.doi;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -374,7 +374,6 @@ public class DoiManagerImplTest {
 		// Undo the convenience authorization set in @Before
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
 				.thenReturn(new AuthorizationStatus(false, "mock"));
-		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
 		doiManager.deactivateDoi(testInfo, entityId, entityType, version);
 	}
@@ -553,6 +552,7 @@ public class DoiManagerImplTest {
 		dto.setObjectId(entityId);
 		dto.setObjectType(entityType);
 		dto.setObjectVersion(version);
+		dto.setDoiUri(doiUri);
 
 		if (withMetadata) {
 			// Required metadata fields

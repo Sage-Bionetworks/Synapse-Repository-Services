@@ -417,6 +417,12 @@ public interface StackConfiguration {
 	public Integer getSemaphoreSharedMaxTimeoutMS();
 
 	/**
+	 * Maximum number of reader locks allowed at the same time for WriteReadSemaphoreRunner
+	 * @return
+	 */
+	public Integer getWriteReadSemaphoreRunnerMaxReaders();
+
+	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
 	 * before timing out.
 	 * 

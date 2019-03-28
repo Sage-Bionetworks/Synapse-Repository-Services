@@ -6,10 +6,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -1392,7 +1392,7 @@ public class FileHandleManagerImplTest {
 		String oldContentType = "oldContentType";
 		fileHandle.setContentType(oldContentType);
 		fileHandles.put("2", fileHandle);
-		when(mockFileHandleDao.getAllFileHandlesBatch(any(List.class))).thenReturn(fileHandles);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(fileHandles);
 		Long newId = 789L;
 		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(newId );
 

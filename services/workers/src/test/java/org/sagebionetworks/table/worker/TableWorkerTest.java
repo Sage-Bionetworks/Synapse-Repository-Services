@@ -1,13 +1,12 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -88,7 +87,7 @@ public class TableWorkerTest {
 		when(mockConnectionFactory.connectToTableIndex(anyString())).thenReturn(mockTableIndexManager);
 		
 		// By default we want to the manager to just call the passed callable.
-		stub(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
+		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<TableWorker.State>() {
 			@Override
 			public TableWorker.State answer(InvocationOnMock invocation) throws Throwable {
 				ProgressingCallable<TableWorker.State> callable = (ProgressingCallable<State>) invocation.getArguments()[3];

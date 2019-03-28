@@ -3,10 +3,9 @@ package org.sagebionetworks.repo.manager.authentication;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.anyVararg;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -21,9 +20,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
@@ -116,6 +116,7 @@ public class AuthenticationManagerImplUnitTest {
 		passwordResetSignedToken.setUserId(userId.toString());
 		when(mockPasswordResetTokenGenerator.isValidToken(passwordResetSignedToken)).thenReturn(true);
 
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 	}
 
 	@Test
@@ -130,7 +131,6 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testCheckSessionToken() throws Exception {
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(userId);
-		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
 		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
 		Long principalId = authManager.checkSessionToken(synapseSessionToken, true);
 		assertEquals(userId, principalId);
@@ -146,7 +146,6 @@ public class AuthenticationManagerImplUnitTest {
 		// Nothing matches the token
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(null);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(null);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
 		try {
 			authManager.checkSessionToken(synapseSessionToken, true).toString();
 			fail();
@@ -198,7 +197,6 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testLogin(){
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 
 
@@ -244,7 +242,6 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testGetLoginResponseAfterSuccessfulAuthentication_nullReciept_overReceiptLimit(){
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 
 		//method under test
 		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, null);
@@ -262,8 +259,6 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithoutReceipt() {
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
-
 		//method under test
 		authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
 
@@ -273,7 +268,6 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithInvalidReceipt() {
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 
 		//method under test
@@ -285,7 +279,6 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithInvalidReceiptAndWrongPassword() {
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
@@ -306,7 +299,6 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithValidReceipt() {
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 
 
@@ -318,7 +310,6 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithValidReceiptAndWrongPassword() {
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(0L);
 		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
 
@@ -384,7 +375,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testFindUserForAuthentication_userFound(){
 		PrincipalAlias principalAlias = new PrincipalAlias();
 		principalAlias.setPrincipalId(userId);
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), anyVararg())).thenReturn(principalAlias);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), ArgumentMatchers.<AliasType>any())).thenReturn(principalAlias);
 
 		//method under test
 		assertEquals(userId, (Long) authManager.findUserIdForAuthentication(username));
@@ -394,7 +385,7 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testFindUserForAuthentication_userNotFound(){
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), anyVararg())).thenReturn(null);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), ArgumentMatchers.<AliasType>any())).thenReturn(null);
 
 		try{
 			authManager.findUserIdForAuthentication(username);

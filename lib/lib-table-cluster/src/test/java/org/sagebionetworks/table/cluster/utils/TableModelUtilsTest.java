@@ -391,7 +391,7 @@ public class TableModelUtilsTest {
 			TableModelUtils.validateRowValue(valueTooBig, cm, 0, 0);
 			fail("should fail");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [0,0] was not a valid LARGETEXT. Exceeds the maximum number of characters: 262144", e.getMessage());
+			assertEquals("Value at [0,0] was not a valid LARGETEXT. Exceeds the maximum number of characters: 524288", e.getMessage());
 		}
 	}
 	
@@ -631,11 +631,8 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCalculateMaxSizeForTypeLargeText() throws UnsupportedEncodingException {
-		long maxSize = 1000;
-		char[] array = new char[(int) maxSize];
-		Arrays.fill(array, Character.MAX_VALUE);
-		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LARGETEXT, null));
+		assertEquals(ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.LARGETEXT, null));
 	}
 
 	@Test
@@ -706,7 +703,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(4528, allBytes);
+		assertEquals(2661, allBytes);
 	}
 
 	@Test

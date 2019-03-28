@@ -1,10 +1,10 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -59,7 +59,7 @@ public class TableTransactionWorkerTest {
 	@Mock
 	TableExceptionTranslator mockTableExceptionTranslator;
 	
-	
+
 	TableTransactionWorker worker;
 	
 	String jobId;
@@ -81,7 +81,7 @@ public class TableTransactionWorkerTest {
 		ReflectionTestUtils.setField(worker, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(worker, "tableTransactionManagerProvider", mockTransactionManagerProvider);
 		ReflectionTestUtils.setField(worker, "tableExceptionTranslator", mockTableExceptionTranslator);
-		
+
 		userId = 987L;
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
@@ -128,14 +128,10 @@ public class TableTransactionWorkerTest {
 			}
 		}).when(mockProgressCallback).addProgressListener(any(ProgressListener.class));
 		
-		doAnswer(new Answer<RuntimeException>() {
-
-			@Override
-			public RuntimeException answer(InvocationOnMock invocation) throws Throwable {
-				Throwable exception = (Throwable) invocation.getArguments()[0];
-				translatedException = new RuntimeException("translated",exception);
-				return translatedException;
-			}
+		doAnswer(invocation -> {
+			Throwable exception = (Throwable) invocation.getArguments()[0];
+			translatedException = new RuntimeException("translated",exception);
+			return translatedException;
 		}).when(mockTableExceptionTranslator).translateException(any(Throwable.class));
 
 	}
@@ -179,7 +175,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
@@ -188,7 +184,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
@@ -197,7 +193,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
