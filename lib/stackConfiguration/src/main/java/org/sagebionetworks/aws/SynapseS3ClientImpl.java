@@ -7,7 +7,6 @@ import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -27,31 +26,34 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.util.StringUtils;
 
 public class SynapseS3ClientImpl implements SynapseS3Client {
 	
-	private Map<Regions, AmazonS3> regionSpecificClients;
+	private Map<Region, AmazonS3> regionSpecificClients;
 	
-	public SynapseS3ClientImpl(Map<Regions, AmazonS3> regionSpecificClients) {
+	public SynapseS3ClientImpl(Map<Region, AmazonS3> regionSpecificClients) {
 		this.regionSpecificClients=regionSpecificClients;
 	}
 	
-	public Regions getRegionForBucket(String bucket) {
+	public Region getRegionForBucket(String bucket) {
 		AmazonS3 amazonS3 = getDefaultAmazonClient();
 		String location = amazonS3.getBucketLocation(bucket);
 		// TODO if exception is thrown, add explanation that bucket policy should be checked
-		return Regions.fromName(location);
+		if (StringUtils.isNullOrEmpty(location)) return Region.US_Standard;
+		return Region.fromValue(location);
 	}
 	
 	public AmazonS3 getS3ClientForBucket(String bucket) {
-		Regions region = getRegionForBucket(bucket);
+		Region region = getRegionForBucket(bucket);
 		return regionSpecificClients.get(region);
 	}
 
 	@Override
     public AmazonS3 getDefaultAmazonClient() {
-		return regionSpecificClients.get(Regions.US_EAST_1);
+		return regionSpecificClients.get(Region.US_Standard);
 	}
 
 	@Override

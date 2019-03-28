@@ -15,6 +15,7 @@ import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSAsyncClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
@@ -35,11 +36,11 @@ public class AwsClientFactory {
 	 * @return
 	 */
 	public static SynapseS3Client createAmazonS3Client() {
-		Map<Regions, AmazonS3> regionSpecificClients = new HashMap<Regions, AmazonS3>();
-		for (Regions region: Regions.values() ) {
+		Map<Region, AmazonS3> regionSpecificClients = new HashMap<Region, AmazonS3>();
+		for (Region region: Region.values() ) {
 			AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 			builder.withCredentials(SynapseCredentialProviderChain.getInstance());
-			builder.withRegion(region);
+			builder.withRegion(region.name());
 			builder.withPathStyleAccessEnabled(true);
 			AmazonS3 amazonS3 = builder.build();
 			regionSpecificClients.put(region, amazonS3);
