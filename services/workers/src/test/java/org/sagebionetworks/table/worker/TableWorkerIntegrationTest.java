@@ -2311,7 +2311,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(Lists.newArrayList(row));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		tableEntityManager.appendRows(adminUserInfo, tableId, rowSet, mockPprogressCallback);
+		appendRows(adminUserInfo, tableId, rowSet, mockPprogressCallback);
 		
 		String sql = "select * from " + tableId;
 		query.setSql(sql);
