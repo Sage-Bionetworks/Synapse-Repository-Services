@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -35,7 +36,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	/**
 	 * Max columns per view is now the same as the max per table.
 	 */
-	public static final int MAX_COLUMNS_PER_VIEW = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE;
+	public static final int MAX_COLUMNS_PER_VIEW = ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
 	
 	@Autowired
 	ViewScopeDao viewScopeDao;

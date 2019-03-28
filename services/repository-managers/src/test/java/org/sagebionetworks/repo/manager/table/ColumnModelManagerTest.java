@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -49,6 +51,10 @@ import com.google.common.collect.Lists;
  *
  */
 public class ColumnModelManagerTest {
+	
+
+	// Currently the breaking point is 16 string columns of size 1000.
+	private static final int MAX_NUMBER_OF_MAX_STRINGS_PER_TABLE = 16;
 	
 	@Mock
 	ColumnModelDAO mockColumnModelDAO;
@@ -112,7 +118,7 @@ public class ColumnModelManagerTest {
 		underLimitSchemaIds = Lists.newArrayList();
 		underLimitSchema = Lists.newArrayList();
 		// Currently the breaking point is 23 string columns of size 1000.
-		for(int i=0; i<16; i++){
+		for(int i=0; i<MAX_NUMBER_OF_MAX_STRINGS_PER_TABLE; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
 			cm.setMaximumSize(1000L);
 			underLimitSchema.add(cm);
@@ -492,7 +498,7 @@ public class ColumnModelManagerTest {
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
 		// Currently the breaking point is 16 string columns of size 1000.
-		for(int i=0; i<16; i++){
+		for(int i=0; i<MAX_NUMBER_OF_MAX_STRINGS_PER_TABLE; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
 			cm.setMaximumSize(1000L);
 			schema.add(cm);
@@ -507,8 +513,8 @@ public class ColumnModelManagerTest {
 	public void testValidateSchemaSizeOverLimit(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
-		// Currently the breaking point is 23 string columns of size 1000.
-		for(int i=0; i<23; i++){
+		// Currently the breaking point is 17 string columns of size 1000.
+		for(int i=0; i<MAX_NUMBER_OF_MAX_STRINGS_PER_TABLE+1; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
 			cm.setMaximumSize(1000L);
 			schema.add(cm);
@@ -519,11 +525,43 @@ public class ColumnModelManagerTest {
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
+	/**
+	 * Test added for PLFM-5330 and PLFM-5457. The max number
+	 * of large text columns is a percentage of the
+	 * total memory available to machines.
+	 */
+	@Test
+	public void testValidateLargeTextColumns() {
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		for(int i=0; i<ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.LARGETEXT);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testValidateLargeTextColumnsOverLimit() {
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		for(int i=0; i<MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE+1; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.LARGETEXT);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateSchemaTooManyColumns(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
-		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE+1;
+		int numberOfColumns = MY_SQL_MAX_COLUMNS_PER_TABLE+1;
 		for(int i=0; i<numberOfColumns; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
 			cm.setMaximumSize(1L);
@@ -538,7 +576,7 @@ public class ColumnModelManagerTest {
 	public void testValidateSchemaMaxColumns(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
-		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE;
+		int numberOfColumns = MY_SQL_MAX_COLUMNS_PER_TABLE;
 		for(int i=0; i<numberOfColumns; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
 			cm.setMaximumSize(1L);
@@ -587,7 +625,7 @@ public class ColumnModelManagerTest {
 		String objectId = "syn123";
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
-		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE+1;
+		int numberOfColumns = MY_SQL_MAX_COLUMNS_PER_TABLE+1;
 		for(int i=0; i<numberOfColumns; i++){
 			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
 			cm.setMaximumSize(1000L);
