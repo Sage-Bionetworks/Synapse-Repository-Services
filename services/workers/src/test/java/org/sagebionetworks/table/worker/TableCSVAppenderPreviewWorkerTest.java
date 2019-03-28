@@ -10,12 +10,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-<<<<<<< HEAD
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.aws.SynapseS3Client;
-=======
-import org.mockito.junit.MockitoJUnitRunner;
->>>>>>> e75b8c00ba397793bf7072c9c29ec79ee82d7952
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.UserManager;
