@@ -21,6 +21,18 @@ public class ColumnConstants {
 	public static final int MAX_BYTES_PER_CHAR_MEMORY = 4;
 	
 	/**
+	 * This is the maximum number of bytes for a single row in MySQL.
+	 * This determines the maximum schema size for a table.
+	 */
+	public static final int MY_SQL_MAX_BYTES_PER_ROW = 64000;
+	
+	
+	/**
+	 * The maximum number of columns per MySQL table.
+	 */
+	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 152;
+	
+	/**
 	 * The maximum number of bytes of a boolean when represented as a string.
 	 */
 	public static final int MAX_BOOLEAN_BYTES_AS_STRING;
@@ -67,21 +79,35 @@ public class ColumnConstants {
 	 */
 	public static final int MAX_USER_ID_BYTES_AS_STRING = MAX_INTEGER_BYTES_AS_STRING;
 	
+	/**
+	 * The maximum available memory to each machine in bytes.
+	 * Currently 3 GB.
+	 */
+	public static final long MAX_AVAILABLE_MEMORY_PER_MACHINE_BYTES = 1024L*1024L*1024L*3L;
 	
 	/**
-	 * While the database will not count the bytes of a blob against the total size of 
-	 * of a row, we still need an estimate of the size of these blobs in memory.  
-	 * This will limit the size of table change sets and the maximum number of blob columns
-	 * that can be added to a table.
-	 * 
+	 * Sine a single table row must fit in memory.
+	 * The maximum of memory for a single row is a percentage of the total available memory.
+	 * Currently set to 2% of available memory.
 	 */
-	public static final int DEFAULT_LARGE_TEXT_BYTES = MAX_BYTES_PER_CHAR_UTF_8 *1000;
+	public static final long MAX_MEMORY_PER_ROW_BYTES = (long) (MAX_AVAILABLE_MEMORY_PER_MACHINE_BYTES*0.02);
 	
 	/**
-	 * Large text values must be under one MB.
+	 * Large text values must be under two MB.
 	 * 
 	 */
-	public static final long MAX_LARGE_TEXT_BYTES = 1024*1024; // 1 MB
+	public static final long MAX_LARGE_TEXT_BYTES = 1024*1024*2; // 2 MB
+	
+	/**
+	 * The maximum number of LARGE_TEXT columns per table is a function of the 
+	 * Memory available to the machines and the maximum size of single LARGE_TEXT value. 
+	 */
+	public static final long MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE = MAX_MEMORY_PER_ROW_BYTES/MAX_LARGE_TEXT_BYTES;
+	
+	/**
+	 * Conversion of the maximum number of LARGE_TEXT columns in memory to a size in terms of the max bytes per row in MySQL.
+	 */
+	public static final int SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES = (int) (MY_SQL_MAX_BYTES_PER_ROW/MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE);
 	
 	/**
 	 * The maximum number of characters allowed for a LARGETEXT value.

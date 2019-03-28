@@ -109,6 +109,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.TimeUtils;
@@ -2273,6 +2274,57 @@ public class TableWorkerIntegrationTest {
 		Row row = queryRows.get(0);
 		assertEquals("b", row.getValues().get(0));
 		assertEquals("five#four", row.getValues().get(1));
+	}
+	
+	/**
+	 * Create a table with the maximum number of LARGE_TEXT columns and add data
+	 * at the maximum size.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_5330() throws Exception {
+		schema = new LinkedList<>();
+		for(int i=0; i<ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setName("max"+i);
+			cm.setColumnType(ColumnType.LARGETEXT);
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		// build a table with this column.
+		createTableWithSchema();
+		// Add one row with the max bytes
+		List<String> values = new LinkedList<>();
+		for(int i=0; i<ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE; i++) {
+			/*
+			 *  Note: cannot use the max size without hitting 'Packet for query is too large...'
+			 *  We would need to increase the 'max_allowed_packet' variable to test at that scale.
+			 */
+			values.add(createStringOfSize((int) ColumnConstants.MAX_LARGE_TEXT_CHARACTERS/4));
+		}
+		Row row = new Row();
+		row.setValues(values);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		tableEntityManager.appendRows(adminUserInfo, tableId, rowSet, mockPprogressCallback);
+		
+		String sql = "select * from " + tableId;
+		query.setSql(sql);
+		QueryResult results = waitForConsistentQuery(adminUserInfo, query, queryOptions);
+		assertNotNull(results);
+	}
+	
+	/**
+	 * Create a string of the given size.
+	 * @param numberOfCharacters
+	 * @return
+	 */
+	public String createStringOfSize(int numberOfCharacters) {
+		char[] chars = new char[numberOfCharacters];
+		Arrays.fill(chars, 'a');
+		return new String(chars);
 	}
 
 	/**
