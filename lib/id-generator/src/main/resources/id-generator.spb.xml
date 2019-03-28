@@ -33,7 +33,7 @@
 	<!-- a PlatformTransactionManager is still required -->
 	<bean id="idGeneratorJdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource">
-			<ref local="idGeneratorDataSourcePool" />
+			<ref bean="idGeneratorDataSourcePool" />
 		</property>
 	</bean>
 
