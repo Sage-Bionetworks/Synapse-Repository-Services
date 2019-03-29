@@ -19,6 +19,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
 
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
+
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -662,7 +664,8 @@ public class SQLUtils {
 		boolean isFirst = true;
 		boolean hasChanges = false;
 		for(ColumnChangeDetails change: changes){
-			boolean hasChange = appendAlterTableSql(builder, change, isFirst);
+			boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId);
+			boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 			if(hasChange){
 				hasChanges = true;
 				isFirst = false;
@@ -679,16 +682,18 @@ public class SQLUtils {
 	 * Alter a single column for a given column change.
 	 * @param builder
 	 * @param change
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChangeDetails change, boolean isFirst) {
+			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
 			// nothing to do
 			return false;
 		}
 		if(change.getOldColumn() == null){
 			// add
-			appendAddColumn(builder, change.getNewColumn(), isFirst);
+			appendAddColumn(builder, change.getNewColumn(), isFirst, useDepricatedUtf8ThreeBytes);
 			// change was added.
 			return true;
 		}
@@ -705,7 +710,7 @@ public class SQLUtils {
 			return false;
 		}
 		// update
-		appendUpdateColumn(builder, change, isFirst);
+		appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		// change was added.
 		return true;
 
@@ -715,15 +720,17 @@ public class SQLUtils {
 	 * Append an add column statement to the passed builder.
 	 * @param builder
 	 * @param newColumn
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendAddColumn(StringBuilder builder,
-			ColumnModel newColumn, boolean isFirst) {
+			ColumnModel newColumn, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		ValidateArgument.required(newColumn, "newColumn");
 		if(!isFirst){
 			builder.append(", ");
 		}
 		builder.append("ADD COLUMN ");
-		appendColumnDefinition(builder, newColumn);
+		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
 			appendAddDoubleEnum(builder, newColumn.getId());
@@ -753,9 +760,11 @@ public class SQLUtils {
 	 * Append an update column statement to the passed builder.
 	 * @param builder
 	 * @param change
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendUpdateColumn(StringBuilder builder,
-			ColumnChangeDetails change, boolean isFirst) {
+			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getOldColumnInfo(), "change.getOldColumnInfo()");
@@ -773,7 +782,7 @@ public class SQLUtils {
 		builder.append("CHANGE COLUMN ");
 		builder.append(getColumnNameForId(change.getOldColumn().getId()));
 		builder.append(" ");
-		appendColumnDefinition(builder, change.getNewColumn());
+		appendColumnDefinition(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
 		// Is this a type change?
 		if(!change.getOldColumn().getColumnType().equals(change.getNewColumn().getColumnType())){
 			if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())){
@@ -791,17 +800,19 @@ public class SQLUtils {
 		}
 	}
 	
+	
 	/**
 	 * Append a column type definition to the passed builder.
-	 * 
 	 * @param builder
 	 * @param column
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
-	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
+	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column , boolean useDepricatedUtf8ThreeBytes){
 		builder.append(getColumnNameForId(column.getId()));
 		builder.append(" ");
 		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(column.getColumnType());
-		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue()));
+		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue(), useDepricatedUtf8ThreeBytes));
 	}
 
 	/**
