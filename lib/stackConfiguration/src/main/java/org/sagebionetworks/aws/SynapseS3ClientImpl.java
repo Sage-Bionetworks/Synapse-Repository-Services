@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
@@ -47,14 +49,13 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 
 	public SynapseS3ClientImpl(Map<Region, AmazonS3> regionSpecificClients) {
 		this.regionSpecificClients=regionSpecificClients;
-		bucketLocation = Collections.synchronizedMap(new HashMap<String,Region>());
+		bucketLocation = Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.HOURS));
 	}
 
 	public Region getRegionForBucket(String bucketName) {
 		Region result = bucketLocation.get(bucketName);
-		// TODO periodically purge cache
 		if (result!=null) return result;
-		AmazonS3 amazonS3 = getDefaultAmazonClient();
+		AmazonS3 amazonS3 = getUSStandardAmazonClient();
 		String location = null;
 		try {
 			location = amazonS3.getBucketLocation(bucketName);
@@ -74,7 +75,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	}
 
 	@Override
-	public AmazonS3 getDefaultAmazonClient() {
+	public AmazonS3 getUSStandardAmazonClient() {
 		return regionSpecificClients.get(Region.US_Standard);
 	}
 
@@ -143,7 +144,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 
 	@Override
 	public Bucket createBucket(String bucketName) throws SdkClientException, AmazonServiceException {
-		return getDefaultAmazonClient().createBucket( bucketName);
+		return getUSStandardAmazonClient().createBucket( bucketName);
 	}
 
 	@Override

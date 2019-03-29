@@ -90,6 +90,6 @@ public interface SynapseS3Client {
 	public void setBucketPolicy(String bucketName, String policyText)
 			throws SdkClientException, AmazonServiceException;
 
-	public AmazonS3 getDefaultAmazonClient();
+	public AmazonS3 getUSStandardAmazonClient();
 
 }

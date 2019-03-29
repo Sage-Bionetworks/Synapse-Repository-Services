@@ -30,14 +30,24 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
  */
 public class AwsClientFactory {
 	
-	// There are (unfortunately) three different classes to handle:
-	// com.amazonaws.regions.Regions, with values like US_EAST_1, US_WEST_1, CA_CENTRAL_1
-	// com.amazonaws.regions.Region, with values like us-east-1, us-west-1, ca-central-1
-	// com.amazonaws.services.s3.model.Region with values like null (for us-east-1), us-west-1, ca-central-1
+	/*
+	 * AmazonS3ClientBuilder takes as a parameter a value from com.amazonaws.regions.Regions, 
+	 * which has String values like US_EAST_1, US_WEST_1, CA_CENTRAL_1.
+	 * 
+	 * AmazonS3.getBucketLocation() returns a String representation of an instance of 
+	 * com.amazonaws.services.s3.model.Region, which has String values like null (for us-east-1), 
+	 * us-west-1, ca-central-1.
+	 * 
+	 * To make things more complicated, there is a utility to map from Regions to Region but it's 
+	 * com.amazonaws.regions.Region, not com.amazonaws.services.s3.model.Region, and it has values 
+	 * like us-east-1, us-west-1, ca-central-1.
+	 * 
+	 * So we have to map in two steps:
+	 */
 	public static Region getS3RegionForAWSRegions(Regions awsRegion) {
 		if (awsRegion==Regions.US_EAST_1) return Region.US_Standard; // string value of Region.US_Standard is null!
 		com.amazonaws.regions.Region regionsRegion = com.amazonaws.regions.Region.getRegion(awsRegion);
-		return Region.fromValue(regionsRegion.getName());
+		return Region.fromValue(regionsRegion.getName()); // this wouldn't work for us-east-1
 	}
 
 	/**
