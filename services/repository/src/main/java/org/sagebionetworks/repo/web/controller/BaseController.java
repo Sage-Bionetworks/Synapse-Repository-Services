@@ -51,9 +51,11 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.util.NestedServletException;
 
 import com.amazonaws.AmazonServiceException;
@@ -109,8 +111,8 @@ import com.amazonaws.AmazonServiceException;
  * 
  * @author deflaux
  */
-
-public abstract class BaseController {
+@ControllerAdvice
+public class BaseController {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseController.class);
@@ -882,5 +884,16 @@ public abstract class BaseController {
 	ErrorResponse handlePasswordChangeRequiredException(PasswordResetViaEmailRequiredException ex,
 														HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED);
+	}
+
+	@ExceptionHandler(NoHandlerFoundException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public @ResponseBody
+	ErrorResponse handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request){
+		return handleException(ex,
+				request,
+				ex.getHttpMethod() + " " + ex.getRequestURL() + " was not found. Please reference API documentation at https://docs.synapse.org/rest/",
+				false,
+				null);
 	}
 }

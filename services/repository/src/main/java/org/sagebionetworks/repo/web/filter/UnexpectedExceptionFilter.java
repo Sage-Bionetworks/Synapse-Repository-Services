@@ -48,20 +48,6 @@ public class UnexpectedExceptionFilter implements Filter {
 			FilterChain chain) throws IOException, ServletException {
 		try {
 			chain.doFilter(request, response);
-		} catch (NoHandlerFoundException e){
-			/* NoHandlerFoundException is thrown when the DispatchServlet (configured with throwExceptionIfNoHandlerFound=True)
-			 * is unable to map a path to a Controller's method. We catch this and return a 404 Not Found error.
-			 */
-			HttpServletResponse httpResponse = (HttpServletResponse) response;
-			httpResponse.setStatus(HttpStatus.SC_NOT_FOUND);
-			ErrorResponse er = new ErrorResponse();
-			er.setReason( e.getHttpMethod() + " " + e.getRequestURL() + " was not found. Please reference API documentation at https://docs.synapse.org/rest/");
-			try {
-				httpResponse.setContentType(MediaType.APPLICATION_JSON_VALUE);
-				httpResponse.getWriter().println(EntityFactory.createJSONStringForEntity(er));
-			} catch (JSONObjectAdapterException e1) {
-				httpResponse.getWriter().println(er.getReason());
-			}
 		} catch (Exception e) {
 			/*
 			 * Exceptions thrown at the controller or lower should already be

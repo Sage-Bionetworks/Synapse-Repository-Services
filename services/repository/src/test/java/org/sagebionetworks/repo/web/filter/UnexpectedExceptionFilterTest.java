@@ -86,17 +86,4 @@ public class UnexpectedExceptionFilterTest {
 		verify(mockResponse).setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
 		verify(mockWriter).println(AuthorizationConstants.REASON_SERVER_ERROR);
 	}
-
-	@Test
-	public void testNoHandlerFoundException() throws IOException, ServletException {
-		NoHandlerFoundException noHandlerFoundException = new NoHandlerFoundException("GET", "/my/path/is/wrong", null);
-		doThrow(noHandlerFoundException).when(mockChain).doFilter(mockRequest, mockResponse);
-
-		// method under test
-		filter.doFilter(mockRequest, mockResponse, mockChain);
-
-		verify(mockResponse).setStatus(HttpStatus.SC_NOT_FOUND);
-		verify(mockResponse).setContentType(MediaType.APPLICATION_JSON_VALUE);
-		verify(mockWriter).println("{\"reason\":\"GET /my/path/is/wrong was not found. Please reference API documentation at https://docs.synapse.org/rest/\"}");
-	}
 }

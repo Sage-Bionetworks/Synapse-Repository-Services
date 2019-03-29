@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Deprecated
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class QueryController extends BaseController {
+public class QueryController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;	

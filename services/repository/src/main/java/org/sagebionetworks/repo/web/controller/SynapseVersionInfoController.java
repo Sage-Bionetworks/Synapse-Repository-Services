@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class SynapseVersionInfoController extends BaseController {
+public class SynapseVersionInfoController {
 	
 	private static class Holder {
 		private static String versionInfo = "";

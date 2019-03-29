@@ -10,9 +10,10 @@ import java.lang.reflect.Modifier;
 import java.sql.BatchUpdateException;
 import java.util.Map;
 import java.util.Set;
-
 import javax.servlet.http.HttpServletRequest;
 
+import com.google.common.collect.Maps;
+import org.junit.Before;
 import org.junit.Test;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
@@ -25,19 +26,24 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import com.google.common.collect.Maps;
-
 /**
  * @author deflaux
  *
  */
 public class BaseControllerTest {
 
+	BaseController controller;
+
+	HttpServletRequest request;
+
+	@Before
+	public void setUp(){
+		controller = new BaseController();
+		request = new MockHttpServletRequest();
+	}
 
 	@Test
 	public void testDeadlockError(){
-		EntityController controller = new EntityController();
-		HttpServletRequest request = new MockHttpServletRequest();
 		ErrorResponse response = controller.handleTransientDataAccessExceptions(new DeadlockLoserDataAccessException("Message",
 				new BatchUpdateException()), request);
 		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
@@ -45,8 +51,6 @@ public class BaseControllerTest {
 	
 	@Test
 	public void testTransientError() {
-		EntityController controller = new EntityController();
-		HttpServletRequest request = new MockHttpServletRequest();
 		ErrorResponse response = controller.handleTransientDataAccessExceptions(new TransientDataAccessException("Message",
 				new BatchUpdateException()) {
 			private static final long serialVersionUID = 1L;

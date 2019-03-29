@@ -148,7 +148,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "File Services", path = "file/v1")
 @Controller
 @RequestMapping(UrlHelpers.FILE_PATH)
-public class UploadController extends BaseController {
+public class UploadController {
 
 	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";
 

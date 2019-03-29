@@ -39,7 +39,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Verification Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class VerificationController extends BaseController {
+public class VerificationController {
 	@Autowired
 	ServiceProvider serviceProvider;
 

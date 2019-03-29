@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Search Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class SearchController extends BaseController {
+public class SearchController {
 	
 	@Autowired
 	ServiceProvider serviceProvider;

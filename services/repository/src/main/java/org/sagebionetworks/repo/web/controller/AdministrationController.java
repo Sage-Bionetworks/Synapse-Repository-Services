@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class AdministrationController extends BaseController {
+public class AdministrationController {
 	
 	@Autowired
 	private ServiceProvider serviceProvider;

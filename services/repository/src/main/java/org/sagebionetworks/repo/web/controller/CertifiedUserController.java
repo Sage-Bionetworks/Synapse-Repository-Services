@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Certified User Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class CertifiedUserController extends BaseController {
+public class CertifiedUserController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
