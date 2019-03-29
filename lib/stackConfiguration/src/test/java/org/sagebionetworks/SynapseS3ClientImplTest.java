@@ -1,6 +1,6 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,6 +37,12 @@ public class SynapseS3ClientImplTest {
 	@Test
 	public void testGetStandardRegionClient() {
 		assertEquals(Region.US_Standard, synapseS3Client.getUSStandardAmazonClient().getRegion());
+	}
+	
+	@Test
+	public void testLookupNonStandardRegion() {
+		System.out.println(synapseS3Client.getRegionForBucket("cf-templates-a60ndmakkdpc-us-west-2"));
+		assertNotNull(synapseS3Client.getS3ClientForBucket("cf-templates-a60ndmakkdpc-us-west-2"));
 	}
 
 }

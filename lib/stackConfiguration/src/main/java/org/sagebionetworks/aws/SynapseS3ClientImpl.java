@@ -51,11 +51,8 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		this.regionSpecificClients=regionSpecificClients;
 		bucketLocation = Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.HOURS));
 	}
-
-	public Region getRegionForBucket(String bucketName) {
-		Region result = bucketLocation.get(bucketName);
-		if (result!=null) return result;
-		AmazonS3 amazonS3 = getUSStandardAmazonClient();
+	
+	public static Region getRegionForBucket(AmazonS3 amazonS3, String bucketName) {
 		String location = null;
 		try {
 			location = amazonS3.getBucketLocation(bucketName);
@@ -63,8 +60,20 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 			throw new IllegalArgumentException("Failed to determine the Amazon region for bucket '"+bucketName+
 					"'. Please ensure that the bucket's policy grants 's3:GetBucketLocation' permission to Synapse.", e);
 		}
-		if (StringUtils.isNullOrEmpty(location)) result = Region.US_Standard;
-		result =  Region.fromValue(location);
+		Region result = null;
+		if (StringUtils.isNullOrEmpty(location)) {
+			result = Region.US_Standard;
+		} else {
+			result =  Region.fromValue(location);	
+		}
+		return result;
+	}
+
+	public Region getRegionForBucket(String bucketName) {
+		Region result = bucketLocation.get(bucketName);
+		if (result!=null) return result;
+		AmazonS3 amazonS3 = getUSStandardAmazonClient();
+		result = getRegionForBucket(amazonS3, bucketName);
 		bucketLocation.put(bucketName, result);
 		return result;
 	}
