@@ -721,7 +721,7 @@
 					See: http://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mappingJSONEntityHttpMessageConverter</artifactId>
+					<artifactId>lifecycle-mapping</artifactId>
 					<version>1.0.0</version>
 					<configuration>
 						<lifecycleMappingMetadata>
