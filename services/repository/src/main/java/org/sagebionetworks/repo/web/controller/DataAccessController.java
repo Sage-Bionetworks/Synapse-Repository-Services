@@ -39,7 +39,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Data Access Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class DataAccessController extends BaseController {
+public class DataAccessController {
 
 	@Autowired
 	ServiceProvider serviceProvider;

@@ -174,7 +174,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class EntityController extends BaseController {
+public class EntityController {
 
 	@Autowired
 	ServiceProvider serviceProvider;

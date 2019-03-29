@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Project Settings Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class ProjectSettingsController extends BaseController {
+public class ProjectSettingsController {
 
 	@Autowired
 	ServiceProvider serviceProvider;

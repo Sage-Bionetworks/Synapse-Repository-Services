@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Recycle Bin Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class TrashController extends BaseController {
+public class TrashController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;

@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 @ControllerInfo(displayName = "Principal Services", path = "repo/v1")
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class PrincipalController extends BaseController {
+public class PrincipalController {
 
 	@Autowired
 	ServiceProvider serviceProvider;

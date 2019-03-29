@@ -8,8 +8,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Iterator;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import org.apache.commons.io.FileUtils;
-import org.codehaus.jackson.JsonParseException;
 import org.junit.Test;
 
 /**

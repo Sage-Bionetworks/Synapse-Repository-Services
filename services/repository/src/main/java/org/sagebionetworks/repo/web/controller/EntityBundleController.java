@@ -63,7 +63,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Entity Bundle Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class EntityBundleController extends BaseController {
+public class EntityBundleController {
 	
 	@Autowired
 	ServiceProvider serviceProvider;

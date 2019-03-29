@@ -10,9 +10,10 @@ import java.lang.reflect.Modifier;
 import java.sql.BatchUpdateException;
 import java.util.Map;
 import java.util.Set;
-
 import javax.servlet.http.HttpServletRequest;
 
+import com.google.common.collect.Maps;
+import org.junit.Before;
 import org.junit.Test;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
@@ -25,40 +26,43 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import com.google.common.collect.Maps;
-
 /**
  * @author deflaux
  *
  */
-public class BaseControllerTest {
+public class BaseControllerExceptionHandlerAdviceTest {
 
+	BaseControllerExceptionHandlerAdvice controller;
+
+	HttpServletRequest request;
+
+	@Before
+	public void setUp(){
+		controller = new BaseControllerExceptionHandlerAdvice();
+		request = new MockHttpServletRequest();
+	}
 
 	@Test
 	public void testDeadlockError(){
-		EntityController controller = new EntityController();
-		HttpServletRequest request = new MockHttpServletRequest();
 		ErrorResponse response = controller.handleTransientDataAccessExceptions(new DeadlockLoserDataAccessException("Message",
 				new BatchUpdateException()), request);
-		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
+		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
 	}
 	
 	@Test
 	public void testTransientError() {
-		EntityController controller = new EntityController();
-		HttpServletRequest request = new MockHttpServletRequest();
 		ErrorResponse response = controller.handleTransientDataAccessExceptions(new TransientDataAccessException("Message",
 				new BatchUpdateException()) {
 			private static final long serialVersionUID = 1L;
 		}, request);
-		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
+		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
 	}
 
 	@Test
 	public void testAllExceptionHandlersTested() throws Exception {
 		// this test makes sure all exception handlers are represented in the exception handler test which lives in the
 		// integration test package
-		Reflections reflections = new Reflections(BaseController.class, new MethodAnnotationsScanner());
+		Reflections reflections = new Reflections(BaseControllerExceptionHandlerAdvice.class, new MethodAnnotationsScanner());
 		Set<Method> handlers = reflections.getMethodsAnnotatedWith(ExceptionHandler.class);
 		Map<String, Integer> exceptions = Maps.newHashMap();
 		for (Method handler : handlers) {
