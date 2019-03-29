@@ -30,15 +30,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  *
  */
-public class BaseControllerTest {
+public class BaseControllerExceptionHandlerAdviceTest {
 
-	BaseController controller;
+	BaseControllerExceptionHandlerAdvice controller;
 
 	HttpServletRequest request;
 
 	@Before
 	public void setUp(){
-		controller = new BaseController();
+		controller = new BaseControllerExceptionHandlerAdvice();
 		request = new MockHttpServletRequest();
 	}
 
@@ -46,7 +46,7 @@ public class BaseControllerTest {
 	public void testDeadlockError(){
 		ErrorResponse response = controller.handleTransientDataAccessExceptions(new DeadlockLoserDataAccessException("Message",
 				new BatchUpdateException()), request);
-		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
+		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
 	}
 	
 	@Test
@@ -55,14 +55,14 @@ public class BaseControllerTest {
 				new BatchUpdateException()) {
 			private static final long serialVersionUID = 1L;
 		}, request);
-		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
+		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
 	}
 
 	@Test
 	public void testAllExceptionHandlersTested() throws Exception {
 		// this test makes sure all exception handlers are represented in the exception handler test which lives in the
 		// integration test package
-		Reflections reflections = new Reflections(BaseController.class, new MethodAnnotationsScanner());
+		Reflections reflections = new Reflections(BaseControllerExceptionHandlerAdvice.class, new MethodAnnotationsScanner());
 		Set<Method> handlers = reflections.getMethodsAnnotatedWith(ExceptionHandler.class);
 		Map<String, Integer> exceptions = Maps.newHashMap();
 		for (Method handler : handlers) {

@@ -112,10 +112,10 @@ import com.amazonaws.AmazonServiceException;
  * @author deflaux
  */
 @ControllerAdvice
-public class BaseController {
+public class BaseControllerExceptionHandlerAdvice {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
-	private static Logger log = LogManager.getLogger(BaseController.class);
+	private static Logger log = LogManager.getLogger(BaseControllerExceptionHandlerAdvice.class);
 	
 	/**
 	 * When a TableUnavilableException occurs we need to communicate the table status to the caller with a 202 ACCEPTED,
