@@ -13,6 +13,7 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 
 import org.junit.Before;
@@ -100,7 +101,6 @@ public class CloudSearchDomainClientAdapterTest {
 	@Test
 	public void testHandleCloudSearchExceptionsErrorCode5xx() throws Exception {
 		when(mockedSearchException.getStatusCode()).thenReturn(504);
-		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
 
 		//method under test
 		RuntimeException resultException = cloudSearchDomainClientAdapter.handleCloudSearchExceptions(mockedSearchException);
@@ -177,7 +177,7 @@ public class CloudSearchDomainClientAdapterTest {
 		doThrow(IOException.class).when(mockInputStream).close();
 
 		//method under test
-		cloudSearchDomainClientAdapter.sendDocuments(Iterators.emptyIterator());
+		cloudSearchDomainClientAdapter.sendDocuments(Collections.emptyIterator());
 	}
 
 }
