@@ -337,25 +337,6 @@ public class FileHandleManagerImplAutowireTest {
 
 		s3Client.createBucket(externalS3LocationSetting.getBucket());
 
-		externalS3LocationSetting.setEndpointUrl("https://someurl");
-		try {
-			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
-			fail();
-		} catch (NotImplementedException e) {
-		}
-
-		// null, empty or us-east-1 should all not give NotImplementedException
-		for (String host : new String[] { null, "", "https://" + Constants.S3_HOSTNAME }) {
-			externalS3LocationSetting.setEndpointUrl(host);
-
-			try {
-				projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
-				fail();
-			} catch (IllegalArgumentException e) {
-				assertTrue(e.getMessage().indexOf("Did not find S3 object") != -1);
-			}
-		}
-
 		String nothing = "";
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(nothing.length());
