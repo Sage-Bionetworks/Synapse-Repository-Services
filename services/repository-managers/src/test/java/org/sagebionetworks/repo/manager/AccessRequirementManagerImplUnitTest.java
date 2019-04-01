@@ -28,10 +28,13 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -74,6 +77,7 @@ import com.atlassian.jira.rest.client.api.domain.IssueType;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AccessRequirementManagerImplUnitTest {
 
 	@Mock
@@ -91,41 +95,34 @@ public class AccessRequirementManagerImplUnitTest {
 	private EntityHeader mockEntityHeader;
 	@Mock
 	private AuthorizationManager authorizationManager;
+
+	@InjectMocks
 	private AccessRequirementManagerImpl arm;
 	private UserInfo userInfo;
 	@Mock
 	private NotificationEmailDAO notificationEmailDao;
+	@Mock
+	Project mockProject;
 
 	
 	@Before
 	public void setUp() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		arm = new AccessRequirementManagerImpl();
-		ReflectionTestUtils.setField(arm, "accessRequirementDAO", accessRequirementDAO);
-		ReflectionTestUtils.setField(arm, "accessApprovalDAO", accessApprovalDAO);
-		ReflectionTestUtils.setField(arm, "nodeDao", nodeDao);
-		ReflectionTestUtils.setField(arm, "notificationEmailDao", notificationEmailDao);
-		ReflectionTestUtils.setField(arm, "authorizationManager", authorizationManager);
-		ReflectionTestUtils.setField(arm, "jiraClient", jiraClient);
-
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.com");
 		when(notificationEmailDao.getNotificationEmailForPrincipal(anyLong())).thenReturn(alias.getAlias());
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
-		Project sgProject;
-		sgProject = Mockito.mock(Project.class);
 		Iterable<IssueType> issueTypes = Arrays.asList(new IssueType[]{
 				new IssueType(null, 1L, "Flag", false, null, null),
 				new IssueType(null, 2L, "Access Restriction", false, null, null) 
 		});
-		when(sgProject.getIssueTypes()).thenReturn(new OptionalIterable<IssueType>(issueTypes));
+		when(mockProject.getIssueTypes()).thenReturn(new OptionalIterable<IssueType>(issueTypes));
 		Iterable<Field> fields = Arrays.asList(new Field[]{
 				new Field("101", "Synapse Principal ID", null, false, false, false, null),
 				new Field("102", "Synapse User Display Name", null, false, false, false, null),
 				new Field("103", "Synapse Data Object", null, false, false, false, null)
 		});
 		when(jiraClient.getFields()).thenReturn(fields);
-		when(jiraClient.getProject(anyString())).thenReturn(sgProject);
+		when(jiraClient.getProject(anyString())).thenReturn(mockProject);
 		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
 		
 		// by default the user is authorized to create, edit.  individual tests may override these settings
@@ -209,7 +206,6 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementWithoutREADPermission() throws Exception {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
@@ -238,7 +234,6 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
-		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.createAccessRequirement(userInfo, ar);
 	}
 	

@@ -944,7 +944,7 @@
 		<log4j.version>2.6.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
 		<org.json.version>20090211</org.json.version>
-		<jira.client.version>2.0.0-m19</jira.client.version>
+		<jira.client.version>5.1.2-2bd0a62e</jira.client.version>
 		<junit.jupiter.version>5.4.1</junit.jupiter.version>
 		<junit.vintage.version>5.4.1</junit.vintage.version>
 		<junit.platform.version>1.4.1</junit.platform.version>
