@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.anyObject;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;

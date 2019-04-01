@@ -8,7 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.velocity.context.Context;
 import org.sagebionetworks.javadoc.velocity.ClassContext;
 import org.sagebionetworks.javadoc.velocity.ClassContextGenerator;
@@ -86,7 +86,7 @@ public class CSVExampleContextGenerator implements ClassContextGenerator {
 						"Expected 3 columns in the CSV but found: "
 								+ row.length);
 			}
-			String categoryName = StringEscapeUtils.escapeHtml(row[0].trim());
+			String categoryName = StringEscapeUtils.escapeHtml4(row[0].trim());
 			Category category = map.get(categoryName);
 			if (category == null) {
 				category = new Category(categoryName);
@@ -94,8 +94,8 @@ public class CSVExampleContextGenerator implements ClassContextGenerator {
 				map.put(categoryName, category);
 				categories.add(category);
 			}
-			String description = StringEscapeUtils.escapeHtml(row[1]);
-			String value = StringEscapeUtils.escapeHtml(row[2]);
+			String description = StringEscapeUtils.escapeHtml4(row[1]);
+			String value = StringEscapeUtils.escapeHtml4(row[2]);
 			Example example = new Example(description, value);
 			category.add(example);
 		}

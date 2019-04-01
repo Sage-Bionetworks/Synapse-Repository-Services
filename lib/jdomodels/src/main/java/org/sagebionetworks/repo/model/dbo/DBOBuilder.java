@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.base.Function;

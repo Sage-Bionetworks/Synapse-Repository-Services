@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;

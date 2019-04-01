@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.password;
 
 import static org.junit.Assert.fail;
 
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

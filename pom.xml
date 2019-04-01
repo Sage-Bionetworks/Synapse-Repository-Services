@@ -332,31 +332,37 @@
 			<dependency>
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>
-				<version>1.3.2</version>
+				<version>2.6</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-cli</groupId>
 				<artifactId>commons-cli</artifactId>
-				<version>1.1</version>
+				<version>1.4</version>
 			</dependency>
 
 			<dependency>
-				<groupId>commons-lang</groupId>
-				<artifactId>commons-lang</artifactId>
-				<version>2.3</version>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-lang3</artifactId>
+				<version>3.8.1</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-text</artifactId>
+				<version>1.6</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-codec</groupId>
 				<artifactId>commons-codec</artifactId>
-				<version>1.9</version>
+				<version>1.12</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-validator</groupId>
 				<artifactId>commons-validator</artifactId>
-				<version>1.4.0</version>
+				<version>1.6</version>
 			</dependency>
 
 			<dependency>
@@ -386,7 +392,7 @@
 			<dependency>
 				<groupId>commons-net</groupId>
 				<artifactId>commons-net</artifactId>
-				<version>3.0.1</version>
+				<version>3.6</version>
 			</dependency>
 			<dependency>
 				<!-- jsoup HTML parser library @ http://jsoup.org/ -->
@@ -709,7 +715,7 @@
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-dbcp2</artifactId>
-				<version>2.5.0</version>
+				<version>2.6.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -914,7 +920,7 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.5.1</gwtVersion>
-		<guavaVersion>17.0</guavaVersion> <!-- TODO: UPDATE -->
+		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
 		<org.springframework.version>5.1.5.RELEASE
 		</org.springframework.version>
@@ -931,7 +937,7 @@
 		<schema-to-pojo.version>0.3.21</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.421</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.2
+		<org.apache.httpcomponents.version>4.5.7
 		</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
