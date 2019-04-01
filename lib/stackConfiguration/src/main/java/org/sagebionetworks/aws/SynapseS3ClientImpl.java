@@ -57,8 +57,14 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		try {
 			location = amazonS3.getBucketLocation(bucketName);
 		}  catch (com.amazonaws.services.s3.model.AmazonS3Exception e) {
+			// try *listing* the bucket.  If that's possible we must be in the same region as 'amazonS3'
+			try {
+				amazonS3.listObjects(bucketName);
+				return amazonS3.getRegion();
+			} catch (com.amazonaws.services.s3.model.AmazonS3Exception e2) {
 			throw new IllegalArgumentException("Failed to determine the Amazon region for bucket '"+bucketName+
-					"'. Please ensure that the bucket's policy grants 's3:GetBucketLocation' permission to Synapse.", e);
+					"'. Please ensure that the bucket's policy grants 's3:GetBucketLocation' permission to Synapse.", e2);
+			}
 		}
 		Region result = null;
 		if (StringUtils.isNullOrEmpty(location)) {
