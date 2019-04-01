@@ -101,7 +101,6 @@ public class ProjectSettingsImplAutowiredTest {
 
 		externalS3LocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3LocationSetting.setUploadType(UploadType.S3);
-		externalS3LocationSetting.setEndpointUrl("");
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey("key" + UUID.randomUUID());
 

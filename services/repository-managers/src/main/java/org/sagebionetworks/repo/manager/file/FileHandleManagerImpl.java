@@ -768,7 +768,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ExternalS3UploadDestination externalS3UploadDestination = new ExternalS3UploadDestination();
 			externalS3UploadDestination.setBucket(externalS3StorageLocationSetting.getBucket());
 			externalS3UploadDestination.setBaseKey(externalS3StorageLocationSetting.getBaseKey());
-			externalS3UploadDestination.setEndpointUrl(externalS3StorageLocationSetting.getEndpointUrl());
 			uploadDestination = externalS3UploadDestination;
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			String filename = UUID.randomUUID().toString();
