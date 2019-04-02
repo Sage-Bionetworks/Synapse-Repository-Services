@@ -711,6 +711,14 @@
 				<artifactId>jira-rest-java-client-core</artifactId>
 				<version>${jira.client.version}</version>
 			</dependency>
+
+			<!-- Dependency needed by jira-rest-java-client-core but it's not automatically included for some reason? -->
+			<dependency>
+				<groupId>io.atlassian.fugue</groupId>
+				<artifactId>fugue</artifactId>
+				<version>4.7.2</version>
+				<scope>provided</scope>
+			</dependency>
 			<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
 			<dependency>
 				<groupId>org.apache.commons</groupId>

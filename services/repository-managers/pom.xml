@@ -194,6 +194,12 @@
 			<artifactId>jira-rest-java-client-core</artifactId>
 		</dependency>
 
+		<!-- Dependency needed by jira-rest-java-client-core but it's not automatically included for some reason? -->
+		<dependency>
+			<groupId>io.atlassian.fugue</groupId>
+			<artifactId>fugue</artifactId>
+		</dependency>
+
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
