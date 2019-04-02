@@ -27,12 +27,12 @@ public class SynapseS3ClientImplTest {
 
 	@Test
 	public void testGetRegionForBucket() {
-		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucket(S3_BUCKET_NAME));
+		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucketOrAssumeUSStandard(S3_BUCKET_NAME));
 	}
 
 	@Test
 	public void testGetS3ClientForBucket() {
-		assertEquals(Region.US_Standard, synapseS3Client.getS3ClientForBucket(S3_BUCKET_NAME).getRegion());
+		assertEquals(Region.US_Standard, synapseS3Client.getS3ClientForBucketOrAssumeUSStandard(S3_BUCKET_NAME).getRegion());
 	}
 	
 	@Test
@@ -42,8 +42,8 @@ public class SynapseS3ClientImplTest {
 	
 	@Test
 	public void testLookupNonStandardRegion() {
-		System.out.println(synapseS3Client.getRegionForBucket("cf-templates-a60ndmakkdpc-us-west-2"));
-		assertNotNull(synapseS3Client.getS3ClientForBucket("cf-templates-a60ndmakkdpc-us-west-2"));
+		System.out.println(synapseS3Client.getRegionForBucketOrAssumeUSStandard("cf-templates-a60ndmakkdpc-us-west-2"));
+		assertNotNull(synapseS3Client.getS3ClientForBucketOrAssumeUSStandard("cf-templates-a60ndmakkdpc-us-west-2"));
 	}
 
 }
