@@ -36,7 +36,7 @@ import com.amazonaws.util.StringUtils;
 
 /*
  * 
- * This is a proxy for AmazonS3 (the S3 Client), exposing just the methods used by Synapse
+ * This is a facade for AmazonS3 (Amazon's S3 Client), exposing just the methods used by Synapse
  * and, in each method, doing the job of figuring out which region the given bucket is in, 
  * so that the S3 Client for that region is used.
  * 
@@ -70,6 +70,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	}
 
 	public Region getRegionForBucketOrAssumeUSStandard(String bucketName) {
+		if (StringUtils.isNullOrEmpty(bucketName)) throw new IllegalArgumentException("bucketName is required.");
 		Region result = bucketLocation.get(bucketName);
 		if (result!=null) return result;
 		try {
@@ -117,7 +118,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	@Override
 	public PutObjectResult putObject(String bucketName, String key, InputStream input, ObjectMetadata metadata)
 			throws SdkClientException, AmazonServiceException {
-		return getS3ClientForBucketOrAssumeUSStandard(bucketName).putObject( bucketName,  key,  input,  metadata);
+		return getS3ClientForBucketOrAssumeUSStandard(bucketName).putObject(bucketName,  key,  input,  metadata);
 	}
 
 	@Override
@@ -139,7 +140,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 
 	@Override
 	public S3Object getObject(GetObjectRequest getObjectRequest) throws SdkClientException, AmazonServiceException {
-		return getS3ClientForBucketOrAssumeUSStandard(getObjectRequest.getBucketName()).getObject( getObjectRequest);
+		return getS3ClientForBucketOrAssumeUSStandard(getObjectRequest.getBucketName()).getObject(getObjectRequest);
 	}
 
 	@Override
@@ -162,7 +163,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 
 	@Override
 	public Bucket createBucket(String bucketName) throws SdkClientException, AmazonServiceException {
-		return getUSStandardAmazonClient().createBucket( bucketName);
+		return getUSStandardAmazonClient().createBucket(bucketName);
 	}
 
 	@Override
@@ -186,30 +187,30 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	@Override
 	public InitiateMultipartUploadResult initiateMultipartUpload(InitiateMultipartUploadRequest request)
 			throws SdkClientException, AmazonServiceException {
-		return getS3ClientForBucketOrAssumeUSStandard(request.getBucketName()).initiateMultipartUpload( request);
+		return getS3ClientForBucketOrAssumeUSStandard(request.getBucketName()).initiateMultipartUpload(request);
 	}
 
 	@Override
 	public CopyPartResult copyPart(CopyPartRequest copyPartRequest) throws SdkClientException, AmazonServiceException {
-		return getS3ClientForBucketOrAssumeUSStandard(copyPartRequest.getDestinationBucketName()).copyPart( copyPartRequest);
+		return getS3ClientForBucketOrAssumeUSStandard(copyPartRequest.getDestinationBucketName()).copyPart(copyPartRequest);
 	}
 
 	@Override
 	public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request)
 			throws SdkClientException, AmazonServiceException {
-		return getS3ClientForBucketOrAssumeUSStandard(request.getBucketName()).completeMultipartUpload( request);
+		return getS3ClientForBucketOrAssumeUSStandard(request.getBucketName()).completeMultipartUpload(request);
 	}
 
 	@Override
 	public void setBucketWebsiteConfiguration(String bucketName, BucketWebsiteConfiguration configuration)
 			throws SdkClientException, AmazonServiceException {
-		getS3ClientForBucketOrAssumeUSStandard(bucketName).setBucketWebsiteConfiguration( bucketName,  configuration);
+		getS3ClientForBucketOrAssumeUSStandard(bucketName).setBucketWebsiteConfiguration(bucketName,  configuration);
 	}
 
 	@Override
 	public void setBucketPolicy(String bucketName, String policyText)
 			throws SdkClientException, AmazonServiceException {
-		getS3ClientForBucketOrAssumeUSStandard(bucketName).setBucketPolicy( bucketName,  policyText);
+		getS3ClientForBucketOrAssumeUSStandard(bucketName).setBucketPolicy(bucketName,  policyText);
 	}
 
 	@Override

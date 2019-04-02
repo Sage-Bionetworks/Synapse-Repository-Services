@@ -30,7 +30,7 @@ import com.amazonaws.services.s3.model.S3Object;
 
 /*
  * 
- * This is a proxy for AmazonS3 (the S3 Client), exposing just the methods used by Synapse
+ * This is a facade for AmazonS3 (Amazon's S3 Client), exposing just the methods used by Synapse
  * and, in each method, doing the job of figuring out which region the given bucket is in, 
  * so that the S3 Client for that region is used.
  * 
