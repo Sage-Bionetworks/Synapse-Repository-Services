@@ -6,6 +6,10 @@
 		}
 	],
 	"properties": {
+		"endpointUrl": {
+			"type": "string",
+			"description": "the optional s3 endpoint URL for uploading to (default: https://s3.amazonaws.com)"
+		},
 		"bucket": {
 			"type": "string",
 			"description": "the bucket to use"
