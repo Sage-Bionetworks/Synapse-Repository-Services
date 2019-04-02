@@ -28,11 +28,12 @@ public class SynapseS3ClientImplUnitTest {
 	
 	private SynapseS3ClientImpl client;
 	
+	// name and region for the US Standard client
 	private static final String BUCKET_NAME = "bucket-name";
 	private static final Region BUCKET_REGION_US_STANDARD = Region.US_Standard;
 	
+	// region for a non-US-Standard client
 	private static final Region BUCKET_REGION = Region.US_West;
-	private static final String BUCKET_REGION_ID = BUCKET_REGION.getFirstRegionId();
 	
 	private static final String OBJECT_KEY = "s3-object-key";
 
@@ -43,7 +44,7 @@ public class SynapseS3ClientImplUnitTest {
 		regionSpecificClients.put(BUCKET_REGION, mockAmazonClient);
 		client = new SynapseS3ClientImpl(regionSpecificClients);
 		
-		when(mockAmazonUSStandardClient.getBucketLocation(BUCKET_NAME)).thenReturn(BUCKET_REGION_ID);
+		when(mockAmazonUSStandardClient.getBucketLocation(BUCKET_NAME)).thenReturn(BUCKET_REGION.getFirstRegionId());
 	}
 	
 	@Test

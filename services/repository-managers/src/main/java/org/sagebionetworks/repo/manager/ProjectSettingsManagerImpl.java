@@ -308,7 +308,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 	
 	private void validateBucketAccess(ExternalS3StorageLocationSetting externalS3StorageLocationSetting) {
-		SynapseS3ClientImpl.getRegionForBucket(s3client.getUSStandardAmazonClient(), externalS3StorageLocationSetting.getBucket());
+		s3client.getRegionForBucket(externalS3StorageLocationSetting.getBucket());
 	}
 
 	private void validateOwnership(ExternalS3StorageLocationSetting externalS3StorageLocationSetting, UserProfile userProfile)

@@ -52,10 +52,10 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		bucketLocation = Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.HOURS));
 	}
 	
-	public static Region getRegionForBucket(AmazonS3 amazonS3, String bucketName) {
+	public Region getRegionForBucket(String bucketName) {
 		String location = null;
 		try {
-			location = amazonS3.getBucketLocation(bucketName);
+			location = getUSStandardAmazonClient().getBucketLocation(bucketName);
 		}  catch (com.amazonaws.services.s3.model.AmazonS3Exception e) {
 			throw new CannotDetermineBucketLocationException("Failed to determine the Amazon region for bucket '"+bucketName+
 					"'. Please ensure that the bucket's policy grants 's3:GetBucketLocation' permission to Synapse.", e);
@@ -72,9 +72,8 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	public Region getRegionForBucketOrAssumeUSStandard(String bucketName) {
 		Region result = bucketLocation.get(bucketName);
 		if (result!=null) return result;
-		AmazonS3 amazonS3 = getUSStandardAmazonClient();
 		try {
-			result = getRegionForBucket(amazonS3, bucketName);
+			result = getRegionForBucket(bucketName);
 		} catch(CannotDetermineBucketLocationException e) {
 			// The downside of doing this is that if we assume the wrong region then we
 			// may generate invalid presigned URLs.

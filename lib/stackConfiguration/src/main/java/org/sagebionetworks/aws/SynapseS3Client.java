@@ -25,6 +25,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
 
 /*
@@ -90,6 +91,18 @@ public interface SynapseS3Client {
 	public void setBucketPolicy(String bucketName, String policyText)
 			throws SdkClientException, AmazonServiceException;
 
+	/*
+	 * Return the Amazon S3 client for the US Standard Region
+	 */
 	public AmazonS3 getUSStandardAmazonClient();
+	
+	/**
+	 * Find the Region for the given bucket.  
+	 * 
+	 * @param bucketName
+	 * @return the Region for the bucket having the given name
+	 * @throws CannotDetermineBucketLocationException if the bucket doesn't grant 's3:GetBucketLocation' permission
+	 */
+	public Region getRegionForBucket(String bucketName) throws CannotDetermineBucketLocationException;
 
 }
