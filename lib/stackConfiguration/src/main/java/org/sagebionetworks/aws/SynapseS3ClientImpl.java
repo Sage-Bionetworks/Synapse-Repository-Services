@@ -12,6 +12,7 @@ import org.apache.commons.collections4.map.PassiveExpiringMap;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
@@ -56,7 +57,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		String location = null;
 		try {
 			location = getUSStandardAmazonClient().getBucketLocation(bucketName);
-		}  catch (com.amazonaws.services.s3.model.AmazonS3Exception e) {
+		}  catch (AmazonS3Exception e) {
 			throw new CannotDetermineBucketLocationException("Failed to determine the Amazon region for bucket '"+bucketName+
 					"'. Please ensure that the bucket's policy grants 's3:GetBucketLocation' permission to Synapse.", e);
 		}

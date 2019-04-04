@@ -15,7 +15,6 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
@@ -72,8 +71,6 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private S3FileHandle handleOne;
 	private PreviewFileHandle handleTwo;
 	
-	private static final String BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
-
 	@Before
 	public void before() throws Exception{
 		// get user IDs
@@ -85,7 +82,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminUserIdString);
 		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName(BUCKET_NAME);
+		handleOne.setBucketName("bucket");
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
@@ -95,7 +92,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo = new PreviewFileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
 		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName(BUCKET_NAME);
+		handleTwo.setBucketName("bucket");
 		handleTwo.setKey("previewFileKey");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("bar.txt");

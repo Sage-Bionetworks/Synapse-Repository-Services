@@ -13,7 +13,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.aws.SynapseS3ClientImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -38,6 +37,7 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -193,8 +193,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			validateOwnership(externalS3StorageLocationSetting, userProfile);
 			validateBucketAccess(externalS3StorageLocationSetting);
+			validateOwnership(externalS3StorageLocationSetting, userProfile);
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");

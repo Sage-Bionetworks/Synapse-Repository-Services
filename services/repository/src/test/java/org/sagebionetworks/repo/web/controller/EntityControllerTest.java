@@ -19,7 +19,6 @@ import javax.servlet.ServletException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -71,8 +70,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	private Long adminUserId;
 	private String adminUserIdString;
 	
-	private static final String BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
-
 	@Before
 	public void setUp() throws Exception {
 		assertNotNull(fileHandleDao);
@@ -87,7 +84,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminUserIdString);
 		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName(BUCKET_NAME);
+		handleOne.setBucketName("bucket");
 		handleOne.setKey("EntityControllerTest.mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
@@ -98,7 +95,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewOne = new PreviewFileHandle();
 		previewOne.setCreatedBy(adminUserIdString);
 		previewOne.setCreatedOn(new Date());
-		previewOne.setBucketName(BUCKET_NAME);
+		previewOne.setBucketName("bucket");
 		previewOne.setKey("EntityControllerTest.previewFileKey");
 		previewOne.setEtag("etag");
 		previewOne.setFileName("bar.txt");
@@ -109,7 +106,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo = new S3FileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
 		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName(BUCKET_NAME);
+		handleTwo.setBucketName("bucket");
 		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("foo2.bar");
@@ -119,7 +116,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewTwo = new PreviewFileHandle();
 		previewTwo.setCreatedBy(adminUserIdString);
 		previewTwo.setCreatedOn(new Date());
-		previewTwo.setBucketName(BUCKET_NAME);
+		previewTwo.setBucketName("bucket");
 		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
 		previewTwo.setEtag("etag");
 		previewTwo.setFileName("bar2.txt");
