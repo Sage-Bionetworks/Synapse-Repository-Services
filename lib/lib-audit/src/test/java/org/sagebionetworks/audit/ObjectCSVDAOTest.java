@@ -15,10 +15,10 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.audit.dao.ObjectCSVDAO;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.csv.utils.ExampleObject;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 public class ObjectCSVDAOTest {
 
-	private AmazonS3 mockS3Client;
+	private SynapseS3Client mockS3Client;
 	private int stackInstanceNumber;
 	private String bucketName;
 	private Class<ExampleObject> objectClass;
@@ -35,7 +35,7 @@ public class ObjectCSVDAOTest {
 
 	@Before
 	public void setUp() {
-		mockS3Client = Mockito.mock(AmazonS3.class);
+		mockS3Client = Mockito.mock(SynapseS3Client.class);
 		stackInstanceNumber = 1;
 		bucketName = "object.csv.dao.test";
 		objectClass = ExampleObject.class;

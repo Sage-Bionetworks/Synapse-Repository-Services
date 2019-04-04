@@ -31,6 +31,7 @@ import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -106,7 +107,6 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -159,7 +159,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	AuthorizationManager authorizationManager;
 
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 
 	@Autowired
 	UploadDaemonStatusDao uploadDaemonStatusDao;
@@ -768,7 +768,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ExternalS3UploadDestination externalS3UploadDestination = new ExternalS3UploadDestination();
 			externalS3UploadDestination.setBucket(externalS3StorageLocationSetting.getBucket());
 			externalS3UploadDestination.setBaseKey(externalS3StorageLocationSetting.getBaseKey());
-			externalS3UploadDestination.setEndpointUrl(externalS3StorageLocationSetting.getEndpointUrl());
 			uploadDestination = externalS3UploadDestination;
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			String filename = UUID.randomUUID().toString();

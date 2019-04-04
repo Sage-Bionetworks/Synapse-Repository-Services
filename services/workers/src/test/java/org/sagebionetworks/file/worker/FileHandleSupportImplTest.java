@@ -18,6 +18,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -25,13 +26,12 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
 public class FileHandleSupportImplTest {
 	
 	FileHandleDao mockFileHandleDao;
-	AmazonS3 mockS3client;
+	SynapseS3Client mockS3client;
 	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
 	FileHandleManager mockFileHandleManager;
 	
@@ -41,7 +41,7 @@ public class FileHandleSupportImplTest {
 	@Before
 	public void before(){
 		mockFileHandleDao = Mockito.mock(FileHandleDao.class);
-		mockS3client = Mockito.mock(AmazonS3.class);
+		mockS3client = Mockito.mock(SynapseS3Client.class);
 		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
 		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
 		
