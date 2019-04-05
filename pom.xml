@@ -577,7 +577,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>common-utilities</artifactId>
-				<version>1.0.9</version>
+				<version>1.0.10</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -587,7 +587,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.1.0</version>
+				<version>1.1.1</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
