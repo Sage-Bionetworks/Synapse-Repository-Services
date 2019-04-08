@@ -1205,7 +1205,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public <T extends AccessRequirement> T updateAccessRequirement(T ar)
 			throws SynapseException {
 		ValidateArgument.required(ar, "AccessRequirement");
-		String url = createEntityUri(ACCESS_REQUIREMENT + "/", ar.getId().toString());
+		String url = createEntityUri(ACCESS_REQUIREMENT, ar.getId().toString());
 		return (T) putJSONEntity(getRepoEndpoint(), url, ar, ar.getClass());
 	}
 
