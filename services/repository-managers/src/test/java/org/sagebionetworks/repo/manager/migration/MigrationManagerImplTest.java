@@ -35,6 +35,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -64,7 +65,6 @@ import org.sagebionetworks.util.FileProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -84,7 +84,7 @@ public class MigrationManagerImplTest {
 	@Mock
 	BackupFileStream mockBackupFileStream;
 	@Mock
-	AmazonS3 mockS3Client;
+	SynapseS3Client mockS3Client;
 	@Mock
 	FileProvider mockFileProvider;
 	@Mock

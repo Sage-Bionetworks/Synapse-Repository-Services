@@ -8,13 +8,13 @@ import java.util.Base64;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.SynapseS3Client;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
-import com.amazonaws.services.s3.AmazonS3;
 import com.google.inject.Inject;
 
 public class ConfigurationPropertiesImpl implements ConfigurationProperties {
@@ -38,7 +38,7 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 
 	private AWSKMS awsKeyManagerClient;
 	
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 	
 	private PropertyProvider propertyProvider;
 
@@ -48,7 +48,7 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	 * @param propertyProvider
 	 */
 	@Inject
-	public ConfigurationPropertiesImpl(AWSKMS awsKeyManagerClient, AmazonS3 s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
+	public ConfigurationPropertiesImpl(AWSKMS awsKeyManagerClient, SynapseS3Client s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
 		this.log = logProvider.getLogger(ConfigurationPropertiesImpl.class.getName());
 		this.awsKeyManagerClient = awsKeyManagerClient;
 		this.s3Client = s3Client;

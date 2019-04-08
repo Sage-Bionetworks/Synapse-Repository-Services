@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -47,7 +48,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	FileHandleDao fileMetadataDao;
 	
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	
 	@Autowired
 	TempFileProvider tempFileProvider;
@@ -81,7 +82,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param maxPreviewMemory
 	 */
 	public PreviewManagerImpl(FileHandleDao fileMetadataDao,
-			AmazonS3 s3Client, TempFileProvider tempFileProvider,
+			SynapseS3Client s3Client, TempFileProvider tempFileProvider,
 			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;

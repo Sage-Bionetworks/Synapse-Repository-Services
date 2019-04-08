@@ -14,12 +14,12 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.csv.utils.ObjectCSVReader;
 import org.sagebionetworks.csv.utils.ObjectCSVWriter;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -33,14 +33,14 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 public class ObjectCSVDAO<T> {
 	private static final int S3_BATCH_OPERATION_LIMIT = 1000;
 
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 	private int stackInstanceNumber;
 	private String bucketName;
 	private Class<T> objectClass;
 	private String[] headers;
 	String stackInstancePrefixString;
 
-	public ObjectCSVDAO(AmazonS3 s3Client, int stackInstanceNumber, 
+	public ObjectCSVDAO(SynapseS3Client s3Client, int stackInstanceNumber, 
 			String bucketName, Class<T> objectClass, String[] headers) {
 		this.s3Client = s3Client;
 		this.stackInstanceNumber = stackInstanceNumber;

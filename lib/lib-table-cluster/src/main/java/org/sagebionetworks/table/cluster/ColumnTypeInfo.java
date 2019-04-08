@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
@@ -42,11 +42,16 @@ public enum ColumnTypeInfo {
 		this.parser = parser;
 	}
 	
+
 	/**
 	 * Get the SQL to define a column of this type in MySQL.
+	 * @param inputSize
+	 * @param defaultValue
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 * @return
 	 */
-	public String toSql(Long inputSize, String defaultValue){
+	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes){
 		StringBuilder builder = new StringBuilder();
 		builder.append(mySqlType.name());
 		Long size = maxSize;
@@ -64,7 +69,12 @@ public enum ColumnTypeInfo {
 		}
 		if(isStringType()){
 			builder.append(" ");
-			builder.append(CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI);
+			if(useDepricatedUtf8ThreeBytes) {
+				// This is a special case to support old large tables with UTF-8 3 bytes.
+				builder.append(DEPREICATED_THREE_BYTE_UTF8);
+			}else {
+				builder.append(CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI);
+			}
 		}
 		// default
 		builder.append(" ");

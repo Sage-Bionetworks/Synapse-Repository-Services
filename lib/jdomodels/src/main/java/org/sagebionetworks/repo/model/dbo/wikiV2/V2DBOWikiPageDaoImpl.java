@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -74,7 +75,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 
 /**
@@ -104,7 +104,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private NamedParameterJdbcTemplate namedTemplate;
 	
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;	

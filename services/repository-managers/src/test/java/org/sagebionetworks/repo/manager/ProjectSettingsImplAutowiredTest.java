@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -32,7 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
@@ -60,7 +60,7 @@ public class ProjectSettingsImplAutowiredTest {
 	private UserProfileManager userProfileManager;
 
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	private ExternalStorageLocationSetting externalLocationSetting;
 
@@ -101,7 +101,6 @@ public class ProjectSettingsImplAutowiredTest {
 
 		externalS3LocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3LocationSetting.setUploadType(UploadType.S3);
-		externalS3LocationSetting.setEndpointUrl("");
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey("key" + UUID.randomUUID());
 

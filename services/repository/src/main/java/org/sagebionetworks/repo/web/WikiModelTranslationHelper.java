@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -31,7 +32,6 @@ import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
@@ -47,7 +47,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 	@Autowired
 	FileHandleDao fileMetadataDao;	
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	@Autowired
 	TempFileProvider tempFileProvider;
 	@Autowired
@@ -58,7 +58,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 	public WikiModelTranslationHelper() {}
 	
 	public WikiModelTranslationHelper(FileHandleManager fileHandleManager, FileHandleDao fileMetadataDao,
-			AmazonS3 s3Client, TempFileProvider tempFileProvider) {
+			SynapseS3Client s3Client, TempFileProvider tempFileProvider) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;
 		this.fileHandleManager = fileHandleManager;

@@ -9,10 +9,10 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -47,8 +48,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -77,7 +76,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	private NodeManager nodeManager;
 
 	@Autowired
-	private AmazonS3 s3client;
+	private SynapseS3Client s3client;
 
 	@Autowired
 	private UserProfileManager userProfileManager;
@@ -194,10 +193,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getEndpointUrl())
-					&& !externalS3StorageLocationSetting.getEndpointUrl().equals("https://" + Constants.S3_HOSTNAME)) {
-				throw new NotImplementedException("Synapse does not yet support external S3 buckets in non-us-east-1 locations");
-			}
+			validateBucketAccess(externalS3StorageLocationSetting);
 			validateOwnership(externalS3StorageLocationSetting, userProfile);
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
@@ -309,6 +305,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				ValidateArgument.failRequirement("uploadId " + uploadId + " is not a valid upload destination location");
 			}
 		}
+	}
+	
+	private void validateBucketAccess(ExternalS3StorageLocationSetting externalS3StorageLocationSetting) {
+		s3client.getRegionForBucket(externalS3StorageLocationSetting.getBucket());
 	}
 
 	private void validateOwnership(ExternalS3StorageLocationSetting externalS3StorageLocationSetting, UserProfile userProfile)

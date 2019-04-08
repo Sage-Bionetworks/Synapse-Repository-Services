@@ -724,7 +724,7 @@ public class TableModelUtils {
 			}
 			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
 		case LARGETEXT:
-			return ColumnConstants.DEFAULT_LARGE_TEXT_BYTES;	
+			return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;	
 		case BOOLEAN:
 			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
 		case INTEGER:

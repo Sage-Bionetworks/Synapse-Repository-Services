@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -19,7 +20,6 @@ import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -31,7 +31,7 @@ public class TableUploadManagerImpl implements TableUploadManager {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 	@Autowired
 	private FileProvider fileProvider;
 

@@ -127,6 +127,13 @@
 				<version>${commonslogging.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-collections4</artifactId>
+				<version>${commonscollections4.version}</version>
+				<type>jar</type>
+			</dependency>
+
+			<dependency>
 				<groupId>io.jsonwebtoken</groupId>
 				<artifactId>jjwt</artifactId>
 				<version>0.7.0</version>
@@ -276,21 +283,23 @@
 				<type>jar</type>
 				<scope>compile</scope>
 			</dependency>
-			<!--interface between junit5 and programmatic clients, such as IDEs and build tools, for running tests-->
+			<!--interface between junit5 and programmatic clients, such as IDEs and 
+				build tools, for running tests -->
 			<dependency>
 				<groupId>org.junit.platform</groupId>
 				<artifactId>junit-platform-launcher</artifactId>
 				<version>${junit.platform.version}</version>
 				<scope>test</scope>
 			</dependency>
-			<!--adds a subset of junit5 functionality to tests currently running under junit4. should be REMOVED once fully converted to junit5-->
+			<!--adds a subset of junit5 functionality to tests currently running under 
+				junit4. should be REMOVED once fully converted to junit5 -->
 			<dependency>
 				<groupId>org.junit.platform</groupId>
 				<artifactId>junit-platform-runner</artifactId>
 				<version>${junit.platform.version}</version>
 				<scope>test</scope>
 			</dependency>
-			<!--junit5 engine-->
+			<!--junit5 engine -->
 			<dependency>
 				<groupId>org.junit.jupiter</groupId>
 				<artifactId>junit-jupiter-engine</artifactId>
@@ -303,7 +312,7 @@
 				<version>${junit.jupiter.version}</version>
 				<scope>test</scope>
 			</dependency>
-			<!--junit4 engine for backwards compatibility-->
+			<!--junit4 engine for backwards compatibility -->
 			<dependency>
 				<groupId>org.junit.vintage</groupId>
 				<artifactId>junit-vintage-engine</artifactId>
@@ -583,7 +592,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>common-utilities</artifactId>
-				<version>1.0.9</version>
+				<version>1.0.10</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -593,7 +602,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.1.0</version>
+				<version>1.1.1</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -950,6 +959,7 @@
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
+		<commonscollections4.version>4.1</commonscollections4.version>
 		<org.json.version>20090211</org.json.version>
 		<jira.client.version>5.1.0-476bd700</jira.client.version>
 		<junit.jupiter.version>5.4.1</junit.jupiter.version>
