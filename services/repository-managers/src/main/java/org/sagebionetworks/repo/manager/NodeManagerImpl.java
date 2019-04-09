@@ -543,7 +543,6 @@ public class NodeManagerImpl implements NodeManager {
 		newNode = createNode(newNode, userInfo);
 		// The eTag really has no meaning yet because nobody has access to this id until we return.
 		newAnnotations.setEtag(newNode.getETag());
-		newAnnotations.setId(newNode.getId());
 		validateAnnotations(newAnnotations);
 		// Since we just created this node we do not need to lock.
 		nodeDao.updateAnnotations(newNode.getId(), newAnnotations);

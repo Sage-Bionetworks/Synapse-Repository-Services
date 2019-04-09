@@ -13,7 +13,7 @@ import java.util.Map;
  *
  */
 public class NamedAnnotations {
-	
+
 	private String id; // for its parent entity
 	private String etag;
 	private Date creationDate;
@@ -80,14 +80,6 @@ public class NamedAnnotations {
 	 */
 	public Annotations getAdditionalAnnotations(){
 		return getAnnotationsForName(AnnotationNameSpace.ADDITIONAL);
-	}
-
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
 	}
 
 	public String getEtag() {

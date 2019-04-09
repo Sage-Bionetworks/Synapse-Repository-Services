@@ -29,13 +29,10 @@ public class NamedAnnotationsTest {
 	public void testGetAnnotationsForName(){
 		NamedAnnotations named = new NamedAnnotations();
 		assertNull(named.getEtag());
-		assertNull(named.getId());
 		assertNull(named.getCreationDate());
 		Annotations anno = named.getAnnotationsForName(AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(anno);
 		// Now make sure the values get passed on the get
-		named.setId("12");
-		assertEquals("12", named.getId());
 		named.setEtag("55");
 		assertEquals("55", named.getEtag());
 		Date now = new Date();
@@ -43,7 +40,6 @@ public class NamedAnnotationsTest {
 		assertEquals(now, named.getCreationDate());
 		anno = named.getAnnotationsForName(AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(anno);
-		assertEquals(named.getId(), anno.getId());
 		assertEquals(named.getEtag(), anno.getEtag());
 		assertEquals(named.getCreationDate(), anno.getCreationDate());
 	}
