@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONException;
@@ -1205,7 +1205,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public <T extends AccessRequirement> T updateAccessRequirement(T ar)
 			throws SynapseException {
 		ValidateArgument.required(ar, "AccessRequirement");
-		String url = createEntityUri(ACCESS_REQUIREMENT + "/", ar.getId().toString());
+		String url = createEntityUri(ACCESS_REQUIREMENT, ar.getId().toString());
 		return (T) putJSONEntity(getRepoEndpoint(), url, ar, ar.getClass());
 	}
 

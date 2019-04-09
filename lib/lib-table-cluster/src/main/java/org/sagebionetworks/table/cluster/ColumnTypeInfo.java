@@ -2,7 +2,8 @@ package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ValueParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
@@ -152,8 +153,11 @@ public enum ColumnTypeInfo {
 		if(defaultValue == null){
 			builder.append("NULL");
 		}else{
-			// Block SQL injections
-			defaultValue = StringEscapeUtils.escapeSql(defaultValue);
+			// escape single quotes
+			// NOTE: This originally used StringEscapeUtils.escapeSql() which only ever escaped single quotes and has been removed in later versions.
+			// https://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/StringEscapeUtils.html#escapeSql(java.lang.String)
+			// https://stackoverflow.com/questions/32096614/migrating-stringescapeutils-escapesql-from-commons-lang
+			defaultValue = StringUtils.replace(defaultValue, "'", "''");
 			// Validate the default can be applied.
 			Object objectValue = parseValueForDatabaseWrite(defaultValue);
 			if(isStringType()){

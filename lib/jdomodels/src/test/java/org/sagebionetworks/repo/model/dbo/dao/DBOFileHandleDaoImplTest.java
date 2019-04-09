@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.base.Strings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -225,9 +226,10 @@ public class DBOFileHandleDaoImplTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setFileName("fileName");
 		// Create a URL that is is 700 chars long
-		char[] chars = new char[700 - 9 - 4];
-		Arrays.fill(chars, 'a');
-		meta.setExternalURL("http://" + new String(chars) + ".com");
+		//according to HTTP specs each section in the domain name can have at most 63 characters
+		String domain = Strings.repeat("a", 63) + ".com" ;
+		String path = Strings.repeat("b", 700-7-domain.length() - 1 );
+		meta.setExternalURL("http://" + domain + "/" + path);
 		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta.setEtag(UUID.randomUUID().toString());
 		// Save it

@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
