@@ -54,9 +54,6 @@ public class NamedAnnotations {
 		if(this.etag != null){
 			anno.setEtag(this.etag);
 		}
-		if(this.creationDate != null){
-			anno.setCreationDate(this.creationDate);
-		}
 	}
 	
 	public Iterator<AnnotationNameSpace> nameIterator(){

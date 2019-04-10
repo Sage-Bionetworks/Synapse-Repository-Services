@@ -242,7 +242,7 @@ public class EntityController {
 			IOException, JSONObjectAdapterException {
 		// Now create the entity
 		Entity createdEntity = serviceProvider.getEntityService().createEntity(
-				userId, entity, generatedBy, request);
+				userId, entity, generatedBy);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
@@ -277,7 +277,7 @@ public class EntityController {
 			DatastoreException, UnauthorizedException {
 		// Get the entity.
 		Entity entity = serviceProvider.getEntityService().getEntity(userId,
-				id, request);
+				id);
 		return entity;
 	}
 
@@ -358,7 +358,7 @@ public class EntityController {
 		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId,
-				entity, newVersionBoolean, generatedBy, request);
+				entity, newVersionBoolean, generatedBy);
 		// Return the result
 		return entity;
 	}
@@ -429,7 +429,7 @@ public class EntityController {
 			DatastoreException, UnauthorizedException {
 		// Pass it along
 		return serviceProvider.getEntityService().getEntityAnnotations(userId,
-				id, request);
+				id);
 	}
 
 	/**
@@ -475,7 +475,7 @@ public class EntityController {
 			InvalidModelException {
 		// Pass it along
 		return serviceProvider.getEntityService().updateEntityAnnotations(
-				userId, id, updatedAnnotations, request);
+				userId, id, updatedAnnotations);
 	}
 
 	/**
@@ -541,7 +541,7 @@ public class EntityController {
 				.getReader());
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId,
-				entity, newVersion, activityId, request);
+				entity, newVersion, activityId);
 		// Return the result
 		return entity;
 	}
@@ -603,7 +603,7 @@ public class EntityController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the entity.
 		Entity updatedEntity = serviceProvider.getEntityService()
-				.getEntityForVersion(userId, id, versionNumber, request);
+				.getEntityForVersion(userId, id, versionNumber);
 		// Return the results
 		return updatedEntity;
 	}
@@ -760,7 +760,7 @@ public class EntityController {
 			NotFoundException, UnauthorizedException {
 		// pass it along.
 		return new BooleanResult(serviceProvider.getEntityService().hasAccess(
-				id, userId, request, accessType));
+				id, userId, accessType));
 	}
 
 	/**
@@ -850,7 +850,7 @@ public class EntityController {
 					"ACL ID in the path cannot be null");
 		newAcl.setId(id);
 		AccessControlList acl = serviceProvider.getEntityService()
-				.createEntityACL(userId, newAcl, request);
+				.createEntityACL(userId, newAcl);
 		return acl;
 	}
 
@@ -928,7 +928,7 @@ public class EntityController {
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
 		return serviceProvider.getEntityService().updateEntityACL(userId,
-				updatedACL, null, request);
+				updatedACL, null);
 	}
 
 	/**
@@ -1010,7 +1010,7 @@ public class EntityController {
 			throw new IllegalArgumentException("PathVariable ID cannot be null");
 		// pass it along.
 		return serviceProvider.getEntityService().getEntityBenefactor(id,
-				userId, request);
+				userId);
 	}
 
 	/**
@@ -1070,8 +1070,8 @@ public class EntityController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
 		return serviceProvider.getEntityService()
-				.getEntityAnnotationsForVersion(userId, id, versionNumber,
-						request);
+				.getEntityAnnotationsForVersion(userId, id, versionNumber
+				);
 	}
 
 	/**
@@ -1185,7 +1185,7 @@ public class EntityController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().getActivityForEntity(userId,
-				id, request);
+				id);
 	}
 
 	/**
@@ -1217,7 +1217,7 @@ public class EntityController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().getActivityForEntity(userId,
-				id, versionNumber, request);
+				id, versionNumber);
 	}
 
 	/**
@@ -1252,7 +1252,7 @@ public class EntityController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().setActivityForEntity(userId,
-				id, generatedBy, request);
+				id, generatedBy);
 	}
 
 	/**
@@ -1279,8 +1279,8 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		serviceProvider.getEntityService().deleteActivityForEntity(userId, id,
-				request);
+		serviceProvider.getEntityService().deleteActivityForEntity(userId, id
+		);
 	}
 
 	// Files
@@ -1497,7 +1497,7 @@ public class EntityController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException {
 		List<EntityHeader> entityHeaders = serviceProvider.getEntityService()
-				.getEntityHeaderByMd5(userId, md5, request);
+				.getEntityHeaderByMd5(userId, md5);
 		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
 		results.setResults(entityHeaders);
 		results.setTotalNumberOfResults(entityHeaders.size());

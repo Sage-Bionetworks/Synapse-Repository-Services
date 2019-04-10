@@ -109,7 +109,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-		entityService.getEntity(userId, clone.getId(), mockRequest, Project.class);
+		entityService.getEntity(userId, clone.getId(), Project.class);
 	}
 
 	@Test

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -29,12 +27,11 @@ public interface TypeSpecificMetadataProvider<T extends Entity> extends EntityPr
 	 * This method will be called before the given entity is returned to the client.
 	 * Any type specific metadata should be added here.
 	 * @param entity
-	 * @param request
-	 * @param user 
-	 * @param eventType 
-	 * @throws NotFoundException 
+	 * @param user
+	 * @param eventType
+	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 * @throws UnauthorizedException 
 	 */
-	public void addTypeSpecificMetadata(T entity, HttpServletRequest request, UserInfo user, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public void addTypeSpecificMetadata(T entity, UserInfo user, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException;
 }

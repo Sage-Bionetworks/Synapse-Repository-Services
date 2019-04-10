@@ -45,7 +45,6 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 		record.setModifiedOn(acl.getModifiedOn());
 		record.setOwnerType(ownerType);
 		record.setResourceAccess(acl.getResourceAccess());
-		record.setUri(acl.getUri());
 		return record;
 	}
 

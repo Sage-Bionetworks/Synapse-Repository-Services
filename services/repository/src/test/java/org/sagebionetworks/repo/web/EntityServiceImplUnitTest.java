@@ -113,7 +113,7 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireCreate(){
 		// Call under test.
-		entityService.createEntity(userInfo.getId(), project, null, mockRequest);
+		entityService.createEntity(userInfo.getId(), project, null);
 		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
 		verify(mockProjectUpdateProvider, never()).entityUpdated(userInfo, project);
 	}
@@ -122,7 +122,7 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdate(){
 		boolean newVersion = true;
 		// Call under test.
-		entityService.updateEntity(userInfo.getId(), project, newVersion, null, mockRequest);
+		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project);
 	}

@@ -41,7 +41,6 @@ public class GwtTestSuite extends GWTTestCase {
 	@Test
 	public void testAnnotationsRoundTrip() throws JSONObjectAdapterException {
 		Annotations annos = new Annotations();
-		annos.setCreationDate(new Date(100));
 		annos.addAnnotation("string", "one");
 		annos.addAnnotation("string", "two");
 		annos.addAnnotation("long", new Long(123));

@@ -219,8 +219,6 @@ public class AnnotationsTest {
 		Annotations anno = new Annotations();
 		anno.setId("9810");
 		anno.setEtag("456");
-		anno.setCreationDate(new Date(10*1000));
-		anno.setUri("http://localhost:8080/");
 		anno.addAnnotation("byteArray", "This is a bigString".getBytes("UTF-8"));
 		anno.addAnnotation("string", "This is a bigString");
 		anno.addAnnotation("string", "2");

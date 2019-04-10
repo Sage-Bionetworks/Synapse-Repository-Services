@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -40,7 +38,7 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 
 	@Override
 	public void addTypeSpecificMetadata(TableEntity entity,
-			HttpServletRequest request, UserInfo user, EventType eventType)
+										UserInfo user, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		List<String> tableSchema = tableEntityManager.getTableSchema(entity.getId());
 		entity.setColumnIds(tableSchema);

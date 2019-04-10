@@ -45,7 +45,6 @@ public class NamedAnnotationsTest {
 		assertNotNull(anno);
 		assertEquals(named.getId(), anno.getId());
 		assertEquals(named.getEtag(), anno.getEtag());
-		assertEquals(named.getCreationDate(), anno.getCreationDate());
 	}
 	
 	

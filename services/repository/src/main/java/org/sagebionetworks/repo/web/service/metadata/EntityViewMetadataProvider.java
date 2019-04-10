@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -33,7 +31,7 @@ public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<En
 
 	@Override
 	public void addTypeSpecificMetadata(EntityView entity,
-			HttpServletRequest request, UserInfo user, EventType eventType)
+										UserInfo user, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		List<String> tableSchema = fileViewManager.getTableSchema(entity.getId());
 		entity.setColumnIds(tableSchema);

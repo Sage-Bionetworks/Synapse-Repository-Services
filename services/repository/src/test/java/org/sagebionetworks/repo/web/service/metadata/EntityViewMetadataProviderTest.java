@@ -76,7 +76,7 @@ public class EntityViewMetadataProviderTest {
 		EntityView testEntity = new EntityView();
 		testEntity.setId(entityId);
 		when(mockFileViewManager.getTableSchema(entityId)).thenReturn(columnIds);
-		provider.addTypeSpecificMetadata(testEntity, null, null, null); //the other parameters are not used at all
+		provider.addTypeSpecificMetadata(testEntity, null, null); //the other parameters are not used at all
 		verify(mockFileViewManager).getTableSchema(entityId);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}
