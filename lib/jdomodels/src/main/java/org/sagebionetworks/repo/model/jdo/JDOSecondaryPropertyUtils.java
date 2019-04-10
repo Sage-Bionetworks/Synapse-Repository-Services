@@ -53,11 +53,8 @@ public class JDOSecondaryPropertyUtils {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
-		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
-		try{
+		try(Writer zipWriter = new OutputStreamWriter(zipper, UTF8);){
 			xStream.toXML(dto, zipWriter);
-		}finally{
-			IOUtils.closeQuietly(zipWriter);
 		}
 		return out.toByteArray();
 	}
@@ -117,15 +114,12 @@ public class JDOSecondaryPropertyUtils {
 	public static Object decompressedObject(byte[] zippedByes) throws IOException{
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
-			GZIPInputStream unZipper = new GZIPInputStream(in);
-			try{
+			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
 				XStream xstream = createXStream();
 				if(zippedByes != null){
 					return xstream.fromXML(unZipper);
 				}
-			}finally{
-				unZipper.close();
-			}			
+			}
 		}
 		return null;
 	}
@@ -133,8 +127,7 @@ public class JDOSecondaryPropertyUtils {
 	public static Object decompressedObject(byte[] zippedByes, List<Pair<String,Class>> aliases) throws IOException{
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
-			GZIPInputStream unZipper = new GZIPInputStream(in);
-			try{
+			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
 				XStream xstream = createXStream();
 				for (Pair<String,Class> pair : aliases) {
 					xstream.alias(pair.getFirst(), pair.getSecond());
@@ -142,8 +135,6 @@ public class JDOSecondaryPropertyUtils {
 				if(zippedByes != null){
 					return xstream.fromXML(unZipper);
 				}
-			}finally{
-				unZipper.close();
 			}
 		}
 		return null;
@@ -163,15 +154,12 @@ public class JDOSecondaryPropertyUtils {
 	public static Reference decompressedReference(byte[] zippedByes) throws IOException{
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
-			GZIPInputStream unZipper = new GZIPInputStream(in);
-			try{
+			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
 				XStream xstream = createXStream();
 				if(zippedByes != null){
 					return (Reference) xstream.fromXML(unZipper);
 				}
-			}finally{
-				unZipper.close();
-			}			
+			}
 		}
 
 		return null;
