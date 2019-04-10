@@ -160,32 +160,6 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(compressed));
 	}
 
-	@Test
-	public void testCompressNullReferences() throws IOException {
-		assertNull(JDOSecondaryPropertyUtils.compressReferences(null));
-	}
-	
-	@Test
-	public void testDecompressNullReferences() throws IOException {
-		assertEquals(new HashMap<String, Set<Reference>>(), JDOSecondaryPropertyUtils.decompressedReferences(null));
-	}
-	
-	@Test
-	public void testCompressReferencesRoundTrip() throws IOException {
-		Reference ref = new Reference();
-		ref.setTargetId("123L");
-		ref.setTargetVersionNumber(1L);
-		
-		Map<String, Set<Reference>> map = new HashMap<String, Set<Reference>>();
-		Set<Reference> set = new HashSet<Reference>();
-		set.add(ref);
-		map.put("linksTo", set);
-		
-		byte[] compressed = JDOSecondaryPropertyUtils.compressReferences(map);
-		assertNotNull(compressed);
-		assertEquals(map, JDOSecondaryPropertyUtils.decompressedReferences(compressed));
-	}
-	
 	/**
 	 * See PLFM_4222 & PLFM-4184
 	 */
@@ -195,7 +169,7 @@ public class JDOSecondaryPropertyUtilsTest {
 		String value = JDOSecondaryPropertyUtils.getSingleString(null, 50);
 		assertEquals(null, value);
 	}
-	
+
 	/**
 	 * See PLFM_4222 & PLFM-4184
 	 */

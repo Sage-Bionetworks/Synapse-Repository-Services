@@ -47,36 +47,29 @@ public class JDOSecondaryPropertyUtils {
 	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
 		return compressObject(dto);
 	}
-	
-	public static byte[] compressObject(Object dto) throws IOException{
+
+	private static byte[] compressObject(XStream xStream, Object dto) throws IOException {
 		if(dto == null) return null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
 		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
 		try{
-			XStream xstream = createXStream();
-			xstream.toXML(dto, zipWriter);
+			xStream.toXML(dto, zipWriter);
 		}finally{
 			IOUtils.closeQuietly(zipWriter);
 		}
 		return out.toByteArray();
 	}
+
+	public static byte[] compressObject(Object dto) throws IOException{
+		return compressObject(createXStream(), dto);
+	}
 	
 	public static byte[] compressObject(Object dto, String classAlias) throws IOException{
-		if(dto == null) return null;
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		BufferedOutputStream buff = new BufferedOutputStream(out);
-		GZIPOutputStream zipper = new GZIPOutputStream(buff);
-		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
-		try{
-			XStream xstream = createXStream();
-			xstream.alias(classAlias, dto.getClass());
-			xstream.toXML(dto, zipWriter);
-		}finally{
-			IOUtils.closeQuietly(zipWriter);
-		}
-		return out.toByteArray();
+		XStream xStream = createXStream();
+		xStream.alias(classAlias, dto.getClass());
+		return compressObject(xStream, dto);
 	}
 	
 	/**
@@ -100,28 +93,6 @@ public class JDOSecondaryPropertyUtils {
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
-	}
-	
-	/**
-	 * Convert the passed references to a compressed (zip) byte array
-	 * @param dto
-	 * @return the compressed references
-	 * @throws IOException 
-	 */
-	@Deprecated
-	public static byte[] compressReferences(Map<String, Set<Reference>> dto) throws IOException{
-		if(dto == null) return null;
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		BufferedOutputStream buff = new BufferedOutputStream(out);
-		GZIPOutputStream zipper = new GZIPOutputStream(buff);
-		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
-		try{
-			XStream xstream = createXStream();
-			xstream.toXML(dto, zipWriter);
-		}finally{
-			IOUtils.closeQuietly(zipWriter);
-		}
-		return out.toByteArray();
 	}
 
 	public static XStream createXStream() {
@@ -204,30 +175,6 @@ public class JDOSecondaryPropertyUtils {
 		}
 
 		return null;
-	}
-	
-	/**
-	 * Read the compressed (zip) byte array into the Reference.
-	 * @param zippedByes
-	 * @return the resurrected Reference
-	 * @throws IOException 
-	 */
-	@Deprecated
-	public static Map<String, Set<Reference>> decompressedReferences(byte[] zippedByes) throws IOException{
-		if(zippedByes != null){
-			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
-			GZIPInputStream unZipper = new GZIPInputStream(in);
-			try{
-				XStream xstream = createXStream();
-				if(zippedByes != null){
-					return (Map<String, Set<Reference>>) xstream.fromXML(unZipper);
-				}
-			}finally{
-				unZipper.close();
-			}			
-		}
-		// Return an empty map.
-		return new HashMap<String, Set<Reference>>();
 	}
 
 	/**
