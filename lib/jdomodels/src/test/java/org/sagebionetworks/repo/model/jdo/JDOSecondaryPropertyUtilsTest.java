@@ -337,4 +337,14 @@ public class JDOSecondaryPropertyUtilsTest {
 		Annotations primary = named.getPrimaryAnnotations();
 		assertEquals("docker.synapse.org/syn4224222/dm-python-example", primary.getSingleValue("repositoryName"));
 	}
+
+	@Test //Test that decompressing blobs containing fields that are no longer present in the Annotations and NamedAnnotations classes (e.g. uri, creationDate, createdBy) does not fail
+	public void testDecompressXMLWithOldAnnotationFields() throws IOException {
+		String fileName = "annotations_blob_syn313805";
+		InputStream in = JDOSecondaryPropertyUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", in);
+
+		//nothing to assert. If it failed an exception would have been thrown
+		NamedAnnotations named = JDOSecondaryPropertyUtils.decompressedAnnotations(IOUtils.toByteArray(in));
+	}
 }

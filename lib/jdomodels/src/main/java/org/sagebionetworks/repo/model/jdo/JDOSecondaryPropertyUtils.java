@@ -94,6 +94,7 @@ public class JDOSecondaryPropertyUtils {
 
 	public static XStream createXStream() {
 		XStream xstream = new XStream();
+		xstream.ignoreUnknownElements("createdBy|creationDate|uri");
 		xstream.alias("annotations", Annotations.class);
 		xstream.alias("name-space", NamedAnnotations.class);
 		return xstream;
