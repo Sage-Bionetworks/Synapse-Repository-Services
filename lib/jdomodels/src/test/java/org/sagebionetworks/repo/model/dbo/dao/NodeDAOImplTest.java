@@ -899,6 +899,7 @@ public class NodeDAOImplTest {
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		assertEquals(node.getCreatedByPrincipalId(), named.getCreatedBy());
+		assertEquals(id, named.getId());
 		// Now add some annotations to this node.
 		annos.addAnnotation("stringOne", "one");
 		annos.addAnnotation("doubleKey", new Double(23.5));
@@ -2765,6 +2766,7 @@ public class NodeDAOImplTest {
 		long fileIdLong = KeyFactory.stringToKey(file.getId());
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
+		annos.setId(file.getId());
 		annos.setCreatedBy(file.getCreatedByPrincipalId());
 		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
@@ -2832,7 +2834,7 @@ public class NodeDAOImplTest {
 		long fileIdLong = KeyFactory.stringToKey(file.getId());
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
-
+		annos.setId(file.getId());
 		annos.setCreatedBy(file.getCreatedByPrincipalId());
 		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());

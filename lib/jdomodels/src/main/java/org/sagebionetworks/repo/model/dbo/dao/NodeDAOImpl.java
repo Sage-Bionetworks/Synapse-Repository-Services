@@ -738,6 +738,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Pull out the rest of the data.
 			annos.setEtag(rs.getString(COL_NODE_ETAG));
 			annos.setCreationDate(new Date(rs.getLong(COL_NODE_CREATED_ON)));
+			annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 			annos.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 			return annos;
 		}
@@ -804,6 +805,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
 
 		if(updatedAnnos == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
+		if(updatedAnnos.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
 		if(updatedAnnos.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
 
 		final Long nodeIdLong = KeyFactory.stringToKey(nodeId);
