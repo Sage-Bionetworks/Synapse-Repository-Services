@@ -898,7 +898,6 @@ public class NodeDAOImplTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
-		assertEquals(node.getCreatedByPrincipalId(), named.getCreatedBy());
 		assertEquals(id, named.getId());
 		// Now add some annotations to this node.
 		annos.addAnnotation("stringOne", "one");
@@ -2767,7 +2766,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreatedBy(file.getCreatedByPrincipalId());
 		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
@@ -2835,7 +2833,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreatedBy(file.getCreatedByPrincipalId());
 		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		// added for PLFM_4184

@@ -17,7 +17,6 @@ public class NamedAnnotations {
 	private String id; // for its parent entity
 	private String etag;
 	private Date creationDate;
-	private Long createdBy;
 	private Map<String, Annotations> map;
 	
 	public NamedAnnotations(){
@@ -103,15 +102,7 @@ public class NamedAnnotations {
 		this.creationDate = creationDate;
 	}
 
-	public Long getCreatedBy() {
-		return createdBy;
-	}
 
-	public void setCreatedBy(Long createdBy) {
-		this.createdBy = createdBy;
-	}
-
-	
 	public void put(AnnotationNameSpace nameSpace, Annotations annos){
 		if(nameSpace == null) throw new IllegalArgumentException("Name cannot be null");
 		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");

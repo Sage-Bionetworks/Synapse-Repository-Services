@@ -739,7 +739,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			annos.setEtag(rs.getString(COL_NODE_ETAG));
 			annos.setCreationDate(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 			annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-			annos.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 			return annos;
 		}
 	}
