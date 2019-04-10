@@ -2766,7 +2766,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
 		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
@@ -2833,7 +2832,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		// added for PLFM_4184
 		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());

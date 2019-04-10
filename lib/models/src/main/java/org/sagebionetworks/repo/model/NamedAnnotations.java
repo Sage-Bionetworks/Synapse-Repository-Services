@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -16,7 +15,6 @@ public class NamedAnnotations {
 	
 	private String id; // for its parent entity
 	private String etag;
-	private Date creationDate;
 	private Map<String, Annotations> map;
 	
 	public NamedAnnotations(){
@@ -94,14 +92,6 @@ public class NamedAnnotations {
 		this.etag = etag;
 	}
 
-	public Date getCreationDate() {
-		return creationDate;
-	}
-
-	public void setCreationDate(Date creationDate) {
-		this.creationDate = creationDate;
-	}
-
 
 	public void put(AnnotationNameSpace nameSpace, Annotations annos){
 		if(nameSpace == null) throw new IllegalArgumentException("Name cannot be null");
@@ -122,8 +112,6 @@ public class NamedAnnotations {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((map == null) ? 0 : map.hashCode());
@@ -139,11 +127,6 @@ public class NamedAnnotations {
 		if (getClass() != obj.getClass())
 			return false;
 		NamedAnnotations other = (NamedAnnotations) obj;
-		if (creationDate == null) {
-			if (other.creationDate != null)
-				return false;
-		} else if (!creationDate.equals(other.creationDate))
-			return false;
 		if (etag == null) {
 			if (other.etag != null)
 				return false;
@@ -165,7 +148,7 @@ public class NamedAnnotations {
 	@Override
 	public String toString() {
 		return "NamedAnnotations [id=" + id + ", etag=" + etag
-				+ ", creationDate=" + creationDate + ", map=" + map + "]";
+				+ ", map=" + map + "]";
 	}
 
 }
