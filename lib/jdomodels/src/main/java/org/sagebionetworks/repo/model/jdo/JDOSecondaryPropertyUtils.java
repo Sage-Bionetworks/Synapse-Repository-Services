@@ -45,7 +45,7 @@ public class JDOSecondaryPropertyUtils {
 	 * @throws IOException 
 	 */
 	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
-		return compressObject(dto);
+		return compressObject(dto == null || dto.isEmpty() ? null : dto);
 	}
 
 	private static byte[] compressObject(XStream xStream, Object dto) throws IOException {
@@ -94,6 +94,10 @@ public class JDOSecondaryPropertyUtils {
 
 	public static XStream createXStream() {
 		XStream xstream = new XStream();
+		xstream.omitField(Annotations.class, "id");
+		xstream.omitField(Annotations.class, "etag");
+		xstream.omitField(NamedAnnotations.class, "id");
+		xstream.omitField(NamedAnnotations.class, "etag");
 		xstream.ignoreUnknownElements("createdBy|creationDate|uri");
 		xstream.alias("annotations", Annotations.class);
 		xstream.alias("name-space", NamedAnnotations.class);

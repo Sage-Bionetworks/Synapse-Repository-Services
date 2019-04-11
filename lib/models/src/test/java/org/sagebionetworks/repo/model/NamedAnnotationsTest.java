@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -11,9 +12,17 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class NamedAnnotationsTest {
+
+	NamedAnnotations namedAnnotations;
+
+	@BeforeEach
+	public void setUp(){
+		namedAnnotations = new NamedAnnotations();
+	}
 	
 	@Test
 	public void testConstructor(){
@@ -57,7 +66,27 @@ public class NamedAnnotationsTest {
 			assertTrue(expected.contains(name));
 			expected.remove(name);
 		}
-		assertEquals("Did not find all of the expected values using the iterator.",0, expected.size());
+		assertEquals(0, expected.size(), "Did not find all of the expected values using the iterator.");
+	}
+
+	@Test
+	public void testIsEmpty_mapIsEmpty(){
+		NamedAnnotations namedAnnos = new NamedAnnotations();
+		assertTrue(namedAnnos.isEmpty());
+	}
+
+	@Test
+	public void testIsEmpty_PrimaryAnnotationsNotEmpty(){
+		assertTrue(namedAnnotations.isEmpty());
+		namedAnnotations.getPrimaryAnnotations().addAnnotation("key", "value");
+		assertFalse(namedAnnotations.isEmpty());
+	}
+
+	@Test
+	public void testIsEmpty_AdditionalAnnotationsNotEmpty(){
+		assertTrue(namedAnnotations.isEmpty());
+		namedAnnotations.getAdditionalAnnotations().addAnnotation("key", "value");
+		assertFalse(namedAnnotations.isEmpty());
 	}
 
 }

@@ -56,6 +56,14 @@ public class Annotations implements JSONEntity, Serializable {
 		}
 	}
 
+	public boolean isEmpty(){
+		return (stringAnnotations == null || stringAnnotations.isEmpty())
+				&& (doubleAnnotations == null || doubleAnnotations.isEmpty())
+				&& (longAnnotations == null || longAnnotations.isEmpty())
+				&& (dateAnnotations == null || dateAnnotations.isEmpty())
+				&& (blobAnnotations == null || blobAnnotations.isEmpty());
+	}
+
 	/**
 	 * XStream uses the same mechanism as Java serialization so our
 	 * constructor never gets called.  To ensure that the maps

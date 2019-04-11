@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -20,8 +21,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -44,7 +45,7 @@ public class JDOSecondaryPropertyUtilsTest {
 	
 	DBONode owner;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		// Each test starts with a new owner
 		owner = new DBONode();
@@ -64,7 +65,6 @@ public class JDOSecondaryPropertyUtilsTest {
 		dto.addAnnotation("blobOne", values[1].getBytes("UTF-8"));
 		dto.addAnnotation("blobTwo", values[2].getBytes("UTF-8"));
 		byte[] comressedBytes = JDOSecondaryPropertyUtils.compressAnnotations(named);
-		System.out.println("Compressed size: "+comressedBytes.length);
 		assertNotNull(comressedBytes);
 		// Make the round trip
 		NamedAnnotations namedClone = JDOSecondaryPropertyUtils.decompressedAnnotations(comressedBytes);
@@ -136,6 +136,61 @@ public class JDOSecondaryPropertyUtilsTest {
 			fos.close();
 		}
 		
+	}
+
+
+	@Test
+	public void testCompressAnnotations_nullNamedAnnotations() throws IOException {
+		assertNull(JDOSecondaryPropertyUtils.compressAnnotations(null));
+	}
+
+	@Test
+	public void testCompressAnnotations_emptyNamedAnnotations() throws IOException {
+		NamedAnnotations emptyAnnotations = new NamedAnnotations();
+		assertTrue(emptyAnnotations.isEmpty());
+		assertNull(JDOSecondaryPropertyUtils.compressAnnotations(emptyAnnotations));
+	}
+
+	@Test
+	public void testCompressAnnotations_nonEmptyNamedAnnotations() throws IOException {
+		NamedAnnotations namedAnnotations = new NamedAnnotations();
+		Annotations annotations = namedAnnotations.getAdditionalAnnotations();
+		annotations.addAnnotation("key", "value");
+
+		//method under test
+		byte[] namedAnnotationBytes = JDOSecondaryPropertyUtils.compressAnnotations(namedAnnotations);
+
+		assertNotNull(namedAnnotationBytes);
+		assertTrue(namedAnnotationBytes.length > 0);
+	}
+
+	@Test
+	public void testCompressAnnotations_RoundTrip() throws IOException {
+		NamedAnnotations namedAnnotations = new NamedAnnotations();
+		namedAnnotations.setId("this should not be serialzied");
+		namedAnnotations.setEtag("this should also not be serialzied");
+		Annotations additionalAnnotations = namedAnnotations.getAdditionalAnnotations();
+		//named annotations should have copied over the id and etag fields
+		assertEquals(namedAnnotations.getId(), additionalAnnotations.getId());
+		assertEquals(namedAnnotations.getEtag(), additionalAnnotations.getEtag());
+		additionalAnnotations.addAnnotation("key", "value");
+
+		//methods under test
+		byte[] namedAnnotationBytes = JDOSecondaryPropertyUtils.compressAnnotations(namedAnnotations);
+		NamedAnnotations deserialziedNamedAnnotations = JDOSecondaryPropertyUtils.decompressedAnnotations(namedAnnotationBytes);
+
+		assertNotNull(deserialziedNamedAnnotations);
+		//make sure that id and etag were not serialized
+		Annotations deserialziedAdditionalAnnotations = deserialziedNamedAnnotations.getAdditionalAnnotations();
+		assertNull(deserialziedNamedAnnotations.getEtag());
+		assertNull(deserialziedNamedAnnotations.getId());
+		assertNull(deserialziedAdditionalAnnotations.getEtag());
+		assertNull(deserialziedAdditionalAnnotations.getId());
+		assertNull(deserialziedNamedAnnotations.getPrimaryAnnotations().getEtag());
+		assertNull(deserialziedNamedAnnotations.getPrimaryAnnotations().getId());
+
+		//but make sure that the contents of the actual annotation key/value content were serialized.
+		assertEquals(additionalAnnotations.getStringAnnotations(), deserialziedAdditionalAnnotations.getStringAnnotations());
 	}
 
 
@@ -331,7 +386,7 @@ public class JDOSecondaryPropertyUtilsTest {
 	public void testPLFM_4189() throws IOException{
 		String fileName = "CompressedAnnotationsPLFM_4189.xml.gz";
 		InputStream in = JDOSecondaryPropertyUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
-		assertNotNull("Failed to find: "+fileName+" on the classpath", in);
+		assertNotNull(in, "Failed to find: "+fileName+" on the classpath");
 		byte[] bytes = IOUtils.toByteArray(in);
 		NamedAnnotations named = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
 		Annotations primary = named.getPrimaryAnnotations();
@@ -342,7 +397,7 @@ public class JDOSecondaryPropertyUtilsTest {
 	public void testDecompressXMLWithOldAnnotationFields() throws IOException {
 		String fileName = "annotations_blob_syn313805";
 		InputStream in = JDOSecondaryPropertyUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
-		assertNotNull("Failed to find: "+fileName+" on the classpath", in);
+		assertNotNull(in, "Failed to find: "+fileName+" on the classpath");
 
 		//nothing to assert. If it failed an exception would have been thrown
 		NamedAnnotations named = JDOSecondaryPropertyUtils.decompressedAnnotations(IOUtils.toByteArray(in));

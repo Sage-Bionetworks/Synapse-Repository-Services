@@ -22,7 +22,20 @@ public class NamedAnnotations {
 		map.put(AnnotationNameSpace.PRIMARY.name(), new Annotations());
 		map.put(AnnotationNameSpace.ADDITIONAL.name(), new Annotations());
 	}
-	
+
+	public boolean isEmpty(){
+		if(map == null || map.isEmpty()){
+			return true;
+		}
+
+		boolean isEmpty = true;
+		for(Annotations annotations : map.values()){
+			isEmpty = isEmpty && annotations.isEmpty();
+		}
+
+		return isEmpty;
+	}
+
 	/**
 	 * Get annotations by name.
 	 * @param name
