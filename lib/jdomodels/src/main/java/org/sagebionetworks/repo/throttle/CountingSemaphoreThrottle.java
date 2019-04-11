@@ -7,12 +7,20 @@ import org.sagebionetworks.common.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * A throttle all methods of the CountingSemaphore to ensure we do not spend
- * more than 10% of the time on semaphores.
- *
+ * A throttle on all methods of the CountingSemaphore to ensure lock requests
+ * happen at a frequency the database can handle. The longer each lock request
+ * takes the longer the back-off.
+ * 
+ * See PLFM-5465.
  */
 @Aspect
 public class CountingSemaphoreThrottle {
+	
+	/**
+	 * The sleep times is a function of the method elapse time
+	 * times this multiplier.
+	 */
+	private static final long ELAPSE_MULTIPLIER = 2;
 
 	@Autowired
 	Clock clock;
@@ -28,7 +36,7 @@ public class CountingSemaphoreThrottle {
 			throttleCounter++;
 			long elapse = clock.currentTimeMillis() - start;
 			if(elapse > 0) {
-				clock.sleep(elapse * 10);
+				clock.sleep(elapse * ELAPSE_MULTIPLIER);
 			}
 		}
 	}

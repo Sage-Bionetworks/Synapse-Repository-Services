@@ -48,6 +48,9 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="3001" />
-		<property name="repeatInterval" value="1133" />
+		<!-- Once a message driver worker acquires a lock to run, it will continue 
+		to run. Therefore, threads that do not acquire a lock can wait a long time 
+		before another lock attempt is made. PLFM-5465. -->
+		<property name="repeatInterval" value="113300" />
 	</bean>
 </beans>

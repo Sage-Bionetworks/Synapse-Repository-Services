@@ -47,6 +47,6 @@
 		<property name="startDelay" value="55" />
 		<!-- This is a slow worker and does not need to be run more than once every 
 			30 seconds. -->
-		<property name="repeatInterval" value="30000" />
+		<property name="repeatInterval" value="300000" />
 	</bean>
 </beans>

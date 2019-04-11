@@ -49,7 +49,7 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="912" />
-		<property name="repeatInterval" value="19170" />
+		<property name="repeatInterval" value="1917000" />
 	</bean>
 
 </beans>
