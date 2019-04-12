@@ -40,10 +40,10 @@ public class CountingSemaphoreThrottleUnitTest {
 		// call under test
 		Object back = throttle.profile(mockPoint);
 		assertEquals(result, back);
-		verify(mockClock).sleep((3-1)*10);
+		verify(mockClock).sleep((3-1)*2);
 		// one more time
 		throttle.profile(mockPoint);
-		verify(mockClock).sleep((81-9)*10);
+		verify(mockClock).sleep((81-9)*2);
 	}
 	
 	@Test
