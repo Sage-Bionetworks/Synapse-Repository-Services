@@ -1,7 +1,11 @@
 package org.sagebionetworks.annotations.worker;
 
+import java.lang.annotation.Annotation;
+import java.util.List;
+
 import com.amazonaws.services.sqs.model.Message;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDaoImpl;
@@ -27,9 +31,17 @@ public class TEMPORARYAnnotationFixWorker implements MessageDrivenRunner {
 		long revision = Long.parseLong(nodeIdAndRevision[1]);
 
 		NamedAnnotations namedAnnotations = nodeDAO.getAnnotationsForVersion(KeyFactory.keyToString(nodeId), revision);
-		namedAnnotations.getAdditionalAnnotations().deleteAnnotation(ObjectSchema.CONCRETE_TYPE);
-		namedAnnotations.getPrimaryAnnotations().deleteAnnotation(ObjectSchema.CONCRETE_TYPE);
+		deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
+		deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
 
 		((NodeDAOImpl) nodeDAO).TEMPORARYMETHODupdateAnnotationsForVersion(nodeId, revision, namedAnnotations);
+	}
+
+
+	void deleteConcreteTypeAnnotation(Annotations annotation){
+		List<String> annoValue = annotation.getStringAnnotations().get(ObjectSchema.CONCRETE_TYPE);
+		if(annoValue != null && annoValue.size() == 1 && annoValue.get(0).startsWith("org.sagebionetworks")){
+			annotation.deleteAnnotation(ObjectSchema.CONCRETE_TYPE);
+		}
 	}
 }
