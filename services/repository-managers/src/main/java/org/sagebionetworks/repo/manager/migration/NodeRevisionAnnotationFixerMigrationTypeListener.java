@@ -20,7 +20,7 @@ public class NodeRevisionAnnotationFixerMigrationTypeListener implements Migrati
 	@Autowired
 	StackConfiguration stackConfiguration;
 
-	private String queueUrl;
+	String queueUrl;
 
 	@Override
 	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(MigrationType type, List<D> delta) {
@@ -33,9 +33,7 @@ public class NodeRevisionAnnotationFixerMigrationTypeListener implements Migrati
 				continue;
 			}
 			DBORevision dboRevision = (DBORevision) change;
-			if (dboRevision.getOwner() != null && dboRevision.getRevisionNumber() != null) {
-				sqsClient.sendMessage(queueUrl, dboRevision.getOwner() + ";" + dboRevision.getRevisionNumber());
-			}
+			sqsClient.sendMessage(queueUrl, dboRevision.getOwner() + ";" + dboRevision.getRevisionNumber());
 		}
 	}
 
