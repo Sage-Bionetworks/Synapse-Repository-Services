@@ -421,13 +421,19 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			ByteArrayOutputStream out = new ByteArrayOutputStream(1000);
 			GZIPOutputStream zip = new GZIPOutputStream(out);
 			Writer writer = new OutputStreamWriter(zip, UTF_8);
-			XStream xstream = new XStream();
+			XStream xstream = createXStream();
 			xstream.toXML(files, writer);
 			IOUtils.closeQuietly(writer);
 			return out.toByteArray();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	static XStream createXStream() {
+		XStream xstream = new XStream();
+		xstream.allowTypes(new Class[]{FileHandleAssociation.class});
+		return xstream;
 	}
 
 	/**
@@ -443,7 +449,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			ByteArrayInputStream in = new ByteArrayInputStream(files);
 			GZIPInputStream zip = new GZIPInputStream(in);
 			Reader reader = new InputStreamReader(zip, UTF_8);
-			XStream xstream = new XStream();
+			XStream xstream = createXStream();
 			return (List<FileHandleAssociation>) xstream.fromXML(reader);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

@@ -94,6 +94,7 @@ public class JDOSecondaryPropertyUtils {
 
 	public static XStream createXStream() {
 		XStream xstream = new XStream();
+		xstream.allowTypeHierarchy(Object.class);
 		xstream.omitField(Annotations.class, "id");
 		xstream.omitField(Annotations.class, "etag");
 		xstream.omitField(NamedAnnotations.class, "id");
