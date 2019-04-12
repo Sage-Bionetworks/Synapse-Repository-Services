@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.AdapterCollectionUtils;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -34,14 +33,10 @@ public class Annotations implements JSONEntity, Serializable {
 	private static final String JSON_LONG_ANNOTATIONS = "longAnnotations";
 	private static final String JSON_DOUBLE_ANNOTATIONS = "doubleAnnotations";
 	private static final String JSON_STRING_ANNOTATIONS = "stringAnnotations";
-	private static final String JSON_CREATION_DATE = "creationDate";
-	private static final String JSON_URI = "uri";
 	private static final String JSON_ETAG = "etag";
 	public static final String JSON_ID = "id";
 	private String id; // for its parent entity
-	private String uri;
 	private String etag;
-	private Date creationDate;
 	private Map<String, List<String>> stringAnnotations;
 	private Map<String, List<Double>> doubleAnnotations;
 	private Map<String, List<Long>> longAnnotations;
@@ -59,6 +54,14 @@ public class Annotations implements JSONEntity, Serializable {
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e.getMessage());
 		}
+	}
+
+	public boolean isEmpty(){
+		return (stringAnnotations == null || stringAnnotations.isEmpty())
+				&& (doubleAnnotations == null || doubleAnnotations.isEmpty())
+				&& (longAnnotations == null || longAnnotations.isEmpty())
+				&& (dateAnnotations == null || dateAnnotations.isEmpty())
+				&& (blobAnnotations == null || blobAnnotations.isEmpty());
 	}
 
 	/**
@@ -110,21 +113,6 @@ public class Annotations implements JSONEntity, Serializable {
 	}
 
 	/**
-	 * @return the uri
-	 */
-	public String getUri() {
-		return uri;
-	}
-
-	/**
-	 * @param uri
-	 *            the uri to set
-	 */
-	public void setUri(String uri) {
-		this.uri = uri;
-	}
-
-	/**
 	 * @return the etag
 	 */
 	public String getEtag() {
@@ -137,14 +125,6 @@ public class Annotations implements JSONEntity, Serializable {
 	 */
 	public void setEtag(String etag) {
 		this.etag = etag;
-	}
-
-	public Date getCreationDate() {
-		return creationDate;
-	}
-
-	public void setCreationDate(Date creationDate) {
-		this.creationDate = creationDate;
 	}
 
 	public Map<String, List<String>> getStringAnnotations() {
@@ -507,8 +487,6 @@ public class Annotations implements JSONEntity, Serializable {
 		result = prime * result
 				+ ((blobAnnotations == null) ? 0 : blobAnnotations.hashCode());
 		result = prime * result
-				+ ((creationDate == null) ? 0 : creationDate.hashCode());
-		result = prime * result
 				+ ((dateAnnotations == null) ? 0 : dateAnnotations.hashCode());
 		result = prime
 				* result
@@ -522,7 +500,6 @@ public class Annotations implements JSONEntity, Serializable {
 				* result
 				+ ((stringAnnotations == null) ? 0 : stringAnnotations
 						.hashCode());
-		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
 	
@@ -602,11 +579,6 @@ public class Annotations implements JSONEntity, Serializable {
 				return false;
 		} else if (!blobEquals(other.blobAnnotations))
 			return false;
-		if (creationDate == null) {
-			if (other.creationDate != null)
-				return false;
-		} else if (!creationDate.equals(other.creationDate))
-			return false;
 		if (dateAnnotations == null) {
 			if (other.dateAnnotations != null)
 				return false;
@@ -637,18 +609,13 @@ public class Annotations implements JSONEntity, Serializable {
 				return false;
 		} else if (!stringAnnotations.equals(other.stringAnnotations))
 			return false;
-		if (uri == null) {
-			if (other.uri != null)
-				return false;
-		} else if (!uri.equals(other.uri))
-			return false;
 		return true;
 	}
 	
 	@Override
 	public String toString() {
-		return "Annotations [id=" + id + ", uri=" + uri + ", etag=" + etag
-				+ ", creationDate=" + creationDate + ", stringAnnotations="
+		return "Annotations [id=" + id + ", etag=" + etag
+				+ ", stringAnnotations="
 				+ stringAnnotations + ", doubleAnnotations="
 				+ doubleAnnotations + ", longAnnotations=" + longAnnotations
 				+ ", dateAnnotations=" + dateAnnotations + ", blobAnnotations="
@@ -660,16 +627,8 @@ public class Annotations implements JSONEntity, Serializable {
 		if(toInitFrom.has(JSON_ID)){
 			this.id = toInitFrom.getString(JSON_ID);
 		}
-		if(toInitFrom.has(JSON_URI)){
-			this.uri = toInitFrom.getString(JSON_URI);
-		}
 		if(toInitFrom.has(JSON_ETAG)){
 			this.etag = toInitFrom.getString(JSON_ETAG);
-		}
-		if(toInitFrom.has(JSON_CREATION_DATE)){
-			// The value could be a long as a string or a base long.
-			String stringValue = toInitFrom.get(JSON_CREATION_DATE).toString();
-			this.creationDate = new Date(Long.parseLong(stringValue));
 		}
 		if(toInitFrom.has(JSON_STRING_ANNOTATIONS)){
 			JSONObjectAdapter object = toInitFrom.getJSONObject(JSON_STRING_ANNOTATIONS);
@@ -699,14 +658,8 @@ public class Annotations implements JSONEntity, Serializable {
 		if(this.id != null){
 			writeTo.put(JSON_ID, this.id);
 		}
-		if(this.uri != null){
-			writeTo.put(JSON_URI, this.uri);
-		}
 		if(this.etag != null){
 			writeTo.put(JSON_ETAG, this.etag);
-		}
-		if(this.creationDate != null){
-			writeTo.put(JSON_CREATION_DATE, writeTo.convertDateToString(FORMAT.UTC_MILLISEC, this.creationDate));
 		}
 		if(this.stringAnnotations != null){
 			JSONObjectAdapter object = writeTo.createNew();

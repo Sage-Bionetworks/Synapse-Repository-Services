@@ -328,14 +328,12 @@ public class EntityManagerImpl implements EntityManager {
 	
 	public static void cloneAnnotations(Annotations src, Annotations dst) {
 		dst.setBlobAnnotations(src.getBlobAnnotations());
-		dst.setCreationDate(src.getCreationDate());
 		dst.setDateAnnotations(src.getDateAnnotations());
 		dst.setDoubleAnnotations(src.getDoubleAnnotations());
 		dst.setEtag(src.getEtag());
 		dst.setId(src.getId());
 		dst.setLongAnnotations(src.getLongAnnotations());
 		dst.setStringAnnotations(src.getStringAnnotations());
-		dst.setUri(src.getUri());
 	}
 
 	@WriteTransaction

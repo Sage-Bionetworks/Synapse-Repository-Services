@@ -9,6 +9,8 @@ import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.util.ArrayList;
@@ -65,7 +67,10 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -85,6 +90,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -131,7 +138,10 @@ public class NodeDAOImplTest {
 	private MigratableTableDAO migratableTableDao;;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
+
+	@Autowired
+	DBOBasicDao basicDao;
+
 	private TransactionTemplate transactionTemplate;
 
 	// the datasets that must be deleted at the end of each test.
@@ -898,7 +908,6 @@ public class NodeDAOImplTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
-		assertEquals(node.getCreatedByPrincipalId(), named.getCreatedBy());
 		assertEquals(id, named.getId());
 		// Now add some annotations to this node.
 		annos.addAnnotation("stringOne", "one");
@@ -2767,8 +2776,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreatedBy(file.getCreatedByPrincipalId());
-		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
 		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
@@ -2835,8 +2842,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreatedBy(file.getCreatedByPrincipalId());
-		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		// added for PLFM_4184
 		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());
@@ -3649,5 +3654,34 @@ public class NodeDAOImplTest {
 		two.setParentId(parent.getId());
 		two = nodeDao.createNewNode(two);
 		toDelete.add(two.getId());
+	}
+
+	@Test
+	public void testNamedAnnotations_EmptyAnnotationsRoundTrip(){
+		Node node = nodeDao.createNewNode(privateCreateNew("testEmptyNamedAnnotations"));
+		String id = node.getId();
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now get the annotations for this node.
+		NamedAnnotations named = nodeDao.getAnnotations(id);
+		Annotations annos = named.getAdditionalAnnotations();
+		assertNotNull(annos);
+		assertTrue(annos.isEmpty());
+		// Write the annotation to database
+		nodeDao.updateAnnotations(id, named);
+
+		//check no BLOB no data has been stored in the actual JDOREVISIONS table
+		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+		parameterSource.addValue("owner", KeyFactory.stringToKey(id));
+		parameterSource.addValue("revisionNumber", nodeDao.getCurrentRevisionNumber(id));
+		DBORevision nodeRevision = basicDao.getObjectByPrimaryKey(DBORevision.class, parameterSource);
+		assertNull(nodeRevision.getAnnotations());
+
+		// Now retrieve it and we should stil get back an empty NamedAnnotation
+		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
+		Annotations copy = namedCopy.getAdditionalAnnotations();
+		assertNotNull(copy);
+		assertTrue(copy.isEmpty());
+		assertEquals(annos, copy);
 	}
 }

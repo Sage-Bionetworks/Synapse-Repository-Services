@@ -94,7 +94,6 @@ public class AclObjectRecordWriterTest {
 		acl.setModifiedBy("modifiedBy");
 		acl.setModifiedOn(new Date());
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		acl.setUri("uri");
 		AclRecord record = AclObjectRecordWriter.buildAclRecord(acl, ObjectType.EVALUATION);
 		assertEquals(ObjectType.EVALUATION, record.getOwnerType());
 		assertEquals(acl.getCreatedBy(), record.getCreatedBy());
@@ -104,6 +103,5 @@ public class AclObjectRecordWriterTest {
 		assertEquals(acl.getModifiedOn(), record.getModifiedOn());
 		assertEquals(acl.getId(), record.getId());
 		assertEquals(acl.getResourceAccess(), record.getResourceAccess());
-		assertEquals(acl.getUri(), record.getUri());
 	}
 }

@@ -73,7 +73,7 @@ public class TableEntityMetadataProviderTest  {
 		TableEntity testEntity = new TableEntity();
 		testEntity.setId(entityId);
 		when(tableEntityManager.getTableSchema(entityId)).thenReturn(columnIds);
-		provider.addTypeSpecificMetadata(testEntity, null, null, null); //the other parameters are not used at all
+		provider.addTypeSpecificMetadata(testEntity, null, null); //the other parameters are not used at all
 		verify(tableEntityManager).getTableSchema(entityId);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}

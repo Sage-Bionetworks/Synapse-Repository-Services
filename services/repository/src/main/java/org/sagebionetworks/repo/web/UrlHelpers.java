@@ -1057,80 +1057,6 @@ public class UrlHelpers {
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 	}
 
-	
-	/**
-	 * Helper function to create a relative URL for an entity's annotations
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param loginRequest
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityAnnotationsUri(String entityId) {
-		return ENTITY + "/" + entityId + ANNOTATIONS;
-	}
-	
-	/**
-	 * Helper function to create a relative URL for an entity's ACL
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param loginRequest
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityACLUri(String entityId) {
-		return ENTITY + "/" + entityId + ACL;
-	}
-	
-	/**
-	 * Helper function to create a relative URL for an entity's dependent
-	 * property
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityPropertyUri(HttpServletRequest request) {
-		return request.getRequestURI();
-	}
-
-	/**
-	 * Helper function to create a relative URL for an entity's annotations
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param entity
-	 * @param propertyClass
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityPropertyUri(Entity entity,
-			Class propertyClass, HttpServletRequest request) {
-
-		String urlPrefix = getUrlPrefixFromRequest(request);
-
-		String uri = null;
-		try {
-			uri = urlPrefix + UrlHelpers.ENTITY
-					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8")
-					+ PROPERTY2URLSUFFIX.get(propertyClass);
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
-	}
-
 	/**
 	 * Helper function to translate ids found in URLs to ids used by the system
 	 * <p>
@@ -1165,26 +1091,6 @@ public class UrlHelpers {
 		? request.getContextPath() + request.getServletPath() 
 				: request.getServletPath();
 		return urlPrefix;
-	}
-	
-	/**
-	 * Set the URI for any entity.
-	 * @param entityId 
-	 * @param entityClass 
-	 * @param urlPrefix
-	 * @return the entity uri
-	 */
-	public static String createEntityUri(String entityId, Class<? extends Entity> entityClass, String urlPrefix){
-		if(entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
-		if(entityClass == null) throw new IllegalArgumentException("Entity class cannot be null");
-		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
-		StringBuilder builder = new StringBuilder();
-		builder.append(urlPrefix);
-		builder.append(UrlHelpers.REPO_PATH);
-		builder.append(UrlHelpers.ENTITY);
-		builder.append("/");
-		builder.append(entityId);
-		return builder.toString();
 	}
 
 

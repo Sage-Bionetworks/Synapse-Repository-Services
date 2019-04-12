@@ -26,8 +26,6 @@ public class AnnotationJSONTest {
 		Annotations annos = new Annotations();
 		annos.setId("123");
 		annos.setEtag("456");
-		annos.setCreationDate(new Date(System.currentTimeMillis()));
-		annos.setUri("http://localhost:8080/");
 		annos.addAnnotation("binary", "This will be binary".getBytes("UTF-8"));
 		annos.addAnnotation("date", new Date(System.currentTimeMillis()));
 		annos.addAnnotation("double", new Double(123.5));

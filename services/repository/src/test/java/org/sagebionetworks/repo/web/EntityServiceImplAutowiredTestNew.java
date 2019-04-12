@@ -84,7 +84,7 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// Create a project
 		project = new Project();
-		project = entityService.createEntity(adminUserId, project, null, mockRequest);
+		project = entityService.createEntity(adminUserId, project, null);
 		toDelete.add(project.getId());
 		
 		// Create some file handles
@@ -151,7 +151,7 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 	public void testPLFM_1754CreateNullFileHandleId() throws Exception {
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
-		file = entityService.createEntity(adminUserId, file, null, mockRequest);
+		file = entityService.createEntity(adminUserId, file, null);
 	}
 	
 	/**
@@ -163,11 +163,11 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
 		file.setDataFileHandleId(fileHandle1.getId());
-		file = entityService.createEntity(adminUserId, file, null, mockRequest);
+		file = entityService.createEntity(adminUserId, file, null);
 		assertNotNull(file);
 		// Make sure we can update it 
 		file.setDataFileHandleId(fileHandle2.getId());
-		file = entityService.updateEntity(adminUserId, file, false, null, mockRequest);
+		file = entityService.updateEntity(adminUserId, file, false, null);
 	}
 	
 	/**
@@ -179,11 +179,11 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
 		file.setDataFileHandleId(fileHandle1.getId());
-		file = entityService.createEntity(adminUserId, file, null, mockRequest);
+		file = entityService.createEntity(adminUserId, file, null);
 		assertNotNull(file);
 		// Now try to set it to null
 		file.setDataFileHandleId(null);
-		file = entityService.updateEntity(adminUserId, file, false, null, mockRequest);
+		file = entityService.updateEntity(adminUserId, file, false, null);
 	}
 	
 	/**
@@ -198,17 +198,17 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
 		file.setDataFileHandleId(fileHandle1.getId());
-		file = entityService.createEntity(adminUserId, file, null, mockRequest);
+		file = entityService.createEntity(adminUserId, file, null);
 		assertNotNull(file);
 		assertEquals("Should start off as version one",new Long(1), file.getVersionNumber());
 		// Make sure we can update it 
 		file.setDataFileHandleId(fileHandle2.getId());
-		file = entityService.updateEntity(adminUserId, file, false, null, mockRequest);
+		file = entityService.updateEntity(adminUserId, file, false, null);
 		// This should trigger a version change.
 		assertEquals("Changing the dataFileHandleId of a FileEntity should have created a new version",new Long(2), file.getVersionNumber());
 		// Now make sure if we change the name but the file
 		file.setName("newName");
-		file = entityService.updateEntity(adminUserId, file, false, null, mockRequest);
+		file = entityService.updateEntity(adminUserId, file, false, null);
 		assertEquals("A new version should not have been created when a name changed",new Long(2), file.getVersionNumber());
 	}
 
@@ -221,48 +221,48 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		Project project1 = new Project();
 		project1.setName("project" + UUID.randomUUID());
 		project1.setAlias(alias1);
-		project1 = entityService.createEntity(adminUserId, project1, null, mockRequest);
+		project1 = entityService.createEntity(adminUserId, project1, null);
 		toDelete.add(project1.getId());
-		assertEquals(alias1, ((Project) entityService.getEntity(adminUserId, project1.getId(), mockRequest)).getAlias());
+		assertEquals(alias1, ((Project) entityService.getEntity(adminUserId, project1.getId())).getAlias());
 		// create alias2
 		Project project2 = new Project();
 		project2.setName("project" + UUID.randomUUID());
 		project2.setAlias(alias2);
-		project2 = entityService.createEntity(adminUserId, project2, null, mockRequest);
+		project2 = entityService.createEntity(adminUserId, project2, null);
 		toDelete.add(project2.getId());
-		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project2.getId(), mockRequest)).getAlias());
+		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project2.getId())).getAlias());
 		// fail on create alias1
 		Project projectFailCreate = new Project();
 		projectFailCreate.setName("project" + UUID.randomUUID());
 		projectFailCreate.setAlias(alias1);
 		try {
-			entityService.createEntity(adminUserId, projectFailCreate, null, mockRequest);
+			entityService.createEntity(adminUserId, projectFailCreate, null);
 			fail("duplicate entry should have been rejected");
 		} catch (IllegalArgumentException e) {
 			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
 		}
 		// update to null
 		project2.setAlias(null);
-		project2 = entityService.updateEntity(adminUserId, project2, false, null, mockRequest);
-		assertNull(((Project) entityService.getEntity(adminUserId, project2.getId(), mockRequest)).getAlias());
+		project2 = entityService.updateEntity(adminUserId, project2, false, null);
+		assertNull(((Project) entityService.getEntity(adminUserId, project2.getId())).getAlias());
 		// fail on update to alias1
 		try {
 			project2.setAlias(alias1);
-			entityService.updateEntity(adminUserId, project2, false, null, mockRequest);
+			entityService.updateEntity(adminUserId, project2, false, null);
 			fail("duplicate entry should have been rejected");
 		} catch (IllegalArgumentException e) {
 			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
 		}
 		project2.setAlias(alias3);
-		project2 = entityService.updateEntity(adminUserId, project2, false, null, mockRequest);
-		assertEquals(alias3, ((Project) entityService.getEntity(adminUserId, project2.getId(), mockRequest)).getAlias());
+		project2 = entityService.updateEntity(adminUserId, project2, false, null);
+		assertEquals(alias3, ((Project) entityService.getEntity(adminUserId, project2.getId())).getAlias());
 		// create alias2 again
 		Project project2Again = new Project();
 		project2Again.setName("project" + UUID.randomUUID());
 		project2Again.setAlias(alias2);
-		project2Again = entityService.createEntity(adminUserId, project2Again, null, mockRequest);
+		project2Again = entityService.createEntity(adminUserId, project2Again, null);
 		toDelete.add(project2Again.getId());
-		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project2Again.getId(), mockRequest)).getAlias());
+		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project2Again.getId())).getAlias());
 	}
 	
 	@Test
@@ -273,10 +273,10 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		table.setName("SampleTable");
 		table.setColumnIds(columnIds);
 		
-		table = entityService.createEntity(adminUserId, table, null, mockRequest);
+		table = entityService.createEntity(adminUserId, table, null);
 		assertEquals(columnIds, table.getColumnIds());
 		
-		table = entityService.getEntity(adminUserId, table.getId(), mockRequest, TableEntity.class);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
 		assertEquals(columnIds, table.getColumnIds());
 	}
 }

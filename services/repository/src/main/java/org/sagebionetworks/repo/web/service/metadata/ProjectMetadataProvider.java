@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.Project;
@@ -22,7 +20,7 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 	SubscriptionManager subscriptionManager;
 
 	@Override
-	public void addTypeSpecificMetadata(Project entity,	HttpServletRequest request, UserInfo user, EventType eventType) {
+	public void addTypeSpecificMetadata(Project entity, UserInfo user, EventType eventType) {
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(entity.getId() == null) throw new IllegalArgumentException("Entity.id cannot be null");
 	}

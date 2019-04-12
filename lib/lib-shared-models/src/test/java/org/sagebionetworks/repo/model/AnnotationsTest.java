@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,7 +13,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
@@ -19,6 +23,12 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
  *
  */
 public class AnnotationsTest {
+	Annotations annotations;
+
+	@BeforeEach
+	public void setUp(){
+		annotations = new Annotations();
+	}
 	
 	@Test
 	public void testAddString(){
@@ -219,8 +229,6 @@ public class AnnotationsTest {
 		Annotations anno = new Annotations();
 		anno.setId("9810");
 		anno.setEtag("456");
-		anno.setCreationDate(new Date(10*1000));
-		anno.setUri("http://localhost:8080/");
 		anno.addAnnotation("byteArray", "This is a bigString".getBytes("UTF-8"));
 		anno.addAnnotation("string", "This is a bigString");
 		anno.addAnnotation("string", "2");
@@ -237,11 +245,50 @@ public class AnnotationsTest {
 		
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testReplaceDate() {
 		java.sql.Date wrongDate = new java.sql.Date(123L);
 		Annotations anno = new Annotations();
-		anno.replaceAnnotation("wrong", wrongDate);
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			anno.replaceAnnotation("wrong", wrongDate);
+		});
+
+	}
+
+	public void testIsEmpty_allMapsEmpty(){
+		Annotations anno = new Annotations();
+		assertTrue(anno.isEmpty());
+	}
+
+	public void testIsEmpty_StringAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", "StringValue");
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_DoubleAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", 6.9);
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_LongAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", 420L);
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_DateAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", new Date());
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_BlobAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", new Object());
+		assertFalse(annotations.isEmpty());
 	}
 
 }

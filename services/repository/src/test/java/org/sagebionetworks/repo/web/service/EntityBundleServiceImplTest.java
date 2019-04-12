@@ -22,13 +22,11 @@ import java.util.List;
 import java.util.Set;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -166,12 +164,12 @@ public class EntityBundleServiceImplTest {
 	@Test
 	public void testCreateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
 		String activityId = "123";
-		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), isNull())).thenReturn(studyWithId);
-		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId), isNull())).thenReturn(studyWithId);
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
+		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId))).thenReturn(studyWithId);
 		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull(), isNull())).thenReturn(acl);
-		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), isNull())).thenReturn(new Annotations());
-		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), isNull())).thenReturn(annos);
+		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull())).thenReturn(acl);
+		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(new Annotations());
+		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos))).thenReturn(annos);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 
 		// Create the bundle, verify contents
@@ -195,9 +193,9 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(acl2);
 		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
 	
-		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), eq(activityId), isNull());
-		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), isNull());
-		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull(), isNull());
+		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), eq(activityId));
+		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos));
+		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull());
 	}
 	
 	@Test
@@ -206,12 +204,12 @@ public class EntityBundleServiceImplTest {
 		annosWithId.setId(STUDY_ID);
 		String activityId = "1";
 			
-		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), isNull())).thenReturn(studyWithId);
-		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId), isNull())).thenReturn(studyWithId);
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
+		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId))).thenReturn(studyWithId);
 		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull(), isNull())).thenReturn(acl);
-		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), isNull())).thenReturn(annosWithId);
-		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), isNull())).thenReturn(annos);
+		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull())).thenReturn(acl);
+		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(annosWithId);
+		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos))).thenReturn(annos);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		
 		// Create the bundle, verify contents
@@ -238,9 +236,9 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(acl2);
 		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
 	
-		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId), isNull());
-		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), isNull());
-		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull(), isNull());
+		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId));
+		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos));
+		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull());
 	}
 	
 	@Test
@@ -284,7 +282,7 @@ public class EntityBundleServiceImplTest {
 		doi.setObjectId(FILE_ID);
 		doi.setObjectVersion(FILE_VERSION);
 
-		when(mockEntityService.getEntity(eq(TEST_USER1), eq(FILE_ID), isNull())).thenReturn(file);
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(FILE_ID))).thenReturn(file);
 		when(mockDoiServiceV2.getDoiAssociation(TEST_USER1, FILE_ID, ObjectType.ENTITY, FILE_VERSION)).thenReturn(doi);
 
 		// Call under test. Note the bundle requests 'null' version
@@ -370,7 +368,7 @@ public class EntityBundleServiceImplTest {
 		long dataFileHandleId = 101L;
 		entity.setDataFileHandleId(""+dataFileHandleId);
 		String fileName = "foo.txt";
-		when(mockEntityService.getEntity(TEST_USER1, entityId, null)).thenReturn(entity);
+		when(mockEntityService.getEntity(TEST_USER1, entityId)).thenReturn(entity);
 		FileHandleResults fhr = new FileHandleResults();
 		List<FileHandle> fhs = new ArrayList<FileHandle>();
 		fhr.setList(fhs);
@@ -396,7 +394,7 @@ public class EntityBundleServiceImplTest {
 		FileEntity entity = new FileEntity();
 		String fileNameOverride = "foo.txt";
 		entity.setFileNameOverride(fileNameOverride);
-		when(mockEntityService.getEntity(TEST_USER1, entityId, null)).thenReturn(entity);
+		when(mockEntityService.getEntity(TEST_USER1, entityId)).thenReturn(entity);
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals(fileNameOverride, bundle.getFileName());

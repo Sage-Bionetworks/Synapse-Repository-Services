@@ -58,23 +58,6 @@ public class UrlHelperTest {
 		assertEquals("http://localhost:8080/repo/v1", url);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testsetEntityUriNullClass(){
-		UrlHelpers.createEntityUri("12", null, "http://localhost:8080/repo/v1");
-	}
-	
-	
-	@Test 
-	public void testsetEntityUriAllTypes(){
-		EntityType[] array = EntityType.values();
-		String uriPrefix = "/repo/v1";
-		String id = "123";
-		for(EntityType type: array){
-			String expectedUri = uriPrefix+UrlHelpers.ENTITY+"/"+id;
-			String uri = UrlHelpers.createEntityUri(id, EntityTypeUtils.getClassForType(type), "");
-			assertEquals(expectedUri, uri);
-		}
-	}
 
 	@Test
 	public void testCreateACLRedirectURL(){

@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -67,15 +65,13 @@ public interface EntityService {
 	 * @param userId
 	 * @param id
 	 *            the unique identifier for the entity to be returned
-	 * @param request
-	 *            used to get the servlet URL prefix
 	 * @return the entity or exception if not found
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Entity> T getEntity(Long userId, String id,
-			HttpServletRequest request, Class<? extends T> clazz)
+										  Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -83,19 +79,18 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param id
-	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Entity getEntity(Long userId, String id, HttpServletRequest request)
+	public Entity getEntity(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
 	 */
-	public List<EntityHeader> getEntityHeaderByMd5(Long userId, String md5, HttpServletRequest request)
+	public List<EntityHeader> getEntityHeaderByMd5(Long userId, String md5)
 			throws NotFoundException, DatastoreException;
 
 	/**
@@ -104,7 +99,6 @@ public interface EntityService {
 	 * @param <T>
 	 * @param info
 	 * @param id
-	 * @param request
 	 * @param clazz
 	 * @return
 	 * @throws NotFoundException
@@ -112,8 +106,8 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Entity> T getEntity(UserInfo info, String id,
-			HttpServletRequest request, Class<? extends T> clazz,
-			EventType eventType) throws NotFoundException, DatastoreException,
+										  Class<? extends T> clazz,
+										  EventType eventType) throws NotFoundException, DatastoreException,
 			UnauthorizedException;
 
 	/**
@@ -124,7 +118,6 @@ public interface EntityService {
 	 * @param userId
 	 * @param id
 	 * @param versionNumber
-	 * @param request
 	 * @param clazz
 	 * @return
 	 * @throws NotFoundException
@@ -132,8 +125,8 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Entity> T getEntityForVersion(Long userId, String id,
-			Long versionNumber, HttpServletRequest request,
-			Class<? extends T> clazz) throws NotFoundException,
+													Long versionNumber,
+													Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
 	/**
@@ -142,14 +135,13 @@ public interface EntityService {
 	 * @param userId
 	 * @param id
 	 * @param versionNumber
-	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
 	public Entity getEntityForVersion(Long userId, String id,
-			Long versionNumber, HttpServletRequest request)
+									  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -159,7 +151,6 @@ public interface EntityService {
 	 * @param info
 	 * @param id
 	 * @param versionNumber
-	 * @param request
 	 * @param clazz
 	 * @return
 	 * @throws NotFoundException
@@ -167,8 +158,8 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Entity> T getEntityForVersion(UserInfo info, String id,
-			Long versionNumber, HttpServletRequest request,
-			Class<? extends T> clazz) throws NotFoundException,
+													Long versionNumber,
+													Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
 	/**
@@ -177,8 +168,6 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param newEntity
-	 * @param request
-	 *            used to get the servlet URL prefix
 	 * @return the newly created entity
 	 * @throws InvalidModelException
 	 * @throws DatastoreException
@@ -186,7 +175,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 */
 	public <T extends Entity> T createEntity(Long userId, T newEntity,
-			String activityId, HttpServletRequest request)
+											 String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
 
@@ -207,13 +196,11 @@ public interface EntityService {
 	 * Update an existing entity
 	 * <p>
 	 * 
-	 * @param userId
 	 * @param id
 	 *            the unique identifier for the entity to be updated
+	 * @param userId
 	 * @param updatedEntity
 	 *            the object with which to overwrite the currently stored entity
-	 * @param request
-	 *            used to get the servlet URL prefix
 	 * @return the updated entity
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
@@ -222,7 +209,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Entity> T updateEntity(Long userId, T updatedEntity,
-			boolean newVersion, String activityId, HttpServletRequest request)
+											 boolean newVersion, String activityId)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
 
@@ -258,14 +245,12 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param id
-	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Annotations getEntityAnnotations(Long userId, String id,
-			HttpServletRequest request) throws NotFoundException,
+	public Annotations getEntityAnnotations(Long userId, String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
 	/**
@@ -274,14 +259,13 @@ public interface EntityService {
 	 * @param userId
 	 * @param id
 	 * @param versionNumber
-	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
 	public Annotations getEntityAnnotationsForVersion(Long userId, String id,
-			Long versionNumber, HttpServletRequest request)
+													  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -289,18 +273,16 @@ public interface EntityService {
 	 * 
 	 * @param info
 	 * @param id
-	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Annotations getEntityAnnotations(UserInfo info, String id,
-			HttpServletRequest request) throws NotFoundException,
+	public Annotations getEntityAnnotations(UserInfo info, String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
 	public Annotations updateEntityAnnotations(Long userId, String entityId,
-			Annotations updatedAnnotations, HttpServletRequest request)
+											   Annotations updatedAnnotations)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException;
 
@@ -308,12 +290,10 @@ public interface EntityService {
 	 * Create a new entity
 	 * <p>
 	 * 
-	 * @param userId
-	 * @param newEntity
-	 * @param request
-	 *            used to get the servlet URL prefix
 	 * @param clazz
 	 *            the class of the entity who ACL this is
+	 * @param userId
+	 * @param newEntity
 	 * @return the newly created entity
 	 * @throws InvalidModelException
 	 * @throws DatastoreException
@@ -322,7 +302,7 @@ public interface EntityService {
 	 * @throws ConflictingUpdateException
 	 */
 	public AccessControlList createEntityACL(Long userId,
-			AccessControlList newEntity, HttpServletRequest request)
+											 AccessControlList newEntity)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException,
 			ConflictingUpdateException;
@@ -350,10 +330,9 @@ public interface EntityService {
 	 * Get information about an entity's permissions.
 	 * 
 	 * @param <T>
+	 * @param clazz
 	 * @param entityId
 	 * @param userId
-	 * @param request
-	 * @param clazz
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -361,7 +340,7 @@ public interface EntityService {
 	 * @throws ACLInheritanceException
 	 */
 	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId,
-			Long userId, HttpServletRequest request)
+															   Long userId)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException;
 
@@ -379,8 +358,7 @@ public interface EntityService {
 	 * @throws InvalidModelException
 	 */
 	public AccessControlList updateEntityACL(Long userId,
-			AccessControlList updated, String recursive,
-			HttpServletRequest request) throws DatastoreException,
+											 AccessControlList updated, String recursive) throws DatastoreException,
 			NotFoundException, InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException;
 
@@ -393,7 +371,6 @@ public interface EntityService {
 	 * @param userId
 	 * @param acl
 	 * @param recursive
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -402,7 +379,7 @@ public interface EntityService {
 	 * @throws ConflictingUpdateException
 	 */
 	public AccessControlList createOrUpdateEntityACL(Long userId,
-			AccessControlList acl, String recursive, HttpServletRequest request)
+													 AccessControlList acl, String recursive)
 			throws DatastoreException, NotFoundException,
 			InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException;
@@ -427,9 +404,9 @@ public interface EntityService {
 	 * determine whether a user has the given access type for a given entity
 	 * 
 	 * @param nodeId
-	 * @param userId
 	 * @param clazz
 	 *            the class of the entity
+	 * @param userId
 	 * @param accessType
 	 * @return
 	 * @throws NotFoundException
@@ -437,7 +414,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Entity> boolean hasAccess(String entityId, Long userId,
-			HttpServletRequest request, String accessType)
+												String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -517,15 +494,13 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param entityId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws ParseException
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public boolean doesEntityHaveChildren(Long userId, String entityId,
-			HttpServletRequest request) throws DatastoreException,
+	public boolean doesEntityHaveChildren(Long userId, String entityId) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -533,13 +508,12 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param entityId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Activity getActivityForEntity(Long userId, String entityId, HttpServletRequest request)
+	public Activity getActivityForEntity(Long userId, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -548,14 +522,13 @@ public interface EntityService {
 	 * @param userId
 	 * @param entityId
 	 * @param versionNumber
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
 	public Activity getActivityForEntity(Long userId, String entityId,
-			Long versionNumber, HttpServletRequest request)
+										 Long versionNumber)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -564,27 +537,24 @@ public interface EntityService {
 	 * @param userId
 	 * @param entityId
 	 * @param activityId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
 	public Activity setActivityForEntity(Long userId, String entityId,
-			String activityId, HttpServletRequest request)
+										 String activityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Deletes the generatedBy relationship for the given Entity
 	 * @param userId
 	 * @param entityId
-	 * @param request
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public void deleteActivityForEntity(Long userId, String entityId,
-			HttpServletRequest request) throws DatastoreException,
+	public void deleteActivityForEntity(Long userId, String entityId) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
 
 	/**

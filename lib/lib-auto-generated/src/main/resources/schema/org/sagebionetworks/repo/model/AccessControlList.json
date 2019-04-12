@@ -26,9 +26,6 @@
 		"etag": {
 			"type": "string"
 		},
-		"uri": {
-			"type": "string"
-		},
 		"resourceAccess": {
 			"type": "array",
 			"description": "The list of principals who can access the data with the allowed types of access for each.",
