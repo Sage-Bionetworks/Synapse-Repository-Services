@@ -818,6 +818,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new DatastoreException(e);
 		} 
 	}
+
+	//TODO: delete after concreteType annotations are cleaned up
+	@WriteTransaction
+	public void TEMPORARYMETHODupdateAnnotationsForVersion(long nodeId, long revisionNumber, NamedAnnotations updatedAnnos){
+		try {
+			// Compress the annotations.
+			byte[] newAnnos = JDOSecondaryPropertyUtils.compressAnnotations(updatedAnnos);
+			this.jdbcTemplate.update(SQL_UPDATE_ANNOTATIONS, newAnnos, nodeId, revisionNumber);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
+	}
 	
 	@Override
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException {
