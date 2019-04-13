@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.migration;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -293,7 +294,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		try {
 			backupObjects = (List<B>) xstream.fromXML(input);
 		} catch (StreamException e) {
-			if (!e.getMessage().contains(INPUT_CONTAINED_NO_DATA)) {
+			if (!(e.getCause() instanceof EOFException && e.getCause().getMessage().contains(INPUT_CONTAINED_NO_DATA))) {
 				throw new RuntimeException(e);
 			}
 			// This file is empty so move to the next file...

@@ -248,6 +248,7 @@ public class ColumnModelUtils {
 	
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
+		xstream.allowTypes(new Class[]{ColumnModel.class, ColumnType.class, ColumnChange.class});
 		xstream.alias("ColumnModel", ColumnModel.class);
 		xstream.alias("ColumnType", ColumnType.class);
 		xstream.alias("ColumnChange", ColumnChange.class);
