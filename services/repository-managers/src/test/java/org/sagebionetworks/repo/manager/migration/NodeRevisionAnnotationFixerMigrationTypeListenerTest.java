@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,7 +49,7 @@ class NodeRevisionAnnotationFixerMigrationTypeListenerTest {
 	DBORevision dboRevision2;
 
 	@BeforeEach
-	public void setUp(){
+	void setUp(){
 		when(mockStackConfiguration.getQueueName(anyString())).thenReturn(stackQueueName);
 		when(mockSqsClient.createQueue(stackQueueName)).thenReturn(new CreateQueueResult().withQueueUrl(queueURL));
 
@@ -75,8 +77,7 @@ class NodeRevisionAnnotationFixerMigrationTypeListenerTest {
 
 		listener.afterCreateOrUpdate(MigrationType.NODE_REVISION, delta);
 
-		verify(mockSqsClient).sendMessage(queueURL, "123;42");
-		verify(mockSqsClient).sendMessage(queueURL, "456;10");
+		verify(mockSqsClient).sendMessage(queueURL, "123;42\n456;10");
 		verifyNoMoreInteractions(mockSqsClient);
 	}
 
@@ -91,8 +92,23 @@ class NodeRevisionAnnotationFixerMigrationTypeListenerTest {
 	}
 
 	@Test
-	void testInit() {
+	void init() {
 		listener.init();
 		assertEquals(queueURL, listener.queueUrl);
+	}
+
+	@Test
+	void afterCreateOrUpdate_MultipleMessageBatches() throws NoSuchFieldException, IllegalAccessException {
+		//change max value
+		listener.setMaxBytesPerBatch(10);
+
+		listener.afterCreateOrUpdate(MigrationType.NODE_REVISION, delta);
+
+		verify(mockSqsClient).sendMessage(queueURL, "123;42");
+		verify(mockSqsClient).sendMessage(queueURL, "456;10");
+
+		verifyNoMoreInteractions(mockSqsClient);
+
+		listener.setMaxBytesPerBatch(NodeRevisionAnnotationFixerMigrationTypeListener.SQS_MESSAGE_MAX_BYTES);
 	}
 }
