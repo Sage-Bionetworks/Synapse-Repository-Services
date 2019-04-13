@@ -17,6 +17,7 @@ import java.util.List;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -77,7 +78,7 @@ class NodeRevisionAnnotationFixerMigrationTypeListenerTest {
 
 		listener.afterCreateOrUpdate(MigrationType.NODE_REVISION, delta);
 
-		verify(mockSqsClient).sendMessage(queueURL, "123;42\n456;10");
+		verify(mockSqsClient).sendMessage(expectedMessage("123;42\n456;10"));
 		verifyNoMoreInteractions(mockSqsClient);
 	}
 
@@ -86,7 +87,7 @@ class NodeRevisionAnnotationFixerMigrationTypeListenerTest {
 
 		listener.afterCreateOrUpdate(MigrationType.NODE_REVISION, Arrays.asList(new DBOAccessControlList(),dboRevision1));
 
-		verify(mockSqsClient).sendMessage(queueURL, "123;42");
+		verify(mockSqsClient).sendMessage(expectedMessage("123;42"));
 		verifyNoMoreInteractions(mockSqsClient);
 
 	}
@@ -104,11 +105,16 @@ class NodeRevisionAnnotationFixerMigrationTypeListenerTest {
 
 		listener.afterCreateOrUpdate(MigrationType.NODE_REVISION, delta);
 
-		verify(mockSqsClient).sendMessage(queueURL, "123;42");
-		verify(mockSqsClient).sendMessage(queueURL, "456;10");
+		verify(mockSqsClient).sendMessage(expectedMessage("123;42"));
+		verify(mockSqsClient).sendMessage(expectedMessage("456;10"));
 
 		verifyNoMoreInteractions(mockSqsClient);
 
 		listener.setMaxBytesPerBatch(NodeRevisionAnnotationFixerMigrationTypeListener.SQS_MESSAGE_MAX_BYTES);
+	}
+
+
+	SendMessageRequest expectedMessage(String message){
+		return new SendMessageRequest().withQueueUrl(queueURL).withMessageBody(message).withDelaySeconds(30);
 	}
 }

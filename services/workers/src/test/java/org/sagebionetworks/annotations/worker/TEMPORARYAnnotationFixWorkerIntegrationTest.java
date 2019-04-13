@@ -95,7 +95,7 @@ class TEMPORARYAnnotationFixWorkerIntegrationTest {
 		dborevisoin2.setRevisionNumber(node2.getVersionNumber());
 		listener.afterCreateOrUpdate(MigrationType.NODE_REVISION, Arrays.asList(dborevisoin1,dborevisoin2));
 
-		long maxWaitMillis = 15 * 1000;
+		long maxWaitMillis = 45 * 1000;
 		long startTime = System.currentTimeMillis();
 
 		//keep checking until the annotations no longer contain "concreteType"

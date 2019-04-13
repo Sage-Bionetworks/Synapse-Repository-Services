@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.StringJoiner;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
@@ -46,14 +47,14 @@ public class NodeRevisionAnnotationFixerMigrationTypeListener implements Migrati
 			if(stringJoiner.length() + message.length() < maxBytesPerBatch) {
 				stringJoiner.add(message);
 			}else { //if message would exceed length. send out current message and build up a new string joiner
-				sqsClient.sendMessage(queueUrl, stringJoiner.toString());
+				sendMessageWithDelay(stringJoiner.toString());
 				stringJoiner = createStringJoiner();
 				stringJoiner.add(message);
 			}
 		}
 
 		if(stringJoiner.length() > 0) {
-			sqsClient.sendMessage(queueUrl, stringJoiner.toString());
+			sendMessageWithDelay(stringJoiner.toString());
 		}
 
 	}
@@ -69,5 +70,9 @@ public class NodeRevisionAnnotationFixerMigrationTypeListener implements Migrati
 	public void init(){
 		this.maxBytesPerBatch = SQS_MESSAGE_MAX_BYTES;
 		queueUrl = sqsClient.createQueue(stackConfiguration.getQueueName(QUEUE_BASE_NAME)).getQueueUrl();
+	}
+
+	private void sendMessageWithDelay(String message){
+		sqsClient.sendMessage(new SendMessageRequest().withQueueUrl(queueUrl).withMessageBody(message).withDelaySeconds(30));
 	}
 }
