@@ -60,6 +60,7 @@
 	<import resource="classpath:storage-report-worker-sqs-spb.xml" />
     <import resource="classpath:add-files-to-download-list-spb.xml" />
     <import resource="classpath:memory-logger-trigger-spb.xml" />
+	<import resource="classpath:temporary-annotation-fix-worker.xml" />
 
 
 	<util:list id="workersList">
@@ -100,6 +101,7 @@
 		<ref bean="jobIntervalProcessorTrigger" />
 		<ref bean="idGeneratorCleanuSynchTrigger" />
 		<ref bean="memoryLoggerTrigger" />
+		<ref bean="temporaryAnnotationFixWorkerTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"
