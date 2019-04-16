@@ -60,6 +60,7 @@
 	<import resource="classpath:storage-report-worker-sqs-spb.xml" />
     <import resource="classpath:add-files-to-download-list-spb.xml" />
     <import resource="classpath:memory-logger-trigger-spb.xml" />
+    <import resource="classpath:semaphore-garbage-collection-spb.xml" />
 	<import resource="classpath:temporary-annotation-fix-worker.xml" />
 
 
@@ -101,6 +102,7 @@
 		<ref bean="jobIntervalProcessorTrigger" />
 		<ref bean="idGeneratorCleanuSynchTrigger" />
 		<ref bean="memoryLoggerTrigger" />
+		<ref bean="semaphoreGarbageCollectionTrigger" />
 		<ref bean="temporaryAnnotationFixWorkerTrigger"/>
 	</util:list>
 

@@ -597,7 +597,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>3.0.0</version>
+				<version>3.0.1</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
