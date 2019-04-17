@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.ObjectTypeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynch;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -114,7 +115,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
-	ReplicationMessageManager replicationMessageManager;
+	ReplicationMessageManagerAsynch replicationMessageManagerAsynch;
 	@Autowired
 	ObjectTypeManager objectTypeManager;
 	
@@ -353,7 +354,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			// all other views reconcile one the view's scope.
 			containersToReconcile.addAll(viewContainers);
 		}
-		this.replicationMessageManager.pushContainerIdsToReconciliationQueue(containersToReconcile);
+		this.replicationMessageManagerAsynch.pushContainerIdsToReconciliationQueue(containersToReconcile);
 	}
 	
 
