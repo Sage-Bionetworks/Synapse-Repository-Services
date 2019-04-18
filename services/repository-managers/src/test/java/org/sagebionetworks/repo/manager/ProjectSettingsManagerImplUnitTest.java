@@ -27,7 +27,7 @@ import com.amazonaws.services.s3.model.S3Object;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class ProjectSettingsManagerImplUnitlTest {
+public class ProjectSettingsManagerImplUnitTest {
 	private UserInfo userInfo;
 
 	@InjectMocks
