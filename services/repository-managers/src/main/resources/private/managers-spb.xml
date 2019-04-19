@@ -261,8 +261,6 @@
 	
 	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" scope="singleton"/>
 
-	<bean id="nodeRevisionAnnotationFixerMigrationTypeListener" class="org.sagebionetworks.repo.manager.migration.NodeRevisionAnnotationFixerMigrationTypeListener" init-method="init"/>
-
 	<bean
 		id="migrationManager"
 		class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
@@ -273,7 +271,6 @@
 			ref="stackConfiguration.migrationBackupBatchMax" />
 		<property name="migrationListeners" >
 			<list>
-				<ref bean="nodeRevisionAnnotationFixerMigrationTypeListener"/>
 			</list>
 		</property>
 	</bean>
