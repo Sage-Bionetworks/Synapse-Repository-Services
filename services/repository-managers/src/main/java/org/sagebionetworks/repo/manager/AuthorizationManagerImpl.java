@@ -635,10 +635,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
 		if (req.getIsCertifiedUserRequired()) {
-			ValidateArgument.requirement(groupMembersDao.areMemberOf(
+			if(!groupMembersDao.areMemberOf(
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessors),
-					"Accessors must be Synapse Certified Users.");
+					accessors)){
+				throw new UserCertificationRequiredException("Accessors must be Synapse Certified Users.");
+			}
 		}
 		if (req.getIsValidatedProfileRequired()) {
 			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),

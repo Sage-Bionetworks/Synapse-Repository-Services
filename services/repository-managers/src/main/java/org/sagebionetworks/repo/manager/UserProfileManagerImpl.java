@@ -254,9 +254,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 */
 	public static Set<Long> getGroupsMinusPublic(Set<Long> usersGroups){
 		Set<Long> groups = Sets.newHashSet(usersGroups);
-		groups.remove(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue());
-		groups.remove(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue());
-		groups.remove(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue());
+		groups.remove(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		groups.remove(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		groups.remove(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		return groups;
 	}
 
