@@ -101,7 +101,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownOneHandle = new S3FileHandle();
 		markdownOneHandle.setCreatedBy(adminUserIdString);
 		markdownOneHandle.setCreatedOn(new Date());
-		markdownOneHandle.setBucketName("bucket");
+		markdownOneHandle.setBucketName(S3_BUCKET_NAME);
 		markdownOneHandle.setKey("markdownKey");
 		markdownOneHandle.setEtag("etag");
 		markdownOneHandle.setFileName("markdown");
@@ -111,7 +111,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownTwoHandle = new S3FileHandle();
 		markdownTwoHandle.setCreatedBy(adminUserIdString);
 		markdownTwoHandle.setCreatedOn(new Date());
-		markdownTwoHandle.setBucketName("bucket");
+		markdownTwoHandle.setBucketName(S3_BUCKET_NAME);
 		markdownTwoHandle.setKey("markdownKey2");
 		markdownTwoHandle.setEtag("etag2");
 		markdownTwoHandle.setFileName("markdown2");
