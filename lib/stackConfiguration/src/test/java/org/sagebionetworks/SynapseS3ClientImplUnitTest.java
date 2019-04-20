@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,7 @@ import com.amazonaws.services.s3.model.CopyPartResult;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.HeadBucketResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -69,7 +71,8 @@ public class SynapseS3ClientImplUnitTest {
 		client = new SynapseS3ClientImpl(regionSpecificClients);
 		
 		// this setting is used by most tests in this class, overridden where necessary
-		when(mockAmazonUSStandardClient.getBucketLocation(BUCKET_NAME)).thenReturn(BUCKET_REGION.getFirstRegionId());
+		HeadBucketResult headBucketResult = new HeadBucketResult().withBucketRegion(BUCKET_REGION.getFirstRegionId());
+		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(headBucketResult);
 	}
 	
 	@Test
@@ -79,17 +82,17 @@ public class SynapseS3ClientImplUnitTest {
 	
 	@Test
 	public void testGetRegionForBucketUSStandard() {
-		when(mockAmazonUSStandardClient.getBucketLocation(BUCKET_NAME)).thenReturn(null);
+		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(new HeadBucketResult().withBucketRegion(null));
 		assertEquals(Region.US_Standard, client.getRegionForBucket(BUCKET_NAME));
 		
 		// just in case they start returning a zero length string instead of null:
-		when(mockAmazonUSStandardClient.getBucketLocation(BUCKET_NAME)).thenReturn("");
+		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(new HeadBucketResult().withBucketRegion(""));
 		assertEquals(Region.US_Standard, client.getRegionForBucket(BUCKET_NAME));
 	}
 	
 	@Test(expected=CannotDetermineBucketLocationException.class)
 	public void testGetRegionForBucketCantTellRegion() {
-		when(mockAmazonUSStandardClient.getBucketLocation(BUCKET_NAME)).thenThrow(new AmazonS3Exception("can't check region"));
+		when(mockAmazonUSStandardClient.headBucket(any())).thenThrow(new AmazonS3Exception("can't check region"));
 		client.getRegionForBucket(BUCKET_NAME);
 	}
 	

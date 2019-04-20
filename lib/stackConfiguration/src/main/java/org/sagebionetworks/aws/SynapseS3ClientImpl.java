@@ -24,6 +24,8 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.HeadBucketRequest;
+import com.amazonaws.services.s3.model.HeadBucketResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -56,10 +58,13 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	public Region getRegionForBucket(String bucketName) {
 		String location = null;
 		try {
-			location = getUSStandardAmazonClient().getBucketLocation(bucketName);
+			// previously we used getBucketLocation but for some regions it doesn't work if the client is not in the correct region!!! :^(
+			HeadBucketRequest headBucketRequest = new HeadBucketRequest(bucketName);
+			HeadBucketResult headBucketResult = getUSStandardAmazonClient().headBucket(headBucketRequest);
+			location = headBucketResult.getBucketRegion();
 		}  catch (AmazonS3Exception e) {
 			throw new CannotDetermineBucketLocationException("Failed to determine the Amazon region for bucket '"+bucketName+
-					"'. Please ensure that the bucket's policy grants 's3:GetBucketLocation' permission to Synapse.", e);
+					"'. Please ensure that the bucket exists and is shared with Synapse.", e);
 		}
 		Region result = null;
 		if (StringUtils.isNullOrEmpty(location)) {
