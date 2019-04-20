@@ -81,10 +81,13 @@ public class SynapseS3ClientImplUnitTest {
 	}
 	
 	@Test
-	public void testGetRegionForBucketUSStandard() {
+	public void testGetRegionForBucketUSStandardAsNull() {
 		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(new HeadBucketResult().withBucketRegion(null));
 		assertEquals(Region.US_Standard, client.getRegionForBucket(BUCKET_NAME));
-		
+	}
+	
+	@Test
+	public void testGetRegionForBucketUSStandardAsEmptyString() {
 		// just in case they start returning a zero length string instead of null:
 		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(new HeadBucketResult().withBucketRegion(""));
 		assertEquals(Region.US_Standard, client.getRegionForBucket(BUCKET_NAME));
