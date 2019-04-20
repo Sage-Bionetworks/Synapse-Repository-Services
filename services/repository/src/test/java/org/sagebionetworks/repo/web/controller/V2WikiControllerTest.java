@@ -80,7 +80,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOneHandle = new S3FileHandle();
 		fileOneHandle.setCreatedBy(adminUserIdString);
 		fileOneHandle.setCreatedOn(new Date());
-		fileOneHandle.setBucketName(xS3_BUCKET_NAME);
+		fileOneHandle.setBucketName(S3_BUCKET_NAME);
 		fileOneHandle.setKey("mainFileKey");
 		fileOneHandle.setEtag("etag");
 		fileOneHandle.setFileName("foo.bar");
