@@ -38,7 +38,7 @@ public class SynapseS3ClientImplTest {
 	}
 
 	@Test(expected=CannotDetermineBucketLocationException.class)
-	public void testGetRegionForBucketOrAssumeUSStandard_NonexistentBucket() {
+	public void testGetRegionForBucket_NonexistentBucket() {
 		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucket("some-nonexistent-bucket"));
 	}
 
