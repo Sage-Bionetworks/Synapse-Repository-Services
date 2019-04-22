@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
@@ -29,7 +28,7 @@ public class CountingSemaphoreThrottleAutowireTest {
 	@Before
 	public void before() {
 		key = "CountingSemaphoreThrottleTest";
-		timeoutSec = 10;
+		timeoutSec = 100;
 		maxLockCount = 1;
 		countingSemaphore.releaseAllLocks();
 	}
@@ -46,7 +45,6 @@ public class CountingSemaphoreThrottleAutowireTest {
 		assertEquals("Three calls should have trottled three times",3L, elapseThrottleCount);
 	}
 	
-	@Ignore
 	@Test
 	public void testThrottleFailedAttemptToAcquireLocks() {
 		long startCount = throttle.getFailedLockAttemptCount();
