@@ -239,41 +239,5 @@ public class UserProfileUtilsTest {
 		fail("principalId can not be null");
 	}
 	
-	@Test
-	public void testProfileMigrationTranslation() throws IOException{
-		// For this test the properties contain all data that must be expanded to the DTO
-		UserProfile hasAllData = new UserProfile();
-		hasAllData.setFirstName("firstName");
-		hasAllData.setLastName("lastName");
-		Settings settings = new Settings();
-		settings.setSendEmailNotifications(true);
-		hasAllData.setNotificationSettings(settings);
-		// all of this data is only in the properties.
-		DBOUserProfile backup = new DBOUserProfile();
-		backup.setProperties(JDOSecondaryPropertyUtils.compressObject(hasAllData));
-		// translate
-		DBOUserProfile translated = new DBOUserProfile().getTranslator().createDatabaseObjectFromBackup(backup);
-		assertEquals(hasAllData.getFirstName(), new String(translated.getFirstName(), "UTF-8"));
-		assertEquals(hasAllData.getLastName(), new String(translated.getLastName(), "UTF-8"));
-		assertTrue(translated.isEmailNotification());
-	}
-	
-	@Test
-	public void testProfileMigrationTranslationNull() throws IOException{
-		// For this test the properties contain all data that must be expanded to the DTO
-		UserProfile hasAllData = new UserProfile();
-		hasAllData.setFirstName(null);
-		hasAllData.setLastName(null);
-		hasAllData.setNotificationSettings(null);
-		// all of this data is only in the properties.
-		DBOUserProfile backup = new DBOUserProfile();
-		backup.setProperties(JDOSecondaryPropertyUtils.compressObject(hasAllData));
-		// translate
-		DBOUserProfile translated = new DBOUserProfile().getTranslator().createDatabaseObjectFromBackup(backup);
-		assertNull(translated.getFirstName());
-		assertNull(translated.getLastName());
-		// should default to true
-		assertTrue(translated.isEmailNotification());
-	}
 }
 
