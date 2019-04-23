@@ -62,6 +62,7 @@ public class AwsClientFactory {
 			builder.withCredentials(SynapseCredentialProviderChain.getInstance());
 			builder.withRegion(region);
 			builder.withPathStyleAccessEnabled(true);
+			builder.withForceGlobalBucketAccessEnabled(true);
 			AmazonS3 amazonS3 = builder.build();
 			regionSpecificS3Clients.put(getS3RegionForAWSRegions(region), amazonS3);
 		}
