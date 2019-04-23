@@ -240,11 +240,13 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -5036,6 +5038,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url.append(nextPageToken);
 		}
 		return postJSONEntity(getRepoEndpoint(), url.toString(), scope, ColumnModelPage.class);
+	}
+	
+	@Override
+	public String transformSqlRequest(TransformSqlWithFacetsRequest request) throws SynapseException {
+		SqlTransformResponse response = postJSONEntity(getRepoEndpoint(), "/table/sql/transform", request,
+				SqlTransformResponse.class);
+		return response.getTransformedSql();
 	}
 
 	@Override
