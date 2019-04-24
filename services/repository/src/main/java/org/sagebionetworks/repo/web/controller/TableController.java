@@ -1163,7 +1163,7 @@ public class TableController {
 	/**
 	 * Request to transform the provided SQL based on the request parameters. For
 	 * example, a <a href=
-	 * "${org.sagebionetworks.repo.model.tabe.TransformSqlWithFacetsRequest}"
+	 * "${org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest}"
 	 * >TransformSqlWithFacetsRequest</a> can be used to alter the where clause
 	 * of the provided SQL based on the provided selected facets.
 	 * 
