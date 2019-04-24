@@ -240,6 +240,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -5041,7 +5042,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public String transformSqlRequest(TransformSqlWithFacetsRequest request) throws SynapseException {
+	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException {
 		SqlTransformResponse response = postJSONEntity(getRepoEndpoint(), "/table/sql/transform", request,
 				SqlTransformResponse.class);
 		return response.getTransformedSql();
