@@ -9,7 +9,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import com.amazonaws.services.s3.internal.BucketNameUtils;
+import com.google.common.net.InternetDomainName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -194,7 +194,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			BucketNameUtils.validateBucketName(externalS3StorageLocationSetting.getBucket());
+
+			//A valid bucket name must also be a valid domain name
+			ValidateArgument.requirement(InternetDomainName.isValid(externalS3StorageLocationSetting.getBucket()), "Invalid Bucket Name");
+
 			validateBucketAccess(externalS3StorageLocationSetting);
 			validateOwnership(externalS3StorageLocationSetting, userProfile);
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
@@ -207,9 +210,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			//strip leading and trailing slashes and whitespace from the endpointUrl and bucket
 			String strippedEndpoint = StringUtils.strip(externalObjectS3StorageLocationSetting.getEndpointUrl(), "/ \t");
 
-			//validate
+			//validate url
 			ValidateArgument.validUrl(strippedEndpoint);
-			BucketNameUtils.validateBucketName(externalObjectS3StorageLocationSetting.getBucket());
+			//A valid bucket name must also be a valid domain name
+			ValidateArgument.requirement(InternetDomainName.isValid(externalObjectS3StorageLocationSetting.getBucket()), "Invalid Bucket Name");
 
 			//passed validation, set endpoint as the stripped version
 			externalObjectS3StorageLocationSetting.setEndpointUrl(strippedEndpoint);

@@ -97,6 +97,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	public void testCreateExternalObjectStorageLocationSetting_InvalidS3BucketName(){
 		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setBucket("s3://my-bucket-name-is-wrong/");
+		externalObjectStorageLocationSetting.setEndpointUrl("https://myendpoint.com");
 
 		assertThrows(IllegalArgumentException.class, ()->{
 			// method under test
