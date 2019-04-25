@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
@@ -65,6 +66,8 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private S3FileHandle markdownTwoHandle;
 	private PreviewFileHandle fileOnePreviewHandle;
 	
+	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
+
 	@Before
 	public void before() throws Exception{
 		// get user IDs
@@ -77,7 +80,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOneHandle = new S3FileHandle();
 		fileOneHandle.setCreatedBy(adminUserIdString);
 		fileOneHandle.setCreatedOn(new Date());
-		fileOneHandle.setBucketName("bucket");
+		fileOneHandle.setBucketName(S3_BUCKET_NAME);
 		fileOneHandle.setKey("mainFileKey");
 		fileOneHandle.setEtag("etag");
 		fileOneHandle.setFileName("foo.bar");
@@ -88,7 +91,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOnePreviewHandle = new PreviewFileHandle();
 		fileOnePreviewHandle.setCreatedBy(adminUserIdString);
 		fileOnePreviewHandle.setCreatedOn(new Date());
-		fileOnePreviewHandle.setBucketName("bucket");
+		fileOnePreviewHandle.setBucketName(S3_BUCKET_NAME);
 		fileOnePreviewHandle.setKey("previewFileKey");
 		fileOnePreviewHandle.setEtag("etag");
 		fileOnePreviewHandle.setFileName("bar.txt");
@@ -98,7 +101,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownOneHandle = new S3FileHandle();
 		markdownOneHandle.setCreatedBy(adminUserIdString);
 		markdownOneHandle.setCreatedOn(new Date());
-		markdownOneHandle.setBucketName("bucket");
+		markdownOneHandle.setBucketName(S3_BUCKET_NAME);
 		markdownOneHandle.setKey("markdownKey");
 		markdownOneHandle.setEtag("etag");
 		markdownOneHandle.setFileName("markdown");
@@ -108,7 +111,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownTwoHandle = new S3FileHandle();
 		markdownTwoHandle.setCreatedBy(adminUserIdString);
 		markdownTwoHandle.setCreatedOn(new Date());
-		markdownTwoHandle.setBucketName("bucket");
+		markdownTwoHandle.setBucketName(S3_BUCKET_NAME);
 		markdownTwoHandle.setKey("markdownKey2");
 		markdownTwoHandle.setEtag("etag2");
 		markdownTwoHandle.setFileName("markdown2");

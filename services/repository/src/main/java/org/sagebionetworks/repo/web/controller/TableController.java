@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -45,6 +47,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -1157,4 +1160,20 @@ public class TableController {
 						nextPageToken);
 	}
 
+	/**
+	 * Request to transform the provided SQL based on the request parameters. For
+	 * example, a <a href=
+	 * "${org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest}"
+	 * >TransformSqlWithFacetsRequest</a> can be used to alter the where clause
+	 * of the provided SQL based on the provided selected facets.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws ParseException 
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_SQL_TRANSFORM, method = RequestMethod.POST)
+	public @ResponseBody SqlTransformResponse transformSqlRequest(@RequestBody SqlTransformRequest request) throws ParseException {
+		return serviceProvider.getTableServices().transformSqlRequest(request);
+	}
 }

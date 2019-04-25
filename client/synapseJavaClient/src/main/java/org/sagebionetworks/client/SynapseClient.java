@@ -197,9 +197,11 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
@@ -3130,4 +3132,17 @@ public interface SynapseClient extends BaseClient {
 	String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException;
 
 	DownloadStorageReportResponse generateStorageReportAsyncGet(String asyncJobToken) throws SynapseException;
+
+	/**
+	 * Request to transform the provided SQL based on the request parameters. For
+	 * example, a
+	 * {@linkplain org.sagebionetworks.repo.model.tabe.TransformSqlWithFacetsRequest}
+	 * can be used to alter the where clause of the provided SQL based on the
+	 * provided selected facets.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException;
 }
