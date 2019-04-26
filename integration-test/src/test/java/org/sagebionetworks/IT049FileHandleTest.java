@@ -316,7 +316,7 @@ public class IT049FileHandleTest {
 	public void testExternalObjectStoreFileHandleRoundTrip() throws SynapseException {
 		//create a new StorageLocationSetting
 		ExternalObjectStorageLocationSetting storageLocationSetting = new ExternalObjectStorageLocationSetting();
-		String bucket = "some bucket";
+		String bucket = "some-bucket";
 		String endpoint = "https://someurl.com";
 		storageLocationSetting.setBucket(bucket);
 		storageLocationSetting.setEndpointUrl(endpoint);
