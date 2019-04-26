@@ -13,14 +13,25 @@ public class AuthorizationManagerUtil {
 	public static final AuthorizationStatus ACCESS_DENIED = new AuthorizationStatus(false, "");
 	
 	public static void checkAuthorizationAndThrowException(AuthorizationStatus auth) throws UnauthorizedException {
-		if (!auth.getAuthorized()) throw new UnauthorizedException(auth.getReason());
+		if (!auth.getAuthorized()){
+			if(AuthorizationStatusDenialReason.USER_NOT_CERTIFIED == auth.getDenialReason()){
+				throw new UserCertificationRequiredException(auth.getMessage());
+			}else {
+				throw new UnauthorizedException(auth.getMessage());
+			}
+		}
 	}
 
-	public static AuthorizationStatus accessDenied(String reason) {
-		return new AuthorizationStatus(false, reason);
+	public static AuthorizationStatus accessDenied(String message) {
+		return new AuthorizationStatus(false, message);
 	}
 
-	
+	public static AuthorizationStatus accessDenied(String message, AuthorizationStatusDenialReason denialReason) {
+		return new AuthorizationStatus(false, message, denialReason);
+	}
+
+
+
 	/**
 	 * Create an access denied status for a file handle not associated with the requested object.
 	 * @param fileHandleId

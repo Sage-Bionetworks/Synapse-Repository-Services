@@ -656,20 +656,20 @@ public class AuthorizationManagerImplTest {
 			// Invitee can only read or delete the invitation
 			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipInvitation(userInfo, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertTrue(inviteeAuthorization.getMessage(), inviteeAuthorization.getAuthorized());
 			} else {
-				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertFalse(inviteeAuthorization.getMessage(), inviteeAuthorization.getAuthorized());
 			}
 			// Team admin can only create, read or delete the invitation
 			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipInvitation(teamAdmin, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE) {
-				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertTrue(teamAdminAuthorization.getMessage(), teamAdminAuthorization.getAuthorized());
 			} else {
-				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertFalse(teamAdminAuthorization.getMessage(), teamAdminAuthorization.getAuthorized());
 			}
 			// Synapse admin has access of any type
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitation(adminUser, mis, accessType);
-			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
+			assertTrue(adminAuthorization.getMessage(), adminAuthorization.getAuthorized());
 		}
 	}
 
@@ -735,20 +735,20 @@ public class AuthorizationManagerImplTest {
 			// Invitee can only read or delete the invitation
 			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipRequest(userInfo, mr, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertTrue(inviteeAuthorization.getMessage(), inviteeAuthorization.getAuthorized());
 			} else {
-				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertFalse(inviteeAuthorization.getMessage(), inviteeAuthorization.getAuthorized());
 			}
 			// Team admin can only read or delete the request
 			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipRequest(teamAdmin, mr, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertTrue(teamAdminAuthorization.getMessage(), teamAdminAuthorization.getAuthorized());
 			} else {
-				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertFalse(teamAdminAuthorization.getMessage(), teamAdminAuthorization.getAuthorized());
 			}
 			// Synapse admin has access of any type
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipRequest(adminUser, mr, accessType);
-			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
+			assertTrue(adminAuthorization.getMessage(), adminAuthorization.getAuthorized());
 		}
 	}
 }

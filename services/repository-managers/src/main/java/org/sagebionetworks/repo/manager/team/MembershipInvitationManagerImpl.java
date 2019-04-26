@@ -17,6 +17,7 @@ import java.util.Map;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -168,9 +169,7 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public MembershipInvitation get(String miId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException {
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, ACCESS_TYPE.READ);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(status);
 		return membershipInvitationDAO.get(miId);
 	}
 
@@ -246,9 +245,7 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public void updateInviteeId(Long userId, String miId, InviteeVerificationSignedToken token) {
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(status);
 		if (!miId.equals(token.getMembershipInvitationId())) {
 			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
 		}

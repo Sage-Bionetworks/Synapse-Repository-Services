@@ -1,67 +1,61 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Objects;
+
 /**
  * Holds the result of an authorization check.
- * If 'authorized' is false then 'reason' gives the user-presentable reason why
+ * If 'authorized' is false then 'message' gives the user-presentable message for denial
  * 
  * @author brucehoff
  *
  */
 public class AuthorizationStatus {
-	private boolean authorized;
-	private String reason;
+	final private boolean authorized;
+	final private String message;
+	final private AuthorizationStatusDenialReason denialReason;
 	
 	
-	public AuthorizationStatus(boolean authorized, String reason) {
+	public AuthorizationStatus(boolean authorized, String message) {
+		this(authorized, message, null);
+	}
+
+	public AuthorizationStatus(boolean authorized, String message, AuthorizationStatusDenialReason denialReason) {
 		this.authorized = authorized;
-		this.reason = reason;
+		this.message = message;
+		this.denialReason = denialReason;
 	}
 	
 	public boolean getAuthorized() {
 		return authorized;
 	}
-	public void setAuthorized(boolean authorized) {
-		this.authorized = authorized;
+	public String getMessage() {
+		return message;
 	}
-	public String getReason() {
-		return reason;
+	public AuthorizationStatusDenialReason getDenialReason() {
+		return denialReason;
 	}
-	public void setReason(String reason) {
-		this.reason = reason;
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		AuthorizationStatus that = (AuthorizationStatus) o;
+		return authorized == that.authorized &&
+				Objects.equals(message, that.message) &&
+				denialReason == that.denialReason;
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (authorized ? 1231 : 1237);
-		result = prime * result + ((reason == null) ? 0 : reason.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		AuthorizationStatus other = (AuthorizationStatus) obj;
-		if (authorized != other.authorized)
-			return false;
-		if (reason == null) {
-			if (other.reason != null)
-				return false;
-		} else if (!reason.equals(other.reason))
-			return false;
-		return true;
+		return Objects.hash(authorized, message, denialReason);
 	}
 
 	@Override
 	public String toString() {
-		return "AuthorizationStatus [authorized=" + authorized + ", reason="
-				+ reason + "]";
+		return "AuthorizationStatus{" +
+				"authorized=" + authorized +
+				", message='" + message + '\'' +
+				", denialReason=" + denialReason +
+				'}';
 	}
-
 }

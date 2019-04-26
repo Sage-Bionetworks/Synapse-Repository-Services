@@ -243,15 +243,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	}
 	
 	private boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo) {
-		Boolean pa = configuration.getDisableCertifiedUser();
-		Boolean featureIsDisabled = false;
-		try {
-			featureIsDisabled = pa;
-		} catch (NullPointerException npe) {
-			featureIsDisabled = false;
-		}
-		if (featureIsDisabled) return true;
-		return AuthorizationUtils.isCertifiedUser(userInfo);
+		Boolean featureIsDisabled = configuration.getDisableCertifiedUser();
+		return featureIsDisabled == null || featureIsDisabled || AuthorizationUtils.isCertifiedUser(userInfo);
 	}
 	
 	@Override
@@ -265,7 +258,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 
 		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(nodeType)) 
-			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.", AuthorizationStatusDenialReason.USER_NOT_CERTIFIED);
 		
 		return certifiedUserHasAccess(parentId, null, CREATE, userInfo);
 	}

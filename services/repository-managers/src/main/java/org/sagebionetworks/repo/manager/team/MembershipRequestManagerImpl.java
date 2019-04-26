@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -161,9 +162,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		MembershipRequest mr = membershipRequestDAO.get(id);
 		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.READ);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(status);
 		return mr;
 	}
 
@@ -181,7 +180,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		}
 		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.DELETE);
 		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
+			throw new UnauthorizedException(status.getMessage());
 		}
 		membershipRequestDAO.delete(id);
 	}

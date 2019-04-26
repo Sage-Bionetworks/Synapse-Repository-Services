@@ -316,7 +316,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanModerate());
 		
 		assertFalse(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).getAuthorized());
-		
+		assertEquals(AuthorizationStatusDenialReason.USER_NOT_CERTIFIED, entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).getDenialReason());
+
+
 		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
 	}
 	
