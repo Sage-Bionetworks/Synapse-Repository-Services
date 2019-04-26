@@ -174,6 +174,12 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testGetTableNameForIdWithVersion(){
+		assertEquals("T123_456", SQLUtils.getTableNameForId("syn123.456", TableType.INDEX));
+		assertEquals("T123_789S", SQLUtils.getTableNameForId("syn123.789", TableType.STATUS));
+	}
+	
+	@Test
 	public void testGetColumnNameForId(){
 		assertEquals("_C456_", SQLUtils.getColumnNameForId("456"));
 	}
