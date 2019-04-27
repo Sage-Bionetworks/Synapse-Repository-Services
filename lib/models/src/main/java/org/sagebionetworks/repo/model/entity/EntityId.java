@@ -8,8 +8,8 @@ package org.sagebionetworks.repo.model.entity;
  */
 public class EntityId {
 
-	Long id;
-	Long version;
+	final Long id;
+	final Long version;
 
 	/**
 	 * Use 

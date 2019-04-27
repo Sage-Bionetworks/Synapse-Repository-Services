@@ -144,5 +144,29 @@ public class EntityParserTest {
 			assertEquals(11, ((ParseException)e.getCause()).getErrorIndex());
 		}
 	}
+	
+	@Test
+	public void testMissingId() {
+		try {
+			// call under test
+			EntityIdParser.parseEntityId("syn.456");
+			fail();
+		}catch(IllegalArgumentException e) {
+			assertTrue(e.getCause() instanceof ParseException);
+			assertEquals(3, ((ParseException)e.getCause()).getErrorIndex());
+		}
+	}
+	
+	@Test
+	public void testMissingVersion() {
+		try {
+			// call under test
+			EntityIdParser.parseEntityId("syn0.");
+			fail();
+		}catch(IllegalArgumentException e) {
+			assertTrue(e.getCause() instanceof ParseException);
+			assertEquals(5, ((ParseException)e.getCause()).getErrorIndex());
+		}
+	}
 
 }

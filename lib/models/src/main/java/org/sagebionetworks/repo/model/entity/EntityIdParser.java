@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.entity;
 /**
  * EntityId::= [syn]<id>[.<version>]
  *
- * This parser will parse the given string with a single pass (O(n)).
+ * This instance will parse the string in a single pass.
  */
 public class EntityIdParser {
 
@@ -99,14 +99,22 @@ public class EntityIdParser {
 	 * Consume a single Long from the character array
 	 * 
 	 * @return The Long read from the array.
+	 * @throws ParseException 
 	 */
-	private Long consumeLong() {
-		int start = index;
+	private long consumeLong() throws ParseException {
+		boolean atLeastOneDigit = false;
 		// consume all digits
+		long value = 0;
 		while (currentChar >= '0' && currentChar <= '9') {
+			value *= 10L;
+			value += ((long)currentChar - 48L);
 			consumeCharacter();
+			atLeastOneDigit = true;
 		}
-		return Long.parseLong(new String(chars, start, index - start));
+		if(!atLeastOneDigit) {
+			throw new ParseException(index);
+		}
+		return value;
 	}
 
 	/**
