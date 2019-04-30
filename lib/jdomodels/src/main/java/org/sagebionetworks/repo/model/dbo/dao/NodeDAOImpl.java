@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ANNOTATIONS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
@@ -41,6 +42,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISI
 
 import java.io.IOException;
 import java.sql.Blob;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -109,6 +111,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -1855,5 +1858,37 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				.withObjectType(ObjectType.ENTITY).withChangeType(changeType).withEtag(newEtag).withUserId(userId));
 		return newEtag;
 	}
+
+
+	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + "FROM" + TABLE_REVISION  + " WHERE (" + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER  + ") IN  (:idAndRevision)";
+
+	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->{
+		return new Object[]{
+				rs.getBlob(COL_REVISION_ANNOS_BLOB),
+				rs.getLong(COL_REVISION_OWNER_NODE),
+				rs.getLong(COL_REVISION_NUMBER)
+		};
+	};
+
+	/**
+	 *
+	 * @param idsAndRevisions
+	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@MandatoryWriteTransaction
+	public List<Object[]> TEMPORARYGetAnnotations(List<Long[]> idsAndRevisions){
+		return namedParameterJdbcTemplate.query(SQL_GET_ANNOTATIONS, Collections.singletonMap("idAndRevision", idsAndRevisions), ANNOBLOB_ID_REVISION_ROWMAPPER);
+	}
+
+
+	/**
+	 *
+	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@MandatoryWriteTransaction
+	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
+		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
+	}
+
 
 }
