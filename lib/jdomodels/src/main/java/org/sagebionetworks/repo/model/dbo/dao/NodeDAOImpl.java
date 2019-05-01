@@ -1902,7 +1902,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@MandatoryWriteTransaction
 	public void TEMPORARYChangeEtagOnly(Long id){
 		String newEtag = UUID.randomUUID().toString();
-		// change the etag first to lock the node row.
 		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, id);
 	}
 }

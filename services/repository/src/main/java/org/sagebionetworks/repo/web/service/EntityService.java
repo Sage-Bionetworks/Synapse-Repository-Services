@@ -657,4 +657,5 @@ public interface EntityService {
 	 * @return
 	 */
 	public DataTypeResponse changeEntityDataType(Long userId, String id, DataType dataType);
+
 }
