@@ -104,6 +104,7 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
@@ -1859,23 +1860,32 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return newEtag;
 	}
 
+	//////////////////////////////////
+	// temporary annotation fix code
+	//////////////////////////////////
 
-	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + "FROM" + TABLE_REVISION  + " WHERE (" + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER  + ") IN  (:idAndRevision)";
+	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_REVISION  + " WHERE (" + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER  + ") IN  (:idAndRevision)";
 
-	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->{
-		return new Object[]{
+	private static final String SQL_GET_ALL_NON_NULL_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER +
+			" FROM " + TABLE_REVISION +
+			" WHERE " + COL_REVISION_ANNOS_BLOB + " IS NOT NULL AND " + COL_REVISION_OWNER_NODE + " >= ? AND " + COL_REVISION_OWNER_NODE + " < ?" +
+			" ORDER BY " + COL_REVISION_OWNER_NODE + " ASC";
+	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->
+		new Object[]{
 				rs.getBlob(COL_REVISION_ANNOS_BLOB),
 				rs.getLong(COL_REVISION_OWNER_NODE),
 				rs.getLong(COL_REVISION_NUMBER)
 		};
-	};
+
+	private static final RowMapper<Long[]> ID_REVISION_ROWMAPER =  (ResultSet rs, int rowNum)->
+			new Long[]{rs.getLong(COL_REVISION_OWNER_NODE), rs.getLong(COL_REVISION_NUMBER)};
+
 
 	/**
 	 *
 	 * @param idsAndRevisions
 	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
 	 */
-	@MandatoryWriteTransaction
 	public List<Object[]> TEMPORARYGetAnnotations(List<Long[]> idsAndRevisions){
 		return namedParameterJdbcTemplate.query(SQL_GET_ANNOTATIONS, Collections.singletonMap("idAndRevision", idsAndRevisions), ANNOBLOB_ID_REVISION_ROWMAPPER);
 	}
@@ -1885,10 +1895,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 *
 	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
 	 */
-	@MandatoryWriteTransaction
+	@WriteTransaction
 	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
 		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
 	}
 
-
+	public List<Long[]> TEMPORARYGetAllNonNullAnnotations(long nodeIdStart, long numNodes){
+		return jdbcTemplate.query(SQL_GET_ALL_NON_NULL_ANNOTATIONS, ID_REVISION_ROWMAPER, nodeIdStart, nodeIdStart + numNodes);
+	}
 }

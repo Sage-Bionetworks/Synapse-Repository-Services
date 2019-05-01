@@ -24,6 +24,7 @@
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
 
 	<!-- The Entity manager -->
+	<bean id="annotationCleanupMessageSender" class="org.sagebionetworks.repo.manager.TEMPORARYAnnotationCleanupMessageSender" init-method="init"/>
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl">
 		<property name="allowCreationOfOldEntities" ref="stackConfiguration.allowCreationOfOldEntities"/>
 	</bean>

@@ -679,4 +679,10 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.changeEntityDataType(userInfo, id, dataType);
 	}
+
+	@Override
+	public Long TEMPORARYcleanupAnnotations(Long userId, long startId, long numNodes){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.TEMPORARYcleanupAnnotations(userInfo, startId, numNodes);
+	}
 }

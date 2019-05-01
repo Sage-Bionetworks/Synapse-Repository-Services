@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -55,27 +56,34 @@ public class TEMPORARYAnnotationFixWorker implements MessageDrivenRunner {
 
 	@WriteTransaction
 	void cleanUpAnnotations(List<Long[]> idAndVersions){
+		//todo: check etags
 		//TODO: reuse same xstream object?
+		long now = System.currentTimeMillis();
 		try {
 			NodeDAOImpl nodeDaoImpl = (NodeDAOImpl) nodeDAO;
+			System.out.println(idAndVersions);
 			List<Object[]> listOf_blob_Id_Version = nodeDaoImpl.TEMPORARYGetAnnotations(idAndVersions);
+			System.out.println(listOf_blob_Id_Version);
 
 			for(Object[] blob_Id_Version : listOf_blob_Id_Version){
+				System.out.println(blob_Id_Version[1]);
 				NamedAnnotations namedAnnotations = JDOSecondaryPropertyUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
+
+				deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
 				deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
-				deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
+
 
 				blob_Id_Version[0] = JDOSecondaryPropertyUtils.compressAnnotations(namedAnnotations);
 			}
 
 			nodeDaoImpl.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
-		} catch (Exception e){
+		} catch (IOException e){
 			logger.logWorkerFailure(TEMPORARYAnnotationFixWorker.class.getName(), e, false);
 		}
+		System.out.println("time = " + (System.currentTimeMillis() - now));
 	}
 
-
-	void deleteConcreteTypeAnnotation(Annotations annotation){
+	public static void deleteConcreteTypeAnnotation(Annotations annotation){
 		Map<String, List<String>> stringAnnotations = annotation.getStringAnnotations();
 		List<String> annoValue = stringAnnotations.get(ObjectSchema.CONCRETE_TYPE);
 		if(annoValue != null && annoValue.size() == 1 && annoValue.get(0).startsWith("org.sage")){
