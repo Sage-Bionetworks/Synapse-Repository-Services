@@ -38,6 +38,8 @@ public class JDOSecondaryPropertyUtils {
 	
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 
+	public static final XStream X_STREAM = createXStream();
+
 	/**
 	 * Convert the passed annotations to a compressed (zip) byte array
 	 * @param dto
@@ -45,7 +47,7 @@ public class JDOSecondaryPropertyUtils {
 	 * @throws IOException 
 	 */
 	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
-		return compressObject(dto == null || dto.isEmpty() ? null : dto);
+		return compressObject(X_STREAM, dto == null || dto.isEmpty() ? null : dto);
 	}
 
 	private static byte[] compressObject(XStream xStream, Object dto) throws IOException {
@@ -60,7 +62,7 @@ public class JDOSecondaryPropertyUtils {
 	}
 
 	public static byte[] compressObject(Object dto) throws IOException{
-		return compressObject(createXStream(), dto);
+		return compressObject(X_STREAM, dto);
 	}
 	
 	public static byte[] compressObject(Object dto, String classAlias) throws IOException{
@@ -83,8 +85,7 @@ public class JDOSecondaryPropertyUtils {
 				BufferedOutputStream buff = new BufferedOutputStream(out);
 				GZIPOutputStream zipper = new GZIPOutputStream(buff);
 				Writer zipWriter = new OutputStreamWriter(zipper, UTF8);) {
-			XStream xstream = createXStream();
-			xstream.toXML(dto, zipWriter);
+			X_STREAM.toXML(dto, zipWriter);
 			zipWriter.close();
 			return out.toByteArray();
 		} catch (IOException e) {
@@ -121,10 +122,7 @@ public class JDOSecondaryPropertyUtils {
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
 			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
-				XStream xstream = createXStream();
-				if(zippedByes != null){
-					return xstream.fromXML(unZipper);
-				}
+				return X_STREAM.fromXML(unZipper);
 			}
 		}
 		return null;
@@ -138,9 +136,7 @@ public class JDOSecondaryPropertyUtils {
 				for (Pair<String,Class> pair : aliases) {
 					xstream.alias(pair.getFirst(), pair.getSecond());
 				}
-				if(zippedByes != null){
-					return xstream.fromXML(unZipper);
-				}
+				return xstream.fromXML(unZipper);
 			}
 		}
 		return null;
@@ -161,10 +157,7 @@ public class JDOSecondaryPropertyUtils {
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
 			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
-				XStream xstream = createXStream();
-				if(zippedByes != null){
-					return (Reference) xstream.fromXML(unZipper);
-				}
+				return (Reference) X_STREAM.fromXML(unZipper);
 			}
 		}
 

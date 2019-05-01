@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.EntityServiceImpl;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -286,6 +287,6 @@ public class AdministrationController {
 						@PathVariable("idStart") Long nodeIdStart,
 						@RequestParam("numNodes") Long numNodes){
 		if (numNodes == null) numNodes = 10000L;
-		return serviceProvider.getEntityService().TEMPORARYcleanupAnnotations(userId, nodeIdStart, numNodes);
+		return ((EntityServiceImpl)serviceProvider.getEntityService()).TEMPORARYcleanupAnnotations(userId, nodeIdStart, numNodes);
 	}
 }

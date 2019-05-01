@@ -435,6 +435,4 @@ public interface EntityManager {
 	 * @return
 	 */
 	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
-
-	Long TEMPORARYcleanupAnnotations(UserInfo userInfo, long startId, long numNodes);
 }

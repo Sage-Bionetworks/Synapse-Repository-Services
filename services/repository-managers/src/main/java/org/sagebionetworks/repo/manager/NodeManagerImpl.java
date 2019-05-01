@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager;
   
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
@@ -43,6 +46,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -52,6 +56,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -754,5 +759,36 @@ public class NodeManagerImpl implements NodeManager {
 		return nodeDao.lookupChild(parentId, entityName);
 	}
 
+
+	@WriteTransaction
+	public void TEMPORARYcleanUpAnnotations(Long id) throws IOException {
+		NodeDAOImpl nodeDaoImpl = (NodeDAOImpl) nodeDao;
+		//lock on etag
+		nodeDaoImpl.lockNode(KeyFactory.keyToString(id));
+
+		//batch process all annotations contained of each version/revision of this node
+		List<Object[]> listOf_blob_Id_Version = nodeDaoImpl.TEMPORARYGetAllAnnotations(id);
+		for (Object[] blob_Id_Version : listOf_blob_Id_Version) {
+			NamedAnnotations namedAnnotations = JDOSecondaryPropertyUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
+
+			deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
+			deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
+
+			blob_Id_Version[0] = JDOSecondaryPropertyUtils.compressAnnotations(namedAnnotations);
+		}
+
+		nodeDaoImpl.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
+
+		//update etag
+		nodeDaoImpl.TEMPORARYChangeEtagOnly(id);
+	}
+
+	private static void deleteConcreteTypeAnnotation(Annotations annotation){
+		Map<String, List<String>> stringAnnotations = annotation.getStringAnnotations();
+		List<String> annoValue = stringAnnotations.get(ObjectSchema.CONCRETE_TYPE);
+		if(annoValue != null && annoValue.size() == 1 && annoValue.get(0).startsWith("org.sage")){
+			stringAnnotations.remove(ObjectSchema.CONCRETE_TYPE);
+		}
+	}
 
 }

@@ -6,7 +6,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ANNOTATIONS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
@@ -42,7 +41,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISI
 
 import java.io.IOException;
 import java.sql.Blob;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -104,7 +102,6 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
@@ -112,7 +109,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -1864,12 +1860,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	// temporary annotation fix code
 	//////////////////////////////////
 
-	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_REVISION  + " WHERE (" + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER  + ") IN  (:idAndRevision)";
+	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_REVISION  + " WHERE " + COL_REVISION_OWNER_NODE + "=?";
 
-	private static final String SQL_GET_ALL_NON_NULL_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER +
-			" FROM " + TABLE_REVISION +
-			" WHERE " + COL_REVISION_ANNOS_BLOB + " IS NOT NULL AND " + COL_REVISION_OWNER_NODE + " >= ? AND " + COL_REVISION_OWNER_NODE + " < ?" +
-			" ORDER BY " + COL_REVISION_OWNER_NODE + " ASC";
+	private static final String SQL_GET_ALL_NODE_IDS_IN_RANGE = "SELECT " + COL_NODE_ID +
+			" FROM " + TABLE_NODE +
+			" WHERE " + COL_NODE_ID + " >= ? AND " + COL_NODE_ID + " < ?" +
+			" ORDER BY " + COL_NODE_ID + " ASC";
 	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->
 		new Object[]{
 				rs.getBytes(COL_REVISION_ANNOS_BLOB),
@@ -1877,8 +1873,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				rs.getLong(COL_REVISION_NUMBER)
 		};
 
-	private static final RowMapper<Long[]> ID_REVISION_ROWMAPER =  (ResultSet rs, int rowNum)->
-			new Long[]{rs.getLong(COL_REVISION_OWNER_NODE), rs.getLong(COL_REVISION_NUMBER)};
 
 
 	/**
@@ -1886,8 +1880,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param idsAndRevisions
 	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
 	 */
-	public List<Object[]> TEMPORARYGetAnnotations(List<Long[]> idsAndRevisions){
-		return namedParameterJdbcTemplate.query(SQL_GET_ANNOTATIONS, Collections.singletonMap("idAndRevision", idsAndRevisions), ANNOBLOB_ID_REVISION_ROWMAPPER);
+	@MandatoryWriteTransaction
+	public List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId){
+		return jdbcTemplate.query(SQL_GET_ANNOTATIONS, ANNOBLOB_ID_REVISION_ROWMAPPER, nodeId);
 	}
 
 
@@ -1895,12 +1890,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 *
 	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
 	 */
-	@WriteTransaction
+	@MandatoryWriteTransaction
 	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
 		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
 	}
 
-	public List<Long[]> TEMPORARYGetAllNonNullAnnotations(long nodeIdStart, long numNodes){
-		return jdbcTemplate.query(SQL_GET_ALL_NON_NULL_ANNOTATIONS, ID_REVISION_ROWMAPER, nodeIdStart, nodeIdStart + numNodes);
+	public List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes){
+		return jdbcTemplate.queryForList(SQL_GET_ALL_NODE_IDS_IN_RANGE, Long.class, nodeIdStart, nodeIdStart + numNodes);
+	}
+
+	@MandatoryWriteTransaction
+	public void TEMPORARYChangeEtagOnly(Long id){
+		String newEtag = UUID.randomUUID().toString();
+		// change the etag first to lock the node row.
+		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, id);
 	}
 }

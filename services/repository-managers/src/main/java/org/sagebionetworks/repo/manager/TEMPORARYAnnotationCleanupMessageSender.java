@@ -25,10 +25,10 @@ public class TEMPORARYAnnotationCleanupMessageSender{
 
 	int maxBytesPerBatch;
 
-	public void sendMessages(List<Long[]> nodeIdAndVersions) {
+	public void sendMessages(List<Long> nodeIds) {
 		StringJoiner stringJoiner = createStringJoiner();
-		for(Long[] nodeIdAndVersion: nodeIdAndVersions){
-			String message = nodeIdAndVersion[0]+ ";" + nodeIdAndVersion[1];
+		for(Long nodeId: nodeIds){
+			String message = nodeId.toString();
 
 			// Since we area only joining numeric values as strings (ASCII) and ASCII delimiters,
 			// it should be safe to assume that String.length() === byte size.
