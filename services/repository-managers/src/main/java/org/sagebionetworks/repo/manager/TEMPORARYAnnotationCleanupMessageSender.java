@@ -26,7 +26,6 @@ public class TEMPORARYAnnotationCleanupMessageSender{
 	int maxBytesPerBatch;
 
 	public void sendMessages(List<Long[]> nodeIdAndVersions) {
-
 		StringJoiner stringJoiner = createStringJoiner();
 		for(Long[] nodeIdAndVersion: nodeIdAndVersions){
 			String message = nodeIdAndVersion[0]+ ";" + nodeIdAndVersion[1];
@@ -63,7 +62,7 @@ public class TEMPORARYAnnotationCleanupMessageSender{
 	}
 
 	private void sendMessageWithDelay(String message){
-		sqsClient.sendMessage(new SendMessageRequest().withQueueUrl(queueUrl).withMessageBody(message).withDelaySeconds(30));
+		sqsClient.sendMessage(new SendMessageRequest().withQueueUrl(queueUrl).withMessageBody(message).withDelaySeconds(0));
 	}
 }
 

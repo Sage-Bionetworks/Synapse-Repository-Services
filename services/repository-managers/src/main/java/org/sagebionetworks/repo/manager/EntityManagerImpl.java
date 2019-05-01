@@ -663,7 +663,6 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public Long TEMPORARYcleanupAnnotations(UserInfo userInfo, long startId, long numNodes){
 		ValidateArgument.requirement(userInfo.isAdmin(), "User must be an administrator");
-
 		List<Long[]> idsAndVersions = ((NodeDAOImpl) nodeDAO).TEMPORARYGetAllNonNullAnnotations(startId, numNodes);
 		cleanupMessageSender.sendMessages(idsAndVersions);
 

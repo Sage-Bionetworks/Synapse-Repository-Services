@@ -1872,7 +1872,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			" ORDER BY " + COL_REVISION_OWNER_NODE + " ASC";
 	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->
 		new Object[]{
-				rs.getBlob(COL_REVISION_ANNOS_BLOB),
+				rs.getBytes(COL_REVISION_ANNOS_BLOB),
 				rs.getLong(COL_REVISION_OWNER_NODE),
 				rs.getLong(COL_REVISION_NUMBER)
 		};

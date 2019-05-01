@@ -29,7 +29,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-class TEMPORARYAnnotationF43ixWorkerIntegrationTest {
+class TEMPORARYAnnotationFixWorkerTest {
 
 	@Autowired
 	NodeManager nodeManager;
@@ -95,7 +95,6 @@ class TEMPORARYAnnotationF43ixWorkerIntegrationTest {
 		dborevisoin2.setRevisionNumber(node2.getVersionNumber());
 
 		entityManager.TEMPORARYcleanupAnnotations(adminUserInfo, KeyFactory.stringToKey(node1.getId()), 1000);
-		System.out.println(node1.getId() + "," + node2.getId());
 
 		long maxWaitMillis = 5 * 1000;
 		long startTime = System.currentTimeMillis();

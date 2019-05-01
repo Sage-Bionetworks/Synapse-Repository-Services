@@ -61,12 +61,9 @@ public class TEMPORARYAnnotationFixWorker implements MessageDrivenRunner {
 		long now = System.currentTimeMillis();
 		try {
 			NodeDAOImpl nodeDaoImpl = (NodeDAOImpl) nodeDAO;
-			System.out.println(idAndVersions);
 			List<Object[]> listOf_blob_Id_Version = nodeDaoImpl.TEMPORARYGetAnnotations(idAndVersions);
-			System.out.println(listOf_blob_Id_Version);
 
 			for(Object[] blob_Id_Version : listOf_blob_Id_Version){
-				System.out.println(blob_Id_Version[1]);
 				NamedAnnotations namedAnnotations = JDOSecondaryPropertyUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
 
 				deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
