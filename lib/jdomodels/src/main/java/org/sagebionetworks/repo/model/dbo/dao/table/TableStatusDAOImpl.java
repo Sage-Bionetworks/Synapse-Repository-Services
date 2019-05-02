@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus;
-import org.sagebionetworks.repo.model.dbo.persistence.table.TableStateEnum;
 import org.sagebionetworks.repo.model.dbo.persistence.table.TableStatusUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -122,7 +121,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// Set the progress current to be the same as the progress total.
 		Long progressCurrent = current.getProgressTotal();
 		byte[] errorDetailsBytes = TableStatusUtils.createErrorDetails(errorDetails);
-		current.setState(TableStateEnum.valueOf(state.name()));
+		current.setState(state.name());
 		current.setChangedOn(now);
 		current.setProgressCurrent(progressCurrent);
 		current.setErrorMessage(errorMessage);
