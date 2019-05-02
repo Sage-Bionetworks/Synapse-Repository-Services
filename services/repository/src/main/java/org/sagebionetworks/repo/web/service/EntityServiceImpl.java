@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.EntityManagerImpl;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -678,5 +679,11 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.changeEntityDataType(userInfo, id, dataType);
+	}
+
+	@Override
+	public Long TEMPORARYcleanupAnnotations(Long userId, long startId, long numNodes){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.TEMPORARYcleanupAnnotations(userInfo, startId, numNodes);
 	}
 }
