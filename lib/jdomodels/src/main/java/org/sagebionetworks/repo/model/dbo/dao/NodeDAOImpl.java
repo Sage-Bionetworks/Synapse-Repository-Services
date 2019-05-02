@@ -1905,7 +1905,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	@MandatoryWriteTransaction
 	public void TEMPORARYChangeEtagOnly(Long id){
-		String newEtag = UUID.randomUUID().toString();
+		String newEtag = "deadbeef-dead-beef-dead-beefdeadbeef";
 		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, id);
 	}
 }

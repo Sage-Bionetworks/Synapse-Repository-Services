@@ -27,7 +27,7 @@
                                     <bean class="org.sagebionetworks.annotations.worker.TEMPORARYAnnotationFixWorker"/>
                                 </property>
                                 <property name="semaphoreLockKey" value="TEMPORARYAnnotationFixWorker" />
-                                <property name="semaphoreMaxLockCount" value="2" />
+                                <property name="semaphoreMaxLockCount" value="1" />
                                 <property name="semaphoreLockAndMessageVisibilityTimeoutSec"
                                           value="300" />
                                 <property name="queueName"
