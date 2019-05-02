@@ -96,7 +96,7 @@ class TEMPORARYAnnotationFixWorkerTest {
 		dborevisoin2.setOwner(KeyFactory.stringToKey(node2.getId()));
 		dborevisoin2.setRevisionNumber(node2.getVersionNumber());
 
-		((EntityManagerImpl) entityManager).TEMPORARYcleanupAnnotations(adminUserInfo, KeyFactory.stringToKey(node1.getId()), 1000);
+		entityManager.TEMPORARYcleanupAnnotations(adminUserInfo, KeyFactory.stringToKey(node1.getId()), 1000);
 
 		long maxWaitMillis = 10 * 1000;
 		long startTime = System.currentTimeMillis();

@@ -763,12 +763,11 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	@WriteTransaction
 	public void TEMPORARYcleanUpAnnotations(Long id) throws IOException {
-		NodeDAOImpl nodeDaoImpl = (NodeDAOImpl) nodeDao;
 		//lock on etag
-		nodeDaoImpl.lockNode(KeyFactory.keyToString(id));
+		nodeDao.lockNode(KeyFactory.keyToString(id));
 
 		//batch process all annotations contained of each version/revision of this node
-		List<Object[]> listOf_blob_Id_Version = nodeDaoImpl.TEMPORARYGetAllAnnotations(id);
+		List<Object[]> listOf_blob_Id_Version = nodeDao.TEMPORARYGetAllAnnotations(id);
 		for (Object[] blob_Id_Version : listOf_blob_Id_Version) {
 			NamedAnnotations namedAnnotations = JDOSecondaryPropertyUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
 
@@ -778,10 +777,10 @@ public class NodeManagerImpl implements NodeManager {
 			blob_Id_Version[0] = JDOSecondaryPropertyUtils.compressAnnotations(namedAnnotations);
 		}
 
-		nodeDaoImpl.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
+		nodeDao.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
 
 		//update etag
-		nodeDaoImpl.TEMPORARYChangeEtagOnly(id);
+		nodeDao.TEMPORARYChangeEtagOnly(id);
 	}
 
 	private static void deleteConcreteTypeAnnotation(Annotations annotation){
