@@ -127,8 +127,8 @@ class TEMPORARYAnnotationFixWorkerTest {
 		//check that etags did change but modifiedOn did not
 		Node currNode1 = nodeManager.getNodeForVersionNumber(adminUserInfo, node1.getId(), node1.getVersionNumber());
 		Node currNode2 = nodeManager.getNodeForVersionNumber(adminUserInfo, node2.getId(), node2.getVersionNumber());
-		assertNotEquals(node1.getETag(), currNode1.getETag());
-		assertNotEquals(node2.getETag(), currNode2.getETag());
+		assertEquals("deadbeef-dead-beef-dead-beefdeadbeef", currNode1.getETag());
+		assertEquals("deadbeef-dead-beef-dead-beefdeadbeef", currNode2.getETag());
 		assertEquals(node1.getModifiedOn(), currNode1.getModifiedOn());
 		assertEquals(node2.getModifiedOn(), currNode2.getModifiedOn());
 
