@@ -83,4 +83,12 @@ public class IdAndVersion {
 		return builder.toString();
 	}
 
+	/**
+	 * Parse the provided string into IdAndVersion
+	 * @param toParse
+	 * @return
+	 */
+	public static IdAndVersion parse(String toParse) {
+		return IdAndVersionParser.parseIdAndVersion(toParse);
+	}
 }

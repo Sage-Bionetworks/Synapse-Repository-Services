@@ -18,7 +18,7 @@ public class IdAndVersionBuilder {
 		return this;
 	}
 
-	IdAndVersion build() {
+	public IdAndVersion build() {
 		return new IdAndVersion(id, version);
 	}
 }

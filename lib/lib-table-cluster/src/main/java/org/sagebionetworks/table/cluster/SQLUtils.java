@@ -18,8 +18,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
-
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.isTableTooLargeForFourByteUtf8;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -34,7 +33,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.entity.IdAndVersionParser;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -217,7 +215,7 @@ public class SQLUtils {
 		if (tableId == null) {
 			throw new IllegalArgumentException("Table ID cannot be null");			
 		}
-		IdAndVersion id = IdAndVersionParser.parseIdAndVersion(tableId);
+		IdAndVersion id = IdAndVersion.parse(tableId);
 		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
 		builder.append(id.getId());
 		if(id.getVersion() != null) {
