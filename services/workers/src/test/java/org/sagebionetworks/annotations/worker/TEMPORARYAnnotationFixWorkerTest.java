@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.EntityManagerImpl;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -95,7 +96,7 @@ class TEMPORARYAnnotationFixWorkerTest {
 		dborevisoin2.setOwner(KeyFactory.stringToKey(node2.getId()));
 		dborevisoin2.setRevisionNumber(node2.getVersionNumber());
 
-		entityManager.TEMPORARYcleanupAnnotations(adminUserInfo, KeyFactory.stringToKey(node1.getId()), 1000);
+		((EntityManagerImpl) entityManager).TEMPORARYcleanupAnnotations(adminUserInfo, KeyFactory.stringToKey(node1.getId()), 1000);
 
 		long maxWaitMillis = 10 * 1000;
 		long startTime = System.currentTimeMillis();
