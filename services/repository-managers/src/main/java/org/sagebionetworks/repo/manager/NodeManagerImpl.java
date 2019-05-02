@@ -760,6 +760,7 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 
+	@Override
 	@WriteTransaction
 	public void TEMPORARYcleanUpAnnotations(Long id) throws IOException {
 		NodeDAOImpl nodeDaoImpl = (NodeDAOImpl) nodeDao;

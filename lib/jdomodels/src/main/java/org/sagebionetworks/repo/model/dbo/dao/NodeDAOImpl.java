@@ -1880,6 +1880,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param idsAndRevisions
 	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
 	 */
+	@Override
 	@MandatoryWriteTransaction
 	public List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId){
 		return jdbcTemplate.query(SQL_GET_ANNOTATIONS, ANNOBLOB_ID_REVISION_ROWMAPPER, nodeId);
@@ -1890,15 +1891,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 *
 	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
 	 */
+	@Override
 	@MandatoryWriteTransaction
 	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
 		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
 	}
 
+	@Override
 	public List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes){
 		return jdbcTemplate.queryForList(SQL_GET_ALL_NODE_IDS_IN_RANGE, Long.class, nodeIdStart, nodeIdStart + numNodes);
 	}
 
+	@Override
 	@MandatoryWriteTransaction
 	public void TEMPORARYChangeEtagOnly(Long id){
 		String newEtag = UUID.randomUUID().toString();

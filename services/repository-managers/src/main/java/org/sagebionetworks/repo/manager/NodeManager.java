@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -21,9 +22,13 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
+
+	@WriteTransaction
+	void TEMPORARYcleanUpAnnotations(Long id) throws IOException;
 
 	public enum FileHandleReason {
 		FOR_PREVIEW_DOWNLOAD, FOR_FILE_DOWNLOAD, FOR_HANDLE_VIEW

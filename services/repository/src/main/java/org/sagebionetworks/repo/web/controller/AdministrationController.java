@@ -285,8 +285,7 @@ public class AdministrationController {
 	public @ResponseBody
 	Long fixAnnotations(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 						@PathVariable("idStart") Long nodeIdStart,
-						@RequestParam("numNodes") Long numNodes){
-		if (numNodes == null) numNodes = 10000L;
-		return ((EntityServiceImpl)serviceProvider.getEntityService()).TEMPORARYcleanupAnnotations(userId, nodeIdStart, numNodes);
+						@RequestParam(value = "numNodes",required=false, defaultValue="10000") Long numNodes){
+		return serviceProvider.getEntityService().TEMPORARYcleanupAnnotations(userId, nodeIdStart, numNodes);
 	}
 }

@@ -660,9 +660,10 @@ public class EntityManagerImpl implements EntityManager {
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
 	}
 
+	@Override
 	public Long TEMPORARYcleanupAnnotations(UserInfo userInfo, long startId, long numNodes){
 		ValidateArgument.requirement(userInfo.isAdmin(), "You must be an administrator");
-		List<Long> idsAndVersions = ((NodeDAOImpl) nodeDAO).TEMPORARYGetAllNodeIDsInRange(startId, numNodes);
+		List<Long> idsAndVersions = nodeDAO.TEMPORARYGetAllNodeIDsInRange(startId, numNodes);
 		cleanupMessageSender.sendMessages(idsAndVersions);
 
 		return idsAndVersions.isEmpty() ? 0L : idsAndVersions.get(idsAndVersions.size() - 1);

@@ -55,7 +55,7 @@ public class TEMPORARYAnnotationFixWorker implements MessageDrivenRunner {
 		}
 
 		for(Long id : nodeIds) {
-			((NodeManagerImpl)nodeManager).TEMPORARYcleanUpAnnotations(id);
+			nodeManager.TEMPORARYcleanUpAnnotations(id);
 		}
 	}
 
