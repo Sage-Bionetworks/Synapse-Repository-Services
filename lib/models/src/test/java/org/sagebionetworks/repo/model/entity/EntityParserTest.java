@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.entity.EntityIdParser.ParseException;
+import org.sagebionetworks.repo.model.entity.IdAndVersionParser.ParseException;
 
 
 public class EntityParserTest {
@@ -14,7 +14,7 @@ public class EntityParserTest {
 	@Test
 	public void testAllParts() {
 		// call under test
-		EntityId id = EntityIdParser.parseEntityId("syn123.456");
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("syn123.456");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
 		assertEquals(new Long(456), id.getVersion());
@@ -23,7 +23,7 @@ public class EntityParserTest {
 	@Test
 	public void testUppderSyn() {
 		// call under test
-		EntityId id = EntityIdParser.parseEntityId("SYN123.456");
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("SYN123.456");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
 		assertEquals(new Long(456), id.getVersion());
@@ -32,7 +32,7 @@ public class EntityParserTest {
 	@Test
 	public void testMixedCase() {
 		// call under test
-		EntityId id = EntityIdParser.parseEntityId("sYn123.456");
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("sYn123.456");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
 		assertEquals(new Long(456), id.getVersion());
@@ -41,7 +41,7 @@ public class EntityParserTest {
 	@Test
 	public void testJustIdAllDigits() {
 		// call under test
-		EntityId id = EntityIdParser.parseEntityId("1234567890");
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("1234567890");
 		assertNotNull(id);
 		assertEquals(new Long(1234567890), id.getId());
 		assertEquals(null, id.getVersion());
@@ -50,7 +50,7 @@ public class EntityParserTest {
 	@Test
 	public void testSingleDigit() {
 		// call under test
-		EntityId id = EntityIdParser.parseEntityId("1");
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("1");
 		assertNotNull(id);
 		assertEquals(new Long(1), id.getId());
 		assertEquals(null, id.getVersion());
@@ -59,7 +59,7 @@ public class EntityParserTest {
 	@Test
 	public void testNoSyn() {
 		// call under test
-		EntityId id = EntityIdParser.parseEntityId("7890.456");
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("7890.456");
 		assertNotNull(id);
 		assertEquals(new Long(7890), id.getId());
 		assertEquals(new Long(456), id.getVersion());
@@ -68,7 +68,7 @@ public class EntityParserTest {
 	@Test
 	public void testWhiteSpace() {
 		// call under test
-		EntityId id = EntityIdParser.parseEntityId(" \t\nsyn123.456\n\t ");
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion(" \t\nsyn123.456\n\t ");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
 		assertEquals(new Long(456), id.getVersion());
@@ -77,20 +77,20 @@ public class EntityParserTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullString() {
 		// call under test
-		EntityIdParser.parseEntityId(null);
+		IdAndVersionParser.parseIdAndVersion(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testEmpty() {
 		// call under test
-		EntityIdParser.parseEntityId("");
+		IdAndVersionParser.parseIdAndVersion("");
 	}
 	
 	@Test
 	public void testMissingY() {
 		try {
 			// call under test
-			EntityIdParser.parseEntityId("sny123");
+			IdAndVersionParser.parseIdAndVersion("sny123");
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getCause() instanceof ParseException);
@@ -102,7 +102,7 @@ public class EntityParserTest {
 	public void testMissingN() {
 		try {
 			// call under test
-			EntityIdParser.parseEntityId("syy123");
+			IdAndVersionParser.parseIdAndVersion("syy123");
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getCause() instanceof ParseException);
@@ -114,7 +114,7 @@ public class EntityParserTest {
 	public void testNonDigitsBelow() {
 		try {
 			// call under test
-			EntityIdParser.parseEntityId("syn123/456");
+			IdAndVersionParser.parseIdAndVersion("syn123/456");
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getCause() instanceof ParseException);
@@ -125,7 +125,7 @@ public class EntityParserTest {
 	public void testNonDigitsAbove() {
 		try {
 			// call under test
-			EntityIdParser.parseEntityId("syn123:456");
+			IdAndVersionParser.parseIdAndVersion("syn123:456");
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getCause() instanceof ParseException);
@@ -137,7 +137,7 @@ public class EntityParserTest {
 	public void testTrailingJunck() {
 		try {
 			// call under test
-			EntityIdParser.parseEntityId("syn123.456 foo");
+			IdAndVersionParser.parseIdAndVersion("syn123.456 foo");
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getCause() instanceof ParseException);
@@ -149,7 +149,7 @@ public class EntityParserTest {
 	public void testMissingId() {
 		try {
 			// call under test
-			EntityIdParser.parseEntityId("syn.456");
+			IdAndVersionParser.parseIdAndVersion("syn.456");
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getCause() instanceof ParseException);
@@ -161,11 +161,23 @@ public class EntityParserTest {
 	public void testMissingVersion() {
 		try {
 			// call under test
-			EntityIdParser.parseEntityId("syn0.");
+			IdAndVersionParser.parseIdAndVersion("syn0.");
 			fail();
 		}catch(IllegalArgumentException e) {
 			assertTrue(e.getCause() instanceof ParseException);
 			assertEquals(5, ((ParseException)e.getCause()).getErrorIndex());
+		}
+	}
+	
+	@Test
+	public void testTooManyDigits() {
+		try {
+			// call under test
+			IdAndVersionParser.parseIdAndVersion("syn92233720368547758071");
+			fail();
+		}catch(IllegalArgumentException e) {
+			assertTrue(e.getCause() instanceof ParseException);
+			assertEquals(23, ((ParseException)e.getCause()).getErrorIndex());
 		}
 	}
 

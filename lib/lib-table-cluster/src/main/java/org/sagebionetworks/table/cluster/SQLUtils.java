@@ -33,8 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.entity.EntityId;
-import org.sagebionetworks.repo.model.entity.EntityIdParser;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionParser;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -217,7 +217,7 @@ public class SQLUtils {
 		if (tableId == null) {
 			throw new IllegalArgumentException("Table ID cannot be null");			
 		}
-		EntityId id = EntityIdParser.parseEntityId(tableId);
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion(tableId);
 		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
 		builder.append(id.getId());
 		if(id.getVersion() != null) {
