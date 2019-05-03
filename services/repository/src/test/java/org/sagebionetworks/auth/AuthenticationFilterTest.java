@@ -24,10 +24,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.auth.services.AuthenticationService;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -38,6 +40,8 @@ public class AuthenticationFilterTest {
 	private AuthenticationFilter filter;
 	
 	private AuthenticationService mockAuthService;
+	private UserManager mockUserManager;
+
 	private static final String sessionToken = "someSortaSessionToken";
 	private static final String secretKey = "Totally a plain text key :D";
 	private static final String username = "AuthFilter@test.sagebase.org";
@@ -49,7 +53,9 @@ public class AuthenticationFilterTest {
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId))).thenReturn(true);
-		when(mockAuthService.getUserId(eq(username))).thenReturn(userId);
+		PrincipalAlias pa = new PrincipalAlias();
+		pa.setPrincipalId(userId);
+		when(mockUserManager.lookupUserByUsernameOrEmail(eq(username))).thenReturn(pa);
 
 		final Map<String,String> filterParams = new HashMap<String, String>();
 		filterParams.put("allow-anonymous", "true");

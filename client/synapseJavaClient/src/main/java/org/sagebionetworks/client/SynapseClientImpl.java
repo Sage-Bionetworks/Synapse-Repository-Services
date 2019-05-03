@@ -4221,27 +4221,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void sendPasswordResetEmail(String email) throws SynapseException {
-		Username user = new Username();
-		user.setEmail(email);
-		voidPost(getAuthEndpoint(), "/user/password/email", user, null);
-	}
-
-	@Override
 	public void sendNewPasswordResetEmail(String passwordResetEndpoint, String email) throws SynapseException {
 		Username user = new Username();
 		user.setEmail(email);
 
 		voidPost(getAuthEndpoint(), "/user/password/reset", user, Collections.singletonMap("passwordResetEndpoint", passwordResetEndpoint));
-	}
-
-	@Override
-	public void changePassword(String sessionToken, String newPassword)
-			throws SynapseException {
-		ChangePasswordRequest change = new ChangePasswordRequest();
-		change.setSessionToken(sessionToken);
-		change.setPassword(newPassword);
-		voidPost(getAuthEndpoint(), "/user/password", change, null);
 	}
 
 	@Override

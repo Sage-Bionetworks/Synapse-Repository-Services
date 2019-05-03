@@ -103,12 +103,6 @@ public interface MessageManager {
 	 */
 	public void deleteMessage(UserInfo userInfo, String messageId);
 
-	@Deprecated
-	/**
-	 * Sends a password reset email based on a template via Amazon SES
-	 */
-	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException;
-
 	/**
 	 * Sends a password reset email based on a template via Amazon SES
 	 */
