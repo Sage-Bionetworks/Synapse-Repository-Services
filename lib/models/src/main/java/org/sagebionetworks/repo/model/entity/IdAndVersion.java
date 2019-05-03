@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.model.entity;
 /**
  * Immutable representation of an Entity's ID including an optional version
  * number.
- * Use {@linkplain EntityIdBuilder} to create new instances of this class.
- * To parse an EntityId from a string use {@linkplain EntityIdParser}
+ * Use {@linkplain IdAndVersionBuilder} to create new instances of this class.
+ * To parse an EntityId from a string use {@linkplain IdAndVersionParser}
  */
-public class EntityId {
+public class IdAndVersion {
 
 	final Long id;
 	final Long version;
@@ -16,7 +16,7 @@ public class EntityId {
 	 * @param id
 	 * @param version
 	 */
-	EntityId(Long id, Long version) {
+	IdAndVersion(Long id, Long version) {
 		if (id == null) {
 			throw new IllegalArgumentException("ID cannot be null");
 		}
@@ -60,7 +60,7 @@ public class EntityId {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		EntityId other = (EntityId) obj;
+		IdAndVersion other = (IdAndVersion) obj;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -83,4 +83,12 @@ public class EntityId {
 		return builder.toString();
 	}
 
+	/**
+	 * Parse the provided string into IdAndVersion
+	 * @param toParse
+	 * @return
+	 */
+	public static IdAndVersion parse(String toParse) {
+		return IdAndVersionParser.parseIdAndVersion(toParse);
+	}
 }

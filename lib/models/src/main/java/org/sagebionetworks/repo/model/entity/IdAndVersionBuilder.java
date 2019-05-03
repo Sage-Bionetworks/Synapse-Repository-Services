@@ -4,21 +4,21 @@ package org.sagebionetworks.repo.model.entity;
  * Simple builder for an entity ID
  *
  */
-public class EntityIdBuilder {
+public class IdAndVersionBuilder {
 	
 	Long id;
 	Long version;
 	
-	public EntityIdBuilder setId(Long id) {
+	public IdAndVersionBuilder setId(Long id) {
 		this.id = id;
 		return this;
 	}
-	public EntityIdBuilder setVersion(Long version) {
+	public IdAndVersionBuilder setVersion(Long version) {
 		this.version = version;
 		return this;
 	}
 
-	EntityId build() {
-		return new EntityId(id, version);
+	public IdAndVersion build() {
+		return new IdAndVersion(id, version);
 	}
 }

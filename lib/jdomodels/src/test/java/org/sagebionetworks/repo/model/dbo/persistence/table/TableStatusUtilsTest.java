@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 
@@ -46,4 +48,53 @@ public class TableStatusUtilsTest {
 			assertEquals(dto, clone);
 		}
 	}
+	
+	@Test
+	public void testAbbreviateOverLimit() {
+		TableStatus dto = new TableStatus();
+		dto.setErrorMessage(createStringOfLength(TableStatusUtils.MAX_CHARS+1));
+		dto.setProgressMessage(createStringOfLength(TableStatusUtils.MAX_CHARS+1));
+		// call under test
+		DBOTableStatus dbo = TableStatusUtils.createDBOFromDTO(dto);
+		// error
+		assertNotNull(dbo.getErrorMessage());
+		assertEquals(TableStatusUtils.MAX_CHARS, dbo.getErrorMessage().length());
+		assertTrue(dbo.getErrorMessage().endsWith("..."));
+		// progress
+		assertNotNull(dbo.getProgressMessage());
+		assertEquals(TableStatusUtils.MAX_CHARS, dbo.getProgressMessage().length());
+		assertTrue(dbo.getErrorMessage().endsWith("..."));
+	}
+	
+	@Test
+	public void testAbbreviateOverAtLimit() {
+		TableStatus dto = new TableStatus();
+		dto.setErrorMessage(createStringOfLength(TableStatusUtils.MAX_CHARS));
+		dto.setProgressMessage(createStringOfLength(TableStatusUtils.MAX_CHARS));
+		// call under test
+		DBOTableStatus dbo = TableStatusUtils.createDBOFromDTO(dto);
+		// error
+		assertNotNull(dbo.getErrorMessage());
+		assertEquals(TableStatusUtils.MAX_CHARS, dbo.getErrorMessage().length());
+		assertFalse(dbo.getErrorMessage().endsWith("..."));
+		// progress
+		assertNotNull(dbo.getProgressMessage());
+		assertEquals(TableStatusUtils.MAX_CHARS, dbo.getProgressMessage().length());
+		assertFalse(dbo.getErrorMessage().endsWith("..."));
+	}
+	
+	/**
+	 * Create a string of a given length.
+	 * 
+	 * @param size
+	 * @return
+	 */
+	String createStringOfLength(int size) {
+		char[] chars = new char[size];
+		for(int i=0; i<size; i++) {
+			chars[i] = 'a';
+		}
+		return new String(chars);
+	}
+
 }
