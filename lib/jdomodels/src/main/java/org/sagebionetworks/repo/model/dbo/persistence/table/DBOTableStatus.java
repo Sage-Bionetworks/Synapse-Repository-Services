@@ -15,7 +15,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ST
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_TABLE_STATUE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
-import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -84,10 +83,7 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 					dbo.setProgressTotal(null);
 				}
 				dbo.setErrorMessage(rs.getString(COL_TABLE_STATUS_ERROR_MESSAGE));
-				Blob blob = rs.getBlob(COL_TABLE_STATUS_ERROR_DETAILS);
-				if (blob != null){
-					dbo.setErrorDetails(blob.getBytes(1, (int) blob.length()));
-				}
+				dbo.setErrorDetails(rs.getBytes(COL_TABLE_STATUS_ERROR_DETAILS));
 				dbo.setTotalRunTimeMS(rs.getLong(COL_TABLE_STATUS_RUNTIME_MS));
 				if(rs.wasNull()) {
 					dbo.setTotalRunTimeMS(null);
