@@ -131,7 +131,7 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static String createTableSQL(String tableId, TableType type) {
+	public static String createTableSQL(IdAndVersion tableId, TableType type) {
 		ValidateArgument.required(tableId, "tableId");
 		StringBuilder columnDefinitions = new StringBuilder();
 		switch (type) {
@@ -149,11 +149,7 @@ public class SQLUtils {
 		return createTableSQL(tableId, type, columnDefinitions.toString());
 	}
 
-	public static String createTableSQL(Long tableId, TableType type) {
-		return createTableSQL(tableId.toString(), type);
-	}
-
-	private static String createTableSQL(String tableId, TableType type, String columnDefinitions) {
+	private static String createTableSQL(IdAndVersion tableId, TableType type, String columnDefinitions) {
 		return "CREATE TABLE IF NOT EXISTS `" + getTableNameForId(tableId, type) + "` ( " + columnDefinitions + " )";
 	}
 
@@ -211,11 +207,10 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTableNameForId(String tableId, TableType type) {
-		if (tableId == null) {
+	public static String getTableNameForId(IdAndVersion id, TableType type) {
+		if (id == null) {
 			throw new IllegalArgumentException("Table ID cannot be null");			
 		}
-		IdAndVersion id = IdAndVersion.parse(tableId);
 		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
 		builder.append(id.getId());
 		if(id.getVersion() != null) {
@@ -329,7 +324,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String dropTableSQL(String tableId, TableType type) {
+	public static String dropTableSQL(IdAndVersion tableId, TableType type) {
 		String tableName = getTableNameForId(tableId, type);
 		return "DROP TABLE " + tableName;
 	}
@@ -340,7 +335,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, String tableId){
+	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, IdAndVersion tableId){
 		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
 		if(schema.size() < 1) throw new IllegalArgumentException("Schema must include at least on column");
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
@@ -394,7 +389,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildCreateOrUpdateStatusSQL(String tableId) {
+	public static String buildCreateOrUpdateStatusSQL(IdAndVersion tableId) {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -410,7 +405,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusHashSQL(String tableId) {
+	public static String buildCreateOrUpdateStatusHashSQL(IdAndVersion tableId) {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -426,7 +421,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusVersionAndHashSQL(String tableId){
+	public static String buildCreateOrUpdateStatusVersionAndHashSQL(IdAndVersion tableId){
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -449,7 +444,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildDeleteSQL(String tableId){
+	public static String buildDeleteSQL(IdAndVersion tableId){
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("DELETE FROM ");
@@ -542,7 +537,7 @@ public class SQLUtils {
 	 * 
 	 * @return
 	 */
-	public static String getCountSQL(String tableId){
+	public static String getCountSQL(IdAndVersion tableId){
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId, TableType.INDEX));
 		return builder.toString();
@@ -552,7 +547,7 @@ public class SQLUtils {
 	 * Create the SQL used to get the max version number from a table.
 	 * @return
 	 */
-	public static String getStatusMaxVersionSQL(String tableId) {
+	public static String getStatusMaxVersionSQL(IdAndVersion tableId) {
 		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 
@@ -561,7 +556,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getSchemaHashSQL(String tableId) {
+	public static String getSchemaHashSQL(IdAndVersion tableId) {
 		return "SELECT " + SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 	
@@ -570,7 +565,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createSQLInsertIgnoreFileHandleId(String tableId){
+	public static String createSQLInsertIgnoreFileHandleId(IdAndVersion tableId){
 		return "INSERT IGNORE INTO "+getTableNameForId(tableId, TableType.FILE_IDS)+" ("+FILE_ID+") VALUES(?)";
 	}
 	
@@ -579,7 +574,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createSQLGetBoundFileHandleId(String tableId){
+	public static String createSQLGetBoundFileHandleId(IdAndVersion tableId){
 		return "SELECT "+FILE_ID+" FROM "+getTableNameForId(tableId, TableType.FILE_IDS)+" WHERE "+FILE_ID+" IN( :"+FILE_ID_BIND+")";
 	}
 	
@@ -590,7 +585,7 @@ public class SQLUtils {
 	 * @param columnName
 	 * @return
 	 */
-	public static String createSQLGetDistinctValues(String tableId, String columnName){
+	public static String createSQLGetDistinctValues(IdAndVersion tableId, String columnName){
 		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 	
@@ -599,7 +594,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTableIfDoesNotExistSQL(String tableId, boolean isView){
+	public static String createTableIfDoesNotExistSQL(IdAndVersion tableId, boolean isView){
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
@@ -625,7 +620,7 @@ public class SQLUtils {
 	 * @param changes
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChangeDetails> changes, String tableId, boolean alterTemp){
+	public static String createAlterTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId, boolean alterTemp){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		if(alterTemp){
@@ -637,7 +632,7 @@ public class SQLUtils {
 		boolean isFirst = true;
 		boolean hasChanges = false;
 		for(ColumnChangeDetails change: changes){
-			boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId);
+			boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
 			boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 			if(hasChange){
 				hasChanges = true;
@@ -834,7 +829,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTruncateSql(String tableId) {
+	public static String createTruncateSql(IdAndVersion tableId) {
 		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
@@ -846,7 +841,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createCardinalitySql(List<DatabaseColumnInfo> list, String tableId){
+	public static String createCardinalitySql(List<DatabaseColumnInfo> list, IdAndVersion tableId){
 		if(list.isEmpty()){
 			return null;
 		}
@@ -877,7 +872,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex){
 		IndexChange change = calculateIndexOptimization(list, tableId, maxNumberOfIndex);
 		return createAlterIndices(change, tableId);
 	}
@@ -892,7 +887,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex){
 		// us a copy of the list
 		list = new LinkedList<DatabaseColumnInfo>(list);
 		// sort by cardinality descending		
@@ -945,7 +940,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createAlterIndices(IndexChange change, String tableId){
+	public static String createAlterIndices(IndexChange change, IdAndVersion tableId){
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(tableId, "tableId");
 		
@@ -1105,8 +1100,8 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTemporaryTableName(String tableId){
-		return TEMP+KeyFactory.stringToKey(tableId);
+	public static String getTemporaryTableName(IdAndVersion tableId){
+		return TEMP+getTableNameForId(tableId, TableType.INDEX);
 	}
 
 	/**
@@ -1114,7 +1109,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTempTableSql(String tableId) {
+	public static String createTempTableSql(IdAndVersion tableId) {
 		String tableName = getTableNameForId(tableId, TableType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(CREATE_TABLE_LIKE, tempName, tableName);
@@ -1127,7 +1122,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String copyTableToTempSql(String tableId){
+	public static String copyTableToTempSql(IdAndVersion tableId){
 		String tableName = getTableNameForId(tableId, TableType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
@@ -1138,7 +1133,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String countTempRowsSql(String tableId){
+	public static String countTempRowsSql(IdAndVersion tableId){
 		String tempName = getTemporaryTableName(tableId);
 		return SELECT_COUNT_FROM_TEMP+tempName;
 	}
@@ -1148,7 +1143,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String deleteTempTableSql(String tableId){
+	public static String deleteTempTableSql(IdAndVersion tableId){
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
 	}
@@ -1242,12 +1237,12 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromEntityReplication(String viewId, Long viewTypeMask,
+	public static String createSelectInsertFromEntityReplication(Long viewId, Long viewTypeMask,
 			List<ColumnModel> currentSchema) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(viewId, TableType.INDEX));
+		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") SELECT ");
@@ -1416,8 +1411,8 @@ public class SQLUtils {
 	 * @param etagColumnId
 	 * @return
 	 */
-	public static String buildTableViewCRC32Sql(String viewId){
-		String tableName = getTableNameForId(viewId, TableType.INDEX);
+	public static String buildTableViewCRC32Sql(Long viewId){
+		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX);
 		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
 	}
 	

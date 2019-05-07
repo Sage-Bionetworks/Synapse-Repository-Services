@@ -54,6 +54,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -169,7 +170,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean deleteTable(String tableId) {
+	public boolean deleteTable(IdAndVersion tableId) {
 		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
 		try {
 			template.update(dropTableDML);
@@ -211,7 +212,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Long getRowCountForTable(String tableId) {
+	public Long getRowCountForTable(IdAndVersion tableId) {
 		String sql = SQLUtils.getCountSQL(tableId);
 		try {
 			return template.queryForObject(sql,new SingleColumnRowMapper<Long>());
@@ -222,7 +223,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Long getMaxCurrentCompleteVersionForTable(String tableId) {
+	public Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId) {
 		String sql = SQLUtils.getStatusMaxVersionSQL(tableId);
 		try {
 			return template.queryForObject(sql, new SingleColumnRowMapper<Long>());
@@ -233,26 +234,26 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void setMaxCurrentCompleteVersionForTable(String tableId, Long version) {
+	public void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long version) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version, version);
 	}
 	
 	@Override
-	public void setCurrentSchemaMD5Hex(String tableId, String schemaMD5Hex) {
+	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, schemaMD5Hex, schemaMD5Hex);
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
+	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
 			String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
 	}
 
 	@Override
-	public String getCurrentSchemaMD5Hex(String tableId) {
+	public String getCurrentSchemaMD5Hex(IdAndVersion tableId) {
 		String sql = SQLUtils.getSchemaHashSQL(tableId);
 		try {
 			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
@@ -263,7 +264,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteSecondaryTables(String tableId) {
+	public void deleteSecondaryTables(IdAndVersion tableId) {
 		for(TableType type: SQLUtils.SECONDARY_TYPES){
 			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
 			try {
@@ -275,7 +276,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void createSecondaryTables(String tableId) {
+	public void createSecondaryTables(IdAndVersion tableId) {
 		for(TableType type: SQLUtils.SECONDARY_TYPES){
 			String sql = SQLUtils.createTableSQL(tableId, type);
 			template.update(sql);
@@ -354,7 +355,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @see org.sagebionetworks.table.cluster.TableIndexDAO#applyFileHandleIdsToTable(java.lang.String, java.util.Set)
 	 */
 	@Override
-	public void applyFileHandleIdsToTable(final String tableId,
+	public void applyFileHandleIdsToTable(final IdAndVersion tableId,
 			final Set<Long> fileHandleIds) {
 	
 		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
@@ -385,7 +386,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 */
 	@Override
 	public Set<Long> getFileHandleIdsAssociatedWithTable(
-			final Set<Long> fileHandleIds, final String tableId) {
+			final Set<Long> fileHandleIds, final IdAndVersion tableId) {
 		try {
 			return this.readTransactionTemplate.execute(new TransactionCallback<Set<Long>>() {
 				@Override
@@ -412,7 +413,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 
 	@Override
-	public boolean doesIndexStateMatch(String tableId, long versionNumber, String schemaMD5Hex) {
+	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex) {
 		long indexVersion = getMaxCurrentCompleteVersionForTable(tableId);
 		if(indexVersion != versionNumber){
 			return false;
@@ -422,20 +423,20 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Set<Long> getDistinctLongValues(String tableId, String columnName) {
+	public Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnName) {
 		String sql = SQLUtils.createSQLGetDistinctValues(tableId, columnName);
 		List<Long> results = template.queryForList(sql, Long.class);
 		return new HashSet<Long>(results);
 	}
 
 	@Override
-	public void createTableIfDoesNotExist(String tableId, boolean isView) {
+	public void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView) {
 		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
 		template.update(sql);
 	}
 
 	@Override
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
+	public boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
 		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
 		if(sql == null){
 			// no change are needed.
@@ -447,13 +448,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void truncateTable(String tableId) {
+	public void truncateTable(IdAndVersion tableId) {
 		String sql = SQLUtils.createTruncateSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public List<DatabaseColumnInfo> getDatabaseInfo(String tableId) {
+	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId) {
 		try {
 			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
 			// Bind variables do not seem to work here
@@ -483,7 +484,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void provideCardinality(final List<DatabaseColumnInfo> list,
-			String tableId) {
+			IdAndVersion tableId) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
 		if(list.isEmpty()){
@@ -501,7 +502,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId) {
+	public void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
 		if(list.isEmpty()){
@@ -528,7 +529,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list,
-			String tableId, int maxNumberOfIndex) {
+			IdAndVersion tableId, int maxNumberOfIndex) {
 		String alterSql = SQLUtils.createOptimizedAlterIndices(list, tableId, maxNumberOfIndex);
 		if(alterSql == null){
 			// No changes are needed.
@@ -538,25 +539,25 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createTemporaryTable(String tableId) {
+	public void createTemporaryTable(IdAndVersion tableId) {
 		String sql = SQLUtils.createTempTableSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public void copyAllDataToTemporaryTable(String tableId) {
+	public void copyAllDataToTemporaryTable(IdAndVersion tableId) {
 		String sql = SQLUtils.copyTableToTempSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public void deleteTemporaryTable(String tableId) {
+	public void deleteTemporaryTable(IdAndVersion tableId) {
 		String sql = SQLUtils.deleteTempTableSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public long getTempTableCount(String tableId) {
+	public long getTempTableCount(IdAndVersion tableId) {
 		String sql = SQLUtils.countTempRowsSql(tableId);
 		try {
 			return template.queryForObject(sql, Long.class);
@@ -765,7 +766,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public long calculateCRC32ofTableView(String viewId){
+	public long calculateCRC32ofTableView(Long viewId){
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
 		Long result = this.template.queryForObject(sql, Long.class);
 		if(result == null){
@@ -775,7 +776,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToTable(String viewId, Long viewTypeMask,
+	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");

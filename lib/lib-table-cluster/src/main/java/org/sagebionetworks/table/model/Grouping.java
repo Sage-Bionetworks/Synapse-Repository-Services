@@ -2,6 +2,7 @@ package org.sagebionetworks.table.model;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 
 /**
@@ -13,9 +14,9 @@ public class Grouping {
 	
 	List<ColumnModel> columns;
 	List<SparseRow> rows;
-	String tableId;
+	IdAndVersion tableId;
 	
-	public Grouping(List<ColumnModel> columns, List<SparseRow> rows, String tableId) {
+	public Grouping(List<ColumnModel> columns, List<SparseRow> rows, IdAndVersion tableId) {
 		super();
 		this.columns = columns;
 		this.rows = rows;
@@ -45,7 +46,7 @@ public class Grouping {
 	 * The ID of the table.
 	 * @return
 	 */
-	public String getTableId(){
+	public IdAndVersion getTableId(){
 		return tableId;
 	}
 
