@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRequest;
@@ -18,8 +17,8 @@ public class MembershipRequestUtils {
 
 	public static final String CLASS_ALIAS = "MembershipRequest";
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
-			.allowTypes(MembershipInvitation.class)
-			.alias(CLASS_ALIAS, MembershipInvitation.class)
+			.allowTypes(MembershipRequest.class)
+			.alias(CLASS_ALIAS, MembershipRequest.class)
 			.build();
 
 	public static void copyDtoToDbo(MembershipRequest dto, DBOMembershipRequest dbo) throws DatastoreException {

@@ -67,7 +67,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
 	private static final String SET_UNIQUE_KEY_CHECKS = "SET UNIQUE_CHECKS = ?";
 
-	private static Map<BackupAliasType, UnmodifiableXStream> BACKUP_ALIAS_TYPE_TO_X_STREAM;
+	static Map<BackupAliasType, UnmodifiableXStream> BACKUP_ALIAS_TYPE_TO_X_STREAM;
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
@@ -172,7 +172,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		initializeAliasTypeToXStreamMap(databaseObjectRegister);
 	}
 
-	private static void initializeAliasTypeToXStreamMap(List<MigratableDatabaseObject> databaseObjectRegister) {
+	static void initializeAliasTypeToXStreamMap(List<MigratableDatabaseObject> databaseObjectRegister) {
 		//create maps for alias type to xstream
 		EnumMap<BackupAliasType, UnmodifiableXStream> tempMap = new EnumMap<>(BackupAliasType.class);
 		UnmodifiableXStream.Builder tableNameXStreamBuilder = UnmodifiableXStream.builder();

@@ -57,7 +57,7 @@ public class UnmodifiableXStream {
 	}
 
 	public static class Builder{
-		XStream xStream;
+		private XStream xStream;
 
 		private Builder(){
 			this.xStream = new XStream();
