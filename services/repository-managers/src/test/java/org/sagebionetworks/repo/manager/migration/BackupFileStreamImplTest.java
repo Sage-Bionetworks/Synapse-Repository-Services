@@ -258,40 +258,6 @@ public class BackupFileStreamImplTest {
 	}
 	
 	@Test
-	public void testGetAliasTypeName() {
-		MigratableDatabaseObject mdo = new DBONode();
-		BackupAliasType type = BackupAliasType.MIGRATION_TYPE_NAME;
-		// Call under test
-		String allias = BackupFileStreamImpl.getAlias(mdo, type);
-		assertEquals(mdo.getMigratableTableType().name(), allias);
-	}
-	
-	@Test
-	public void testGetAliasTableName() {
-		MigratableDatabaseObject mdo = new DBONode();
-		BackupAliasType type = BackupAliasType.TABLE_NAME;
-		// Call under test
-		String allias = BackupFileStreamImpl.getAlias(mdo, type);
-		assertEquals(mdo.getTableMapping().getTableName(), allias);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAliasTableNameNullType() {
-		MigratableDatabaseObject mdo = new DBONode();
-		BackupAliasType type = null;
-		// Call under test
-		BackupFileStreamImpl.getAlias(mdo, type);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAliasTableNameNullObject() {
-		MigratableDatabaseObject mdo = null;
-		BackupAliasType type = BackupAliasType.TABLE_NAME;
-		// Call under test
-		BackupFileStreamImpl.getAlias(mdo, type);
-	}
-	
-	@Test
 	public void testWriteBatchToZipTableName() throws IOException {
 		backupAliasType = BackupAliasType.TABLE_NAME;
 		// call under test

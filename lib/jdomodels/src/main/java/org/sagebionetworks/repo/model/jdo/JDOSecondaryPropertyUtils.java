@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,7 +59,11 @@ public class JDOSecondaryPropertyUtils {
 		return compressObject(dto == null || dto.isEmpty() ? null : dto);
 	}
 
-	private static byte[] compressObject(Object dto) throws IOException {
+	public static byte[] compressObject(Object dto) throws IOException {
+		return compressObject(X_STREAM, dto);
+	}
+
+	public static byte[] compressObject(UnmodifiableXStream customXStream, Object dto) throws IOException {
 		if(dto == null) return null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		GZIPOutputStream zipper = new GZIPOutputStream(out);
@@ -74,18 +77,10 @@ public class JDOSecondaryPropertyUtils {
 	 * Convert the passed reference to a compressed (zip) byte array
 	 * @param dto
 	 * @return the compressed reference
-	 * @throws IOException 
 	 */
 	public static byte[] compressReference(Reference dto) {
-		if(dto == null) {
-			return null;
-		}
-		try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-				GZIPOutputStream zipper = new GZIPOutputStream(out);
-				Writer zipWriter = new OutputStreamWriter(zipper, UTF8);) {
-			X_STREAM.toXML(dto, zipWriter);
-			zipWriter.close();
-			return out.toByteArray();
+		try {
+			return compressObject(dto);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -93,25 +88,31 @@ public class JDOSecondaryPropertyUtils {
 	
 	/**
 	 * Read the compressed (zip) byte array into the Annotations.
-	 * @param zippedByes
+	 * @param zippedBytes
 	 * @return the resurrected Annotations
 	 * @throws IOException 
 	 */
-	public static NamedAnnotations decompressedAnnotations(byte[] zippedByes) throws IOException{
-		Object o = decompressedObject(zippedByes);
+	public static NamedAnnotations decompressedAnnotations(byte[] zippedBytes) throws IOException{
+		Object o = decompressedObject(zippedBytes);
 		if (o==null) return new NamedAnnotations();
 		return (NamedAnnotations)o;
 	}
 		
-	public static Object decompressedObject(byte[] zippedByes) throws IOException{
-		if(zippedByes != null){
-			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
+	public static Object decompressedObject(byte[] zippedBytes) throws IOException{
+		return decompressedObject(X_STREAM, zippedBytes);
+	}
+
+
+	public static Object decompressedObject(UnmodifiableXStream customXStream, byte[] zippedBytes) throws IOException{
+		if(zippedBytes != null){
+			ByteArrayInputStream in = new ByteArrayInputStream(zippedBytes);
 			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
-				return X_STREAM.fromXML(unZipper);
+				return customXStream.fromXML(unZipper);
 			}
 		}
 		return null;
 	}
+
 
 	/**
 	 * Read the compressed (zip) byte array into the Reference.
@@ -120,14 +121,7 @@ public class JDOSecondaryPropertyUtils {
 	 * @throws IOException 
 	 */
 	public static Reference decompressedReference(byte[] zippedByes) throws IOException{
-		if(zippedByes != null){
-			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
-			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
-				return (Reference) X_STREAM.fromXML(unZipper);
-			}
-		}
-
-		return null;
+		return (Reference) decompressedObject(zippedByes);
 	}
 
 	/**

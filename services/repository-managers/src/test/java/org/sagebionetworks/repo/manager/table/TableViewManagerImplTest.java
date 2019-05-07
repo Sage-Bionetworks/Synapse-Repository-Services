@@ -15,6 +15,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -427,7 +428,7 @@ public class TableViewManagerImplTest {
 	 * 
 	 */
 	@Test
-	public void testUpdateAnnotationsDate(){
+	public void testUpdateAnnotationsDate() throws IOException {
 		Date date = new Date(1509744902000L);
 		viewSchema = Lists.newArrayList(dateColumn);
 		Annotations annos = new Annotations();
@@ -444,10 +445,7 @@ public class TableViewManagerImplTest {
 		 * Note: With PLFM-4706 this is where the date gets 
 		 * converted to the same day at time 0.
 		 */
-		XStream xstream = JDOSecondaryPropertyUtils.createXStream();
-		String xml = xstream.toXML(annos);
-		Annotations annotationCopy = new Annotations();
-		xstream.fromXML(xml, annotationCopy);
+		Annotations annotationCopy = (Annotations) JDOSecondaryPropertyUtils.decompressedObject(JDOSecondaryPropertyUtils.compressObject(annos));
 		
 		Object value = annotationCopy.getSingleValue(dateColumn.getName());
 		assertNotNull(value);
