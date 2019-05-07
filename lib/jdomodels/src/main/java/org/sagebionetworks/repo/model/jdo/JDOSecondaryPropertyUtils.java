@@ -3,7 +3,9 @@ package org.sagebionetworks.repo.model.jdo;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -44,7 +46,7 @@ public class JDOSecondaryPropertyUtils {
 			.omitField(NamedAnnotations.class, "id")
 			.omitField(NamedAnnotations.class, "etag")
 			.allowTypes(NamedAnnotations.class, Annotations.class, Reference.class)
-			.allowTypeHierarchy(Object.class) //TODO: remove if not necessary later in refactor
+			.allowTypeHierarchy(Object.class)
 			.alias("annotations", Annotations.class)
 			.alias("name-space", NamedAnnotations.class)
 			.build();
@@ -106,7 +108,8 @@ public class JDOSecondaryPropertyUtils {
 	public static Object decompressedObject(UnmodifiableXStream customXStream, byte[] zippedBytes) throws IOException{
 		if(zippedBytes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedBytes);
-			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
+			GZIPInputStream unZipper = new GZIPInputStream(in);
+			try(Reader reader = new InputStreamReader(unZipper, UTF8);){
 				return customXStream.fromXML(unZipper);
 			}
 		}

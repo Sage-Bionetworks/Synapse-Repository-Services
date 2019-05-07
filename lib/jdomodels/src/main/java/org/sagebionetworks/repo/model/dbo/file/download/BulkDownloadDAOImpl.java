@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -421,12 +422,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			throw new IllegalArgumentException("Download list must include at least one file");
 		}
 		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream(1000);
-			GZIPOutputStream zip = new GZIPOutputStream(out);
-			Writer writer = new OutputStreamWriter(zip, UTF_8);
-			X_STREAM.toXML(files, writer);
-			IOUtils.closeQuietly(writer);
-			return out.toByteArray();
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, files);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -442,10 +438,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	static List<FileHandleAssociation> translateBytesToFiles(byte[] files) {
 		ValidateArgument.required(files, "files");
 		try {
-			ByteArrayInputStream in = new ByteArrayInputStream(files);
-			GZIPInputStream zip = new GZIPInputStream(in);
-			Reader reader = new InputStreamReader(zip, UTF_8);
-			return (List<FileHandleAssociation>) X_STREAM.fromXML(reader);
+			return (List<FileHandleAssociation>) JDOSecondaryPropertyUtils.decompressedObject(X_STREAM, files);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

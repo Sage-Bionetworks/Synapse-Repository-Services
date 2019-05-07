@@ -48,17 +48,14 @@ public class UnmodifiableXStream {
 		return xStream.fromXML(input, root);
 	}
 
-	//////////////////////
-	//static initializers
-	//////////////////////
+	///////////
+	// Builder
+	///////////
+
 	public static UnmodifiableXStream.Builder builder(){
 		return new Builder();
 	}
 
-
-	///////////
-	// Builder
-	///////////
 	public static class Builder{
 		XStream xStream;
 

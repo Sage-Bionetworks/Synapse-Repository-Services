@@ -20,6 +20,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -61,13 +62,8 @@ public class ColumnModelUtils {
 			ColumnModel normal = createNormalizedClone(dto, maxEnumValues);
 			String hash = calculateHash(normal);
 			// Create the bytes
-			ByteArrayOutputStream out = new ByteArrayOutputStream(200);
-			GZIPOutputStream zip = new GZIPOutputStream(out);
-			Writer zipWriter = new OutputStreamWriter(zip, UTF8);
-			X_STREAM.toXML(normal, zipWriter);
-			IOUtils.closeQuietly(zipWriter);
 			DBOColumnModel dbo = new DBOColumnModel();
-			dbo.setBytes(out.toByteArray());
+			dbo.setBytes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, normal));
 			dbo.setName(normal.getName());
 			dbo.setHash(hash);
 			if(dto.getId() != null){
