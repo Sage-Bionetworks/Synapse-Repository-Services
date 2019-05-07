@@ -70,7 +70,7 @@ public class JDOSecondaryPropertyUtils {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		GZIPOutputStream zipper = new GZIPOutputStream(out);
 		try(Writer zipWriter = new OutputStreamWriter(zipper, UTF8);){
-			X_STREAM.toXML(dto, zipWriter);
+			customXStream.toXML(dto, zipWriter);
 		}
 		return out.toByteArray();
 	}
