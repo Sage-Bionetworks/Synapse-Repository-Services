@@ -149,12 +149,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Make sure we have a table for all registered objects
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
 
-		BACKUP_ALIAS_TYPE_TO_X_STREAM = new EnumMap<>(BackupAliasType.class);
-		UnmodifiableXStream.Builder tableNameXStreamBuilder = UnmodifiableXStream.builder();
-		tableNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
-		UnmodifiableXStream.Builder migrationTypeNameXStreamBuilder = UnmodifiableXStream.builder();
-		migrationTypeNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
-
 		// Create the schema for each 
 		// This index is used to validate the order of migration.
 		int lastIndex = 0;
@@ -168,26 +162,41 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			int typeIndex= typeIndex(dbo.getMigratableTableType());
 			if(typeIndex < lastIndex) throw new IllegalArgumentException("The order of the primary MigrationType must match the order for the MigrationType enumeration.  Type:  "+dbo.getMigratableTableType().name()+" is out of order");
 			lastIndex = typeIndex;
-
-
-			// Add aliases to XStream for each alias type
-			//BackupAliasType.TABLE_NAME
-			tableNameXStreamBuilder.alias(dbo.getTableMapping().getTableName(), dbo.getBackupClass());
-			//BackupAliasType.MIGRATION_TYPE_NAME
-			migrationTypeNameXStreamBuilder.alias(dbo.getMigratableTableType().name(), dbo.getBackupClass());
-		}
-		//TODO: TEST
-		BACKUP_ALIAS_TYPE_TO_X_STREAM.put(BackupAliasType.TABLE_NAME, tableNameXStreamBuilder.build());
-		BACKUP_ALIAS_TYPE_TO_X_STREAM.put(BackupAliasType.MIGRATION_TYPE_NAME, migrationTypeNameXStreamBuilder.build());
-		if(BACKUP_ALIAS_TYPE_TO_X_STREAM.size() != BackupAliasType.values().length){
-			throw new IllegalStateException("Need a mapping for the new BackupAliasType "
-					+ CollectionUtils.subtract(Arrays.asList(BackupAliasType.values()), BACKUP_ALIAS_TYPE_TO_X_STREAM.keySet()));
 		}
 		
 		// Change must always be last
 		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
 			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
+
+		initializeAliasTypeToXStreamMap(databaseObjectRegister);
+	}
+
+	private static void initializeAliasTypeToXStreamMap(List<MigratableDatabaseObject> databaseObjectRegister) {
+		//create maps for alias type to xstream
+		EnumMap<BackupAliasType, UnmodifiableXStream> tempMap = new EnumMap<>(BackupAliasType.class);
+		UnmodifiableXStream.Builder tableNameXStreamBuilder = UnmodifiableXStream.builder();
+		tableNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
+		UnmodifiableXStream.Builder migrationTypeNameXStreamBuilder = UnmodifiableXStream.builder();
+		migrationTypeNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
+
+		for(MigratableDatabaseObject dbo: databaseObjectRegister){
+			// Add aliases to XStream for each alias type
+			//BackupAliasType.TABLE_NAME
+			tableNameXStreamBuilder.alias(dbo.getTableMapping().getTableName(), dbo.getBackupClass());
+			//BackupAliasType.MIGRATION_TYPE_NAME
+			migrationTypeNameXStreamBuilder.alias(dbo.getMigratableTableType().name(), dbo.getBackupClass());
+		}
+
+		//add map entries once the builders are done
+		tempMap.put(BackupAliasType.TABLE_NAME, tableNameXStreamBuilder.build());
+		tempMap.put(BackupAliasType.MIGRATION_TYPE_NAME, migrationTypeNameXStreamBuilder.build());
+		if(tempMap.size() != BackupAliasType.values().length){
+			throw new IllegalStateException("Need a mapping for the new BackupAliasType "
+					+ CollectionUtils.subtract(Arrays.asList(BackupAliasType.values()), tempMap.keySet()));
+		}
+
+		BACKUP_ALIAS_TYPE_TO_X_STREAM = Collections.unmodifiableMap(tempMap);
 	}
 	
 	/*
@@ -657,7 +666,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 	@Override
-	public UnmodifiableXStream getXStream(BackupAliasType backupAliasType) { //TODO: TEST
+	public UnmodifiableXStream getXStream(BackupAliasType backupAliasType) {
 		UnmodifiableXStream xStream = BACKUP_ALIAS_TYPE_TO_X_STREAM.get(backupAliasType);
 		if(xStream == null){
 			throw new IllegalStateException("Unknown type: " + backupAliasType);

@@ -29,16 +29,19 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredentialBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.util.StringInputStream;
@@ -51,7 +54,11 @@ public class BackupFileStreamImplTest {
 	
 	@Mock
 	MigrationTypeProvider mockTypeProvider;
-	
+
+	UnmodifiableXStream tableNameXStream;
+	UnmodifiableXStream migrationTypeXStream;
+
+
 	BackupFileStreamImpl backupFileStream;
 	
 	ByteArrayOutputStream byteArrayOutputStream;
@@ -122,6 +129,17 @@ public class BackupFileStreamImplTest {
 		credentialTwo.setSecretKey("keyTwo");
 		credentialTwo.setPrincipalId(456L);
 		credentials = Lists.newArrayList(credentialOne, credentialTwo);
+
+		tableNameXStream = UnmodifiableXStream.builder()
+				.alias(SqlConstants.TABLE_NODE, DBONode.class)
+				.alias(SqlConstants.TABLE_REVISION, DBORevision.class)
+				.alias(SqlConstants.TABLE_ACCESS_CONTROL_LIST, DBOAccessControlList.class)
+				.alias(SqlConstants.TABLE_RESOURCE_ACCESS, DBOResourceAccess.class)
+				.alias(SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, DBOResourceAccessType.class)
+				.alias(SqlConstants.TABLE_CREDENTIAL, DBOCredentialBackup.class).build();
+		migrationTypeXStream = UnmodifiableXStream.builder().build();
+		when(mockTypeProvider.getXStream(BackupAliasType.TABLE_NAME)).thenReturn(tableNameXStream);
+		when(mockTypeProvider.getXStream(BackupAliasType.MIGRATION_TYPE_NAME)).thenReturn(migrationTypeXStream);
 	}
 	
 	@Test
