@@ -182,7 +182,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createOrUpdateOrDeleteRows(final Grouping grouping) {
+	public void createOrUpdateOrDeleteRows(final IdAndVersion tableId, final Grouping grouping) {
 		ValidateArgument.required(grouping, "grouping");
 		// Execute this within a transaction
 		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
@@ -193,14 +193,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				List<ColumnModel> groupingColumns = grouping.getColumnsWithValues();
 				if(groupingColumns.isEmpty()){
 					// This is a delete
-					String deleteSql = SQLUtils.buildDeleteSQL(grouping.getTableId());
+					String deleteSql = SQLUtils.buildDeleteSQL(tableId);
 					SqlParameterSource batchDeleteBinding = SQLUtils
 							.bindParameterForDelete(grouping.getRows());
 					namedTemplate.update(deleteSql, batchDeleteBinding);
 				}else{
 					// this is a create or update
-					String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(groupingColumns,
-							grouping.getTableId());
+					String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(groupingColumns, tableId);
 					SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
 							.bindParametersForCreateOrUpdate(grouping);
 					namedTemplate.batchUpdate(createOrUpdateSql,

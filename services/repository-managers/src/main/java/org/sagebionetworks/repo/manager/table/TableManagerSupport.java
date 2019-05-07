@@ -194,7 +194,7 @@ public interface TableManagerSupport {
 	 * @param viewId
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(String viewId, Long viewTypeMask);
+	public Set<Long> getAllContainerIdsForViewScope(Long viewId, Long viewTypeMask);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -375,10 +375,10 @@ public interface TableManagerSupport {
 	/**
 	 * Get the view type for the given table ID.
 	 * 
-	 * @param tableId
+	 * @param viewId
 	 * @return
 	 */
-	Long getViewTypeMask(String tableId);
+	Long getViewTypeMask(Long viewId);
 
 	/**
 	 * Only Administrator can perform this action.

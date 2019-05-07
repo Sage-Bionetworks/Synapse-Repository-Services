@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -45,13 +46,13 @@ public interface TableIndexManager {
 	 * 
 	 * @return
 	 */
-	public long getCurrentVersionOfIndex(String tableId);
+	public long getCurrentVersionOfIndex(IdAndVersion tableId);
 	
 	/**
 	 * The MD5 Hex string of the current schema.
 	 * @return
 	 */
-	public String getCurrentSchemaMD5Hex(String tableId);
+	public String getCurrentSchemaMD5Hex(IdAndVersion tableId);
 
 	/**
 	 * Has the change set represented by the given version number already been
@@ -62,7 +63,7 @@ public interface TableIndexManager {
 	 * @return True if the change set for the given version has already been
 	 *         applied ot the table.
 	 */
-	public boolean isVersionAppliedToIndex(String tableId, long versionNumber);
+	public boolean isVersionAppliedToIndex(IdAndVersion tableId, long versionNumber);
 
 	/**
 	 * Apply the given change set to a table's index. Each row in a change set
@@ -86,7 +87,7 @@ public interface TableIndexManager {
 	 *            must match the version number of each row in the passed
 	 *            changeset.
 	 */
-	public void applyChangeSetToIndex(String tableId, SparseChangeSet rowset,
+	public void applyChangeSetToIndex(IdAndVersion tableId, SparseChangeSet rowset,
 			long changeSetVersionNumber);
 
 	/**
@@ -94,24 +95,24 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
+	public void setIndexSchema(IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
+	public boolean updateTableSchema(IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
 	
 	/**
 	 * Delete the index for this table.
 	 */
-	public void deleteTableIndex(String tableId);
+	public void deleteTableIndex(IdAndVersion tableId);
 
 	/**
 	 * Set current version of the index.
 	 * @param viewCRC
 	 */
-	public void setIndexVersion(String tableId, Long viewCRC);
+	public void setIndexVersion(IdAndVersion tableId, Long viewCRC);
 	
 	/**
 	 * Set the current version of the index and the schema MD5, both of which are used
@@ -120,7 +121,7 @@ public interface TableIndexManager {
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
-	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC, String schemaMD5Hex);
+	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
 	
 	/**
 	 * Optimize the indices of this table. Indices are added until either all
@@ -131,20 +132,20 @@ public interface TableIndexManager {
 	 * 
 	 * Note: This method should be called after making all changes to a table.
 	 */
-	public void optimizeTableIndices(String tableId);
+	public void optimizeTableIndices(IdAndVersion tableId);
 
 	/**
 	 * Create a temporary copy of the table's index table.
 	 * 
 	 * @param callback
 	 */
-	public void createTemporaryTableCopy(String tableId, ProgressCallback callback);
+	public void createTemporaryTableCopy(IdAndVersion tableId, ProgressCallback callback);
 
 	/**
 	 * Delete the temporary copy of table's index.
 	 * @param callback
 	 */
-	public void deleteTemporaryTableCopy(String tableId, ProgressCallback callback);
+	public void deleteTemporaryTableCopy(IdAndVersion tableId, ProgressCallback callback);
 
 	/**
 	 * Attempt to alter the schema of a temporary copy of a table.
@@ -156,7 +157,7 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	boolean alterTempTableSchmea(ProgressCallback progressCallback,
-			String tableId, List<ColumnChangeDetails> changes);
+			IdAndVersion tableId, List<ColumnChangeDetails> changes);
 
 
 	/**
@@ -169,7 +170,7 @@ public interface TableIndexManager {
 	 * @param currentSchema
 	 * @return The new CRC23 for the view.
 	 */
-	public Long populateViewFromEntityReplication(String tableId, ProgressCallback callback, Long viewTypeMask,
+	public Long populateViewFromEntityReplication(Long tableId, ProgressCallback callback, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
@@ -186,7 +187,7 @@ public interface TableIndexManager {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken);
+	public ColumnModelPage getPossibleColumnModelsForView(Long viewId, String nextPageToken);
 	
 
 }

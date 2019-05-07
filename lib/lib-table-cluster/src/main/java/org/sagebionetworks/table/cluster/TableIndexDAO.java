@@ -57,7 +57,7 @@ public interface TableIndexDAO {
 	 * @param grouping group of rows that change the same columns.
 	 * @return
 	 */
-	void createOrUpdateOrDeleteRows(Grouping grouping);
+	void createOrUpdateOrDeleteRows(IdAndVersion tableId, Grouping grouping);
 	
 	/**
 	 * Query a RowSet from the table.
