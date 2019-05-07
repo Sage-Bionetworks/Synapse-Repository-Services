@@ -19,6 +19,8 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.jdo.XStreamSingleton;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -37,7 +39,13 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class ColumnModelUtils {
-	
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.alias("ColumnModel", ColumnModel.class)
+			.alias("ColumnType", ColumnType.class)
+			.alias("ColumnChange", ColumnChange.class)
+			.allowTypes(ColumnModel.class, ColumnType.class, ColumnChange.class)
+			.build();
+
 	/**
 	 * The default maximum number of characters for a string.
 	 */
@@ -58,8 +66,7 @@ public class ColumnModelUtils {
 			ByteArrayOutputStream out = new ByteArrayOutputStream(200);
 			GZIPOutputStream zip = new GZIPOutputStream(out);
 			Writer zipWriter = new OutputStreamWriter(zip, UTF8);
-			XStream xstream = createXStream();
-			xstream.toXML(normal, zipWriter);
+			X_STREAM.toXML(normal, zipWriter);
 			IOUtils.closeQuietly(zipWriter);
 			DBOColumnModel dbo = new DBOColumnModel();
 			dbo.setBytes(out.toByteArray());
@@ -84,10 +91,9 @@ public class ColumnModelUtils {
 		if(dbo.getId() == null) throw new IllegalArgumentException("DBOColumnModel.id cannot be null");
 		try {
 			// First read the bytes.
-			XStream xstream = createXStream();
 			ByteArrayInputStream in = new ByteArrayInputStream(dbo.getBytes());
 			GZIPInputStream zip = new GZIPInputStream(in);
-			ColumnModel model = (ColumnModel) xstream.fromXML(zip, new ColumnModel());
+			ColumnModel model = (ColumnModel) X_STREAM.fromXML(zip, new ColumnModel());
 			model.setId(Long.toString(dbo.getId()));
 			return model;
 		} catch (IOException e) {
@@ -246,15 +252,6 @@ public class ColumnModelUtils {
 		}
 	}
 	
-	private static XStream createXStream(){
-		XStream xstream = new XStream();
-		xstream.allowTypes(new Class[]{ColumnModel.class, ColumnType.class, ColumnChange.class});
-		xstream.alias("ColumnModel", ColumnModel.class);
-		xstream.alias("ColumnType", ColumnType.class);
-		xstream.alias("ColumnChange", ColumnChange.class);
-		return xstream;
-	}
-	
 	/**
 	 * Create a list of DBOBoundColumn from the passed list of IDs.
 	 * @param tableId
@@ -320,8 +317,7 @@ public class ColumnModelUtils {
 		GZIPOutputStream zipOut = null;
 		try{
 			zipOut = new GZIPOutputStream(out);
-			XStream xstream = createXStream();
-			xstream.toXML(changes, zipOut);
+			X_STREAM.toXML(changes, zipOut);
 			zipOut.flush();
 		}finally{
 			IOUtils.closeQuietly(zipOut);
@@ -339,8 +335,7 @@ public class ColumnModelUtils {
 		GZIPInputStream zipIn = null;
 		try{
 			zipIn = new GZIPInputStream(input);
-			XStream xstream = createXStream();
-			return (List<ColumnChange>) xstream.fromXML(zipIn);
+			return (List<ColumnChange>) X_STREAM.fromXML(zipIn);
 		}finally{
 			IOUtils.closeQuietly(zipIn);
 		}

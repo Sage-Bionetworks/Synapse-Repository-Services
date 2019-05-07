@@ -35,6 +35,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.file.DownloadList;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.XStreamSingleton;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -86,6 +88,10 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 
 	private static final String SQL_SELECT_DOWNLOAD_LIST_ITEMS = "SELECT * FROM " + TABLE_DOWNLOAD_LIST_ITEM + " WHERE "
 			+ COL_DOWNLOAD_LIST_ITEM_PRINCIPAL_ID + " = ?";
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.allowTypes(FileHandleAssociation.class)
+			.build();
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -421,19 +427,12 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			ByteArrayOutputStream out = new ByteArrayOutputStream(1000);
 			GZIPOutputStream zip = new GZIPOutputStream(out);
 			Writer writer = new OutputStreamWriter(zip, UTF_8);
-			XStream xstream = createXStream();
-			xstream.toXML(files, writer);
+			X_STREAM.toXML(files, writer);
 			IOUtils.closeQuietly(writer);
 			return out.toByteArray();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	static XStream createXStream() {
-		XStream xstream = new XStream();
-		xstream.allowTypes(new Class[]{FileHandleAssociation.class});
-		return xstream;
 	}
 
 	/**
@@ -449,8 +448,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			ByteArrayInputStream in = new ByteArrayInputStream(files);
 			GZIPInputStream zip = new GZIPInputStream(in);
 			Reader reader = new InputStreamReader(zip, UTF_8);
-			XStream xstream = createXStream();
-			return (List<FileHandleAssociation>) xstream.fromXML(reader);
+			return (List<FileHandleAssociation>) X_STREAM.fromXML(reader);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

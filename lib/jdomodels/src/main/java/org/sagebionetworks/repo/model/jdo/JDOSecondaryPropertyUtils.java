@@ -22,6 +22,7 @@ import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.util.Pair;
@@ -35,8 +36,19 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class JDOSecondaryPropertyUtils {
-	
+
 	public static final Charset UTF8 = Charset.forName("UTF-8");
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.omitField(Annotations.class, "id")
+			.omitField(Annotations.class, "etag")
+			.omitField(NamedAnnotations.class, "id")
+			.omitField(NamedAnnotations.class, "etag")
+			.allowTypes(NamedAnnotations.class, Annotations.class, Reference.class)
+			.allowTypeHierarchy(Object.class) //TODO: remove if not necessary later in refactor
+			.alias("annotations", Annotations.class)
+			.alias("name-space", NamedAnnotations.class)
+			.build();
 
 	/**
 	 * Convert the passed annotations to a compressed (zip) byte array
@@ -48,25 +60,14 @@ public class JDOSecondaryPropertyUtils {
 		return compressObject(dto == null || dto.isEmpty() ? null : dto);
 	}
 
-	private static byte[] compressObject(XStream xStream, Object dto) throws IOException {
+	private static byte[] compressObject(Object dto) throws IOException {
 		if(dto == null) return null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		BufferedOutputStream buff = new BufferedOutputStream(out);
-		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		GZIPOutputStream zipper = new GZIPOutputStream(out);
 		try(Writer zipWriter = new OutputStreamWriter(zipper, UTF8);){
-			xStream.toXML(dto, zipWriter);
+			X_STREAM.toXML(dto, zipWriter);
 		}
 		return out.toByteArray();
-	}
-
-	public static byte[] compressObject(Object dto) throws IOException{
-		return compressObject(createXStream(), dto);
-	}
-	
-	public static byte[] compressObject(Object dto, String classAlias) throws IOException{
-		XStream xStream = createXStream();
-		xStream.alias(classAlias, dto.getClass());
-		return compressObject(xStream, dto);
 	}
 	
 	/**
@@ -80,29 +81,14 @@ public class JDOSecondaryPropertyUtils {
 			return null;
 		}
 		try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-				BufferedOutputStream buff = new BufferedOutputStream(out);
-				GZIPOutputStream zipper = new GZIPOutputStream(buff);
+				GZIPOutputStream zipper = new GZIPOutputStream(out);
 				Writer zipWriter = new OutputStreamWriter(zipper, UTF8);) {
-			XStream xstream = createXStream();
-			xstream.toXML(dto, zipWriter);
+			X_STREAM.toXML(dto, zipWriter);
 			zipWriter.close();
 			return out.toByteArray();
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
-	}
-
-	public static XStream createXStream() {
-		XStream xstream = new XStream();
-		xstream.allowTypeHierarchy(Object.class);
-		xstream.omitField(Annotations.class, "id");
-		xstream.omitField(Annotations.class, "etag");
-		xstream.omitField(NamedAnnotations.class, "id");
-		xstream.omitField(NamedAnnotations.class, "etag");
-		xstream.ignoreUnknownElements("createdBy|creationDate|uri");
-		xstream.alias("annotations", Annotations.class);
-		xstream.alias("name-space", NamedAnnotations.class);
-		return xstream;
 	}
 	
 	/**
@@ -121,34 +107,10 @@ public class JDOSecondaryPropertyUtils {
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
 			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
-				XStream xstream = createXStream();
-				if(zippedByes != null){
-					return xstream.fromXML(unZipper);
-				}
+				return X_STREAM.fromXML(unZipper);
 			}
 		}
 		return null;
-	}
-
-	public static Object decompressedObject(byte[] zippedByes, List<Pair<String,Class>> aliases) throws IOException{
-		if(zippedByes != null){
-			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
-			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
-				XStream xstream = createXStream();
-				for (Pair<String,Class> pair : aliases) {
-					xstream.alias(pair.getFirst(), pair.getSecond());
-				}
-				if(zippedByes != null){
-					return xstream.fromXML(unZipper);
-				}
-			}
-		}
-		return null;
-	}
-
-	public static Object decompressedObject(byte[] zippedByes, String classAlias, Class aliasedClass) throws IOException{
-		Pair<String,Class> pair = new Pair<String,Class>(classAlias, aliasedClass);
-		return decompressedObject(zippedByes, Collections.singletonList(pair));
 	}
 
 	/**
@@ -161,10 +123,7 @@ public class JDOSecondaryPropertyUtils {
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
 			try(GZIPInputStream unZipper = new GZIPInputStream(in);){
-				XStream xstream = createXStream();
-				if(zippedByes != null){
-					return (Reference) xstream.fromXML(unZipper);
-				}
+				return (Reference) X_STREAM.fromXML(unZipper);
 			}
 		}
 
