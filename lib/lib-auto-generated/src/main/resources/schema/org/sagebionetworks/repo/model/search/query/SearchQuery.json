@@ -3,7 +3,7 @@
     "properties":{
         "queryTerm":{
             "type":"array",
-            "description":"The free text search terms",
+            "description":"The free text search terms. This will search the name of the Entity and its Wiki contents",
             "uniqueItems":false,
             "items":{
                 "type":"string"

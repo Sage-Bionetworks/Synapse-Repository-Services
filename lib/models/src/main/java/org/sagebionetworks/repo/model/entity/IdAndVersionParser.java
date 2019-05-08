@@ -1,21 +1,23 @@
 package org.sagebionetworks.repo.model.entity;
 
 /**
- * EntityId::= [syn]<id>[.<version>]
+ * IdAndVersion::= [syn]<id>[.<version>]
  *
  * This instance will parse the string in a single pass.
  */
-public class EntityIdParser {
+public class IdAndVersionParser {
 
 	// Null char is used to indicate parser termination.
 	private static final int NULL_CHAR = 0x0;
+	
+	private static int MAX_LONG_DIGITS = 19;
 
 	private int index;
 	private char[] chars;
 	private char currentChar;
-	EntityIdBuilder builder;
+	IdAndVersionBuilder builder;
 
-	EntityIdParser(String toParse) {
+	IdAndVersionParser(String toParse) {
 		if (toParse == null) {
 			throw new IllegalArgumentException("Id string cannot be null");
 		}
@@ -32,9 +34,9 @@ public class EntityIdParser {
 	 * 
 	 * @return
 	 */
-	EntityId parse() {
+	IdAndVersion parse() {
 		try {
-			EntityIdBuilder builder = new EntityIdBuilder();
+			IdAndVersionBuilder builder = new IdAndVersionBuilder();
 			// ignore starting white space
 			consumeWhiteSpace();
 			// skip 'syn' if present.
@@ -102,16 +104,19 @@ public class EntityIdParser {
 	 * @throws ParseException 
 	 */
 	private long consumeLong() throws ParseException {
-		boolean atLeastOneDigit = false;
+		int digits = 0;
 		// consume all digits
 		long value = 0;
 		while (currentChar >= '0' && currentChar <= '9') {
 			value *= 10L;
 			value += ((long)currentChar - 48L);
 			consumeCharacter();
-			atLeastOneDigit = true;
+			digits++;
+			if(digits > MAX_LONG_DIGITS) {
+				throw new ParseException(index);
+			}
 		}
-		if(!atLeastOneDigit) {
+		if(digits < 1) {
 			throw new ParseException(index);
 		}
 		return value;
@@ -174,13 +179,13 @@ public class EntityIdParser {
 	}
 
 	/**
-	 * Parse the given String into an EntityId.
+	 * Parse the given String into an IdAndVersion.
 	 * 
 	 * @param toParse
 	 * @return
 	 */
-	public static EntityId parseEntityId(String toParse) {
-		EntityIdParser parser = new EntityIdParser(toParse);
+	public static IdAndVersion parseIdAndVersion(String toParse) {
+		IdAndVersionParser parser = new IdAndVersionParser(toParse);
 		return parser.parse();
 	}
 }

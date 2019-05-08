@@ -15,6 +15,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -115,31 +116,7 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 
 	@Override
 	public MigratableTableTranslation<DBOColumnModel, DBOColumnModel> getTranslator() {
-		return new MigratableTableTranslation<DBOColumnModel, DBOColumnModel>() {
-			
-			@Override
-			public DBOColumnModel createDatabaseObjectFromBackup(DBOColumnModel backup) {
-				/*
-				 * Note: The fix for PLFM-4710 was to recalculate the ColumnModel hash
-				 * for each ColumnModel to ensure the runtime hash matches the stored
-				 * hash in the database.
-				 */
-				ColumnModel backupModel = ColumnModelUtils.createDTOFromDBO(backup);
-				/*
-				 * If we reduce the max enumeration size in the future, old columns should not
-				 * be broken. Therefore, Integer.MAX_VALUE for migration. The actual size check
-				 * is done when the the column is created, not migrated.
-				 */
-				int maxEnumValues = Integer.MAX_VALUE;
-				// Convert the backup DBO with a newly calculated hash.
-				return ColumnModelUtils.createDBOFromDTO(backupModel, maxEnumValues);
-			}
-			
-			@Override
-			public DBOColumnModel createBackupFromDatabaseObject(DBOColumnModel dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOColumnModel>();
 	}
 
 	@Override

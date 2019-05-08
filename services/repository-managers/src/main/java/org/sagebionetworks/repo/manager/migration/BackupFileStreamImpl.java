@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.StreamException;
 
 public class BackupFileStreamImpl implements BackupFileStream {
@@ -127,26 +126,6 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		return String.format(FILE_NAME_TEMPLATE, type.name(), index);
 	}
 
-	/**
-	 * Get the alias used to read the given MigratableDatabaseObject from an XML
-	 * file.
-	 * 
-	 * @param mdo
-	 * @param backupAliasType
-	 * @return
-	 */
-	public static String getAlias(MigratableDatabaseObject<?, ?> mdo, BackupAliasType backupAliasType) {
-		ValidateArgument.required(mdo, "MigratableDatabaseObject");
-		ValidateArgument.required(backupAliasType, "BackupAliasType");
-		if (backupAliasType == BackupAliasType.TABLE_NAME) {
-			return mdo.getTableMapping().getTableName();
-		} else if (backupAliasType == BackupAliasType.MIGRATION_TYPE_NAME) {
-			return mdo.getMigratableTableType().name();
-		} else {
-			throw new IllegalStateException("Unknown type: " + backupAliasType);
-		}
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.migration.BackupFileStream#writeBackupFile(java.io.OutputStream, java.lang.Iterable, org.sagebionetworks.repo.model.daemon.BackupAliasType, int)
@@ -228,7 +207,6 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	<D extends DatabaseObject<D>, B> void writeBatchToStream(List<MigratableDatabaseObject<?, ?>> currentBatch,
 			MigrationType currentType, BackupAliasType backupAliasType, Writer writer) throws IOException {
 		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(currentType);
-		String alias = getAlias(mdo, backupAliasType);
 		MigratableTableTranslation<D,B> translator = mdo.getTranslator();
 		
 		// translate to the backup objects
@@ -238,9 +216,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 			backupObjects.add(backupObject);
 		}
 
-		XStream xstream = new XStream();
-		xstream.alias(alias, mdo.getBackupClass());
-		xstream.toXML(backupObjects, writer);
+		typeProvider.getXStream(backupAliasType).toXML(backupObjects, writer);
 		writer.flush();
 	}
 
@@ -285,14 +261,11 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		MigrationType type = getTypeFromFileName(fileName);
 		// Lookup the object for the type.
 		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
-		String alias = getAlias(mdo, backupAliasType);
 		MigratableTableTranslation<D, B> translator = mdo.getTranslator();
 
-		XStream xstream = new XStream();
-		xstream.alias(alias, mdo.getBackupClass());
 		List<B> backupObjects;
 		try {
-			backupObjects = (List<B>) xstream.fromXML(input);
+			backupObjects = (List<B>) typeProvider.getXStream(backupAliasType).fromXML(input);
 		} catch (StreamException e) {
 			if (!(e.getCause() instanceof EOFException && e.getCause().getMessage().contains(INPUT_CONTAINED_NO_DATA))) {
 				throw new RuntimeException(e);

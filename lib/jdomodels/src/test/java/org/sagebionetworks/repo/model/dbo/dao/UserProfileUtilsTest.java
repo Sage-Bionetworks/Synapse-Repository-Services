@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -147,7 +148,7 @@ public class UserProfileUtilsTest {
 				}
 		}
 		try {
-			return JDOSecondaryPropertyUtils.compressAnnotations(properties);
+			return AnnotationUtils.compressAnnotations(properties);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

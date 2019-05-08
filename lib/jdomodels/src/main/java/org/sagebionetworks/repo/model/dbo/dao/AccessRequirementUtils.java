@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class AccessRequirementUtils {
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(AccessRequirement.class).build();
 
 	// the convention is that the individual fields take precedence
 	// over the serialized objects.  When restoring the dto we first deserialize
@@ -80,7 +82,7 @@ public class AccessRequirementUtils {
 
 	public static AccessRequirement copyFromSerializedField(DBOAccessRequirementRevision dbo) throws DatastoreException {
 		try {
-			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
+			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerializedEntity());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -88,7 +90,7 @@ public class AccessRequirementUtils {
 
 	public static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirementRevision dbo) {
 		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

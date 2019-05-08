@@ -1,12 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,6 +15,8 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -28,7 +26,6 @@ import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import com.google.common.collect.Lists;
-import com.thoughtworks.xstream.XStream;
 
 /**
  * Utilities for working with ColumModel objects and DBOColumnModel objects.
@@ -37,7 +34,13 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class ColumnModelUtils {
-	
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.alias("ColumnModel", ColumnModel.class)
+			.alias("ColumnType", ColumnType.class)
+			.alias("ColumnChange", ColumnChange.class)
+			.allowTypes(ColumnModel.class, ColumnType.class, ColumnChange.class)
+			.build();
+
 	/**
 	 * The default maximum number of characters for a string.
 	 */
@@ -55,14 +58,8 @@ public class ColumnModelUtils {
 			ColumnModel normal = createNormalizedClone(dto, maxEnumValues);
 			String hash = calculateHash(normal);
 			// Create the bytes
-			ByteArrayOutputStream out = new ByteArrayOutputStream(200);
-			GZIPOutputStream zip = new GZIPOutputStream(out);
-			Writer zipWriter = new OutputStreamWriter(zip, UTF8);
-			XStream xstream = createXStream();
-			xstream.toXML(normal, zipWriter);
-			IOUtils.closeQuietly(zipWriter);
 			DBOColumnModel dbo = new DBOColumnModel();
-			dbo.setBytes(out.toByteArray());
+			dbo.setBytes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, normal));
 			dbo.setName(normal.getName());
 			dbo.setHash(hash);
 			if(dto.getId() != null){
@@ -84,10 +81,7 @@ public class ColumnModelUtils {
 		if(dbo.getId() == null) throw new IllegalArgumentException("DBOColumnModel.id cannot be null");
 		try {
 			// First read the bytes.
-			XStream xstream = createXStream();
-			ByteArrayInputStream in = new ByteArrayInputStream(dbo.getBytes());
-			GZIPInputStream zip = new GZIPInputStream(in);
-			ColumnModel model = (ColumnModel) xstream.fromXML(zip, new ColumnModel());
+			ColumnModel model = (ColumnModel) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getBytes());
 			model.setId(Long.toString(dbo.getId()));
 			return model;
 		} catch (IOException e) {
@@ -246,15 +240,6 @@ public class ColumnModelUtils {
 		}
 	}
 	
-	private static XStream createXStream(){
-		XStream xstream = new XStream();
-		xstream.allowTypes(new Class[]{ColumnModel.class, ColumnType.class, ColumnChange.class});
-		xstream.alias("ColumnModel", ColumnModel.class);
-		xstream.alias("ColumnType", ColumnType.class);
-		xstream.alias("ColumnChange", ColumnChange.class);
-		return xstream;
-	}
-	
 	/**
 	 * Create a list of DBOBoundColumn from the passed list of IDs.
 	 * @param tableId
@@ -320,8 +305,7 @@ public class ColumnModelUtils {
 		GZIPOutputStream zipOut = null;
 		try{
 			zipOut = new GZIPOutputStream(out);
-			XStream xstream = createXStream();
-			xstream.toXML(changes, zipOut);
+			X_STREAM.toXML(changes, zipOut);
 			zipOut.flush();
 		}finally{
 			IOUtils.closeQuietly(zipOut);
@@ -339,8 +323,7 @@ public class ColumnModelUtils {
 		GZIPInputStream zipIn = null;
 		try{
 			zipIn = new GZIPInputStream(input);
-			XStream xstream = createXStream();
-			return (List<ColumnChange>) xstream.fromXML(zipIn);
+			return (List<ColumnChange>) X_STREAM.fromXML(zipIn);
 		}finally{
 			IOUtils.closeQuietly(zipIn);
 		}
