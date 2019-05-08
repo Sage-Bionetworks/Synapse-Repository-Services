@@ -72,7 +72,7 @@ fi
 docker network create --driver bridge ${network_name}
 
 # start up rds container
-docker run --name ${rds_container_name} --fail-at-end \
+docker run --name ${rds_container_name} \
 --network=${network_name} \
 -m 1500M \
 -e MYSQL_ROOT_PASSWORD=default-pw \
@@ -101,7 +101,7 @@ docker run -i --rm --name ${build_container_name} \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
 -w /repo \
 maven:3-jdk-8 \
-bash -c "mvn clean ${MVN_GOAL} \
+bash -c "mvn clean ${MVN_GOAL} --fail-at-end \
 -Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
