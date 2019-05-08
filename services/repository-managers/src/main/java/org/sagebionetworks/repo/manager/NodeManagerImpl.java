@@ -769,12 +769,12 @@ public class NodeManagerImpl implements NodeManager {
 		//batch process all annotations contained of each version/revision of this node
 		List<Object[]> listOf_blob_Id_Version = nodeDao.TEMPORARYGetAllAnnotations(id);
 		for (Object[] blob_Id_Version : listOf_blob_Id_Version) {
-			NamedAnnotations namedAnnotations = JDOSecondaryPropertyUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
+			NamedAnnotations namedAnnotations = AnnotationUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
 
 			deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
 			deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
 
-			blob_Id_Version[0] = JDOSecondaryPropertyUtils.compressAnnotations(namedAnnotations);
+			blob_Id_Version[0] = AnnotationUtils.compressAnnotations(namedAnnotations);
 		}
 
 		nodeDao.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
