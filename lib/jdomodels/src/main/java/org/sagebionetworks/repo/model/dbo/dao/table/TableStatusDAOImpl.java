@@ -33,8 +33,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 /**
  * A very basic DAO to tack table status.
- * 
- * @author John
  *
  */
 public class TableStatusDAOImpl implements TableStatusDAO {
@@ -42,7 +40,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	/**
 	 * Number used when the version number is null;
 	 */
-	private static final long NULL_VERSION = -1;
+	public static final long NULL_VERSION = -1;
 	
 	private static final String SQL_UPDATE_TABLE_PROGRESS = "UPDATE " + TABLE_STATUS + " SET "
 			+ COL_TABLE_STATUS_CHANGE_ON + " = ?, " + COL_TABLE_STATUS_PROGRESS_MESSAGE + " = ?, "

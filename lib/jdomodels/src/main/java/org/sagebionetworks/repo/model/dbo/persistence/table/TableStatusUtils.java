@@ -75,6 +75,9 @@ public class TableStatusUtils {
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setTotalTimeMS(dbo.getTotalRunTimeMS());
 		dto.setLastTableChangeEtag(dbo.getLastTableChangeEtag());
+		if(dbo.getVersion() > 0 ) {
+			dto.setVersion(dbo.getVersion());
+		}
 		return dto;
 	}
 	

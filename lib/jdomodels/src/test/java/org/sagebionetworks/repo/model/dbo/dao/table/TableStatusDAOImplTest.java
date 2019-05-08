@@ -69,6 +69,7 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, status.getProgressCurrent());
 		assertEquals(null, status.getProgressTotal());
 		assertEquals(null, status.getTotalTimeMS());
+		assertEquals(null, status.getVersion());
 		// Now if we call it again we should get a new rest-token
 		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
 		assertNotNull(newResetToken);
@@ -266,6 +267,32 @@ public class TableStatusDAOImplTest {
 	}
 	
 	@Test
+	public void testValidateAndGetVersionWithVersion() {
+		// call under test
+		Long version = TableStatusDAOImpl.validateAndGetVersion(tableIdWithVersion);
+		assertEquals(tableIdWithVersion.getVersion(), version);
+	}
+	
+	@Test
+	public void testValidateAndGetVersionWithoutVersion() {
+		// call under test
+		long version = TableStatusDAOImpl.validateAndGetVersion(tableIdNoVersion);
+		assertEquals(TableStatusDAOImpl.NULL_VERSION, version);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAndGetVersionNull() {
+		// call under test
+		TableStatusDAOImpl.validateAndGetVersion(null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAndGetVersionIdNull() {
+		// call under test
+		TableStatusDAOImpl.validateAndGetVersion(IdAndVersion.newBuilder().setId(null).build());
+	}
+	
+	@Test
 	public void testWithVersion() {
 		// Before we start the status should not exist
 		try{
@@ -290,9 +317,25 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, status.getProgressCurrent());
 		assertEquals(null, status.getProgressTotal());
 		assertEquals(null, status.getTotalTimeMS());
+		assertEquals(tableIdWithVersion.getVersion(), status.getVersion());
 		// Now if we call it again we should get a new rest-token
 		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
 		assertNotNull(newResetToken);
 		assertFalse(newResetToken.equals(resetToken));
+	}
+	
+	@Test
+	public void testWithAndWithoutVersion() {
+		// This should insert a row for this table.
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+	
+		TableStatus withVersion = tableStatusDAO.getTableStatus(tableIdWithVersion);
+		assertNotNull(withVersion);
+		assertEquals(tableIdWithVersion.getVersion(), withVersion.getVersion());
+		TableStatus noVersion = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(noVersion);
+		assertEquals(null, noVersion.getVersion());
+		assertEquals("Both should have the same ID", withVersion.getTableId(), noVersion.getTableId());
 	}
 }
