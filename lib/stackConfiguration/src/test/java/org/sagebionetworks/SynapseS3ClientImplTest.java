@@ -37,19 +37,14 @@ public class SynapseS3ClientImplTest {
 		assertEquals(Region.US_Standard, synapseS3Client.getUSStandardAmazonClient().getRegion());
 	}
 
-	@Test
-	public void testGetRegionForBucketOrAssumeUSStandard() {
-		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucketOrAssumeUSStandard(S3_BUCKET_NAME));
+	@Test(expected=CannotDetermineBucketLocationException.class)
+	public void testGetRegionForBucket_NonexistentBucket() {
+		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucket("some-nonexistent-bucket"));
 	}
 
 	@Test
-	public void testGetRegionForBucketOrAssumeUSStandard_NonexistentBucket() {
-		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucketOrAssumeUSStandard("some-nonexistent-bucket"));
-	}
-
-	@Test
-	public void testGetS3ClientForBucketOrAssumeUSStandard() {
-		assertEquals(Region.US_Standard, synapseS3Client.getS3ClientForBucketOrAssumeUSStandard(S3_BUCKET_NAME).getRegion());
+	public void testGetS3ClientForBucket() {
+		assertEquals(Region.US_Standard, synapseS3Client.getS3ClientForBucket(S3_BUCKET_NAME).getRegion());
 	}
 	
 

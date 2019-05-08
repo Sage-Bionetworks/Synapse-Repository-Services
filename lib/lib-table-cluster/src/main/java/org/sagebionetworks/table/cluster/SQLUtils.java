@@ -18,8 +18,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
-
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.isTableTooLargeForFourByteUtf8;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -33,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -212,14 +212,17 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getTableNameForId(String tableId, TableType type) {
-		if (tableId == null)
-			throw new IllegalArgumentException("Table ID cannot be null");
-		return TABLE_PREFIX + KeyFactory.stringToKey(tableId) + type.getTablePostFix();
-	}
-
-	public static String getTableNameForId(Long tableId, TableType type) {
-		ValidateArgument.required(tableId, "Table ID");
-		return TABLE_PREFIX + tableId + type.getTablePostFix();
+		if (tableId == null) {
+			throw new IllegalArgumentException("Table ID cannot be null");			
+		}
+		IdAndVersion id = IdAndVersion.parse(tableId);
+		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
+		builder.append(id.getId());
+		if(id.getVersion() != null) {
+			builder.append("_").append(id.getVersion());
+		}
+		builder.append(type.getTablePostFix());
+		return builder.toString();
 	}
 
 	/**
@@ -329,33 +332,6 @@ public class SQLUtils {
 	public static String dropTableSQL(String tableId, TableType type) {
 		String tableName = getTableNameForId(tableId, type);
 		return "DROP TABLE " + tableName;
-	}
-
-	public static String dropTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DROP TABLE " + tableName;
-	}
-
-	/**
-	 * Create the delete a batch of row Ids SQL.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	public static String deleteBatchFromTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
-	}
-
-	/**
-	 * Create the delete a row Ids SQL.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	public static String deleteFromTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " = ?";
 	}
 
 	/**
@@ -589,9 +565,6 @@ public class SQLUtils {
 		return "SELECT " + SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 	
-	public static String selectRowValuesForRowId(Long tableId) {
-		return "SELECT * FROM " + getTableNameForId(tableId, TableType.INDEX) + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
-	}
 	/**
 	 * Insert ignore file handle ids into a table's secondary file index.
 	 * @param tableId

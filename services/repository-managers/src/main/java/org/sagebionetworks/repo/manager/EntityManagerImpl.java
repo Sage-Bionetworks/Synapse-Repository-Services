@@ -29,11 +29,13 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
@@ -67,7 +69,13 @@ public class EntityManagerImpl implements EntityManager {
 	ObjectTypeManager objectTypeManager;
 	
 	boolean allowCreationOfOldEntities = true;
-	
+
+	//Temporary fields!
+	@Autowired
+	NodeDAO nodeDAO;
+	@Autowired
+	TEMPORARYAnnotationCleanupMessageSender cleanupMessageSender;
+
 	/**
 	 * Injected via spring.
 	 * @param allowOldEntityTypes
@@ -650,5 +658,14 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(entityId, "id");
 		ValidateArgument.required(dataType, "DataType");
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
+	}
+
+	@Override
+	public Long TEMPORARYcleanupAnnotations(UserInfo userInfo, long startId, long numNodes){
+		ValidateArgument.requirement(userInfo.isAdmin(), "You must be an administrator");
+		List<Long> idsAndVersions = nodeDAO.TEMPORARYGetAllNodeIDsInRange(startId, numNodes);
+		cleanupMessageSender.sendMessages(idsAndVersions);
+
+		return idsAndVersions.isEmpty() ? 0L : idsAndVersions.get(idsAndVersions.size() - 1);
 	}
 }

@@ -17,11 +17,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * CloudSearch search controller. It currently offers two methods:
- * <ol>
- * <li>'/search' appends a authorization filter to the user's search and reformats the result
- * into a Synapse model object
- * </ol>
+ * Search for Entities on Synapse
  * 
  */
 @ControllerInfo(displayName="Search Services", path="repo/v1")
@@ -33,6 +29,9 @@ public class SearchController {
 	ServiceProvider serviceProvider;
 
 	/**
+	 * Searches for <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>s that are accessible by the current user.
+	 * If not authenticated, only public result will be shown.
+	 * See <a href="${org.sagebionetworks.repo.model.search.query.SearchFieldName}">SearchFieldName</a> for the list of searchable fields for use in booleanQuery, rangeQuery, and returnFields
 	 * @param userId
 	 * @param searchQuery
 	 * @return search results from CloudSearch

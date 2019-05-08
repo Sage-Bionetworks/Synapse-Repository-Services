@@ -463,6 +463,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_STATUS_ERROR_DETAILS		= "ERROR_DETAILS";
 	public static final String COL_TABLE_STATUS_RUNTIME_MS			= "RUNTIME_MS";
 	public static final String COL_TABLE_LAST_TABLE_CHANGE_ETAG		= "LAST_TABLE_CHANGE_ETAG";
+	public static final String DDL_TABLE_STATUE = "schema/TableStatus-ddl.sql";
 	
 	// Status table for Asynchronous jobs
 	public static final String ASYNCH_JOB_STATUS					= "ASYNCH_JOB_STATUS";

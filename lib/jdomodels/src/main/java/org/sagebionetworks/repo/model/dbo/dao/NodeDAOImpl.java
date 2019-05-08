@@ -1857,4 +1857,56 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return newEtag;
 	}
 
+	//////////////////////////////////
+	// temporary annotation fix code
+	//////////////////////////////////
+
+	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_REVISION  + " WHERE " + COL_REVISION_OWNER_NODE + "=?";
+
+	private static final String SQL_GET_ALL_NODE_IDS_IN_RANGE = "SELECT " + COL_NODE_ID +
+			" FROM " + TABLE_NODE +
+			" WHERE " + COL_NODE_ID + " >= ? AND " + COL_NODE_ID + " < ?" +
+			" ORDER BY " + COL_NODE_ID + " ASC";
+	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->
+		new Object[]{
+				rs.getBytes(COL_REVISION_ANNOS_BLOB),
+				rs.getLong(COL_REVISION_OWNER_NODE),
+				rs.getLong(COL_REVISION_NUMBER)
+		};
+
+
+
+	/**
+	 *
+	 * @param idsAndRevisions
+	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@Override
+	@MandatoryWriteTransaction
+	public List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId){
+		return jdbcTemplate.query(SQL_GET_ANNOTATIONS, ANNOBLOB_ID_REVISION_ROWMAPPER, nodeId);
+	}
+
+
+	/**
+	 *
+	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@Override
+	@MandatoryWriteTransaction
+	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
+		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
+	}
+
+	@Override
+	public List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes){
+		return jdbcTemplate.queryForList(SQL_GET_ALL_NODE_IDS_IN_RANGE, Long.class, nodeIdStart, nodeIdStart + numNodes);
+	}
+
+	@Override
+	@MandatoryWriteTransaction
+	public void TEMPORARYChangeEtagOnly(Long id){
+		String newEtag = "deadbeef-dead-beef-dead-beefdeadbeef";
+		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, id);
+	}
 }
