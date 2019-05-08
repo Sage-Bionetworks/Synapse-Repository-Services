@@ -8,11 +8,14 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class SubmissionUtils {
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).build();
+
 
 	public static void copyDtoToDbo(Submission dto, DBOSubmission dbo) throws DatastoreException{
 		dbo.setId(Long.parseLong(dto.getId()));
@@ -26,7 +29,7 @@ public class SubmissionUtils {
 
 	private static void copyToSerializedField(Submission dto, DBOSubmission dbo) {
 		try {
-			dbo.setSubmissionSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setSubmissionSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -80,7 +83,7 @@ public class SubmissionUtils {
 
 	private static Submission copyFromSerializedField(DBOSubmission dbo) {
 		try {
-			return (Submission)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSubmissionSerialized());
+			return (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSubmissionSerialized());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

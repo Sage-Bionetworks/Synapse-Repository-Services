@@ -11,8 +11,7 @@
     <!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
     <aop:aspectj-autoproxy />
 
-    <bean id="temporaryAnnotationFixWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
-          scope="singleton">
+    <bean id="temporaryAnnotationFixWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
         <property name="jobDetail">
             <bean
                     class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
@@ -28,7 +27,7 @@
                                     <bean class="org.sagebionetworks.annotations.worker.TEMPORARYAnnotationFixWorker"/>
                                 </property>
                                 <property name="semaphoreLockKey" value="TEMPORARYAnnotationFixWorker" />
-                                <property name="semaphoreMaxLockCount" value="8" />
+                                <property name="semaphoreMaxLockCount" value="1" />
                                 <property name="semaphoreLockAndMessageVisibilityTimeoutSec"
                                           value="300" />
                                 <property name="queueName"

@@ -1,0 +1,13 @@
+{
+	"description": "Abstraction to transform the given SQL.",
+	"type": "interface",
+	"properties":{
+		"concreteType":{
+			"type": "string"
+		},
+		"sqlToTransform":{
+			"type": "string",
+			"description":"The original SQL statement to be transformed."
+		}
+	}
+}

@@ -2,6 +2,7 @@ package org.sagebionetworks.annotations.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -12,9 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.EntityManagerImpl;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.migration.NodeRevisionAnnotationFixerMigrationTypeListener;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -29,7 +31,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-class TEMPORARYAnnotationFixWorkerIntegrationTest {
+class TEMPORARYAnnotationFixWorkerTest {
 
 	@Autowired
 	NodeManager nodeManager;
@@ -38,7 +40,7 @@ class TEMPORARYAnnotationFixWorkerIntegrationTest {
 	UserManager userManager;
 
 	@Autowired
-	NodeRevisionAnnotationFixerMigrationTypeListener listener;
+	EntityManager entityManager;
 
 	Node node1;
 	Node node2;
@@ -93,9 +95,10 @@ class TEMPORARYAnnotationFixWorkerIntegrationTest {
 		DBORevision dborevisoin2 = new DBORevision();
 		dborevisoin2.setOwner(KeyFactory.stringToKey(node2.getId()));
 		dborevisoin2.setRevisionNumber(node2.getVersionNumber());
-		listener.afterCreateOrUpdate(MigrationType.NODE_REVISION, Arrays.asList(dborevisoin1,dborevisoin2));
 
-		long maxWaitMillis = 45 * 1000;
+		entityManager.TEMPORARYcleanupAnnotations(adminUserInfo, KeyFactory.stringToKey(node1.getId()), 1000);
+
+		long maxWaitMillis = 10 * 1000;
 		long startTime = System.currentTimeMillis();
 
 		//keep checking until the annotations no longer contain "concreteType"
@@ -109,10 +112,10 @@ class TEMPORARYAnnotationFixWorkerIntegrationTest {
 		}
 		while (
 				annotations1.getAdditionalAnnotations().getStringAnnotations().containsKey("concreteType")
-				&& annotations1.getPrimaryAnnotations().getStringAnnotations().containsKey("concreteType")
+						&& annotations1.getPrimaryAnnotations().getStringAnnotations().containsKey("concreteType")
 
-				&& annotations2.getAdditionalAnnotations().getStringAnnotations().containsKey("concreteType")
-				&& annotations2.getPrimaryAnnotations().getStringAnnotations().containsKey("concreteType")
+						&& annotations2.getAdditionalAnnotations().getStringAnnotations().containsKey("concreteType")
+						&& annotations2.getPrimaryAnnotations().getStringAnnotations().containsKey("concreteType")
 		);
 
 		//check that other annotations were not deleted
@@ -121,12 +124,14 @@ class TEMPORARYAnnotationFixWorkerIntegrationTest {
 		assertTrue(annotations2.getAdditionalAnnotations().getStringAnnotations().containsKey("otherAdditionalAnnotation"));
 		assertTrue(annotations2.getPrimaryAnnotations().getStringAnnotations().containsKey("otherPrimaryAnnotation"));
 
-		//check that etags did not change
+		//check that etags did change but modifiedOn did not
 		Node currNode1 = nodeManager.getNodeForVersionNumber(adminUserInfo, node1.getId(), node1.getVersionNumber());
 		Node currNode2 = nodeManager.getNodeForVersionNumber(adminUserInfo, node2.getId(), node2.getVersionNumber());
+		assertEquals("deadbeef-dead-beef-dead-beefdeadbeef", currNode1.getETag());
+		assertEquals("deadbeef-dead-beef-dead-beefdeadbeef", currNode2.getETag());
+		assertEquals(node1.getModifiedOn(), currNode1.getModifiedOn());
+		assertEquals(node2.getModifiedOn(), currNode2.getModifiedOn());
 
-		assertEquals(node1.getETag(), currNode1.getETag());
-		assertEquals(node2.getETag(), currNode2.getETag());
 	}
 
 

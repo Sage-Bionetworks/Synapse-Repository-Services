@@ -28,7 +28,7 @@ public class CountingSemaphoreThrottleAutowireTest {
 	@Before
 	public void before() {
 		key = "CountingSemaphoreThrottleTest";
-		timeoutSec = 10;
+		timeoutSec = 100;
 		maxLockCount = 1;
 		countingSemaphore.releaseAllLocks();
 	}
@@ -61,11 +61,8 @@ public class CountingSemaphoreThrottleAutowireTest {
 		// this acquire should fail to get a lock
 		token = countingSemaphore.attemptToAcquireLock(key, timeoutSec, maxLockCount);
 		assertEquals(null, token);
-		// this acquire should fail to get a lock
-		token = countingSemaphore.attemptToAcquireLock(key, timeoutSec, maxLockCount);
-		assertEquals(null, token);
 		failedAcquireCount = throttle.getFailedLockAttemptCount()-startCount;
-		assertEquals("There should be two failed acquire lock calls", 2, failedAcquireCount);
+		assertEquals("There should be two failed acquire lock calls", 1, failedAcquireCount);
 	}
 
 }

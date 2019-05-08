@@ -13,8 +13,10 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -24,6 +26,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.Row;
@@ -31,21 +36,23 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.table.query.ParseException;
 
 import com.google.common.collect.Lists;
 
 /**
  * Unit test for TableServicesImpl.
- * 
- * @author John
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class TableServicesImplTest {
 	
 	@Mock
@@ -58,7 +65,9 @@ public class TableServicesImplTest {
 	TableEntityManager mockTableEntityManager;
 	@Mock
 	FileHandleManager mockFileHandleManager;
+	@InjectMocks
 	TableServicesImpl tableService;
+	
 	Long userId;
 	UserInfo userInfo;
 	QueryBundleRequest queryBundle;
@@ -76,15 +85,6 @@ public class TableServicesImplTest {
 
 	@Before
 	public void before() throws Exception{
-		MockitoAnnotations.initMocks(this);
-		tableService = new TableServicesImpl();
-		
-		ReflectionTestUtils.setField(tableService, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(tableService, "columnModelManager", mockColumnModelManager);
-		ReflectionTestUtils.setField(tableService, "entityManager", mockEntityManager);
-		ReflectionTestUtils.setField(tableService, "tableEntityManager", mockTableEntityManager);
-		ReflectionTestUtils.setField(tableService, "fileHandleManager", mockFileHandleManager);
-		
 		userId = 123L;
 		userInfo = new UserInfo(false, userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
@@ -188,4 +188,33 @@ public class TableServicesImplTest {
 		// Call under test
 		tableService.getFileHandleId(userId, tableId, rowRef, columnId);
 	}
+	
+	@Test
+	public void testTransformSqlRequestFacet() throws ParseException {
+		TransformSqlWithFacetsRequest request = new TransformSqlWithFacetsRequest();
+		request.setSqlToTransform("select * from syn123");
+		FacetColumnRangeRequest facet = new FacetColumnRangeRequest();
+		facet.setColumnName("foo");
+		facet.setMax("100");
+		facet.setMin("0");
+		request.setSelectedFacets(Lists.newArrayList(facet));
+		ColumnModel column = new ColumnModel();
+		column.setName("foo");
+		column.setFacetType(FacetType.range);
+		column.setColumnType(ColumnType.INTEGER);
+		request.setSchema(Lists.newArrayList(column));
+		// Call under test
+		SqlTransformResponse response = tableService.transformSqlRequest(request);
+		assertNotNull(response);
+		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", response.getTransformedSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTransformSqlRequestFacetNull() throws ParseException {
+		TransformSqlWithFacetsRequest request = null;
+		// Call under test
+		SqlTransformResponse response = tableService.transformSqlRequest(request);
+		assertNotNull(response);
+	}
+	
 }

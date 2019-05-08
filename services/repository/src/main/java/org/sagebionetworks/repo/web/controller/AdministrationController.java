@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.EntityServiceImpl;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -277,5 +278,14 @@ public class AdministrationController {
 	IdGeneratorExport createIdGeneratorExport(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAdministrationService().createIdGeneratorExport(userId);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/admin/annotationCleanup/{idStart}", method = RequestMethod.POST)
+	public @ResponseBody
+	Long fixAnnotations(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+						@PathVariable("idStart") Long nodeIdStart,
+						@RequestParam(value = "numNodes",required=false, defaultValue="10000") Long numNodes){
+		return serviceProvider.getEntityService().TEMPORARYcleanupAnnotations(userId, nodeIdStart, numNodes);
 	}
 }

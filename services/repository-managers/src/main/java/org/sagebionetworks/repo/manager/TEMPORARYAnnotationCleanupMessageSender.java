@@ -1,6 +1,4 @@
-package org.sagebionetworks.repo.manager.migration;
-
-import static org.sagebionetworks.repo.model.migration.MigrationType.NODE_REVISION;
+package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -13,9 +11,9 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class NodeRevisionAnnotationFixerMigrationTypeListener implements MigrationTypeListener{
+public class TEMPORARYAnnotationCleanupMessageSender{
 	public static final String QUEUE_BASE_NAME = "TEMPORARY_ANNOTATION_FIX_WORKER_QUEUE";
-	public static final int SQS_MESSAGE_MAX_BYTES = 262144;
+	public static final int SQS_MESSAGE_MAX_BYTES = 131072;
 
 	@Autowired
 	AmazonSQSClient sqsClient;
@@ -27,19 +25,10 @@ public class NodeRevisionAnnotationFixerMigrationTypeListener implements Migrati
 
 	int maxBytesPerBatch;
 
-	@Override
-	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(MigrationType type, List<D> delta) {
-		if(type != NODE_REVISION){
-			return;
-		}
-
+	public void sendMessages(List<Long> nodeIds) {
 		StringJoiner stringJoiner = createStringJoiner();
-		for(D change: delta){
-			if(!(change instanceof DBORevision)){
-				continue;
-			}
-			DBORevision dboRevision = (DBORevision) change;
-			String message = dboRevision.getOwner() + ";" + dboRevision.getRevisionNumber();
+		for(Long nodeId: nodeIds){
+			String message = nodeId.toString();
 
 			// Since we area only joining numeric values as strings (ASCII) and ASCII delimiters,
 			// it should be safe to assume that String.length() === byte size.
@@ -73,6 +62,7 @@ public class NodeRevisionAnnotationFixerMigrationTypeListener implements Migrati
 	}
 
 	private void sendMessageWithDelay(String message){
-		sqsClient.sendMessage(new SendMessageRequest().withQueueUrl(queueUrl).withMessageBody(message).withDelaySeconds(30));
+		sqsClient.sendMessage(new SendMessageRequest().withQueueUrl(queueUrl).withMessageBody(message).withDelaySeconds(0));
 	}
 }
+

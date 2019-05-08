@@ -10,9 +10,12 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.query.ParseException;
 
 /**
  * Abstraction for working with TableEntities
@@ -155,4 +158,12 @@ public interface TableServices {
 	 */
 	ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope,
 			String nextPageToken);
+
+	/**
+	 * Request to transform the given SQL.
+	 * @param request
+	 * @return
+	 * @throws ParseException 
+	 */
+	public SqlTransformResponse transformSqlRequest(SqlTransformRequest request) throws ParseException;
 }

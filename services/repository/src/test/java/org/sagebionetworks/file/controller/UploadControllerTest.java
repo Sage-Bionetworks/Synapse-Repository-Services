@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -38,6 +39,9 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 	private S3FileHandle handleOne;
 	private PreviewFileHandle handleTwo;
 	private List<String> toDelete;
+	
+	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
+
 
 	@Before
 	public void before() throws Exception {
@@ -51,7 +55,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminUserIdString);
 		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
+		handleOne.setBucketName(S3_BUCKET_NAME);
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
@@ -61,7 +65,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo = new PreviewFileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
 		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName("bucket");
+		handleTwo.setBucketName(S3_BUCKET_NAME);
 		handleTwo.setKey("previewFileKey");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("bar.txt");

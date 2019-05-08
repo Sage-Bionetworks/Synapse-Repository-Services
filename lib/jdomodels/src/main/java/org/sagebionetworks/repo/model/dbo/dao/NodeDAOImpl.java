@@ -91,6 +91,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -727,7 +728,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			if(blob != null){
 				byte[] bytes = blob.getBytes(1, (int) blob.length());
 				try {
-					annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+					annos = AnnotationUtils.decompressedAnnotations(bytes);
 				} catch (IOException e) {
 					throw new DatastoreException(e);
 				}
@@ -791,7 +792,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long newFileHandleId = NodeUtils.translateFileHandleId(updatedNode.getFileHandleId());
 		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
 		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
-		byte[] newReferences = JDOSecondaryPropertyUtils.compressReference(updatedNode.getReference());
+		byte[] newReferences = NodeUtils.compressReference(updatedNode.getReference());
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
 				newScope, newReferences, nodeId, currentRevision);
@@ -812,23 +813,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// now update the annotations from the passed values.
 		try {
 			// Compress the annotations.
-			byte[] newAnnos = JDOSecondaryPropertyUtils.compressAnnotations(updatedAnnos);
+			byte[] newAnnos = AnnotationUtils.compressAnnotations(updatedAnnos);
 			this.jdbcTemplate.update(SQL_UPDATE_ANNOTATIONS, newAnnos, nodeIdLong, currentRevision);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		} 
-	}
-
-	//TODO: delete after concreteType annotations are cleaned up
-	@WriteTransaction
-	public void TEMPORARYMETHODupdateAnnotationsForVersion(long nodeId, long revisionNumber, NamedAnnotations updatedAnnos){
-		try {
-			// Compress the annotations.
-			byte[] newAnnos = JDOSecondaryPropertyUtils.compressAnnotations(updatedAnnos);
-			this.jdbcTemplate.update(SQL_UPDATE_ANNOTATIONS, newAnnos, nodeId, revisionNumber);
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
 	}
 	
 	@Override
@@ -1629,8 +1618,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(blob != null){
 					byte[] bytes = blob.getBytes(1, (int) blob.length());
 					try {
-						NamedAnnotations annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
-						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationSize));
+						NamedAnnotations annos = AnnotationUtils.decompressedAnnotations(bytes);
+						dto.setAnnotations(AnnotationUtils.translate(entityId, annos, maxAnnotationSize));
 					} catch (IOException e) {
 						throw new DatastoreException(e);
 					}
@@ -1868,4 +1857,56 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return newEtag;
 	}
 
+	//////////////////////////////////
+	// temporary annotation fix code
+	//////////////////////////////////
+
+	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_REVISION  + " WHERE " + COL_REVISION_OWNER_NODE + "=?";
+
+	private static final String SQL_GET_ALL_NODE_IDS_IN_RANGE = "SELECT " + COL_NODE_ID +
+			" FROM " + TABLE_NODE +
+			" WHERE " + COL_NODE_ID + " >= ? AND " + COL_NODE_ID + " < ?" +
+			" ORDER BY " + COL_NODE_ID + " ASC";
+	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->
+		new Object[]{
+				rs.getBytes(COL_REVISION_ANNOS_BLOB),
+				rs.getLong(COL_REVISION_OWNER_NODE),
+				rs.getLong(COL_REVISION_NUMBER)
+		};
+
+
+
+	/**
+	 *
+	 * @param idsAndRevisions
+	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@Override
+	@MandatoryWriteTransaction
+	public List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId){
+		return jdbcTemplate.query(SQL_GET_ANNOTATIONS, ANNOBLOB_ID_REVISION_ROWMAPPER, nodeId);
+	}
+
+
+	/**
+	 *
+	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@Override
+	@MandatoryWriteTransaction
+	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
+		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
+	}
+
+	@Override
+	public List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes){
+		return jdbcTemplate.queryForList(SQL_GET_ALL_NODE_IDS_IN_RANGE, Long.class, nodeIdStart, nodeIdStart + numNodes);
+	}
+
+	@Override
+	@MandatoryWriteTransaction
+	public void TEMPORARYChangeEtagOnly(Long id){
+		String newEtag = "deadbeef-dead-beef-dead-beefdeadbeef";
+		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, id);
+	}
 }

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -34,8 +35,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SubmissionFileHandleDBOTest {
- 
-    @Autowired
+	private static final UnmodifiableXStream TEST_X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionDBO.class).build();
+
+	@Autowired
     private DBOBasicDao dboBasicDao;
     
 	@Autowired
@@ -99,7 +101,7 @@ public class SubmissionFileHandleDBOTest {
         submission.setUserId(userId);
         submission.setEvalId(evalId);
         submission.setCreatedOn(System.currentTimeMillis());
-        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));
+        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(TEST_X_STREAM, submission));
         submissionId = dboBasicDao.createNew(submission).getId();
         
     }

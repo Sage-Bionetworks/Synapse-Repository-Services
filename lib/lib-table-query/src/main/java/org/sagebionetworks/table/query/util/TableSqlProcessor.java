@@ -24,9 +24,8 @@ import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * A utility for processing table SQL strings. This class is part of the table
- * API and is used in the portal.
+ * API.
  * 
- * @author John
  * 
  */
 public class TableSqlProcessor {

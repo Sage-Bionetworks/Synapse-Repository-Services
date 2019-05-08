@@ -24,6 +24,7 @@
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
 
 	<!-- The Entity manager -->
+	<bean id="annotationCleanupMessageSender" class="org.sagebionetworks.repo.manager.TEMPORARYAnnotationCleanupMessageSender" init-method="init"/>
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl">
 		<property name="allowCreationOfOldEntities" ref="stackConfiguration.allowCreationOfOldEntities"/>
 	</bean>
@@ -261,8 +262,6 @@
 	
 	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" scope="singleton"/>
 
-	<bean id="nodeRevisionAnnotationFixerMigrationTypeListener" class="org.sagebionetworks.repo.manager.migration.NodeRevisionAnnotationFixerMigrationTypeListener" init-method="init"/>
-
 	<bean
 		id="migrationManager"
 		class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
@@ -273,7 +272,6 @@
 			ref="stackConfiguration.migrationBackupBatchMax" />
 		<property name="migrationListeners" >
 			<list>
-				<ref bean="nodeRevisionAnnotationFixerMigrationTypeListener"/>
 			</list>
 		</property>
 	</bean>

@@ -222,7 +222,7 @@ public class ProjectSettingsImplAutowiredTest {
 	public void testValidExternalObjectStorageSetting() throws IOException {
 		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setEndpointUrl("https://www.someurl.com");
-		externalObjectStorageLocationSetting.setBucket("IAmABucketYay");
+		externalObjectStorageLocationSetting.setBucket("i-am-a-bucket-yay");
 		//call under test
 		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
 		assertNotNull(result);
@@ -235,7 +235,7 @@ public class ProjectSettingsImplAutowiredTest {
 	public void testValidExternalObjectStorageSettingWithSlashes() throws IOException {
 		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		String endpoint = "https://www.someurl.com";
-		String bucket = "BucketMcBucketFace";
+		String bucket = "bucket-mc-bucket-face";
 		externalObjectStorageLocationSetting.setEndpointUrl("////" + endpoint + "//////");
 		externalObjectStorageLocationSetting.setBucket(bucket);
 
