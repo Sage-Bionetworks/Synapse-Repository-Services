@@ -72,7 +72,7 @@ fi
 docker network create --driver bridge ${network_name}
 
 # start up rds container
-docker run --name ${rds_container_name} \
+docker run --name ${rds_container_name} --fail-at-end \
 --network=${network_name} \
 -m 1500M \
 -e MYSQL_ROOT_PASSWORD=default-pw \

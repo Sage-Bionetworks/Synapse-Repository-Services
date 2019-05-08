@@ -6,6 +6,7 @@ import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Date;
 
+import com.thoughtworks.xstream.mapper.CannotResolveClassException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Settings;
@@ -64,6 +66,13 @@ public class UserProfileUtils {
 			decompressed = JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		} catch (CannotResolveClassException e){
+			// Support the old way of serializing the UserProfile
+			try {
+				decompressed = AnnotationUtils.decompressedAnnotations(b);
+			} catch (IOException ex) {
+				throw new RuntimeException(ex);
+			}
 		}
 		
 		UserProfile dto = null;
