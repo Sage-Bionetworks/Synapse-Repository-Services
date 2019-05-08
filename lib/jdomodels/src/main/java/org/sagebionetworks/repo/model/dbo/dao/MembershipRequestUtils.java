@@ -50,7 +50,7 @@ public class MembershipRequestUtils {
 	
 	public static MembershipRequest deserialize(byte[] b) {
 		try {
-			return (MembershipRequest)JDOSecondaryPropertyUtils.decompressedObject(X_STREAM, b);
+			return (MembershipRequest)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

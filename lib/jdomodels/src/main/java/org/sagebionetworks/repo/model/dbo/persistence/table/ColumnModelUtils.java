@@ -1,12 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -85,9 +81,7 @@ public class ColumnModelUtils {
 		if(dbo.getId() == null) throw new IllegalArgumentException("DBOColumnModel.id cannot be null");
 		try {
 			// First read the bytes.
-			ByteArrayInputStream in = new ByteArrayInputStream(dbo.getBytes());
-			GZIPInputStream zip = new GZIPInputStream(in);
-			ColumnModel model = (ColumnModel) X_STREAM.fromXML(zip, new ColumnModel());
+			ColumnModel model = (ColumnModel) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getBytes());
 			model.setId(Long.toString(dbo.getId()));
 			return model;
 		} catch (IOException e) {

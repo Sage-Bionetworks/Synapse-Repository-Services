@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
@@ -44,6 +45,9 @@ public class DBOVerificationSubmission implements
 
 	private static TableMapping<DBOVerificationSubmission> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationSubmission.class);
 
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
+
+
 	@Override
 	public TableMapping<DBOVerificationSubmission> getTableMapping() {
 		return TABLE_MAPPING;
@@ -62,7 +66,7 @@ public class DBOVerificationSubmission implements
 				DBOVerificationSubmission newDbo = new DBOVerificationSubmission();
 				VerificationSubmission dto;
 				try {
-					dto = (VerificationSubmission) JDOSecondaryPropertyUtils.decompressedObject(backup.getSerialized());
+					dto = (VerificationSubmission) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, backup.getSerialized());
 				} catch (IOException e) {
 					throw new RuntimeException("Could not deserialize existing DBO for migration", e);
 				}
@@ -76,7 +80,7 @@ public class DBOVerificationSubmission implements
 				newDbo.setCreatedBy(backup.getCreatedBy());
 				newDbo.setCreatedOn(backup.getCreatedOn());
 				try {
-					newDbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
+					newDbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 				} catch (IOException e) {
 					throw new RuntimeException("Could not re-serialize existing DBO for migration", e);
 				}

@@ -15,13 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_ORDER;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,10 +23,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
@@ -438,7 +429,7 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	static List<FileHandleAssociation> translateBytesToFiles(byte[] files) {
 		ValidateArgument.required(files, "files");
 		try {
-			return (List<FileHandleAssociation>) JDOSecondaryPropertyUtils.decompressedObject(X_STREAM, files);
+			return (List<FileHandleAssociation>) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, files);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

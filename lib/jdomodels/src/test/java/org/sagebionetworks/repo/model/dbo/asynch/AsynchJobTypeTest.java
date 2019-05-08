@@ -27,7 +27,6 @@ public class AsynchJobTypeTest {
 		StringWriter writer = new StringWriter();
 		AsynchJobType.getRequestXStream().toXML(request, writer);
 
-		System.out.println(writer.toString());
 		assertTrue(writer.toString().contains("BULK__FILE__DOWNLOAD"));
 	}
 
@@ -36,8 +35,6 @@ public class AsynchJobTypeTest {
 		BulkFileDownloadResponse response = new BulkFileDownloadResponse();
 		StringWriter writer = new StringWriter();
 		AsynchJobType.getResponseXStream().toXML(response, writer);
-
-		System.out.println(writer.toString());
 
 		assertTrue(writer.toString().contains("BULK__FILE__DOWNLOAD"));
 	}

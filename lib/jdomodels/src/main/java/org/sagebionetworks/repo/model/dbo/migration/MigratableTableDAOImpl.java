@@ -14,13 +14,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import com.thoughtworks.xstream.XStream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.database.StreamingJdbcTemplate;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
@@ -67,7 +67,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
 	private static final String SET_UNIQUE_KEY_CHECKS = "SET UNIQUE_CHECKS = ?";
 
-	static Map<BackupAliasType, UnmodifiableXStream> BACKUP_ALIAS_TYPE_TO_X_STREAM;
+	private static UnmodifiableXStream TABLE_NAME_ALIAS_X_STREAM;
+	private static UnmodifiableXStream MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
+
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
@@ -94,7 +96,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	/**
 	 * Injected via Spring
 	 */
-	private List<MigratableDatabaseObject> databaseObjectRegister;
+	List<MigratableDatabaseObject> databaseObjectRegister;
 
 	/**
 	 * Injected via Spring
@@ -108,7 +110,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public void setDatabaseObjectRegister(List<MigratableDatabaseObject> databaseObjectRegister) {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
-	
+
+	public List<MigratableDatabaseObject> getDatabaseObjectRegister() {
+		return Collections.unmodifiableList(this.databaseObjectRegister);
+	}
+
+
 	/**
 	 * Injected via Spring
 	 */
@@ -174,7 +181,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	static void initializeAliasTypeToXStreamMap(List<MigratableDatabaseObject> databaseObjectRegister) {
 		//create maps for alias type to xstream
-		EnumMap<BackupAliasType, UnmodifiableXStream> tempMap = new EnumMap<>(BackupAliasType.class);
 		UnmodifiableXStream.Builder tableNameXStreamBuilder = UnmodifiableXStream.builder();
 		tableNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
 		UnmodifiableXStream.Builder migrationTypeNameXStreamBuilder = UnmodifiableXStream.builder();
@@ -189,14 +195,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 
 		//add map entries once the builders are done
-		tempMap.put(BackupAliasType.TABLE_NAME, tableNameXStreamBuilder.build());
-		tempMap.put(BackupAliasType.MIGRATION_TYPE_NAME, migrationTypeNameXStreamBuilder.build());
-		if(tempMap.size() != BackupAliasType.values().length){
-			throw new IllegalStateException("Need a mapping for the new BackupAliasType "
-					+ CollectionUtils.subtract(Arrays.asList(BackupAliasType.values()), tempMap.keySet()));
-		}
-
-		BACKUP_ALIAS_TYPE_TO_X_STREAM = Collections.unmodifiableMap(tempMap);
+		TABLE_NAME_ALIAS_X_STREAM =  tableNameXStreamBuilder.build();
+		MIGRATION_TYPE_NAME_ALIAS_X_STREAM = migrationTypeNameXStreamBuilder.build();
 	}
 	
 	/*
@@ -667,10 +667,13 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Override
 	public UnmodifiableXStream getXStream(BackupAliasType backupAliasType) {
-		UnmodifiableXStream xStream = BACKUP_ALIAS_TYPE_TO_X_STREAM.get(backupAliasType);
-		if(xStream == null){
-			throw new IllegalStateException("Unknown type: " + backupAliasType);
+		switch (backupAliasType){
+			case TABLE_NAME:
+				return TABLE_NAME_ALIAS_X_STREAM;
+			case MIGRATION_TYPE_NAME:
+				return MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
+			default:
+				throw new IllegalArgumentException("Unknown type: " + backupAliasType);
 		}
-		return xStream;
 	}
 }

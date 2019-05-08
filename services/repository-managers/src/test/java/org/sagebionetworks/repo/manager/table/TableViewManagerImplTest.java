@@ -33,6 +33,8 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -48,11 +50,12 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.thoughtworks.xstream.XStream;
 
 public class TableViewManagerImplTest {
 
@@ -428,7 +431,7 @@ public class TableViewManagerImplTest {
 	 * 
 	 */
 	@Test
-	public void testUpdateAnnotationsDate() throws IOException {
+	public void testUpdateAnnotationsDate() throws IOException, JSONObjectAdapterException {
 		Date date = new Date(1509744902000L);
 		viewSchema = Lists.newArrayList(dateColumn);
 		Annotations annos = new Annotations();
@@ -445,8 +448,8 @@ public class TableViewManagerImplTest {
 		 * Note: With PLFM-4706 this is where the date gets 
 		 * converted to the same day at time 0.
 		 */
-		Annotations annotationCopy = (Annotations) JDOSecondaryPropertyUtils.decompressedObject(JDOSecondaryPropertyUtils.compressObject(annos));
-		
+		Annotations annotationCopy = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(annos), Annotations.class);
+
 		Object value = annotationCopy.getSingleValue(dateColumn.getName());
 		assertNotNull(value);
 		assertTrue(value instanceof Date);

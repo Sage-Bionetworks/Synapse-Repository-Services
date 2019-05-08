@@ -52,7 +52,7 @@ public class MembershipInvitationUtils {
 	
 	public static MembershipInvitation deserialize(byte[] b) {
 		try {
-			return (MembershipInvitation)JDOSecondaryPropertyUtils.decompressedObject(X_STREAM, b);
+			return (MembershipInvitation)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

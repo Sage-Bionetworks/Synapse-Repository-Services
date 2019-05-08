@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
@@ -20,7 +21,9 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.schema.ObjectSchema;
 
 public class UserProfileUtils {
-	
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(UserProfile.class).build();
+
+
 	public static void copyDtoToDbo(UserProfile dto, DBOUserProfile dbo) throws DatastoreException{
 		if (dto.getOwnerId()==null) {
 			dbo.setOwnerId(null);
@@ -29,7 +32,7 @@ public class UserProfileUtils {
 		}
 		dbo.seteTag(dto.getEtag());
 		try {
-			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -58,7 +61,7 @@ public class UserProfileUtils {
 	public static UserProfile deserialize(byte[] b) {
 		Object decompressed = null;
 		try {
-			decompressed = JDOSecondaryPropertyUtils.decompressedObject(b);
+			decompressed = JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

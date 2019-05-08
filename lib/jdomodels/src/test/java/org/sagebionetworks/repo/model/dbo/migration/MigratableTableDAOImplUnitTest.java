@@ -138,6 +138,11 @@ public class MigratableTableDAOImplUnitTest {
 		assertEquals(expectedGroup, oneGroup);
 	}
 
+
+	/**
+	 * The only way to test that the initialize method worked is to actually use the XStream object since there is
+	 * currently no way to interrogate the XStream object about what aliases it currently uses
+	 */
 	@Test
 	public void testInitializeAliasTypeToXStreamMap(){
 		StubAutoIncrement stubAutoIncrement = new StubAutoIncrement();

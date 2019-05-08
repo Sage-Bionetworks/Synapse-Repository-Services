@@ -5,11 +5,14 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
 public class DBOVerificationSubmissionTest {
+
+	private static final UnmodifiableXStream TEST_X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
 
 	private static long dboId = 1234L;
 	private static String dtoId = "4321";
@@ -31,7 +34,7 @@ public class DBOVerificationSubmissionTest {
 	private static VerificationSubmission getDtoFromDbo(DBOVerificationSubmission dbo) {
 		VerificationSubmission dto;
 		try {
-			return (VerificationSubmission) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerialized());
+			return (VerificationSubmission) JDOSecondaryPropertyUtils.decompressObject(TEST_X_STREAM, dbo.getSerialized());
 		} catch (IOException e) {
 			throw new RuntimeException("Could not deserialize existing DBO for migration", e);
 		}
@@ -39,7 +42,7 @@ public class DBOVerificationSubmissionTest {
 
 	private static byte[] getSerializedDto(VerificationSubmission dto) {
 		try {
-			return JDOSecondaryPropertyUtils.compressObject(dto);
+			return JDOSecondaryPropertyUtils.compressObject(TEST_X_STREAM, dto);
 		} catch (IOException e) {
 			throw new RuntimeException("Could not deserialize existing DBO for migration", e);
 		}
