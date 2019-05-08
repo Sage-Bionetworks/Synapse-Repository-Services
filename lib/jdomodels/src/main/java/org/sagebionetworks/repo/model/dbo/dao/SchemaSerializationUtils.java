@@ -8,6 +8,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.schema.ObjectSchema;
 
@@ -16,7 +17,7 @@ public class SchemaSerializationUtils {
 	public static void mapAnnotationsToDtoFields(byte[] compressedProperties, Object dto, ObjectSchema schema) throws DatastoreException {
 		NamedAnnotations properties = null;
 		try {
-			properties = JDOSecondaryPropertyUtils.decompressedAnnotations(compressedProperties);
+			properties = AnnotationUtils.decompressedAnnotations(compressedProperties);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}		

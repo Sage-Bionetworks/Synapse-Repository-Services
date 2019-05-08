@@ -5,11 +5,13 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
 
 public class ActivityUtils {
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Activity.class).build();
 
 	public static void copyDtoToDbo(Activity dto, DBOActivity dbo) throws DatastoreException {
 		if(dto.getId() == null) throw new IllegalArgumentException("id can not be null");
@@ -40,7 +42,7 @@ public class ActivityUtils {
 
 	private static void copyToSerializedField(Activity dto, DBOActivity dbo) throws DatastoreException {
 		try {
-			dbo.setSerializedObject(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setSerializedObject(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -48,7 +50,7 @@ public class ActivityUtils {
 	
 	private static Activity copyFromSerializedField(DBOActivity dbo) throws DatastoreException {
 		try {
-			return (Activity)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedObject());
+			return (Activity)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerializedObject());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

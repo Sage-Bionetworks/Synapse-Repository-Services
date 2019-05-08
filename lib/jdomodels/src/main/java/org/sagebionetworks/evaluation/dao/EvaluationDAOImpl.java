@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -106,7 +107,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private static final RowMapper<EvaluationDBO> rowMapper = ((new EvaluationDBO()).getTableMapping());
 
-	private static final String EVALUATION_NOT_FOUND = "Evaluation could not be found with id :";	
+	private static final String EVALUATION_NOT_FOUND = "Evaluation could not be found with id :";
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionQuota.class).build();
+
 
 	@Override
 	@WriteTransaction
@@ -291,7 +295,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		if (dto.getQuota() != null) {
 			try {
-				dbo.setQuota(JDOSecondaryPropertyUtils.compressObject(dto.getQuota()));
+				dbo.setQuota(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto.getQuota()));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -338,7 +342,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		if (dbo.getQuota() != null) {
 			try {
-				dto.setQuota((SubmissionQuota)JDOSecondaryPropertyUtils.decompressedObject(dbo.getQuota()));
+				dto.setQuota((SubmissionQuota)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getQuota()));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

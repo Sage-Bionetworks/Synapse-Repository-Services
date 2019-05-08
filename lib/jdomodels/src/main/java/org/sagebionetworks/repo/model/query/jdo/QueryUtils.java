@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -84,7 +85,7 @@ public class QueryUtils {
 			// If select is null then add all
 			if(zippedAnnos != null){
 				try {
-					NamedAnnotations named = JDOSecondaryPropertyUtils.decompressedAnnotations(zippedAnnos);
+					NamedAnnotations named = AnnotationUtils.decompressedAnnotations(zippedAnnos);
 					// Add the primary
 					addNewToMap(row, named.getPrimaryAnnotations(), select);
 					// Now add the secondary.

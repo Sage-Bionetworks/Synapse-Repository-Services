@@ -91,6 +91,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -727,7 +728,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			if(blob != null){
 				byte[] bytes = blob.getBytes(1, (int) blob.length());
 				try {
-					annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+					annos = AnnotationUtils.decompressedAnnotations(bytes);
 				} catch (IOException e) {
 					throw new DatastoreException(e);
 				}
@@ -791,7 +792,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long newFileHandleId = NodeUtils.translateFileHandleId(updatedNode.getFileHandleId());
 		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
 		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
-		byte[] newReferences = JDOSecondaryPropertyUtils.compressReference(updatedNode.getReference());
+		byte[] newReferences = NodeUtils.compressReference(updatedNode.getReference());
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
 				newScope, newReferences, nodeId, currentRevision);
@@ -812,7 +813,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// now update the annotations from the passed values.
 		try {
 			// Compress the annotations.
-			byte[] newAnnos = JDOSecondaryPropertyUtils.compressAnnotations(updatedAnnos);
+			byte[] newAnnos = AnnotationUtils.compressAnnotations(updatedAnnos);
 			this.jdbcTemplate.update(SQL_UPDATE_ANNOTATIONS, newAnnos, nodeIdLong, currentRevision);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
@@ -1617,8 +1618,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(blob != null){
 					byte[] bytes = blob.getBytes(1, (int) blob.length());
 					try {
-						NamedAnnotations annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
-						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationSize));
+						NamedAnnotations annos = AnnotationUtils.decompressedAnnotations(bytes);
+						dto.setAnnotations(AnnotationUtils.translate(entityId, annos, maxAnnotationSize));
 					} catch (IOException e) {
 						throw new DatastoreException(e);
 					}
