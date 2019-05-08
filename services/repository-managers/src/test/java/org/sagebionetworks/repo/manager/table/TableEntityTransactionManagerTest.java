@@ -7,11 +7,12 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -66,6 +68,7 @@ public class TableEntityTransactionManagerTest {
 	TableStatus status;
 
 	String tableId;
+	IdAndVersion idAndVersion;
 	TableUpdateTransactionRequest request;
 	UploadToTableRequest uploadRequest;
 
@@ -81,6 +84,7 @@ public class TableEntityTransactionManagerTest {
 		userInfo = new UserInfo(false, 2222L);
 
 		tableId = "syn213";
+		idAndVersion = IdAndVersion.parse(tableId);
 		request = new TableUpdateTransactionRequest();
 		request.setEntityId(tableId);
 		List<TableUpdateRequest> changes = new LinkedList<>();
@@ -97,7 +101,7 @@ public class TableEntityTransactionManagerTest {
 						any(ProgressCallback.class), anyString(), anyInt(),
 						any(ProgressingCallable.class))).thenReturn(response);
 		
-		when(tableIndexConnectionFactory.connectToTableIndex(tableId)).thenReturn(tableIndexManager);
+		when(tableIndexConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(tableIndexManager);
 		
 		doAnswer(new Answer<TableUpdateTransactionResponse>() {
 			@Override
@@ -200,10 +204,10 @@ public class TableEntityTransactionManagerTest {
 		when(tableEntityManager.isTemporaryTableNeededToValidate(uploadRequest)).thenReturn(true);
 		// call under test
 		manager.validateUpdateRequests(progressCallback, userInfo, request);
-		verify(tableIndexConnectionFactory).connectToTableIndex(tableId);
-		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexConnectionFactory).connectToTableIndex(idAndVersion);
+		verify(tableIndexManager).createTemporaryTableCopy(idAndVersion, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion, progressCallback);
 	}
 	
 	@Test
@@ -219,10 +223,10 @@ public class TableEntityTransactionManagerTest {
 		} catch (RuntimeException e) {
 			// expected
 		}
-		verify(tableIndexConnectionFactory).connectToTableIndex(tableId);
-		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexConnectionFactory).connectToTableIndex(idAndVersion);
+		verify(tableIndexManager).createTemporaryTableCopy(idAndVersion, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion, progressCallback);
 	}
 	
 	@Test
@@ -231,10 +235,10 @@ public class TableEntityTransactionManagerTest {
 		when(tableEntityManager.isTemporaryTableNeededToValidate(uploadRequest)).thenReturn(false);
 		// call under test
 		manager.validateUpdateRequests(progressCallback, userInfo, request);
-		verify(tableIndexConnectionFactory, never()).connectToTableIndex(tableId);
-		verify(tableIndexManager, never()).createTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexConnectionFactory, never()).connectToTableIndex(idAndVersion);
+		verify(tableIndexManager, never()).createTemporaryTableCopy(idAndVersion, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, null);
-		verify(tableIndexManager, never()).deleteTemporaryTableCopy(anyString(), any(ProgressCallback.class));
+		verify(tableIndexManager, never()).deleteTemporaryTableCopy(any(IdAndVersion.class), any(ProgressCallback.class));
 	}
 	
 	@Test

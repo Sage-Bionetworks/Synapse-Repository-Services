@@ -452,6 +452,7 @@ public class SqlConstants {
 	// The bound column ordinal model table
 	public static final String TABLE_STATUS							= "TABLE_STATUS";
 	public static final String COL_TABLE_STATUS_ID					= "TABLE_ID";
+	public static final String COL_TABLE_STATUS_VERSION				= "VERSION";
 	public static final String COL_TABLE_STATUS_STATE				= "STATE";
 	public static final String COL_TABLE_STATUS_RESET_TOKEN			= "RESET_TOKEN";
 	public static final String COL_TABLE_STATUS_STARTED_ON			= "STARTED_ON";

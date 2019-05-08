@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -131,7 +132,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@NewWriteTransaction
 	@Override
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException {
+	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId) throws NotFoundException {
 		try {
 			TableStatus status = tableStatusDAO.getTableStatus(tableId);
 			if(!TableState.AVAILABLE.equals(status.getState())){
@@ -332,13 +333,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#calculateFileViewCRC32(java.lang.String)
 	 */
 	@Override
-	public Long calculateViewCRC32(String tableId) {
+	public Long calculateViewCRC32(Long tableId) {
 		// Start with all container IDs that define the view's scope
 		Long viewTypeMask = getViewTypeMask(tableId);
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, viewTypeMask);
 		// Trigger the reconciliation of this view's scope.
 		triggerScopeReconciliation(viewTypeMask, viewContainers);
-		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(tableId);
+		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(IdAndVersion.newBuilder().setId(tableId).build());
 		return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
 	}
 
@@ -363,9 +364,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForViewScope(String viewIdString, Long viewTypeMask) {
-		ValidateArgument.required(viewIdString, "viewId");
-		Long viewId = KeyFactory.stringToKey(viewIdString);
+	public Set<Long> getAllContainerIdsForViewScope(Long viewId, Long viewTypeMask) {
+		ValidateArgument.required(viewId, "viewId");
 		// Lookup the scope for this view.
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
 		return getAllContainerIdsForScope(scope, viewTypeMask);
@@ -528,8 +528,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public Long getViewTypeMask(String tableId){
-		return viewScopeDao.getViewTypeMask(KeyFactory.stringToKey(tableId));
+	public Long getViewTypeMask(Long tableId){
+		return viewScopeDao.getViewTypeMask(tableId);
 	}
 
 	@Override
@@ -573,10 +573,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		if (!userInfo.isAdmin())
 			throw new UnauthorizedException("Only an administrator may access this service.");
 		// purge
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		if (indexDao != null) {
-			indexDao.deleteTable(tableId);
-			indexDao.deleteSecondaryTables(tableId);
+			indexDao.deleteTable(idAndVersion);
+			indexDao.deleteSecondaryTables(idAndVersion);
 		}
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableId);
 		ChangeMessage message = new ChangeMessage();

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
  * RDS and changes sets that consist of compressed CSV files stored in S3. Each
@@ -32,7 +34,7 @@ public interface TableIndexConnectionFactory {
 	 * @param tableId
 	 * @return
 	 */
-	TableIndexManager connectToTableIndex(String tableId) throws TableIndexConnectionUnavailableException;
+	TableIndexManager connectToTableIndex(IdAndVersion tableId) throws TableIndexConnectionUnavailableException;
 
 	/**
 	 * Acquire an index manager that wraps a connection to the first database in the cluster.
