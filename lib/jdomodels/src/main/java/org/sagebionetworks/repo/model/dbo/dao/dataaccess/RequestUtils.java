@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class RequestUtils {
 	public static String REGEX = ",";
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypeHierarchy(RequestInterface.class).build();
+
 
 	public static void copyDtoToDbo(RequestInterface dto, DBORequest dbo) throws DatastoreException{
 		dbo.setId(Long.parseLong(dto.getId()));
@@ -37,7 +40,7 @@ public class RequestUtils {
 
 	public static void copyToSerializedField(RequestInterface dto, DBORequest dbo) throws DatastoreException {
 		try {
-			dbo.setRequestSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setRequestSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -45,7 +48,7 @@ public class RequestUtils {
 
 	public static RequestInterface copyFromSerializedField(DBORequest dbo) throws DatastoreException {
 		try {
-			return (RequestInterface)JDOSecondaryPropertyUtils.decompressedObject(dbo.getRequestSerialized());
+			return (RequestInterface)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getRequestSerialized());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

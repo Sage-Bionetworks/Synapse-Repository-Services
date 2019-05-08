@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
@@ -172,13 +173,15 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 		}
 	};
 
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).build();
+
 	private static final RowMapper<Submission> SUBMISSION_MAPPER = new RowMapper<Submission>(){
 
 		@Override
 		public Submission mapRow(ResultSet rs, int rowNum) throws SQLException {
 			try {
 				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
-				Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressedObject(blob.getBytes(1, (int) blob.length()));
+				Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, blob.getBytes(1, (int) blob.length()));
 				submission.setId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ID));
 				submission.setAccessRequirementId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID));
 				submission.setRequestId(rs.getString(COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID));

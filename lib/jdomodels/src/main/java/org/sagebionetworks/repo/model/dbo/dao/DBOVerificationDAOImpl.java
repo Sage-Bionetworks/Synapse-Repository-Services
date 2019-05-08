@@ -28,6 +28,7 @@ import java.util.Set;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -130,7 +131,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	
 	private static TableMapping<DBOVerificationState> DBO_VERIFICATION_STATE_MAPPING =
 			(new DBOVerificationState()).getTableMapping();
-	
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
+
 	@WriteTransaction
 	@Override
 	public VerificationSubmission createVerificationSubmission(
@@ -153,7 +156,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setId(Long.parseLong(dto.getId()));
 		try {
-			dbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -163,7 +166,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
 		VerificationSubmission dto = new VerificationSubmission();
 		try {
-			dto = (VerificationSubmission)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerialized());
+			dto = (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
