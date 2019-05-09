@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -69,9 +70,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
 			final String tableId = change.getObjectId();
+			final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			final TableIndexManager indexManager;
 			try {
-				indexManager = connectionFactory.connectToTableIndex(tableId);
+				indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 			} catch (TableIndexConnectionUnavailableException e) {
 				// try again later.
 				throw new RecoverableMessageException();
@@ -79,7 +81,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
 				tableEntityManager.deleteTableIfDoesNotExist(tableId);
-				indexManager.deleteTableIndex(tableId);
+				indexManager.deleteTableIndex(idAndVersion);
 				return;
 			} else {
 				// this method does the real work.
@@ -224,6 +226,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		for (TableRowChange changSet : changes) {
 				totalProgress += changSet.getRowCount();
 		}
+		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Apply each change set not already indexed
 		long currentProgress = 0;
 		String lastEtag = null;
@@ -232,7 +235,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				currentProgress += changeSet.getRowCount();
 				lastEtag = changeSet.getEtag();
 				// Only apply changes sets not already applied to the index.
-				if(!indexManager.isVersionAppliedToIndex(tableId, changeSet.getRowVersion())){
+				if(!indexManager.isVersionAppliedToIndex(idAndVersion, changeSet.getRowVersion())){
 					// update the progress between actual change.
 					tableManagerSupport.attemptToUpdateTableProgress(tableId,
 							resetToken, "Applying version: " + changeSet.getRowVersion(), currentProgress,
@@ -256,10 +259,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// After all changes are applied to the index ensure the final schema is set
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 		boolean isTableView = false;
-		indexManager.setIndexSchema(tableId, isTableView , progressCallback, currentSchema);
+		indexManager.setIndexSchema(idAndVersion, isTableView , progressCallback, currentSchema);
 		
 		// now that table is created and populated the indices on the table can be optimized.
-		indexManager.optimizeTableIndices(tableId);
+		indexManager.optimizeTableIndices(idAndVersion);
 		
 		return lastEtag;
 	}
@@ -280,11 +283,12 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		if(!TableChangeType.COLUMN.equals(changeSet.getChangeType())){
 			throw new IllegalArgumentException("Expected: "+TableChangeType.COLUMN);
 		}
+		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// apply the schema change
 		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
 		boolean isTableView = false;
-		indexManager.updateTableSchema(tableId, isTableView, progressCallback, schemaChange);
-		indexManager.setIndexVersion(tableId, changeSet.getRowVersion());
+		indexManager.updateTableSchema(idAndVersion, isTableView, progressCallback, schemaChange);
+		indexManager.setIndexVersion(idAndVersion, changeSet.getRowVersion());
 	}
 
 
@@ -304,13 +308,14 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		if(!TableChangeType.ROW.equals(change.getChangeType())){
 			throw new IllegalArgumentException("Expected: "+TableChangeType.ROW);
 		}
+		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = tableEntityManager.getSparseChangeSet(change);
 		// match the schema to the change set.
 		boolean isTableView = false;
-		indexManager.setIndexSchema(tableId, isTableView, progressCallback, sparseChangeSet.getSchema());
+		indexManager.setIndexSchema(idAndVersion, isTableView, progressCallback, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
-		indexManager.applyChangeSetToIndex(tableId, sparseChangeSet, change.getRowVersion());
+		indexManager.applyChangeSetToIndex(idAndVersion, sparseChangeSet, change.getRowVersion());
 	}
 
 

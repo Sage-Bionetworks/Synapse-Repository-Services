@@ -53,6 +53,10 @@
 			<url>http://repo1.maven.org/maven2/</url>
 		</repository>
 		<repository>
+			<id>mvnrepository.com</id>
+			<url>http://central.maven.org/maven2/</url>
+		</repository>		
+		<repository>
 			<id>sun-maven-repository</id>
 			<url>http://download.java.net/maven/2/</url>
 		</repository>

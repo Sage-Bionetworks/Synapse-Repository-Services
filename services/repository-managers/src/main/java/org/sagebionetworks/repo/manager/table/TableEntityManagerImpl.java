@@ -25,7 +25,9 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -417,7 +419,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		if(!EntityType.table.equals(type)){
 			throw new UnauthorizedException("Can only be called for TableEntities");
 		}
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
 		try {
@@ -461,6 +464,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		if(user.isAdmin()){
 			return;
 		}
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Extract the files handles from the change set.
 		Set<Long> filesHandleIds = rowSet.getFileHandleIdsInSparseChangeSet();
 		if(!filesHandleIds.isEmpty()){
@@ -479,9 +483,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			// are there any more files to check?
 			if(!remainingFilesToCheck.isEmpty()){
 				// The remaining files were not created by the user so they must already be associated with the table.
-				TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+				TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 				// Get the sub-set of files associated with the table.
-				Set<Long> filesAssociatedWithTable = indexDao.getFileHandleIdsAssociatedWithTable(new HashSet<Long>(remainingFilesToCheck), tableId);
+				Set<Long> filesAssociatedWithTable = indexDao.getFileHandleIdsAssociatedWithTable(new HashSet<Long>(remainingFilesToCheck), idAndVersion);
 				// remove all files associated with the table
 				remainingFilesToCheck.removeAll(filesAssociatedWithTable);
 				// Any files remaining in the set are not created by the user and are not associated with the table.
@@ -512,10 +516,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			// There are no changes applied to this table so return an empty set.
 			return Sets.newHashSet();
 		}
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Next connect to the table
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		// the index dao 
-		return indexDao.getFileHandleIdsAssociatedWithTable(toTest, tableId);
+		return indexDao.getFileHandleIdsAssociatedWithTable(toTest, idAndVersion);
 	}
 
 	@WriteTransaction
@@ -620,8 +625,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 				throw new IllegalStateException("A temporary table is needed to validate but was not provided.");
 			}
 			List<ColumnChangeDetails> details = columModelManager.getColumnChangeDetails(changes.getChanges());
+			IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 			// attempt to apply the schema change to the temp copy of the table.
-			indexManager.alterTempTableSchmea(callback, changes.getEntityId(), details);
+			indexManager.alterTempTableSchmea(callback, idAndVersion, details);
 		}
 	}
 

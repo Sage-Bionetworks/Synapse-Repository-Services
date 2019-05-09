@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -21,7 +22,7 @@ public interface TableStatusDAO {
 	 * @param tableId
 	 * @return The new reset-token for this table status.
 	 */
-	public String resetTableStatusToProcessing(String tableId);
+	public String resetTableStatusToProcessing(IdAndVersion tableId);
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
@@ -39,7 +40,7 @@ public interface TableStatusDAO {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToAvailable(String tableId,
+	public void attemptToSetTableStatusToAvailable(IdAndVersion tableId,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
 			NotFoundException;
 
@@ -58,7 +59,7 @@ public interface TableStatusDAO {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToFailed(String tableId,
+	public void attemptToSetTableStatusToFailed(IdAndVersion tableId,
 			String resetToken, String errorMessage, String errorDetails)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -78,7 +79,7 @@ public interface TableStatusDAO {
 	 *             processing finished.
 	 * @throws NotFoundException
 	 */
-	public void attemptToUpdateTableProgress(String tableId, String resetToken,
+	public void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -91,14 +92,14 @@ public interface TableStatusDAO {
 	 *             Thrown when there is no status information for the given
 	 *             table.
 	 */
-	public TableStatus getTableStatus(String tableId) throws NotFoundException;
+	public TableStatus getTableStatus(IdAndVersion tableId) throws NotFoundException;
 
 	/**
 	 * Delete the table status for this table. Called during migration if table was updated in staging and we don't want
 	 * stale status
 	 * 
 	 */
-	public void deleteTableStatus(String tableId);
+	public void deleteTableStatus(IdAndVersion tableId);
 
 	/**
 	 * Remove all table state. This should not be called during normal operations.

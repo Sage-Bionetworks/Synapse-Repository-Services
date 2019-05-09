@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -789,7 +790,8 @@ public class TableViewIntegrationTest {
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 		
 		// manually delete the replicated data the file to simulate a data loss.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(fileViewId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(firtFileIdLong));
 		
@@ -821,7 +823,8 @@ public class TableViewIntegrationTest {
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 		
 		// manually delete the replicated data of the project to simulate a data loss.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(viewId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(projectIdLong));
 		
@@ -1316,7 +1319,8 @@ public class TableViewIntegrationTest {
 	private EntityDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		long start = System.currentTimeMillis();
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
 			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){

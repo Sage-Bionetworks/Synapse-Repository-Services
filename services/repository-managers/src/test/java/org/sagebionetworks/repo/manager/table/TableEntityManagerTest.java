@@ -11,7 +11,6 @@ import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -58,6 +57,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -144,6 +144,7 @@ public class TableEntityManagerTest {
 	
 	UserInfo user;
 	String tableId;
+	IdAndVersion idAndVersion;
 	Long tableIdLong;
 	List<Row> rows;
 	RowSet set;
@@ -176,6 +177,7 @@ public class TableEntityManagerTest {
 		user = new UserInfo(false, 7L);
 		models = TableModelTestUtils.createOneOfEachType(true);
 		tableId = "syn123";
+		idAndVersion = IdAndVersion.parse(tableId);
 		tableIdLong = KeyFactory.stringToKey(tableId);
 		rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
@@ -212,7 +214,7 @@ public class TableEntityManagerTest {
 		refSet.setEtag("etag123");
 		
 		when(mockTableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(models);
-		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
 		// Just call the caller.
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
@@ -587,7 +589,7 @@ public class TableEntityManagerTest {
 		// should check the files created by the user.
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
 		// since all of the files were created by the user there is no need to lookup the associated files.
-		verify(mockTableIndexDAO, never()).getFileHandleIdsAssociatedWithTable(any(Set.class), anyString());
+		verify(mockTableIndexDAO, never()).getFileHandleIdsAssociatedWithTable(any(Set.class), any(IdAndVersion.class));
 	}
 	
 	@Test
@@ -609,14 +611,14 @@ public class TableEntityManagerTest {
 		// Setup 1 to be created by.
 		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
 		// setup 5 to be associated with.
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(Sets.newHashSet( 5L ));
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class),any(IdAndVersion.class))).thenReturn(Sets.newHashSet( 5L ));
 		
 		// call under test
 		manager.validateFileHandles(user, tableId, sparse);
 		// should check the files created by the user.
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
 		// since 1 was created by the user only 5 should be tested for association.
-		verify(mockTableIndexDAO).getFileHandleIdsAssociatedWithTable(Sets.newHashSet( 5L ), tableId);
+		verify(mockTableIndexDAO).getFileHandleIdsAssociatedWithTable(Sets.newHashSet( 5L ), idAndVersion);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -638,7 +640,7 @@ public class TableEntityManagerTest {
 		// Setup 1 to be created by.
 		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
 		// setup 5 to be not associated with.
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(new HashSet<Long>());
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), any(IdAndVersion.class))).thenReturn(new HashSet<Long>());
 		
 		// call under test
 		manager.validateFileHandles(user, tableId, sparse);
@@ -824,10 +826,10 @@ public class TableEntityManagerTest {
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(3L);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(lastChange.getRowVersion());
 		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
 		Set<Long> results = Sets.newHashSet(1L,2L);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, idAndVersion)).thenReturn(results);
 		// call under test.
 		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
 		assertEquals(results, out);
@@ -837,10 +839,10 @@ public class TableEntityManagerTest {
 	public void testGetFileHandleIdsAssociatedWithTableNoChanges(){
 		// no changes applied to the table.
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(3L);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(3L);
 		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
 		Set<Long> results = Sets.newHashSet(1L,2L);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, idAndVersion)).thenReturn(results);
 		// call under test.
 		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
 		assertNotNull(out);
@@ -852,10 +854,10 @@ public class TableEntityManagerTest {
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(3L);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(lastChange.getRowVersion());
 		List<String> input = Lists.newArrayList("0","1","2","3");
 		Set<Long> results = Sets.newHashSet(1L,2L);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(results);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), any(IdAndVersion.class))).thenReturn(results);
 		// call under test.
 		Set<String> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
 		Set<String> expected = Sets.newHashSet("1","2");
@@ -1035,7 +1037,7 @@ public class TableEntityManagerTest {
 		// Call under test
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
-		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, tableId, columChangedetails);
+		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, idAndVersion, columChangedetails);
 	}
 	
 	@Test (expected=IllegalStateException.class)
@@ -1066,7 +1068,7 @@ public class TableEntityManagerTest {
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, request, null);
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, changes, newColumnIds);
 		// temp table should not be used.
-		verify(mockIndexManager, never()).alterTempTableSchmea(any(ProgressCallback.class), anyString(), anyListOf(ColumnChangeDetails.class));
+		verify(mockIndexManager, never()).alterTempTableSchmea(any(ProgressCallback.class), any(IdAndVersion.class), anyListOf(ColumnChangeDetails.class));
 	}
 	
 	@Test

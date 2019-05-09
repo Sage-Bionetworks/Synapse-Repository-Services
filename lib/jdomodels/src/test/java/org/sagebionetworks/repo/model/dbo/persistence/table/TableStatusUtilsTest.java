@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -21,6 +22,7 @@ public class TableStatusUtilsTest {
 		dto.setErrorDetails("This is the longer error details");
 		dto.setErrorMessage("This is the short message");
 		dto.setTableId("123");
+		dto.setVersion(456L);
 		dto.setProgressCurrent(50L);
 		dto.setProgressMessage("Making progress");
 		dto.setProgressTotal(100L);
@@ -52,8 +54,8 @@ public class TableStatusUtilsTest {
 	@Test
 	public void testAbbreviateOverLimit() {
 		TableStatus dto = new TableStatus();
-		dto.setErrorMessage(createStringOfLength(TableStatusUtils.MAX_CHARS+1));
-		dto.setProgressMessage(createStringOfLength(TableStatusUtils.MAX_CHARS+1));
+		dto.setErrorMessage(StringUtils.repeat('a', TableStatusUtils.MAX_CHARS+1));
+		dto.setProgressMessage(StringUtils.repeat('a', TableStatusUtils.MAX_CHARS+1));
 		// call under test
 		DBOTableStatus dbo = TableStatusUtils.createDBOFromDTO(dto);
 		// error
@@ -69,8 +71,8 @@ public class TableStatusUtilsTest {
 	@Test
 	public void testAbbreviateOverAtLimit() {
 		TableStatus dto = new TableStatus();
-		dto.setErrorMessage(createStringOfLength(TableStatusUtils.MAX_CHARS));
-		dto.setProgressMessage(createStringOfLength(TableStatusUtils.MAX_CHARS));
+		dto.setErrorMessage(StringUtils.repeat('a', TableStatusUtils.MAX_CHARS));
+		dto.setProgressMessage(StringUtils.repeat('a', TableStatusUtils.MAX_CHARS));
 		// call under test
 		DBOTableStatus dbo = TableStatusUtils.createDBOFromDTO(dto);
 		// error
@@ -81,20 +83,6 @@ public class TableStatusUtilsTest {
 		assertNotNull(dbo.getProgressMessage());
 		assertEquals(TableStatusUtils.MAX_CHARS, dbo.getProgressMessage().length());
 		assertFalse(dbo.getErrorMessage().endsWith("..."));
-	}
-	
-	/**
-	 * Create a string of a given length.
-	 * 
-	 * @param size
-	 * @return
-	 */
-	String createStringOfLength(int size) {
-		char[] chars = new char[size];
-		for(int i=0; i<size; i++) {
-			chars[i] = 'a';
-		}
-		return new String(chars);
 	}
 
 }

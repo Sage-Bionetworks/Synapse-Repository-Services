@@ -24,6 +24,9 @@
         "tableId": {
             "type": "string",
             "description": "The ID of the table."
+        },"version": {
+            "type": "integer",
+            "description": "For cases where a query is run against a particualr version of a table, this will be that version.  This field is exclueded for all other cases."
         },
         "startedOn": {
             "type": "string",

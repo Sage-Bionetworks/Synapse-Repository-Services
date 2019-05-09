@@ -7,6 +7,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -114,13 +115,14 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		// setup a temporary table if needed.
 		if(isTemporaryTableNeeded){
 			String tableId = request.getEntityId();
-			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(tableId);
-			indexManager.createTemporaryTableCopy(tableId, callback);
+			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(idAndVersion);
+			indexManager.createTemporaryTableCopy(idAndVersion, callback);
 			try{
 				// validate while the temp table exists.
 				validateEachUpdateRequest(callback, userInfo, request, indexManager);
 			}finally{
-				indexManager.deleteTemporaryTableCopy(tableId, callback);
+				indexManager.deleteTemporaryTableCopy(idAndVersion, callback);
 			}
 		}else{
 			// we do not need a temporary copy to validate this request.

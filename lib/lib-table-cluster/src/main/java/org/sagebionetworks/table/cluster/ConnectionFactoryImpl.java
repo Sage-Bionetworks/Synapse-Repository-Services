@@ -10,6 +10,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -41,7 +42,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	private StackConfiguration stackConfig;
 	
 	@Override
-	public TableIndexDAO getConnection(String tableId) {
+	public TableIndexDAO getConnection(IdAndVersion tableId) {
 		// Create a new DAO for this call.
 		return new TableIndexDAOImpl(singleConnectionPool);	
 	}

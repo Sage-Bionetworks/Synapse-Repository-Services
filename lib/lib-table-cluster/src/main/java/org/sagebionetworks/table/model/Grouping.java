@@ -13,13 +13,11 @@ public class Grouping {
 	
 	List<ColumnModel> columns;
 	List<SparseRow> rows;
-	String tableId;
 	
-	public Grouping(List<ColumnModel> columns, List<SparseRow> rows, String tableId) {
+	public Grouping(List<ColumnModel> columns, List<SparseRow> rows) {
 		super();
 		this.columns = columns;
 		this.rows = rows;
-		this.tableId = tableId;
 	}
 
 	/**
@@ -39,14 +37,6 @@ public class Grouping {
 	 */
 	public List<SparseRow> getRows(){
 		return rows;
-	}
-	
-	/**
-	 * The ID of the table.
-	 * @return
-	 */
-	public String getTableId(){
-		return tableId;
 	}
 
 	@Override

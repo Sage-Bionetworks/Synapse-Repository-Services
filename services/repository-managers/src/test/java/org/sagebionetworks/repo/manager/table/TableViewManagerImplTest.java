@@ -76,6 +76,7 @@ public class TableViewManagerImplTest {
 	List<String> schema;
 	List<String> scope;
 	String viewId;
+	Long viewIdLong;
 	Long viewType;
 	
 	Set<Long> scopeIds;
@@ -109,6 +110,7 @@ public class TableViewManagerImplTest {
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		
 		viewId = "syn555";
+		viewIdLong = KeyFactory.stringToKey(viewId);
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
@@ -121,7 +123,7 @@ public class TableViewManagerImplTest {
 				return (ColumnModel) invocation.getArguments()[0];
 			}}).when(columnModelDao).createColumnModel(any(ColumnModel.class));
 		
-		when(tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewType)).thenReturn(scopeIds);
+		when(tableManagerSupport.getAllContainerIdsForViewScope(viewIdLong, viewType)).thenReturn(scopeIds);
 		
 		rowCount = 13;
 		rows = new LinkedList<Row>();

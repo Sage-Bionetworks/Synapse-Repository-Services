@@ -27,6 +27,11 @@ public class TableStatusUtils {
 		if(dto.getTableId() != null){
 			dbo.setTableId(Long.parseLong(dto.getTableId()));
 		}
+		if(dto.getVersion() == null) {
+			dbo.setVersion(-1L);
+		}else {
+			dbo.setVersion(dto.getVersion());
+		}
 		if(dto.getStartedOn() != null){
 			dbo.setStartedOn(dto.getStartedOn().getTime());
 		}
@@ -75,6 +80,9 @@ public class TableStatusUtils {
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setTotalTimeMS(dbo.getTotalRunTimeMS());
 		dto.setLastTableChangeEtag(dbo.getLastTableChangeEtag());
+		if(dbo.getVersion() != null && dbo.getVersion() > 0 ) {
+			dto.setVersion(dbo.getVersion());
+		}
 		return dto;
 	}
 	

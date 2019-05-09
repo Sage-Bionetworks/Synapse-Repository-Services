@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -181,7 +182,7 @@ public interface TableManagerSupport {
 	 * @param table
 	 * @return
 	 */
-	public Long calculateViewCRC32(String table);
+	public Long calculateViewCRC32(Long table);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -194,7 +195,7 @@ public interface TableManagerSupport {
 	 * @param viewId
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(String viewId, Long viewTypeMask);
+	public Set<Long> getAllContainerIdsForViewScope(Long viewId, Long viewTypeMask);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -375,10 +376,10 @@ public interface TableManagerSupport {
 	/**
 	 * Get the view type for the given table ID.
 	 * 
-	 * @param tableId
+	 * @param viewId
 	 * @return
 	 */
-	Long getViewTypeMask(String tableId);
+	Long getViewTypeMask(Long viewId);
 
 	/**
 	 * Only Administrator can perform this action.

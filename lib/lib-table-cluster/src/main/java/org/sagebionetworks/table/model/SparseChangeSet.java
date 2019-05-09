@@ -242,7 +242,7 @@ public class SparseChangeSet {
 				ColumnModel cm = getColumnModel(columnId);
 				models.add(cm);
 			}
-			Grouping group = new Grouping(models, groupRows, tableId);
+			Grouping group = new Grouping(models, groupRows);
 			grouping.add(group);
 		}
 		return grouping;

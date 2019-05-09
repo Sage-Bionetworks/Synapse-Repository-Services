@@ -157,8 +157,8 @@ public class ColumnConstants {
 	 * @param tableId
 	 * @return
 	 */
-	public static boolean isTableTooLargeForFourByteUtf8(String tableId) {
-		return TABLES_TOO_LARGE_FOR_FOUR_BYTE_UTF8.contains(KeyFactory.stringToKey(tableId));
+	public static boolean isTableTooLargeForFourByteUtf8(Long tableId) {
+		return TABLES_TOO_LARGE_FOR_FOUR_BYTE_UTF8.contains(tableId);
 	}
 	
 	public static final int MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255;

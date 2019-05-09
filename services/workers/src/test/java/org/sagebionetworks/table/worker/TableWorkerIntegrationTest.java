@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -793,11 +794,12 @@ public class TableWorkerIntegrationTest {
 		// and pretend we just created it
 		repositoryMessagePublisher.publishToTopic(message);
 
-		final TableIndexDAO tableIndexDAO = tableConnectionFactory.getConnection(tableId);
+		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		final TableIndexDAO tableIndexDAO = tableConnectionFactory.getConnection(idAndVersion);
 		assertTrue("Index table was not created", TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
-				return tableIndexDAO.getRowCountForTable(tableId) != null;
+				return tableIndexDAO.getRowCountForTable(idAndVersion) != null;
 			}
 		}));
 
@@ -2125,10 +2127,11 @@ public class TableWorkerIntegrationTest {
 			System.out.println(status.getErrorDetails());
 		}
 		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Trigger a full rebuild of the table
-		TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
-		dao.deleteTable(tableId);
-		dao.deleteSecondaryTables(tableId);
+		TableIndexDAO dao = tableConnectionFactory.getConnection(idAndVersion);
+		dao.deleteTable(idAndVersion);
+		dao.deleteSecondaryTables(idAndVersion);
 		// The rebuild should not fails
 		status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){

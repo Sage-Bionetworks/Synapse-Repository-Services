@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +18,9 @@ public class TableIndexConnectionFactoryImpl implements
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory#connectToTableIndex(java.lang.String)
 	 */
 	@Override
-	public TableIndexManager connectToTableIndex(String tableId) {
+	public TableIndexManager connectToTableIndex(IdAndVersion tableId) {
 		if(tableId == null){
-			throw new IllegalArgumentException(tableId);
+			throw new IllegalArgumentException("TableId cannot be null");
 		}
 		TableIndexDAO dao = connectionFactory.getConnection(tableId);
 		if(dao == null){

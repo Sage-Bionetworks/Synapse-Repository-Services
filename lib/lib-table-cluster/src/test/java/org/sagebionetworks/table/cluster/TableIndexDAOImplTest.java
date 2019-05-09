@@ -31,6 +31,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -74,13 +75,13 @@ public class TableIndexDAOImplTest {
 	
 	ProgressCallback mockProgressCallback;
 
-	String tableId;
+	IdAndVersion tableId;
 	boolean isView;
 
 	@Before
 	public void before() {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		tableId = "syn123";
+		tableId = IdAndVersion.parse("syn123");
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
@@ -103,7 +104,7 @@ public class TableIndexDAOImplTest {
 	 * @param newSchema
 	 * @param tableId
 	 */
-	public boolean createOrUpdateTable(List<ColumnModel> newSchema, String tableId, boolean isView){
+	public boolean createOrUpdateTable(List<ColumnModel> newSchema, IdAndVersion tableId, boolean isView){
 		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
@@ -120,7 +121,7 @@ public class TableIndexDAOImplTest {
 	 * @param alterTemp
 	 * @return
 	 */
-	boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
+	boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
 		// Lookup the current schema of the index.
 		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDAO.getDatabaseInfo(tableId);
 		tableIndexDAO.provideIndexName(currentIndedSchema, tableId);
@@ -133,10 +134,10 @@ public class TableIndexDAOImplTest {
 	 * @param rowSet
 	 * @param schema
 	 */
-	public void createOrUpdateOrDeleteRows(RowSet rowSet, List<ColumnModel> schema){
+	public void createOrUpdateOrDeleteRows(IdAndVersion tableId, RowSet rowSet, List<ColumnModel> schema){
 		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, schema);
 		for(Grouping grouping: sparse.groupByValidValues()){
-			tableIndexDAO.createOrUpdateOrDeleteRows(grouping);
+			tableIndexDAO.createOrUpdateOrDeleteRows(tableId, grouping);
 		}
 	}
 	
@@ -204,7 +205,7 @@ public class TableIndexDAOImplTest {
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(allTypes));
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
@@ -213,7 +214,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		createOrUpdateTable(allTypes, tableId, isView);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		List<Map<String, Object>> result = tableIndexDAO.getConnection()
 				.queryForList(
 						"SELECT * FROM "
@@ -238,7 +239,7 @@ public class TableIndexDAOImplTest {
 		rows.get(4).setVersionNumber(5L);
 		rows.get(0).setVersionNumber(5L);
 		// This should not fail
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Check the update
 		result = tableIndexDAO.getConnection().queryForList(
 				"SELECT * FROM "
@@ -280,14 +281,14 @@ public class TableIndexDAOImplTest {
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(allTypes));
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Check again
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(new Long(rows.size()), count);
@@ -351,14 +352,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
 		// Now query for the results
@@ -367,7 +368,7 @@ public class TableIndexDAOImplTest {
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(2, results.getRows().size());
 		// test the count
 		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
@@ -418,14 +419,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, doubleColumn);
+		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, doubleColumn).build();
 		// Now query for the results
@@ -434,7 +435,7 @@ public class TableIndexDAOImplTest {
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(5, results.getRows().size());
 		assertEquals("3.12", results.getRows().get(0).getValues().get(0));
 		assertEquals("0", results.getRows().get(1).getValues().get(0));
@@ -456,7 +457,7 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
@@ -464,7 +465,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 
 		// now delete the second and fourth row
 		set.getRows().remove(0);
@@ -473,7 +474,7 @@ public class TableIndexDAOImplTest {
 		set.getRows().get(1).getValues().clear();
 		range.setVersionNumber(4L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
 		// Now query for the results
@@ -496,14 +497,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Now query for the results
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
@@ -511,7 +512,7 @@ public class TableIndexDAOImplTest {
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(2, results.getRows().size());
 		// the first row
 		Row row = results.getRows().get(0);
@@ -546,14 +547,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Now a count query
 		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId,
 				allTypes).build();
@@ -564,7 +565,7 @@ public class TableIndexDAOImplTest {
 				.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null));
 		assertEquals(expectedHeaders, results.getHeaders());
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
 		// first and only row.
 		Row row = results.getRows().get(0);
@@ -600,14 +601,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(4L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(tableId, set, schema);
 		// Now create the query
 		SqlQuery query = new SqlQueryBuilder(
 				"select foo, sum(bar) from "
@@ -620,7 +621,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(schema.size(),
 				results.getHeaders().size());
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
 		// first and only row.
 		Row row = results.getRows().get(0);
@@ -655,14 +656,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(4L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(tableId, set, schema);
 		// Now create the query
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
@@ -671,7 +672,7 @@ public class TableIndexDAOImplTest {
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
 		// first and only row.
 		Row row = results.getRows().get(0);
@@ -877,7 +878,7 @@ public class TableIndexDAOImplTest {
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
@@ -885,7 +886,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		
-		createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(tableId, set, schema);
 		
 		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, SQLUtils.getColumnNameForId(column.getId()));
 		Set<Long> expected = Sets.newHashSet(3000L, 3001L);
@@ -962,7 +963,7 @@ public class TableIndexDAOImplTest {
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
@@ -970,7 +971,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		
-		createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(tableId, set, schema);
 		
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
@@ -1115,7 +1116,7 @@ public class TableIndexDAOImplTest {
 	 * @param tableId
 	 * @return
 	 */
-	public List<DatabaseColumnInfo> getAllColumnInfo(String tableId){
+	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId){
 		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
 		tableIndexDAO.provideCardinality(info, tableId);
 		tableIndexDAO.provideIndexName(info, tableId);
@@ -1128,7 +1129,7 @@ public class TableIndexDAOImplTest {
 	 * @param tableId
 	 * @param maxNumberOfIndices
 	 */
-	public void optimizeTableIndices(String tableId, int maxNumberOfIndices){
+	public void optimizeTableIndices(IdAndVersion tableId, int maxNumberOfIndices){
 		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId);
 		tableIndexDAO.optimizeTableIndices(info, tableId, maxNumberOfIndices);
 	}
@@ -1162,7 +1163,7 @@ public class TableIndexDAOImplTest {
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
@@ -1170,7 +1171,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		
-		createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(tableId, set, schema);
 		
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		// Create a copy of the table
@@ -1364,12 +1365,12 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
 		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
 		assertEquals(381255304L, crc32);
 	}
 	
@@ -1409,7 +1410,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1436,12 +1437,12 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
 		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
 		assertEquals(-1L, crc32);
 	}
 	
@@ -1851,14 +1852,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, doubleColumn);
+		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select 2 + 2, col1/10 from " + tableId, doubleColumn).build();
 		// Now query for the results
@@ -1866,7 +1867,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results);
 		System.out.println(results);
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
 		assertEquals("4", results.getRows().get(0).getValues().get(0));
 		assertEquals("5.0", results.getRows().get(0).getValues().get(1));
@@ -1886,14 +1887,14 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, doubleColumn);
+		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select col1 from " + tableId+" where col1 = -5*10", doubleColumn).build();
 		// Now query for the results
@@ -1901,7 +1902,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results);
 		System.out.println(results);
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
 		assertEquals("-50", results.getRows().get(0).getValues().get(0));
 	}
@@ -1926,7 +1927,7 @@ public class TableIndexDAOImplTest {
 		// second row is in the future
 		rows.get(1).getValues().set(0, ""+thritySecondsFuture);
 		// apply the rows
-		createOrUpdateOrDeleteRows(rows, schema);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
 		
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 SECOND)*1000", schema).build();
@@ -1935,7 +1936,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results);
 		System.out.println(results);
 		assertNotNull(results.getRows());
-		assertEquals(tableId, results.getTableId());
+		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
 		assertEquals(""+thritySecondsFuture, results.getRows().get(0).getValues().get(0));
 	}
@@ -1954,7 +1955,7 @@ public class TableIndexDAOImplTest {
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// apply the rows
-		createOrUpdateOrDeleteRows(rows, schema);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
 		
 		// the new schema has a large text column with the same name
 		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
@@ -1972,7 +1973,7 @@ public class TableIndexDAOImplTest {
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// apply the rows
-		createOrUpdateOrDeleteRows(rows, schema);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
 		
 		// the new schema has a large text column with the same name
 		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
@@ -2050,7 +2051,7 @@ public class TableIndexDAOImplTest {
 		rows.get(0).getValues().set(0, value);
 
 		// apply the rows
-		createOrUpdateOrDeleteRows(rows, schema);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
 	}
 
 	/**
@@ -2058,19 +2059,19 @@ public class TableIndexDAOImplTest {
 	 * @param rows
 	 * @param schema
 	 */
-	public void createOrUpdateOrDeleteRows(List<Row> rows, List<ColumnModel> schema){
+	public void createOrUpdateOrDeleteRows(IdAndVersion tableId, List<Row> rows, List<ColumnModel> schema){
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema);
 		set.setHeaders(headers);
-		set.setTableId(tableId);
+		set.setTableId(tableId.toString());
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(tableId, set, schema);
 	}
 	
 	/**

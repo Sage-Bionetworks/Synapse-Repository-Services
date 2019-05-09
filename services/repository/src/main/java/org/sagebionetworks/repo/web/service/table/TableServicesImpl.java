@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -224,7 +225,8 @@ public class TableServicesImpl implements TableServices {
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken){
-		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewId, nextPageToken);
+		Long viewIdLong = KeyFactory.stringToKey(viewId);
+		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewIdLong, nextPageToken);
 	}
 
 	@Override

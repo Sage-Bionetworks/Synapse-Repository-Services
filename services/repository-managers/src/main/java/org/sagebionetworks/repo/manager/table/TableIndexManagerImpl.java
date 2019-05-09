@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
@@ -49,7 +50,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * .TableIndexConnection)
 	 */
 	@Override
-	public long getCurrentVersionOfIndex(String tableId) {
+	public long getCurrentVersionOfIndex(final IdAndVersion tableId) {
 		return tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 	}
 
@@ -63,7 +64,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * java.util.List, long)
 	 */
 	@Override
-	public void applyChangeSetToIndex(final String tableId, final SparseChangeSet rowset,
+	public void applyChangeSetToIndex(final IdAndVersion tableId, final SparseChangeSet rowset,
 			final long changeSetVersionNumber) {
 		// Validate all rows have the same version number
 		// Has this version already been applied to the table index?
@@ -77,7 +78,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 						public Void doInTransaction(TransactionStatus status) {
 							// apply all groups to the table
 							for(Grouping grouping: rowset.groupByValidValues()){
-								tableIndexDao.createOrUpdateOrDeleteRows(grouping);
+								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
 							}
 							// Extract all file handle IDs from this set
 							Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
@@ -103,7 +104,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * .TableIndexConnection, long)
 	 */
 	@Override
-	public boolean isVersionAppliedToIndex(final String tableId, long versionNumber) {
+	public boolean isVersionAppliedToIndex(final IdAndVersion tableId, long versionNumber) {
 		final long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		return currentVersion >= versionNumber;
 	}
@@ -116,7 +117,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(final String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> newSchema){
+	public void setIndexSchema(final IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
@@ -125,31 +126,31 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public void deleteTableIndex(final String tableId) {
+	public void deleteTableIndex(final IdAndVersion tableId) {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
 		tableIndexDao.deleteSecondaryTables(tableId);
 	}
 	
 	@Override
-	public String getCurrentSchemaMD5Hex(final String tableId) {
+	public String getCurrentSchemaMD5Hex(final IdAndVersion tableId) {
 		return tableIndexDao.getCurrentSchemaMD5Hex(tableId);
 	}
 	
 	@Override
-	public void setIndexVersion(final String tableId, Long versionNumber) {
+	public void setIndexVersion(final IdAndVersion tableId, Long versionNumber) {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(
 				tableId, versionNumber);
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(final String tableId, Long viewCRC, String schemaMD5Hex) {
+	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
 		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 	}
 	
 	
 	@Override
-	public boolean updateTableSchema(final String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
+	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId, isTableView);
 		// Create all of the status tables unconditionally.
@@ -175,7 +176,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}	
 	
 	@Override
-	public boolean alterTempTableSchmea(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
+	public boolean alterTempTableSchmea(ProgressCallback progressCallback, final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
 		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
 	}
@@ -188,7 +189,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
+	boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final IdAndVersion tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
 		try {
 			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {
@@ -205,7 +206,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param alterTemp
 	 * @return
 	 */
-	boolean alterTableAsNeededWithinAutoProgress(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
+	boolean alterTableAsNeededWithinAutoProgress(final IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
 		// Lookup the current schema of the index.
 		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// must also gather the names of each index currently applied to each column.
@@ -220,7 +221,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#optimizeTableIndices()
 	 */
 	@Override
-	public void optimizeTableIndices(final String tableId) {
+	public void optimizeTableIndices(final IdAndVersion tableId) {
 		// To optimize a table's indices, statistics must be gathered
 		// for each column of the table.
 		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -233,7 +234,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void createTemporaryTableCopy(final String tableId, ProgressCallback callback) {
+	public void createTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
 		// creating a temp table can take a long time so auto-progress is used.
 		try {
 			// create the table.
@@ -246,12 +247,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 	}
 	@Override
-	public void deleteTemporaryTableCopy(final String tableId, ProgressCallback callback) {
+	public void deleteTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
 		// delete
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback callback, final Long viewTypeMask,
+	public Long populateViewFromEntityReplication(final Long tableId, final ProgressCallback callback, final Long viewTypeMask,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		ValidateArgument.required(callback, "callback");
 		try {
@@ -277,7 +278,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
 	 * @throws Exception 
 	 */
-	Long populateViewFromEntityReplicationWithProgress(final String tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
+	Long populateViewFromEntityReplicationWithProgress(final Long tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
@@ -310,7 +311,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForView(
-			String viewId, String nextPageToken) {
+			final Long viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
 		Long type = tableManagerSupport.getViewTypeMask(viewId);
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId, type);
