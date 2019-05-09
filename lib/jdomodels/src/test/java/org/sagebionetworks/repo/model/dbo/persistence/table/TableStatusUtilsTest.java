@@ -22,6 +22,7 @@ public class TableStatusUtilsTest {
 		dto.setErrorDetails("This is the longer error details");
 		dto.setErrorMessage("This is the short message");
 		dto.setTableId("123");
+		dto.setVersion(456L);
 		dto.setProgressCurrent(50L);
 		dto.setProgressMessage("Making progress");
 		dto.setProgressTotal(100L);
