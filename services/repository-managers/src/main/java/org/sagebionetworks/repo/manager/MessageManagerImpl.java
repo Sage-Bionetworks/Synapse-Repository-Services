@@ -594,37 +594,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageDAO.deleteMessage(messageId);
 	}
-	
-	@Deprecated
-	@Override
-	@WriteTransaction
-	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException {
-		String subject = "Set Synapse Password";
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
-		
-		String alias = principalAliasDAO.getUserName(recipientId);
-		UserProfile userProfile = userProfileManager.getUserProfile(recipientId.toString());
-		String displayName = EmailUtils.getDisplayName(userProfile);
 
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
-		
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		String webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
-		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
-		String email = getEmailForUser(recipientId);
-		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
-				.withRecipientEmail(email)
-				.withSubject(subject)
-				.withBody(messageBody, BodyType.PLAIN_TEXT)
-				.withSenderUserName(alias)
-				.withSenderDisplayName(displayName)
-				.withUserId(recipientId.toString())
-				.withIsNotificationMessage(true)
-				.build();
-		sesClient.sendRawEmail(sendEmailRequest);
-	}
 
 	@Override
 	@WriteTransaction

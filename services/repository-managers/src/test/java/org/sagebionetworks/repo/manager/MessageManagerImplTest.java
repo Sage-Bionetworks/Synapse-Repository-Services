@@ -747,20 +747,6 @@ public class MessageManagerImplTest {
 	}
 	
 	@Test
-	public void testSendTemplateEmail() throws Exception {
-		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getId(), "Blah?");
-		
-		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getId(), null);
-		
-		// Try the delivery failure email
-		List<String> mockErrors = new ArrayList<String>();
-		mockErrors.add(UUID.randomUUID().toString());
-		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
-	}
-	
-	@Test
 	public void testCreateMessageToEntityOwner() throws Exception {
 		// Make an "entity"
 		Node node = new Node();

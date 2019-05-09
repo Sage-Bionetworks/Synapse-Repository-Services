@@ -94,17 +94,6 @@ public class IT990AuthenticationController {
 		synapse.logout();
 		assertNull(synapse.getCurrentSessionToken());
 	}
-	
-	@Test
-	public void testChangePassword() throws Exception {
-		String testNewPassword = "newPassword"+UUID.randomUUID();
-		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
-		LoginRequest request = new LoginRequest();
-		request.setUsername(username);
-		request.setPassword(testNewPassword);
-		synapse.login(request);
-		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
-	}
 
 	@Test
 	public void testChangePasswordWithOldPassword() throws Exception {
@@ -125,19 +114,6 @@ public class IT990AuthenticationController {
 		
 		// Reject the terms
 		synapse.signTermsOfUse(sessionToken, false);
-	}
-	
-	@Test
-	public void testSendResetPasswordEmail() throws Exception {
-		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.sendPasswordResetEmail(email);
-	}
-	
-	
-	@Test(expected = SynapseNotFoundException.class)
-	public void testSendEmailInvalidUser() throws Exception {
-		// There's no way a user like this exists :D
-		synapse.sendPasswordResetEmail("invalid-user-name@sagebase.org" + UUID.randomUUID());
 	}
 
 	@Test

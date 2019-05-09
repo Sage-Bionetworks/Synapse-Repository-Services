@@ -40,26 +40,6 @@ public interface AuthenticationService {
 	 * Invalidates a session token
 	 */
 	public void invalidateSessionToken(String sessionToken);
-	
-	/**
-	 * Initializes a new user into the system
-	 * @throws UnauthorizedException If a user with the supplied email already exists 
-	 */
-	public void createUser(NewUser user);
-	
-	/**
-	 * Sends a password-reset email to the user
-	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
-	 */
-	@Deprecated
-	public void sendPasswordEmail(Long userId) throws NotFoundException;
-
-	/**
-	 * Changes the password of the user
-	 * Also invalidates the user's session token
-	 */
-	@Deprecated
-	public void changePassword(ChangePasswordRequest request) throws NotFoundException;
 
 	/**
 	 * Changes the password of the user
@@ -81,13 +61,7 @@ public interface AuthenticationService {
 	 * Invalidates the user's secret key
 	 */
 	public void deleteSecretKey(Long principalId) throws NotFoundException;
-	
-	/**
-	 * Temporary method used for converting usernames to user IDs
-	 */
-	@Deprecated
-	public Long getUserId(String username) throws NotFoundException;
-	
+
 	/**
 	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
 	 * This method will look a user by any of the aliases.
@@ -100,10 +74,6 @@ public interface AuthenticationService {
 	 * Has the user accepted the terms of use?
 	 */
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
-
-
-	@Deprecated
-	public void sendPasswordEmail(String email) throws NotFoundException;
 
 	/**
 	 * Sends a password reset email to the user

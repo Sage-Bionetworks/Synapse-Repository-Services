@@ -116,34 +116,6 @@ public class AuthenticationController {
 	}
 
 	/**
-	 * Create a new user. An email will be sent regarding how to set a password for the account. <br/>
-	 * The query parameter <code>domain</code> may be appended to this URI. If absent or set to "synapse", the service
-	 * will send email specific to the Synapse application; <br/>
-	 * Note: The passed request body must contain an email. First, last, and full name are recommended but not required.
-	 * All other fields will be ignored.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
-	public void createUser(
-			@RequestBody NewUser user) {
-		authenticationService.createUser(user);
-	}
-
-	/**
-	 * <b>DEPRECATED</b>
-	 * Sends an email for setting a user's password.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void sendPasswordEmail(
-			@RequestBody Username user)
-			throws NotFoundException {
-		authenticationService.sendPasswordEmail(user.getEmail());
-	}
-
-	/**
 	 * Sends an email for resetting a user's password. <br/>
 	 * @param passwordResetEndpoint the Portal's url prefix for handling password resets.
 	 * @throws NotFoundException
@@ -154,18 +126,6 @@ public class AuthenticationController {
 			@RequestParam(value = AuthorizationConstants.PASSWORD_RESET_PARAM, required = true) String passwordResetEndpoint,
 			@RequestBody Username user){
 		authenticationService.sendPasswordResetEmail(passwordResetEndpoint, user.getEmail());
-	}
-
-	/**
-	 * Change the current authenticated user's password.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
-	public void changePassword(
-			@RequestBody ChangePasswordRequest request)
-			throws NotFoundException {
-		authenticationService.changePassword(request);
 	}
 
 	/**

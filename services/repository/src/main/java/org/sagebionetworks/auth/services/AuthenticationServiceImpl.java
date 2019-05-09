@@ -68,51 +68,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		authManager.invalidateSessionToken(sessionToken);
 	}
-	
-	@Override
-	@WriteTransaction
-	public void createUser(NewUser user) {
-		if (user == null || user.getEmail() == null) {
-			throw new IllegalArgumentException("Email must be specified");
-		}
-		
-		Long userid = userManager.createUser(user);
-		try {
-			sendPasswordEmail(userid);
-		} catch (NotFoundException e) {
-			throw new DatastoreException("Could not find user that was just created", e);
-		}
-	}
-
-	@Deprecated
-	@Override
-	@WriteTransaction
-	public void sendPasswordEmail(Long principalId) throws NotFoundException {
-		if (principalId == null) {
-			throw new IllegalArgumentException("PrincipalId may not be null");
-		}
-		
-		// Get the user's session token (which is refreshed)
-		String sessionToken = authManager.getSessionToken(principalId).getSessionToken();
-		
-		// Send the email
-		messageManager.sendPasswordResetEmail(principalId, sessionToken);
-	}
-	
-	@Override
-	@WriteTransaction
-	public void changePassword(ChangePasswordRequest request) throws NotFoundException {
-		if (request.getSessionToken() == null) {
-			throw new IllegalArgumentException("Session token may not be null");
-		}
-		if (request.getPassword() == null) { 			
-			throw new IllegalArgumentException("Password may not be null");
-		}
-		
-		Long principalId = authManager.checkSessionToken(request.getSessionToken(), false);
-		authManager.setPassword(principalId, request.getPassword());
-		authManager.invalidateSessionToken(request.getSessionToken());
-	}
 
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
@@ -154,19 +109,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
 		return authManager.hasUserAcceptedTermsOfUse(userId);
-	}
-
-	@Override
-	public Long getUserId(String username) throws NotFoundException {
-		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(username);
-		return pa.getPrincipalId();
-	}
-
-	@Deprecated
-	@Override
-	public void sendPasswordEmail(String email) throws NotFoundException {
-		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
-		sendPasswordEmail(pa.getPrincipalId());
 	}
 
 	@Override

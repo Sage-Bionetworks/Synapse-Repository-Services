@@ -1736,11 +1736,6 @@ public interface SynapseClient extends BaseClient {
 	public void sendNewPasswordResetEmail(String passwordResetEndpoint, String email) throws SynapseException;
 
 	/**
-	 * Changes the registering user's password
-	 */
-	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
-
-	/**
 	 * Change password for a user
 	 * @param username username to identify the user
 	 * @param currentPassword the user's current password
@@ -1762,12 +1757,7 @@ public interface SynapseClient extends BaseClient {
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the given user as if request came from Synapse.
-	 */
-	public void sendPasswordResetEmail(String email) throws SynapseException;
-	
+
 	/**
 	 * The first step in OAuth authentication involves sending the user to
 	 * authenticate on an OAuthProvider's web page. Use this method to get a
