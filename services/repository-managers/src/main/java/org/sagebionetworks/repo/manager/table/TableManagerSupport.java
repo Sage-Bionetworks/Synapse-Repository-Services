@@ -37,7 +37,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 *             if the table does not exist
 	 */
-	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId)
 			throws NotFoundException;
 
 	/**
@@ -55,7 +55,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToAvailable(IdAndVersion tableId,
+	public void attemptToSetTableStatusToAvailable(String tableId,
 			String resetToken, String tableChangeEtag)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -74,7 +74,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToFailed(IdAndVersion tableId,
+	public void attemptToSetTableStatusToFailed(String tableId,
 			String resetToken, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -94,7 +94,7 @@ public interface TableManagerSupport {
 	 *             processing finished.
 	 * @throws NotFoundException
 	 */
-	public void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken,
+	public void attemptToUpdateTableProgress(String tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -105,7 +105,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public String startTableProcessing(IdAndVersion tableId);
+	public String startTableProcessing(String tableId);
 
 	/**
 	 * Is the table's index synchronized with the truth data?
@@ -113,7 +113,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexSynchronizedWithTruth(IdAndVersion tableId);
+	public boolean isIndexSynchronizedWithTruth(String tableId);
 
 	/**
 	 * Index work is required if the index is out-of-synch with the truth or the
@@ -122,21 +122,21 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexWorkRequired(IdAndVersion tableId);
+	public boolean isIndexWorkRequired(String tableId);
 
 	/**
 	 * Set the table to processing and send an update message.
 	 * 
 	 * @param tableId
 	 */
-	public TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion tableId);
+	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId);
 
 	/**
 	 * Set the table to be deleted.
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableDeleted(IdAndVersion deletedId, ObjectType tableType);
+	public void setTableDeleted(String deletedId, ObjectType tableType);
 
 	/**
 	 * The MD5 hex of a table's schema.
@@ -144,7 +144,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	String getSchemaMD5Hex(IdAndVersion tableId);
+	String getSchemaMD5Hex(String tableId);
 
 	/**
 	 * Get the version of the given table. This is can be different for each
@@ -154,7 +154,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	long getTableVersion(IdAndVersion tableId);
+	long getTableVersion(String tableId);
 
 	/**
 	 * Is the given table available.
@@ -162,7 +162,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	boolean isTableAvailable(IdAndVersion tableId);
+	boolean isTableAvailable(String tableId);
 
 	/**
 	 * Lookup the object type for this table.
@@ -170,7 +170,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	ObjectType getTableType(IdAndVersion tableId);
+	ObjectType getTableType(String tableId);
 
 	/**
 	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView. The CRC is
@@ -241,7 +241,7 @@ public interface TableManagerSupport {
 	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			IdAndVersion tableId, int timeoutSeconds, ProgressingCallable<R> runner)
+			String tableId, int timeoutSeconds, ProgressingCallable<R> runner)
 			throws Exception;
 	
 	/**
@@ -273,7 +273,7 @@ public interface TableManagerSupport {
 	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, IdAndVersion tableId, int timeoutSeconds,
+			ProgressCallback callback, String tableId, int timeoutSeconds,
 			ProgressingCallable<R> runner) throws Exception;
 
 	/**

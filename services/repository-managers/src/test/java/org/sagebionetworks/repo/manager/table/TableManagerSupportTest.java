@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -112,6 +113,7 @@ public class TableManagerSupportTest {
 	
 
 	String tableId;
+	IdAndVersion idAndVersion;
 	Long tableIdLong;
 	TableStatus status;
 	String etag;
@@ -129,10 +131,11 @@ public class TableManagerSupportTest {
 		userInfo = new UserInfo(false, 8L);
 		
 		tableId = "syn123";
+		idAndVersion = IdAndVersion.parse(tableId);
 		tableIdLong = KeyFactory.stringToKey(tableId);
 		viewType = ViewTypeMask.File.getMask();
 		
-		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
 		etag = "";
 		
@@ -142,8 +145,8 @@ public class TableManagerSupportTest {
 		status.setChangedOn(new Date(123));
 		status.setResetToken(etag);
 		
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);		
-		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId)).thenReturn(etag);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(etag);
 		
 		ColumnModel cm = new ColumnModel();
 		cm.setId("444");
@@ -185,9 +188,9 @@ public class TableManagerSupportTest {
 	public void testGetTableStatusOrCreateIfNotExistsAvailableSynchronized() throws Exception {
 		// Available
 		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
@@ -195,7 +198,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
 	}
 	
@@ -208,9 +211,9 @@ public class TableManagerSupportTest {
 	public void testGetTableStatusOrCreateIfNotExistsAvailableNotSynchronized() throws Exception {
 		// Available
 		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// Not synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(false);
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
@@ -219,7 +222,7 @@ public class TableManagerSupportTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		// must trigger processing
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
 	}
 	
@@ -233,9 +236,9 @@ public class TableManagerSupportTest {
 		// Available
 		status.setState(TableState.PROCESSING);
 		// Setup a case where the first time the status does not exists, but does exist the second call.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
 		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
@@ -243,7 +246,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockNodeDao).isNodeAvailable(tableIdLong);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
 	}
@@ -258,9 +261,9 @@ public class TableManagerSupportTest {
 		// Available
 		status.setState(TableState.PROCESSING);
 		// Setup a case where the first time the status does not exists, but does exist the second call.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
 		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table does not exists
@@ -278,9 +281,9 @@ public class TableManagerSupportTest {
 	public void testGetTableStatusOrCreateIfNotExistsProcessingNotExpired() throws Exception {
 		// Available
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
@@ -288,7 +291,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
 	}
 	
@@ -301,9 +304,9 @@ public class TableManagerSupportTest {
 	public void testGetTableStatusOrCreateIfNotExistsProcessingExpired() throws Exception {
 		// Available
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		//expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
 		// table exists
@@ -311,7 +314,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
 	}
 
@@ -320,7 +323,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testStartTableProcessing(){
 		String token = "a unique token";
-		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId)).thenReturn(token);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(token);
 		// call under test
 		String resultToken = manager.startTableProcessing(tableId);
 		assertEquals(token, resultToken);
@@ -334,7 +337,7 @@ public class TableManagerSupportTest {
 		lastChange.setRowVersion(currentVersion);
 		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
 		// setup a match
-		when(mockTableIndexDAO.doesIndexStateMatch(tableId, currentVersion, schemaMD5Hex)).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(idAndVersion, currentVersion, schemaMD5Hex)).thenReturn(true);
 		
 		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
 	}
@@ -348,11 +351,11 @@ public class TableManagerSupportTest {
 		// node exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// available
 		TableStatus status = new TableStatus();
 		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(tableId);
 		assertFalse(workRequired);
@@ -384,11 +387,11 @@ public class TableManagerSupportTest {
 		// node is missing
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(false);
 		// not synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(false);
 		// failed
 		TableStatus status = new TableStatus();
 		status.setState(TableState.PROCESSING_FAILED);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(tableId);
 		assertFalse(workRequired);
@@ -403,11 +406,11 @@ public class TableManagerSupportTest {
 		// node exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// not synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(false);
 		// available
 		TableStatus status = new TableStatus();
 		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(tableId);
 		assertTrue(workRequired);
@@ -422,11 +425,11 @@ public class TableManagerSupportTest {
 		// node exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// available
 		TableStatus status = new TableStatus();
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(tableId);
 		assertTrue(workRequired);
@@ -496,7 +499,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetAllContainerIdsForViewScope(){
 		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId, viewType);
+		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableIdLong, viewType);
 		assertEquals(containersInScope, containers);
 	}
 	
@@ -601,7 +604,7 @@ public class TableManagerSupportTest {
 		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
-		Long crcResult = manager.calculateViewCRC32(tableId);
+		Long crcResult = manager.calculateViewCRC32(tableIdLong);
 		assertEquals(crc32, crcResult);
 		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 	}
@@ -876,9 +879,9 @@ public class TableManagerSupportTest {
 		UserInfo mockAdmin = Mockito.mock(UserInfo.class);
 		when(mockAdmin.isAdmin()).thenReturn(true);
 		manager.rebuildTable(mockAdmin, tableId);
-		verify(mockTableIndexDAO).deleteTable(tableId);
-		verify(mockTableIndexDAO).deleteSecondaryTables(tableId);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTableIndexDAO).deleteTable(idAndVersion);
+		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
 		ChangeMessage message = captor.getValue();
@@ -894,9 +897,9 @@ public class TableManagerSupportTest {
 		when(mockAdmin.isAdmin()).thenReturn(true);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		manager.rebuildTable(mockAdmin, tableId);
-		verify(mockTableIndexDAO).deleteTable(tableId);
-		verify(mockTableIndexDAO).deleteSecondaryTables(tableId);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTableIndexDAO).deleteTable(idAndVersion);
+		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
 		ChangeMessage message = captor.getValue();

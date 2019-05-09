@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,7 @@ public class TableManagerSupportTransactionsTest {
 	private UserInfo adminUser;
 	
 	String tableId;
+	IdAndVersion idAndVersion;
 	
 	List<String> toDelete;
 	
@@ -55,6 +57,7 @@ public class TableManagerSupportTransactionsTest {
 		TableEntity table = new TableEntity();
 		table.setName("testTable");
 		tableId = entityManager.createEntity(adminUser, table, null);
+		idAndVersion = IdAndVersion.parse(tableId);
 		toDelete.add(tableId);
 	}
 	
@@ -79,7 +82,7 @@ public class TableManagerSupportTransactionsTest {
 	public void testGetTableStatusOrCreateIfNotExistsWithTransactionRollback(){
 		// table status should not exist yet
 		try {
-			tableStatusDao.getTableStatus(tableId);
+			tableStatusDao.getTableStatus(idAndVersion);
 			fail("The table status should not exist yet");
 		} catch (NotFoundException e1) {
 			// expected
@@ -101,7 +104,7 @@ public class TableManagerSupportTransactionsTest {
 		}
 		
 		try {
-			tableStatusDao.getTableStatus(tableId);
+			tableStatusDao.getTableStatus(idAndVersion);
 		} catch (NotFoundException e) {
 			fail("Table status should have been created even though the outer transaction rolled-back");
 		}
@@ -118,7 +121,7 @@ public class TableManagerSupportTransactionsTest {
 	public void testsetTableToProcessingAndTriggerUpdateWithTransactionRollback(){
 		// table status should not exist yet
 		try {
-			tableStatusDao.getTableStatus(tableId);
+			tableStatusDao.getTableStatus(idAndVersion);
 			fail("The table status should not exist yet");
 		} catch (NotFoundException e1) {
 			// expected
@@ -140,7 +143,7 @@ public class TableManagerSupportTransactionsTest {
 		}
 		
 		try {
-			tableStatusDao.getTableStatus(tableId);
+			tableStatusDao.getTableStatus(idAndVersion);
 			fail("Table status should not have been created because the outer transaction rolled-back");
 		} catch (NotFoundException e) {
 			// expected

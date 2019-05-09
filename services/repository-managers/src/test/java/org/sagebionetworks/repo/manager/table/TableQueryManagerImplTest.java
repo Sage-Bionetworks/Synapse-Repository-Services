@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -119,6 +120,7 @@ public class TableQueryManagerImplTest {
 	List<ColumnModel> models;
 	UserInfo user;
 	String tableId;
+	IdAndVersion idAndVersion;
 	List<Row> rows;
 	TableStatus status;
 	int maxBytesPerRequest;
@@ -145,6 +147,7 @@ public class TableQueryManagerImplTest {
 	@Before
 	public void before() throws Exception {
 		tableId = "syn123";
+		idAndVersion = IdAndVersion.parse(tableId);
 		user = new UserInfo(false, 7L);
 		
 		status = new TableStatus();
@@ -179,7 +182,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
-		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
@@ -214,7 +217,7 @@ public class TableQueryManagerImplTest {
 		benefactorColumn.setId("999");
 		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
 		HashSet<Long> subSet = Sets.newHashSet(444L);
-		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
 		
 		facetColumnName = "i2";
@@ -1487,7 +1490,7 @@ public class TableQueryManagerImplTest {
 	public void testAddRowLevelFilterEmpty() throws Exception {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
-		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
 		// call under test
 		QuerySpecification result = manager.addRowLevelFilter(user, query);
 		assertNotNull(result);
@@ -1498,7 +1501,7 @@ public class TableQueryManagerImplTest {
 	public void getAddRowLevelFilterTableDoesNotExist() throws TableFailedException, TableUnavailableException, ParseException {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
-		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
 
 		// call under test
 		QuerySpecification result = manager.addRowLevelFilter(user, query);

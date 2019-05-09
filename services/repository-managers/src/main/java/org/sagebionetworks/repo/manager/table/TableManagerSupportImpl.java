@@ -17,7 +17,6 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.ObjectTypeManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynch;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -132,9 +131,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@NewWriteTransaction
 	@Override
-	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId) throws NotFoundException {
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException {
 		try {
-			TableStatus status = tableStatusDAO.getTableStatus(tableId);
+			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+			TableStatus status = tableStatusDAO.getTableStatus(idAndVersion);
 			if(!TableState.AVAILABLE.equals(status.getState())){
 				// Processing or Failed.
 				// Is progress being made?
@@ -176,11 +176,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ObjectType tableType = getTableType(tableId);
 		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
 		// building of the index and report the table as unavailable
-		String token = tableStatusDAO.resetTableStatusToProcessing(tableId);
+		String token = tableStatusDAO.resetTableStatusToProcessing(IdAndVersion.parse(tableId));
 		// notify all listeners.
 		transactionalMessenger.sendMessageAfterCommit(tableId, tableType, token, ChangeType.UPDATE);
 		// status should exist now
-		return tableStatusDAO.getTableStatus(tableId);
+		return tableStatusDAO.getTableStatus(IdAndVersion.parse(tableId));
 	}
 
 	@NewWriteTransaction
@@ -188,7 +188,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public void attemptToSetTableStatusToAvailable(String tableId,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
 			NotFoundException {
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, tableChangeEtag);
+		tableStatusDAO.attemptToSetTableStatusToAvailable(IdAndVersion.parse(tableId), resetToken, tableChangeEtag);
 	}
 
 	@NewWriteTransaction
@@ -200,7 +200,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		StringWriter writer = new StringWriter();
 		error.printStackTrace(new PrintWriter(writer));
 		String errorDetails = writer.toString();
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
+		tableStatusDAO.attemptToSetTableStatusToFailed(IdAndVersion.parse(tableId), resetToken, errorMessage, errorDetails);
 	}
 
 	@NewWriteTransaction
@@ -208,7 +208,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public void attemptToUpdateTableProgress(String tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException {
-		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
+		tableStatusDAO.attemptToUpdateTableProgress(IdAndVersion.parse(tableId), resetToken, progressMessage, currentProgress, totalProgress);
 	}
 	
 	/*
@@ -218,7 +218,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@NewWriteTransaction
 	@Override
 	public String startTableProcessing(String tableId) {
-		return tableStatusDAO.resetTableStatusToProcessing(tableId);
+		return tableStatusDAO.resetTableStatusToProcessing(IdAndVersion.parse(tableId));
 	}
 
 	/*
@@ -231,8 +231,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		String truthSchemaMD5Hex = getSchemaMD5Hex(tableId);
 		// get the truth version
 		long truthLastVersion = getTableVersion(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// compare the truth with the index.
-		return this.tableConnectionFactory.getConnection(tableId).doesIndexStateMatch(tableId, truthLastVersion, truthSchemaMD5Hex);
+		return this.tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, truthLastVersion, truthSchemaMD5Hex);
 	}
 	
 	/*
@@ -250,7 +251,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return true;
 		}
 		// work is needed if the current state is processing.
-		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		TableStatus status = tableStatusDAO.getTableStatus(idAndVersion);
 		return TableState.PROCESSING.equals(status.getState());
 	}
 
@@ -339,7 +341,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, viewTypeMask);
 		// Trigger the reconciliation of this view's scope.
 		triggerScopeReconciliation(viewTypeMask, viewContainers);
-		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(IdAndVersion.newBuilder().setId(tableId).build());
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).build();
+		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
 		return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
 	}
 
@@ -424,7 +427,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return getVersionOfLastTableEntityChange(tableId);
 		case ENTITY_VIEW:
 			// For FileViews the CRC of all files in the view is used.
-			return calculateViewCRC32(tableId);
+			return calculateViewCRC32(KeyFactory.stringToKey(tableId));
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}
@@ -579,7 +582,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			indexDao.deleteTable(idAndVersion);
 			indexDao.deleteSecondaryTables(idAndVersion);
 		}
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableId);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(getTableType(tableId));

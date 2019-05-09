@@ -19,9 +19,10 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -53,6 +55,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableWorkerTest {
 	
 	@Mock
@@ -70,8 +73,11 @@ public class TableWorkerTest {
 
 	TableWorker worker;
 	ChangeMessage one;
+	IdAndVersion oneIdAndVersion;
 	ChangeMessage two;
+	IdAndVersion twoIdAndVersion;
 	String tableId;
+	IdAndVersion idAndVersion;
 	String resetToken;
 	List<ColumnModel> currentSchema;
 	List<String> currentColumnIds;
@@ -83,8 +89,8 @@ public class TableWorkerTest {
 	
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception{
-		MockitoAnnotations.initMocks(this);
-		when(mockConnectionFactory.connectToTableIndex(anyString())).thenReturn(mockTableIndexManager);
+		
+		when(mockConnectionFactory.connectToTableIndex(any(IdAndVersion.class))).thenReturn(mockTableIndexManager);
 		
 		// By default we want to the manager to just call the passed callable.
 		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<TableWorker.State>() {
@@ -111,14 +117,20 @@ public class TableWorkerTest {
 		one.setObjectType(ObjectType.ACTIVITY);
 		one.setObjectEtag("etag");
 		
+		oneIdAndVersion = IdAndVersion.parse(one.getObjectId());
+		
 		two = new ChangeMessage();
 		two.setChangeType(ChangeType.CREATE);
 		two.setObjectId("456");
 		two.setObjectType(ObjectType.ACTIVITY);
 		two.setObjectEtag("etag");
 		
+		twoIdAndVersion = IdAndVersion.parse(two.getObjectId());
+		
 		
 		tableId = "456";
+		idAndVersion = IdAndVersion.parse(tableId);
+		
 		resetToken = "reset-token";
 		currentSchema = Lists.newArrayList();
 		currentSchema.add(TableModelTestUtils.createColumn(0L, "aString", ColumnType.STRING));
@@ -135,7 +147,7 @@ public class TableWorkerTest {
 		trc2.setRowCount(3L);
 		trc2.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc1,trc2));
-		when(mockTableIndexManager.isVersionAppliedToIndex(anyString(), anyLong())).thenReturn(false);
+		when(mockTableIndexManager.isVersionAppliedToIndex(any(IdAndVersion.class), anyLong())).thenReturn(false);
 		
 		rowSet1 = new RowSet();
 		rowSet1.setTableId(tableId);
@@ -196,9 +208,9 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
-		verify(mockConnectionFactory, times(1)).connectToTableIndex(two.getObjectId());
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(twoIdAndVersion);
 		// delete should be called
-		verify(mockTableIndexManager, times(1)).deleteTableIndex(tableId);
+		verify(mockTableIndexManager, times(1)).deleteTableIndex(twoIdAndVersion);
 		verify(mockTableEntityManager, times(1)).deleteTableIfDoesNotExist(tableId);
 	}
 	
@@ -217,14 +229,14 @@ public class TableWorkerTest {
 		// The worker should ensure the table is processing.
 		verify(mockTableManagerSupport, times(1)).startTableProcessing(tableId);
 		// The connection factory should be called
-		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(twoIdAndVersion);
 		// The status should get set to available
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
 		verify(mockTableManagerSupport, times(3)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1, 0L);
-		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
-		verify(mockTableIndexManager).optimizeTableIndices(tableId);
+		verify(mockTableIndexManager).applyChangeSetToIndex(twoIdAndVersion, sparseRowset1, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(twoIdAndVersion, sparseRowset2, 1L);
+		verify(mockTableIndexManager).optimizeTableIndices(twoIdAndVersion);
 	}
 	
 	@Test
@@ -233,12 +245,12 @@ public class TableWorkerTest {
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
 		// For this case v0 is already applied to the index, while v1 is not.
-		when(mockTableIndexManager.isVersionAppliedToIndex(tableId, 0L)).thenReturn(true);
-		when(mockTableIndexManager.isVersionAppliedToIndex(tableId, 1L)).thenReturn(false);
+		when(mockTableIndexManager.isVersionAppliedToIndex(twoIdAndVersion, 0L)).thenReturn(true);
+		when(mockTableIndexManager.isVersionAppliedToIndex(twoIdAndVersion, 1L)).thenReturn(false);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(twoIdAndVersion, sparseRowset2, 1L);
 	}
 	
 	/**
@@ -249,7 +261,6 @@ public class TableWorkerTest {
 	 */
 	@Test
 	public void testHappyUpdateCase() throws Exception {
-		String tableId = "456";
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
@@ -261,7 +272,7 @@ public class TableWorkerTest {
 		trc.setRowCount(12L);
 		trc.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
-		when(mockTableIndexManager.isVersionAppliedToIndex(tableId, trc.getRowVersion())).thenReturn(false);
+		when(mockTableIndexManager.isVersionAppliedToIndex(idAndVersion, trc.getRowVersion())).thenReturn(false);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
 		rowSet.setTableId(tableId);
@@ -274,11 +285,11 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
-		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(idAndVersion);
 		// The status should get set to available
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparsRowSet, trc.getRowVersion());
+		verify(mockTableIndexManager).applyChangeSetToIndex(idAndVersion, sparsRowSet, trc.getRowVersion());
 	}
 	
 	/**
@@ -287,7 +298,6 @@ public class TableWorkerTest {
 	 */
 	@Test
 	public void testSetToFailed() throws Exception{
-		String tableId = "456";
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
@@ -301,7 +311,7 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
-		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(idAndVersion);
 		// The status should get set to failed
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), any(Exception.class));
 	}
@@ -314,13 +324,12 @@ public class TableWorkerTest {
 	 */
 	@Test
 	public void testNoConnection() throws Exception{
-		String tableId = "456";
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Without a connection the message should go back to the queue
-		when(mockConnectionFactory.connectToTableIndex(tableId)).thenThrow(new TableIndexConnectionUnavailableException("Not now"));
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenThrow(new TableIndexConnectionUnavailableException("Not now"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -448,12 +457,12 @@ public class TableWorkerTest {
 		
 		// this time the second change set has an error
 		RuntimeException error = new RuntimeException("Bad Change Set");
-		doThrow(error).when(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
+		doThrow(error).when(mockTableIndexManager).applyChangeSetToIndex(twoIdAndVersion, sparseRowset2, 1L);
 		
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(twoIdAndVersion, sparseRowset1, 0L);
 		
 		// The status should get set to failed
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), any(Exception.class));
@@ -485,9 +494,9 @@ public class TableWorkerTest {
 		// call under test
 		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
 		// schema of the change should be applied
-		verify(mockTableIndexManager).setIndexSchema(tableId, isTableView, mockProgressCallback, currentSchema);
+		verify(mockTableIndexManager).setIndexSchema(idAndVersion, isTableView, mockProgressCallback, currentSchema);
 		// the change set should be applied.
-		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1,trc.getRowVersion());
+		verify(mockTableIndexManager).applyChangeSetToIndex(idAndVersion, sparseRowset1,trc.getRowVersion());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -535,7 +544,7 @@ public class TableWorkerTest {
 		when(mockTableEntityManager.getSchemaChangeForVersion(tableId, trc.getRowVersion())).thenReturn(details);
 		// call under test
 		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
-		verify(mockTableIndexManager).updateTableSchema(tableId, isTableView, mockProgressCallback, details);
-		verify(mockTableIndexManager).setIndexVersion(tableId, trc.getRowVersion());
+		verify(mockTableIndexManager).updateTableSchema(idAndVersion, isTableView, mockProgressCallback, details);
+		verify(mockTableIndexManager).setIndexVersion(idAndVersion, trc.getRowVersion());
 	}
 }

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -280,7 +281,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setSelectColumns(query.getSelectColumns());
 		}
 
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
+		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 
 		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets());
 
@@ -665,11 +667,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getTableName();
 		// Get a connection to the table.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = null;
 		try {
-			tableBenefactors = indexDao.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR);
+			tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 		} catch (BadSqlGrammarException e) { // table has not been created yet
 			tableBenefactors = Collections.emptySet();
 		}

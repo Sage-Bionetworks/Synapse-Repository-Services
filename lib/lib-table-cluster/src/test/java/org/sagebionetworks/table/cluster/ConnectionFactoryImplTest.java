@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -28,8 +29,9 @@ public class ConnectionFactoryImplTest {
 	@Test
 	public void testGetConnection(){
 		assertNotNull(tableConnectionFactory);
+		IdAndVersion idAndVersion = IdAndVersion.parse("123");
 		// Validate that we can get a connection.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection("123");
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		assertNotNull(indexDao);
 		// Validate that we can use the connection to run a basic query.
 		long one = indexDao.getConnection().queryForObject("SELECT 1", Long.class);
