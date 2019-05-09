@@ -66,17 +66,29 @@ public class AuthorizationStatus {
 		return denialException == null ? null : denialException.getMessage();
 	}
 
+	//The equals() here is not the conventional "check all fields members are equal" because it holds
+	// a RuntimeException which does not by default @Override equals()
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 		AuthorizationStatus that = (AuthorizationStatus) o;
-		return Objects.equals(denialException, that.denialException);
+		return this.isAuthorized() == that.isAuthorized() &&
+				this.exceptionType() == that.exceptionType() &&
+				Objects.equals(this.getMessage(), that.getMessage());
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(denialException);
+		return Objects.hash(isAuthorized(), getMessage(), exceptionType());
+	}
+
+	private Class exceptionType (){
+		if (denialException == null){
+			return null;
+		}
+		return denialException.getClass();
 	}
 
 	@Override
