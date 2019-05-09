@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -46,6 +48,7 @@ import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class EntityPermissionsManagerImplUnitTest {
 	
 	private EntityPermissionsManagerImpl entityPermissionsManager;
@@ -161,10 +164,10 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		when(mockAclDAO.canAccess(eq(nonCertifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
 		thenReturn(true);
-		
+
 		// now let's apply an access requirement to "syn987" that does not apply to the benefactor
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(), 
+				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(), 
