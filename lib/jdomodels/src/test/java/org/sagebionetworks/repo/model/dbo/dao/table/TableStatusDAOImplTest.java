@@ -270,7 +270,7 @@ public class TableStatusDAOImplTest {
 	public void testValidateAndGetVersionWithVersion() {
 		// call under test
 		Long version = TableStatusDAOImpl.validateAndGetVersion(tableIdWithVersion);
-		assertEquals(tableIdWithVersion.getVersion(), version);
+		assertEquals(tableIdWithVersion.getVersion().get(), version);
 	}
 	
 	@Test
@@ -317,7 +317,7 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, status.getProgressCurrent());
 		assertEquals(null, status.getProgressTotal());
 		assertEquals(null, status.getTotalTimeMS());
-		assertEquals(tableIdWithVersion.getVersion(), status.getVersion());
+		assertEquals(tableIdWithVersion.getVersion().get(), status.getVersion());
 		// Now if we call it again we should get a new rest-token
 		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
 		assertNotNull(newResetToken);
@@ -332,7 +332,7 @@ public class TableStatusDAOImplTest {
 	
 		TableStatus withVersion = tableStatusDAO.getTableStatus(tableIdWithVersion);
 		assertNotNull(withVersion);
-		assertEquals(tableIdWithVersion.getVersion(), withVersion.getVersion());
+		assertEquals(tableIdWithVersion.getVersion().get(), withVersion.getVersion());
 		TableStatus noVersion = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(noVersion);
 		assertEquals(null, noVersion.getVersion());
