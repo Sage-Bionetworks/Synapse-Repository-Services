@@ -108,11 +108,11 @@ public class DockerManagerImplUnitTest {
 		
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
-				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				thenReturn(AuthorizationStatus.authorized());
 		
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
-				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				thenReturn(AuthorizationStatus.authorized());
 		
 		when(entityManager.createEntity(any(), any(), any())).thenReturn(REPO_ENTITY_ID);
 	}
@@ -306,7 +306,7 @@ public class DockerManagerImplUnitTest {
 		
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				thenReturn(AuthorizationStatus.accessDenied(""));
 		
 		DockerCommit commit = createCommit();
 
@@ -335,7 +335,7 @@ public class DockerManagerImplUnitTest {
 	public void listDockerCommitsUNAUTHORIZED() {
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				thenReturn(AuthorizationStatus.accessDenied(""));
 
 		// method under test
 		dockerManager.listDockerTags(

@@ -135,10 +135,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(entityId, "entityId");
 
 		// check authority
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE));
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE));
+		authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE).checkAuthorizationOrElseThrow();
+		authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
@@ -242,9 +240,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			"Update specified ID "+accessRequirementId+" but object contains id: "+toUpdate.getId());
 		validateAccessRequirement(toUpdate);
 
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, toUpdate.getId().toString(),
-						ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
+		authorizationManager.canAccess(userInfo, toUpdate.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)
+				.checkAuthorizationOrElseThrow();
 
 		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(accessRequirementId);
 		if(!current.getEtag().equals(toUpdate.getEtag())

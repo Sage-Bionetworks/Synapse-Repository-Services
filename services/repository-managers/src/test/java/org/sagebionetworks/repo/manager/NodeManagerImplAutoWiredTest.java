@@ -163,7 +163,7 @@ public class NodeManagerImplAutoWiredTest {
 				assertEquals(id, acl.getId());
 				// Make sure the user can do everything
 				for(ACCESS_TYPE accessType : ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS) {
-					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).getAuthorized());
+					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).isAuthorized());
 				}
 			}else{
 				throw new IllegalStateException("Unknown ACL_SCHEME type: "+expectedSchem);

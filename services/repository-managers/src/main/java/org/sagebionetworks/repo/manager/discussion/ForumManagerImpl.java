@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -27,8 +26,7 @@ public class ForumManagerImpl implements ForumManager {
 	public Forum createForum(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);
 		UserInfo.validateUserInfo(user);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return forumDao.createForum(projectId);
 	}
 
@@ -44,8 +42,7 @@ public class ForumManagerImpl implements ForumManager {
 	public Forum getForumByProjectId(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);
 		UserInfo.validateUserInfo(user);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		try {
 			return forumDao.getForumByProjectId(projectId);
 		} catch (NotFoundException e) {
@@ -58,8 +55,7 @@ public class ForumManagerImpl implements ForumManager {
 		ValidateArgument.required(forumId, "forumId");
 		UserInfo.validateUserInfo(user);
 		Forum forum = forumDao.getForum(Long.parseLong(forumId));
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(user, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return forum;
 	}
 }

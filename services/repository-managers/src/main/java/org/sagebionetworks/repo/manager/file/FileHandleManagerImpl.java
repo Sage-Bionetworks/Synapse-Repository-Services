@@ -36,7 +36,6 @@ import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -269,10 +268,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Get the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Only the user that created this handle is authorized to get it.
-		AuthorizationManagerUtil
-				.checkAuthorizationAndThrowException(authorizationManager
-						.canAccessRawFileHandleByCreator(userInfo, handleId,
-								handle.getCreatedBy()));
+		authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId,handle.getCreatedBy())
+				.checkAuthorizationOrElseThrow();
 		return handle;
 	}
 
@@ -288,10 +285,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		try {
 			FileHandle handle = fileHandleDao.get(handleId);
 			// Is the user authorized?
-			AuthorizationManagerUtil
-					.checkAuthorizationAndThrowException(authorizationManager
-							.canAccessRawFileHandleByCreator(userInfo,
-									handleId, handle.getCreatedBy()));
+			authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy())
+					.checkAuthorizationOrElseThrow();
 			// If this file has a preview then we want to delete the preview as
 			// well.
 			if (handle instanceof HasPreviewId) {
@@ -391,7 +386,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Is the user authorized?
 		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo,
-				handleId, handle.getCreatedBy()).getAuthorized()) {
+				handleId, handle.getCreatedBy()).isAuthorized()) {
 			throw new UnauthorizedException(
 					"Only the creator of a FileHandle can clear the preview");
 		}
@@ -1034,7 +1029,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			if (proxyLocation.getBenefactorId() == null
 					|| !authorizationManager.canAccess(userInfo,
 							proxyLocation.getBenefactorId(), ObjectType.ENTITY,
-							ACCESS_TYPE.CREATE).getAuthorized()) {
+							ACCESS_TYPE.CREATE).isAuthorized()) {
 				throw new UnauthorizedException(
 						UNAUTHORIZED_PROXY_FILE_HANDLE_MSG);
 			}
@@ -1064,7 +1059,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		 */
 		// Is the user authorized?
 		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleIdToCopyFrom, originalFileHandle.getCreatedBy())
-				.getAuthorized()) {
+				.isAuthorized()) {
 			throw new UnauthorizedException("Only the creator of a file handle can create a copy. File handle id=" + handleIdToCopyFrom
 					+ " is not owned by you");
 		}
@@ -1107,7 +1102,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, associations);
 		if (authResults.size()!=1) throw new IllegalStateException("Expected one result but found "+authResults.size());
 		AuthorizationStatus authStatus = authResults.get(0).getStatus();
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		authStatus.checkAuthorizationOrElseThrow();
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
 		return getURLForFileHandle(fileHandle);
 	}
@@ -1146,7 +1141,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			FileResult result = new FileResult();
 			idToFileHandleAssociation.put(fhas.getAssociation().getFileHandleId(), fhas.getAssociation());
 			result.setFileHandleId(fhas.getAssociation().getFileHandleId());
-			if(!fhas.getStatus().getAuthorized()){
+			if(!fhas.getStatus().isAuthorized()){
 				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
 			}else{
 				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());
@@ -1247,7 +1242,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileHandleCopyResult result = new FileHandleCopyResult();
 			result.setOriginalFileHandleId(fhas.getAssociation().getFileHandleId());
-			if(!fhas.getStatus().getAuthorized()){
+			if(!fhas.getStatus().isAuthorized()){
 				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
 			}else{
 				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());

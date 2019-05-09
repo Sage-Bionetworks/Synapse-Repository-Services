@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
@@ -885,6 +886,15 @@ public class BaseControllerExceptionHandlerAdvice {
 														HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED);
 	}
+
+	@ExceptionHandler(UserCertificationRequiredException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleUserCertificationRequiredException(UserCertificationRequiredException ex,
+														HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.USER_CERTIFICATION_REQUIRED);
+	}
+
 
 	@ExceptionHandler(NoHandlerFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)

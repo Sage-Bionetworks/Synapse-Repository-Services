@@ -150,7 +150,7 @@ public class MessageManagerImplUnitTest {
 		when(messageDAO.canCreateMessage(eq(CREATOR_ID.toString()), 
 				anyLong(), anyLong())).thenReturn(true);
 		when(authorizationManager.canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID)).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			thenReturn(AuthorizationStatus.authorized());
 		UserGroup ug = new UserGroup();
 		ug.setId(RECIPIENT_ID.toString());
 		ug.setIsIndividual(true);
@@ -451,7 +451,7 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
-				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);	
+				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		
 		// This will fail since non-admin users do not have permission to send to the public group
 		mtu.setRecipients(Collections.singleton(authUsersId.toString()));
@@ -466,7 +466,7 @@ public class MessageManagerImplUnitTest {
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(adminUserInfo);
 		
 		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
-				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);	
+				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.authorized());
 		
 		errors = messageManager.processMessage(MESSAGE_ID, null);
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());

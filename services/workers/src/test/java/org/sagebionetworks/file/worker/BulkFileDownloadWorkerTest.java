@@ -12,7 +12,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.AuthorizationManagerUtil.AUTHORIZED;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
@@ -130,7 +129,7 @@ public class BulkFileDownloadWorkerTest {
 		when(mockBulkDownloadManager.canDownLoadFile(user, Arrays.asList(fha1)))
 				.thenReturn(
 						Arrays.asList(new FileHandleAssociationAuthorizationStatus(
-								fha1, AUTHORIZED)));
+								fha1, AuthorizationStatus.authorized())));
 		when(mockBulkDownloadManager.getS3FileHandle(fha1.getFileHandleId()))
 				.thenReturn(fileHandle1);
 		when(mockBulkDownloadManager.getS3FileHandle(fha2.getFileHandleId()))
@@ -257,7 +256,7 @@ public class BulkFileDownloadWorkerTest {
 		when(mockBulkDownloadManager.canDownLoadFile(user, Arrays.asList(fha1)))
 				.thenReturn(
 						Arrays.asList(new FileHandleAssociationAuthorizationStatus(
-								fha1, AuthorizationManagerUtil
+								fha1, AuthorizationStatus
 										.accessDenied(deniedReason))));
 		// call under test.
 		worker.run(mockProgress, message);
@@ -300,10 +299,10 @@ public class BulkFileDownloadWorkerTest {
 						Arrays.asList(fha1, fha2))).thenReturn(
 				Arrays.asList(
 						new FileHandleAssociationAuthorizationStatus(fha1,
-								AuthorizationManagerUtil
+								AuthorizationStatus
 										.accessDenied(deniedReason)),
 						new FileHandleAssociationAuthorizationStatus(fha2,
-								AUTHORIZED)));
+								AuthorizationStatus.authorized())));
 		// call under test.
 		worker.run(mockProgress, message);
 		verify(mockAsynchJobStatusManager, times(2)).updateJobProgress(
@@ -476,9 +475,9 @@ public class BulkFileDownloadWorkerTest {
 						Arrays.asList(fha1, fha2))).thenReturn(
 				Arrays.asList(
 						new FileHandleAssociationAuthorizationStatus(fha1,
-								AUTHORIZED),
+								AuthorizationStatus.authorized()),
 						new FileHandleAssociationAuthorizationStatus(fha2,
-								AUTHORIZED)));
+								AuthorizationStatus.authorized())));
 		// call under test.
 		worker.run(mockProgress, message);
 

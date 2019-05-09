@@ -197,7 +197,7 @@ public class AuthorizationManagerImplTest {
 	public void testOwnership() throws Exception {
 		String pIdString = userInfo.getId().toString();
 		Long pId = Long.parseLong(pIdString);
-		assertTrue(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		// remove user from ACL
 		AccessControlList acl = entityPermissionsManager.getACL(nodeCreatedByTestUser.getId(), userInfo);
 		assertNotNull(acl);
@@ -216,7 +216,7 @@ public class AuthorizationManagerImplTest {
 		assertTrue(foundit);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 
-		assertFalse(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 	}
 	
 	
@@ -224,21 +224,21 @@ public class AuthorizationManagerImplTest {
 	public void testCanAccessAsIndividual() throws Exception {
 		// test that a user can access something they've been given access to individually
 		// no access yet
-		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
-		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		// but they do not have a different kind of access
-		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).isAuthorized());
 	}
 	
 	@Test 
 	public void testCanAccessGroup() throws Exception {
 		// test that a user can access something accessible to a group they belong to
-		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		// no access yet
 		assertFalse(b);
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
@@ -246,14 +246,14 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, testGroup, ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
-		b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		assertTrue(b);
 	}
 	
 	@Test 
 	public void testCanAccessPublicGroup() throws Exception {
 		// test that a user can access a Public resource
-		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		// no access yet
 		assertFalse(b);
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
@@ -261,7 +261,7 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
-		b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		b = authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		assertTrue(b);
 	}
 	
@@ -271,7 +271,7 @@ public class AuthorizationManagerImplTest {
 		assertNotNull(acl);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
-		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		assertTrue(b);
 	}
 	
@@ -288,15 +288,15 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.DELETE);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.UPDATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
-		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
-		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
-		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS).isAuthorized());
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS).isAuthorized());
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).isAuthorized());
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).isAuthorized());
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).isAuthorized());
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized());
 		
-		assertFalse(authorizationManager.canCreate(anonInfo, node.getId(), EntityType.file).getAuthorized());
+		assertFalse(authorizationManager.canCreate(anonInfo, node.getId(), EntityType.file).isAuthorized());
 		
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo, node.getId());
 		assertTrue(uep.getCanView());
@@ -319,21 +319,21 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, testGroup, ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// anonymous does not have access
-		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		assertFalse(b);
 	}
 	
 	@Test 
 	public void testCanAccessAdmin() throws Exception {
 		// test that an admin can access anything
-		boolean b = authorizationManager.canAccess(adminUser, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		boolean b = authorizationManager.canAccess(adminUser, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		assertTrue(b);
 	}
 	
 	@Test 
 	public void testCanPublicRead() throws Exception {
 		// verify that anonymous user can't initially access
-		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized();
+		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized();
 		assertFalse(b);
 		
 		//so public can't read, no matter who is requesting
@@ -362,16 +362,16 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testCanAccessInherited() throws Exception {		
 		// no access yet to parent
-		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
-		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		// and the child as well
-		assertTrue(authorizationManager.canAccess(userInfo, childNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, childNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(true, uep.getCanView());
@@ -390,15 +390,15 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testCantAccessNotInherited() throws Exception {		
 		// no access yet to parent
-		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
 		acl.setId(childNode.getId());
 		entityPermissionsManager.overrideInheritance(acl, adminUser); // must do as admin!
 		// permissions haven't changed (yet)
-		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanView());
@@ -412,8 +412,8 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// should be able to access parent but not child
-		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(true, uep.getCanView());
@@ -433,23 +433,23 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.UPDATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
-		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());				
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
 		// but can't add a child 
-		assertFalse(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).getAuthorized());
+		assertFalse(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).isAuthorized());
 		
 		// but give them create access to the parent
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now it can
-		assertTrue(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).getAuthorized());
+		assertTrue(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).isAuthorized());
 		
 	}
 
 	@Test
 	public void testCreateSpecialUsers() throws Exception {
 		// admin always has access 
-		assertTrue(authorizationManager.canCreate(adminUser, node.getId(), EntityType.project).getAuthorized());
+		assertTrue(authorizationManager.canCreate(adminUser, node.getId(), EntityType.project).isAuthorized());
 
 		// allow some access
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
@@ -457,20 +457,20 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
-		assertTrue(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).getAuthorized());
+		assertTrue(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).isAuthorized());
 		
 		// but anonymous cannot
-		assertFalse(authorizationManager.canCreate(anonInfo, node.getId(), EntityType.project).getAuthorized());
+		assertFalse(authorizationManager.canCreate(anonInfo, node.getId(), EntityType.project).isAuthorized());
 	}
 
 	@Test
 	public void testCreateNoParent() throws Exception {
 
 		// try to create node with no parent.  should fail
-		assertFalse(authorizationManager.canCreate(userInfo, null, EntityType.project).getAuthorized());
+		assertFalse(authorizationManager.canCreate(userInfo, null, EntityType.project).isAuthorized());
 
 		// admin creates a node with no parent.  should work
-		assertTrue(authorizationManager.canCreate(adminUser, null, EntityType.project).getAuthorized());
+		assertTrue(authorizationManager.canCreate(adminUser, null, EntityType.project).isAuthorized());
 	}
 
 	@Test
@@ -610,7 +610,7 @@ public class AuthorizationManagerImplTest {
 		nodeManager.update(userInfo, nodeCreatedByTestUser);
 		
 		// test access
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).getAuthorized();		
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();
 		assertTrue(canAccess);
 	}
 	
@@ -624,7 +624,7 @@ public class AuthorizationManagerImplTest {
 		nodeManager.update(adminUser, node);
 		
 		// test access
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).getAuthorized();		
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();
 		assertFalse(canAccess);
 	}
 	
@@ -637,7 +637,7 @@ public class AuthorizationManagerImplTest {
 
 	@Test
 	public void testCanSubscribeAnonymous() {
-		assertEquals(AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON),
+		assertEquals(AuthorizationStatus.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON),
 				authorizationManager.canSubscribe(anonInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 
@@ -656,20 +656,20 @@ public class AuthorizationManagerImplTest {
 			// Invitee can only read or delete the invitation
 			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipInvitation(userInfo, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertTrue(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
 			} else {
-				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertFalse(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
 			}
 			// Team admin can only create, read or delete the invitation
 			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipInvitation(teamAdmin, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE) {
-				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertTrue(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
 			} else {
-				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertFalse(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
 			}
 			// Synapse admin has access of any type
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitation(adminUser, mis, accessType);
-			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
+			assertTrue(adminAuthorization.getMessage(), adminAuthorization.isAuthorized());
 		}
 	}
 
@@ -683,15 +683,15 @@ public class AuthorizationManagerImplTest {
 			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, accessType);
 			// Only reading is allowed
 			if (accessType != ACCESS_TYPE.READ) {
-				assertFalse(status.getAuthorized());
+				assertFalse(status.isAuthorized());
 			} else {
-				assertTrue(status.getAuthorized());
+				assertTrue(status.isAuthorized());
 			}
 		}
 
 		token.setMembershipInvitationId("corruptedId");
 		// Non valid signed token should be denied
-		assertFalse(authorizationManager.canAccessMembershipInvitation(token, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitation(token, ACCESS_TYPE.READ).isAuthorized());
 	}
 
 	@Test
@@ -706,18 +706,18 @@ public class AuthorizationManagerImplTest {
 			// Only updating is allowed
 			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(userId, token, accessType);
 			if (accessType != ACCESS_TYPE.UPDATE) {
-				assertFalse(status.getAuthorized());
+				assertFalse(status.isAuthorized());
 			} else {
-				assertTrue(status.getAuthorized());
+				assertTrue(status.isAuthorized());
 			}
 		}
 
 		// Incorrect user id should be denied
 		Long incorrectUserId = 2L;
-		assertFalse(authorizationManager.canAccessMembershipInvitation(incorrectUserId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitation(incorrectUserId, token, ACCESS_TYPE.UPDATE).isAuthorized());
 		// Invalid token should be denied
 		token.setMembershipInvitationId("corruptedId");
-		assertFalse(authorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE).isAuthorized());
 	}
 
 	@Test
@@ -735,20 +735,20 @@ public class AuthorizationManagerImplTest {
 			// Invitee can only read or delete the invitation
 			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipRequest(userInfo, mr, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertTrue(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
 			} else {
-				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+				assertFalse(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
 			}
 			// Team admin can only read or delete the request
 			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipRequest(teamAdmin, mr, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertTrue(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
 			} else {
-				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+				assertFalse(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
 			}
 			// Synapse admin has access of any type
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipRequest(adminUser, mr, accessType);
-			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
+			assertTrue(adminAuthorization.getMessage(), adminAuthorization.isAuthorized());
 		}
 	}
 }

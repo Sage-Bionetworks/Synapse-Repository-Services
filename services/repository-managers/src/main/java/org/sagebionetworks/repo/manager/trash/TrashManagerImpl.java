@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -81,8 +80,7 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
+		authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
 
 		// Move the node to the trash can folder
 		Node node = nodeDao.getNode(nodeId);
@@ -180,11 +178,9 @@ public class TrashManagerImpl implements TrashManager {
 			throw new ParentInTrashCanException("The intended parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE).checkAuthorizationOrElseThrow();
 		Node node = nodeDao.getNode(nodeId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canUserMoveRestrictedEntity(currentUser, trash.getOriginalParentId(), newParentId));
+		authorizationManager.canUserMoveRestrictedEntity(currentUser, trash.getOriginalParentId(), newParentId).checkAuthorizationOrElseThrow();
 		
 		// Only projects can move to root
 		if(NodeUtils.isRootEntityId(newParentId)){

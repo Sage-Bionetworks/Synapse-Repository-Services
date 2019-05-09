@@ -5,6 +5,10 @@
 		{
 			"name": "PASSWORD_RESET_VIA_EMAIL_REQUIRED",
 			"description": "The user's password must be reset via email."
+		},
+		{
+			"name": "USER_CERTIFICATION_REQUIRED",
+			"description": "The user has not passed the certification process."
 		}
 	]
 }

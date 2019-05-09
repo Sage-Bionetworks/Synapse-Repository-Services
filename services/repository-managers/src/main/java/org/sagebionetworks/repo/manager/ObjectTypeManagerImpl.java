@@ -34,7 +34,7 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 				throw new UnauthorizedException("Must be a member of the 'Synapse Access and Compliance Team' to change an object's DataType to: "+DataType.OPEN_DATA.name());
 			}
 			// must have the update permission.
-			if (!authorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE).getAuthorized()) {
+			if (!authorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE).isAuthorized()) {
 				throw new UnauthorizedException("Must have "+ACCESS_TYPE.UPDATE+" permission to change an object's DataType to : "+dataType.name());
 			}
 		}

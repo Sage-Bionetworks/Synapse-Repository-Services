@@ -161,9 +161,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		MembershipRequest mr = membershipRequestDAO.get(id);
 		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.READ);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
-		}
+		status.checkAuthorizationOrElseThrow();
 		return mr;
 	}
 
@@ -179,10 +177,9 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		} catch (NotFoundException e) {
 			return;
 		}
-		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.DELETE);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
-		}
+		authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.DELETE)
+				.checkAuthorizationOrElseThrow();
+
 		membershipRequestDAO.delete(id);
 	}
 
@@ -194,7 +191,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
@@ -214,7 +211,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			String teamId, String requestorId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);

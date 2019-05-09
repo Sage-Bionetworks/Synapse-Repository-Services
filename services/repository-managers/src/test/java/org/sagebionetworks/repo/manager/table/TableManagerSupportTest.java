@@ -666,8 +666,8 @@ public class TableManagerSupportTest {
 	public void testValidateTableReadAccessTableEntitySensitiveData(){
 		when(mockObjectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY)).thenReturn(DataType.SENSITIVE_DATA);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		EntityType type = manager.validateTableReadAccess(userInfo, tableId);
 		assertEquals(EntityType.table, type);
@@ -680,8 +680,8 @@ public class TableManagerSupportTest {
 	public void testValidateTableReadAccessTableEntityOpenData(){
 		when(mockObjectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY)).thenReturn(DataType.OPEN_DATA);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		EntityType type = manager.validateTableReadAccess(userInfo, tableId);
 		assertEquals(EntityType.table, type);
@@ -693,8 +693,8 @@ public class TableManagerSupportTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateTableReadAccessTableEntityNoDownload(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(false, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
 		//  call under test
 		manager.validateTableReadAccess(userInfo, tableId);
 	}
@@ -702,8 +702,8 @@ public class TableManagerSupportTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateTableReadAccessTableEntityNoRead(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(false, ""));
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		manager.validateTableReadAccess(userInfo, tableId);
 	}
@@ -711,7 +711,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testValidateTableReadAccessFileView(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		manager.validateTableReadAccess(userInfo, tableId);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
@@ -722,7 +722,7 @@ public class TableManagerSupportTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateTableReadAccessFileViewNoRead(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(false, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		//  call under test
 		manager.validateTableReadAccess(userInfo, tableId);
 	}
@@ -730,8 +730,8 @@ public class TableManagerSupportTest {
 	@Test
 	public void testValidateTableWriteAccessTableEntity(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(true, ""));
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		manager.validateTableWriteAccess(userInfo, tableId);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
@@ -741,8 +741,8 @@ public class TableManagerSupportTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateTableWriteAccessTableEntityNoUpload(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(true, ""));
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(new AuthorizationStatus(false, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
 		//  call under test
 		manager.validateTableWriteAccess(userInfo, tableId);
 	}
@@ -750,8 +750,8 @@ public class TableManagerSupportTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateTableWriteAccessTableEntityNoUpdate(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(false, ""));
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		manager.validateTableWriteAccess(userInfo, tableId);
 	}

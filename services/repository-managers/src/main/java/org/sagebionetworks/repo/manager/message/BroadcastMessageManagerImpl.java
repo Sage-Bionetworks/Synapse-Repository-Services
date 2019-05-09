@@ -156,7 +156,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 				continue;
 			}
 			UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userNotificationInfo.getUserId()));
-			if (authManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).getAuthorized()) {
+			if (authManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).isAuthorized()) {
 				SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userNotificationInfo);
 				log.debug("sending email to "+userNotificationInfo.getNotificationEmail());
 				sesClient.sendRawEmail(emailRequest);

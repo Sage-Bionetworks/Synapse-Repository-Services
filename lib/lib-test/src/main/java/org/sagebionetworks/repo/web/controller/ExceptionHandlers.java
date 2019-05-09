@@ -53,6 +53,7 @@ public class ExceptionHandlers {
 				new ExceptionType("org.sagebionetworks.repo.model.ConflictingUpdateException", true)),
 		new TestEntry(403,
 				new ExceptionType("org.sagebionetworks.repo.model.UnauthorizedException", true),
+				new ExceptionType("org.sagebionetworks.repo.manager.UserCertificationRequiredException", true),
 				new ExceptionType("org.sagebionetworks.repo.manager.trash.ParentInTrashCanException", true),
 				new ExceptionType("org.sagebionetworks.repo.model.TermsOfUseException", true)),
 		new TestEntry(401,
