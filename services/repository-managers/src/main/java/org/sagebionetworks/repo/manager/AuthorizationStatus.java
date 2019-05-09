@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.UnauthorizedException;
+
 /**
  * Holds the result of an authorization check.
  * If 'authorized' is false then 'message' gives the user-presentable message for denial
@@ -10,29 +12,58 @@ import java.util.Objects;
  *
  */
 public class AuthorizationStatus {
-	final private boolean authorized;
-	final private String message;
-	final private AuthorizationStatusDenialReason denialReason;
-	
-	
-	public AuthorizationStatus(boolean authorized, String message) {
-		this(authorized, message, null);
+	private static final AuthorizationStatus AUTHORIZED_SINGLETON = new AuthorizationStatus(null);
+
+	// if not null, indicates access denied
+	private final RuntimeException denialException;
+
+
+	//do not expose constuctor. use static methods instead
+	private AuthorizationStatus(RuntimeException e) {
+		this.denialException = e;
 	}
 
-	public AuthorizationStatus(boolean authorized, String message, AuthorizationStatusDenialReason denialReason) {
-		this.authorized = authorized;
-		this.message = message;
-		this.denialReason = denialReason;
+	/**
+	 * Create a AuthorizationStatus that indicates the action action is authorized.
+	 * @return AuthorizationStatus that indicates the action action is authorized.
+	 */
+	public static AuthorizationStatus authorized(){
+		return AUTHORIZED_SINGLETON;
+	}
+
+	/**
+	 * Create a AuthorizationStatus that indicates the action action is denied.
+	 * Provide an {@link RuntimeException} that will be thrown when {@link #checkAuthorizationOrElseThrow()} is called
+	 * @param denialException
+	 * @return a new AuthorizationStatus;
+	 */
+	public static AuthorizationStatus accessDenied(RuntimeException denialException){
+		return new AuthorizationStatus(denialException);
+	}
+
+	/**
+	 * Create a AuthorizationStatus that indicates the action action is denied.
+	 * Will use {@link org.sagebionetworks.repo.model.UnauthorizedException} as the underlying denialException that is
+	 * thrown when {@link #checkAuthorizationOrElseThrow()} is called
+	 * @param message message for the {@link org.sagebionetworks.repo.model.UnauthorizedException}
+	 * @return a new AuthorizationStatus;
+	 */
+	public static AuthorizationStatus accessDenied(String message){
+		return accessDenied(new UnauthorizedException(message));
+	}
+
+	public void checkAuthorizationOrElseThrow(){
+		if(!isAuthorized()){
+			throw denialException;
+		}
 	}
 	
-	public boolean getAuthorized() {
-		return authorized;
+	public boolean isAuthorized() {
+		return denialException == null;
 	}
+
 	public String getMessage() {
-		return message;
-	}
-	public AuthorizationStatusDenialReason getDenialReason() {
-		return denialReason;
+		return denialException == null ? null : denialException.getMessage();
 	}
 
 	@Override
@@ -40,22 +71,18 @@ public class AuthorizationStatus {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 		AuthorizationStatus that = (AuthorizationStatus) o;
-		return authorized == that.authorized &&
-				Objects.equals(message, that.message) &&
-				denialReason == that.denialReason;
+		return Objects.equals(denialException, that.denialException);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(authorized, message, denialReason);
+		return Objects.hash(denialException);
 	}
 
 	@Override
 	public String toString() {
 		return "AuthorizationStatus{" +
-				"authorized=" + authorized +
-				", message='" + message + '\'' +
-				", denialReason=" + denialReason +
+				"denialException=" + denialException +
 				'}';
 	}
 }

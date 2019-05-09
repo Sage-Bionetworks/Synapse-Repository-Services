@@ -259,7 +259,7 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy(normalUserInfo.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
-		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationStatus.authorized());
 
 		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
 		
@@ -283,7 +283,7 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy(normalUserInfo.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
-		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationStatus.accessDenied(""));
 
 		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
 	}

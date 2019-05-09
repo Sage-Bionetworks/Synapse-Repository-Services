@@ -27,7 +27,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -149,7 +149,7 @@ public class SubscriptionManagerImplTest {
 	public void testCreateForumSubscription(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockDao
 				.create(userId.toString(), objectId, SubscriptionObjectType.FORUM))
 				.thenReturn(sub);
@@ -160,7 +160,7 @@ public class SubscriptionManagerImplTest {
 	public void testCreateThreadSubscription(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, objectId, SubscriptionObjectType.THREAD))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockDao
 				.create(userId.toString(), objectId, SubscriptionObjectType.THREAD))
 				.thenReturn(sub);
@@ -484,7 +484,7 @@ public class SubscriptionManagerImplTest {
 	public void testGetSubscribersUnauthorized(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		manager.getSubscribers(userInfo, topic, new NextPageToken(1, 0).toToken());
 	}
 
@@ -492,7 +492,7 @@ public class SubscriptionManagerImplTest {
 	public void testGetSubscribersWithNullNextPageToken(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		List<String> subscribers = new LinkedList<String>();
 		when(mockDao.getSubscribers(topic.getObjectId(), topic.getObjectType(),
 				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET))
@@ -509,7 +509,7 @@ public class SubscriptionManagerImplTest {
 	public void testGetSubscribersWithNextPageToken(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		List<String> subscribers = new ArrayList<String>();
 		subscribers.addAll(Arrays.asList("1", "2"));
 		when(mockDao.getSubscribers(topic.getObjectId(), topic.getObjectType(), 2, 0))
@@ -536,7 +536,7 @@ public class SubscriptionManagerImplTest {
 	public void testGetSubscriberCountUnauthorized(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		manager.getSubscriberCount(userInfo, topic);
 	}
 
@@ -544,7 +544,7 @@ public class SubscriptionManagerImplTest {
 	public void testGetSubscriberCountAuthorized(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockDao.getSubscriberCount(topic.getObjectId(), topic.getObjectType()))
 				.thenReturn(10L);
 		SubscriberCount count = manager.getSubscriberCount(userInfo, topic);
@@ -566,7 +566,7 @@ public class SubscriptionManagerImplTest {
 	public void testSubscribeAllUnauthorized() {
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		manager.subscribeAll(userInfo, SubscriptionObjectType.THREAD);
 	}
 
@@ -574,7 +574,7 @@ public class SubscriptionManagerImplTest {
 	public void testSubscribeAllAuthorized() {
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockDao
 				.create(userId.toString(), SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD))
 				.thenReturn(sub);

@@ -114,8 +114,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor rod, Long limit, Long offset)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccessAccessApprovalsForSubject(userInfo, rod, ACCESS_TYPE.READ));
+		authorizationManager.canAccessAccessApprovalsForSubject(userInfo, rod, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 
 		if (limit == null) {
 			limit = DEFAULT_LIMIT;
@@ -141,9 +140,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), 
-						ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE));
+		authorizationManager.canAccess(userInfo, accessApproval.getId().toString(),
+						ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE)
+				.checkAuthorizationOrElseThrow();
 			
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}

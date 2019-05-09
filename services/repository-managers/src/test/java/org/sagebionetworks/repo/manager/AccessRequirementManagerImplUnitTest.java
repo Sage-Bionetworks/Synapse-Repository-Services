@@ -126,8 +126,8 @@ public class AccessRequirementManagerImplUnitTest {
 		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
 		
 		// by default the user is authorized to create, edit.  individual tests may override these settings
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 
 		when(mockEntityHeader.getId()).thenReturn(TEST_ENTITY_ID);
 		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(Arrays.asList(mockEntityHeader));
@@ -205,15 +205,15 @@ public class AccessRequirementManagerImplUnitTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementWithoutREADPermission() throws Exception {
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementWithoutUPDATEPermission() throws Exception {
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
@@ -350,7 +350,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement toUpdate = createExpectedAR();
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
-		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 	}
 
@@ -359,7 +359,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement toUpdate = createExpectedAR();
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
-		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenThrow(new NotFoundException());
 		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 	}
@@ -371,7 +371,7 @@ public class AccessRequirementManagerImplUnitTest {
 		toUpdate.setId(1L);
 		toUpdate.setEtag("oldEtag");
 		toUpdate.setVersionNumber(1L);
-		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setEtag("new Etag");
 		info.setCurrentVersion(1L);
@@ -386,7 +386,7 @@ public class AccessRequirementManagerImplUnitTest {
 		toUpdate.setId(1L);
 		toUpdate.setEtag("etag");
 		toUpdate.setVersionNumber(1L);
-		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setEtag("etag");
 		info.setCurrentVersion(2L);
@@ -402,7 +402,7 @@ public class AccessRequirementManagerImplUnitTest {
 		toUpdate.setEtag("etag");
 		toUpdate.setVersionNumber(1L);
 		toUpdate.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setEtag("etag");
 		info.setCurrentVersion(1L);
@@ -419,7 +419,7 @@ public class AccessRequirementManagerImplUnitTest {
 		toUpdate.setEtag("etag");
 		toUpdate.setVersionNumber(1L);
 		toUpdate.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setEtag("etag");
 		info.setCurrentVersion(1L);
@@ -437,7 +437,7 @@ public class AccessRequirementManagerImplUnitTest {
 		toUpdate.setEtag("etag");
 		toUpdate.setVersionNumber(1L);
 		toUpdate.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setEtag("etag");
 		info.setCurrentVersion(1L);

@@ -22,7 +22,6 @@ import java.util.Set;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -162,7 +161,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		MembershipRequest mr = membershipRequestDAO.get(id);
 		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.READ);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(status);
+		status.checkAuthorizationOrElseThrow();
 		return mr;
 	}
 
@@ -178,10 +177,9 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		} catch (NotFoundException e) {
 			return;
 		}
-		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.DELETE);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getMessage());
-		}
+		authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.DELETE)
+				.checkAuthorizationOrElseThrow();
+
 		membershipRequestDAO.delete(id);
 	}
 
@@ -193,7 +191,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
@@ -213,7 +211,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			String teamId, String requestorId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);

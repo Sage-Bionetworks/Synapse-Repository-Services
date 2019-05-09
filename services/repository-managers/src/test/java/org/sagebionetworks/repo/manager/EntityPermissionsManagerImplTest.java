@@ -24,7 +24,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -490,7 +489,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// baseline:  there is no restriction against downloading this entity
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 		// now create an access requirement on project and child
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -503,11 +502,11 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// now we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
 		arId=null;
 		// back to the baseline
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 		// now add the AR to the child node itself
 		ar.setId(null);
 		ar.setEtag(null);
@@ -517,6 +516,6 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// again, we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 	}
 }

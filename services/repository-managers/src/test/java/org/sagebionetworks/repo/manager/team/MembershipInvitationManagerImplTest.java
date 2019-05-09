@@ -31,7 +31,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
@@ -182,7 +182,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testNonAdminCreate() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(null);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.CREATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		membershipInvitationManagerImpl.create(userInfo, mis);
 	}
 
@@ -190,7 +190,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testAdminCreate() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(null);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.CREATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		membershipInvitationManagerImpl.create(userInfo, mis);
 		Mockito.verify(mockMembershipInvitationDAO).create(mis);
 	}
@@ -199,7 +199,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testNonAdminGet() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockMembershipInvitationDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.get(userInfo, MIS_ID);
 	}
@@ -208,7 +208,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testAdminGet() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockMembershipInvitationDAO.get(MIS_ID)).thenReturn(mis);
 		assertEquals(mis, membershipInvitationManagerImpl.get(userInfo, MIS_ID));
 	}
@@ -218,7 +218,7 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		when(mockAuthorizationManager.canAccessMembershipInvitation(any(MembershipInvtnSignedToken.class),
-				eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
 		when(mockMembershipInvitationDAO.get(MIS_ID)).thenReturn(mis);
 		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, token));
 	}
@@ -227,7 +227,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testNonAdminDelete() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.DELETE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockMembershipInvitationDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
 	}
@@ -236,7 +236,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testAdminDelete() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.DELETE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockMembershipInvitationDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
 		Mockito.verify(mockMembershipInvitationDAO).delete(MIS_ID);
@@ -274,7 +274,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testGetOpenSubmissionsForTeamInRange() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM,
-				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		List<MembershipInvitation> expected = Arrays.asList(new MembershipInvitation[] { mis });
 		when(mockMembershipInvitationDAO.getOpenByTeamInRange(eq(Long.parseLong(TEAM_ID)), anyLong(), anyLong(),
 				anyLong())).thenReturn(expected);
@@ -289,7 +289,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected = UnauthorizedException.class)
 	public void testGetOpenSubmissionsForTeamInRangeUnauthorized() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID, 1, 0);
 	}
 
@@ -297,7 +297,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testGetOpenSubmissionsForTeamAndRequesterInRange() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM,
-				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		List<MembershipInvitation> expected = Arrays.asList(new MembershipInvitation[] { mis });
 		when(mockMembershipInvitationDAO.getOpenByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), anyLong(), anyLong(),
 				anyLong(), anyLong())).thenReturn(expected);
@@ -312,7 +312,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected = UnauthorizedException.class)
 	public void testGetOpenSubmissionsForTeamAndRequesterInRangeUnauthorized() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		membershipInvitationManagerImpl.getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,
 				1, 0);
 	}
@@ -448,7 +448,7 @@ public class MembershipInvitationManagerImplTest {
 		token.setExpiresOn(mis.getExpiresOn());
 		// Mock happy case behavior
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockMembershipInvitationDAO.getWithUpdateLock(MIS_ID)).thenReturn(mis);
 
 		// Happy case should succeed
@@ -490,7 +490,7 @@ public class MembershipInvitationManagerImplTest {
 
 		// Mock the authorization manager so that it denies access
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		// Updating the inviteeId should throw an UnauthorizedException
 		caughtException = false;
 		try {
@@ -502,7 +502,7 @@ public class MembershipInvitationManagerImplTest {
 
 		// Restore the authorization manager to allow access again
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		// Set the existing invitation's inviteeId
 		mis.setInviteeId(userId.toString());
 		// Updating the inviteeId should throw an UnauthorizedException

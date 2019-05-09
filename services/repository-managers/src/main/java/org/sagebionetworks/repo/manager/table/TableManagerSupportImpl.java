@@ -15,9 +15,7 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.ObjectTypeManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynch;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -453,8 +451,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public EntityType validateTableReadAccess(UserInfo userInfo, String tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		// They must have read permission to access table content.
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 
 		// Lookup the entity type for this table.
 		EntityType entityTpe = getTableEntityType(tableId);
@@ -464,8 +461,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			// If the table's DataType is not OPEN then the caller must have the download permission (see PLFM-5240).
 			if (!DataType.OPEN_DATA.equals(objectTypeManager.getObjectsDataType(tableId, ObjectType.ENTITY))) {
 				// And they must have download permission to access table content.
-				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-						authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+				authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
 			}
 
 		}
@@ -476,15 +472,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public void validateTableWriteAccess(UserInfo userInfo, String tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		// They must have update permission to change table content
-		AuthorizationManagerUtil
-				.checkAuthorizationAndThrowException(authorizationManager
-						.canAccess(userInfo, tableId, ObjectType.ENTITY,
-								ACCESS_TYPE.UPDATE));
+		authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
+				.checkAuthorizationOrElseThrow();
 		// And they must have upload permission to change table content.
-		AuthorizationManagerUtil
-				.checkAuthorizationAndThrowException(authorizationManager
-						.canAccess(userInfo, tableId, ObjectType.ENTITY,
-								ACCESS_TYPE.UPLOAD));
+		authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
+				.checkAuthorizationOrElseThrow();
 	}
 	
 	@Override

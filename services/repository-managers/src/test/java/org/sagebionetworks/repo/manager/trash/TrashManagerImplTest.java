@@ -33,7 +33,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
@@ -179,9 +178,9 @@ public class TrashManagerImplTest {
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 		
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
-		.thenReturn(new AuthorizationStatus(true, "DO IT! YES YOU CAN! JUST DO IT!"));
+		.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString()))
-		.thenReturn(new AuthorizationStatus(true, "YESTERDAY YOU SAID TOMORROW, SO JUST DO IT!"));
+		.thenReturn(AuthorizationStatus.authorized());
 		
 		//mocking for getDescendants()
 		when(mockNodeDAO.getChildrenIdsAsList(nodeID))
@@ -269,7 +268,7 @@ public class TrashManagerImplTest {
 	@Test (expected = UnauthorizedException.class)
 	public void testMoveToTrashNoAuthorization(){
 		when(mockAuthorizationManager.canAccess(userInfo, nodeID, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
-		.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		.thenReturn(AuthorizationStatus.accessDenied(""));
 		trashManager.moveToTrash(userInfo, nodeID);
 	} 
 	
@@ -277,7 +276,7 @@ public class TrashManagerImplTest {
 	public void testMoveToTrashAuthourized(){
 		//setup
 		when(mockAuthorizationManager.canAccess(userInfo, nodeID, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
-		.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		.thenReturn(AuthorizationStatus.authorized());
 		EntityHeader mockChild1EntityHeader = mock(EntityHeader.class);
 		EntityHeader mockChild2EntityHeader = mock(EntityHeader.class);
 		when(mockNodeDAO.getEntityHeader(child1ID, null)).thenReturn(mockChild1EntityHeader);
@@ -339,7 +338,7 @@ public class TrashManagerImplTest {
 	@Test 
 	public void testRestoreFromTrashUnauthourizedNewParent(){
 		when(mockAuthorizationManager.canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
-		.thenReturn(new AuthorizationStatus(false, "I'm a teapot."));
+		.thenReturn(AuthorizationStatus.accessDenied("I'm a teapot."));
 		try{
 			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
 			fail("expected UnauthorizedException");
@@ -354,7 +353,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testRestoreFromTrashUnauthourizedNodeID(){
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeTrashedEntity.getOriginalParentId(), nodeParentID))
-		.thenReturn(new AuthorizationStatus(false, "U can't touch this."));
+		.thenReturn(AuthorizationStatus.accessDenied("U can't touch this."));
 		try{
 			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
 		}catch (UnauthorizedException e){

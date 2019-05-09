@@ -72,6 +72,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can access it directly by its ID.  FileHandleId = '%1$s', UserId = '%2$s'";
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
+	private static final String FILE_HANDLE_ID_IS_NOT_ASSOCIATED_TEMPLATE = "FileHandleId: %1s is not associated with objectId: %2s of type: %3s";
+
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -120,44 +122,44 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:
 				if (isACTTeamMemberOrAdmin(userInfo)) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				}
 				if (accessType==ACCESS_TYPE.READ || accessType==ACCESS_TYPE.DOWNLOAD) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				}
-				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
+				return AuthorizationStatus.accessDenied("Only ACT member can perform this action.");
 			case ACCESS_APPROVAL:
 				if (isACTTeamMemberOrAdmin(userInfo)) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				}
-				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
+				return AuthorizationStatus.accessDenied("Only ACT member can perform this action.");
 			case TEAM:
 				if (userInfo.isAdmin()) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				}
 				// everyone should be able to download the Team's Icon, even anonymous.
 				if (accessType==ACCESS_TYPE.DOWNLOAD) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				}
 				
 				// just check the acl
 				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
 				if (teamAccessPermission) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Unauthorized to access Team "+objectId+" for "+accessType);
+					return AuthorizationStatus.accessDenied("Unauthorized to access Team "+objectId+" for "+accessType);
 				}
 			case VERIFICATION_SUBMISSION:
 				if (accessType==ACCESS_TYPE.DOWNLOAD) {
 					if (isACTTeamMemberOrAdmin(userInfo) ||
 							verificationDao.getVerificationSubmitter(Long.parseLong(objectId))==userInfo.getId()) {
-						return AuthorizationManagerUtil.AUTHORIZED;
+						return AuthorizationStatus.authorized();
 					} else {
-					return AuthorizationManagerUtil.accessDenied(
+					return AuthorizationStatus.accessDenied(
 							"You must be an ACT member or the owner of the Verification Submission to download its attachments.");
 					}
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
 			case WIKI:{
 				ACCESS_TYPE ownerAccessType = accessType;
@@ -172,9 +174,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case USER_PROFILE: {
 				// everyone should be able to download userProfile picture, even anonymous.
 				if (accessType==ACCESS_TYPE.DOWNLOAD) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
 			}
 			case EVALUATION_SUBMISSIONS:
@@ -182,31 +184,31 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					Submission submission = submissionDAO.get(objectId);
 					return evaluationPermissionsManager.hasAccess(userInfo, submission.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
 			case MESSAGE: {
 				if (accessType==ACCESS_TYPE.DOWNLOAD) {
 					try {
 						// if the user can get the message metadata, he/she can download the message
 						messageManager.getMessage(userInfo, objectId);
-						return AuthorizationManagerUtil.AUTHORIZED;
+						return AuthorizationStatus.authorized();
 					} catch (UnauthorizedException e) {
-						return AuthorizationManagerUtil.ACCESS_DENIED;
+						return AuthorizationStatus.accessDenied(e);
 					}
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
 			}
 			case DATA_ACCESS_REQUEST:
 			case DATA_ACCESS_SUBMISSION: {
 				if (accessType==ACCESS_TYPE.DOWNLOAD) {
 					if (isACTTeamMemberOrAdmin(userInfo)) {
-						return AuthorizationManagerUtil.AUTHORIZED;
+						return AuthorizationStatus.authorized();
 					} else {
-						return AuthorizationManagerUtil.ACCESS_DENIED;
+						return AuthorizationStatus.accessDenied("Download not allowed");
 					}
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
 			}
 			default:
@@ -227,12 +229,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	@Override
 	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
-		if(userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		
 		// check if owner
 		Activity act = activityDAO.get(activityId);
 		if(act.getCreatedBy().equals(userInfo.getId().toString()))
-				return AuthorizationManagerUtil.AUTHORIZED;
+				return AuthorizationStatus.authorized();
 		
 		// check if user has read access to any in result set (could be empty)
 		int limit = 1000;
@@ -244,8 +246,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			for(Reference ref : generatedBy.getResults()) {
 				String nodeId = ref.getTargetId();
 				try {
-					if(canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
-						return AuthorizationManagerUtil.AUTHORIZED;
+					if(canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ).isAuthorized()) {
+						return AuthorizationStatus.authorized();
 					}
 				} catch (Exception e) {
 					// do nothing, same as false
@@ -254,7 +256,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			offset += limit; 
 		}
 		// no access found to generated entities, no access
-		return AuthorizationManagerUtil.accessDenied("User lacks permission to access Activity "+activityId);
+		return AuthorizationStatus.accessDenied("User lacks permission to access Activity "+activityId);
 	}
 	
 	@Override
@@ -268,9 +270,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
 		if( isUserCreatorOrAdmin(userInfo, creator)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		} else {
-			return AuthorizationManagerUtil.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
+			return AuthorizationStatus.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
 		}
 	}
 	
@@ -290,7 +292,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
 		// Admins can do anything
-		if(userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		// Lookup the creator by
 		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
 		// Call the other methods
@@ -316,7 +318,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		Multimap<String, String> creatorMap = fileHandleDao.getHandleCreators(fileHandleIds);
 		for (Entry<String, Collection<String>> entry : creatorMap.asMap().entrySet()) {
 			String creator = entry.getKey();
-			if (canAccessRawFileHandleByCreator(userInfo, "", creator).getAuthorized()) {
+			if (canAccessRawFileHandleByCreator(userInfo, "", creator).isAuthorized()) {
 				allowed.addAll(entry.getValue());
 			} else {
 				disallowed.addAll(entry.getValue());
@@ -354,19 +356,19 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
 		if (sourceParentId.equals(destParentId)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
 		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
 		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);
 
 		List<String> missingRequirements = accessRequirementDAO.getAccessRequirementDiff(sourceParentAncestorIds, destParentAncestorIds, RestrictableObjectType.ENTITY);
 		if (missingRequirements.isEmpty()) { // only OK if destParent has all the requirements that source parent has
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		} else {
-			return AuthorizationManagerUtil.accessDenied("Cannot move restricted entity to a location having fewer access restrictions.");
+			return AuthorizationStatus.accessDenied("Cannot move restricted entity to a location having fewer access restrictions.");
 		}
 	}
 
@@ -374,9 +376,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public AuthorizationStatus canAccessAccessApprovalsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		} else {
-			return new AuthorizationStatus(false,"You are not allowed to retrieve access approvals for this subject.");
+			return AuthorizationStatus.accessDenied("You are not allowed to retrieve access approvals for this subject.");
 		}
 	}
 
@@ -426,7 +428,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				// The user is the creator of the file or and admin so they can
 				// download it.
 				results.add(new FileHandleAuthorizationStatus(fileHandleId,
-						AuthorizationManagerUtil.AUTHORIZED));
+						AuthorizationStatus.authorized()));
 			} else {
 				/*
 				 * The user is not an admin and they are not the creator of the
@@ -441,12 +443,26 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					// The fileHandle is not associated with the object.
 					results.add(new FileHandleAuthorizationStatus(
 							fileHandleId,
-							AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject(fileHandleId, associatedObjectId,
+							accessDeniedFileNotAssociatedWithObject(fileHandleId, associatedObjectId,
 											associationType)));
 				}
 			}
 		}
 		return results;
+	}
+
+	/**
+	 * Create an access denied status for a file handle not associated with the requested object.
+	 * @param fileHandleId
+	 * @param associatedObjectId
+	 * @param associateType
+	 * @return
+	 */
+	public static AuthorizationStatus accessDeniedFileNotAssociatedWithObject(String fileHandleId, String associatedObjectId, FileHandleAssociateType associateType){
+		return AuthorizationStatus.accessDenied(String
+				.format(FILE_HANDLE_ID_IS_NOT_ASSOCIATED_TEMPLATE,
+						fileHandleId, associatedObjectId,
+						associateType));
 	}
 
 
@@ -471,7 +487,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			SubscriptionObjectType objectType)
 			throws DatastoreException, NotFoundException {
 		if (isAnonymousUser(userInfo)) {
-			return AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON);
+			return AuthorizationStatus.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON);
 		}
 		switch (objectType) {
 			case FORUM:
@@ -482,18 +498,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				return canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 			case DATA_ACCESS_SUBMISSION:
 				if (isACTTeamMemberOrAdmin(userInfo)) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Only ACT member can follow this topic.");
+					return AuthorizationStatus.accessDenied("Only ACT member can follow this topic.");
 				}
 			case DATA_ACCESS_SUBMISSION_STATUS:
 				if (dataAccessSubmissionDao.isAccessor(objectId, userInfo.getId().toString())) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationStatus.authorized();
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Only accessors can follow this topic.");
+					return AuthorizationStatus.accessDenied("Only accessors can follow this topic.");
 				}
 		}
-		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
+		return AuthorizationStatus.accessDenied("The objectType is unsubscribable.");
 	}
 
 	@Override
@@ -597,7 +613,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					String parentId = validDockerRepositoryParentId(repositoryPath);
 					if (parentId==null) {
 						// can't push to a non-existent parent
-						as = AuthorizationManagerUtil.ACCESS_DENIED;
+						as = AuthorizationStatus.accessDenied(""); //TODO: more informative message?
 					} else {
 						// check for create permission on parent
 						as = canCreate(userInfo, parentId, EntityType.dockerrepo);
@@ -608,7 +624,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 						as = canAccess(userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 					}
 				}
-				if (as!=null && as.getAuthorized()) {
+				if (as!=null && as.isAuthorized()) {
 					permittedActions.add(requestedAction);
 					if (existingDockerRepoId==null) permittedActions.add(pull);
 				}
@@ -617,7 +633,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (
 					// check DOWNLOAD permission and add to permittedActions
 					(existingDockerRepoId!=null && !isInTrash && canAccess(
-							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()) ||
+							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).isAuthorized()) ||
 					// If Docker repository was submitted to an Evaluation and if the requester
 					// has administrative access to the queue, then DOWNLOAD permission is granted
 					evaluationPermissionsManager.isDockerRepoNameInEvaluationWithAccess(repositoryName, 
@@ -653,19 +669,19 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			// The invitee should be able to read or delete the invitation
 			boolean userIsInvitee = Long.parseLong(mi.getInviteeId()) == userInfo.getId();
 			if (userIsInvitee && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
-				return AuthorizationManagerUtil.AUTHORIZED;
+				return AuthorizationStatus.authorized();
 			}
 		}
 		// An admin of the team should be able to create, read or delete the invitation
 		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mi.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
 		// A Synapse admin should have access of any type
 		if (userInfo.isAdmin()) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + mi.getId());
+		return AuthorizationStatus.accessDenied("Unauthorized to " + accessType +  " membership invitation " + mi.getId());
 	}
 
 	@Override
@@ -674,12 +690,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		try {
 			tokenGenerator.validateToken(token);
 		} catch (UnauthorizedException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + " (" + e.getMessage() + ")");
+			return AuthorizationStatus.accessDenied("Unauthorized to access membership invitation " + miId + " (" + e.getMessage() + ")");
 		}
 		if (accessType == ACCESS_TYPE.READ) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
+		return AuthorizationStatus.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
 	}
 
 	@Override
@@ -688,26 +704,26 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		try {
 			tokenGenerator.validateToken(token);
 		} catch (UnauthorizedException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + " (" + e.getMessage() + ")");
+			return AuthorizationStatus.accessDenied("Unauthorized to access membership invitation " + miId + " (" + e.getMessage() + ")");
 		}
 		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(miId) && accessType == ACCESS_TYPE.UPDATE) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
+		return AuthorizationStatus.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
 	}
 
 	@Override
 	public AuthorizationStatus canAccessMembershipRequest(UserInfo userInfo, MembershipRequest mr, ACCESS_TYPE accessType) {
 		if (userInfo.isAdmin()) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
 		// An admin of the team should be able to read or delete the request
 		// The requester should also be able to read or delete the request
 		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mr.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		boolean userIsRequester = Long.parseLong(mr.getUserId()) == userInfo.getId();
 		if ((userIsTeamAdmin || userIsRequester) && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType + " membership request " + mr.getId());
+		return AuthorizationStatus.accessDenied("Unauthorized to " + accessType + " membership request " + mr.getId());
 	}
 }

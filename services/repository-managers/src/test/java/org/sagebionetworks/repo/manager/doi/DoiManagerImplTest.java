@@ -92,7 +92,7 @@ public class DoiManagerImplTest {
 		ReflectionTestUtils.setField(doiManager, "doiAssociationDao", mockDoiDao);
 		ReflectionTestUtils.setField(doiManager, "authorizationManager", mockAuthorizationManager);
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class)))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
+				.thenReturn(AuthorizationStatus.authorized());
 		inputDto = setUpDto(true);
 		outputDto = setUpDto(true);
 	}
@@ -165,7 +165,7 @@ public class DoiManagerImplTest {
 		UserInfo testInfo = new UserInfo(false);
 		testInfo.setId(12345L); // Arbitrary user ID, doesn't matter, just need to avoid a NPE
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
+				.thenReturn(AuthorizationStatus.authorized());
 		// The following mocks are necessary for the rest of the method to succeed on a "create"
 		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
@@ -180,7 +180,7 @@ public class DoiManagerImplTest {
 		UserInfo testInfo = new UserInfo(false);
 		// Undo the convenience authorization set in @Before
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(false, "mock"));
+				.thenReturn(AuthorizationStatus.accessDenied("mock"));
 		// Call under test
 		doiManager.createOrUpdateDoi(testInfo, inputDto);
 	}
@@ -361,7 +361,7 @@ public class DoiManagerImplTest {
 	public void testDeactivateAuthorization() throws Exception{
 		UserInfo testInfo = new UserInfo(false);
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
 		doiManager.deactivateDoi(testInfo, entityId, entityType, version);
@@ -373,7 +373,7 @@ public class DoiManagerImplTest {
 		UserInfo testInfo = new UserInfo(false);
 		// Undo the convenience authorization set in @Before
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(false, "mock"));
+				.thenReturn(AuthorizationStatus.accessDenied("mock"));
 		// Call under test
 		doiManager.deactivateDoi(testInfo, entityId, entityType, version);
 	}

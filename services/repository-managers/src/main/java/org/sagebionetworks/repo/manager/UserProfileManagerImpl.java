@@ -156,7 +156,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		
 		if(updated.getProfilePicureFileHandleId() != null){
 			// The user must own the file handle to set it as a picture.
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccessRawFileHandleById(userInfo, updated.getProfilePicureFileHandleId()));
+			authorizationManager.canAccessRawFileHandleById(userInfo, updated.getProfilePicureFileHandleId()).checkAuthorizationOrElseThrow();
 		}
 		// Update the DAO first
 		userProfileDAO.update(updated);

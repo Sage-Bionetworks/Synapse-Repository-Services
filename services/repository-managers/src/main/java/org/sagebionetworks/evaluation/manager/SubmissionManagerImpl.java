@@ -31,7 +31,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -137,7 +136,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// only authorized users can view private Annotations 
 		SubmissionStatus result = bundle.getSubmissionStatus();
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
+				userInfo, evaluationId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
 		if (!includePrivateAnnos) {
 			Annotations annos = result.getAnnotations();
 			if (annos != null) {
@@ -186,8 +185,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setUserId(principalId);
 		
 		// validate permissions
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+		evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).checkAuthorizationOrElseThrow();
 		
 		// validate eTag
 		String entityId = submission.getEntityId();
@@ -236,8 +234,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		submission.setContributors(scs);
 		
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now));
+		checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now).checkAuthorizationOrElseThrow();
 		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
@@ -521,7 +518,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
+				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
 		List<SubmissionBundle> bundles = 
 				getAllSubmissionBundlesPrivate(evalId, status, limit, offset, includePrivateAnnos);
 		List<SubmissionStatus> result = new ArrayList<SubmissionStatus>();
@@ -565,7 +562,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
-		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
+		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized();
 
 		String principalId = userInfo.getId().toString();
 		List<SubmissionBundle> result = submissionDAO.getAllBundlesByEvaluationAndUser(evalId, principalId, limit, offset);
@@ -617,7 +614,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType));
+		evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType).checkAuthorizationOrElseThrow();
 	}
 
 	/**

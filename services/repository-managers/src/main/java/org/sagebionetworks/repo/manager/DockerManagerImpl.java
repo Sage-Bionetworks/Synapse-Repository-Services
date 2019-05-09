@@ -179,7 +179,7 @@ public class DockerManagerImpl implements DockerManager {
 			throw new IllegalArgumentException("Commits for managed Docker repositories are created using the Docker client rather than the Synapse client.");
 		}
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		authStatus.checkAuthorizationOrElseThrow();
 		commit.setCreatedOn(new Date());
 		String newEntityEtag = dockerCommitDao.createDockerCommit(entityId, userInfo.getId(), commit);
 		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, newEntityEtag, ChangeType.UPDATE);
@@ -192,7 +192,7 @@ public class DockerManagerImpl implements DockerManager {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(sortBy, "sortBy");
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		authStatus.checkAuthorizationOrElseThrow();
 		EntityType entityType = entityManager.getEntityType(userInfo, entityId);
 		if (!entityType.equals(EntityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
 		List<DockerCommit> commits = dockerCommitDao.listDockerTags(entityId, sortBy, ascending, limit, offset);

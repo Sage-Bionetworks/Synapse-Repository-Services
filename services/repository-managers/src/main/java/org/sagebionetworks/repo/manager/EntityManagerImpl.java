@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
@@ -516,7 +515,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.READ, userInfo).getAuthorized()) {
+				ACCESS_TYPE.READ, userInfo).isAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -527,7 +526,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.UPDATE, userInfo).getAuthorized()) {
+				ACCESS_TYPE.UPDATE, userInfo).isAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -604,8 +603,7 @@ public class EntityManagerImpl implements EntityManager {
 		}
 		if(!ROOT_ID.equals(request.getParentId())){
 			// Validate the caller has read access to the parent
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
+			entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user).checkAuthorizationOrElseThrow();
 		}
 
 		// Find the children of this entity that the caller cannot see.
@@ -639,12 +637,12 @@ public class EntityManagerImpl implements EntityManager {
 			request.setParentId(ROOT_ID);
 		}
 		if(!ROOT_ID.equals(request.getParentId())){
-			if(!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).getAuthorized()){
+			if(!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).isAuthorized()){
 				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
 			}
 		}
 		String entityId = nodeManager.lookupChild(request.getParentId(), request.getEntityName());
-		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()){
+		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized()){
 			throw new UnauthorizedException("Lack of READ permission on the requested entity.");
 		}
 		EntityId result = new EntityId();

@@ -14,7 +14,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -27,7 +26,7 @@ import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -130,11 +129,11 @@ public class EvaluationManagerTest {
     	evaluations= Collections.singletonList(evalWithId);
     	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong())).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAccessibleEvaluations(any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), any())).thenReturn(evaluations);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-    	when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-    	when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied(""));
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
     	when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
     }
 
@@ -190,7 +189,7 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetAvailableInRange() throws Exception {
 		// availability is based on SUBMIT access, not READ
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied(""));
 		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L, null);
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
@@ -220,7 +219,7 @@ public class EvaluationManagerTest {
 	public void testGetTeamSubmissionEligibility() throws Exception {
 		when(mockEvaluationDAO.get(eval.getId())).thenReturn(eval);
 		when(mockPermissionsManager.canCheckTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID)).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			thenReturn(AuthorizationStatus.authorized());
 		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
 		tse.setEvaluationId(eval.getId());
 		tse.setTeamId(TEAM_ID);

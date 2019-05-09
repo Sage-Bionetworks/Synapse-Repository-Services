@@ -45,7 +45,7 @@ public class ObjectTypeManagerImplTest {
 	public void before() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(false);
 		boolean isAuthorized = true;
-		when(mockAuthStatus.getAuthorized()).thenReturn(isAuthorized);
+		when(mockAuthStatus.isAuthorized()).thenReturn(isAuthorized);
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class),
 				any(ACCESS_TYPE.class))).thenReturn(mockAuthStatus);
 
@@ -82,7 +82,7 @@ public class ObjectTypeManagerImplTest {
 	@Test
 	public void testChangeObjectsDataTypeSensitiveUnauthroized() {
 		boolean isAuthorized = false;
-		when(mockAuthStatus.getAuthorized()).thenReturn(isAuthorized);
+		when(mockAuthStatus.isAuthorized()).thenReturn(isAuthorized);
 		try {
 			// call under test
 			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
