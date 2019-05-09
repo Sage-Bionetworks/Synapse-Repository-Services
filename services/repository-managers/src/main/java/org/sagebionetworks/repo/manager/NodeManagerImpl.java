@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 /**
  * The Sage business logic for node management.
@@ -763,24 +764,29 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	@WriteTransaction
 	public void TEMPORARYcleanUpAnnotations(Long id) throws IOException {
-		//lock on etag
-		nodeDao.lockNode(KeyFactory.keyToString(id));
+		try {
+			//lock on etag
+			nodeDao.lockNode(KeyFactory.keyToString(id));
 
-		//batch process all annotations contained of each version/revision of this node
-		List<Object[]> listOf_blob_Id_Version = nodeDao.TEMPORARYGetAllAnnotations(id);
-		for (Object[] blob_Id_Version : listOf_blob_Id_Version) {
-			NamedAnnotations namedAnnotations = AnnotationUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
+			//batch process all annotations contained of each version/revision of this node
+			List<Object[]> listOf_blob_Id_Version = nodeDao.TEMPORARYGetAllAnnotations(id);
+			for (Object[] blob_Id_Version : listOf_blob_Id_Version) {
+				NamedAnnotations namedAnnotations = AnnotationUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
 
-			deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
-			deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
+				deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
+				deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
 
-			blob_Id_Version[0] = AnnotationUtils.compressAnnotations(namedAnnotations);
+				blob_Id_Version[0] = AnnotationUtils.compressAnnotations(namedAnnotations);
+			}
+
+			nodeDao.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
+
+			//update etag
+			nodeDao.TEMPORARYChangeEtagOnly(id);
+		} catch (EmptyResultDataAccessException e){
+			//node was deleted. no work to be done.
+			log.error("Node " + id + " was deleted. Cannot cleanup annotations");
 		}
-
-		nodeDao.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
-
-		//update etag
-		nodeDao.TEMPORARYChangeEtagOnly(id);
 	}
 
 	private static void deleteConcreteTypeAnnotation(Annotations annotation){
