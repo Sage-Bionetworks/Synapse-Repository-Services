@@ -6,20 +6,20 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-public class EntityIdTest {
+public class IdAndVersionTest {
 	
 	@Test
 	public void testCreate() {
 		IdAndVersion one = new IdAndVersionBuilder().setId(123L).setVersion(456L).build();
 		assertEquals(new Long(123), one.getId());
-		assertEquals(new Long(456), one.getVersion());
+		assertEquals(new Long(456), one.getVersion().get());
 	}
 	
 	@Test
 	public void testCreateNullVersion() {
 		IdAndVersion one = new IdAndVersionBuilder().setId(123L).setVersion(null).build();
 		assertEquals(new Long(123), one.getId());
-		assertEquals(null, one.getVersion());
+		assertFalse(one.getVersion().isPresent());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

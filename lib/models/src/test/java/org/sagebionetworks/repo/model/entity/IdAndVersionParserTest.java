@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.entity;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -9,7 +10,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersionParser.ParseException;
 
 
-public class EntityParserTest {
+public class IdAndVersionParserTest {
 	
 	@Test
 	public void testAllParts() {
@@ -17,7 +18,7 @@ public class EntityParserTest {
 		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("syn123.456");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
-		assertEquals(new Long(456), id.getVersion());
+		assertEquals(new Long(456), id.getVersion().get());
 	}
 	
 	@Test
@@ -26,7 +27,7 @@ public class EntityParserTest {
 		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("SYN123.456");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
-		assertEquals(new Long(456), id.getVersion());
+		assertEquals(new Long(456), id.getVersion().get());
 	}
 	
 	@Test
@@ -35,7 +36,7 @@ public class EntityParserTest {
 		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("sYn123.456");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
-		assertEquals(new Long(456), id.getVersion());
+		assertEquals(new Long(456), id.getVersion().get());
 	}
 	
 	@Test
@@ -44,7 +45,7 @@ public class EntityParserTest {
 		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("1234567890");
 		assertNotNull(id);
 		assertEquals(new Long(1234567890), id.getId());
-		assertEquals(null, id.getVersion());
+		assertFalse(id.getVersion().isPresent());
 	}
 
 	@Test
@@ -53,7 +54,7 @@ public class EntityParserTest {
 		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("1");
 		assertNotNull(id);
 		assertEquals(new Long(1), id.getId());
-		assertEquals(null, id.getVersion());
+		assertFalse(id.getVersion().isPresent());
 	}
 	
 	@Test
@@ -62,7 +63,7 @@ public class EntityParserTest {
 		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("7890.456");
 		assertNotNull(id);
 		assertEquals(new Long(7890), id.getId());
-		assertEquals(new Long(456), id.getVersion());
+		assertEquals(new Long(456), id.getVersion().get());
 	}
 	
 	@Test
@@ -71,7 +72,7 @@ public class EntityParserTest {
 		IdAndVersion id = IdAndVersionParser.parseIdAndVersion(" \t\nsyn123.456\n\t ");
 		assertNotNull(id);
 		assertEquals(new Long(123), id.getId());
-		assertEquals(new Long(456), id.getVersion());
+		assertEquals(new Long(456), id.getVersion().get());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

@@ -213,8 +213,8 @@ public class SQLUtils {
 		}
 		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
 		builder.append(id.getId());
-		if(id.getVersion() != null) {
-			builder.append("_").append(id.getVersion());
+		if(id.getVersion().isPresent()) {
+			builder.append("_").append(id.getVersion().get());
 		}
 		builder.append(type.getTablePostFix());
 		return builder.toString();
