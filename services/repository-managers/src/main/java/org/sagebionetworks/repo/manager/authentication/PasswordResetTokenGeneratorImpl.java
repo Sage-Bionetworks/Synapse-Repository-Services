@@ -60,12 +60,12 @@ public class PasswordResetTokenGeneratorImpl implements PasswordResetTokenGenera
 
 	String createValidityHash(long userId){
 		/*
-		The concatenation of the user's password hash and the user's authentication receipt.
+		We hash the current password hash
 		This ensures that in the event of a password change the token becomes invalid.
 		Password hash changes even if it is changed to the exact same password since the salt is randomly generated on every password change
 		 */
 		String data = authenticationDAO.getPasswordHash(userId);
-		return DigestUtils.sha256Hex(data);
+		return DigestUtils.sha256Hex(data != null ? data : "");
 	}
 
 
