@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -98,6 +99,7 @@ public interface TableEntityManager {
 	 * @param tableId
 	 * @return
 	 */
+	@Deprecated
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
 	
 	/**
@@ -238,6 +240,14 @@ public interface TableEntityManager {
 	 * @param tableId
 	 */
 	public void deleteTableIfDoesNotExist(String tableId);
+	
+	/**
+	 * Create a new Iterator that can be used to iterator over all change metadata
+	 * for the given table.
+	 * @param tableId
+	 * @return
+	 */
+	public Iterator<TableChangeMetaData> newTableChangeIterator(String tableId);
 
 
 }

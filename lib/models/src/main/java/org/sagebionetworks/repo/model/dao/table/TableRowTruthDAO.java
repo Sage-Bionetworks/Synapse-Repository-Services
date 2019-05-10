@@ -152,5 +152,15 @@ public interface TableRowTruthDAO {
 	 * 
 	 */
 	public void truncateAllRowData();
+
+	/**
+	 * Get a single page of changes for the given table, limit, and offset.
+	 * 
+	 * @param tableId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<TableRowChange> getTableChangePage(String tableId, long limit, long offset);
 	
 }
