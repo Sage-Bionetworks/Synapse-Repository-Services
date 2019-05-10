@@ -634,7 +634,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			List<ColumnChangeDetails> details = columModelManager.getColumnChangeDetails(changes.getChanges());
 			IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 			// attempt to apply the schema change to the temp copy of the table.
-			indexManager.alterTempTableSchmea(callback, idAndVersion, details);
+			indexManager.alterTempTableSchmea(idAndVersion, details);
 		}
 	}
 

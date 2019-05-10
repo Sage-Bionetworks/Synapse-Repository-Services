@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.model.SparseChangeSet;
 
 /**
- * A ChangeData wrapper of a {@lin SparseChangeSet}.
+ * A ChangeData wrapper of a {@link SparseChangeSet}.
  *
  */
 public class RowChange implements ChangeData {

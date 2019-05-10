@@ -244,7 +244,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		boolean isTableView = false;
 		// call under test
-		manager.setIndexSchema(tableId, isTableView, mockCallback, schema);
+		manager.setIndexSchema(tableId, isTableView, schema);
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -255,7 +255,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		boolean isTableView = false;
 		// call under test
-		manager.setIndexSchema(tableId, isTableView, mockCallback, new LinkedList<ColumnModel>());
+		manager.setIndexSchema(tableId, isTableView, new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(new LinkedList<>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -320,7 +320,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
 		boolean isTableView = false;
 		// call under test
-		manager.updateTableSchema(tableId, isTableView, mockCallback, changes);
+		manager.updateTableSchema(tableId, isTableView, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// The new schema is not empty so do not truncate.
@@ -347,7 +347,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
 		boolean isTableView = true;
 		// call under test
-		manager.updateTableSchema(tableId, isTableView, mockCallback, changes);
+		manager.updateTableSchema(tableId, isTableView, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
@@ -367,7 +367,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		boolean isTableView = true;
 		// call under test
-		manager.updateTableSchema(tableId, isTableView, mockCallback, changes);
+		manager.updateTableSchema(tableId, isTableView, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);

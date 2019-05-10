@@ -492,9 +492,9 @@ public class TableWorkerTest {
 		when(mockTableEntityManager.getSparseChangeSet(trc)).thenReturn(sparseRowset1);
 		
 		// call under test
-		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		worker.applyRowChange(mockTableIndexManager, tableId, trc);
 		// schema of the change should be applied
-		verify(mockTableIndexManager).setIndexSchema(idAndVersion, isTableView, mockProgressCallback, currentSchema);
+		verify(mockTableIndexManager).setIndexSchema(idAndVersion, isTableView, currentSchema);
 		// the change set should be applied.
 		verify(mockTableIndexManager).applyChangeSetToIndex(idAndVersion, sparseRowset1,trc.getRowVersion());
 	}
@@ -503,7 +503,7 @@ public class TableWorkerTest {
 	public void testApplyRowChangeNullChange() throws IOException{
 		TableRowChange trc = null;
 		// call under test
-		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		worker.applyRowChange(mockTableIndexManager, tableId, trc);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -511,14 +511,14 @@ public class TableWorkerTest {
 		TableRowChange trc = new TableRowChange();
 		trc.setChangeType(TableChangeType.COLUMN);
 		// call under test
-		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		worker.applyRowChange(mockTableIndexManager, tableId, trc);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testApplyColumnChangeNullChange() throws IOException{
 		TableRowChange trc = null;
 		// call under test
-		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		worker.applyColumnChange(mockTableIndexManager, tableId, trc);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -526,7 +526,7 @@ public class TableWorkerTest {
 		TableRowChange trc = new TableRowChange();
 		trc.setChangeType(TableChangeType.ROW);
 		// call under test
-		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		worker.applyColumnChange(mockTableIndexManager, tableId, trc);
 	}
 	
 	@Test
@@ -543,8 +543,8 @@ public class TableWorkerTest {
 		List<ColumnChangeDetails> details = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		when(mockTableEntityManager.getSchemaChangeForVersion(tableId, trc.getRowVersion())).thenReturn(details);
 		// call under test
-		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
-		verify(mockTableIndexManager).updateTableSchema(idAndVersion, isTableView, mockProgressCallback, details);
+		worker.applyColumnChange(mockTableIndexManager, tableId, trc);
+		verify(mockTableIndexManager).updateTableSchema(idAndVersion, isTableView, details);
 		verify(mockTableIndexManager).setIndexVersion(idAndVersion, trc.getRowVersion());
 	}
 }

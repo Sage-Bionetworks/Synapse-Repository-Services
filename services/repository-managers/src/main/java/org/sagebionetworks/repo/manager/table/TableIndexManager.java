@@ -95,13 +95,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
+	public void setIndexSchema(IdAndVersion tableId, boolean isTableView, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
+	public boolean updateTableSchema(IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes);
 	
 	/**
 	 * Delete the index for this table.
@@ -156,8 +156,7 @@ public interface TableIndexManager {
 	 * @param changes
 	 * @return
 	 */
-	boolean alterTempTableSchmea(ProgressCallback progressCallback,
-			IdAndVersion tableId, List<ColumnChangeDetails> changes);
+	boolean alterTempTableSchmea(IdAndVersion tableId, List<ColumnChangeDetails> changes);
 
 
 	/**

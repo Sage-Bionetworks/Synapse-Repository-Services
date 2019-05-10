@@ -9,7 +9,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.asynchronous.workers.changes.LockTimeoutAware;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
@@ -119,16 +118,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			final String tableResetToken = tableManagerSupport.startTableProcessing(tableId);
 
 			// Run with the exclusive lock on the table if we can get it.
-			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback,tableId,
-					lockTimeoutSec,
-					new ProgressingCallable<State>() {
-						@Override
-						public State call(ProgressCallback progress) throws Exception {
-							// This method does the real work.
-							return createOrUpdateWhileHoldingLock(
-									progress, tableId, tableIndexManger, tableResetToken,
-									change);
-						}
+			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, tableId, lockTimeoutSec,
+					(ProgressCallback progress) -> {
+						// This method does the real work.
+						return createOrUpdateWhileHoldingLock(tableId, tableIndexManger, tableResetToken, change);
 					});
 		} catch (LockUnavilableException e) {
 			// We did not get the lock on this table.
@@ -165,8 +158,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	private State createOrUpdateWhileHoldingLock(
-			ProgressCallback progressCallback, String tableId, TableIndexManager tableIndexManager,
+	private State createOrUpdateWhileHoldingLock(String tableId, TableIndexManager tableIndexManager,
 			String tableResetToken, ChangeMessage change)
 			throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
@@ -174,7 +166,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		try {
 			// Save the status before we start
 			// This method will do the rest of the work.
-			String lastEtag = synchIndexWithTable(progressCallback, tableIndexManager,
+			String lastEtag = synchIndexWithTable(tableIndexManager,
 					tableId, tableResetToken, change);
 			// We are finished set the status
 			log.info("Create index " + tableId + " done");
@@ -210,8 +202,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @throws IOException
 	 * @throws TableUnavailableException
 	 */
-	String synchIndexWithTable(ProgressCallback progressCallback,
-			final TableIndexManager indexManager, String tableId, String resetToken,
+	String synchIndexWithTable(final TableIndexManager indexManager, String tableId, String resetToken,
 			ChangeMessage change) throws DatastoreException, NotFoundException,
 			IOException, TableUnavailableException {
 		// Create or update the table with this schema.
@@ -243,11 +234,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 					// Each type of change is applied 
 					switch(changeSet.getChangeType()){
 					case ROW:
-						applyRowChange(progressCallback, indexManager, tableId,
-								changeSet);
+						applyRowChange(indexManager, tableId, changeSet);
 						break;
 					case COLUMN:
-						applyColumnChange(progressCallback, indexManager, tableId,
+						applyColumnChange(indexManager, tableId,
 								changeSet);
 						break;
 					default:
@@ -259,7 +249,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// After all changes are applied to the index ensure the final schema is set
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 		boolean isTableView = false;
-		indexManager.setIndexSchema(idAndVersion, isTableView , progressCallback, currentSchema);
+		indexManager.setIndexSchema(idAndVersion, isTableView, currentSchema);
 		
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices(idAndVersion);
@@ -276,8 +266,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @param changeSet
 	 * @throws IOException
 	 */
-	void applyColumnChange(ProgressCallback progressCallback,
-			final TableIndexManager indexManager, String tableId,
+	void applyColumnChange(final TableIndexManager indexManager, String tableId,
 			TableRowChange changeSet) throws IOException {
 		ValidateArgument.required(changeSet, "changeSet");
 		if(!TableChangeType.COLUMN.equals(changeSet.getChangeType())){
@@ -287,7 +276,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// apply the schema change
 		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
 		boolean isTableView = false;
-		indexManager.updateTableSchema(idAndVersion, isTableView, progressCallback, schemaChange);
+		indexManager.updateTableSchema(idAndVersion, isTableView, schemaChange);
 		indexManager.setIndexVersion(idAndVersion, changeSet.getRowVersion());
 	}
 
@@ -301,8 +290,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @param changeSet
 	 * @throws IOException
 	 */
-	void applyRowChange(ProgressCallback progressCallback,
-			final TableIndexManager indexManager, String tableId,
+	void applyRowChange(final TableIndexManager indexManager, String tableId,
 			TableRowChange change) throws IOException {
 		ValidateArgument.required(change, "changeSet");
 		if(!TableChangeType.ROW.equals(change.getChangeType())){
@@ -313,7 +301,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		SparseChangeSet sparseChangeSet = tableEntityManager.getSparseChangeSet(change);
 		// match the schema to the change set.
 		boolean isTableView = false;
-		indexManager.setIndexSchema(idAndVersion, isTableView, progressCallback, sparseChangeSet.getSchema());
+		indexManager.setIndexSchema(idAndVersion, isTableView, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
 		indexManager.applyChangeSetToIndex(idAndVersion, sparseChangeSet, change.getRowVersion());
 	}
