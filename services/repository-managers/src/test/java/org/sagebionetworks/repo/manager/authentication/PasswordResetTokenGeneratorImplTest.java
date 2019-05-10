@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -106,5 +107,11 @@ public class PasswordResetTokenGeneratorImplTest {
 
 		verify(mockTokenGenerator).validateToken(token);
 		verify(mockAuthenticationDao).getPasswordHash(userId);
+	}
+
+	@Test
+	public void testCreateValidityHash_NullPasswordHash(){
+		when(mockAuthenticationDao.getPasswordHash(userId)).thenReturn(null);
+		assertNotNull(passwordResetTokenGenerator.createValidityHash(userId));
 	}
 }
