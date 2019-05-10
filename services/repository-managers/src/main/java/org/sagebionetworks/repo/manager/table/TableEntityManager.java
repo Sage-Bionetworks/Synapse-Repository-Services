@@ -249,5 +249,15 @@ public interface TableEntityManager {
 	 */
 	public Iterator<TableChangeMetaData> newTableChangeIterator(String tableId);
 
+	/**
+	 * Get a single page of TableChangeMetaData for the given table.  The metadata object
+	 * can also be used to dynamically load the actual change.
+	 * @param tableId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset);
+
 
 }

@@ -67,7 +67,6 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
-import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -798,20 +797,22 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@Override
 	public Iterator<TableChangeMetaData> newTableChangeIterator(final String tableId) {
-		return new PaginationIterator<>(new PaginationProvider<TableChangeMetaData>() {
-
-			@Override
-			public List<TableChangeMetaData> getNextPage(long limit, long offset) {
-				List<TableRowChange> innerChangePage = tableRowTruthDao.getTableChangePage(tableId, limit, offset);
-				// Wrap the metadata to allow the full change be dynamically loaded.
-				List<TableChangeMetaData> results = new LinkedList<>();
-				for(TableRowChange toWrap: innerChangePage) {
-					TableChangeWrapper wrapper = new TableChangeWrapper(toWrap);
-					results.add(wrapper);
-				}
-				return results;
-			}
+		// convert from a paginated result to an iterator.
+		return new PaginationIterator<TableChangeMetaData>((long limit, long offset) -> {
+			return getTableChangePage(tableId, limit, offset);
 		}, PAGE_SIZE_LIMIT);
+	}
+	
+	@Override
+	public List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset){
+		List<TableRowChange> innerChangePage = tableRowTruthDao.getTableChangePage(tableId, limit, offset);
+		// Wrap the metadata to allow the full change be dynamically loaded.
+		List<TableChangeMetaData> results = new LinkedList<>();
+		for(TableRowChange toWrap: innerChangePage) {
+			TableChangeWrapper wrapper = new TableChangeWrapper(toWrap);
+			results.add(wrapper);
+		}
+		return results;
 	}
 	
 	/**

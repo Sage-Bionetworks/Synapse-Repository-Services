@@ -119,6 +119,7 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @return
 	 */
+	@Deprecated
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
 	
 	/**

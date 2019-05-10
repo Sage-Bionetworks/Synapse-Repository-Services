@@ -44,6 +44,10 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
+import org.sagebionetworks.repo.manager.table.change.ChangeData;
+import org.sagebionetworks.repo.manager.table.change.RowChange;
+import org.sagebionetworks.repo.manager.table.change.SchemaChange;
+import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -161,6 +165,8 @@ public class TableEntityManagerTest {
 	TableStatus status;
 	String ETAG;
 	IdRange range;
+	
+	SparseChangeSetDto rowDto;
 	
 	TableSchemaChangeRequest schemaChangeRequest;
 	List<ColumnChangeDetails> columChangedetails;
@@ -313,6 +319,12 @@ public class TableEntityManagerTest {
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		
 		transactionId = 987L;
+		
+		
+		rowDto = new SparseChangeSetDto();
+		rowDto.setTableId(tableId);
+		rowDto.setColumnIds(Lists.newArrayList("123","456"));
+		rowDto.setRows(Lists.newArrayList(new SparseRowDto()));
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -1489,6 +1501,62 @@ public class TableEntityManagerTest {
 				newModel = TableModelTestUtils.createColumn(Long.parseLong(change.getNewColumnId()));
 			}
 			results.add(new ColumnChangeDetails(oldModel, newModel));
+		}
+		return results;
+	}
+	
+	@Test
+	public void testGetTableChangePage() throws IOException {
+		long limit = 3L;
+		long offset = 0L;
+		when(mockTruthDao.getRowSet(any(TableRowChange.class))).thenReturn(rowDto);
+		when(mockTruthDao.getTableChangePage(tableId, limit, offset)).thenReturn(createChange(tableId, (int) limit));
+		// call under test
+		List<TableChangeMetaData> results = manager.getTableChangePage(tableId, limit, offset);
+		assertNotNull(results);
+		assertEquals((int)limit, results.size());
+		verify(mockTruthDao).getTableChangePage(tableId, limit, offset);
+		// at this point only metadata should be loaded and not the actual changes
+		verify(mockTruthDao, never()).getRowSet(any(TableRowChange.class));
+		verify(mockTruthDao, never()).getSchemaChangeForVersion(anyString(), anyLong());
+		
+		// one 
+		TableChangeMetaData metaOne = results.get(0);
+		assertEquals(new Long(0), metaOne.getChangeNumber());
+		assertEquals(TableChangeType.ROW, metaOne.getChangeType());
+		// load the row.
+		ChangeData changeData = metaOne.loadChangeData();
+		assertNotNull(changeData);
+		verify(mockTruthDao, times(1)).getRowSet(any(TableRowChange.class));
+		assertTrue(changeData instanceof RowChange);
+		
+		// two
+		TableChangeMetaData metaTwp = results.get(1);
+		assertEquals(new Long(1), metaTwp.getChangeNumber());
+		assertEquals(TableChangeType.COLUMN, metaTwp.getChangeType());
+		// load the row.
+		changeData = metaTwp.loadChangeData();
+		assertNotNull(changeData);
+		verify(mockTruthDao, times(1)).getSchemaChangeForVersion(tableId, 1L);
+		assertTrue(changeData instanceof SchemaChange);
+	}
+	
+	/**
+	 * Helper to create a list of TableRowChange for the given tableId and count.
+	 * @param tableId
+	 * @param count
+	 * @return
+	 */
+	public static List<TableRowChange> createChange(String tableId, int count){
+		List<TableRowChange> results = new LinkedList<>();
+		int enumLenght = TableChangeType.values().length;
+		for(int i=0; i<count; i++) {
+			TableRowChange change = new TableRowChange();
+			change.setTableId(tableId);
+			change.setRowVersion(new Long(i));
+			change.setChangeType(TableChangeType.values()[i%enumLenght]);
+			change.setKeyNew("someKey"+i);
+			results.add(change);
 		}
 		return results;
 	}
