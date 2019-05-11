@@ -89,7 +89,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
-			+ " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " ASC";
+			+ " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " ASC LIMIT ? OFFSET ?";
 	
 	private static final String SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE = "FROM "
 			+ TABLE_ROW_CHANGE
@@ -359,14 +359,12 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	/**
 	 * List all changes for this table.
 	 */
+	@Deprecated
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableIdString) {
-		if (tableIdString == null)
-			throw new IllegalArgumentException("TableId cannot be null");
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOTableRowChange> dboList = jdbcTemplate.query(
-				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId);
-		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
+		long limit = Long.MAX_VALUE;
+		long offset = 0L;
+		return getTableChangePage(tableIdString, limit, offset);
 	}
 
 	@Override
@@ -482,6 +480,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 */
 	public void setS3Bucket(String s3Bucket) {
 		this.s3Bucket = s3Bucket;
+	}
+
+	@Override
+	public List<TableRowChange> getTableChangePage(String tableIdString, long limit, long offset) {
+		if (tableIdString == null) {
+			throw new IllegalArgumentException("TableId cannot be null");
+		}
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		List<DBOTableRowChange> dboList = jdbcTemplate.query(
+				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId, limit, offset);
+		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
 	}
 	
 }

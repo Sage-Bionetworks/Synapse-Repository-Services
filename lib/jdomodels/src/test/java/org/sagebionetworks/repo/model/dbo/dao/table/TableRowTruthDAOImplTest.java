@@ -185,12 +185,14 @@ public class TableRowTruthDAOImplTest {
 	}
 
 	@Test
-	public void testListRowSetsForTable() throws IOException{
+	public void testGetTableChangePage() throws IOException{
+		long limit = 2L;
+		long offset = 0L;
 		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
 		// Before we start there should be no changes
-		List<TableRowChange> results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
+		List<TableRowChange> results = tableRowTruthDao.getTableChangePage(tableId, limit, offset);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
@@ -200,7 +202,7 @@ public class TableRowTruthDAOImplTest {
 		set = new RawRowSet(set.getIds(), set.getEtag(), set.getTableId(), TableModelTestUtils.createRows(columns, 2));
 		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
 		// There should now be two version of the data
-		results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
+		results = tableRowTruthDao.getTableChangePage(tableId, limit, offset);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// Validate the results
@@ -234,12 +236,14 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
-	public void testListRowSetsForTableMixedType() throws IOException{
+	public void testGetTableChangePageMixedType() throws IOException{
+		long limit = 2L;
+		long offset = 0L;
 		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
 		// Before we start there should be no changes
-		List<TableRowChange> results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
+		List<TableRowChange> results = tableRowTruthDao.getTableChangePage(tableId, limit, offset);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);

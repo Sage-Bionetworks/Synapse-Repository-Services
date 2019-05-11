@@ -236,7 +236,7 @@ public class TableViewWorkerTest {
 		
 		verify(indexManager).deleteTableIndex(idAndVersion);
 		boolean isTableView = true;
-		verify(indexManager).setIndexSchema(idAndVersion, isTableView, innerCallback,expandedSchema);
+		verify(indexManager).setIndexSchema(idAndVersion, isTableView,expandedSchema);
 		verify(tableViewManager).getViewSchema(tableId);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 		Long viewIdLong = KeyFactory.stringToKey(tableId);

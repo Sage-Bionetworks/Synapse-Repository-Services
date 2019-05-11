@@ -209,7 +209,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		if(idAndVersion.getId() == null) {
 			throw new IllegalArgumentException("IdAndVersion.id cannot be null");
 		}
-		return idAndVersion.getVersion() != null ? idAndVersion.getVersion(): NULL_VERSION;
+		return idAndVersion.getVersion().orElse(NULL_VERSION);
 	}
 
 }

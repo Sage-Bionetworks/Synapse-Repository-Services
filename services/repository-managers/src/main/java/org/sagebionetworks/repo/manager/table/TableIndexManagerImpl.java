@@ -117,12 +117,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(final IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> newSchema){
+	public void setIndexSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
-		updateTableSchema(tableId, isTableView, progressCallback, changes);
+		updateTableSchema(tableId, isTableView, changes);
 	}
 
 	@Override
@@ -150,14 +150,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	
 	@Override
-	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
+	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId, isTableView);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
 		boolean alterTemp = false;
 		// Alter the table
-		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
+		boolean wasSchemaChanged = alterTableAsNeededWithProgress(tableId, changes, alterTemp);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -176,9 +176,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}	
 	
 	@Override
-	public boolean alterTempTableSchmea(ProgressCallback progressCallback, final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
+	public boolean alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
-		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
+		return alterTableAsNeededWithProgress(tableId, changes, alterTemp);
 	}
 	
 	/**
@@ -189,7 +189,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final IdAndVersion tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
+	boolean alterTableAsNeededWithProgress(final IdAndVersion tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
 		try {
 			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {

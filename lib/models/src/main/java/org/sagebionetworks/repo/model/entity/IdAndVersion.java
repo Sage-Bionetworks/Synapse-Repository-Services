@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.entity;
 
+import java.util.Optional;
+
 /**
  * Immutable representation of an Entity's ID including an optional version
  * number. Use {@linkplain IdAndVersionBuilder} to create new instances of this
@@ -39,8 +41,8 @@ public class IdAndVersion {
 	 * 
 	 * @return
 	 */
-	public Long getVersion() {
-		return version;
+	public Optional<Long> getVersion() {
+		return Optional.ofNullable(version);
 	}
 
 	@Override

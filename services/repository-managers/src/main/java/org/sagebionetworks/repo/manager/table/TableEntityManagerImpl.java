@@ -14,6 +14,10 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
+import org.sagebionetworks.repo.manager.table.change.ChangeData;
+import org.sagebionetworks.repo.manager.table.change.RowChange;
+import org.sagebionetworks.repo.manager.table.change.SchemaChange;
+import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -27,7 +31,6 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -63,6 +66,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +77,8 @@ import com.google.common.collect.Sets;
 
 public class TableEntityManagerImpl implements TableEntityManager {
 	
+	private static final long PAGE_SIZE_LIMIT = 1000L;
+
 	public static final String MAXIMUM_TABLE_SIZE_EXCEEDED = "Maximum table size exceeded.";
 
 	/**
@@ -391,6 +397,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {
 		return tableRowTruthDao.listRowSetsKeysForTable(tableId);
@@ -627,7 +634,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			List<ColumnChangeDetails> details = columModelManager.getColumnChangeDetails(changes.getChanges());
 			IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 			// attempt to apply the schema change to the temp copy of the table.
-			indexManager.alterTempTableSchmea(callback, idAndVersion, details);
+			indexManager.alterTempTableSchmea(idAndVersion, details);
 		}
 	}
 
@@ -785,6 +792,67 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
 		tableRowTruthDao.deleteAllRowDataForTable(deletedId);
 		tableTransactionDao.deleteTable(deletedId);
+	}
+
+
+	@Override
+	public Iterator<TableChangeMetaData> newTableChangeIterator(final String tableId) {
+		// convert from a paginated result to an iterator.
+		return new PaginationIterator<TableChangeMetaData>((long limit, long offset) -> {
+			return getTableChangePage(tableId, limit, offset);
+		}, PAGE_SIZE_LIMIT);
+	}
+	
+	@Override
+	public List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset){
+		List<TableRowChange> innerChangePage = tableRowTruthDao.getTableChangePage(tableId, limit, offset);
+		// Wrap the metadata to allow the full change be dynamically loaded.
+		List<TableChangeMetaData> results = new LinkedList<>();
+		for(TableRowChange toWrap: innerChangePage) {
+			TableChangeWrapper wrapper = new TableChangeWrapper(toWrap);
+			results.add(wrapper);
+		}
+		return results;
+	}
+	
+	/**
+	 * Wrapper of table change metadata that supports dynamically loading the full
+	 * change on demand.
+	 *
+	 */
+	private class TableChangeWrapper implements TableChangeMetaData {
+
+		private TableRowChange wrapped;
+
+		TableChangeWrapper(TableRowChange toWrap) {
+			this.wrapped = toWrap;
+		}
+
+		@Override
+		public Long getChangeNumber() {
+			return wrapped.getRowVersion();
+		}
+
+		@Override
+		public TableChangeType getChangeType() {
+			return wrapped.getChangeType();
+		}
+
+		@Override
+		public ChangeData loadChangeData() throws NotFoundException, IOException {
+			switch (wrapped.getChangeType()) {
+			case ROW:
+				SparseChangeSet sparseChangeSet = getSparseChangeSet(wrapped);
+				return new RowChange(sparseChangeSet);
+			case COLUMN:
+				List<ColumnChangeDetails> schemaChange = getSchemaChangeForVersion(wrapped.getTableId(),
+						wrapped.getRowVersion());
+				return new SchemaChange(schemaChange);
+			default:
+				throw new IllegalStateException("Unknown type: " + wrapped.getChangeType());
+			}
+		}
+
 	}
 
 }
