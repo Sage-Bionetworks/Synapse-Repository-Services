@@ -1,30 +1,44 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
+	
+	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 	
@@ -353,6 +367,125 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		return results;
+	}
+	
+	@Override
+	public void buildIndexToChangeNumber(final ProgressCallback progressCallback, final IdAndVersion idAndVersion,
+			final Iterator<TableChangeMetaData> iterator, final Optional<Long> lastChangeNumber) throws RecoverableMessageException {
+		// Only proceed if work is needed.
+		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion.toString())) {
+			log.info("Index already up-to-date for table: " + idAndVersion);
+			return;
+		}
+		/*
+		 * Before we start working on the table make sure it is in the processing mode.
+		 * This will generate a new reset token and will not broadcast the change.
+		 */
+		final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion.toString());
+		// Attempt to run with
+		try {
+
+			// Run with the exclusive lock on the table if we can get it.
+			String lastEtag = tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion.toString(), 120,
+					(ProgressCallback callback) -> {
+						return buildIndexToChangeNumberWithExclusiveLock(idAndVersion, iterator, lastChangeNumber,
+								tableResetToken);
+					});
+			log.info("Completed index update for: " + idAndVersion);
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion.toString(), tableResetToken, lastEtag);
+		} catch (LockUnavilableException | TableUnavailableException | InterruptedException| IOException e) {
+			throw new RecoverableMessageException(e);
+		} catch (Exception e) {
+			// Any other error is a table failure.
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion.toString(), tableResetToken, e);
+			// This is not an error we can recover from.
+			log.info("Unrecoverable failure to update table index: "+idAndVersion);
+		}
+	}
+	
+	/**
+	 * Note: The caller must be holding an exclusive lock on table while calling this method.
+	 * Build the table index
+	 * @param tableId
+	 * @param iterator
+	 * @param lastChangeNumber
+	 * @param tableResetToken
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 */
+	String buildIndexToChangeNumberWithExclusiveLock(final IdAndVersion idAndVersion, final Iterator<TableChangeMetaData> iterator,
+			final Optional<Long> lastChangeNumber, final String tableResetToken) throws NotFoundException, IOException {
+		if(!lastChangeNumber.isPresent()) {
+			// there are no change for this table so there is nothing to do
+			return null;
+		}
+		String lastEtag = null;
+		// Inspect each change.
+		while(iterator.hasNext()) {
+			TableChangeMetaData changeMetadata = iterator.next();
+			if(changeMetadata.getChangeNumber() > lastChangeNumber.get()) {
+				// all changes have been applied to the index.
+				break;
+			}
+			if(!isVersionAppliedToIndex(idAndVersion, changeMetadata.getChangeNumber())) {
+				// This change needs to be applied to the table
+				tableManagerSupport.attemptToUpdateTableProgress(idAndVersion.toString(),
+						tableResetToken, "Applying change: " + changeMetadata.getChangeNumber(), changeMetadata.getChangeNumber(),
+						lastChangeNumber.get());
+				appleyChangeToIndex(idAndVersion, changeMetadata);
+			}
+		}
+		// now that table is created and populated the indices on the table can be optimized.
+		optimizeTableIndices(idAndVersion);
+		return lastEtag;
+	}
+	
+	/**
+	 * Apply the provided change to the provided index.
+	 * 
+	 * @param idAndVersion
+	 * @param changeMetadata
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	void appleyChangeToIndex(IdAndVersion idAndVersion, TableChangeMetaData changeMetadata) throws NotFoundException, IOException {
+		switch(changeMetadata.getChangeType()) {
+		case ROW:
+			applyRowChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SparseChangeSet.class));
+			break;
+		case COLUMN:
+			applySchemaChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SchemaChange.class));
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown type: "+changeMetadata.getChangeType());
+		}
+	}
+	
+	/**
+	 * Apply the provided schema change to the provided table's index.
+	 * 
+	 * @param idAndVersion
+	 * @param schemaChangeData
+	 */
+	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
+		boolean isTableView = false;
+		updateTableSchema(idAndVersion, isTableView, schemaChangeData.getChange().getDetails());
+		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
+	}
+	
+	/**
+	 * Apply the provided row change set to the provied table's index.
+	 * @param idAndVersion
+	 * @param rowChange
+	 */
+	void applyRowChangeToIndex(IdAndVersion idAndVersion, ChangeData<SparseChangeSet> rowChange) {
+		// Get the change set.
+		SparseChangeSet sparseChangeSet = rowChange.getChange();
+		// match the schema to the change set.
+		boolean isTableView = false;
+		setIndexSchema(idAndVersion, isTableView, sparseChangeSet.getSchema());
+		// attempt to apply this change set to the table.
+		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
 	}
 
 }

@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.After;
 import org.junit.Before;
@@ -297,6 +298,31 @@ public class TableRowTruthDAOImplTest {
 		change = tableRowTruthDao.getLastTableRowChange(tableId, changeType);
 		assertNull(change);
 	}
+	
+	@Test
+	public void testGetLastTableChangeNumber() throws IOException{
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		// call under test
+		Optional<Long> lastChangeNumber = tableRowTruthDao.getLastTableChangeNumber(tableId);
+		assertNotNull(lastChangeNumber);
+		assertTrue(lastChangeNumber.isPresent());
+		assertEquals(new Long(0), lastChangeNumber.get());
+	}
+	
+	@Test
+	public void testGetLastTableChangeNumberEmpty() throws IOException{
+		// call under test
+		Optional<Long> lastChangeNumber = tableRowTruthDao.getLastTableChangeNumber(tableId);
+		assertNotNull(lastChangeNumber);
+		assertFalse(lastChangeNumber.isPresent());
+	}
+	
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetLastTableRowChangeNullType() throws IOException{

@@ -44,9 +44,6 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
-import org.sagebionetworks.repo.manager.table.change.ChangeData;
-import org.sagebionetworks.repo.manager.table.change.RowChange;
-import org.sagebionetworks.repo.manager.table.change.SchemaChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -99,6 +96,8 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.ChangeData;
+import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -1525,20 +1524,20 @@ public class TableEntityManagerTest {
 		assertEquals(new Long(0), metaOne.getChangeNumber());
 		assertEquals(TableChangeType.ROW, metaOne.getChangeType());
 		// load the row.
-		ChangeData changeData = metaOne.loadChangeData();
+		ChangeData<SparseChangeSet> changeData = metaOne.loadChangeData(SparseChangeSet.class);
 		assertNotNull(changeData);
+		assertEquals(0L, changeData.getChangeNumber());
 		verify(mockTruthDao, times(1)).getRowSet(any(TableRowChange.class));
-		assertTrue(changeData instanceof RowChange);
 		
 		// two
 		TableChangeMetaData metaTwp = results.get(1);
 		assertEquals(new Long(1), metaTwp.getChangeNumber());
 		assertEquals(TableChangeType.COLUMN, metaTwp.getChangeType());
 		// load the row.
-		changeData = metaTwp.loadChangeData();
-		assertNotNull(changeData);
+		ChangeData<SchemaChange> schemaChange = metaTwp.loadChangeData(SchemaChange.class);
+		assertNotNull(schemaChange);
+		assertEquals(1L, schemaChange.getChangeNumber());
 		verify(mockTruthDao, times(1)).getSchemaChangeForVersion(tableId, 1L);
-		assertTrue(changeData instanceof SchemaChange);
 	}
 	
 	/**

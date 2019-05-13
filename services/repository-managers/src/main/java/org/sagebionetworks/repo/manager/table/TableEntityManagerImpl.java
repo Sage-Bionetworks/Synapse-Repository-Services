@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -14,9 +15,6 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
-import org.sagebionetworks.repo.manager.table.change.ChangeData;
-import org.sagebionetworks.repo.manager.table.change.RowChange;
-import org.sagebionetworks.repo.manager.table.change.SchemaChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -63,8 +61,11 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.ChangeData;
+import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
@@ -839,20 +840,29 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 
 		@Override
-		public ChangeData loadChangeData() throws NotFoundException, IOException {
+		public <T extends TableChange> ChangeData<T> loadChangeData(Class<T> clazz)
+				throws NotFoundException, IOException {
+			TableChange tableChange = null;
 			switch (wrapped.getChangeType()) {
 			case ROW:
-				SparseChangeSet sparseChangeSet = getSparseChangeSet(wrapped);
-				return new RowChange(sparseChangeSet);
+				tableChange = getSparseChangeSet(wrapped);
+				break;
 			case COLUMN:
-				List<ColumnChangeDetails> schemaChange = getSchemaChangeForVersion(wrapped.getTableId(),
+				List<ColumnChangeDetails> details = getSchemaChangeForVersion(wrapped.getTableId(),
 						wrapped.getRowVersion());
-				return new SchemaChange(schemaChange);
+				tableChange = new SchemaChange(details);
+				break;
 			default:
 				throw new IllegalStateException("Unknown type: " + wrapped.getChangeType());
 			}
+			return new ChangeData<>(wrapped.getRowVersion(), clazz.cast(tableChange));
 		}
 
+	}
+
+	@Override
+	public Optional<Long> getLastTableChangeNumber(String tableId) {
+		return this.tableRowTruthDao.getLastTableChangeNumber(tableId);
 	}
 
 }

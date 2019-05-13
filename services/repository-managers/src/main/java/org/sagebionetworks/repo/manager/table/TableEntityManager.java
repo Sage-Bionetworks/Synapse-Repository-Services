@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -258,6 +259,15 @@ public interface TableEntityManager {
 	 * @return
 	 */
 	List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset);
+
+	/**
+	 * Get the last change number applied to the table.
+	 * 
+	 * @param tableId
+	 * @return Will return an empty optional if no changes have been applied to the
+	 *         table.
+	 */
+	public Optional<Long> getLastTableChangeNumber(String tableId);
 
 
 }

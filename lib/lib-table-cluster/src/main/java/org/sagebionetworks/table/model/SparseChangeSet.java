@@ -20,7 +20,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * A sparsely populated matrix of data representing a single table change set.
  *
  */
-public class SparseChangeSet {
+public class SparseChangeSet implements TableChange {
 
 	String tableId;
 	String etag;

@@ -1,15 +1,19 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
@@ -187,6 +191,19 @@ public interface TableIndexManager {
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
 	public ColumnModelPage getPossibleColumnModelsForView(Long viewId, String nextPageToken);
+
+	/**
+	 * Build the index for the given table using the provided change metadata up to and
+	 * including the provided last change number.
+	 * @param progressCallback 
+	 * 
+	 * @param tableId
+	 * @param iterator
+	 * @param lastChangeNumber
+	 * @throws RecoverableMessageException Will RecoverableMessageException if the index cannot be built at this time.
+	 */
+	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator,
+			Optional<Long> lastChangeNumber) throws RecoverableMessageException;
 	
 
 }
