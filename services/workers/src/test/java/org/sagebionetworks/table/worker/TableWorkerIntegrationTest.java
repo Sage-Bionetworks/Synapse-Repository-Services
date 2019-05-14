@@ -1486,7 +1486,7 @@ public class TableWorkerIntegrationTest {
 
 
 	/**
-	 * There were several issue related to creating tables with no columns an now rows.  This test validates that such tables are supported.
+	 * There were several issue related to creating tables with no columns and no rows.  This test validates that such tables are supported.
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 * @throws InvalidModelException 
