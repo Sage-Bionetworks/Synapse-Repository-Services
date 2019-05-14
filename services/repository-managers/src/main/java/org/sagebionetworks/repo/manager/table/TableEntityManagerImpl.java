@@ -838,6 +838,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		public TableChangeType getChangeType() {
 			return wrapped.getChangeType();
 		}
+		
+		@Override
+		public String getETag() {
+			return wrapped.getEtag();
+		}
 
 		@Override
 		public <T extends TableChange> ChangeData<T> loadChangeData(Class<T> clazz)

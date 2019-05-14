@@ -37,4 +37,10 @@ public interface TableChangeMetaData {
 	 * @throws NotFoundException 
 	 */
 	<T extends TableChange> ChangeData<T> loadChangeData(Class<T> clazz) throws NotFoundException, IOException;
+
+	/**
+	 * Get the Etag associated with this change.
+	 * @return
+	 */
+	String getETag();
 }

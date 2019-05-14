@@ -433,6 +433,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 						tableResetToken, "Applying change: " + changeMetadata.getChangeNumber(), changeMetadata.getChangeNumber(),
 						lastChangeNumber.get());
 				appleyChangeToIndex(idAndVersion, changeMetadata);
+				lastEtag = changeMetadata.getETag();
 			}
 		}
 		// now that table is created and populated the indices on the table can be optimized.

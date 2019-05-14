@@ -3,7 +3,6 @@ package org.sagebionetworks.table.worker;
 import java.util.Iterator;
 import java.util.Optional;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
@@ -25,8 +24,6 @@ public class TableIndexWorker implements ChangeMessageDrivenRunner {
 	TableEntityManager tableEntityManager;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
-	@Autowired
-	StackConfiguration configuration;
 	@Autowired
 	TableIndexConnectionFactory connectionFactory;
 
