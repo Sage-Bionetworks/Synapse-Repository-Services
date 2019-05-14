@@ -29,6 +29,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -719,8 +720,10 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testGetTableSemaphoreKey() {
-		assertEquals("TALBE-LOCK-123", TableModelUtils.getTableSemaphoreKey("syn123"));
-		assertEquals("TALBE-LOCK-456", TableModelUtils.getTableSemaphoreKey("456"));
+		IdAndVersion withVersion = IdAndVersion.parse("syn123.456");
+		assertEquals("TALBE-LOCK-123-456", TableModelUtils.getTableSemaphoreKey(withVersion));
+		IdAndVersion noVersion = IdAndVersion.parse("456");
+		assertEquals("TALBE-LOCK-456", TableModelUtils.getTableSemaphoreKey(noVersion));
 	}
 	
 	@Test

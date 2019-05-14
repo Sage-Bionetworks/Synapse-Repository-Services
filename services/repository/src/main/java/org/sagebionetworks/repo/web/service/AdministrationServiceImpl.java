@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -189,7 +190,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	@Override
 	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		tableManagerSupport.rebuildTable(userInfo, tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		tableManagerSupport.rebuildTable(userInfo, idAndVersion);
 	}
 
 	@Override

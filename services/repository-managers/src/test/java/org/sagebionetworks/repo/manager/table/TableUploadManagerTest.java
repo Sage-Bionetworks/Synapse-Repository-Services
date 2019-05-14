@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -78,6 +79,7 @@ public class TableUploadManagerTest {
 	S3FileHandle fileHandle;
 	UserInfo user;
 	UploadToTableRequest uploadRequest;
+	IdAndVersion idAndVersion;
 	List<ColumnModel> tableSchema;
 	ObjectMetadata fileMetadata;
 	String csvString;
@@ -93,6 +95,7 @@ public class TableUploadManagerTest {
 		uploadRequest.setTableId("syn456");
 		uploadRequest.setUploadFileHandleId("789");
 		uploadRequest.setUpdateEtag("updateEtag");
+		idAndVersion = IdAndVersion.parse(uploadRequest.getTableId());
 
 		// FileHandle
 		fileHandle = new S3FileHandle();
@@ -118,7 +121,7 @@ public class TableUploadManagerTest {
 
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
-		when(mockTableManagerSupport.getColumnModelsForTable(uploadRequest.getTableId())).thenReturn(tableSchema);
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(tableSchema);
 		rowsRead = new LinkedList<SparseRowDto>();
 		doAnswer(new Answer<TableUpdateResponse>(){
 			@Override
@@ -220,7 +223,7 @@ public class TableUploadManagerTest {
 		
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
-		when(mockTableManagerSupport.getColumnModelsForTable(uploadRequest.getTableId())).thenReturn(tableSchema);
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(tableSchema);
 		
 		// call under test;
 		TableUpdateResponse results = manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);

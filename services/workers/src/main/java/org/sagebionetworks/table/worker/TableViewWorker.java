@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -66,7 +65,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 					return;
 				}else{
 					// create or update the index
-					createOrUpdateIndex(tableId, indexManager, progressCallback, message);
+					createOrUpdateIndex(idAndVersion, indexManager, progressCallback, message);
 				}
 			} catch (TableIndexConnectionUnavailableException e) {
 				// try again later.
@@ -82,16 +81,16 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @throws RecoverableMessageException 
 	 */
-	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback outerCallback, final ChangeMessage message) throws RecoverableMessageException{
+	public void createOrUpdateIndex(final IdAndVersion idAndVersion, final TableIndexManager indexManager, ProgressCallback outerCallback, final ChangeMessage message) throws RecoverableMessageException{
 		// get the exclusive lock to update the table
 		try {
-			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
+			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, idAndVersion, TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
 
 				@Override
 				public Void call(ProgressCallback innerCallback)
 						throws Exception {
 					// next level.
-					createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, message);
+					createOrUpdateIndexHoldingLock(idAndVersion, indexManager, innerCallback, message);
 					return null;
 				}
 
@@ -116,44 +115,42 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @param callback
 	 */
-	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback callback, final ChangeMessage message){
+	public void createOrUpdateIndexHoldingLock(final IdAndVersion idAndVersion, final TableIndexManager indexManager, final ProgressCallback callback, final ChangeMessage message){
 		// Is the index out-of-synch?
-		if(!tableManagerSupport.isIndexWorkRequired(tableId)){
+		if(!tableManagerSupport.isIndexWorkRequired(idAndVersion)){
 			// nothing to do
 			return;
 		}
 		// Start the worker
-		final String token = tableManagerSupport.startTableProcessing(tableId);
+		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 		try{
-			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-			Long viewIdLong = KeyFactory.stringToKey(tableId);
 			// Look-up the type for this table.
-			Long viewTypeMask = tableManagerSupport.getViewTypeMask(viewIdLong);
+			Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(idAndVersion);
 			// Need the MD5 for the original schema.
-			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(tableId);
+			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
 			// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
-			List<ColumnModel> expandedSchema = tableViewManager.getViewSchema(tableId);
+			List<ColumnModel> expandedSchema = tableViewManager.getViewSchema(idAndVersion.getId().toString());
 			
 			// Get the containers for this view.
-			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(viewIdLong, viewTypeMask);
+			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
 
 			// create the table in the index.
 			boolean isTableView = true;
 			indexManager.setIndexSchema(idAndVersion, isTableView, expandedSchema);
-			tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
+			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			// populate the view by coping data from the entity replication tables.
-			Long viewCRC = indexManager.populateViewFromEntityReplication(viewIdLong, callback, viewTypeMask, allContainersInScope, expandedSchema);
+			Long viewCRC = indexManager.populateViewFromEntityReplication(idAndVersion.getId(), callback, viewTypeMask, allContainersInScope, expandedSchema);
 			// now that table is created and populated the indices on the table can be optimized.
 			indexManager.optimizeTableIndices(idAndVersion);
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
-			tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, DEFAULT_ETAG);
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 		}catch (Exception e){
 			// failed.
-			tableManagerSupport.attemptToSetTableStatusToFailed(tableId, token, e);
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, token, e);
 			throw e;
 		}
 

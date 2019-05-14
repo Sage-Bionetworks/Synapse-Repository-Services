@@ -218,11 +218,12 @@ public class TableEntityManagerTest {
 		refSet.setRows(new LinkedList<RowReference>());
 		refSet.setEtag("etag123");
 		
-		when(mockTableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(models);
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
 		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
+		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(IdAndVersion.class)
+				, anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
@@ -261,7 +262,7 @@ public class TableEntityManagerTest {
 		status.setLastTableChangeEtag("etag");
 		ETAG = "";
 		
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		
 		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
 		schemaChangeRequest = new TableSchemaChangeRequest();
@@ -276,7 +277,7 @@ public class TableEntityManagerTest {
 		newColumnIds = Lists.newArrayList("111","333");
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, null)).thenReturn(newColumnIds);
 		
-		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(EntityType.table);
+		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.table);
 		
 		doAnswer(new Answer<Boolean>() {
 			@Override
@@ -328,13 +329,13 @@ public class TableEntityManagerTest {
 
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		manager.appendRows(user, tableId, set, mockProgressCallback, transactionId);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsAsStreamUnauthroized() throws DatastoreException, NotFoundException, IOException{
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				null, mockProgressCallback, transactionId);
@@ -386,8 +387,8 @@ public class TableEntityManagerTest {
 		RowReferenceSet results = manager.appendRows(user, tableId, set, mockProgressCallback, transactionId);
 		assertNotNull(results);
 		// verify the table status was set
-		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 	
 	/**
@@ -418,8 +419,8 @@ public class TableEntityManagerTest {
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback, transactionId);
 		assertNotNull(results);
 		// verify the table status was set
-		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 	
 	@Test
@@ -453,7 +454,7 @@ public class TableEntityManagerTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
 		}
-		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 
 	@Test
@@ -472,9 +473,9 @@ public class TableEntityManagerTest {
 		assertEquals(results.getEtag(), uploadToTableResult.getEtag());
 		assertEquals(new Long(10), uploadToTableResult.getRowsProcessed());
 		// verify the table status was set
-		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 	
 	@Test
@@ -550,8 +551,8 @@ public class TableEntityManagerTest {
 		assertEquals(new Long(4), results.getRows().get(5).getVersionNumber());
 		assertEquals(new Long(5), results.getRows().get(9).getVersionNumber());
 		// verify the table status was set
-		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 
 
@@ -572,8 +573,8 @@ public class TableEntityManagerTest {
 		// verify the correct row set was generated
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
 		// verify the table status was set
-		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 	
 	@Test
@@ -682,7 +683,7 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 
 	@Test
@@ -705,7 +706,7 @@ public class TableEntityManagerTest {
 
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 
 	@Test
@@ -728,8 +729,8 @@ public class TableEntityManagerTest {
 		row = result.getRows().get(1);
 		assertEquals(new Long(3), row.getRowId());
 		
-		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
-		verify(mockTableManagerSupport).getTableEntityType(tableId);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
+		verify(mockTableManagerSupport).getTableEntityType(idAndVersion);
 	}
 	
 	/**
@@ -757,14 +758,14 @@ public class TableEntityManagerTest {
 		assertEquals(1, result.getRows().size());
 		Row row = result.getRows().get(0);
 		assertEquals(new Long(1), row.getRowId());
-		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
-		verify(mockTableManagerSupport).getTableEntityType(tableId);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
+		verify(mockTableManagerSupport).getTableEntityType(idAndVersion);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetCellValuesNonTable() throws DatastoreException, NotFoundException, IOException {
 		// get cell values is only authorized for tables.
-		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(EntityType.entityview);
+		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.entityview);
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
 		rows.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -777,7 +778,7 @@ public class TableEntityManagerTest {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetCellValuesFailNoAccess() throws DatastoreException, NotFoundException, IOException {
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		manager.getCellValues(user, tableId, null, null);
 	}
 
@@ -789,7 +790,7 @@ public class TableEntityManagerTest {
 		Row result = manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
 		assertNotNull(result);
 		assertEquals("string1", result.getValues().get(0));
-		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -803,7 +804,7 @@ public class TableEntityManagerTest {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetColumnValuesFailReadAccess() throws Exception {
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		manager.getCellValue(user, tableId, null, null);
 	}
 	
@@ -886,13 +887,13 @@ public class TableEntityManagerTest {
 				ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
 				runner.call(callback);
 				return null;
-			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
 		
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(schema, tableId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -903,7 +904,7 @@ public class TableEntityManagerTest {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
 				throw new LockUnavilableException("No Lock for you!");
-			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
 		
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
@@ -923,7 +924,7 @@ public class TableEntityManagerTest {
 	public void testSetTableDeleted(){
 		// call under test
 		manager.setTableAsDeleted(tableId);
-		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
+		verify(mockTableManagerSupport).setTableDeleted(idAndVersion, ObjectType.TABLE);
 	}
 	
 	@Test
@@ -1086,7 +1087,7 @@ public class TableEntityManagerTest {
 	public void testUpdateTable() throws IOException{
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
 	
@@ -1148,7 +1149,7 @@ public class TableEntityManagerTest {
 		assertTrue(response instanceof RowReferenceSetResults);
 		RowReferenceSetResults  rrsr = (RowReferenceSetResults) response;
 		assertNotNull(rrsr.getRowReferenceSet());
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.ROW);
 	}
 	
@@ -1162,7 +1163,7 @@ public class TableEntityManagerTest {
 		assertTrue(response instanceof RowReferenceSetResults);
 		RowReferenceSetResults  rrsr = (RowReferenceSetResults) response;
 		assertNotNull(rrsr.getRowReferenceSet());
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1183,7 +1184,7 @@ public class TableEntityManagerTest {
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
 		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges(), transactionId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 
 	@Test
@@ -1210,7 +1211,7 @@ public class TableEntityManagerTest {
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), newColumnIds);
 		verify(mockColumModelManager).bindColumnToObject(newColumnIds, tableId);
 		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class), anyLong());
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -1443,26 +1444,26 @@ public class TableEntityManagerTest {
 	@Test
 	public void testTeleteTableIfDoesNotExistShouldNotDelete() {
 		// the table exists
-		when(mockTableManagerSupport.doesTableExist(tableId)).thenReturn(true);
+		when(mockTableManagerSupport.doesTableExist(idAndVersion)).thenReturn(true);
 		//call under test
 		manager.deleteTableIfDoesNotExist(tableId);
 		// since the table exist do not delete anything
 		verify(mockColumModelManager, never()).unbindAllColumnsAndOwnerFromObject(anyString());
 		verify(mockTruthDao, never()).deleteAllRowDataForTable(anyString());
-		verify(mockTableManagerSupport, never()).setTableDeleted(anyString(), any(ObjectType.class));
+		verify(mockTableManagerSupport, never()).setTableDeleted(any(IdAndVersion.class), any(ObjectType.class));
 	}
 	
 	@Test
 	public void testTeleteTableIfDoesNotExistShouldDelete() {
 		// the table does not exist
-		when(mockTableManagerSupport.doesTableExist(tableId)).thenReturn(false);
+		when(mockTableManagerSupport.doesTableExist(idAndVersion)).thenReturn(false);
 		//call under test
 		manager.deleteTableIfDoesNotExist(tableId);
 		// since the table does not exist, delete all of the table's data.
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
 		// deleting the table should not send out another delete change. (PLFM-4799).
-		verify(mockTableManagerSupport, never()).setTableDeleted(anyString(), any(ObjectType.class));
+		verify(mockTableManagerSupport, never()).setTableDeleted(any(IdAndVersion.class), any(ObjectType.class));
 	}
 	
 	/**

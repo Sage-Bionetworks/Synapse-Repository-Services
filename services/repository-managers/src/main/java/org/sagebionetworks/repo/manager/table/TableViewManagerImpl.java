@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -61,6 +62,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		ValidateArgument.required(scope, "scope");
 		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
+		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);
 		Set<Long> scopeIds = null;
 		if(scope.getScope() != null){
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
@@ -79,18 +81,20 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Define the schema of this view.
 		columModelManager.bindColumnToObject(schema, viewIdString);
 		// trigger an update
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewIdString);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 
 	@Override
 	public Set<Long> findViewsContainingEntity(String entityId) {
-		Set<Long> entityPath = tableManagerSupport.getEntityPath(entityId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(entityId);
+		Set<Long> entityPath = tableManagerSupport.getEntityPath(idAndVersion);
 		return viewScopeDao.findViewScopeIntersectionWithPath(entityPath);
 	}
 
 	@Override
 	public List<ColumnModel> getViewSchema(String tableId) {
-		 return tableManagerSupport.getColumnModelsForTable(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		return tableManagerSupport.getColumnModelsForTable(idAndVersion);
 	}
 
 	@WriteTransaction
@@ -101,8 +105,9 @@ public class TableViewManagerImpl implements TableViewManager {
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
 		validateViewSchemaSize(newSchemaIds);
 		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, viewId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		// trigger an update.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewId);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		return newSchema;
 	}
 	

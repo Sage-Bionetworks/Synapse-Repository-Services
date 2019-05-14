@@ -327,8 +327,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public ColumnModelPage getPossibleColumnModelsForView(
 			final Long viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
-		Long type = tableManagerSupport.getViewTypeMask(viewId);
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId, type);
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
+		Long type = tableManagerSupport.getViewTypeMask(idAndVersion);
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, type);
 		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
 	}
 	
@@ -373,7 +374,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void buildIndexToChangeNumber(final ProgressCallback progressCallback, final IdAndVersion idAndVersion,
 			final Iterator<TableChangeMetaData> iterator, final Optional<Long> lastChangeNumber) throws RecoverableMessageException {
 		// Only proceed if work is needed.
-		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion.toString())) {
+		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
 			log.info("Index already up-to-date for table: " + idAndVersion);
 			return;
 		}
@@ -381,23 +382,23 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		 * Before we start working on the table make sure it is in the processing mode.
 		 * This will generate a new reset token and will not broadcast the change.
 		 */
-		final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion.toString());
+		final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion);
 		// Attempt to run with
 		try {
 
 			// Run with the exclusive lock on the table if we can get it.
-			String lastEtag = tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion.toString(), 120,
+			String lastEtag = tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, 120,
 					(ProgressCallback callback) -> {
 						return buildIndexToChangeNumberWithExclusiveLock(idAndVersion, iterator, lastChangeNumber,
 								tableResetToken);
 					});
 			log.info("Completed index update for: " + idAndVersion);
-			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion.toString(), tableResetToken, lastEtag);
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, lastEtag);
 		} catch (LockUnavilableException | TableUnavailableException | InterruptedException| IOException e) {
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			// Any other error is a table failure.
-			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion.toString(), tableResetToken, e);
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, tableResetToken, e);
 			// This is not an error we can recover from.
 			log.info("Unrecoverable failure to update table index: "+idAndVersion);
 		}
@@ -429,7 +430,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			}
 			if(!isVersionAppliedToIndex(idAndVersion, changeMetadata.getChangeNumber())) {
 				// This change needs to be applied to the table
-				tableManagerSupport.attemptToUpdateTableProgress(idAndVersion.toString(),
+				tableManagerSupport.attemptToUpdateTableProgress(idAndVersion,
 						tableResetToken, "Applying change: " + changeMetadata.getChangeNumber(), changeMetadata.getChangeNumber(),
 						lastChangeNumber.get());
 				appleyChangeToIndex(idAndVersion, changeMetadata);
@@ -450,6 +451,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @throws IOException
 	 */
 	void appleyChangeToIndex(IdAndVersion idAndVersion, TableChangeMetaData changeMetadata) throws NotFoundException, IOException {
+		// Load the change based on the type and added the change to the index.
 		switch(changeMetadata.getChangeType()) {
 		case ROW:
 			applyRowChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SparseChangeSet.class));

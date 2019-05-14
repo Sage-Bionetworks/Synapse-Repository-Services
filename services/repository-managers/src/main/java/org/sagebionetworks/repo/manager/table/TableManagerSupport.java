@@ -37,7 +37,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 *             if the table does not exist
 	 */
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId)
+	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
 			throws NotFoundException;
 
 	/**
@@ -55,7 +55,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToAvailable(String tableId,
+	public void attemptToSetTableStatusToAvailable(IdAndVersion tableId,
 			String resetToken, String tableChangeEtag)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -74,7 +74,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToFailed(String tableId,
+	public void attemptToSetTableStatusToFailed(IdAndVersion tableId,
 			String resetToken, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -94,7 +94,7 @@ public interface TableManagerSupport {
 	 *             processing finished.
 	 * @throws NotFoundException
 	 */
-	public void attemptToUpdateTableProgress(String tableId, String resetToken,
+	public void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -105,7 +105,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public String startTableProcessing(String tableId);
+	public String startTableProcessing(IdAndVersion tableId);
 
 	/**
 	 * Is the table's index synchronized with the truth data?
@@ -113,7 +113,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexSynchronizedWithTruth(String tableId);
+	public boolean isIndexSynchronizedWithTruth(IdAndVersion tableId);
 
 	/**
 	 * Index work is required if the index is out-of-synch with the truth or the
@@ -122,21 +122,21 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexWorkRequired(String tableId);
+	public boolean isIndexWorkRequired(IdAndVersion tableId);
 
 	/**
 	 * Set the table to processing and send an update message.
 	 * 
 	 * @param tableId
 	 */
-	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId);
+	public TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion tableId);
 
 	/**
 	 * Set the table to be deleted.
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableDeleted(String deletedId, ObjectType tableType);
+	public void setTableDeleted(IdAndVersion deletedId, ObjectType tableType);
 
 	/**
 	 * The MD5 hex of a table's schema.
@@ -144,7 +144,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	String getSchemaMD5Hex(String tableId);
+	String getSchemaMD5Hex(IdAndVersion tableId);
 
 	/**
 	 * Get the version of the given table. This is can be different for each
@@ -154,7 +154,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	long getTableVersion(String tableId);
+	long getTableVersion(IdAndVersion tableId);
 
 	/**
 	 * Is the given table available.
@@ -162,7 +162,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	boolean isTableAvailable(String tableId);
+	boolean isTableAvailable(IdAndVersion tableId);
 
 	/**
 	 * Lookup the object type for this table.
@@ -170,7 +170,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	ObjectType getTableType(String tableId);
+	ObjectType getTableType(IdAndVersion tableId);
 
 	/**
 	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView. The CRC is
@@ -182,7 +182,7 @@ public interface TableManagerSupport {
 	 * @param table
 	 * @return
 	 */
-	public Long calculateViewCRC32(Long table);
+	public Long calculateViewCRC32(IdAndVersion table);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -192,10 +192,10 @@ public interface TableManagerSupport {
 	 * All FileEntities within the the given view will have a parentId from the
 	 * returned set.
 	 * 
-	 * @param viewId
+	 * @param idAndVersion
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(Long viewId, Long viewTypeMask);
+	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, Long viewTypeMask);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -241,7 +241,7 @@ public interface TableManagerSupport {
 	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			String tableId, int timeoutSeconds, ProgressingCallable<R> runner)
+			IdAndVersion tableId, int timeoutSeconds, ProgressingCallable<R> runner)
 			throws Exception;
 	
 	/**
@@ -273,7 +273,7 @@ public interface TableManagerSupport {
 	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, String tableId, int timeoutSeconds,
+			ProgressCallback callback, IdAndVersion tableId, int timeoutSeconds,
 			ProgressingCallable<R> runner) throws Exception;
 
 	/**
@@ -285,7 +285,7 @@ public interface TableManagerSupport {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	EntityType validateTableReadAccess(UserInfo userInfo, String tableId)
+	EntityType validateTableReadAccess(UserInfo userInfo, IdAndVersion tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
@@ -297,7 +297,7 @@ public interface TableManagerSupport {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void validateTableWriteAccess(UserInfo userInfo, String tableId)
+	void validateTableWriteAccess(UserInfo userInfo, IdAndVersion tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
@@ -308,7 +308,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public List<ColumnModel> getColumnModelsForTable(String tableId)
+	public List<ColumnModel> getColumnModelsForTable(IdAndVersion tableId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -363,7 +363,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public EntityType getTableEntityType(String tableId);
+	public EntityType getTableEntityType(IdAndVersion tableId);
 
 	/**
 	 * Get the path of the given entity.
@@ -371,7 +371,7 @@ public interface TableManagerSupport {
 	 * @param entityId
 	 * @return
 	 */
-	public Set<Long> getEntityPath(String entityId);
+	public Set<Long> getEntityPath(IdAndVersion entityId);
 
 	/**
 	 * Get the view type for the given table ID.
@@ -379,7 +379,7 @@ public interface TableManagerSupport {
 	 * @param viewId
 	 * @return
 	 */
-	Long getViewTypeMask(Long viewId);
+	Long getViewTypeMask(IdAndVersion viewId);
 
 	/**
 	 * Only Administrator can perform this action.
@@ -388,7 +388,7 @@ public interface TableManagerSupport {
 	 * @param userInfo
 	 * @param tableId
 	 */
-	public void rebuildTable(UserInfo userInfo, String tableId);
+	public void rebuildTable(UserInfo userInfo, IdAndVersion tableId);
 
 	/**
 	 * Validate that the given scope is within the size limit.
@@ -414,6 +414,6 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean doesTableExist(String tableId);
+	public boolean doesTableExist(IdAndVersion tableId);
 
 }

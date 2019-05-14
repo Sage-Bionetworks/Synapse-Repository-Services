@@ -84,7 +84,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				return;
 			} else {
 				// this method does the real work.
-				State state = createOrUpdateTable(progressCallback, tableId, indexManager, change);
+				State state = createOrUpdateTable(progressCallback, idAndVersion, indexManager, change);
 				if (State.RECOVERABLE_FAILURE.equals(state)) {
 					throw new RecoverableMessageException();
 				}
@@ -101,13 +101,13 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 */
 	public State createOrUpdateTable(
 			ProgressCallback progressCallback,
-			final String tableId, final TableIndexManager tableIndexManger,
+			final IdAndVersion idAndVersion, final TableIndexManager tableIndexManger,
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
 			// Only proceed if work is needed.
-			if(!tableManagerSupport.isIndexWorkRequired(tableId)){
-				log.info("No work needed for table "+tableId);
+			if(!tableManagerSupport.isIndexWorkRequired(idAndVersion)){
+				log.info("No work needed for table "+idAndVersion);
 				return State.SUCCESS;
 			}
 			
@@ -115,13 +115,13 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			 * Before we start working on the table make sure it is in the processing mode.
 			 * This will generate a new reset token and will not broadcast the change.
 			 */
-			final String tableResetToken = tableManagerSupport.startTableProcessing(tableId);
+			final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion);
 
 			// Run with the exclusive lock on the table if we can get it.
-			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, tableId, lockTimeoutSec,
+			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, lockTimeoutSec,
 					(ProgressCallback progress) -> {
 						// This method does the real work.
-						return createOrUpdateWhileHoldingLock(tableId, tableIndexManger, tableResetToken, change);
+						return createOrUpdateWhileHoldingLock(idAndVersion, tableIndexManger, tableResetToken, change);
 					});
 		} catch (LockUnavilableException e) {
 			// We did not get the lock on this table.
@@ -158,31 +158,31 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	private State createOrUpdateWhileHoldingLock(String tableId, TableIndexManager tableIndexManager,
+	private State createOrUpdateWhileHoldingLock(IdAndVersion idAndVersion, TableIndexManager tableIndexManager,
 			String tableResetToken, ChangeMessage change)
 			throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
-		log.info("Create index " + tableId);
+		log.info("Create index " + idAndVersion);
 		try {
 			// Save the status before we start
 			// This method will do the rest of the work.
 			String lastEtag = synchIndexWithTable(tableIndexManager,
-					tableId, tableResetToken, change);
+					idAndVersion, tableResetToken, change);
 			// We are finished set the status
-			log.info("Create index " + tableId + " done");
-			tableManagerSupport.attemptToSetTableStatusToAvailable(tableId,
+			log.info("Create index " + idAndVersion + " done");
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion,
 					tableResetToken, lastEtag);
 			return State.SUCCESS;
 		} catch (TableUnavailableException e) {
 			// recoverable
-			log.info("Create index " + tableId + " aborted, unavailable");
+			log.info("Create index " + idAndVersion + " aborted, unavailable");
 			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
 			// Failed.
 			// Attempt to set the status to failed.
-			tableManagerSupport.attemptToSetTableStatusToFailed(tableId, tableResetToken, e);
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, tableResetToken, e);
 			// This is not an error we can recover from.
-			log.info("Create index " + tableId + " aborted, unrecoverable");
+			log.info("Create index " + idAndVersion + " aborted, unrecoverable");
 			return State.UNRECOVERABLE_FAILURE;
 		}
 	}
@@ -202,22 +202,21 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @throws IOException
 	 * @throws TableUnavailableException
 	 */
-	String synchIndexWithTable(final TableIndexManager indexManager, String tableId, String resetToken,
+	String synchIndexWithTable(final TableIndexManager indexManager, IdAndVersion idAndVersion, String resetToken,
 			ChangeMessage change) throws DatastoreException, NotFoundException,
 			IOException, TableUnavailableException {
 		// Create or update the table with this schema.
-		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
+		tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, resetToken,
 				"Creating table ", 0L, 100L);
 
 		// List all change sets applied to this table.
-		List<TableRowChange> changes = tableEntityManager.listRowSetsKeysForTable(tableId);
+		List<TableRowChange> changes = tableEntityManager.listRowSetsKeysForTable(idAndVersion.toString());
 		
 		// Calculate the total work to perform
 		long totalProgress = 1;
 		for (TableRowChange changSet : changes) {
 				totalProgress += changSet.getRowCount();
 		}
-		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Apply each change set not already indexed
 		long currentProgress = 0;
 		String lastEtag = null;
@@ -228,16 +227,16 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				// Only apply changes sets not already applied to the index.
 				if(!indexManager.isVersionAppliedToIndex(idAndVersion, changeSet.getRowVersion())){
 					// update the progress between actual change.
-					tableManagerSupport.attemptToUpdateTableProgress(tableId,
+					tableManagerSupport.attemptToUpdateTableProgress(idAndVersion,
 							resetToken, "Applying version: " + changeSet.getRowVersion(), currentProgress,
 									totalProgress);
 					// Each type of change is applied 
 					switch(changeSet.getChangeType()){
 					case ROW:
-						applyRowChange(indexManager, tableId, changeSet);
+						applyRowChange(indexManager, idAndVersion, changeSet);
 						break;
 					case COLUMN:
-						applyColumnChange(indexManager, tableId,
+						applyColumnChange(indexManager, idAndVersion,
 								changeSet);
 						break;
 					default:
@@ -247,7 +246,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			}
 		}
 		// After all changes are applied to the index ensure the final schema is set
-		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
+		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(idAndVersion);
 		boolean isTableView = false;
 		indexManager.setIndexSchema(idAndVersion, isTableView, currentSchema);
 		
@@ -266,15 +265,14 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @param changeSet
 	 * @throws IOException
 	 */
-	void applyColumnChange(final TableIndexManager indexManager, String tableId,
+	void applyColumnChange(final TableIndexManager indexManager, IdAndVersion idAndVersion,
 			TableRowChange changeSet) throws IOException {
 		ValidateArgument.required(changeSet, "changeSet");
 		if(!TableChangeType.COLUMN.equals(changeSet.getChangeType())){
 			throw new IllegalArgumentException("Expected: "+TableChangeType.COLUMN);
 		}
-		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// apply the schema change
-		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
+		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(idAndVersion.toString(), changeSet.getRowVersion());
 		boolean isTableView = false;
 		indexManager.updateTableSchema(idAndVersion, isTableView, schemaChange);
 		indexManager.setIndexVersion(idAndVersion, changeSet.getRowVersion());
@@ -290,13 +288,12 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @param changeSet
 	 * @throws IOException
 	 */
-	void applyRowChange(final TableIndexManager indexManager, String tableId,
+	void applyRowChange(final TableIndexManager indexManager, IdAndVersion idAndVersion,
 			TableRowChange change) throws IOException {
 		ValidateArgument.required(change, "changeSet");
 		if(!TableChangeType.ROW.equals(change.getChangeType())){
 			throw new IllegalArgumentException("Expected: "+TableChangeType.ROW);
 		}
-		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = tableEntityManager.getSparseChangeSet(change);
 		// match the schema to the change set.

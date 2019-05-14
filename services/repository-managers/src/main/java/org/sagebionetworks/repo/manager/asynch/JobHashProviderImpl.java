@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -28,6 +29,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 		try {
 			// Extract the tableId from the request body.
 			String tableId = TableQueryUtils.getTableIdFromRequestBody(body);
+			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 
 			/*
 			 * Since view query results can vary with permission changes on
@@ -35,7 +37,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 			 * cached. Returning a null job hash will prevent caching of view
 			 * results. See PLFM-4231.
 			 */
-			ObjectType type = tableManagerSupport.getTableType(tableId);
+			ObjectType type = tableManagerSupport.getTableType(idAndVersion);
 			if (ObjectType.ENTITY_VIEW.equals(type)) {
 				return null;
 			}
@@ -68,8 +70,9 @@ public class JobHashProviderImpl implements JobHashProvider {
 	 */
 	private String getTableEtag(String tableId) {
 		// Base the etag on the table status
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableStatus status = tableManagerSupport
-				.getTableStatusOrCreateIfNotExists(tableId);
+				.getTableStatusOrCreateIfNotExists(idAndVersion);
 		return status.getLastTableChangeEtag() + status.getResetToken();
 	}
 }

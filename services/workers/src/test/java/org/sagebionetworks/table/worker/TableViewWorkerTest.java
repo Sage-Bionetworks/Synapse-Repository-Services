@@ -3,7 +3,6 @@ package org.sagebionetworks.table.worker;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -95,10 +94,10 @@ public class TableViewWorkerTest {
 		// setup default responses
 		viewScope = Sets.newHashSet(1L,2L);
 	
-		when(tableManagerSupport.startTableProcessing(tableId)).thenReturn(token);
-		when(tableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
-		when(tableManagerSupport.getAllContainerIdsForViewScope(tableViewIdLong, ViewTypeMask.File.getMask())).thenReturn(viewScope);
-		when(tableManagerSupport.getViewTypeMask(tableViewIdLong)).thenReturn(ViewTypeMask.File.getMask());
+		when(tableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		when(tableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		when(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, ViewTypeMask.File.getMask())).thenReturn(viewScope);
+		when(tableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(ViewTypeMask.File.getMask());
 
 		when(connectionFactory.connectToTableIndex(idAndVersion)).thenReturn(
 				indexManager);
@@ -116,7 +115,7 @@ public class TableViewWorkerTest {
 				return null;
 			}
 		}).when(tableManagerSupport).tryRunWithTableExclusiveLock(
-				any(ProgressCallback.class), anyString(), anyInt(),
+				any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 				any(ProgressingCallable.class));
 		
 		schema = new LinkedList<>();
@@ -141,7 +140,7 @@ public class TableViewWorkerTest {
 		
 		List<String> columnIds = TableModelUtils.getIds(schema);
 		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
-		when(tableManagerSupport.getSchemaMD5Hex(tableId)).thenReturn(schemaMD5Hex);
+		when(tableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(schemaMD5Hex);
 		
 		rowCount = 1;
 		rows = new LinkedList<Row>();
@@ -150,7 +149,7 @@ public class TableViewWorkerTest {
 			row.setRowId(i);
 			rows.add(row);
 		}
-		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(schema);
+		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(schema);
 		when(tableViewManager.getViewSchema(tableId)).thenReturn(expandedSchema);
 		long viewIdLong = KeyFactory.stringToKey(tableId);
 		viewCRC = 888L;		
@@ -189,7 +188,7 @@ public class TableViewWorkerTest {
 		// setup no lock
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException("No lock for you"));
 		// call under test
@@ -202,7 +201,7 @@ public class TableViewWorkerTest {
 		// If this exception is caught it must be re-thrown.
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new RecoverableMessageException("Should get re-thrown"));
 		// call under test
@@ -212,37 +211,37 @@ public class TableViewWorkerTest {
 	@Test
 	public void testRunIsIndexWorkRequiredFalse() throws Exception{
 		// Setup the synched state
-		when(tableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(false);
+		when(tableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
 		// call under test
 		worker.run(outerCallback, change);
 		// progress should not start for this case
-		verify(tableManagerSupport, never()).startTableProcessing(tableId);
+		verify(tableManagerSupport, never()).startTableProcessing(idAndVersion);
 	}
 	
 	@Test
 	public void testRunIsIndexWorkRequiredTrue() throws Exception{
 		// Setup the synched state
-		when(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)).thenReturn(true);
+		when(tableManagerSupport.isIndexSynchronizedWithTruth(idAndVersion)).thenReturn(true);
 		// call under test
 		worker.run(outerCallback, change);
 		// progress should start for this case
-		verify(tableManagerSupport).startTableProcessing(tableId);
+		verify(tableManagerSupport).startTableProcessing(idAndVersion);
 	}
 	
 	@Test
 	public void testCreateOrUpdateIndexHoldingLock() throws RecoverableMessageException{
 		// call under test
-		worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
+		worker.createOrUpdateIndexHoldingLock(idAndVersion, indexManager, innerCallback, change);
 		
 		verify(indexManager).deleteTableIndex(idAndVersion);
 		boolean isTableView = true;
 		verify(indexManager).setIndexSchema(idAndVersion, isTableView,expandedSchema);
 		verify(tableViewManager).getViewSchema(tableId);
-		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
+		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 		Long viewIdLong = KeyFactory.stringToKey(tableId);
 		verify(indexManager, times(1)).populateViewFromEntityReplication(viewIdLong, innerCallback, ViewTypeMask.File.getMask(), viewScope,expandedSchema);
 		verify(indexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, schemaMD5Hex);
-		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
+		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token, TableViewWorker.DEFAULT_ETAG);
 		verify(indexManager).optimizeTableIndices(idAndVersion);
 	}
 	
@@ -259,13 +258,13 @@ public class TableViewWorkerTest {
 		
 		try {
 			// call under test
-			worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
+			worker.createOrUpdateIndexHoldingLock(idAndVersion, indexManager, innerCallback, change);
 			fail("Should have thrown an exception");
 		} catch (IllegalArgumentException e) {
 			// expected
 		}
-		verify(tableManagerSupport, never()).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
-		verify(tableManagerSupport).attemptToSetTableStatusToFailed(tableId, token, exception);
+		verify(tableManagerSupport, never()).attemptToSetTableStatusToAvailable(idAndVersion, token, TableViewWorker.DEFAULT_ETAG);
+		verify(tableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, token, exception);
 	}
 
 }

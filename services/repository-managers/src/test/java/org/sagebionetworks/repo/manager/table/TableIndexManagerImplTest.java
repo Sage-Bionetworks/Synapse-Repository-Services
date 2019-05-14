@@ -153,9 +153,9 @@ public class TableIndexManagerImplTest {
 		scopeSynIds = Lists.newArrayList("syn123","syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 		viewType = ViewTypeMask.File.getMask();
-		when(mockManagerSupport.getViewTypeMask(tableId.getId())).thenReturn(viewType);
+		when(mockManagerSupport.getViewTypeMask(tableId)).thenReturn(viewType);
 		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId.getId(), viewType)).thenReturn(containerIds);
+		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, viewType)).thenReturn(containerIds);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);

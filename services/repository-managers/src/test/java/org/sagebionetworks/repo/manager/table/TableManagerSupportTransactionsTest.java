@@ -93,7 +93,7 @@ public class TableManagerSupportTransactionsTest {
 				@Override
 				public Void doInTransaction(TransactionStatus txStatus) {
 					// call under test
-					tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+					tableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion);
 					// trigger a rollback
 					throw new IllegalArgumentException("To trigger a rollback.");
 				}
@@ -132,7 +132,7 @@ public class TableManagerSupportTransactionsTest {
 				@Override
 				public Void doInTransaction(TransactionStatus txStatus) {
 					// call under test
-					tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
+					tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 					// trigger a rollback
 					throw new IllegalArgumentException("To trigger a rollback.");
 				}
