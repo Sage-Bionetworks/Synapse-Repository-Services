@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -14,9 +15,15 @@ import java.util.List;
 
 import javax.imageio.IIOException;
 
-import org.junit.Before;
-import org.junit.Test;
+import com.amazonaws.services.s3.internal.AmazonS3ExceptionBuilder;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupportedException;
@@ -35,26 +42,28 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
+@ExtendWith(MockitoExtension.class)
 public class PreviewWorkerTest {
-	
+
+	@Mock
 	ProgressCallback mockProgressCallback;
+	@Mock
 	PreviewManager mockPreveiwManager;
-	ChangeMessage change;
+	@Mock
 	WorkerLogger mockWorkerLogger;
+
+	@InjectMocks
 	PreviewWorker worker;
+
+	ChangeMessage change;
+
 	
-	@Before
+	@BeforeEach
 	public void before(){
-		mockPreveiwManager = Mockito.mock(PreviewManager.class);
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		change = new ChangeMessage();
 		change.setObjectType(ObjectType.FILE);
 		change.setObjectId("123");
 		change.setChangeType(ChangeType.CREATE);
-		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
-		worker = new PreviewWorker();
-		ReflectionTestUtils.setField(worker, "previewManager", mockPreveiwManager);
-		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
 	}
 
 	@Test
@@ -157,6 +166,39 @@ public class PreviewWorkerTest {
 		}
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
 	}
+
+	@Test
+	public void testAmazonS3Exception_ErrorCode_NoSuchKey() throws Exception {
+		// If we do not know what type of error occurred, then we assume
+		// that we will be able to recover from it and therefore, the message
+		// should not be returned as processed.
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
+		exceptionBuilder.setErrorCode("NoSuchKey");
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(exceptionBuilder.build());
+		// Fire!
+		worker.run(mockProgressCallback, change);
+		verifyZeroInteractions(mockWorkerLogger);
+	}
+
+
+	@Test
+	public void testAmazonS3Exception_OtherErrorCodes() throws Exception {
+		// If we do not know what type of error occurred, then we assume
+		// that we will be able to recover from it and therefore, the message
+		// should not be returned as processed.
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
+		exceptionBuilder.setErrorCode("SomethingDifferent");
+
+		AmazonS3Exception expectedException = exceptionBuilder.build();
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		// Fire!
+		worker.run(mockProgressCallback, change);
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
 	
 	@Test
 	public void testUnknownError() throws Exception{
@@ -228,7 +270,6 @@ public class PreviewWorkerTest {
 		// Update messages should be ignored.
 		change.setChangeType(ChangeType.DELETE);
 		S3FileHandle meta = new S3FileHandle();
-		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
 		worker.run(mockProgressCallback, change);
 		// We should not generate a 

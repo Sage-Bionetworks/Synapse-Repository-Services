@@ -1,7 +1,11 @@
 package org.sagebionetworks.file.worker;
 
+import java.util.Collections;
+import java.util.Set;
 import javax.imageio.IIOException;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
@@ -31,6 +35,10 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class PreviewWorker implements ChangeMessageDrivenRunner {
+
+	private static final Set<String> IGNORED_AMAZON_S3_EXCEPTION_ERROR_CODES = Collections.unmodifiableSet(
+			Sets.newHashSet("NoSuchKey", "AccessDenied", "")
+	);
 
 	static private Logger log = LogManager.getLogger(PreviewWorker.class);
 
@@ -100,14 +108,24 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					true);
 			throw new RecoverableMessageException();
-		} catch (Throwable e) {
-			if (e.getCause() instanceof IIOException) {
-				log.info("Failed to process message: " + changeMessage.getChangeNumber() + ". Unable to read file (IIOException).");
-			} else {
-				// If we do not know what went wrong then we do no re-try
-				log.error("Failed to process message: " + changeMessage.toString(), e);
-				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,false);
+		} catch (AmazonS3Exception e){
+			if ("NoSuchKey".equals(e.getErrorCode()) || "AccessDenied"){
+				//nothing to do because the file no longer exists
+			}else {
+				handleThrowable(changeMessage, e);
 			}
+		} catch (Throwable e) {
+			handleThrowable(changeMessage, e);
+		}
+	}
+
+	private void handleThrowable(ChangeMessage changeMessage, Throwable e) {
+		if (e.getCause() instanceof IIOException) {
+			log.info("Failed to process message: " + changeMessage.getChangeNumber() + ". Unable to read file (IIOException).");
+		} else {
+			// If we do not know what went wrong then we do no re-try
+			log.error("Failed to process message: " + changeMessage.toString(), e);
+			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,false);
 		}
 	}
 
