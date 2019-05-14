@@ -25,7 +25,7 @@
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableIndexWorker" />
+									<bean class="org.sagebionetworks.table.worker.TableWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="10" />
