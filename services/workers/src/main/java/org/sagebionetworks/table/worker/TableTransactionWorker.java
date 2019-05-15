@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -66,7 +67,8 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			// Lookup the user that started the job
 			UserInfo userInfo = userManager.getUserInfo(status.getStartedByUserId());
 			// Lookup the type of the table
-			EntityType tableType = tableManagerSupport.getTableEntityType(request.getEntityId());
+			IdAndVersion idAndVersion = IdAndVersion.parse(request.getEntityId());	
+			EntityType tableType = tableManagerSupport.getTableEntityType(idAndVersion);
 			// Lookup the manger for this type
 			TableTransactionManager transactionManager = tableTransactionManagerProvider.getTransactionManagerForType(tableType);
 			// Listen to progress events.

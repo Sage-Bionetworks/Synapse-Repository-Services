@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -19,11 +20,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Before;
@@ -31,10 +34,12 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -44,15 +49,19 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.springframework.transaction.TransactionStatus;
@@ -79,6 +88,7 @@ public class TableIndexManagerImplTest {
 	Long versionNumber;
 	SparseChangeSet sparseChangeSet;
 	List<ColumnModel> schema;
+	String schemaMD5Hex;
 	List<SelectColumn> selectColumns;
 	Long crc32;
 	
@@ -95,6 +105,9 @@ public class TableIndexManagerImplTest {
 	ViewScope scope;
 	
 	Long viewType;
+	ColumnModel newColumn;
+	List<ColumnChangeDetails> columnChanges;
+	
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -108,12 +121,12 @@ public class TableIndexManagerImplTest {
 				TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "aFile", ColumnType.FILEHANDLEID)
 				);
-		
+		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(TableModelUtils.getIds(schema));
 		selectColumns = Arrays.asList(
 				TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createSelectColumn(101L, "aFile", ColumnType.FILEHANDLEID)
 				);
-			
+		
 		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
 		SparseRow row = sparseChangeSet.addEmptyRow();
 		row.setRowId(0L);
@@ -153,13 +166,18 @@ public class TableIndexManagerImplTest {
 		scopeSynIds = Lists.newArrayList("syn123","syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 		viewType = ViewTypeMask.File.getMask();
-		when(mockManagerSupport.getViewTypeMask(tableId.getId())).thenReturn(viewType);
+		when(mockManagerSupport.getViewTypeMask(tableId)).thenReturn(viewType);
 		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId.getId(), viewType)).thenReturn(containerIds);
+		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, viewType)).thenReturn(containerIds);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);
 		scope.setViewTypeMask(viewType);
+		
+		ColumnModel oldColumn = null;
+		newColumn = new ColumnModel();
+		newColumn.setId("12");
+		columnChanges = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -308,24 +326,20 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testUpdateTableSchemaAddColumn(){
-		ColumnModel oldColumn = null;
-		ColumnModel newColumn = new ColumnModel();
-		newColumn.setId("12");
-		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(tableId, columnChanges, alterTemp)).thenReturn(true);
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C12_");
 		info.setColumnType(ColumnType.BOOLEAN);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
 		boolean isTableView = false;
 		// call under test
-		manager.updateTableSchema(tableId, isTableView, changes);
+		manager.updateTableSchema(tableId, isTableView, columnChanges);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 		
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(newColumn.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
@@ -684,6 +698,178 @@ public class TableIndexManagerImplTest {
 		assertFalse(change == updated);
 		assertEquals(null, updated.getOldColumn());
 		assertEquals(newColumn, updated.getNewColumn());
+	}
+	
+	@Test
+	public void testApplyRowChangeToIndex() {
+		long changeNumber = 333l;
+		ChangeData<SparseChangeSet> change = new ChangeData<SparseChangeSet>(changeNumber, sparseChangeSet);
+		// call under test
+		manager.applyRowChangeToIndex(tableId, change);
+		
+		// set schema
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId, false);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+		// apply change
+		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+	}
+	
+	@Test
+	public void testApplySchemaChangeToIndex() {
+		long changeNumber = 333l;
+		SchemaChange schemaChange = new SchemaChange(columnChanges);
+		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
+		
+		// Call under test
+		manager.applySchemaChangeToIndex(tableId, change);
+		
+		boolean alterTemp = false;
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+	}
+	
+	@Test
+	public void testAppleyChangeToIndexRow() throws NotFoundException, IOException {
+		long changeNumber = 444L;
+		TableChangeMetaData mockChange = setupMockRowChange(changeNumber);
+		//call under test
+		manager.appleyChangeToIndex(tableId, mockChange);
+		// set schema
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId, false);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+		// apply change
+		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+	}
+	
+	@Test
+	public void testAppleyChangeToIndexRowColumn() throws NotFoundException, IOException {
+		long changeNumber = 444L;
+		TableChangeMetaData mockChange = setupMockColumnChange(changeNumber);
+		//call under test
+		manager.appleyChangeToIndex(tableId, mockChange);
+		// set schema
+		boolean alterTemp = false;
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+	}
+	
+	@Test
+	public void testBuildIndexToChangeNumberWithExclusiveLock() throws Exception {
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		Optional<Long> lastChangeNumber = Optional.of(1L);
+		String resetToken = "resetToken";
+		// call under test
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
+		assertEquals(list.get(1).getETag(), lastEtag);
+		// Progress should be made for both changes
+		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 1L);
+		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 1", 1L, 1L);
+		// row changes should be applied
+		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+		// column changes should be applied
+		boolean alterTemp = false;
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+		// The table should be optimized
+		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
+	}
+	
+	@Test
+	public void testBuildIndexToChangeNumberWithExclusiveLockEmptyLastChangeNumber() throws Exception {
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		// no version means there are no table changes.
+		Optional<Long> lastChangeNumber = Optional.empty();
+		String resetToken = "resetToken";
+		// call under test
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
+		assertEquals(null, lastEtag);
+		// Progress should be made for both changes
+		verify(mockManagerSupport, never()).attemptToUpdateTableProgress(any(IdAndVersion.class), anyString(), anyString(), anyLong(), anyLong());
+		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+		verify(mockIndexDao, never()).alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean());
+		verify(mockIndexDao, never()).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
+	}
+	
+	@Test
+	public void testBuildIndexToChangeNumberWithExclusiveLockFirstChangeOnly() throws Exception {
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L,0L);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		// no version means there are no table changes.
+		Optional<Long> lastChangeNumber = Optional.of(0L);
+		String resetToken = "resetToken";
+		// call under test
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
+		assertEquals(list.get(0).getETag(), lastEtag);
+		// Progress should be made for both changes
+		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 0L);
+		verify(mockManagerSupport, times(1)).attemptToUpdateTableProgress(any(IdAndVersion.class), anyString(), anyString(), anyLong(), anyLong());
+	}
+	
+	@Test
+	public void testBuildIndexToChangeNumberWithExclusiveLockNoWorkNeeded() throws Exception {
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(1L);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		// no version means there are no table changes.
+		Optional<Long> lastChangeNumber = Optional.of(1L);
+		String resetToken = "resetToken";
+		// call under test
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
+		assertEquals(null, lastEtag);
+		// Progress should be made for both changes
+		verify(mockManagerSupport, never()).attemptToUpdateTableProgress(any(IdAndVersion.class), anyString(), anyString(), anyLong(), anyLong());
+		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+		verify(mockIndexDao, never()).alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean());
+		// The table should be optimized
+		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
+	}
+	
+	/**
+	 * Helper to setup both a row and column change within a list.
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	List<TableChangeMetaData> setupMockChanges() throws NotFoundException, IOException{
+		// add a row change
+		TableChangeMetaData rowChange = setupMockRowChange(0L);
+		TableChangeMetaData columnChange = setupMockColumnChange(1L);
+		return Lists.newArrayList(rowChange, columnChange);
+	}
+	
+	/**
+	 * Helper to setup a mock TableChangeMetaData for a Row change.
+	 * @return
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 */
+	public TableChangeMetaData setupMockRowChange(long changeNumber) throws NotFoundException, IOException {
+		TableChangeMetaData mockChange = Mockito.mock(TableChangeMetaData.class);
+		when(mockChange.getChangeNumber()).thenReturn(changeNumber);
+		when(mockChange.getETag()).thenReturn("etag-"+changeNumber);
+		when(mockChange.getChangeType()).thenReturn(TableChangeType.ROW);
+		ChangeData<SparseChangeSet> change = new ChangeData<SparseChangeSet>(changeNumber, sparseChangeSet);
+		when(mockChange.loadChangeData(SparseChangeSet.class)).thenReturn(change);
+		return mockChange;
+	}
+	
+	/**
+	 * Helper to setup a mock TableChangeMetaData for a Column change.
+	 * @return
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 */
+	public TableChangeMetaData setupMockColumnChange(long changeNumber) throws NotFoundException, IOException {
+		TableChangeMetaData mockChange = Mockito.mock(TableChangeMetaData.class);
+		when(mockChange.getChangeNumber()).thenReturn(changeNumber);
+		when(mockChange.getETag()).thenReturn("etag-"+changeNumber);
+		when(mockChange.getChangeType()).thenReturn(TableChangeType.COLUMN);
+		SchemaChange schemaChange = new SchemaChange(columnChanges);
+		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
+		when(mockChange.loadChangeData(SchemaChange.class)).thenReturn(change);
+		return mockChange;
 	}
 	
 	/**

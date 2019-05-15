@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.model.ChangeData;
+import org.sagebionetworks.table.model.TableChange;
 
 /**
  * Abstraction for a single table change, that includes metadata about the
@@ -28,10 +30,17 @@ public interface TableChangeMetaData {
 
 	/**
 	 * Load the actual change data for this change.
+	 * @param <T>
 	 * 
 	 * @return
 	 * @throws IOException 
 	 * @throws NotFoundException 
 	 */
-	ChangeData loadChangeData() throws NotFoundException, IOException;
+	<T extends TableChange> ChangeData<T> loadChangeData(Class<T> clazz) throws NotFoundException, IOException;
+
+	/**
+	 * Get the Etag associated with this change.
+	 * @return
+	 */
+	String getETag();
 }

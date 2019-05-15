@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -163,5 +164,12 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public List<TableRowChange> getTableChangePage(String tableId, long limit, long offset);
+
+	/**
+	 * Get the last change number applied to the given table.
+	 * @param tableId
+	 * @return Will return an empty Optional if no changes have been applied to the table.
+	 */
+	public Optional<Long> getLastTableChangeNumber(String tableId);
 	
 }

@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -14,9 +15,6 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
-import org.sagebionetworks.repo.manager.table.change.ChangeData;
-import org.sagebionetworks.repo.manager.table.change.RowChange;
-import org.sagebionetworks.repo.manager.table.change.SchemaChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -63,8 +61,11 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.ChangeData;
+import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
@@ -182,11 +183,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		Validate.required(user, "user");
 		Validate.required(tableId, "tableId");
 		Validate.required(rowsToDelete, "rowsToDelete");
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 
 		// Validate the user has permission to edit the table
-		tableManagerSupport.validateTableWriteAccess(user, tableId);
+		tableManagerSupport.validateTableWriteAccess(user, idAndVersion);
 		
-		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(tableId);
+		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(idAndVersion);
 		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns, rowsToDelete.getEtag());
 		for(Long rowId: rowsToDelete.getRowIds()){
 			SparseRow row = changeSet.addEmptyRow();
@@ -196,7 +198,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		long transactionId = tableTransactionDao.startTransaction(tableId, user.getId());
 		RowReferenceSet result = appendRowsToTable(user, columns, changeSet, transactionId);
 		// The table has change so we must reset the state.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		return result;
 	}
 
@@ -207,9 +209,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(columns, "columns");
-
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table
-		tableManagerSupport.validateTableWriteAccess(user, tableId);
+		tableManagerSupport.validateTableWriteAccess(user, idAndVersion);
 
 		// Touch an lock on the table.
 		tableManagerSupport.touchTable(user, tableId);
@@ -253,7 +255,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback, transactionId);
 		}
 		// The table has change so we must reset the state.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		// Done
 		UploadToTableResult result = new UploadToTableResult();
 		result.setRowsProcessed(rowCount);
@@ -421,12 +423,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public RowSet getCellValues(UserInfo userInfo, String tableId, List<RowReference> rows, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
-		tableManagerSupport.validateTableReadAccess(userInfo, tableId);
-		EntityType type = tableManagerSupport.getTableEntityType(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);		
+		tableManagerSupport.validateTableReadAccess(userInfo, idAndVersion);
+		EntityType type = tableManagerSupport.getTableEntityType(idAndVersion);
 		if(!EntityType.table.equals(type)){
 			throw new UnauthorizedException("Can only be called for TableEntities");
 		}
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
@@ -535,13 +537,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public void setTableSchema(final UserInfo userInfo, final List<String> columnIds,
 			final String id) {
 		try {
+			IdAndVersion idAndVersion = IdAndVersion.parse(id);			
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, id, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
 
 				@Override
 				public Void call(ProgressCallback callback) throws Exception {
 					columModelManager.bindColumnToObject(columnIds, id);
-					tableManagerSupport.setTableToProcessingAndTriggerUpdate(id);
+					tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 					return null;
 				}
 			});
@@ -739,8 +742,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 				throw new RuntimeException(e);
 			}
 		}
+		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 		// trigger an update.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(changes.getEntityId());
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
 		response.setSchema(newSchema);
 		return response;
@@ -774,7 +778,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@WriteTransaction
 	@Override
 	public void deleteTableIfDoesNotExist(String tableId) {
-		if(!tableManagerSupport.doesTableExist(tableId)) {
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		if(!tableManagerSupport.doesTableExist(idAndVersion)) {
 			// The table no longer exists so delete it.
 			this.deleteTable(tableId);
 		}
@@ -783,7 +788,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@WriteTransaction
 	@Override
 	public void setTableAsDeleted(String deletedId) {
-		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
+		IdAndVersion idAndVersion = IdAndVersion.parse(deletedId);
+		tableManagerSupport.setTableDeleted(idAndVersion, ObjectType.TABLE);
 	}
 
 	@WriteTransaction
@@ -837,22 +843,36 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		public TableChangeType getChangeType() {
 			return wrapped.getChangeType();
 		}
+		
+		@Override
+		public String getETag() {
+			return wrapped.getEtag();
+		}
 
 		@Override
-		public ChangeData loadChangeData() throws NotFoundException, IOException {
+		public <T extends TableChange> ChangeData<T> loadChangeData(Class<T> clazz)
+				throws NotFoundException, IOException {
+			TableChange tableChange = null;
 			switch (wrapped.getChangeType()) {
 			case ROW:
-				SparseChangeSet sparseChangeSet = getSparseChangeSet(wrapped);
-				return new RowChange(sparseChangeSet);
+				tableChange = getSparseChangeSet(wrapped);
+				break;
 			case COLUMN:
-				List<ColumnChangeDetails> schemaChange = getSchemaChangeForVersion(wrapped.getTableId(),
+				List<ColumnChangeDetails> details = getSchemaChangeForVersion(wrapped.getTableId(),
 						wrapped.getRowVersion());
-				return new SchemaChange(schemaChange);
+				tableChange = new SchemaChange(details);
+				break;
 			default:
 				throw new IllegalStateException("Unknown type: " + wrapped.getChangeType());
 			}
+			return new ChangeData<>(wrapped.getRowVersion(), clazz.cast(tableChange));
 		}
 
+	}
+
+	@Override
+	public Optional<Long> getLastTableChangeNumber(String tableId) {
+		return this.tableRowTruthDao.getLastTableChangeNumber(tableId);
 	}
 
 }

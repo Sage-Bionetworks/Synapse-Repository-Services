@@ -1486,7 +1486,7 @@ public class TableWorkerIntegrationTest {
 
 
 	/**
-	 * There were several issue related to creating tables with no columns an now rows.  This test validates that such tables are supported.
+	 * There were several issue related to creating tables with no columns and no rows.  This test validates that such tables are supported.
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 * @throws InvalidModelException 
@@ -2357,9 +2357,10 @@ public class TableWorkerIntegrationTest {
 	 * @throws InterruptedException
 	 */
 	public TableStatus waitForTableProcessing(String tableId) throws InterruptedException{
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		long start = System.currentTimeMillis();
 		while(true){
-			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion);
 			if(TableState.PROCESSING.equals(status.getState())){
 				assertTrue("Timed out waiting for table status to change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				System.out.println("Waiting for table status to be available...");

@@ -94,7 +94,6 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -158,10 +157,11 @@ public class TableQueryManagerImplTest {
 		
 		models = TableModelTestUtils.createOneOfEachType(true);
 		
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		
 		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
+		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
@@ -211,7 +211,7 @@ public class TableQueryManagerImplTest {
 		sort.setDirection(SortDirection.DESC);
 		sortList = Lists.newArrayList(sort);
 		
-		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.table);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		
 		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
@@ -278,7 +278,7 @@ public class TableQueryManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testQueryPreflightUnauthroized() throws Exception {
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, null);
@@ -289,7 +289,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, null);
-		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 	}
 	
 	@Test
@@ -306,15 +306,15 @@ public class TableQueryManagerImplTest {
 		assertEquals("Consistent query must return the etag of the current status",
 				status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must be held for a consistent query.
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
 		// The table status should be checked only for a consistent query.
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(tableId);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testQueryAsStreamIsConsistentTrueNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -328,7 +328,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=TableUnavailableException.class)
 	public void testQueryAsStreamIsConsistentTrueTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -342,7 +342,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=TableFailedException.class)
 	public void testQueryAsStreamIsConsistentTrueTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -356,7 +356,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=LockUnavilableException.class)
 	public void testQueryAsStreamIsConsistentTrueLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class),any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -370,7 +370,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=EmptyResultException.class)
 	public void testQueryAsStreamEmptyResultException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class),any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -394,23 +394,23 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result.getQueryResult().getQueryResults());
 		assertNull("Non-Consistent query result must not contain an etag.", result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must not be held for a non-consistent query.
-		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
 		// The table status should not be checked only for a non-consistent query.
-		verify(mockTableManagerSupport, never()).getTableStatusOrCreateIfNotExists(tableId);
+		verify(mockTableManagerSupport, never()).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	@Test
 	public void testQueryPreflightWithAuthorizationTableEntity() throws Exception{
 		// Setup a table entity.
 		EntityType type = EntityType.table;
-		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(type);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(type);
 		Query query = new Query();
 		query.setSql("select i0 from "+tableId);
 		Long maxBytesPerPage = null;
 		manager.queryPreflight(user, query, maxBytesPerPage);
 		
 		// auth check should occur
-		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check should not occur for TableEntities
 		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
 	}
@@ -419,7 +419,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryPreflightWithAuthorizationFileView() throws Exception{
 		// Setup a fileView
 		EntityType type = EntityType.entityview;
-		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(type);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(type);
 		
 		Query query = new Query();
 		query.setSql("select count(*) from "+tableId);
@@ -428,7 +428,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery results = manager.queryPreflight(user, query, maxBytesPerPage);
 		assertNotNull(results);
 		// auth check should occur
-		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		// a benefactor check must occur for FileViews
 		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
 		// validate the benefactor filter is applied
@@ -723,7 +723,7 @@ public class TableQueryManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
-		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(tableId);
+		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	
@@ -855,7 +855,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testValidateTableIsAvailableWithStateAvailable() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.AVAILABLE);
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		// call under test
 		TableStatus resultsStatus = manager.validateTableIsAvailable(tableId);
 		assertNotNull(resultsStatus);
@@ -865,7 +865,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=TableUnavailableException.class)
 	public void testValidateTableIsAvailableWithStateProcessing() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.PROCESSING);
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		// call under test
 		manager.validateTableIsAvailable(tableId);
 	}
@@ -873,7 +873,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=TableFailedException.class)
 	public void testValidateTableIsAvailableWithStateFailed() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.PROCESSING_FAILED);
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		// call under test
 		manager.validateTableIsAvailable(tableId);
 	}
@@ -938,7 +938,7 @@ public class TableQueryManagerImplTest {
 				mockProgressCallbackVoid, user, request, writer);
 		assertNotNull(results);
 		
-		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		assertEquals(11, writtenLines.size());
 	}
 	
@@ -968,7 +968,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunQueryDownloadAsStreamDownloadViewIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
-		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.entityview);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.entityview);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
 		request.setSort(null);
@@ -994,7 +994,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunQueryDownloadAsStreamDownloadTableIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
-		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.table);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
 		request.setSort(null);

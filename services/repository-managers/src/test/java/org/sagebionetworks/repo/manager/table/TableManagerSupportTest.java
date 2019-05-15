@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Before;
@@ -130,8 +131,8 @@ public class TableManagerSupportTest {
 		
 		userInfo = new UserInfo(false, 8L);
 		
-		tableId = "syn123";
-		idAndVersion = IdAndVersion.parse(tableId);
+		idAndVersion = IdAndVersion.parse("syn123");
+		tableId = idAndVersion.getId().toString();
 		tableIdLong = KeyFactory.stringToKey(tableId);
 		viewType = ViewTypeMask.File.getMask();
 		
@@ -196,7 +197,7 @@ public class TableManagerSupportTest {
 		// table exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
@@ -219,7 +220,7 @@ public class TableManagerSupportTest {
 		// table exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		// must trigger processing
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
@@ -244,7 +245,7 @@ public class TableManagerSupportTest {
 		// table exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockNodeDao).isNodeAvailable(tableIdLong);
@@ -269,7 +270,7 @@ public class TableManagerSupportTest {
 		// table does not exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(false);
 		// call under test
-		manager.getTableStatusOrCreateIfNotExists(tableId);
+		manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	/**
@@ -289,7 +290,7 @@ public class TableManagerSupportTest {
 		// table exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
@@ -312,7 +313,7 @@ public class TableManagerSupportTest {
 		// table exists
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
@@ -325,7 +326,7 @@ public class TableManagerSupportTest {
 		String token = "a unique token";
 		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(token);
 		// call under test
-		String resultToken = manager.startTableProcessing(tableId);
+		String resultToken = manager.startTableProcessing(idAndVersion);
 		assertEquals(token, resultToken);
 	}
 	
@@ -335,11 +336,11 @@ public class TableManagerSupportTest {
 
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(currentVersion);
-		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(currentVersion));
 		// setup a match
 		when(mockTableIndexDAO.doesIndexStateMatch(idAndVersion, currentVersion, schemaMD5Hex)).thenReturn(true);
 		
-		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
+		assertTrue(manager.isIndexSynchronizedWithTruth(idAndVersion));
 	}
 	
 	
@@ -357,7 +358,7 @@ public class TableManagerSupportTest {
 		status.setState(TableState.AVAILABLE);
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertFalse(workRequired);
 	}
 	
@@ -367,7 +368,7 @@ public class TableManagerSupportTest {
 		String synId = KeyFactory.keyToString(id);
 		when(mockNodeDao.doesNodeExist(id)).thenReturn(true);
 		// call under test
-		assertTrue(manager.doesTableExist(synId));
+		assertTrue(manager.doesTableExist(idAndVersion));
 	}
 	
 	@Test
@@ -376,7 +377,7 @@ public class TableManagerSupportTest {
 		String synId = KeyFactory.keyToString(id);
 		when(mockNodeDao.doesNodeExist(id)).thenReturn(false);
 		// call under test
-		assertFalse(manager.doesTableExist(synId));
+		assertFalse(manager.doesTableExist(idAndVersion));
 	}
 	
 	/**
@@ -393,7 +394,7 @@ public class TableManagerSupportTest {
 		status.setState(TableState.PROCESSING_FAILED);
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertFalse(workRequired);
 	}
 	
@@ -412,7 +413,7 @@ public class TableManagerSupportTest {
 		status.setState(TableState.AVAILABLE);
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertTrue(workRequired);
 	}
 	
@@ -431,13 +432,13 @@ public class TableManagerSupportTest {
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
 		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertTrue(workRequired);
 	}
 	
 	@Test
 	public void testGetSchemaMD5Hex() {
-		String md5 = manager.getSchemaMD5Hex(tableId);
+		String md5 = manager.getSchemaMD5Hex(idAndVersion);
 		assertEquals(schemaMD5Hex, md5);
 	}
 
@@ -445,7 +446,7 @@ public class TableManagerSupportTest {
 	public void testGetTableTypeTable() {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// call under test
-		ObjectType type = manager.getTableType(tableId);
+		ObjectType type = manager.getTableType(idAndVersion);
 		assertEquals(ObjectType.TABLE, type);
 	}
 
@@ -454,7 +455,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
 				EntityType.entityview);
 		// call under test
-		ObjectType type = manager.getTableType(tableId);
+		ObjectType type = manager.getTableType(idAndVersion);
 		assertEquals(ObjectType.ENTITY_VIEW, type);
 	}
 
@@ -463,7 +464,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
 				EntityType.project);
 		// call under test
-		manager.getTableType(tableId);
+		manager.getTableType(idAndVersion);
 	}
 	
 	@Test
@@ -480,26 +481,24 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
 		// no last version
-		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.empty());
 		//call under test
-		assertEquals(-1, manager.getVersionOfLastTableEntityChange(tableId));
+		assertEquals(-1, manager.getVersionOfLastTableEntityChange(idAndVersion));
 	}
 	
 	@Test
 	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
 		long currentVersion = 123L;
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(currentVersion));;
 		// call under test
-		assertEquals(currentVersion, manager.getVersionOfLastTableEntityChange(tableId));
+		assertEquals(currentVersion, manager.getVersionOfLastTableEntityChange(idAndVersion));
 	}
 	
 	
 	@Test
 	public void testGetAllContainerIdsForViewScope(){
 		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableIdLong, viewType);
+		Set<Long> containers = manager.getAllContainerIdsForViewScope(idAndVersion, viewType);
 		assertEquals(containersInScope, containers);
 	}
 	
@@ -604,7 +603,7 @@ public class TableManagerSupportTest {
 		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
-		Long crcResult = manager.calculateViewCRC32(tableIdLong);
+		Long crcResult = manager.calculateViewCRC32(idAndVersion);
 		assertEquals(crc32, crcResult);
 		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 	}
@@ -633,14 +632,12 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetTableVersionForTableEntity() {
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(999L);
-		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(
-				lastChange);
+		Long versionNumber = 999L;
+		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(versionNumber));
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// call under test
-		Long version = manager.getTableVersion(tableId);
-		assertEquals(lastChange.getRowVersion(), version);
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(versionNumber, version);
 	}
 	
 	@Test
@@ -651,7 +648,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		// call under test
-		Long version = manager.getTableVersion(tableId);
+		Long version = manager.getTableVersion(idAndVersion);
 		assertEquals(crc32, version);
 	}
 	
@@ -659,7 +656,7 @@ public class TableManagerSupportTest {
 	public void testGetTableVersionForUnknown() {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.folder);
 		// call under test
-		manager.getTableVersion(tableId);
+		manager.getTableVersion(idAndVersion);
 	}
 	
 	@Test
@@ -669,7 +666,7 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
-		EntityType type = manager.validateTableReadAccess(userInfo, tableId);
+		EntityType type = manager.validateTableReadAccess(userInfo, idAndVersion);
 		assertEquals(EntityType.table, type);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
@@ -683,7 +680,7 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
-		EntityType type = manager.validateTableReadAccess(userInfo, tableId);
+		EntityType type = manager.validateTableReadAccess(userInfo, idAndVersion);
 		assertEquals(EntityType.table, type);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
@@ -696,7 +693,7 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
 		//  call under test
-		manager.validateTableReadAccess(userInfo, tableId);
+		manager.validateTableReadAccess(userInfo, idAndVersion);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -705,7 +702,7 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
-		manager.validateTableReadAccess(userInfo, tableId);
+		manager.validateTableReadAccess(userInfo, idAndVersion);
 	}
 	
 	@Test
@@ -713,7 +710,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
-		manager.validateTableReadAccess(userInfo, tableId);
+		manager.validateTableReadAccess(userInfo, idAndVersion);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		//  do not need download for FileView
 		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
@@ -724,7 +721,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		//  call under test
-		manager.validateTableReadAccess(userInfo, tableId);
+		manager.validateTableReadAccess(userInfo, idAndVersion);
 	}
 	
 	@Test
@@ -733,7 +730,7 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
-		manager.validateTableWriteAccess(userInfo, tableId);
+		manager.validateTableWriteAccess(userInfo, idAndVersion);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 	}
@@ -744,7 +741,7 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
 		//  call under test
-		manager.validateTableWriteAccess(userInfo, tableId);
+		manager.validateTableWriteAccess(userInfo, idAndVersion);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -753,7 +750,7 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
-		manager.validateTableWriteAccess(userInfo, tableId);
+		manager.validateTableWriteAccess(userInfo, idAndVersion);
 	}
 	
 	@Test
@@ -865,20 +862,20 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getEntityPath(tableId)).thenReturn(Lists.newArrayList(one, two));
 		Set<Long> expected = Sets.newHashSet(123L, 456L);
 		// call under test
-		Set<Long> results = manager.getEntityPath(tableId);
+		Set<Long> results = manager.getEntityPath(idAndVersion);
 		assertEquals(expected, results);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testRebuildTableUnauthorized() throws Exception {
-		manager.rebuildTable(userInfo, tableId);
+		manager.rebuildTable(userInfo, idAndVersion);
 	}
 
 	@Test
 	public void testRebuildTableAuthorizedForTableEntity() throws Exception {
 		UserInfo mockAdmin = Mockito.mock(UserInfo.class);
 		when(mockAdmin.isAdmin()).thenReturn(true);
-		manager.rebuildTable(mockAdmin, tableId);
+		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
 		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
@@ -896,7 +893,7 @@ public class TableManagerSupportTest {
 		UserInfo mockAdmin = Mockito.mock(UserInfo.class);
 		when(mockAdmin.isAdmin()).thenReturn(true);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
-		manager.rebuildTable(mockAdmin, tableId);
+		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
 		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);

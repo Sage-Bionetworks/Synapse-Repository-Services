@@ -681,8 +681,9 @@ public class TableViewIntegrationTest {
 		String sql = "select * from "+fileViewId;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
+		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		// Set the view to processing without making any real changes
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(fileViewId);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		// The view should become available again.
 		results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);

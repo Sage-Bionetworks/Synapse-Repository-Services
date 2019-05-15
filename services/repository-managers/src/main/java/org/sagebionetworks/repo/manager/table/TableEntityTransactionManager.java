@@ -49,10 +49,11 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		TableTransactionUtils.validateRequest(request);
 		String tableId = request.getEntityId();
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table before locking.
-		tableManagerSupport.validateTableWriteAccess(userInfo, tableId);
+		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
 		try {
-			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, tableId, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<TableUpdateTransactionResponse>() {
+			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<TableUpdateTransactionResponse>() {
 
 				@Override
 				public TableUpdateTransactionResponse call(ProgressCallback callback) throws Exception {

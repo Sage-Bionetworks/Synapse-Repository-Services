@@ -98,7 +98,7 @@ public class TableEntityTransactionManagerTest {
 
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenReturn(response);
 		
 		when(tableIndexConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(tableIndexManager);
@@ -123,7 +123,7 @@ public class TableEntityTransactionManagerTest {
 				.updateTableWithTransaction(progressCallback, userInfo, request);
 		assertEquals(response, results);
 		// user must have write
-		verify(tableManagerSupport).validateTableWriteAccess(userInfo, tableId);
+		verify(tableManagerSupport).validateTableWriteAccess(userInfo, idAndVersion);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -133,7 +133,7 @@ public class TableEntityTransactionManagerTest {
 
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(null));
 		// call under test.
@@ -147,7 +147,7 @@ public class TableEntityTransactionManagerTest {
 
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		// call under test.
@@ -161,7 +161,7 @@ public class TableEntityTransactionManagerTest {
 
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new RecoverableMessageException());
 		// call under test.
@@ -175,7 +175,7 @@ public class TableEntityTransactionManagerTest {
 
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new RuntimeException());
 		// call under test.

@@ -150,9 +150,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		QuerySpecification model = parserQuery(query.getSql());
 		// We now have the table's ID.
 		String tableId = model.getTableName();
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 
 		// 2. Validate the user has read access on this table
-		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, tableId);
+		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, idAndVersion);
 
 		// 3. Get the table's schema
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
@@ -200,7 +201,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// current etag.
 		if (query.isConsistent()) {
 			// run with the read lock
-			return tryRunWithTableReadLock(progressCallback, query.getTableId(),
+			IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
+			return tryRunWithTableReadLock(progressCallback, idAndVersion,
 					new ProgressingCallable<QueryResultBundle>() {
 
 						@Override
@@ -235,11 +237,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws EmptyResultException
 	 */
-	<R, T> R tryRunWithTableReadLock(ProgressCallback callback, String tableId, ProgressingCallable<R> runner)
+	<R, T> R tryRunWithTableReadLock(ProgressCallback callback, IdAndVersion idAndversion, ProgressingCallable<R> runner)
 			throws TableUnavailableException, TableFailedException, EmptyResultException {
 
 		try {
-			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, tableId, READ_LOCK_TIMEOUT_SEC,
+			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, idAndversion, READ_LOCK_TIMEOUT_SEC,
 					runner);
 		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
 			// runtime exceptions are unchanged.
@@ -599,7 +601,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
-		final TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		final TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion);
 		switch (status.getState()) {
 		case AVAILABLE:
 			return status;

@@ -26,21 +26,21 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -52,11 +52,11 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableViewManagerImplTest {
 
 	@Mock
@@ -70,6 +70,7 @@ public class TableViewManagerImplTest {
 	@Mock
 	NodeManager mockNodeManager;
 	
+	@InjectMocks
 	TableViewManagerImpl manager;
 	
 	UserInfo userInfo;
@@ -77,6 +78,7 @@ public class TableViewManagerImplTest {
 	List<String> scope;
 	String viewId;
 	Long viewIdLong;
+	IdAndVersion idAndVersion;
 	Long viewType;
 	
 	Set<Long> scopeIds;
@@ -95,15 +97,6 @@ public class TableViewManagerImplTest {
 
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		
-		manager = new TableViewManagerImpl();
-		ReflectionTestUtils.setField(manager, "viewScopeDao", viewScopeDao);
-		ReflectionTestUtils.setField(manager, "columModelManager", columnModelManager);
-		ReflectionTestUtils.setField(manager, "tableManagerSupport", tableManagerSupport);
-		ReflectionTestUtils.setField(manager, "columnModelDao", columnModelDao);
-		ReflectionTestUtils.setField(manager, "nodeManager", mockNodeManager);
-		
 		userInfo = new UserInfo(false, 888L);
 		schema = Lists.newArrayList("1","2","3");
 		scope = Lists.newArrayList("syn123", "syn456");
@@ -111,6 +104,7 @@ public class TableViewManagerImplTest {
 		
 		viewId = "syn555";
 		viewIdLong = KeyFactory.stringToKey(viewId);
+		idAndVersion = IdAndVersion.parse(viewId);
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
@@ -123,7 +117,7 @@ public class TableViewManagerImplTest {
 				return (ColumnModel) invocation.getArguments()[0];
 			}}).when(columnModelDao).createColumnModel(any(ColumnModel.class));
 		
-		when(tableManagerSupport.getAllContainerIdsForViewScope(viewIdLong, viewType)).thenReturn(scopeIds);
+		when(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
 		
 		rowCount = 13;
 		rows = new LinkedList<Row>();
@@ -206,7 +200,7 @@ public class TableViewManagerImplTest {
 		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
 		verify(columnModelManager).bindColumnToObject(schema, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -234,7 +228,7 @@ public class TableViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
 		verify(columnModelManager).bindColumnToObject(null, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -244,7 +238,7 @@ public class TableViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
 		verify(columnModelManager).bindColumnToObject(schema, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -287,7 +281,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testFindViewsContainingEntity(){
 		Set<Long> path = Sets.newHashSet(123L,456L);
-		when(tableManagerSupport.getEntityPath(viewId)).thenReturn(path);
+		when(tableManagerSupport.getEntityPath(idAndVersion)).thenReturn(path);
 		Set<Long> expected = Sets.newHashSet(789L);
 		when(viewScopeDao.findViewScopeIntersectionWithPath(path)).thenReturn(expected);
 		// call under test
@@ -297,29 +291,27 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
-		String tableId = "syn123";
 		List<ColumnModel> rawSchema = Lists.newArrayList(
 				EntityField.benefactorId.getColumnModel(),
 				EntityField.createdBy.getColumnModel(),
 				EntityField.etag.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(tableId);
+		List<ColumnModel> result = manager.getViewSchema(viewId);
 		assertEquals(rawSchema, result);
 	}
 	
 	@Test
 	public void testGetViewSchema(){
-		String tableId = "syn123";
 		List<ColumnModel> rawSchema = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
 				EntityField.createdOn.getColumnModel(),
 				EntityField.benefactorId.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(tableId);
+		List<ColumnModel> result = manager.getViewSchema(viewId);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
@@ -331,7 +323,6 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testApplySchemaChange(){
-		String viewId = "syn123";
 		ColumnChange change = new ColumnChange();
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
@@ -347,7 +338,7 @@ public class TableViewManagerImplTest {
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
 		assertEquals(schema, newSchema);
 		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	/**

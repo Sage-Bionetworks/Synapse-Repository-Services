@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -54,6 +55,8 @@ import com.amazonaws.services.s3.model.S3Object;
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
+	private static final String SQL_LAST_CHANGE_NUMBER = "SELECT MAX("+COL_TABLE_ROW_VERSION+") FROM "+TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_TABLE_ID+" = ?";
+
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
 
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
@@ -491,6 +494,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId, limit, offset);
 		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
+	}
+
+	@Override
+	public Optional<Long> getLastTableChangeNumber(String tableIdString) {
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		Long changeNumber = this.jdbcTemplate.queryForObject(SQL_LAST_CHANGE_NUMBER, Long.class, tableId);
+		return Optional.ofNullable(changeNumber);
 	}
 	
 }

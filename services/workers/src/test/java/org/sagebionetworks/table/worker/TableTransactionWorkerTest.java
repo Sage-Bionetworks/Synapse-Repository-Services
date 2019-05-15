@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -64,6 +65,7 @@ public class TableTransactionWorkerTest {
 	
 	String jobId;
 	String tableId;
+	IdAndVersion idAndVersion;
 	AsynchronousJobStatus status;
 	TableUpdateTransactionRequest request;
 	EntityType tableType;
@@ -88,6 +90,7 @@ public class TableTransactionWorkerTest {
 		
 		jobId = "123";
 		tableId = "syn123";
+		idAndVersion = IdAndVersion.parse(tableId);
 		tableType = EntityType.table;
 		
 		when(mockTransactionManagerProvider.getTransactionManagerForType(tableType)).thenReturn(mockTableTransactionManager);
@@ -104,7 +107,7 @@ public class TableTransactionWorkerTest {
 		
 		when(mockMessage.getBody()).thenReturn(jobId);
 		when(mockAsynchJobStatusManager.lookupJobStatus(jobId)).thenReturn(status);
-		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		
 		// simulate some progress and return a result
@@ -171,7 +174,7 @@ public class TableTransactionWorkerTest {
 	@Test
 	public void testNoManagerForType() throws RecoverableMessageException, Exception{
 		// setup an unknown type
-		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(EntityType.project);
+		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.project);
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.

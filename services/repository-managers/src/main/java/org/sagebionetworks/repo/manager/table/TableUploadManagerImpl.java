@@ -11,6 +11,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -48,8 +49,9 @@ public class TableUploadManagerImpl implements TableUploadManager {
 			if(fileHandle.getContentSize() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 				throw new IllegalArgumentException("The provided CSV file exceeds the maximum size of "+FileConstants.MAX_FILE_SIZE_GB+" GB.");
 			}
+			IdAndVersion idAndVersion = IdAndVersion.parse(request.getTableId());
 			// Get the schema for the table
-			List<ColumnModel> tableSchema = tableManagerSupport.getColumnModelsForTable(request.getTableId());
+			List<ColumnModel> tableSchema = tableManagerSupport.getColumnModelsForTable(idAndVersion);
 			// download the CSV to a temp file (see PLFM-4975).
 			tempFile = fileProvider.createTempFile("TableUploadManagerImpl", ".csv");
 			s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), tempFile);

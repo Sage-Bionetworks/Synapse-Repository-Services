@@ -22,6 +22,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -64,6 +65,8 @@ import au.com.bytecode.opencsv.CSVReader;
  */
 public class TableModelUtils {
 
+	private static final String TALBE_LOCK_PREFIX = "TALBE-LOCK-";
+
 	public static final String UTF_8 = "UTF-8";
 
 	public static final Function<Long, String> LONG_TO_STRING = new Function<Long, String>() {
@@ -78,7 +81,7 @@ public class TableModelUtils {
 	public static final String EXCEEDS_MAX_SIZE_TEMPLATE = "Request exceeds the maximum number of bytes per request.  Maximum : %1$s bytes";
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
-	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
+	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d%2$s";
 	
 	/**
 	 * Delimiter used to list column model IDs as a string.
@@ -850,9 +853,16 @@ public class TableModelUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTableSemaphoreKey(String tableId){
-		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
-		return String.format(TABLE_SEMAPHORE_KEY_TEMPLATE, KeyFactory.stringToKey(tableId));
+	public static String getTableSemaphoreKey(IdAndVersion tableId){
+		if(tableId == null) {
+			throw new IllegalArgumentException("TableId cannot be null");
+		}
+		StringBuilder builder = new StringBuilder(TALBE_LOCK_PREFIX);
+		builder.append(tableId.getId());
+		if(tableId.getVersion().isPresent()) {
+			builder.append("-").append(tableId.getVersion().get());
+		}
+		return builder.toString();
 	}
 	
 	/**
