@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupportedException;
@@ -169,9 +170,6 @@ public class PreviewWorkerTest {
 
 	@Test
 	public void testAmazonS3Exception_ErrorCode_NoSuchKey() throws Exception {
-		// If we do not know what type of error occurred, then we assume
-		// that we will be able to recover from it and therefore, the message
-		// should not be returned as processed.
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
@@ -182,12 +180,21 @@ public class PreviewWorkerTest {
 		verifyZeroInteractions(mockWorkerLogger);
 	}
 
+	@Test
+	public void testAmazonS3Exception_ErrorCode_AccessDenied() throws Exception {
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
+		exceptionBuilder.setErrorCode("AccessDenied");
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(exceptionBuilder.build());
+		// Fire!
+		worker.run(mockProgressCallback, change);
+		verifyZeroInteractions(mockWorkerLogger);
+	}
+
 
 	@Test
 	public void testAmazonS3Exception_OtherErrorCodes() throws Exception {
-		// If we do not know what type of error occurred, then we assume
-		// that we will be able to recover from it and therefore, the message
-		// should not be returned as processed.
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
@@ -198,6 +205,17 @@ public class PreviewWorkerTest {
 		// Fire!
 		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+
+	@Test
+	public void testCannotDetermineBucketLocationException() throws Exception {
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(new CannotDetermineBucketLocationException());
+		// Fire!
+		worker.run(mockProgressCallback, change);
+		verifyZeroInteractions(mockWorkerLogger);
 	}
 	
 	@Test

@@ -12,6 +12,12 @@ public class ValidateArgument {
 		}
 	}
 
+	public static void requiredNotEmpty(String fieldValue, String fieldName){
+		if(fieldValue == null || "".equals(fieldValue) ){
+			throw new IllegalArgumentException(fieldName + " is required and must not be the empty string.");
+		}
+	}
+
 	public static void requirement(boolean requirement, String message) {
 		if (!requirement) {
 			throw new IllegalArgumentException(message);

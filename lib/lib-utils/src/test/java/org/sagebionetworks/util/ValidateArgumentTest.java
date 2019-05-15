@@ -65,4 +65,19 @@ public class ValidateArgumentTest {
 	public void testRequireTypeFail() {
 		ValidateArgument.requireType(new Integer(0), T2.class, "t");
 	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testRequiredNotEmpty_null(){
+		ValidateArgument.requiredNotEmpty(null, "myField");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testRequiredNotEmpty_emptyString(){
+		ValidateArgument.requiredNotEmpty("", "myField");
+	}
+
+	@Test
+	public void testRequiredNotEmpty_NonEmptyString(){
+		ValidateArgument.requiredNotEmpty("a", "myField");
+	}
 }

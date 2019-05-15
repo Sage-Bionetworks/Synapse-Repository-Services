@@ -9,6 +9,7 @@ import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupportedException;
@@ -37,7 +38,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class PreviewWorker implements ChangeMessageDrivenRunner {
 
 	private static final Set<String> IGNORED_AMAZON_S3_EXCEPTION_ERROR_CODES = Collections.unmodifiableSet(
-			Sets.newHashSet("NoSuchKey", "AccessDenied", "")
+			Sets.newHashSet(
+					"NoSuchKey", //ignore because key was deleted
+					"AccessDenied" //ignore because we no longer have access to that bucket
+			)
 	);
 
 	static private Logger log = LogManager.getLogger(PreviewWorker.class);
@@ -89,6 +93,8 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 					+ e.getMessage() + " " + changeMessage);
 		} catch (NotFoundException e) {
 			// we can ignore messages for files that no longer exist.
+		} catch (CannotDetermineBucketLocationException e){
+			//nothing to do because the bucket no longer exists
 		} catch (IllegalArgumentException e) {
 			// We cannot recover from this exception so log the error
 			// and treat the message as processed.
@@ -108,10 +114,10 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					true);
 			throw new RecoverableMessageException();
-		} catch (AmazonS3Exception e){
-			if ("NoSuchKey".equals(e.getErrorCode()) || "AccessDenied"){
+		} catch (AmazonS3Exception e) {
+			if (IGNORED_AMAZON_S3_EXCEPTION_ERROR_CODES.contains(e.getErrorCode())) {
 				//nothing to do because the file no longer exists
-			}else {
+			} else {
 				handleThrowable(changeMessage, e);
 			}
 		} catch (Throwable e) {

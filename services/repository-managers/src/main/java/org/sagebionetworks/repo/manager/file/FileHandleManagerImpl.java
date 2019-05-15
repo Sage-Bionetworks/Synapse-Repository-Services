@@ -35,6 +35,7 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -98,6 +99,7 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -452,8 +454,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
 		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
-		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
-		ValidateArgument.required(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
+		ValidateArgument.requiredNotEmpty(fileHandle.getContentMd5(),"FileHandle.contentMd5");
+		ValidateArgument.requiredNotEmpty(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
 
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
@@ -948,24 +950,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle) {
-		if (userInfo == null){
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		}
-		if (fileHandle == null){
-			throw new IllegalArgumentException("FileHandle cannot be null");
-		}
-		if(fileHandle.getBucketName() == null){
-			throw new IllegalArgumentException("FileHandle.bucket cannot be null");
-		}
-		if(fileHandle.getKey() == null){
-			throw new IllegalArgumentException("FileHandle.key cannot be null");
-		}
-		if(fileHandle.getStorageLocationId() == null){
-			throw new IllegalArgumentException("FileHandle.storageLocationId cannot be null");
-		}
-		if(fileHandle.getContentMd5() == null){
-			throw new IllegalArgumentException("FileHandle.contentMd5 cannot be null");
-		}
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(fileHandle, "fileHandle");
+		ValidateArgument.required(fileHandle.getStorageLocationId(), "FileHandle.storageLocationId");
+		ValidateArgument.requiredNotEmpty(fileHandle.getBucketName(), "FileHandle.bucket");
+		ValidateArgument.requiredNotEmpty(fileHandle.getKey(), "FileHandle.key");
+		ValidateArgument.requiredNotEmpty(fileHandle.getContentMd5(),"FileHandle.contentMd5");
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
 		}
@@ -1012,11 +1002,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
-		ValidateArgument.required(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");
 		ValidateArgument.required(proxyFileHandle.getContentSize(), "ProxyFileHandle.contentSize");
-		ValidateArgument.required(proxyFileHandle.getContentType(), "ProxyFileHandle.contentType");
-		ValidateArgument.required(proxyFileHandle.getFileName(), "ProxyFileHandle.fileName");
-		ValidateArgument.required(proxyFileHandle.getFilePath(), "ProxyFileHandle.filePath");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getContentType(), "ProxyFileHandle.contentType");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getFileName(), "ProxyFileHandle.fileName");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getFilePath(), "ProxyFileHandle.filePath");
 		ValidateArgument.required(proxyFileHandle.getStorageLocationId(), "ProxyFileHandle.storageLocationId");
 		StorageLocationSetting sls = storageLocationDAO.get(proxyFileHandle.getStorageLocationId());
 		if(!(sls instanceof ProxyStorageLocationSettings)){
