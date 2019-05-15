@@ -372,7 +372,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public void buildIndexToChangeNumber(final ProgressCallback progressCallback, final IdAndVersion idAndVersion,
-			final Iterator<TableChangeMetaData> iterator, final Optional<Long> lastChangeNumber) throws RecoverableMessageException {
+			final Iterator<TableChangeMetaData> iterator, final long targetChangeNumber) throws RecoverableMessageException {
 		// Only proceed if work is needed.
 		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
 			log.info("Index already up-to-date for table: " + idAndVersion);
@@ -389,7 +389,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// Run with the exclusive lock on the table if we can get it.
 			String lastEtag = tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, 120,
 					(ProgressCallback callback) -> {
-						return buildIndexToChangeNumberWithExclusiveLock(idAndVersion, iterator, lastChangeNumber,
+						return buildIndexToChangeNumberWithExclusiveLock(idAndVersion, iterator, targetChangeNumber,
 								tableResetToken);
 					});
 			log.info("Completed index update for: " + idAndVersion);
@@ -415,16 +415,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @throws NotFoundException 
 	 */
 	String buildIndexToChangeNumberWithExclusiveLock(final IdAndVersion idAndVersion, final Iterator<TableChangeMetaData> iterator,
-			final Optional<Long> lastChangeNumber, final String tableResetToken) throws NotFoundException, IOException {
-		if(!lastChangeNumber.isPresent()) {
-			// there are no change for this table so there is nothing to do
-			return null;
-		}
+			final long targetChangeNumber, final String tableResetToken) throws NotFoundException, IOException {
 		String lastEtag = null;
 		// Inspect each change.
 		while(iterator.hasNext()) {
 			TableChangeMetaData changeMetadata = iterator.next();
-			if(changeMetadata.getChangeNumber() > lastChangeNumber.get()) {
+			if(changeMetadata.getChangeNumber() > targetChangeNumber) {
 				// all changes have been applied to the index.
 				break;
 			}
@@ -432,7 +428,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				// This change needs to be applied to the table
 				tableManagerSupport.attemptToUpdateTableProgress(idAndVersion,
 						tableResetToken, "Applying change: " + changeMetadata.getChangeNumber(), changeMetadata.getChangeNumber(),
-						lastChangeNumber.get());
+						targetChangeNumber);
 				appleyChangeToIndex(idAndVersion, changeMetadata);
 				lastEtag = changeMetadata.getETag();
 			}

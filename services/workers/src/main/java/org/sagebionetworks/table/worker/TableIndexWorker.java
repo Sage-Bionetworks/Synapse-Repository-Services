@@ -48,9 +48,11 @@ public class TableIndexWorker implements ChangeMessageDrivenRunner {
 				return;
 			} else {
 				// Build the table's index.
-				Optional<Long> lastChangeNumber = tableEntityManager.getLastTableChangeNumber(tableId);
-				Iterator<TableChangeMetaData> iterator = tableEntityManager.newTableChangeIterator(tableId);
-				indexManager.buildIndexToChangeNumber(progressCallback, idAndVersion, iterator, lastChangeNumber);
+				Optional<Long> targetChangeNumber = tableEntityManager.getLastTableChangeNumber(tableId);
+				if(targetChangeNumber.isPresent()) {
+					Iterator<TableChangeMetaData> iterator = tableEntityManager.newTableChangeIterator(tableId);
+					indexManager.buildIndexToChangeNumber(progressCallback, idAndVersion, iterator, targetChangeNumber.get());
+				}
 			}
 		}
 

@@ -756,10 +756,10 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
-		Optional<Long> lastChangeNumber = Optional.of(1L);
+		long targetChangeNumber = 1L;
 		String resetToken = "resetToken";
 		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
 		assertEquals(list.get(1).getETag(), lastEtag);
 		// Progress should be made for both changes
 		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 1L);
@@ -774,33 +774,15 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testBuildIndexToChangeNumberWithExclusiveLockEmptyLastChangeNumber() throws Exception {
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		List<TableChangeMetaData> list = setupMockChanges();
-		Iterator<TableChangeMetaData> iterator = list.iterator();
-		// no version means there are no table changes.
-		Optional<Long> lastChangeNumber = Optional.empty();
-		String resetToken = "resetToken";
-		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
-		assertEquals(null, lastEtag);
-		// Progress should be made for both changes
-		verify(mockManagerSupport, never()).attemptToUpdateTableProgress(any(IdAndVersion.class), anyString(), anyString(), anyLong(), anyLong());
-		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
-		verify(mockIndexDao, never()).alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean());
-		verify(mockIndexDao, never()).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
-	}
-	
-	@Test
 	public void testBuildIndexToChangeNumberWithExclusiveLockFirstChangeOnly() throws Exception {
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L,0L);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		// no version means there are no table changes.
-		Optional<Long> lastChangeNumber = Optional.of(0L);
+		long targetChangeNumber = 0L;
 		String resetToken = "resetToken";
 		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
 		assertEquals(list.get(0).getETag(), lastEtag);
 		// Progress should be made for both changes
 		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 0L);
@@ -813,10 +795,10 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		// no version means there are no table changes.
-		Optional<Long> lastChangeNumber = Optional.of(1L);
+		long targetChangeNumber = 1L;
 		String resetToken = "resetToken";
 		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, lastChangeNumber, resetToken);
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
 		assertEquals(null, lastEtag);
 		// Progress should be made for both changes
 		verify(mockManagerSupport, never()).attemptToUpdateTableProgress(any(IdAndVersion.class), anyString(), anyString(), anyLong(), anyLong());

@@ -194,16 +194,16 @@ public interface TableIndexManager {
 
 	/**
 	 * Build the index for the given table using the provided change metadata up to and
-	 * including the provided last change number.
+	 * including the provided target change number.
 	 * @param progressCallback 
 	 * 
 	 * @param tableId
 	 * @param iterator
-	 * @param lastChangeNumber
+	 * @param targetChangeNumber
 	 * @throws RecoverableMessageException Will RecoverableMessageException if the index cannot be built at this time.
 	 */
 	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator,
-			Optional<Long> lastChangeNumber) throws RecoverableMessageException;
+			long targetChangeNumber) throws RecoverableMessageException;
 	
 
 }
