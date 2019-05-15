@@ -11,6 +11,10 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.EOFException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.Period;
+import java.util.Date;
 import java.util.List;
 
 import javax.imageio.IIOException;
@@ -65,6 +69,7 @@ public class PreviewWorkerTest {
 		change.setObjectType(ObjectType.FILE);
 		change.setObjectId("123");
 		change.setChangeType(ChangeType.CREATE);
+		change.setTimestamp(new Date());
 	}
 
 	@Test
@@ -303,6 +308,30 @@ public class PreviewWorkerTest {
 		worker.run(mockProgressCallback, change);
 		// We should not generate a 
 		verify(mockPreveiwManager, never()).generatePreview(any(S3FileHandle.class));
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
+	}
+
+	@Test
+	public void testMessageOlderThanADayFromNow() throws Exception {
+		//timestamps more than a day old should be ignored
+		change.setTimestamp(Date.from(Instant.now().minus(Period.ofDays(1))));
+		// Fire!
+		worker.run(mockProgressCallback, change);
+		// We should not generate a
+		verify(mockPreveiwManager, never()).generatePreview(any(S3FileHandle.class));
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
+	}
+
+	@Test
+	public void testMessageYoungerThanADayFromNow() throws Exception {
+		//timestamps more than a day old should be ignored
+		change.setTimestamp(Date.from(Instant.now().minus(Period.ofDays(1)).plusSeconds(1)));
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		// Fire!
+		worker.run(mockProgressCallback, change);
+		// We should not generate a
+		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
 	}
 	

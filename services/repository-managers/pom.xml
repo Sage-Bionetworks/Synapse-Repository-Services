@@ -230,15 +230,6 @@
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-ext-jdk15on</artifactId>
 		</dependency>
-
-		<!--In the "wild", images may not always be properly formatted. This is a plugin to ImageIO that allows a more lenient reading of JPEG files.
-		https://stackoverflow.com/questions/18351583/illegalargumentexception-numbers-of-source-raster-bands-and-source-color-space/18400559
-		-->
-		<dependency>
-			<groupId>com.twelvemonkeys.imageio</groupId>
-			<artifactId>imageio-jpeg</artifactId>
-			<version>3.4.1</version>
-		</dependency>
 	</dependencies>
 
 	<build>

@@ -1,6 +1,10 @@
 package org.sagebionetworks.file.worker;
 
+import java.time.Instant;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Set;
 import javax.imageio.IIOException;
 
@@ -60,7 +64,7 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 			// Ignore all non-file messages.
 			if (ObjectType.FILE == changeMessage.getObjectType()
 					&& (ChangeType.CREATE == changeMessage.getChangeType() || ChangeType.UPDATE == changeMessage
-					.getChangeType())) {
+					.getChangeType()) && changeMessage.getTimestamp().after(Date.from(Instant.now().minus(Period.ofDays(1)))) 	) {
 				// This is a file message so look up the file
 				FileHandle metadata = previewManager
 						.getFileMetadata(changeMessage.getObjectId());
@@ -110,13 +114,14 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 		} catch (TemporarilyUnavailableException e) {
 			// When this occurs we want the message to go back on the queue, so
 			// we can try again later.
-			log.info("Failed to process message: " + changeMessage.toString(), e);
+			log.warn("Failed to process message: " + changeMessage.toString(), e);
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					true);
 			throw new RecoverableMessageException();
 		} catch (AmazonS3Exception e) {
 			if (IGNORED_AMAZON_S3_EXCEPTION_ERROR_CODES.contains(e.getErrorCode())) {
 				//nothing to do because the file no longer exists
+				log.warn("Unable to process message: " + changeMessage.toString() + " because received " + e.getStatusCode() +  " Error Code: " + e.getErrorCode() + " from Amazon S3");
 			} else {
 				handleThrowable(changeMessage, e);
 			}
