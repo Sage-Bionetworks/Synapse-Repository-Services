@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +47,8 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 				//rethrow for other zip exceptions
 				throw e;
 			}
+		} catch (EOFException e){
+			throw new PreviewGenerationNotSupportedException("Improperly formatted zip file", e);
 		}
 	}
 

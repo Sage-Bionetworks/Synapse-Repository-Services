@@ -59,7 +59,12 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		// Determine the size of the image
 		// First load the image
-		BufferedImage image = loadImageWithSizeCheck(from, MAX_IMAGE_SIZE);
+		BufferedImage image;
+		try {
+			image = loadImageWithSizeCheck(from, MAX_IMAGE_SIZE);
+		}catch (ArrayIndexOutOfBoundsException e){
+			throw new PreviewGenerationNotSupportedException("Improperly formatted image", e);
+		}
 
 		if (image == null) {
 			throw new PreviewGenerationNotSupportedException("The passed input stream was not an image");

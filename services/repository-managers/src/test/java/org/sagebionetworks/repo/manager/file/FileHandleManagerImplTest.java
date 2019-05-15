@@ -618,6 +618,19 @@ public class FileHandleManagerImplTest {
 		// call under test
 		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 	}
+
+	@Test
+	public void testCreateExternalS3FileHandleEmptyMD5(){
+		externals3FileHandle.setContentMd5("");
+		// call under test
+		try {
+			// should fail
+			S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+			fail();
+		}catch (IllegalArgumentException e){
+			assertEquals("FileHandle.contentMd5 is required and must not be the empty string.", e.getMessage());
+		}
+	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateExternalS3FileHandleUnauthorized(){
@@ -633,7 +646,19 @@ public class FileHandleManagerImplTest {
 		// should fail
 		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 	}
-	
+
+	@Test
+	public void testCreateExternalS3FileHandleEmptyBucket(){
+		externals3FileHandle.setBucketName("");
+		try {
+			// should fail
+			S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+			fail();
+		}catch (IllegalArgumentException e){
+			assertEquals("FileHandle.bucket is required and must not be the empty string.", e.getMessage());
+		}
+	}
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalS3FileHandleNullBucket(){
 		externals3FileHandle.setBucketName(null);
@@ -646,6 +671,18 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setKey(null);
 		// should fail
 		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+
+	@Test
+	public void testCreateExternalS3FileHandleEmptyKey(){
+		externals3FileHandle.setKey("");
+		try {
+			// should fail
+			S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+			fail();
+		}catch (IllegalArgumentException e){
+			assertEquals("FileHandle.key is required and must not be the empty string.", e.getMessage());
+		}
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -670,6 +707,7 @@ public class FileHandleManagerImplTest {
 		// should fail
 		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 	}
+
 
 	///////////////////////////////////////////////////
 	// createExternalFileHandle(ProxyFileHandle) tests
