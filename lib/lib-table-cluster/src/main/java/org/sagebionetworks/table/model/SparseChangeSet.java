@@ -403,7 +403,6 @@ public class SparseChangeSet implements TableChange {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
 			result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 			result = prime * result + ((rowId == null) ? 0 : rowId.hashCode());
 			result = prime * result + rowIndex;
@@ -455,9 +454,6 @@ public class SparseChangeSet implements TableChange {
 					+ valueMap + "]";
 		}
 
-		private SparseChangeSet getOuterType() {
-			return SparseChangeSet.this;
-		}
 	}
 
 

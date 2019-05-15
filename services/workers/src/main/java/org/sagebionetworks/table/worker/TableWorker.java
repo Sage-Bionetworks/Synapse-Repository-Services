@@ -210,7 +210,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				"Creating table ", 0L, 100L);
 
 		// List all change sets applied to this table.
-		List<TableRowChange> changes = tableEntityManager.listRowSetsKeysForTable(idAndVersion.toString());
+		List<TableRowChange> changes = tableEntityManager.listRowSetsKeysForTable(idAndVersion.getId().toString());
 		
 		// Calculate the total work to perform
 		long totalProgress = 1;
@@ -272,7 +272,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			throw new IllegalArgumentException("Expected: "+TableChangeType.COLUMN);
 		}
 		// apply the schema change
-		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(idAndVersion.toString(), changeSet.getRowVersion());
+		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(idAndVersion.getId().toString(), changeSet.getRowVersion());
 		boolean isTableView = false;
 		indexManager.updateTableSchema(idAndVersion, isTableView, schemaChange);
 		indexManager.setIndexVersion(idAndVersion, changeSet.getRowVersion());
