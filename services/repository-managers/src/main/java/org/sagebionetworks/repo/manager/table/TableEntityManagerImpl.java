@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -813,7 +814,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset){
 		List<TableRowChange> innerChangePage = tableRowTruthDao.getTableChangePage(tableId, limit, offset);
 		// Wrap the metadata to allow the full change be dynamically loaded.
-		List<TableChangeMetaData> results = new LinkedList<>();
+		List<TableChangeMetaData> results = new ArrayList<>(innerChangePage.size());
 		for(TableRowChange toWrap: innerChangePage) {
 			TableChangeWrapper wrapper = new TableChangeWrapper(toWrap);
 			results.add(wrapper);

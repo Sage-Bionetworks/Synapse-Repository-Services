@@ -721,9 +721,9 @@ public class TableModelUtilsTest {
 	@Test
 	public void testGetTableSemaphoreKey() {
 		IdAndVersion withVersion = IdAndVersion.parse("syn123.456");
-		assertEquals("TALBE-LOCK-123-456", TableModelUtils.getTableSemaphoreKey(withVersion));
+		assertEquals("TABLE-LOCK-123-456", TableModelUtils.getTableSemaphoreKey(withVersion));
 		IdAndVersion noVersion = IdAndVersion.parse("456");
-		assertEquals("TALBE-LOCK-456", TableModelUtils.getTableSemaphoreKey(noVersion));
+		assertEquals("TABLE-LOCK-456", TableModelUtils.getTableSemaphoreKey(noVersion));
 	}
 	
 	@Test
