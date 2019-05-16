@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
-import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -22,8 +21,6 @@ public class TableIndexWorker implements ChangeMessageDrivenRunner {
 
 	@Autowired
 	TableEntityManager tableEntityManager;
-	@Autowired
-	TableManagerSupport tableManagerSupport;
 	@Autowired
 	TableIndexConnectionFactory connectionFactory;
 
