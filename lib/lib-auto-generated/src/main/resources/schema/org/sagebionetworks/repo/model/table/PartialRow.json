@@ -1,6 +1,6 @@
 {
 	"title":"PartialRow",
-	"description":"Represents a single partial row of a TableEntity",
+	"description":"Represents a single partial row of a TableEntity.",
 	"implements": [
 		{
 			"$ref":"org.sagebionetworks.repo.model.HasEtag"
@@ -12,7 +12,7 @@
 			"description":"The immutable ID of a row."
 		},
 		"values": {
-			"description": "The values for columns of this row as a map. The key is the columnId and value is the cell value",
+			"description": "The values for columns of this row as a map. The key is the columnId and value is the cell value. To perform updates on a row inside of Views, a pair of {\"key\":\"etag\", \"value\":\"REPLACE-WITH-ETAG-OF-ENTITY-BEING-UPDATED\"} must be also included.",
 			"type": "map",
 			"key":{
 				"type": "string"
