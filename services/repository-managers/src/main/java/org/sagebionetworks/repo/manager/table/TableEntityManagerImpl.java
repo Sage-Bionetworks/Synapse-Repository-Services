@@ -535,27 +535,43 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void setTableSchema(final UserInfo userInfo, final List<String> columnIds,
-			final String id) {
+	public void setTableSchema(final UserInfo userInfo, final List<String> newSchema, final String tableId) {
 		try {
-			IdAndVersion idAndVersion = IdAndVersion.parse(id);			
+			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
-
-				@Override
-				public Void call(ProgressCallback callback) throws Exception {
-					columModelManager.bindColumnToObject(columnIds, id);
-					tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
-					return null;
-				}
-			});
-		}catch (LockUnavilableException e) {
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS,
+					(ProgressCallback callbackInner) -> {
+						setTableSchemaWithExclusiveLock(callbackInner, userInfo, newSchema, tableId);
+						return null;
+					});
+		} catch (LockUnavilableException e) {
 			throw new TemporarilyUnavailableException("Cannot update an unavailable table");
-		}catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * Note: This method should only be called while holding an exclusive lock on the table.
+	 * @param userInfo
+	 * @param newSchema
+	 * @param tableId
+	 */
+	void setTableSchemaWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema,
+			final String tableId) {
+		// Lookup the current schema for this table
+		List<String> oldSchema = columModelManager.getColumnIdForTable(tableId);
+		// Calculate the schema change (if there is one).
+		List<ColumnChange> schemaChange = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
+		changeRequest.setChanges(schemaChange);
+		changeRequest.setEntityId(tableId);
+		changeRequest.setOrderedColumnIds(newSchema);
+		// Start a transaction to change the table to the new schema.
+		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
+		updateTableSchema(callback, userInfo, changeRequest, transactionId);
 	}
 
 	@Override

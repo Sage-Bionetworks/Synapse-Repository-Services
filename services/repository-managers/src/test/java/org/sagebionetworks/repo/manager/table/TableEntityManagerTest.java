@@ -877,26 +877,6 @@ public class TableEntityManagerTest {
 	}
 	
 	@SuppressWarnings("unchecked")
-	@Test
-	public void testSetTableSchema() throws Exception{
-		// setup success.
-		doAnswer(new Answer<Void>(){
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
-				ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
-				runner.call(callback);
-				return null;
-			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
-		
-		List<String> schema = Lists.newArrayList("111","222");
-		// call under test.
-		manager.setTableSchema(user, schema, tableId);
-		verify(mockColumModelManager).bindColumnToObject(schema, tableId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
-	}
-	
-	@SuppressWarnings("unchecked")
 	@Test (expected=TemporarilyUnavailableException.class)
 	public void testSetTableSchemaLockUnavailableException() throws Exception{
 		// setup success.
@@ -1539,6 +1519,42 @@ public class TableEntityManagerTest {
 		assertNotNull(schemaChange);
 		assertEquals(1L, schemaChange.getChangeNumber());
 		verify(mockTruthDao, times(1)).getSchemaChangeForVersion(tableId, 1L);
+	}
+	
+	@Test
+	public void testSetTableSchema() throws Exception {
+		List<String> newSchema = Lists.newArrayList("1", "2");
+		// call under test
+		manager.setTableSchema(user, newSchema, tableId);
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
+	}
+	
+	/**
+	 * LockUnavilableException should translate to TemporarilyUnavailableException.
+	 * @throws Exception
+	 */
+	@Test (expected=TemporarilyUnavailableException.class)
+	public void testSetTableSchemaLockUnavilableException() throws Exception {
+		LockUnavilableException exception = new LockUnavilableException("No lock");
+		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<String> newSchema = Lists.newArrayList("1", "2");
+		// call under test
+		manager.setTableSchema(user, newSchema, tableId);
+	}
+	
+	@Test
+	public void testSetTableSchemaWithExclusiveLock() {
+		List<String> oldSchema = Lists.newArrayList("1","2");
+		when(mockColumModelManager.getColumnIdForTable(tableId)).thenReturn(oldSchema);
+		List<String> newSchema = Lists.newArrayList("2","3");
+		List<ColumnChange> expectedChanges = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		// call under test
+		manager.setTableSchemaWithExclusiveLock(mockProgressCallback, user, newSchema, tableId);
+		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
+		verify(mockTableManagerSupport).touchTable(user, tableId);
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
 	}
 	
 	/**
