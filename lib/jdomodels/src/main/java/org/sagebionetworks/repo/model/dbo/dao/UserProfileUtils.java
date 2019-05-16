@@ -61,32 +61,11 @@ public class UserProfileUtils {
 	}
 	
 	public static UserProfile deserialize(byte[] b) {
-		Object decompressed = null;
 		try {
-			decompressed = JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
+			return (UserProfile) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		} catch (CannotResolveClassException e){
-			// Support the old way of serializing the UserProfile
-			try {
-				decompressed = AnnotationUtils.decompressedAnnotations(b);
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
 		}
-		
-		UserProfile dto = null;
-		if (decompressed instanceof UserProfile) {
-			dto = (UserProfile) decompressed;
-		} else if (decompressed instanceof NamedAnnotations) {
-			// Support the old way of serializing the UserProfile
-			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-			dto = new UserProfile();
-			SchemaSerializationUtils.mapAnnotationsToDtoFields(b, dto, schema);
-		} else {
-			throw new RuntimeException("Unsupported object type " + decompressed.getClass());
-		}
-		return dto;
 	}
 	
 	public static UserProfile convertDboToDto(DBOUserProfile dbo) throws DatastoreException {
