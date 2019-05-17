@@ -20,7 +20,12 @@ set -e
 set -v
 
 db_name=${stack}${user}
+#used to log in to the db for setup
 rds_user_name=${db_name}user
+
+#username that must be created because it is used by the tests
+test_user_name=${stack}${user}
+
 
 if [ ! ${JOB_NAME} ]; then
 	JOB_NAME=${stack}${user}
@@ -62,8 +67,8 @@ if [ ${SETTINGS_XML} ]; then
 fi
 
 
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';"
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};CREATE USER IF NOT EXISTS '${test_user_name}'@'%' IDENTIFIED BY '${rds_password}';GRANT ALL ON ${db_name}.* TO '${test_user_name}'@'%';"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};CREATE USER IF NOT EXISTS '${test_user_name}'@'%' IDENTIFIED BY '${rds_password}';GRANT ALL ON ${db_name}.* TO '${test_user_name}'@'%';"
 
 
 # create build container and run build
@@ -76,10 +81,10 @@ docker run -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-jdk-8 \
 bash -c "mvn clean ${MVN_GOAL} \
--Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name} \
--Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name} \
--Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
--Dorg.sagebionetworks.id.generator.database.username=${rds_user_name} \
+-Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name}?allowPublicKeyRetrieval=true&useSSL=false \
+-Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name}?allowPublicKeyRetrieval=true&useSSL=false \
+-Dorg.sagebionetworks.repository.database.username=${test_user_name} \
+-Dorg.sagebionetworks.id.generator.database.username=${test_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
 ${AWS_CREDS} \
 -Dorg.sagebionetworks.stack.instance=${user} \
