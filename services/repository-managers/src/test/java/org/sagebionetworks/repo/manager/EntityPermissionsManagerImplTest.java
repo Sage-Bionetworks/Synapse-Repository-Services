@@ -169,6 +169,13 @@ public class EntityPermissionsManagerImplTest {
 	}
 
 	@Test
+	public void testGetACLNoSYN() throws Exception {
+		// retrieve parent acl
+		AccessControlList acl = entityPermissionsManager.getACL(project.getId().substring("syn".length()), adminUserInfo);
+		assertNotNull(acl);
+	}
+
+	@Test
 	public void testUpdateACL() throws Exception {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());

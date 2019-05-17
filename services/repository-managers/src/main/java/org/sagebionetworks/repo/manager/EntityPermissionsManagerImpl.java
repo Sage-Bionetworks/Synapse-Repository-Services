@@ -84,7 +84,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Get the id that this node inherits its permissions from
 		String benefactor = nodeDao.getBenefactor(nodeId);		
 		// This is a fix for PLFM-398
-		if (!benefactor.equals(nodeId)) {
+		if (!benefactor.equals(KeyFactory.keyToString(KeyFactory.stringToKey(nodeId)))) {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
 		AccessControlList acl = aclDAO.get(nodeId, ObjectType.ENTITY);
