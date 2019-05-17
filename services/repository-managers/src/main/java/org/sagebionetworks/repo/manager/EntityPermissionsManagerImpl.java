@@ -83,8 +83,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
 		// Get the id that this node inherits its permissions from
 		String benefactor = nodeDao.getBenefactor(nodeId);		
+		//
+		// PLFM-2399:  There is a case in which a node ID is passed in without the 'syn' prefix.  
+		// In this case 'nodeId' might be '12345' while benefactor might be 'syn12345'.
+		// The change below normalizes the format.
+		//
 		// This is a fix for PLFM-398
-		if (!benefactor.equals(nodeId)) {
+		if (!benefactor.equals(KeyFactory.keyToString(KeyFactory.stringToKey(nodeId)))) {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
 		AccessControlList acl = aclDAO.get(nodeId, ObjectType.ENTITY);
