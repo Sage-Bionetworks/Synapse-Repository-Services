@@ -78,6 +78,8 @@ maven:3-jdk-8 \
 bash -c "mvn clean ${MVN_GOAL} \
 -Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint} \
+-Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
+-Dorg.sagebionetworks.id.generator.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
 ${AWS_CREDS} \
 -Dorg.sagebionetworks.stack.instance=${user} \
