@@ -62,8 +62,8 @@ if [ ${SETTINGS_XML} ]; then
 fi
 
 
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';DROP DATABASE ${db_name};CREATE DATABASE ${db_name};set global log_bin_trust_function_creators=1;"
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';DROP DATABASE ${db_name};CREATE DATABASE ${db_name};set global log_bin_trust_function_creators=1;"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
 
 
 # create build container and run build
