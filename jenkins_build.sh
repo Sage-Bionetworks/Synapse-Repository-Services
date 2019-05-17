@@ -9,6 +9,8 @@
 # build_deploy - when set to "true" deploy artifacts
 # artifactory_username - artifactory username for deploy
 # artifactory_password - artifactory password for deploy
+# org_sagebionetworks_repo_db_endpoint - endpoint to mysql database for repo data
+# org_sagebionetworks_user_tables_db_endpoint - endpoint to mysql database for user tables data
 
 # On Jenkins HOME is /var/lib/jenkins
 export m2_cache_parent_folder=${HOME}/${JOB_NAME}
@@ -20,7 +22,7 @@ BASEDIR=$(dirname "$0")
 export stack=dev
 
 ${BASEDIR}/before.sh
-${BASEDIR}/docker_build.sh
+${BASEDIR}/docker_build_remote.sh
 export result=$?
 ${BASEDIR}/after.sh
 exit ${result}
