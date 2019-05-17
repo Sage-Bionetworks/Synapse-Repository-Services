@@ -62,8 +62,8 @@ if [ ${SETTINGS_XML} ]; then
 fi
 
 
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};GRANT ALL ON ${db_name}.* TO '${rds_user_name}'@'%';"
 
 
 # create build container and run build
@@ -76,8 +76,8 @@ docker run -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-jdk-8 \
 bash -c "mvn clean ${MVN_GOAL} \
--Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint} \
--Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint} \
+-Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name} \
+-Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name} \
 -Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
