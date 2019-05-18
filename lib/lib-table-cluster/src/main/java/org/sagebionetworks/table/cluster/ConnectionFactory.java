@@ -22,12 +22,6 @@ public interface ConnectionFactory {
 	TableIndexDAO getConnection(IdAndVersion tableId);
 	
 	/**
-	 * Drop all tables in every database connections.
-	 * 
-	 */
-	void dropAllTablesForAllConnections();
-	
-	/**
 	 * Get all connections.
 	 * @return
 	 */

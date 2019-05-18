@@ -744,27 +744,44 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes, long transactionId) {
 		
+		List<ColumnModel> newSchema = null;
+		if(!changes.getChanges().isEmpty()) {
+			// append the change to the table's history.
+			newSchema = addSchemaChangesToTable(userInfo, changes, transactionId);
+		}else {
+			// The schema will not change so return the current schema.
+			newSchema = columModelManager.getColumnModelsForObject(changes.getEntityId());
+		}
+		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
+		response.setSchema(newSchema);
+		return response;
+	}
+
+
+	/**
+	 * Add the provided schema change to the table's history.
+	 * @param userInfo
+	 * @param changes
+	 * @param transactionId
+	 * @return
+	 */
+	private List<ColumnModel> addSchemaChangesToTable(UserInfo userInfo, TableSchemaChangeRequest changes,
+			long transactionId) {
 		// Touch an lock on the table.
 		tableManagerSupport.touchTable(userInfo, changes.getEntityId());
-
 		// first determine what the new Schema will be
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
 		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, changes.getEntityId());
-		// If the change includes an update then a change needs to be pushed to the changes
-		if(containsColumnUpdate(changes.getChanges())){
-			List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
-			try {
-				this.tableRowTruthDao.appendSchemaChangeToTable(""+userInfo.getId(), changes.getEntityId(), newSchemaIdsLong, changes.getChanges(), transactionId);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+		List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
+		try {
+			this.tableRowTruthDao.appendSchemaChangeToTable(""+userInfo.getId(), changes.getEntityId(), newSchemaIdsLong, changes.getChanges(), transactionId);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
-		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
-		response.setSchema(newSchema);
-		return response;
+		return newSchema;
 	}
 
 
