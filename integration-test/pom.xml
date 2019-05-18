@@ -133,6 +133,8 @@
 							<org.sagebionetworks.doi.datacite.enabled>${org.sagebionetworks.doi.datacite.enabled}</org.sagebionetworks.doi.datacite.enabled>
 							<org.sagebionetworks.doi.datacite.username>${org.sagebionetworks.doi.datacite.username}</org.sagebionetworks.doi.datacite.username>
 							<org.sagebionetworks.doi.datacite.password>${org.sagebionetworks.doi.datacite.password}</org.sagebionetworks.doi.datacite.password>
+							<org.sagebionetworks.repository.database.username>${org.sagebionetworks.repository.database.username}}</org.sagebionetworks.repository.database.username>
+							<org.sagebionetworks.id.generator.database.username>${org.sagebionetworks.id.generator.database.username}</org.sagebionetworks.id.generator.database.username>
 						</systemProperties>
 					</container>
 					<configuration>

@@ -12,8 +12,8 @@
 # build_deploy - when set to "true" deploy artifacts
 # artifactory_username - username to deploy artifacts
 # artifactory_password - password to deploy artifacts
-# org_sagebionetworks_repo_db_endpoint - endpoint to mysql database for repo data
-# org_sagebionetworks_user_tables_db_endpoint - endpoint to mysql database for user tables data
+# org_sagebionetworks_repository_database_connection_url - endpoint to mysql database for repo data
+# org_sagebionetworks_table_cluster_endpoint_0 - endpoint to mysql database for user tables data
 
 # if anything fails, stop
 set -e
@@ -22,9 +22,6 @@ set -v
 db_name=${stack}${user}
 #used to log in to the db for setup
 rds_user_name=${db_name}user
-
-#username that must be created because it is used by the tests
-test_user_name=${stack}${user}
 
 
 if [ ! ${JOB_NAME} ]; then
@@ -67,8 +64,8 @@ if [ ${SETTINGS_XML} ]; then
 fi
 
 
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};CREATE USER IF NOT EXISTS '${test_user_name}'@'%' IDENTIFIED BY '${rds_password}';GRANT ALL ON ${db_name}.* TO '${test_user_name}'@'%';"
-mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};CREATE USER IF NOT EXISTS '${test_user_name}'@'%' IDENTIFIED BY '${rds_password}';GRANT ALL ON ${db_name}.* TO '${test_user_name}'@'%';"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repo_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
+mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_user_tables_db_endpoint} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
 
 
 # create build container and run build
@@ -81,17 +78,17 @@ docker run -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-jdk-8 \
 bash -c "mvn clean ${MVN_GOAL} \
--Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name} \
--Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repo_db_endpoint}/${db_name} \
--Dorg.sagebionetworks.repository.database.username=${test_user_name} \
--Dorg.sagebionetworks.id.generator.database.username=${test_user_name} \
+-Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
+-Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
+-Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
+-Dorg.sagebionetworks.id.generator.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
 ${AWS_CREDS} \
 -Dorg.sagebionetworks.stack.instance=${user} \
 -Dorg.sagebionetworks.developer=${user} \
 -Dorg.sagebionetworks.stack=${stack} \
 -Dorg.sagebionetworks.table.enabled=true \
--Dorg.sagebionetworks.table.cluster.endpoint.0=${org_sagebionetworks_user_tables_db_endpoint} \
+-Dorg.sagebionetworks.table.cluster.endpoint.0=${org_sagebionetworks_table_cluster_endpoint_0} \
 -Dorg.sagebionetworks.table.cluster.schema.0=${db_name} \
 -Dorg.sagebionetworks.search.enabled=${org_sagebionetworks_search_enabled} \
 -Dorg.sagebionetworks.doi.datacite.enabled=${org_sagebionetworks_datacite_enabled} \
