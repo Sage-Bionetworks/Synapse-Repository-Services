@@ -66,14 +66,8 @@
 			</url>
 		</repository>
 		<repository>
-			<id>central</id>
-			<name>Atlassian Public Repository</name>
-			<layout>default</layout>
-			<url>https://maven.atlassian.com/content/repositories/atlassian-public
-			</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
+			<id>spring-plugins</id>
+			<url>http://repo.spring.io/plugins-release/</url>
 		</repository>
 	</repositories>
 
