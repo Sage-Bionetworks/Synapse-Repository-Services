@@ -22,7 +22,7 @@ BASEDIR=$(dirname "$0")
 export stack=dev
 
 ${BASEDIR}/before.sh
-${BASEDIR}/docker_build_remote.sh
+${BASEDIR}/docker_build.sh
 export result=$?
 ${BASEDIR}/after.sh
 exit ${result}
