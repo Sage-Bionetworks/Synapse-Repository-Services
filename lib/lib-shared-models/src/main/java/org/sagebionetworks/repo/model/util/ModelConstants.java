@@ -34,8 +34,8 @@ public class ModelConstants {
 					CHANGE_PERMISSIONS, UPDATE, DELETE, DELETE_SUBMISSION));
 
 	// Maximum permissions that may be granted to public users on evaluations
-	public static final Set<ACCESS_TYPE> EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
-			Arrays.asList(READ, SUBMIT));
+	public static final Set<ACCESS_TYPE> EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(Arrays.asList(READ, SUBMIT));
+	public static final Set<ACCESS_TYPE> EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(Arrays.asList(READ));
 
 	public static final Set<ACCESS_TYPE> TEAM_ADMIN_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 		Arrays.asList(READ, 

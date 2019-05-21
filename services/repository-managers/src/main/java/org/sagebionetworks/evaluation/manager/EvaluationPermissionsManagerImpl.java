@@ -206,7 +206,13 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 				Set<ACCESS_TYPE> publicGrantCopy = new HashSet<>(ra.getAccessType());
 				publicGrantCopy.removeAll(ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS);
 				if (!publicGrantCopy.isEmpty()) {
-					throw new IllegalArgumentException("Public users may only have read and submit access.");
+					throw new IllegalArgumentException("Public users may only have read and submit access on an evaluation.");
+				}
+			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+				Set<ACCESS_TYPE> anonymousGrantCopy = new HashSet<>(ra.getAccessType());
+				anonymousGrantCopy.removeAll(ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS);
+				if (!anonymousGrantCopy.isEmpty()) {
+					throw new IllegalArgumentException("Anonymous users may only have read access on an evaluation.");
 				}
 			}
 		}
