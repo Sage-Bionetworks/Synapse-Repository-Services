@@ -77,13 +77,13 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(user.getId(), "UserInfo.getId");
 		ValidateArgument.required(request, "MultipartUploadRequest");
-		ValidateArgument.required(request.getFileName(),
+		ValidateArgument.requiredNotEmpty(request.getFileName(),
 				"MultipartUploadRequest.fileName");
 		ValidateArgument.required(request.getFileSizeBytes(),
 				"MultipartUploadRequest.fileSizeBytes");
 		ValidateArgument.required(request.getPartSizeBytes(),
 				"MultipartUploadRequest.PartSizeBytes");
-		ValidateArgument.required(request.getContentMD5Hex(),
+		ValidateArgument.requiredNotEmpty(request.getContentMD5Hex(),
 				"MultipartUploadRequest.MD5Hex");
 
 		// anonymous cannot upload. See: PLFM-2621.

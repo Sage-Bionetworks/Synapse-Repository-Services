@@ -204,6 +204,22 @@ public class MultipartManagerV2ImplTest {
 		manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testStartOrResumeMultipartUpload_EmptyFileName(){
+		request.setFileName("");
+
+		//call under test
+		manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testStartOrResumeMultipartUpload_EmptyMD5(){
+		request.setContentMD5Hex("");
+
+		//call under test
+		manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
+	}
+
 
 	@Test
 	public void testCalculateMD5AsHex(){

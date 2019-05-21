@@ -100,7 +100,18 @@ public class S3MultipartUploadDAOImplTest {
 		verify(mockS3Client).initiateMultipartUpload(capture.capture());
 		assertEquals("application/octet-stream", capture.getValue().getObjectMetadata().getContentType());
 	}
-	
+
+	@Test
+	public void testInitiateMultipartUploadContentTypeEmptyString(){
+		request.setContentType("");
+		String result = dao.initiateMultipartUpload(bucket, key, request);
+		assertEquals(uploadId, result);
+		ArgumentCaptor<InitiateMultipartUploadRequest> capture = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
+		verify(mockS3Client).initiateMultipartUpload(capture.capture());
+		assertEquals("application/octet-stream", capture.getValue().getObjectMetadata().getContentType());
+	}
+
+
 	@Test
 	public void testcreatePreSignedPutUrl() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));

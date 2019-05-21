@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
@@ -45,7 +46,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	public String initiateMultipartUpload(String bucket, String key,
 			MultipartUploadRequest request) {
 		String contentType = request.getContentType();
-		if (contentType == null) {
+		if (StringUtils.isEmpty(contentType)) {
 			contentType = "application/octet-stream";
 		}
 		ObjectMetadata objectMetadata = new ObjectMetadata();
@@ -78,7 +79,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		 * add due to SYNPY-409 (see also PLFM-4183)
 		 */
 		request.addRequestParameter("Expires", ""+(expiration/1000));
-		if(contentType != null){
+		if(StringUtils.isNotEmpty(contentType)){ //TODO:test
 			request.setContentType(contentType);
 		}
 		return s3Client.generatePresignedUrl(request);
