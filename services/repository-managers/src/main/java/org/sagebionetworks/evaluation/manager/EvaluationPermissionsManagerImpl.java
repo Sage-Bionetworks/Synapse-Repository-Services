@@ -100,7 +100,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
 
-		validateAnonymousPermissions(acl.getResourceAccess());
+		validatePublicPermissions(acl.getResourceAccess());
 
 		aclDAO.update(acl, ObjectType.EVALUATION);
 		return aclDAO.get(evalId, ObjectType.EVALUATION);
@@ -198,15 +198,15 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 
 	/*
-	 * Ensures that Anonymous users are not given more permissions than they should be allowed
+	 * Ensures that public users are not given more permissions than they should be allowed to have on an evaluation
 	 */
-	private static void validateAnonymousPermissions(Set<ResourceAccess> resourceAccess) {
+	private static void validatePublicPermissions(Set<ResourceAccess> resourceAccess) {
 		for (ResourceAccess ra : resourceAccess) {
-			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
-				Set<ACCESS_TYPE> anonymousGrantCopy = new HashSet<>(ra.getAccessType());
-				anonymousGrantCopy.removeAll(ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS);
-				if (!anonymousGrantCopy.isEmpty()) {
-					throw new IllegalArgumentException("Anonymous users may only have read access.");
+			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+				Set<ACCESS_TYPE> publicGrantCopy = new HashSet<>(ra.getAccessType());
+				publicGrantCopy.removeAll(ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS);
+				if (!publicGrantCopy.isEmpty()) {
+					throw new IllegalArgumentException("Public users may only have read and submit access.");
 				}
 			}
 		}

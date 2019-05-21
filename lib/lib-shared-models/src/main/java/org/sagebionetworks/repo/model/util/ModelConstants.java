@@ -33,9 +33,9 @@ public class ModelConstants {
 			Arrays.asList(CREATE, READ, SUBMIT, READ_PRIVATE_SUBMISSION, UPDATE_SUBMISSION, 
 					CHANGE_PERMISSIONS, UPDATE, DELETE, DELETE_SUBMISSION));
 
-	// Maximum permissions that may be granted to the public/anonymous user on evaluations
-	public static final Set<ACCESS_TYPE> EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
-			Collections.singletonList(READ));
+	// Maximum permissions that may be granted to public users on evaluations
+	public static final Set<ACCESS_TYPE> EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
+			Arrays.asList(READ, SUBMIT));
 
 	public static final Set<ACCESS_TYPE> TEAM_ADMIN_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 		Arrays.asList(READ, 

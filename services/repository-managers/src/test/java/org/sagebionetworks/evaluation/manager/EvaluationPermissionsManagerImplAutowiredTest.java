@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -62,7 +63,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
-	private UserInfo anonymousUserInfo;
 
 	private List<String> aclsToDelete;
 	private List<String> evalsToDelete;
@@ -75,7 +75,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		anonymousUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		aclsToDelete = new ArrayList<String>();
@@ -490,36 +489,43 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	@Test
-	public void anonymousUserGrantAndRevokeRead() throws Exception {
+	public void publicUserGrantAndRevokeReadAndSubmit() throws Exception {
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
 		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 
-		// add READ privilege to ACL for anonymous
+		// Ensure the user does not have access before granting read and submit
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
+
+		// add READ, SUBMIT privilege to ACL for public
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 		Set<ResourceAccess> raSet = new HashSet<>();
 		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		ra.setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.SUBMIT)));
 		raSet.add(ra);
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 
-		// Call under test (granted READ)
-		assertTrue(evaluationPermissionsManager.hasAccess(anonymousUserInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		// Call under test (after granting)
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 
+		// Revoke access
 		acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 		raSet = new HashSet<>();
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 
-		// Call under test (revoked READ)
-		assertFalse(evaluationPermissionsManager.hasAccess(anonymousUserInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		// Call under test (after revoking)
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 	}
 
 	@Test
-	public void anonymousUserCannotBeGrantedNonRead() throws Exception {
+	public void publicUserCannotBeGrantedReadOrSubmit() throws Exception {
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
 		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
 		String evalName = nodeName;
@@ -527,7 +533,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// add READ privilege to ACL for anonymous
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
-			if (!type.equals(ACCESS_TYPE.READ)) {
+			if (!(type.equals(ACCESS_TYPE.READ) || type.equals(ACCESS_TYPE.SUBMIT))) {
 				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 				Set<ResourceAccess> raSet = new HashSet<>();
 				ResourceAccess ra = new ResourceAccess();
@@ -542,6 +548,32 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 				} catch (IllegalArgumentException e) {
 					// as expected
 				}
+			}
+		}
+	}
+
+	@Test
+	public void anonymousUserCannotBeGrantedAccess() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// add READ privilege to ACL for anonymous
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+			Set<ResourceAccess> raSet = new HashSet<>();
+			ResourceAccess ra = new ResourceAccess();
+			ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+			ra.setAccessType(Collections.singleton(type));
+			raSet.add(ra);
+			acl.setResourceAccess(raSet);
+			try {
+				// Call under test
+				evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+				fail("Expected IllegalArgumentException");
+			} catch (IllegalArgumentException e) {
+				// as expected
 			}
 		}
 	}
