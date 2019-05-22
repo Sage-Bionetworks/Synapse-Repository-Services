@@ -276,7 +276,7 @@ import com.google.common.base.Joiner;
  */
 public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
-	public static final String SYNPASE_JAVA_CLIENT = "Synpase-Java-Client/";
+	public static final String SYNAPSE_JAVA_CLIENT = "Synapse-Java-Client/";
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
@@ -565,7 +565,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	public SynapseClientImpl(SimpleHttpClientConfig config) {
-		super(SYNPASE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(), config);
+		super(SYNAPSE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(), config);
 	}
 
 	/**
@@ -1556,7 +1556,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	/**
 	 * Create an External File Handle. This is used to references a file that is
-	 * not stored in Synpase.
+	 * not stored in Synapse.
 	 * 
 	 * @param efh
 	 * @return
