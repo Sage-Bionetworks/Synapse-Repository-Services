@@ -8,7 +8,8 @@ import com.google.common.net.UrlEscapers;
 
 public class ContentDispositionUtils {
 
-	//matches characters that are not compliant with  ISO-8859-1 (https://en.wikipedia.org/wiki/ISO/IEC_8859-1). We use this to replace non-ascii characters with _
+	//Amazon S3 does not expect characters that are not ISO-8859-1. Unicode characters must be URL encoded.
+	//matches characters that are not compliant with  ISO-8859-1 (https://en.wikipedia.org/wiki/ISO/IEC_8859-1). We use this to replace ISO-8859-1 characters with _
 	private static final Pattern NON_ISO_8859_1_REGEX =
 			Pattern.compile("[^\\u0020-\\u007E\\u00A0-\\u00ff]");
 
