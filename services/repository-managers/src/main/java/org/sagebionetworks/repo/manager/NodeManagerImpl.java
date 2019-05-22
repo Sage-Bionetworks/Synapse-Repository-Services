@@ -44,7 +44,7 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
-import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -217,7 +217,7 @@ public class NodeManagerImpl implements NodeManager {
 	public static void validateNode(Node node){
 		if(node == null) throw new IllegalArgumentException("Node cannot be null");
 		if(node.getNodeType() == null) throw new IllegalArgumentException("Node.type cannot be null");	
-		node.setName(EntityNameValidation.valdiateName(node.getName()));
+		node.setName(NameValidation.validateName(node.getName()));
 		if (StringUtils.isNotEmpty(node.getAlias())) {
 			if (INVALID_ALIAS_CHARACTERS.matcher(node.getAlias()).find()) {
 				throw new IllegalArgumentException("Aliases can only have letters (a-z and A-Z), digits (0-9) and underscores (_)");

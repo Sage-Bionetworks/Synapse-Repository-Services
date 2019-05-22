@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -88,7 +88,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 				"MultipartUploadRequest.MD5Hex");
 
 		//validate file name
-		EntityNameValidation.valdiateName(request.getFileName());
+		NameValidation.validateName(request.getFileName());
 
 		// anonymous cannot upload. See: PLFM-2621.
 		if (AuthorizationUtils.isUserAnonymous(user)) {

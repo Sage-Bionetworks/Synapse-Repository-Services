@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
-import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -75,7 +75,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 
 		// Create the evaluation
-		eval.setName(EntityNameValidation.valdiateName(eval.getName()));
+		eval.setName(NameValidation.validateName(eval.getName()));
 		eval.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		eval.setCreatedOn(new Date());
 		String principalId = userInfo.getId().toString();
