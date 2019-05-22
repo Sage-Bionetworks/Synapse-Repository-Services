@@ -101,7 +101,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
-import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
@@ -247,7 +246,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -296,8 +294,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String QUERY = "/query";
 	private static final String QUERY_URI = QUERY + "?query=";
 	private static final String REPO_SUFFIX_VERSION = "/version";
-	protected static final String ADMIN = "/admin";
-	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
+	protected static final String STACK_STATUS = "/status";
 	private static final String ENTITY = "/entity";
 	private static final String GENERATED_BY_SUFFIX = "/generatedBy";
 
