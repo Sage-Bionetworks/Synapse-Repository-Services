@@ -32,13 +32,13 @@ public class EntityNameValidation {
 		key = key.trim();
 		if ("".equals(key))
 			throw new IllegalArgumentException(
-					"Entity names cannot be empty strings");
+					"Names cannot be empty strings");
 		Matcher matcher = ALLOWABLE_CHARS.matcher(key);
 		if (!matcher.matches()) {
 			throw new IllegalArgumentException(
-					"Invalid Entity name: '"
+					"Invalid Name: '"
 							+ key
-							+ "'. Entity names may only contain: letters, numbers, spaces, underscores, hypens, periods, plus signs, and parentheses");
+							+ "'. Names may only contain: letters, numbers, spaces, underscores, hypens, periods, plus signs, and parentheses");
 		}
 		return key;
 	}

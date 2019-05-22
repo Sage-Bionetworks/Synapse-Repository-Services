@@ -997,8 +997,11 @@ public class FileHandleManagerImplTest {
 	public void testCreateS3FileHandleCopyFailOnNeither() {
 		manager.createS3FileHandleCopy(mockUser, "123", null, null);
 	}
+	@Test(expected = IllegalArgumentException.class)
+	public void testCreateS3FileHandleCopyFileNameHasNonAsciiCharacters() {
+		manager.createS3FileHandleCopy(mockUser, "123", "föö bär.txt", null);
+	}
 
-	@SuppressWarnings("unchecked")
 	@Test(expected = NotFoundException.class)
 	public void testCreateS3FileHandleCopyFailOnNotExist() {
 		when(mockFileHandleDao.get("123")).thenThrow(NotFoundException.class);

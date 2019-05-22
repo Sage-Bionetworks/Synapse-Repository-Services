@@ -89,6 +89,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -1039,6 +1040,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(handleIdToCopyFrom, "handleIdToCopyFrom");
 		ValidateArgument.requirement(StringUtils.isNotEmpty(fileName) || StringUtils.isNotEmpty(contentType),
 				"Either the fileName or the contentType needs to be set");
+
+		EntityNameValidation.valdiateName(fileName);
 
 		FileHandle originalFileHandle = fileHandleDao.get(handleIdToCopyFrom);
 		ValidateArgument.requireType(originalFileHandle, S3FileHandle.class, "file handle to copy from");
