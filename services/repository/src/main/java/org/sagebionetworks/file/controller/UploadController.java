@@ -745,7 +745,7 @@ public class UploadController {
 	public @ResponseBody MultipartUploadStatus startMultipartUpload(
 			@RequestParam(required = true, value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody(required = true) MultipartUploadRequest request,
-			@RequestParam(required = false) Boolean forceRestart) {
+			@RequestParam(required = false, defaultValue = "false") boolean forceRestart) {
 		return fileService.startMultipartUpload(userId, request, forceRestart);
 	}
 

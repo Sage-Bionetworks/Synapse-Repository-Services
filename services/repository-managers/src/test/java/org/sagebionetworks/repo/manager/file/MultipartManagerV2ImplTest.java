@@ -84,7 +84,7 @@ public class MultipartManagerV2ImplTest {
 	String requestJson;
 	String requestHash;
 
-	Boolean forceRestart;
+	boolean forceRestart;
 	
 	String uploadId;
 	String uploadToken;
@@ -193,7 +193,7 @@ public class MultipartManagerV2ImplTest {
 			}
 		}).when(mockS3multipartUploadDAO).createPreSignedPutUrl(anyString(), anyString(), anyString());
 		
-		forceRestart = null;
+		forceRestart = false;
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -220,6 +220,13 @@ public class MultipartManagerV2ImplTest {
 		manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testStartOrResumeMultipartUpload_Non_ascii(){
+		request.setFileName("文件.txt");
+
+		//call under test
+		manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
+	}
 
 	@Test
 	public void testCalculateMD5AsHex(){
@@ -291,7 +298,7 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test
 	public void testStartOrResumeMultipartUploadForceRestartFalse(){
-		forceRestart = Boolean.FALSE;
+		forceRestart = false;
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);
@@ -300,7 +307,7 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test
 	public void testStartOrResumeMultipartUploadForceRestartTrue(){
-		forceRestart = Boolean.TRUE;
+		forceRestart = true;
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);

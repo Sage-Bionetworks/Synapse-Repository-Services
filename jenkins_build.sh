@@ -9,6 +9,8 @@
 # build_deploy - when set to "true" deploy artifacts
 # artifactory_username - artifactory username for deploy
 # artifactory_password - artifactory password for deploy
+# org_sagebionetworks_repository_database_connection_url  - endpoint to mysql database for repo data
+# org_sagebionetworks_table_cluster_endpoint_0  - endpoint to mysql database for user tables data
 
 # On Jenkins HOME is /var/lib/jenkins
 export m2_cache_parent_folder=${HOME}/${JOB_NAME}

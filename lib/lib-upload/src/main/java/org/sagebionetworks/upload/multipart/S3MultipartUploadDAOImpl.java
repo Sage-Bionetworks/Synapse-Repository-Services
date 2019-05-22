@@ -79,7 +79,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		 * add due to SYNPY-409 (see also PLFM-4183)
 		 */
 		request.addRequestParameter("Expires", ""+(expiration/1000));
-		if(StringUtils.isNotEmpty(contentType)){ //TODO:test
+		if(StringUtils.isNotEmpty(contentType)){
 			request.setContentType(contentType);
 		}
 		return s3Client.generatePresignedUrl(request);

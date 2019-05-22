@@ -17,7 +17,7 @@ public class EntityNameValidation {
 
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
-			.compile(ModelConstants.VALID_ENTITY_NAME_REGEX);
+			.compile("^[a-zA-Z0-9,_. \\-+()]+");
 
 	/**
 	 * Validate the name

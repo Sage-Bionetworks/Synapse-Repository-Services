@@ -2,6 +2,7 @@ package org.sagebionetworks.upload.multipart;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -113,7 +114,7 @@ public class S3MultipartUploadDAOImplTest {
 
 
 	@Test
-	public void testcreatePreSignedPutUrl() throws AmazonClientException, MalformedURLException{
+	public void testCreatePreSignedPutUrl() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
 		String contentType = null;
 		//call under test.
@@ -123,14 +124,31 @@ public class S3MultipartUploadDAOImplTest {
 		verify(mockS3Client).generatePresignedUrl(capture.capture());
 		assertEquals("bucket", capture.getValue().getBucketName());
 		assertEquals("key", capture.getValue().getKey());
-		assertEquals(null, capture.getValue().getContentType());
+		assertNull(capture.getValue().getContentType());
+		// expiration should be set for the future.
+		Date now = new Date(System.currentTimeMillis());
+		assertTrue(now.before( capture.getValue().getExpiration()));
+	}
+
+	@Test
+	public void testCreatePreSignedPutUrlEmptyContentType() throws AmazonClientException, MalformedURLException{
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
+		String contentType = "";
+		//call under test.
+		URL url = dao.createPreSignedPutUrl("bucket", "key", contentType);
+		assertNotNull(url);
+		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
+		verify(mockS3Client).generatePresignedUrl(capture.capture());
+		assertEquals("bucket", capture.getValue().getBucketName());
+		assertEquals("key", capture.getValue().getKey());
+		assertNull(capture.getValue().getContentType());
 		// expiration should be set for the future.
 		Date now = new Date(System.currentTimeMillis());
 		assertTrue(now.before( capture.getValue().getExpiration()));
 	}
 	
 	@Test
-	public void testcreatePreSignedPutUrlWithContentType() throws AmazonClientException, MalformedURLException{
+	public void testCreatePreSignedPutUrlWithContentType() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
 		String contentType = "text/plain";
 		//call under test.
