@@ -725,7 +725,7 @@ public class ServletTestHelper {
 	public StackStatus updateStackStatus(HttpServlet dispatchServlet,
 			Long userId, StackStatus toUpdate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.STACK_STATUS, userId, toUpdate);
+				HTTPMODE.PUT, UrlHelpers.ADMIN_STACK_STATUS, userId, toUpdate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
