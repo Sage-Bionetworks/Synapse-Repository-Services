@@ -75,19 +75,27 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 			}
 		}
 	}
-	
+
 	@Test
-	public void testGetStackStatus() throws Exception {
+	public void testGetNonAdminStackStatus() throws Exception {
 		// Make sure we can get the stack status
 		StackStatus status = servletTestHelper.getStackStatus(dispatchServlet);
 		assertNotNull(status);
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
 	}
-	
+
+	@Test
+	public void testGetStackStatus() throws Exception {
+		// Make sure we can get the stack status
+		StackStatus status = servletTestHelper.getAdminStackStatus(dispatchServlet);
+		assertNotNull(status);
+		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
+	}
+
 	@Test
 	public void testUpdateStatus() throws Exception {
 		// Make sure we can get the stack status
-		StackStatus status = servletTestHelper.getStackStatus(dispatchServlet);
+		StackStatus status = servletTestHelper.getAdminStackStatus(dispatchServlet);
 		assertNotNull(status);
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
 		// Make sure we can update the status
@@ -105,7 +113,7 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 		StackStatus back = servletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
 		assertEquals(setDown, back);
 		// Make sure we can still get the status
-		StackStatus current = servletTestHelper.getStackStatus(dispatchServlet);
+		StackStatus current = servletTestHelper.getAdminStackStatus(dispatchServlet);
 		assertEquals(setDown, current);
 		
 		// Now make sure we can turn it back on when down.

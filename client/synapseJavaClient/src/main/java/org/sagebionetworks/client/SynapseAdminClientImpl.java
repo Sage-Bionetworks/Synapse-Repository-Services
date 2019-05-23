@@ -33,6 +33,8 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class SynapseAdminClientImpl extends SynapseClientImpl implements SynapseAdminClient {
 
+	protected static final String ADMIN = "/admin";
+	protected static final String ADMIN_STACK_STATUS = ADMIN + "/synapse/status";
 	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
 	private static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + "/trashcan/purgeleaves";
@@ -79,7 +81,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	 * @throws SynapseException
 	 */
 	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException {
-		return putJSONEntity(getRepoEndpoint(), STACK_STATUS, updated, StackStatus.class);
+		return putJSONEntity(getRepoEndpoint(), ADMIN_STACK_STATUS, updated, StackStatus.class);
 	}
 
 	@Override
