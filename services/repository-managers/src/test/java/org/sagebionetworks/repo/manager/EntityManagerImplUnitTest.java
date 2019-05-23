@@ -232,10 +232,15 @@ public class EntityManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testUpdateFileHandleId() throws Exception {
+	public void testUpdateFileHandleIdNullOldVersionLabel() throws Exception {
 		String id = "123";
+		String newVersionComment = "a new comment";
+		String newVersionLabel = "new label";
+
 		Node node = new Node();
 		node.setFileHandleId("101");
+		node.setVersionLabel(null);
+
 		NamedAnnotations annos = new NamedAnnotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
@@ -243,8 +248,8 @@ public class EntityManagerImplUnitTest {
 		entity.setId(id);
 		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202
 		entity.setDataFileHandleId(dataFileHandleId);
-		entity.setVersionComment("a comment for the original version");
-		entity.setVersionLabel("a label for the original version");
+		entity.setVersionComment(newVersionComment);
+		entity.setVersionLabel(newVersionLabel);
 		
 		boolean newVersion = false; // even though new version is false the 
 		// modified file handle will trigger a version update
@@ -252,8 +257,40 @@ public class EntityManagerImplUnitTest {
 		// method under test
 		entityManager.updateEntity(mockUser, entity, newVersion, null);
 		
-		assertNull(node.getVersionComment());
+		assertEquals(newVersionComment, node.getVersionComment());
+		assertEquals(newVersionLabel, node.getVersionLabel());
+	}
+
+	// See PLFM-5265
+	@Test
+	public void updateDataFileHandleIdMatchingVersionLabel() {
+		String id = "123";
+		String oldVersionComment = "an old comment";
+		String newVersionComment = "a new comment";
+		String versionLabel = "this should get nulled";
+		Node node = new Node();
+		node.setFileHandleId("101");
+		node.setVersionComment(oldVersionComment);
+		node.setVersionLabel(versionLabel);
+		NamedAnnotations annos = new NamedAnnotations();
+		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		FileEntity entity = new FileEntity();
+		entity.setId(id);
+		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202
+		entity.setDataFileHandleId("202");
+		entity.setVersionComment(newVersionComment);
+		entity.setVersionLabel(versionLabel);
+
+		boolean newVersion = false; // even though new version is false the
+		// modified file handle will trigger a version update
+
+		// method under test
+		entityManager.updateEntity(mockUser, entity, newVersion, null);
+
 		assertNull(node.getVersionLabel());
+		assertEquals(dataFileHandleId, node.getFileHandleId());
+		assertEquals(newVersionComment, node.getVersionComment());
 	}
 
 	@Test

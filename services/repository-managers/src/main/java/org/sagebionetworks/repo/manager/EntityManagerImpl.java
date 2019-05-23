@@ -362,14 +362,17 @@ public class EntityManagerImpl implements EntityManager {
 				updated.getId());
 		annos.setEtag(updated.getEtag());
 		
-		// Auto-version FileEntity See PLFM-1744
-		if(!newVersion && (updated instanceof FileEntity)){
+		// Force bump the version if the FileEntity changes (PLFM-1744)
+		if(!newVersion && (updated instanceof FileEntity)) {
 			FileEntity updatedFile = (FileEntity) updated;
-			if(!updatedFile.getDataFileHandleId().equals(node.getFileHandleId())){
+			if (!updatedFile.getDataFileHandleId().equals(node.getFileHandleId())) {
 				newVersion = true;
-				// setting this to null we cause the revision id to be used.
-				updatedFile.setVersionLabel(null);
-				updatedFile.setVersionComment(null);
+				// setting version label to null causes the revision id to be used as the label
+				// only do this if the new label matches the old label, since the label must be unique
+				if (node.getVersionLabel() != null && node.getVersionLabel().equals(updatedFile.getVersionLabel())) {
+					updatedFile.setVersionLabel(null);
+				}
+				updatedFile.setVersionComment(((FileEntity) updated).getVersionComment());
 			}
 		}
 
