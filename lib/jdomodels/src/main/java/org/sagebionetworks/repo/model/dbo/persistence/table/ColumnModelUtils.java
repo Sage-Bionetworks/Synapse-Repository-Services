@@ -174,17 +174,16 @@ public class ColumnModelUtils {
 			case ENTITYID:
 			case FILEHANDLEID:
 			case USERID:
+			case LARGETEXT:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}
 				if (defaultValue != null) {
-					throw new IllegalArgumentException("Columns of type ENTITYID, FILEHANDLEID, and USERID cannot have default values: "
-							+ defaultValue);
+					throw new IllegalArgumentException("Columns of type ENTITYID, FILEHANDLEID, USERID, and LARGETEXT cannot have default values.");
 				}
 				break;
 			case BOOLEAN:
 			case DATE:
-			case LARGETEXT:
 			case INTEGER:
 			case DOUBLE:
 				if (StringUtils.isEmpty(defaultValue)) {

@@ -237,6 +237,15 @@ public class ColumnModelUtlisTest {
 		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testLargeText_DisallowDefaultValue(){
+		original.setName("name");
+		original.setColumnType(ColumnType.LARGETEXT);
+		original.setDefaultValue("value");
+
+		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+	}
+
 	@Test
 	public void testEnumMaxCountDocumentation() throws IOException {
 		String schema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(ColumnModel.class);
