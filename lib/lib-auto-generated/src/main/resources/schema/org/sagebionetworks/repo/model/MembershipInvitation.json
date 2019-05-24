@@ -1,6 +1,6 @@
 {
 	"title": "MembershipInvitation",
-	"description": "JSON schema for MembershipInvitation POJO",
+	"description": "JSON schema for MembershipInvitation POJO. \\nNote: certain fields may be omitted when returned if the field value is null.",
 
 	"properties": {
 		"id": {
