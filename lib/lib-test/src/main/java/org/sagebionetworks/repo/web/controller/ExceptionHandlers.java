@@ -63,6 +63,7 @@ public class ExceptionHandlers {
 				new ExceptionType("org.sagebionetworks.repo.model.NameConflictException", true)),
 		new TestEntry(400,
 				new ExceptionType(IllegalArgumentException.class.getName(), true),
+				new ExceptionType("org.sagebionetworks.repo.manager.table.InvalidTableQueryFacetColumnRequestException", true),
 				new ExceptionType("org.sagebionetworks.repo.model.InvalidModelException", true),
 				new ExceptionType("org.springframework.beans.TypeMismatchException", true),
 				new ExceptionType("org.springframework.http.converter.HttpMessageNotReadableException", true),

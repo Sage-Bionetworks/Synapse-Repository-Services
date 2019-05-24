@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
+import org.sagebionetworks.repo.manager.table.InvalidTableQueryFacetColumnRequestException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -893,6 +894,14 @@ public class BaseControllerExceptionHandlerAdvice {
 	ErrorResponse handleUserCertificationRequiredException(UserCertificationRequiredException ex,
 														HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.USER_CERTIFICATION_REQUIRED);
+	}
+
+	@ExceptionHandler(InvalidTableQueryFacetColumnRequestException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleInvalidTableQueryFacetColumnRequestException(InvalidTableQueryFacetColumnRequestException ex,
+														   HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.INVALID_TABLE_QUERY_FACET_COLUMN_REQUEST);
 	}
 
 

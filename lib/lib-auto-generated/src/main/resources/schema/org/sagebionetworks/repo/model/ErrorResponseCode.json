@@ -9,6 +9,10 @@
 		{
 			"name": "USER_CERTIFICATION_REQUIRED",
 			"description": "The user has not passed the certification process."
+		},
+		{
+			"name": "INVALID_TABLE_QUERY_FACET_COLUMN_REQUEST",
+			"description": "At least one of the columns listed in a FacetColumnRequest is not facet-able according to the table's schema."
 		}
 	]
 }
