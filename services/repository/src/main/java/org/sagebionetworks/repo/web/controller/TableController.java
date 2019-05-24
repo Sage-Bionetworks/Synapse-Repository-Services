@@ -725,17 +725,20 @@ public class TableController {
 	 * </p>
 	 * <p>
 	 * The 'partsMask' is an integer "mask" that can be combined into to request
-	 * any desired part. As of this writing, the mask is defined as follows:
+	 * any desired part. As of this writing, the mask is defined as follows (see <a href="${org.sagebionetworks.repo.model.table.QueryBundleRequest}">QueryBundleRequest</a>):
 	 * <ul>
 	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
 	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
 	 * <li>Select Columns <i>(selectColumns)</i> = 0x4</li>
 	 * <li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li>
+	 * <li>The Table Columns <i>(columnModels)</i> = 0x10</li>
+	 * <li>Facet statistics for each faceted column <i>(facetStatistics)</i> = 0x20</li>
+	 * <li>The sum of the file sizes <i>(sumFileSizesBytes)</i> = 0x40</li>
 	 * </ul>
 	 * </p>
 	 * <p>
 	 * For example, to request all parts, the request mask value should be: <br>
-	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0xF.
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 OR 0x10 OR 0x20 OR 0x40 = 0x7F.
 	 * </p>
 	 * <p>
 	 * Note: The caller must have the <a

@@ -72,9 +72,9 @@ public class CertifiedUserController {
 	 * Get the Certified User test responses in the system, optionally filtered by the one who took the test.
 	 * Note:  This service is available to Synapse administrators only.
 	 * @param userId
-	 * @param principalId
-	 * @param limit
-	 * @param offset
+	 * @param principalId If specified, only retrieve the quiz for this user, if it exists.
+	 * @param limit Limits the size of the page returned. For example, a page size of 10 requires limit = 10.
+	 * @param offset The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws NotFoundException
 	 */

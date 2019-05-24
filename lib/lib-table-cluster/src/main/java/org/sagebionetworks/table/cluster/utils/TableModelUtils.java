@@ -1077,7 +1077,7 @@ public class TableModelUtils {
 						// The values are not column names so this was not a header row.
 						throw new IllegalArgumentException(
 								"The first line is expected to be a header but the values do not match the names of of the columns of the table ("
-										+ name + " is not a vaild column name or id). Header row: " + StringUtils.join(rowValues, ','));
+										+ name + " is not a valid column name or id). Header row: " + StringUtils.join(rowValues, ','));
 					}
 				}
 				columnIdToColumnIndexMap.put(id, i);
