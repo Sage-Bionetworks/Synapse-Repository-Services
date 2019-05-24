@@ -344,13 +344,12 @@ public class EvaluationController {
 			@PathVariable String evalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
+			@RequestBody Evaluation evaluation,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, InvalidModelException, ConflictingUpdateException, NotFoundException, JSONObjectAdapterException
 	{
-		String requestBody = ControllerUtil.getRequestBodyAsString(request);
-		Evaluation eval = new Evaluation(new JSONObjectAdapterImpl(requestBody));
-		if (!evalId.equals(eval.getId()))
+		if (!evalId.equals(evaluation.getId()))
 			throw new IllegalArgumentException("Evaluation ID does not match requested ID: " + evalId);
-		return serviceProvider.getEvaluationService().updateEvaluation(userId, eval);
+		return serviceProvider.getEvaluationService().updateEvaluation(userId, evaluation);
 	}
 	
 	/**
