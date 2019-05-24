@@ -18,6 +18,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.apache.commons.net.util.Base64;
+import org.apache.http.Consts;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -53,6 +54,9 @@ public class SendRawEmailRequestBuilder {
 	private boolean isNotificationMessage=false;
 	
 	public enum BodyType{JSON, PLAIN_TEXT, HTML};
+
+	private static final ContentType TEXT_PLAIN_UTF8 = ContentType.create("text/plain", Consts.UTF_8);
+	private static final ContentType TEXT_HTML_UTF8 = ContentType.create("text/html", Consts.UTF_8);
 
 
 	public SendRawEmailRequestBuilder withRecipientEmail(String recipientEmail) {
@@ -202,7 +206,7 @@ public class SendRawEmailRequestBuilder {
 		return request;
 	}
 	
-	public static MimeMultipart createEmailBodyFromJSON(String messageBodyString, String unsubscribeLink, String userProfileSettingLink) {
+	static MimeMultipart createEmailBodyFromJSON(String messageBodyString, String unsubscribeLink, String userProfileSettingLink) {
 		try {
 			MessageBody messageBody = null;
 			boolean canDeserializeJSON = false;
@@ -228,12 +232,12 @@ public class SendRawEmailRequestBuilder {
 					if (html!=null) {
 						BodyPart part = new MimeBodyPart();
 						part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink, userProfileSettingLink),
-							ContentType.TEXT_HTML.getMimeType());
+							TEXT_HTML_UTF8.toString().toString());
 						alternativeMultiPart.addBodyPart(part);
 					} else if (plain!=null) {
 						BodyPart part = new MimeBodyPart();
 						part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink, userProfileSettingLink),
-								ContentType.TEXT_PLAIN.getMimeType());
+								TEXT_PLAIN_UTF8.toString());
 						alternativeMultiPart.addBodyPart(part);
 					}
 					mp.addBodyPart(alternativeBodyPart);
@@ -268,8 +272,8 @@ public class SendRawEmailRequestBuilder {
 
 			} else {
 				BodyPart part = new MimeBodyPart();
-				part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink, userProfileSettingLink), 
-						ContentType.TEXT_PLAIN.getMimeType());
+				part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink, userProfileSettingLink),
+						TEXT_PLAIN_UTF8.toString());
 				mp.addBodyPart(part);
 			}
 			return mp;
@@ -277,21 +281,21 @@ public class SendRawEmailRequestBuilder {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	public static MimeMultipart createEmailBodyFromText(String messageBodyString, ContentType contentType, String unsubscribeLink, String userProfileSettingLink) {
+
+	static MimeMultipart createEmailBodyFromText(String messageBodyString, ContentType contentType, String unsubscribeLink, String userProfileSettingLink) {
 		MimeMultipart mp = new MimeMultipart("related");
 		try {
 			BodyPart part = new MimeBodyPart();
-			if (contentType.getMimeType().equals(ContentType.TEXT_HTML.getMimeType())) {
-				part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink), 
-						ContentType.TEXT_HTML.getMimeType());
-			} else if (contentType.getMimeType().equals(ContentType.TEXT_PLAIN.getMimeType())) {
+			if (contentType.toString().equals(TEXT_HTML_UTF8.toString())) {
+				part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink),
+						TEXT_HTML_UTF8.toString());
+			} else if (contentType.toString().equals(TEXT_PLAIN_UTF8.toString())) {
 				StringBuilder sb = new StringBuilder("<html>\n<body>\n");
 				sb.append("<div style=\"white-space: pre-wrap;\">\n");
 				sb.append(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink));
 				sb.append("\n</div>");
 				sb.append("\n</body>\n</html>\n");
-				part.setContent(sb.toString(), ContentType.TEXT_HTML.getMimeType());
+				part.setContent(sb.toString(), TEXT_HTML_UTF8.toString());
 			} else {
 				throw new IllegalArgumentException("Unexpected mime type for text: "+contentType.getMimeType());
 			}
