@@ -2,11 +2,15 @@ package org.sagebionetworks.utils;
 
 import java.nio.charset.Charset;
 
+import org.apache.http.Consts;
 import org.apache.http.entity.ContentType;
 
 import com.amazonaws.services.s3.model.S3Object;
 
 public class ContentTypeUtil {
+	public static final ContentType TEXT_PLAIN_UTF8 = ContentType.create("text/plain", Consts.UTF_8);
+	public static final ContentType TEXT_HTML_UTF8 = ContentType.create("text/html", Consts.UTF_8);
+
 	/**
 	 * 
 	 * @param contentTypeString

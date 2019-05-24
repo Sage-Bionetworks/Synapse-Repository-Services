@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
-
 import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.Message.RecipientType;
@@ -17,9 +16,9 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import com.amazonaws.services.simpleemail.model.RawMessage;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.apache.commons.net.util.Base64;
-import org.apache.http.Consts;
-import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
@@ -27,9 +26,7 @@ import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-
-import com.amazonaws.services.simpleemail.model.RawMessage;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import org.sagebionetworks.utils.ContentTypeUtil;
 
 /*
  * If sender is null then the 'notification email address' is used
@@ -54,9 +51,6 @@ public class SendRawEmailRequestBuilder {
 	private boolean isNotificationMessage=false;
 	
 	public enum BodyType{JSON, PLAIN_TEXT, HTML};
-
-	private static final ContentType TEXT_PLAIN_UTF8 = ContentType.create("text/plain", Consts.UTF_8);
-	private static final ContentType TEXT_HTML_UTF8 = ContentType.create("text/html", Consts.UTF_8);
 
 
 	public SendRawEmailRequestBuilder withRecipientEmail(String recipientEmail) {
@@ -235,12 +229,12 @@ public class SendRawEmailRequestBuilder {
 				if (html!=null) {
 					BodyPart part = new MimeBodyPart();
 					part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink, userProfileSettingLink),
-						TEXT_HTML_UTF8.toString().toString());
+						ContentTypeUtil.TEXT_HTML_UTF8.toString().toString());
 					alternativeMultiPart.addBodyPart(part);
 				} else if (plain!=null) {
 					BodyPart part = new MimeBodyPart();
 					part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink, userProfileSettingLink),
-							TEXT_PLAIN_UTF8.toString());
+							ContentTypeUtil.TEXT_PLAIN_UTF8.toString());
 					alternativeMultiPart.addBodyPart(part);
 				}
 				mp.addBodyPart(alternativeBodyPart);
@@ -276,7 +270,7 @@ public class SendRawEmailRequestBuilder {
 		} else {
 			BodyPart part = new MimeBodyPart();
 			part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink, userProfileSettingLink),
-					TEXT_PLAIN_UTF8.toString());
+					ContentTypeUtil.TEXT_PLAIN_UTF8.toString());
 			mp.addBodyPart(part);
 		}
 		return mp;
@@ -286,7 +280,7 @@ public class SendRawEmailRequestBuilder {
 		MimeMultipart mp = new MimeMultipart("related");
 		BodyPart part = new MimeBodyPart();
 		part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink),
-				TEXT_HTML_UTF8.toString());
+				ContentTypeUtil.TEXT_HTML_UTF8.toString());
 		mp.addBodyPart(part);
 		return mp;
 	}
@@ -300,7 +294,7 @@ public class SendRawEmailRequestBuilder {
 				EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink) +
 				"\n</div>" +
 				"\n</body>\n</html>\n";
-		part.setContent(content, TEXT_HTML_UTF8.toString());
+		part.setContent(content, ContentTypeUtil.TEXT_HTML_UTF8.toString());
 		mp.addBodyPart(part);
 		return mp;
 	}
