@@ -163,10 +163,10 @@ public class SendRawEmailRequestBuilder {
 			multipart = createEmailBodyFromJSON(body, unsubscribeLink, profileSettingLink);
 			break;
 		case PLAIN_TEXT:
-			multipart = createEmailBodyFromText(body, ContentType.TEXT_PLAIN, unsubscribeLink, profileSettingLink);
+			multipart = createEmailBodyFromText(body, TEXT_PLAIN_UTF8, unsubscribeLink, profileSettingLink);
 			break;
 		case HTML:
-			multipart = createEmailBodyFromText(body, ContentType.TEXT_HTML, unsubscribeLink, profileSettingLink);
+			multipart = createEmailBodyFromText(body, TEXT_HTML_UTF8, unsubscribeLink, profileSettingLink);
 			break;
 		default:
 			throw new IllegalStateException("Unexpected type "+bodyType);
@@ -282,14 +282,14 @@ public class SendRawEmailRequestBuilder {
 		}
 	}
 
-	static MimeMultipart createEmailBodyFromText(String messageBodyString, ContentType contentType, String unsubscribeLink, String userProfileSettingLink) {
+	private static MimeMultipart createEmailBodyFromText(String messageBodyString, ContentType contentType, String unsubscribeLink, String userProfileSettingLink) {
 		MimeMultipart mp = new MimeMultipart("related");
 		try {
 			BodyPart part = new MimeBodyPart();
-			if (contentType.toString().equals(TEXT_HTML_UTF8.toString())) {
+			if (contentType.getMimeType().equals(TEXT_HTML_UTF8.getMimeType())) {
 				part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink),
 						TEXT_HTML_UTF8.toString());
-			} else if (contentType.toString().equals(TEXT_PLAIN_UTF8.toString())) {
+			} else if (contentType.getMimeType().equals(TEXT_PLAIN_UTF8.getMimeType())) {//wrap body in html
 				StringBuilder sb = new StringBuilder("<html>\n<body>\n");
 				sb.append("<div style=\"white-space: pre-wrap;\">\n");
 				sb.append(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink));
