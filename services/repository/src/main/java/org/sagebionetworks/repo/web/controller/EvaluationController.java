@@ -31,14 +31,12 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
-import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -128,12 +126,11 @@ public class EvaluationController {
 	Evaluation createEvaluation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
+			@RequestBody Evaluation evaluation,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException
 	{
-		String requestBody = ControllerUtil.getRequestBodyAsString(request);
-		Evaluation eval = new Evaluation(new JSONObjectAdapterImpl(requestBody));
-		return serviceProvider.getEvaluationService().createEvaluation(userId, eval);
+		return serviceProvider.getEvaluationService().createEvaluation(userId, evaluation);
 	}
 	
 	/**
@@ -463,13 +460,12 @@ public class EvaluationController {
 			@RequestParam(value = AuthorizationConstants.CHALLENGE_ENDPOINT_PARAM, defaultValue = ServiceConstants.CHALLENGE_ENDPOINT) String challengeEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, defaultValue = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT) String notificationUnsubscribeEndpoint,
 			@RequestHeader HttpHeaders header,
+			@RequestBody Submission submission,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
-		String requestBody = ControllerUtil.getRequestBodyAsString(request);
-		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
 		return serviceProvider.getEvaluationService().createSubmission(
-				userId, sub, entityEtag, submissionEligibilityHash, request, challengeEndpoint, notificationUnsubscribeEndpoint);
+				userId, submission, entityEtag, submissionEligibilityHash, request, challengeEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
 	/**
@@ -594,12 +590,11 @@ public class EvaluationController {
 			@PathVariable String subId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
+			@RequestBody SubmissionStatus status,
 			HttpServletRequest request) 
 			throws DatastoreException, UnauthorizedException, InvalidModelException, 
 			ConflictingUpdateException, NotFoundException, JSONObjectAdapterException
 	{
-		String requestBody = ControllerUtil.getRequestBodyAsString(request);
-		SubmissionStatus status = new SubmissionStatus(new JSONObjectAdapterImpl(requestBody));
 		if (!subId.equals(status.getId()))
 			throw new IllegalArgumentException("Submission ID does not match requested ID: " + subId);
 		return serviceProvider.getEvaluationService().updateSubmissionStatus(userId, status);
