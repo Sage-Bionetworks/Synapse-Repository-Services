@@ -861,13 +861,13 @@ public class EvaluationController {
 	@RequestMapping(value = UrlHelpers.SUBMISSION_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void redirectURLForFileHandle(
-			@PathVariable String submissionId,
+			@PathVariable String subId,
 			@PathVariable String fileHandleId,
 			@RequestParam (required = false) Boolean redirect,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException {
-		String url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, submissionId, fileHandleId);
+		String url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, subId, fileHandleId);
 		RedirectUtils.handleRedirect(redirect, url, response);
 	}
 	
