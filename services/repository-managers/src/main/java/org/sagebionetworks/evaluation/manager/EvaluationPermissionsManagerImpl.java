@@ -9,9 +9,9 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
-import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -100,7 +100,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
 
-		validatePublicPermissions(acl.getResourceAccess());
+		validateAnonymousOrPublicPermissions(acl.getResourceAccess());
 
 		aclDAO.update(acl, ObjectType.EVALUATION);
 		return aclDAO.get(evalId, ObjectType.EVALUATION);
@@ -198,21 +198,17 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 
 	/*
-	 * Ensures that public users are not given more permissions than they should be allowed to have on an evaluation
+	 * Ensures that public/anonymous users are not given more permissions than they should be allowed to have on an evaluation
 	 */
-	private static void validatePublicPermissions(Set<ResourceAccess> resourceAccess) {
+	private static void validateAnonymousOrPublicPermissions(Set<ResourceAccess> resourceAccess) {
 		for (ResourceAccess ra : resourceAccess) {
 			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
-				Set<ACCESS_TYPE> publicGrantCopy = new HashSet<>(ra.getAccessType());
-				publicGrantCopy.removeAll(ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS);
-				if (!publicGrantCopy.isEmpty()) {
-					throw new IllegalArgumentException("Public users may only have read and submit access on an evaluation.");
+				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS)) {
+					throw new InvalidModelException("Public users may only have read and submit access on an evaluation.");
 				}
 			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
-				Set<ACCESS_TYPE> anonymousGrantCopy = new HashSet<>(ra.getAccessType());
-				anonymousGrantCopy.removeAll(ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS);
-				if (!anonymousGrantCopy.isEmpty()) {
-					throw new IllegalArgumentException("Anonymous users may only have read access on an evaluation.");
+				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS)) {
+					throw new InvalidModelException("Anonymous users may only have read access on an evaluation.");
 				}
 			}
 		}

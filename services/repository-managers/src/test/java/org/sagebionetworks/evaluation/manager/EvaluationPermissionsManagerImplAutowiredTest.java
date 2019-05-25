@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -41,6 +41,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -506,7 +508,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		Set<ResourceAccess> raSet = new HashSet<>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		ra.setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.SUBMIT)));
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.SUBMIT));
 		raSet.add(ra);
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
@@ -535,19 +537,19 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// add READ privilege to ACL for anonymous
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
-			if (!(type.equals(ACCESS_TYPE.READ) || type.equals(ACCESS_TYPE.SUBMIT))) {
+			if (!((type.equals(ACCESS_TYPE.READ) || type.equals(ACCESS_TYPE.SUBMIT)))) {
 				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 				Set<ResourceAccess> raSet = new HashSet<>();
 				ResourceAccess ra = new ResourceAccess();
-				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 				ra.setAccessType(Collections.singleton(type));
 				raSet.add(ra);
 				acl.setResourceAccess(raSet);
 				try {
 					// Call under test
 					evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
-					fail("Expected IllegalArgumentException");
-				} catch (IllegalArgumentException e) {
+					fail("Expected InvalidModelException");
+				} catch (InvalidModelException e) {
 					// as expected
 				}
 			}
@@ -569,7 +571,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		Set<ResourceAccess> raSet = new HashSet<>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		ra.setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.READ)));
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
 		raSet.add(ra);
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
@@ -596,7 +598,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// add READ privilege to ACL for anonymous
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
-			if (!(type.equals(ACCESS_TYPE.READ))) {
+			if (!type.equals(ACCESS_TYPE.READ)) {
 				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 				Set<ResourceAccess> raSet = new HashSet<>();
 				ResourceAccess ra = new ResourceAccess();
@@ -607,8 +609,8 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 				try {
 					// Call under test
 					evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
-					fail("Expected IllegalArgumentException");
-				} catch (IllegalArgumentException e) {
+					fail("Expected InvalidModelException");
+				} catch (InvalidModelException e) {
 					// as expected
 				}
 			}
