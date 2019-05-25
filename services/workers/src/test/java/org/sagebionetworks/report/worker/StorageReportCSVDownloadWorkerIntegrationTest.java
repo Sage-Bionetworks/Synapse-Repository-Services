@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -84,17 +85,17 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		// Content size of 0 bytes
 		fileHandle1 = fileHandleManager.createFileFromByteArray(adminUserInfo
 						.getId().toString(), new Date(), "".getBytes(StandardCharsets.UTF_8), "foo1.txt",
-				ContentType.TEXT_PLAIN, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 
 		// Content size of 4 bytes
 		fileHandle2 = fileHandleManager.createFileFromByteArray(adminUserInfo
 						.getId().toString(), new Date(), "abcd".getBytes(StandardCharsets.UTF_8), "foo2.txt",
-				ContentType.TEXT_PLAIN, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 
 		// Content size of 8 bytes
 		fileHandle3 = fileHandleManager.createFileFromByteArray(adminUserInfo
 						.getId().toString(), new Date(), "abcdefgh".getBytes(StandardCharsets.UTF_8), "foo3.txt",
-				ContentType.TEXT_PLAIN, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 
 		// Files in project 1, content size total should be 0 + 4 = 4
 		file1 = new FileEntity();

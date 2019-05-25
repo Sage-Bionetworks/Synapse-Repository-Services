@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Date;
 import java.util.LinkedList;
@@ -64,6 +65,7 @@ import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -496,12 +498,12 @@ public class FileHandleManagerImplAutowireTest {
 	public void testGetWikiFileHandleAnonymous() throws Exception {
 		Date now = new Date();
 		S3FileHandle markdownHandle = fileUploadManager.createFileFromByteArray(userInfo
-				.getId().toString(), now, "markdown contents".getBytes("UTF-8"), "markdown.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, "markdown contents".getBytes(StandardCharsets.UTF_8), "markdown.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		toDelete.add(markdownHandle);
 		S3FileHandle attachmentFileHandle = fileUploadManager.createFileFromByteArray(userInfo
-				.getId().toString(), now, "attachment data".getBytes("UTF-8"), "attachment.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, "attachment data".getBytes(StandardCharsets.UTF_8), "attachment.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		toDelete.add(attachmentFileHandle);
 
 		// add a wiki to the project
