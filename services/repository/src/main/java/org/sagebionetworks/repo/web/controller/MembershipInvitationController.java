@@ -83,6 +83,8 @@ public class MembershipInvitationController {
 	/**
 	 * Retrieve the open invitations to a user, optionally filtering by the Team of origin.
 	 * An invitation is only open if it has not expired and if the user has not joined the Team.
+	 *
+	 * Note: certain fields may be omitted when returned if the field value is null
 	 * @param id the ID of the Synapse user to which invitations have been extended.
 	 * @param teamId the ID of the Team extending the invitations (optional)
 	 * @param limit the maximum number of invitations to return (default 10)
@@ -105,6 +107,8 @@ public class MembershipInvitationController {
 	/**
 	 * Retrieve the open invitations from a Team, optionally filtering by the invitee.
 	 * An invitation is only open if it has not expired and if the user has not joined the Team.
+	 *
+	 * Note: certain fields may be omitted when returned if the field value is null
 	 * @param userId the ID of the user making the request
 	 * @param id the ID of the Team extending the invitations  
 	 * @param inviteeId the ID of the Synapse user to which invitations have been extended (optional)

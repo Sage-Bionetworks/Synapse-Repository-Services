@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -411,7 +410,7 @@ public class SynapseTest {
 		verify(mockClient).get(requestCaptor.capture());
 		String value = requestCaptor.getValue().getHeaders().get("User-Agent");
 		assertNotNull(value);
-		assertTrue(value.startsWith(SynapseClientImpl.SYNPASE_JAVA_CLIENT));
+		assertTrue(value.startsWith(SynapseClientImpl.SYNAPSE_JAVA_CLIENT));
  	}
 	
 	@Test
@@ -429,7 +428,7 @@ public class SynapseTest {
 		verify(mockClient).get(requestCaptor.capture());
 		String value = requestCaptor.getValue().getHeaders().get("User-Agent");
 		assertNotNull(value);
-		assertTrue(value.startsWith(SynapseClientImpl.SYNPASE_JAVA_CLIENT));
+		assertTrue(value.startsWith(SynapseClientImpl.SYNAPSE_JAVA_CLIENT));
 		assertTrue("Failed to append data to the user agent",value.indexOf(appended) > 0);
  	}
 	

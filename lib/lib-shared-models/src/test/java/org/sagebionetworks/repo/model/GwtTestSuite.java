@@ -23,7 +23,7 @@ public class GwtTestSuite extends GWTTestCase {
 	 * Must refer to a valid module that sources this class.
 	 */
 	public String getModuleName() { 
-		return "org.sagebionetworks.repo.SharedSynpaseDTOs";
+		return "org.sagebionetworks.repo.SharedSynapseDTOs";
 	}
 	
 	String registerJson = null;

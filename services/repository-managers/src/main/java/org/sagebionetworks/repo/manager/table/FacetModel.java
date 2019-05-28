@@ -98,7 +98,7 @@ public class FacetModel {
 		}
 		
 		if(!facetedColumnNames.containsAll(selectedFacetMap.keySet())){
-			throw new IllegalArgumentException("Requested facet column names must all be in the set: " + facetedColumnNames + " Requested set of column names: " + selectedFacets);
+				throw new InvalidTableQueryFacetColumnRequestException("Requested facet column names must all be in the set: " + facetedColumnNames + " Requested set of column names: " + selectedFacets);
 		}
 		
 		return validatedFacetsList;

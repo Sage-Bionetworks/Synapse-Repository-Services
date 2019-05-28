@@ -198,7 +198,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 
 	@Override
 	public MultipartUploadStatus startMultipartUpload(Long userId,
-			MultipartUploadRequest request, Boolean forceRestart) {
+			MultipartUploadRequest request, boolean forceRestart) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return multipartManagerV2.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 	}

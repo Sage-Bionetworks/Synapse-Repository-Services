@@ -12,7 +12,7 @@
         },
         "defaultValue": {
             "type": "string",
-            "description": "The default value for this column. Columns of type FILEHANDLEID and ENTITYID are not allowed to have default values."
+            "description": "The default value for this column. Columns of type ENTITYID, FILEHANDLEID, USERID, and LARGETEXT are not allowed to have default values."
         },
         "columnType": {
             "type": "string",

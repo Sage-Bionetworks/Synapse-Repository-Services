@@ -702,8 +702,21 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
-		return (StackStatus) objectMapper.readValue(
-				response.getContentAsString(), StackStatus.class);
+		return objectMapper.readValue(response.getContentAsString(), StackStatus.class);
+	}
+
+	/**
+	 * Get the status of a backup/restore daemon, using the admin endpoint
+	 */
+	public StackStatus getAdminStackStatus(HttpServlet dispatchServlet)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ADMIN_STACK_STATUS, null, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(), StackStatus.class);
 	}
 
 	/**
@@ -712,7 +725,7 @@ public class ServletTestHelper {
 	public StackStatus updateStackStatus(HttpServlet dispatchServlet,
 			Long userId, StackStatus toUpdate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.STACK_STATUS, userId, toUpdate);
+				HTTPMODE.PUT, UrlHelpers.ADMIN_STACK_STATUS, userId, toUpdate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);

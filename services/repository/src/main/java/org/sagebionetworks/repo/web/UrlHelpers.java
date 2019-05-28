@@ -575,8 +575,9 @@ public class UrlHelpers {
 	/**
 	 * The stack status of synapse 
 	 */
-	public static final String STACK_STATUS					= ADMIN+"/synapse/status";
-	
+	public static final String ADMIN_STACK_STATUS	= ADMIN+"/synapse/status";
+	public static final String STACK_STATUS			=  "/status";
+
 	/**
 	 * List change messages.
 	 */

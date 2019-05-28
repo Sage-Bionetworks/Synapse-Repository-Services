@@ -50,25 +50,15 @@ public class AdministrationController {
 	private ServiceProvider serviceProvider;
 	
 	/**
-	 * Get the current status of the stack
-	 * @param userId
-	 * @param header
-	 * @param loginRequest
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
+	 * @return the current status of the stack
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
+	@RequestMapping(value = {
+			UrlHelpers.ADMIN_STACK_STATUS,
 			UrlHelpers.STACK_STATUS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	StackStatus getStackStatus() {
-
 		return serviceProvider.getAdministrationService().getStackStatus();
 	}
 	
@@ -88,7 +78,7 @@ public class AdministrationController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
-			UrlHelpers.STACK_STATUS
+			UrlHelpers.ADMIN_STACK_STATUS
 			}, method = RequestMethod.PUT)
 	public @ResponseBody
 	StackStatus updateStatusStackStatus(
