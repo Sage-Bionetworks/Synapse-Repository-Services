@@ -167,7 +167,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	 * @return
 	 */
 	private MultipartUploadStatus startUpload() {
-		Boolean forceRestart = true;
+		boolean forceRestart = true;
 		MultipartUploadStatus status = multipartManagerV2
 				.startOrResumeMultipartUpload(adminUserInfo, request,
 						forceRestart);

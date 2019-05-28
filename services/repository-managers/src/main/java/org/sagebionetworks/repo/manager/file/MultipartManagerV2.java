@@ -18,9 +18,10 @@ public interface MultipartManagerV2 {
 	/**
 	 * Start or resume an multi-part upload for a given file.
 	 * @param request
+	 * @param forceRestart
 	 * @return
 	 */
-	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user, MultipartUploadRequest request, Boolean forceRestart);
+	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user, MultipartUploadRequest request, boolean forceRestart);
 	
 	/**
 	 * Get batch of pre-signed upload URLs for multi-part upload.

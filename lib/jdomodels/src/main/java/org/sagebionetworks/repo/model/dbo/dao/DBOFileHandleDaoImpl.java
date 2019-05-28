@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -127,7 +128,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@WriteTransaction
 	@Override
 	public FileHandle createFile(FileHandle fileHandle) {
-		createBatch(Arrays.asList(fileHandle));
+		createBatch(Collections.singletonList(fileHandle));
 		return get(fileHandle.getId());
 	}
 

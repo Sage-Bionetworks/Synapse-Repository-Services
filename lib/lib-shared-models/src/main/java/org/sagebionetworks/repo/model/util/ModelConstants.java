@@ -22,9 +22,12 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 
+/**
+ * This class includes constants that are shared by both the backend and the GWT Portal frontend
+ */
 public class ModelConstants {
-	
-	public static final String VALID_ENTITY_NAME_REGEX = "^[a-z,A-Z,0-9,_,., ,\\-,\\+,(,)]+";
+
+	public static final String VALID_ENTITY_NAME_REGEX = "^[a-zA-Z0-9,_. \\-+()]+";
 
 	public static final Set<ACCESS_TYPE> ENITY_ADMIN_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 		Arrays.asList(READ, DOWNLOAD, UPDATE, DELETE, CREATE, CHANGE_PERMISSIONS, CHANGE_SETTINGS, MODERATE));

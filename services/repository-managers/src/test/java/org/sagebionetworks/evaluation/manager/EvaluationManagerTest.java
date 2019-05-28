@@ -202,7 +202,7 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testInvalidName() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
-		// note that the Evaluation Manager relies on EntityNameValidation.java
+		// note that the Evaluation Manager relies on NameValidation.java
 		eval.setName("$ This is an invalid name");
 		try {
 			evaluationManager.createEvaluation(ownerInfo, eval);			
