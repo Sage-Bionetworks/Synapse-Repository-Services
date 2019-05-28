@@ -34,7 +34,7 @@ public class AccessControlListUtil {
 	}
 
 	public static AccessControlList createACLToGrantEntityAdminAccess(String nodeId, UserInfo info, Date now) {
-		return createACL(nodeId, info, ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS, now);
+		return createACL(nodeId, info, ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS, now);
 	}
 
 	public static AccessControlList createACLToGrantEvaluationAdminAccess(String evaluationId, UserInfo info, Date now) {
