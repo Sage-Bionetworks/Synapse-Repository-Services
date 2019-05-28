@@ -3,7 +3,10 @@ package org.sagebionetworks.repo.manager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import javax.mail.BodyPart;
 import javax.mail.Message;
@@ -255,7 +258,9 @@ public class SendRawEmailRequestBuilder {
 						contentBytes = content.getBytes();
 					}
 					if (contentType.getMimeType().toLowerCase().startsWith("text")) {
-						part.setContent(new String(contentBytes, contentType.getCharset()), contentType.toString());
+						// default charset when not specified for "text/" is ISO_8859_1
+						Charset contentCharset = (contentCharset = contentType.getCharset()) == null ? StandardCharsets.ISO_8859_1 : contentCharset;
+						part.setContent(new String(contentBytes, contentCharset), contentType.toString());
 					} else {
 						part.setContent(contentBytes, contentType.toString());
 					}
