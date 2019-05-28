@@ -133,8 +133,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.SUBMIT);
 		ra.setAccessType(accessType);
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
 		acl.setResourceAccess(raSet);
 		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 		assertNotNull(acl);
@@ -505,11 +504,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// add READ, SUBMIT privilege to ACL for public
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
-		Set<ResourceAccess> raSet = new HashSet<>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.SUBMIT));
-		raSet.add(ra);
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 
@@ -539,11 +537,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!((type.equals(ACCESS_TYPE.READ) || type.equals(ACCESS_TYPE.SUBMIT)))) {
 				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
-				Set<ResourceAccess> raSet = new HashSet<>();
 				ResourceAccess ra = new ResourceAccess();
 				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 				ra.setAccessType(Collections.singleton(type));
-				raSet.add(ra);
+				Set<ResourceAccess> raSet = Collections.singleton(ra);
 				acl.setResourceAccess(raSet);
 				try {
 					// Call under test
@@ -568,11 +565,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// add READ, SUBMIT privilege to ACL for public
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
-		Set<ResourceAccess> raSet = new HashSet<>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
-		raSet.add(ra);
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 
@@ -600,11 +596,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.READ)) {
 				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
-				Set<ResourceAccess> raSet = new HashSet<>();
 				ResourceAccess ra = new ResourceAccess();
 				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 				ra.setAccessType(Collections.singleton(type));
-				raSet.add(ra);
+				Set<ResourceAccess> raSet = Collections.singleton(ra);
 				acl.setResourceAccess(raSet);
 				try {
 					// Call under test
