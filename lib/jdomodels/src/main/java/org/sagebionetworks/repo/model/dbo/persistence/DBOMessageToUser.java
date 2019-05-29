@@ -62,7 +62,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				DBOMessageToUser result = new DBOMessageToUser();
 				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID));
 				result.setRootMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID));
-				result.setInReplyTo(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID));
+
+				long replyToId = rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID);
+				result.setInReplyTo(rs.wasNull() ? null : replyToId);
 
 				result.setSubjectBytes(rs.getBytes(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
 				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
