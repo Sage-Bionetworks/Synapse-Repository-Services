@@ -544,7 +544,7 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteAccessRequirement(Long arId) throws SynapseException;
 
-	public <T extends Entity> T putEntity(T entity, String activityId)
+	public <T extends Entity> T putEntity(T entity, String activityId, Boolean newVersion)
 			throws SynapseException;
 
 	public <T extends Entity> void deleteEntity(T entity) throws SynapseException;
