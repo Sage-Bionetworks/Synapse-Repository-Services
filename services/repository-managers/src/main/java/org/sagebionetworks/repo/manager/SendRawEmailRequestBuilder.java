@@ -3,7 +3,10 @@ package org.sagebionetworks.repo.manager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import javax.mail.BodyPart;
 import javax.mail.Message;
@@ -19,6 +22,7 @@ import javax.mail.internet.MimeMultipart;
 import com.amazonaws.services.simpleemail.model.RawMessage;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.apache.commons.net.util.Base64;
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
@@ -244,7 +248,7 @@ public class SendRawEmailRequestBuilder {
 				for (Attachment attachment : attachments) {
 					MimeBodyPart part = new MimeBodyPart();
 					String content = attachment.getContent();
-					String contentType = attachment.getContent_type();
+					ContentType contentType = ContentType.parse(attachment.getContent_type());
 					// CloudMailIn doesn't provide the Content-Transfer-Encoding
 					// header, so we assume it's base64 encoded, which is the norm
 					byte[] contentBytes;
@@ -253,10 +257,12 @@ public class SendRawEmailRequestBuilder {
 					} catch (Exception e) {
 						contentBytes = content.getBytes();
 					}
-					if (contentType.toLowerCase().startsWith("text")) {
-						part.setContent(new String(contentBytes), contentType);
+					if (contentType.getMimeType().toLowerCase().startsWith("text")) {
+						// default charset when not specified for "text/" is ISO_8859_1
+						Charset contentCharset = (contentCharset = contentType.getCharset()) == null ? StandardCharsets.ISO_8859_1 : contentCharset;
+						part.setContent(new String(contentBytes, contentCharset), contentType.toString());
 					} else {
-						part.setContent(contentBytes, contentType);
+						part.setContent(contentBytes, contentType.toString());
 					}
 					if (attachment.getDisposition()!=null) part.setDisposition(attachment.getDisposition());
 					if (attachment.getContent_id()!=null) part.setContentID(attachment.getContent_id());

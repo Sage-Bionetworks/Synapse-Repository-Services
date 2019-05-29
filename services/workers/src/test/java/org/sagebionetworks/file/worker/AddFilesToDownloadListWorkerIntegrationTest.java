@@ -5,10 +5,11 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.http.entity.ContentType;
+import com.google.common.collect.Lists;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,11 +32,10 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -85,8 +85,8 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		folder = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		
 		fileHandle = fileUploadManager.createFileFromByteArray(adminUserInfo
-				.getId().toString(), new Date(), "contents".getBytes("UTF-8"), "foo.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), new Date(), "contents".getBytes(StandardCharsets.UTF_8), "foo.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		
 		file = new FileEntity();
 		file.setName("foo.txt");

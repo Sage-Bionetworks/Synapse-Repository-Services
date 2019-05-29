@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -35,6 +36,8 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.util.ContentTypeUtils;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -99,12 +102,12 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		
 		// upload two files.
 		fileHandleOne = fileUploadManager.createFileFromByteArray(adminUserInfo
-				.getId().toString(), now, fileOneContents.getBytes("UTF-8"), "foo.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, fileOneContents.getBytes(StandardCharsets.UTF_8), "foo.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		fileHandlesToDelete.add(fileHandleOne.getId());
 		fileHandleTwo = fileUploadManager.createFileFromByteArray(adminUserInfo
-				.getId().toString(), now, fileTwoContents.getBytes("UTF-8"), "bar.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, fileTwoContents.getBytes(StandardCharsets.UTF_8), "bar.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		fileHandlesToDelete.add(fileHandleTwo.getId());
 		
 	}
