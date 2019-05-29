@@ -32,9 +32,9 @@ public class AccessControlListTest {
 		assertEquals(info.getId(), ra.getPrincipalId());
 		assertNotNull(ra.getAccessType());
 		// There should be one for each type
-		assertEquals(ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS.size(), ra.getAccessType().size());
+		assertEquals(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS.size(), ra.getAccessType().size());
 		// check each type
-		for(ACCESS_TYPE type: ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS){
+		for(ACCESS_TYPE type: ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS){
 			assertTrue(ra.getAccessType().contains(type));
 		}
 	}

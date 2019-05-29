@@ -249,7 +249,7 @@ public interface FileUploadService {
 	 * @return
 	 */
 	MultipartUploadStatus startMultipartUpload(Long userId,
-			MultipartUploadRequest request, Boolean forceRestart);
+			MultipartUploadRequest request, boolean forceRestart);
 
 	/**
 	 * Get a batch of pre-signed urls.

@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -73,18 +74,21 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	@WriteTransaction
 	@Override
 	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user,
-			MultipartUploadRequest request, Boolean forceRestart) {
+															  MultipartUploadRequest request, boolean forceRestart) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(user.getId(), "UserInfo.getId");
 		ValidateArgument.required(request, "MultipartUploadRequest");
-		ValidateArgument.required(request.getFileName(),
+		ValidateArgument.requiredNotEmpty(request.getFileName(),
 				"MultipartUploadRequest.fileName");
 		ValidateArgument.required(request.getFileSizeBytes(),
 				"MultipartUploadRequest.fileSizeBytes");
 		ValidateArgument.required(request.getPartSizeBytes(),
 				"MultipartUploadRequest.PartSizeBytes");
-		ValidateArgument.required(request.getContentMD5Hex(),
+		ValidateArgument.requiredNotEmpty(request.getContentMD5Hex(),
 				"MultipartUploadRequest.MD5Hex");
+
+		//validate file name
+		NameValidation.validateName(request.getFileName());
 
 		// anonymous cannot upload. See: PLFM-2621.
 		if (AuthorizationUtils.isUserAnonymous(user)) {
@@ -94,7 +98,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// this user.
 		String requestMD5Hex = calculateMD5AsHex(request);
 		// Clear all data if this is a forced restart
-		if (forceRestart != null && forceRestart.booleanValue()) {
+		if (forceRestart) {
 			multipartUploadDAO.deleteUploadStatus(user.getId(), requestMD5Hex);
 		}
 

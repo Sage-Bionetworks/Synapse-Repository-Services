@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICAT
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,8 +20,8 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
@@ -60,38 +59,7 @@ public class DBOVerificationSubmission implements
 
 	@Override
 	public MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> getTranslator() {
-		return new MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission>() {
-			@Override
-			public DBOVerificationSubmission createDatabaseObjectFromBackup(DBOVerificationSubmission backup) {
-				DBOVerificationSubmission newDbo = new DBOVerificationSubmission();
-				VerificationSubmission dto;
-				try {
-					dto = (VerificationSubmission) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, backup.getSerialized());
-				} catch (IOException e) {
-					throw new RuntimeException("Could not deserialize existing DBO for migration", e);
-				}
-
-				// PLFM-5117 - Set HTTP ORCIDs to HTTPS
-				if (dto.getOrcid() != null && dto.getOrcid().toLowerCase().startsWith("http:")) {
-					dto.setOrcid("https:"+dto.getOrcid().substring("http:".length()));
-				}
-
-				newDbo.setId(backup.getId());
-				newDbo.setCreatedBy(backup.getCreatedBy());
-				newDbo.setCreatedOn(backup.getCreatedOn());
-				try {
-					newDbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
-				} catch (IOException e) {
-					throw new RuntimeException("Could not re-serialize existing DBO for migration", e);
-				}
-				return newDbo;
-			}
-
-			@Override
-			public DBOVerificationSubmission createBackupFromDatabaseObject(DBOVerificationSubmission dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override

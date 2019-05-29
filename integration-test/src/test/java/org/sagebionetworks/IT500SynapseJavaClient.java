@@ -324,11 +324,13 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testJavaClientCRUD() throws Exception {
 		byte[] content = "File contents".getBytes("UTF-8");
-		String fileHandleId = synapseOne.multipartUpload(new ByteArrayInputStream(content),
+		String fileHandleId1 = synapseOne.multipartUpload(new ByteArrayInputStream(content),
+				(long) content.length, "content", "text/plain", null, false, false).getId();
+		String fileHandleId2 = synapseOne.multipartUpload(new ByteArrayInputStream(content),
 				(long) content.length, "content", "text/plain", null, false, false).getId();
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandleId);
+		file.setDataFileHandleId(fileHandleId1);
 
 		file = synapseOne.createEntity(file);
 		
@@ -466,7 +468,18 @@ public class IT500SynapseJavaClient {
 		}
 		assertEquals(entityIds.size(), outputIds.size());
 		assertTrue(entityIds.containsAll(outputIds));
-		
+
+		// Update and force a new version
+		file = synapseOne.getEntity(file.getId(), FileEntity.class);
+		String versionComment = "A new version comment";
+		file.setVersionLabel(null); // Null version label will set the label to revision number
+		file.setVersionComment(versionComment);
+		file.setDataFileHandleId(fileHandleId2);
+		synapseOne.putEntity(file, null, true);
+		file = synapseOne.getEntity(file.getId(), FileEntity.class);
+		assertEquals("2", file.getVersionLabel());  // Revision number should be 2
+		assertEquals(versionComment, file.getVersionComment());
+		assertEquals(fileHandleId2, file.getDataFileHandleId());
 	}
 
 	@Test
@@ -1770,7 +1783,7 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testGetEntityIdByAlais() throws SynapseException{
+	public void testGetEntityIdByAlias() throws SynapseException{
 		// Set an alias for the project
 		project.setAlias(UUID.randomUUID().toString().replaceAll("-", "_"));
 		synapseOne.putEntity(project);
@@ -1780,7 +1793,7 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testGetEntityChildern() throws SynapseException{
+	public void testGetEntityChildren() throws SynapseException{
 		EntityChildrenRequest request = new EntityChildrenRequest();
 		request.setParentId(project.getId());
 		request.setIncludeTypes(Lists.newArrayList(EntityType.folder));
@@ -1794,7 +1807,7 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testGetEntityChildernProjects() throws SynapseException{
+	public void testGetEntityChildrenProjects() throws SynapseException{
 		EntityChildrenRequest request = new EntityChildrenRequest();
 		// null parentId should get projects.
 		request.setParentId(null);
