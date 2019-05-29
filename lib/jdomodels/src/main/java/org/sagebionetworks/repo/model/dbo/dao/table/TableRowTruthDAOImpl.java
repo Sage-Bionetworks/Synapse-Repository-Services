@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -124,6 +125,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private SynapseS3Client s3Client;
+	@Autowired
+	private FileProvider fileProvider;
 
 	private String s3Bucket;
 
@@ -197,15 +200,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	@WriteTransaction
 	@Override
-	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId)
-			throws IOException {
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId) {
 		// Write the delta to S3
-		String key = saveToS3(new WriterCallback() {
-			@Override
-			public void write(OutputStream out) throws IOException {
-				TableModelUtils.writeSparesChangeSetToGz(delta, out);
-			}
-		});
+		String key = saveToS3((OutputStream out)-> TableModelUtils.writeSparesChangeSetToGz(delta, out));
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
@@ -224,17 +221,12 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	@Override
 	public long appendSchemaChangeToTable(String userId, String tableId,
-			List<String> current, final List<ColumnChange> changes, long transactionId) throws IOException {
+			List<String> current, final List<ColumnChange> changes, long transactionId) {
 		
 		long coutToReserver = 1;
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
 		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveToS3(new WriterCallback() {
-			@Override
-			public void write(OutputStream out) throws IOException {
-				ColumnModelUtils.writeSchemaChangeToGz(changes, out);
-			}
-		});
+		String key = saveToS3((OutputStream out) -> ColumnModelUtils.writeSchemaChangeToGz(changes, out));
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
@@ -259,28 +251,27 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	String saveToS3(WriterCallback callback) throws IOException {
+	String saveToS3(WriterCallback callback) {
 		// First write to a temp file.
-		File temp = File.createTempFile("tempToS3", ".gz");
-		FileOutputStream out = null;
 		try {
-			out = new FileOutputStream(temp);
-			// write to the temp file.
-			callback.write(out);
-			out.flush();
-			out.close();
-			// upload it to S3.
-			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
-					.toString());
-			s3Client.putObject(s3Bucket, key, temp);
-			return key;
-		} finally {
-			if (out != null) {
+			File temp = fileProvider.createTempFile("tempToS3", ".gz");
+			try (OutputStream out = fileProvider.createFileOutputStream(temp);) {
+				// write to the temp file.
+				callback.write(out);
+				out.flush();
 				out.close();
+				// upload it to S3.
+				String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
+						.toString());
+				s3Client.putObject(s3Bucket, key, temp);
+				return key;
+			} finally {
+				if (temp != null) {
+					temp.delete();
+				}
 			}
-			if (temp != null) {
-				temp.delete();
-			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	

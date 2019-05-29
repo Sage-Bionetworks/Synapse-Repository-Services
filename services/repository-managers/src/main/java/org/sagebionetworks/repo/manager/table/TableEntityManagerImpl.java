@@ -578,6 +578,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
 		if(change instanceof TableSchemaChangeRequest){
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
+			// If one or more of the existing columns will change then a temporary table is needed to validate the change.
 			return containsColumnUpdate(schemaChange.getChanges());
 		}else if(change instanceof UploadToTableRequest){
 			// might switch to true to support uniqueness constraints.
@@ -590,7 +591,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 	
 	/**
-	 * Is a Temporary table needed to validate the passed set of changes.
+	 * Does the given change include an update of an existing column?
+	 * 
 	 * @param changes
 	 * @return
 	 */
@@ -741,49 +743,46 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param change
 	 * @return
 	 */
-	public TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
+	TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes, long transactionId) {
-		
+		// First determine if this will be an actual change to the schema.
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
+		List<String> currentSchemaIds = columModelManager.getColumnIdForTable(changes.getEntityId());
 		List<ColumnModel> newSchema = null;
-		if(!changes.getChanges().isEmpty()) {
-			// append the change to the table's history.
-			newSchema = addSchemaChangesToTable(userInfo, changes, transactionId);
+		if (!currentSchemaIds.equals(newSchemaIds)) {
+			// This will 
+			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), transactionId);
 		}else {
 			// The schema will not change so return the current schema.
 			newSchema = columModelManager.getColumnModelsForObject(changes.getEntityId());
 		}
+		
 		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
 		response.setSchema(newSchema);
 		return response;
 	}
-
-
+	
 	/**
-	 * Add the provided schema change to the table's history.
+	 * Apply the given schema change to the table.
 	 * @param userInfo
+	 * @param tableId
+	 * @param newSchemaIds
 	 * @param changes
 	 * @param transactionId
 	 * @return
 	 */
-	private List<ColumnModel> addSchemaChangesToTable(UserInfo userInfo, TableSchemaChangeRequest changes,
-			long transactionId) {
-		// Touch an lock on the table.
-		tableManagerSupport.touchTable(userInfo, changes.getEntityId());
-		// first determine what the new Schema will be
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, changes.getEntityId());
-		List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
-		try {
-			this.tableRowTruthDao.appendSchemaChangeToTable(""+userInfo.getId(), changes.getEntityId(), newSchemaIdsLong, changes.getChanges(), transactionId);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
+	List<ColumnModel> applySchemaChangeToTable(UserInfo userInfo, String tableId, List<String> newSchemaIds,
+			List<ColumnChange> changes, long transactionId) {
+		// This is a change.
+		tableManagerSupport.touchTable(userInfo, tableId);
+		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, tableId);
+		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes,
+				transactionId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		return newSchema;
 	}
-
 
 	@Override
 	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId,

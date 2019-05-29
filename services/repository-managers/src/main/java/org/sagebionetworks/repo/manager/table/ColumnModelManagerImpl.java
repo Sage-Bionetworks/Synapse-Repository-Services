@@ -246,6 +246,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		// lookup the current schema.
 		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(tableId);
 		List<String> newSchemaIds = new LinkedList<>();
+		// start with all of the old Ids.
 		for(ColumnModel cm: oldSchema){
 			newSchemaIds.add(cm.getId());
 		}
