@@ -290,6 +290,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EMAIL_PARAM = "email";
 
 	private static final String PARAM_GENERATED_BY = "generatedBy";
+	private static final String PARAM_NEW_VERSION = "newVersion";
 
 	private static final String QUERY = "/query";
 	private static final String QUERY_URI = QUERY + "?query=";
@@ -1348,7 +1349,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public <T extends Entity> T putEntity(T entity) throws SynapseException {
-		return putEntity(entity, null);
+		return putEntity(entity, null, null);
 	}
 
 	/**
@@ -1358,19 +1359,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param entity
 	 * @param activityId
 	 *            activity to create generatedBy conenction to
+	 * @param newVersion
+	 * 			  force update a FileEntity to a new version. May be null.
 	 * @return the updated entity
 	 * @throws SynapseException
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	public <T extends Entity> T putEntity(T entity, String activityId)
+	public <T extends Entity> T putEntity(T entity, String activityId, Boolean newVersion)
 			throws SynapseException {
 		ValidateArgument.required(entity, "entity");
-		String uri = createEntityUri(ENTITY_URI_PATH, entity.getId());
+		URIBuilder uri = new URIBuilder();
+		uri.setPath(createEntityUri(ENTITY_URI_PATH, entity.getId()));
 		if (activityId != null) {
-			uri += "?" + PARAM_GENERATED_BY + "=" + activityId;
+			uri.setParameter(PARAM_GENERATED_BY, activityId);
 		}
-		return (T) putJSONEntity(getRepoEndpoint(), uri, entity, entity.getClass());
+		if (newVersion != null) {
+			uri.setParameter(PARAM_NEW_VERSION, newVersion.toString());
+		}
+		return (T) putJSONEntity(getRepoEndpoint(), uri.toString(), entity, entity.getClass());
 	}
 
 	/**
