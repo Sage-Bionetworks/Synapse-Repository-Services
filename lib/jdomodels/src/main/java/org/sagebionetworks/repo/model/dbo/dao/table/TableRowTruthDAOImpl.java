@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;

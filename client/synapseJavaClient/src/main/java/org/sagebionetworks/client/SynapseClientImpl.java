@@ -101,7 +101,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
-import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
@@ -174,7 +173,6 @@ import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProviderImpl;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -247,7 +245,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -269,6 +266,7 @@ import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
+import org.sagebionetworks.util.FileProviderImpl;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Joiner;
@@ -4778,7 +4776,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName,
 			String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException {
-		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart, new TempFileProviderImpl()).uploadFile();
+		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart, new FileProviderImpl()).uploadFile();
 	}
 
 

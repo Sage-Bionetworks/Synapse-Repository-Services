@@ -24,10 +24,10 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +49,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 	@Autowired
 	SynapseS3Client s3Client;
 	@Autowired
-	TempFileProvider tempFileProvider;
+	FileProvider tempFileProvider;
 	@Autowired
 	IdGenerator idGenerator;
 	
@@ -58,7 +58,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 	public WikiModelTranslationHelper() {}
 	
 	public WikiModelTranslationHelper(FileHandleManager fileHandleManager, FileHandleDao fileMetadataDao,
-			SynapseS3Client s3Client, TempFileProvider tempFileProvider) {
+			SynapseS3Client s3Client, FileProvider tempFileProvider) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;
 		this.fileHandleManager = fileHandleManager;
