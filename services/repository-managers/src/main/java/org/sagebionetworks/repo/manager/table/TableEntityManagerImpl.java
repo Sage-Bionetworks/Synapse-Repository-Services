@@ -221,11 +221,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		 * RowId and RowVersion can be ignored when appending data to an empty
 		 * table. See PLFM-3155.
 		 */
-		boolean ignoreRowIdAndVersion = false;
-		long maxRowId = tableRowTruthDao.getMaxRowId(tableId);
-		if (maxRowId < 0L) {
-			ignoreRowIdAndVersion = true;
-		}
+		boolean ignoreRowIdAndVersion = !tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW);
 		
 		List<SparseRowDto> batch = new LinkedList<SparseRowDto>();
 		int batchSizeBytes = 0;

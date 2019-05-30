@@ -22,6 +22,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
@@ -40,6 +41,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -55,6 +57,9 @@ import com.amazonaws.services.s3.model.S3Object;
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
+	private static final String SELECT_FIRST_ROW_VERSION_FOR_TABLE = "SELECT " + COL_TABLE_ROW_VERSION + " FROM "
+			+ TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TYPE + " = ? AND TABLE_ID = ? LIMIT 1";
+
 	private static final String SQL_LAST_CHANGE_NUMBER = "SELECT MAX("+COL_TABLE_ROW_VERSION+") FROM "+TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_TABLE_ID+" = ?";
 
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
@@ -477,9 +482,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Override
 	public List<TableRowChange> getTableChangePage(String tableIdString, long limit, long offset) {
-		if (tableIdString == null) {
-			throw new IllegalArgumentException("TableId cannot be null");
-		}
+		ValidateArgument.required(tableIdString, "tableId");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId, limit, offset);
@@ -488,9 +491,24 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Override
 	public Optional<Long> getLastTableChangeNumber(String tableIdString) {
+		ValidateArgument.required(tableIdString, "tableId");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		Long changeNumber = this.jdbcTemplate.queryForObject(SQL_LAST_CHANGE_NUMBER, Long.class, tableId);
 		return Optional.ofNullable(changeNumber);
+	}
+
+
+	@Override
+	public boolean hasAtLeastOneChangeOfType(String tableIdString, TableChangeType type) {
+		ValidateArgument.required(tableIdString, "tableId");
+		ValidateArgument.required(type, "TableChangeType");
+		try {
+			long tableId = KeyFactory.stringToKey(tableIdString);
+			Long firstRowVersion = jdbcTemplate.queryForObject(SELECT_FIRST_ROW_VERSION_FOR_TABLE, Long.class, type.name(), tableId);
+			return firstRowVersion != null;
+		} catch (EmptyResultDataAccessException e) {
+			return false;
+		} 
 	}
 	
 }
