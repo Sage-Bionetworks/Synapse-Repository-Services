@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -1358,6 +1360,47 @@ public class TableModelUtils {
 		ValidateArgument.required(singleResponse, "TableUpdateTransactionResponse.results.get(0)");
 		ValidateArgument.requirement(clazz.isInstance(singleResponse), "Expected response to be of type "+clazz.getName());
 		return (T)singleResponse;
+	}
+	
+	/**
+	 * Given a new schema and an old schema, create the column changes needed
+	 * to convert the old schema to the new schema.
+	 * @param oldSchema
+	 * @param newSchema
+	 * @return
+	 */
+	public static List<ColumnChange> createChangesFromOldSchemaToNew(List<String> oldSchema, List<String> newSchema){
+		if(oldSchema == null) {
+			oldSchema = Collections.emptyList();
+		}
+		if(newSchema == null) {
+			newSchema = Collections.emptyList();
+		}
+		Set<String> oldIdSet = new HashSet<>(oldSchema);
+		Set<String> newIdSet = new HashSet<>(newSchema);
+		int maxSize = Math.max(oldSchema.size(), newSchema.size());
+		List<ColumnChange> changes = new ArrayList<>(maxSize);
+		// remove any column in the old that is not in the new
+		for(String oldColumnId: oldSchema) {
+			if(!newIdSet.contains(oldColumnId)) {
+				// remove this column
+				ColumnChange remove = new ColumnChange();
+				remove.setNewColumnId(null);
+				remove.setOldColumnId(oldColumnId);
+				changes.add(remove);
+			}
+		}
+		// add any column in the new that is not in the old
+		for(String newColumnId: newSchema) {
+			if(!oldIdSet.contains(newColumnId)) {
+				// add this column
+				ColumnChange add = new ColumnChange();
+				add.setNewColumnId(newColumnId);
+				add.setOldColumnId(null);
+				changes.add(add);
+			}
+		}
+		return changes;
 	}
 
 }

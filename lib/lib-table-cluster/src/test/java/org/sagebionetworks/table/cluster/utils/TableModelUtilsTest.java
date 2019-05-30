@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -1612,5 +1613,59 @@ public class TableModelUtilsTest {
 		assertEquals(2, results.size());
 		assertEquals(newModel, results.get(0));
 		assertEquals(oldModel, results.get(1));
+	}
+	
+	@Test
+	public void testCreateChangesFromOldSchemaToNew() {
+		List<String> oldSchema = Lists.newArrayList("1","2");
+		List<String> newSchema = Lists.newArrayList("2","4");
+		// call under test
+		List<ColumnChange> changes = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		assertNotNull(changes);
+		assertEquals(2, changes.size());
+		ColumnChange removeOne = changes.get(0);
+		assertEquals(null, removeOne.getNewColumnId());
+		assertEquals("1", removeOne.getOldColumnId());
+		ColumnChange addFour = changes.get(1);
+		assertEquals("4", addFour.getNewColumnId());
+		assertEquals(null, addFour.getOldColumnId());
+	}
+	
+	/**
+	 * Old is null then add the new schema
+	 */
+	@Test
+	public void testCreateChangesFromOldSchemaToNewNullOld() {
+		List<String> oldSchema = null;
+		List<String> newSchema = Lists.newArrayList("2","4");
+		// call under test
+		List<ColumnChange> changes = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		assertNotNull(changes);
+		assertEquals(2, changes.size());
+		ColumnChange addTwo = changes.get(0);
+		assertEquals("2", addTwo.getNewColumnId());
+		assertEquals(null, addTwo.getOldColumnId());
+		ColumnChange addFour = changes.get(1);
+		assertEquals("4", addFour.getNewColumnId());
+		assertEquals(null, addFour.getOldColumnId());
+	}
+	
+	/**
+	 * New is null then clear the schema
+	 */
+	@Test
+	public void testCreateChangesFromOldSchemaToNewNullNew() {
+		List<String> oldSchema = Lists.newArrayList("1","2");
+		List<String> newSchema = null;
+		// call under test
+		List<ColumnChange> changes = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		assertNotNull(changes);
+		assertEquals(2, changes.size());
+		ColumnChange removeOne = changes.get(0);
+		assertEquals(null, removeOne.getNewColumnId());
+		assertEquals("1", removeOne.getOldColumnId());
+		ColumnChange removeTwo = changes.get(1);
+		assertEquals(null, removeTwo.getNewColumnId());
+		assertEquals("2", removeTwo.getOldColumnId());
 	}
 }

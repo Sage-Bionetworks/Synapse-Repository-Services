@@ -200,6 +200,9 @@
 		scope="singleton">
 	</bean>
 	
+	<!-- Temp file provider -->
+	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" />
+	
 	<bean id="tableRowTruthDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
 		scope="singleton" init-method="initialize">

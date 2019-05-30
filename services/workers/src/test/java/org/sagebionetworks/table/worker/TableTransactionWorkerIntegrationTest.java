@@ -73,8 +73,6 @@ public class TableTransactionWorkerIntegrationTest {
 	@Before
 	public void before(){		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		// Start with an empty database
-		this.tableConnectionFactory.dropAllTablesForAllConnections();
 		// integer column
 		intColumn = new ColumnModel();
 		intColumn.setName("anInteger");

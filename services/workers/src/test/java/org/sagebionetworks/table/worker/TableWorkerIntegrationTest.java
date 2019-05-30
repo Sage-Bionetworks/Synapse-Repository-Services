@@ -216,8 +216,6 @@ public class TableWorkerIntegrationTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		this.tableId = null;
-		// Start with an empty database
-		this.tableConnectionFactory.dropAllTablesForAllConnections();
 		simpleSql = "select * from " + tableId;
 		query = new Query();
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(true);
@@ -239,8 +237,6 @@ public class TableWorkerIntegrationTest {
 		}
 		// cleanup
 		columnManager.truncateAllColumnData(adminUserInfo);
-		// Drop all data in the index database
-		this.tableConnectionFactory.dropAllTablesForAllConnections();
 		for (UserInfo user : users) {
 			try {
 				userManager.deletePrincipal(adminUserInfo, user.getId());
@@ -343,10 +339,10 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		Row row = queryResult.getQueryResults().getRows().get(0);
-		assertEquals(new Long(0), row.getRowId());
-		assertEquals(new Long(0), row.getVersionNumber());
+		assertEquals(new Long(1), row.getRowId());
+		assertEquals(new Long(1), row.getVersionNumber());
 		assertNotNull(row.getValues());
-		assertEquals("0", row.getValues().get(0));
+		assertEquals("1", row.getValues().get(0));
 	}
 
 	@Test
@@ -715,7 +711,6 @@ public class TableWorkerIntegrationTest {
 
 		// reset table index
 		tableStatusDAO.clearAllTableState();
-		tableConnectionFactory.dropAllTablesForAllConnections();
 
 		// now we still should get the index taken care of
 		queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
@@ -784,7 +779,6 @@ public class TableWorkerIntegrationTest {
 
 		// reset table index
 		tableStatusDAO.clearAllTableState();
-		tableConnectionFactory.dropAllTablesForAllConnections();
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectType(ObjectType.TABLE);
@@ -839,12 +833,12 @@ public class TableWorkerIntegrationTest {
 		List<PartialRow> partialRows = Lists.newArrayList(); 
 		for(int i = 0; i < 16; i++){
 			partialRows.add(TableModelTestUtils.updatePartialRow(schema, expectedRowSet.getRows().get(i), i));
-			expectedRowSet.getRows().get(i).setVersionNumber(1L);
+			expectedRowSet.getRows().get(i).setVersionNumber(2L);
 		}
 		rows = TableModelTestUtils.createExpectedFullRows(schema, 5);
 		for (int i = 0; i < rows.size(); i++) {
-			rows.get(i).setRowId(16L + i);
-			rows.get(i).setVersionNumber(1L);
+			rows.get(i).setRowId(17L + i);
+			rows.get(i).setVersionNumber(2L);
 		}
 		expectedRowSet.getRows().addAll(rows);
 		partialRows.addAll(TableModelTestUtils.createPartialRows(schema, 5));
@@ -1501,7 +1495,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select * from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 1L);
 		assertNotNull(queryResult.getQueryResults());
-		assertNull(queryResult.getQueryResults().getEtag());
+		assertNotNull(queryResult.getQueryResults().getEtag());
 		assertEquals(tableId, queryResult.getQueryResults().getTableId());
 		assertTrue("TableId: " + tableId, queryResult.getQueryResults().getRows() == null
 				|| queryResult.getQueryResults().getRows().isEmpty());
@@ -1561,8 +1555,8 @@ public class TableWorkerIntegrationTest {
 		assertEquals(input.size(),  copy.size());
 		// the first two columns should include the rowId can verionNumber
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, "a", "b", "c").toString(), Arrays.toString(copy.get(0)));
-		assertEquals(Arrays.asList("0", "0", "AAA", "2", "1.1").toString(), Arrays.toString(copy.get(1)));
-		assertEquals(Arrays.asList("1", "0",  null, "3", "1.2" ).toString(), Arrays.toString(copy.get(2)));
+		assertEquals(Arrays.asList("1", "1", "AAA", "2", "1.1").toString(), Arrays.toString(copy.get(1)));
+		assertEquals(Arrays.asList("2", "1",  null, "3", "1.2" ).toString(), Arrays.toString(copy.get(2)));
 
 		// test with aggregate columns
 		stringWriter = new StringWriter();

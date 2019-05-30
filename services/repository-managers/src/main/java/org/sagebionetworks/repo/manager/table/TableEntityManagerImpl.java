@@ -221,11 +221,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		 * RowId and RowVersion can be ignored when appending data to an empty
 		 * table. See PLFM-3155.
 		 */
-		boolean ignoreRowIdAndVersion = false;
-		long maxRowId = tableRowTruthDao.getMaxRowId(tableId);
-		if (maxRowId < 0L) {
-			ignoreRowIdAndVersion = true;
-		}
+		boolean ignoreRowIdAndVersion = !tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW);
 		
 		List<SparseRowDto> batch = new LinkedList<SparseRowDto>();
 		int batchSizeBytes = 0;
@@ -535,33 +531,50 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void setTableSchema(final UserInfo userInfo, final List<String> columnIds,
-			final String id) {
+	public void setTableSchema(final UserInfo userInfo, final List<String> newSchema, final String tableId) {
 		try {
-			IdAndVersion idAndVersion = IdAndVersion.parse(id);			
+			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<Void>() {
-
-				@Override
-				public Void call(ProgressCallback callback) throws Exception {
-					columModelManager.bindColumnToObject(columnIds, id);
-					tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
-					return null;
-				}
-			});
-		}catch (LockUnavilableException e) {
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS,
+					(ProgressCallback callbackInner) -> {
+						setTableSchemaWithExclusiveLock(callbackInner, userInfo, newSchema, tableId);
+						return null;
+					});
+		} catch (LockUnavilableException e) {
 			throw new TemporarilyUnavailableException("Cannot update an unavailable table");
-		}catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * Note: This method should only be called while holding an exclusive lock on the table.
+	 * @param userInfo
+	 * @param newSchema
+	 * @param tableId
+	 */
+	void setTableSchemaWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema,
+			final String tableId) {
+		// Lookup the current schema for this table
+		List<String> oldSchema = columModelManager.getColumnIdForTable(tableId);
+		// Calculate the schema change (if there is one).
+		List<ColumnChange> schemaChange = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
+		changeRequest.setChanges(schemaChange);
+		changeRequest.setEntityId(tableId);
+		changeRequest.setOrderedColumnIds(newSchema);
+		// Start a transaction to change the table to the new schema.
+		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
+		updateTableSchema(callback, userInfo, changeRequest, transactionId);
 	}
 
 	@Override
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
 		if(change instanceof TableSchemaChangeRequest){
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
+			// If one or more of the existing columns will change then a temporary table is needed to validate the change.
 			return containsColumnUpdate(schemaChange.getChanges());
 		}else if(change instanceof UploadToTableRequest){
 			// might switch to true to support uniqueness constraints.
@@ -574,7 +587,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 	
 	/**
-	 * Is a Temporary table needed to validate the passed set of changes.
+	 * Does the given change include an update of an existing column?
+	 * 
 	 * @param changes
 	 * @return
 	 */
@@ -725,32 +739,46 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param change
 	 * @return
 	 */
-	public TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
+	TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes, long transactionId) {
-		
-		// Touch an lock on the table.
-		tableManagerSupport.touchTable(userInfo, changes.getEntityId());
-
-		// first determine what the new Schema will be
+		// First determine if this will be an actual change to the schema.
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, changes.getEntityId());
-		// If the change includes an update then a change needs to be pushed to the changes
-		if(containsColumnUpdate(changes.getChanges())){
-			List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
-			try {
-				this.tableRowTruthDao.appendSchemaChangeToTable(""+userInfo.getId(), changes.getEntityId(), newSchemaIdsLong, changes.getChanges(), transactionId);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+		List<String> currentSchemaIds = columModelManager.getColumnIdForTable(changes.getEntityId());
+		List<ColumnModel> newSchema = null;
+		if (!currentSchemaIds.equals(newSchemaIds)) {
+			// This will 
+			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), transactionId);
+		}else {
+			// The schema will not change so return the current schema.
+			newSchema = columModelManager.getColumnModelsForObject(changes.getEntityId());
 		}
-		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
-		// trigger an update.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		
 		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
 		response.setSchema(newSchema);
 		return response;
 	}
-
+	
+	/**
+	 * Apply the given schema change to the table.
+	 * @param userInfo
+	 * @param tableId
+	 * @param newSchemaIds
+	 * @param changes
+	 * @param transactionId
+	 * @return
+	 */
+	List<ColumnModel> applySchemaChangeToTable(UserInfo userInfo, String tableId, List<String> newSchemaIds,
+			List<ColumnChange> changes, long transactionId) {
+		// This is a change.
+		tableManagerSupport.touchTable(userInfo, tableId);
+		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, tableId);
+		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes,
+				transactionId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		// trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		return newSchema;
+	}
 
 	@Override
 	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId,

@@ -29,10 +29,10 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.FileProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -47,7 +47,7 @@ public class PreviewManagerImplTest {
 	@Mock
 	private SynapseS3Client mockS3Client;
 	@Mock
-	private TempFileProvider mockFileProvider;
+	private FileProvider mockFileProvider;
 	@Mock
 	private PreviewGenerator mockPreviewGenerator;
 	@Mock

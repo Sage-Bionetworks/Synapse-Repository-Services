@@ -113,9 +113,6 @@
 		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
 	</bean>
 	
-	<!-- Temp file provider -->
-	<bean id="tempFileProvider" class="org.sagebionetworks.repo.model.file.TempFileProviderImpl" />
-	
 	<!-- File Upload manager -->
 	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
 	    <property name="multipartUploadDaemonTimeoutMS" ref="stackConfiguration.fileMultipartUploadDaemonTimeoutMS"/>

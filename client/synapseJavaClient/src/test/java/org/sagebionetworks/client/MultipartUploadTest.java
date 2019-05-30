@@ -35,20 +35,19 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
-import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
-import org.sagebionetworks.repo.model.file.TempFileProviderImpl;
+import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.FileProviderImpl;
 
 public class MultipartUploadTest {
 
 	@Mock
 	SynapseClient mockClient;
 	@Mock
-	TempFileProvider mockFileProvider;
+	FileProvider mockFileProvider;
 
 	List<PartData> partDataList;
 
@@ -157,7 +156,7 @@ public class MultipartUploadTest {
 				calculateMD5Hex(fileBytes, 4, 4),
 				calculateMD5Hex(fileBytes, 8, 2), };
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(), input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new FileProviderImpl(), input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(3, partDataList.size());
@@ -201,7 +200,7 @@ public class MultipartUploadTest {
 				calculateMD5Hex(fileBytes, 0, 10),
 		};
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(),input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new FileProviderImpl(),input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(1, partDataList.size());
@@ -230,7 +229,7 @@ public class MultipartUploadTest {
 				calculateMD5Hex(fileBytes, 5, 5),
 		};
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(),input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new FileProviderImpl(),input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(2, partDataList.size());

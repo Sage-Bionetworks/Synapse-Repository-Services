@@ -20,14 +20,13 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.FileProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -51,7 +50,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	SynapseS3Client s3Client;
 	
 	@Autowired
-	TempFileProvider tempFileProvider;
+	FileProvider tempFileProvider;
 
 	@Autowired
 	IdGenerator idGenerator;
@@ -82,7 +81,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param maxPreviewMemory
 	 */
 	public PreviewManagerImpl(FileHandleDao fileMetadataDao,
-			SynapseS3Client s3Client, TempFileProvider tempFileProvider,
+			SynapseS3Client s3Client, FileProvider tempFileProvider,
 			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;

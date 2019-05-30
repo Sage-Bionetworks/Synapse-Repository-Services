@@ -71,8 +71,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta, long transactionId)
-			throws IOException;
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta, long transactionId);
 	
 	/**
 	 * Append a schema change to the table's changes.
@@ -83,7 +82,7 @@ public interface TableRowTruthDAO {
 	 * @param changes
 	 * @throws IOException 
 	 */
-	public long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes, long transactionId) throws IOException;
+	public long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes, long transactionId);
 	
 	/**
 	 * Get the schema change for a given version.
@@ -171,5 +170,13 @@ public interface TableRowTruthDAO {
 	 * @return Will return an empty Optional if no changes have been applied to the table.
 	 */
 	public Optional<Long> getLastTableChangeNumber(String tableId);
+
+	/**
+	 * Does the given table have at least one change of the provided type?
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public boolean hasAtLeastOneChangeOfType(String tableId, TableChangeType type);
 	
 }

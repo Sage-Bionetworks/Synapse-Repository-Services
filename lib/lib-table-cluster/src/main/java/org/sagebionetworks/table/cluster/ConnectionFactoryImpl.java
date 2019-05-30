@@ -78,22 +78,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	}
 
 	@Override
-	public void dropAllTablesForAllConnections() {
-		// For now we only have one database
-		List<InstanceInfo> instances = instanceDiscovery.discoverAllInstances();
-		if(this.singleConnectionPool != null && instances != null && !instances.isEmpty()){
-			String schema = instances.get(0).getSchema();
-			JdbcTemplate template = new JdbcTemplate(this.singleConnectionPool);
-			template.update(DROP_DATABASE+schema);
-			template.update(CREATE_DATABASE+schema);
-			template.update(USE_DATABASE+schema);
-		}
-		// ensure the index has the correct tables
-		TableIndexDAOImpl dao = new TableIndexDAOImpl(singleConnectionPool);
-		dao.createEntityReplicationTablesIfDoesNotExist();
-	}
-
-	@Override
 	public List<TableIndexDAO> getAllConnections() {
 		List<TableIndexDAO> results = new LinkedList<>();
 		results.add(new TableIndexDAOImpl(singleConnectionPool));

@@ -196,11 +196,11 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		UploadToTableResult response = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), UploadToTableResult.class);
 		assertNotNull(response.getEtag());
 		assertEquals(new Long(rowCount), response.getRowsProcessed());
-		// There should be one change set applied to the table
+		// There should be two change set applied to the table
 		List<TableRowChange> changes = this.tableEntityManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
-		assertEquals(1, changes.size());
-		TableRowChange change = changes.get(0);
+		assertEquals(2, changes.size());
+		TableRowChange change = changes.get(1);
 		assertEquals(new Long(rowCount), change.getRowCount());
 		// the etag of the change should match what the job returned.
 		assertEquals(change.getEtag(), response.getEtag());
@@ -302,7 +302,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// There should be two change sets applied to the table
 		List<TableRowChange> changes = this.tableEntityManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
-		assertEquals(2, changes.size());
+		assertEquals(3, changes.size());
 	}
 	
 	/**

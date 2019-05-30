@@ -21,10 +21,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -41,7 +41,7 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 	private SynapseS3Client s3Client;
 	
 	@Autowired
-	private TempFileProvider tempFileProvider;
+	private FileProvider tempFileProvider;
 	
 	@Autowired
 	private UserManager userManager;

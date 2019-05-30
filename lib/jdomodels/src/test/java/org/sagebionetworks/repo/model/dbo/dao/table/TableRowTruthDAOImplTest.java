@@ -391,4 +391,50 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(changeSet.writeToDto(), copy);
 	}
 
+	@Test
+	public void testHasAtLeastOneChangeOfType() throws IOException {
+		// call under test
+		assertFalse(tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.COLUMN));
+		assertFalse(tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW));
+		
+		// Add a column to the table
+		ColumnModel aBoolean = TableModelTestUtils.createColumn(201L, "aBoolean", ColumnType.BOOLEAN);
+		List<ColumnModel> schema = Lists.newArrayList(aBoolean, aBoolean);
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId(aBoolean.getId());
+		List<String> current = Lists.newArrayList(aBoolean.getId());
+		List<ColumnChange> changes = Lists.newArrayList(add);
+		// Add a schema change
+		appendSchemaChangeToTable(creatorUserGroupId, tableId, current, changes);
+		
+		// call under test
+		assertTrue(tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.COLUMN));
+		assertFalse(tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW));
+		
+		// append rows to the table
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, schema);
+		
+		SparseRow rowOne = changeSet.addEmptyRow();
+		rowOne.setCellValue(aBoolean.getId(), "true");
+		appendRowSetToTable(creatorUserGroupId, tableId, schema, changeSet);
+		
+		// call under test
+		assertTrue(tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.COLUMN));
+		assertTrue(tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testHasAtLeastOneChangeOfTypeNullTableId() {
+		String tableId = null;
+		// call under test
+		tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.COLUMN);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testHasAtLeastOneChangeOfTypeNullType() {
+		TableChangeType type = null;
+		// call under test
+		tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, type);
+	}
 }

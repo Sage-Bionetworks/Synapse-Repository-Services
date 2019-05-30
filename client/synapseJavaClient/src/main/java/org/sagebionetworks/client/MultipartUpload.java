@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -37,11 +37,11 @@ public class MultipartUpload {
 	final InputStream input;
 	final Boolean forceRestart;
 	final MultipartUploadRequest request;
-	final TempFileProvider fileProvider;
+	final FileProvider fileProvider;
 
 	public MultipartUpload(SynapseClient client, InputStream input,
 			long fileSizeBytes, String fileName, String contentType,
-			Long storageLocationId, Boolean generatePreview, Boolean forceRestart, TempFileProvider fileProvider) {
+			Long storageLocationId, Boolean generatePreview, Boolean forceRestart, FileProvider fileProvider) {
 		super();
 		ValidateArgument.required(client, "SynapseClient");
 		ValidateArgument.required(input, "InputStream");
@@ -161,7 +161,7 @@ public class MultipartUpload {
 	 * @param partDataList
 	 * @return
 	 */
-	public static String createParts(TempFileProvider fileProvider, InputStream input, long fileSizeBytes,
+	public static String createParts(FileProvider fileProvider, InputStream input, long fileSizeBytes,
 			long partSizeBytes, long numberOfParts, List<PartData> partDataList) {
 		// digest for the entire file.
 		MessageDigest fileMD5Digest = createMD5Digest();
@@ -213,7 +213,7 @@ public class MultipartUpload {
 	 * @param length
 	 * @throws IOException
 	 */
-	public static void writeByteArrayToFile(TempFileProvider fileProvider, File file, byte[] data, int offset,
+	public static void writeByteArrayToFile(FileProvider fileProvider, File file, byte[] data, int offset,
 			int length) throws IOException {
 		OutputStream out = null;
 		try {

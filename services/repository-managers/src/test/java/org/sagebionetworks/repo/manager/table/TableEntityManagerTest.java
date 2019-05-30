@@ -325,6 +325,8 @@ public class TableEntityManagerTest {
 		rowDto.setTableId(tableId);
 		rowDto.setColumnIds(Lists.newArrayList("123","456"));
 		rowDto.setRows(Lists.newArrayList(new SparseRowDto()));
+		
+		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -476,12 +478,13 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		verify(mockTruthDao).hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW);
 	}
 	
 	@Test
 	public void testAppendRowsAsStreamPLFM_3155TableNoRows() throws DatastoreException, NotFoundException, IOException{
 		// setup an empty table with no rows.
-		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(-1L);
+		when(mockTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW)).thenReturn(false);
 		String etag = "etag";
 		RowReferenceSet results = new RowReferenceSet();
 		// call under test
@@ -496,7 +499,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testAppendRowsAsStreamPLFM_3155TableWithRows() throws DatastoreException, NotFoundException, IOException{
 		// setup at table with rows.
-		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(1L);
+		when(mockTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW)).thenReturn(true);
 		String etag = "etag";
 		RowReferenceSet results = new RowReferenceSet();
 		// call under test
@@ -877,26 +880,6 @@ public class TableEntityManagerTest {
 	}
 	
 	@SuppressWarnings("unchecked")
-	@Test
-	public void testSetTableSchema() throws Exception{
-		// setup success.
-		doAnswer(new Answer<Void>(){
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
-				ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
-				runner.call(callback);
-				return null;
-			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
-		
-		List<String> schema = Lists.newArrayList("111","222");
-		// call under test.
-		manager.setTableSchema(user, schema, tableId);
-		verify(mockColumModelManager).bindColumnToObject(schema, tableId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
-	}
-	
-	@SuppressWarnings("unchecked")
 	@Test (expected=TemporarilyUnavailableException.class)
 	public void testSetTableSchemaLockUnavailableException() throws Exception{
 		// setup success.
@@ -1176,42 +1159,37 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testUpdateTableSchema() throws IOException{
+		when(mockColumModelManager.getColumnIdForTable(tableId)).thenReturn(new LinkedList<>());
 		when(mockColumModelManager.bindColumnToObject(newColumnIds, tableId)).thenReturn(models);
-		List<String> newSchemaIdsLong = TableModelUtils.getIds(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
-		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges(), transactionId);
+		verify(mockColumModelManager).getColumnIdForTable(tableId);
+		verify(mockTableManagerSupport).touchTable(user, tableId);
+		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newColumnIds, schemaChangeRequest.getChanges(), transactionId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockColumModelManager, never()).getColumnModelsForObject(anyString());
 	}
 
 	@Test
 	public void testUpdateTableSchemaNoUpdate() throws IOException{
-		// this case only contains an add (no update)
-		ColumnChange add = new ColumnChange();
-		add.setNewColumnId("111");
-		add.setOldColumnId(null);
-		
-		List<ColumnChange> changes = Lists.newArrayList(add);
-		schemaChangeRequest = new TableSchemaChangeRequest();
-		schemaChangeRequest.setChanges(changes);
-		schemaChangeRequest.setEntityId(tableId);
-		
-		models = Lists.newArrayList(TableModelTestUtils.createColumn(111l));
-		newColumnIds = Lists.newArrayList("111");
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newColumnIds)).thenReturn(newColumnIds);
-		schemaChangeRequest.setOrderedColumnIds(newColumnIds);
-		when(mockColumModelManager.bindColumnToObject(newColumnIds, tableId)).thenReturn(models);
+		List<String> currentSchema = Lists.newArrayList("111","222");
+		when(mockColumModelManager.getColumnIdForTable(tableId)).thenReturn(currentSchema);
+		// The new schema matches the current
+		List<String> newSchemaIds = Lists.newArrayList("111","222");
+		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), null)).thenReturn(newSchemaIds);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), newColumnIds);
-		verify(mockColumModelManager).bindColumnToObject(newColumnIds, tableId);
-		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class), anyLong());
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
+		verify(mockColumModelManager).getColumnIdForTable(tableId);
+		verify(mockTableManagerSupport, never()).touchTable(any(UserInfo.class), anyString());
+		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), any(List.class), any(List.class), anyLong());
+		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(any(IdAndVersion.class));
+		verify(mockColumModelManager).getColumnModelsForObject(tableId);
 	}
 	
 	@Test
@@ -1539,6 +1517,42 @@ public class TableEntityManagerTest {
 		assertNotNull(schemaChange);
 		assertEquals(1L, schemaChange.getChangeNumber());
 		verify(mockTruthDao, times(1)).getSchemaChangeForVersion(tableId, 1L);
+	}
+	
+	@Test
+	public void testSetTableSchema() throws Exception {
+		List<String> newSchema = Lists.newArrayList("1", "2");
+		// call under test
+		manager.setTableSchema(user, newSchema, tableId);
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
+	}
+	
+	/**
+	 * LockUnavilableException should translate to TemporarilyUnavailableException.
+	 * @throws Exception
+	 */
+	@Test (expected=TemporarilyUnavailableException.class)
+	public void testSetTableSchemaLockUnavilableException() throws Exception {
+		LockUnavilableException exception = new LockUnavilableException("No lock");
+		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<String> newSchema = Lists.newArrayList("1", "2");
+		// call under test
+		manager.setTableSchema(user, newSchema, tableId);
+	}
+	
+	@Test
+	public void testSetTableSchemaWithExclusiveLock() {
+		List<String> oldSchema = Lists.newArrayList("1","2");
+		when(mockColumModelManager.getColumnIdForTable(tableId)).thenReturn(oldSchema);
+		List<String> newSchema = Lists.newArrayList("2","3");
+		List<ColumnChange> expectedChanges = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		// call under test
+		manager.setTableSchemaWithExclusiveLock(mockProgressCallback, user, newSchema, tableId);
+		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
+		verify(mockTableManagerSupport).touchTable(user, tableId);
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
 	}
 	
 	/**
