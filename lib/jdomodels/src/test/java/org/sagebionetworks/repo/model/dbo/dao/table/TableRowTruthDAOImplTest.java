@@ -426,8 +426,15 @@ public class TableRowTruthDAOImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testHasAtLeastOneChangeOfTypeNullTableId() {
-		tableId = null;
+		String tableId = null;
 		// call under test
 		tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.COLUMN);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testHasAtLeastOneChangeOfTypeNullType() {
+		TableChangeType type = null;
+		// call under test
+		tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, type);
 	}
 }

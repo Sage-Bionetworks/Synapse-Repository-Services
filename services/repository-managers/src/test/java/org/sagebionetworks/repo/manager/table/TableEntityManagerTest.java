@@ -325,6 +325,8 @@ public class TableEntityManagerTest {
 		rowDto.setTableId(tableId);
 		rowDto.setColumnIds(Lists.newArrayList("123","456"));
 		rowDto.setRows(Lists.newArrayList(new SparseRowDto()));
+		
+		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -476,12 +478,13 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		verify(mockTruthDao).hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW);
 	}
 	
 	@Test
 	public void testAppendRowsAsStreamPLFM_3155TableNoRows() throws DatastoreException, NotFoundException, IOException{
 		// setup an empty table with no rows.
-		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(-1L);
+		when(mockTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW)).thenReturn(false);
 		String etag = "etag";
 		RowReferenceSet results = new RowReferenceSet();
 		// call under test
@@ -496,7 +499,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testAppendRowsAsStreamPLFM_3155TableWithRows() throws DatastoreException, NotFoundException, IOException{
 		// setup at table with rows.
-		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(1L);
+		when(mockTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW)).thenReturn(true);
 		String etag = "etag";
 		RowReferenceSet results = new RowReferenceSet();
 		// call under test
