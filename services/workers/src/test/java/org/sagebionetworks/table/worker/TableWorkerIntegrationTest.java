@@ -833,12 +833,12 @@ public class TableWorkerIntegrationTest {
 		List<PartialRow> partialRows = Lists.newArrayList(); 
 		for(int i = 0; i < 16; i++){
 			partialRows.add(TableModelTestUtils.updatePartialRow(schema, expectedRowSet.getRows().get(i), i));
-			expectedRowSet.getRows().get(i).setVersionNumber(1L);
+			expectedRowSet.getRows().get(i).setVersionNumber(2L);
 		}
 		rows = TableModelTestUtils.createExpectedFullRows(schema, 5);
 		for (int i = 0; i < rows.size(); i++) {
-			rows.get(i).setRowId(16L + i);
-			rows.get(i).setVersionNumber(1L);
+			rows.get(i).setRowId(17L + i);
+			rows.get(i).setVersionNumber(2L);
 		}
 		expectedRowSet.getRows().addAll(rows);
 		partialRows.addAll(TableModelTestUtils.createPartialRows(schema, 5));
