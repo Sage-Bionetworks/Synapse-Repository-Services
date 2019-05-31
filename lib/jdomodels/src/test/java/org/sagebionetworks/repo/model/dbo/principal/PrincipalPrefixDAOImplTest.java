@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -394,7 +397,7 @@ public class PrincipalPrefixDAOImplTest {
 	}
 	
 	@Test
-	public void testListTeamMembersForPrefixDistict(){
+	public void testListTeamMembersForPrefixDistinct(){
 		// Add two aliases for romane that share a prefix
 		principalPrefixDao.addPrincipalAlias("romane1", romaneId);
 		principalPrefixDao.addPrincipalAlias("romane2", romaneId);
@@ -483,6 +486,50 @@ public class PrincipalPrefixDAOImplTest {
 		assertEquals(romaneId, results.get(0));
 		assertEquals(romanusId, results.get(1));
 		assertEquals(romulusId, results.get(2));
+	}
+
+	@Test
+	public void testListCertainTeamMembersForPrefixEmptySet(){
+		addDefaultAlias();
+		boolean exclude = true;
+		Set<Long> excludeIds = Collections.emptySet();
+		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId,
+				excludeIds, exclude, 1000L, 0L);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		// Counts should match
+		assertEquals(new Long(3), principalPrefixDao.countTeamMembersForPrefix("rom", teamAllId));
+		assertEquals(romaneId, results.get(0));
+		assertEquals(romanusId, results.get(1));
+		assertEquals(romulusId, results.get(2));
+	}
+
+	@Test
+	public void testListCertainTeamMembersForPrefixExclude(){
+		addDefaultAlias();
+		boolean exclude = true;
+		Set<Long> excludeIds = Collections.singleton(romanusId);
+		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId,
+				excludeIds, exclude, 1000L, 0L);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(romaneId, results.get(0));
+		assertEquals(romulusId, results.get(1));
+		assertFalse(results.contains(romanusId));
+	}
+
+	@Test
+	public void testListCertainTeamMembersForPrefixInclude(){
+		addDefaultAlias();
+		boolean exclude = false;
+		Set<Long> excludeIds = Collections.singleton(romanusId);
+		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId,
+				excludeIds, exclude, 1000L, 0L);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(romanusId, results.get(0));
+		assertFalse(results.contains(romaneId));
+		assertFalse(results.contains(romulusId));
 	}
 
 	@Test
