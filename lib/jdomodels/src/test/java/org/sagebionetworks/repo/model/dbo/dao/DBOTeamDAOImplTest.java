@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -204,7 +205,7 @@ public class DBOTeamDAOImplTest {
 		profile.setOwnerId(user.getId());
 		userProfileDAO.create(profile);
 
-		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{user.getId()}));
+		groupMembersDAO.addMembers(""+id, Collections.singletonList(user.getId()));
 		List<Team> membersTeams = teamDAO.getForMemberInRange(user.getId(), 1, 0);
 		assertEquals(1, membersTeams.size());
 		assertEquals(retrieved, membersTeams.get(0));
@@ -214,10 +215,10 @@ public class DBOTeamDAOImplTest {
 		Long teamId = Long.parseLong(team.getId());
 		Long userIdLong = Long.parseLong(user.getId());
 		ListWrapper<TeamMember> listedMembers =
-				teamDAO.listMembers(Collections.singletonList(teamId), Arrays.asList(new Long[]{userIdLong, userIdLong}));
+				teamDAO.listMembers(Collections.singletonList(teamId), Arrays.asList(userIdLong, userIdLong));
 		assertEquals(2, listedMembers.getList().size());
 		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
-		assertEquals(Arrays.asList(new TeamMember[]{member, member}), listedMembers.getList());
+		assertEquals(Arrays.asList(member, member), listedMembers.getList());
 		// check that nothing is returned for other team IDs and principal IDs
 		try {
 			teamDAO.listMembers(Collections.singletonList(0L), Collections.singletonList(Long.parseLong(user.getId())));
@@ -261,18 +262,22 @@ public class DBOTeamDAOImplTest {
 
 		// the team has one member,  'pg'
 		assertEquals(1L, teamDAO.getMembersCount(updated.getId()));
-		List<TeamMember> members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
+		List<TeamMember> members = teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ALL, 2, 0);
 		assertEquals(1, members.size());
 		TeamMember m = members.get(0);
 		assertFalse(m.getIsAdmin());
 		assertEquals(user.getId(), m.getMember().getOwnerId());
 		assertEquals(updated.getId(), m.getTeamId());
-		assertTrue(teamDAO.getAdminTeamMembers(updated.getId()).isEmpty());
+		assertTrue(teamDAO.getAdminTeamMemberIds(updated.getId()).isEmpty());
+		assertTrue(teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ADMIN,10, 0).isEmpty());
+		assertEquals(m, teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.MEMBER,10, 0).get(0));
+		assertEquals(teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ALL,10, 0).get(0),
+					 teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.MEMBER,10, 0).get(0));
 
 		// check pagination
-		assertEquals(0L, teamDAO.getMembersInRange(updated.getId(), 1, 2).size());
+		assertEquals(0L, teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ALL, 1, 2).size());
 		// try some other team.  should get no results
-		assertEquals(0L, teamDAO.getMembersInRange("-999", 10, 0).size());
+		assertEquals(0L, teamDAO.getMembersInRange("-999", TeamMemberTypeFilterOptions.ALL, 10, 0).size());
 		assertEquals(0L, teamDAO.getMembersCount("-999"));
 
 		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
@@ -294,8 +299,13 @@ public class DBOTeamDAOImplTest {
 		member = teamDAO.getMember(updated.getId(), user.getId());
 		assertEquals(updated.getId(), member.getTeamId());
 		assertTrue(member.getIsAdmin());
-		assertEquals(1, teamDAO.getAdminTeamMembers(updated.getId()).size());
-		assertEquals(user.getId(), teamDAO.getAdminTeamMembers(updated.getId()).get(0));
+		assertEquals(1, teamDAO.getAdminTeamMemberIds(updated.getId()).size());
+		assertEquals(user.getId(), teamDAO.getAdminTeamMemberIds(updated.getId()).get(0));
+		assertTrue(teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.MEMBER,10, 0).isEmpty());
+		assertEquals(member, teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ADMIN,10, 0).get(0));
+		assertEquals(teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ALL,10, 0).get(0),
+					 teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ADMIN,10, 0).get(0));
+
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
 		assertEquals(user.getId(), ugh.getOwnerId());
@@ -305,7 +315,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, teamIds.size());
 		assertEquals(updated.getId(), teamIds.get(0));
 
-		members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
+		members = teamDAO.getMembersInRange(updated.getId(), TeamMemberTypeFilterOptions.ALL, 2, 0);
 		assertEquals(1, members.size());
 		assertEquals(member, members.get(0));
 

@@ -71,13 +71,14 @@ public interface TeamDAO {
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> principalIds) throws NotFoundException, DatastoreException;
 	/**
 	 * 
-	 * @param teamId
+	 * @param teamId The team which the returned members belong to.
+	 * @param memberType Which types of team members to return
 	 * @param limit
 	 * @param offset
-	 * @return
+	 * @return A paginated list of members for that team
 	 * @throws DatastoreException
 	 */
-	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset) throws DatastoreException;
+	public List<TeamMember> getMembersInRange(String teamId, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws DatastoreException;
 
 	/**
 	 * 
@@ -93,7 +94,7 @@ public interface TeamDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public List<String> getAdminTeamMembers(String teamId) throws NotFoundException;
+	public List<String> getAdminTeamMemberIds(String teamId) throws NotFoundException;
 
 	/**
 	 * This is used to build up the team and member prefix caches
