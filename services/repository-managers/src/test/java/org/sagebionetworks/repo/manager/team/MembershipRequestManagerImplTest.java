@@ -198,7 +198,7 @@ public class MembershipRequestManagerImplTest {
 	@Test
 	public void testCreateMembershipRequestNotification() throws Exception {
 		List<String> teamAdmins = Arrays.asList(new String[]{"222", "333"});
-		when(mockTeamDAO.getAdminTeamMembers(TEAM_ID)).thenReturn(teamAdmins);
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(teamAdmins);
 		UserProfile up = new UserProfile();
 		up.setUserName("auser");
 		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
