@@ -1,0 +1,18 @@
+{
+	"description": "An optional filter that can be used when retrieving team members to only get certain types of members. Defaults to \"ALL\".",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ADMIN",
+			"description": "Retrieve only administrators of a team (i.e. team managers)."
+		},
+		{
+			"name": "MEMBER",
+			"description": "Retrieve regular members of a team (those who are not team administrators)."
+		},
+		{
+			"name": "ALL",
+			"description": "Retrieve all members of a team. This is the default option, if this parameter is null."
+		}
+	]
+}
