@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
@@ -55,6 +54,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
@@ -104,11 +105,11 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private MembershipRequestDAO membershipRequestDAO;
 	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
 	private PrincipalManager principalManager;
+	@Autowired
+	PrincipalPrefixDAO principalPrefixDAO;
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
@@ -264,8 +265,6 @@ public class TeamManagerImpl implements TeamManager {
 	 * This turns out to be very different from the normal create, bypassing checks for both 
 	 * principal and team creation. Also, it's not transactional.
 	 * @param team
-	 * @param now
-	 * @param teamIdTakesPriority
 	 * @return
 	 */
 	private Team bootstrapCreate(Team team) {
@@ -321,12 +320,42 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public PaginatedResults<TeamMember> listMembers(String teamId, long limit,
+	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit,
 			long offset) throws DatastoreException {
-		List<TeamMember> results = teamDAO.getMembersInRange(teamId, limit, offset);
+		List<TeamMember> results = teamDAO.getMembersInRange(teamId, memberType, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
-	
+
+	@Override
+	public PaginatedResults<TeamMember> listMembersForPrefix(String fragment, String teamId,
+															 TeamMemberTypeFilterOptions memberType,
+															 long limit, long offset) throws DatastoreException {
+		List<Long> prefixMemberIds;
+		switch (memberType) {
+			case ADMIN:
+				HashSet<Long> adminIds = new HashSet<>();
+				teamDAO.getAdminTeamMemberIds(teamId).forEach(id -> adminIds.add(Long.parseLong(id)));
+				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId), adminIds, false, limit, offset);
+				break;
+			case MEMBER:
+				adminIds = new HashSet<>();
+				teamDAO.getAdminTeamMemberIds(teamId).forEach(id -> adminIds.add(Long.parseLong(id)));
+				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId), adminIds, true, limit, offset);
+				break;
+			case ALL:
+				// Do not filter
+				prefixMemberIds = principalPrefixDAO.listTeamMembersForPrefix(fragment, Long.parseLong(teamId), limit, offset);
+				break;
+			default:
+				throw new IllegalArgumentException("memberType must be one of "
+						+ TeamMemberTypeFilterOptions.ALL.toString() + ", "
+						+ TeamMemberTypeFilterOptions.ADMIN.toString() + ", or "
+						+ TeamMemberTypeFilterOptions.MEMBER.toString() + ".");
+		}
+		List<TeamMember> members = teamDAO.listMembers(Collections.singletonList(Long.parseLong(teamId)), prefixMemberIds).getList();
+		return PaginatedResults.createWithLimitAndOffset(members, limit, offset);
+	}
+
 	@Override
 	public Count countMembers(String teamId) throws DatastoreException {
 		ValidateArgument.required(teamId, "teamId");

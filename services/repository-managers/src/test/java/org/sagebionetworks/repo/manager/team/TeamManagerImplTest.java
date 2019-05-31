@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -27,9 +28,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -37,7 +38,6 @@ import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -72,7 +73,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -80,14 +81,11 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TeamManagerImplTest {
-	@Mock
-	private TeamManagerImpl teamManagerImpl;
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
@@ -107,19 +105,20 @@ public class TeamManagerImplTest {
 	@Mock
 	private MembershipRequestDAO mockMembershipRequestDAO;
 	@Mock
-	private UserManager mockUserManager;
-	@Mock
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	@Mock
 	private PrincipalManager mockPrincipalManager;
 	@Mock
+	private PrincipalPrefixDAO mockPrincipalPrefixDao;
+	@Mock
 	private UserProfileManager mockUserProfileManager;
 	@Mock
-	private TransactionalMessenger mockTransactionalMessenger;
-	@Mock
 	private ProjectStatsManager mockProjectStatsManager;
+
+	@InjectMocks
+	TeamManagerImpl teamManagerImpl;
 	
 	private UserInfo userInfo;
 	private UserInfo adminInfo;
@@ -129,25 +128,6 @@ public class TeamManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		teamManagerImpl = new TeamManagerImpl();
-		
-		ReflectionTestUtils.setField(teamManagerImpl, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(teamManagerImpl, "teamDAO", mockTeamDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "groupMembersDAO", mockGroupMembersDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "userGroupDAO", mockUserGroupDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "aclDAO", mockAclDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "principalAliasDAO", mockPrincipalAliasDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "fileHandleManager", mockFileHandleManager);
-		ReflectionTestUtils.setField(teamManagerImpl, "membershipInvitationDAO", mockMembershipInvitationDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "membershipRequestDAO", mockMembershipRequestDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(teamManagerImpl, "accessRequirementDAO", mockAccessRequirementDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "principalManager", mockPrincipalManager);
-		ReflectionTestUtils.setField(teamManagerImpl, "basicDao", mockBasicDAO);
-		ReflectionTestUtils.setField(teamManagerImpl, "userProfileManager", mockUserProfileManager);
-		ReflectionTestUtils.setField(teamManagerImpl, "projectStatsManager", mockProjectStatsManager);
-		
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
 		UserProfile up = new UserProfile();
 		up.setFirstName("foo");
@@ -821,7 +801,7 @@ public class TeamManagerImplTest {
 		teamManagerImpl.listAllTeamsAndMembers();
 		verify(mockTeamDAO).getAllTeamsAndMembers();
 	}
-	
+
 	@Test
 	public void testGetMembers() throws Exception {
 		TeamMember tm = new TeamMember();
@@ -830,17 +810,102 @@ public class TeamManagerImplTest {
 		ugh.setOwnerId("101");
 		tm.setMember(ugh);
 		tm.setIsAdmin(false);
-		List<TeamMember> tms = Arrays.asList(new TeamMember[]{tm});
-		when(mockTeamDAO.getMembersInRange(TEAM_ID, 10, 0)).thenReturn(tms);
+		List<TeamMember> tms = Collections.singletonList(tm);
+		when(mockTeamDAO.getMembersInRange(TEAM_ID, TeamMemberTypeFilterOptions.ALL,10, 0)).thenReturn(tms);
 		when(mockTeamDAO.getMembersCount(TEAM_ID)).thenReturn(1L);
-		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembers(TEAM_ID, 10, 0);
+		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
-		
+
 		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
 		Long teamId = Long.parseLong(TEAM_ID);
 		when(mockTeamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L))).thenReturn(lw);
 		assertEquals(tms, teamManagerImpl.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L)).getList());
+	}
+
+	@Test
+	public void testGetMembersWithFragment() throws Exception {
+		TeamMember tm = new TeamMember();
+		tm.setTeamId(TEAM_ID);
+		UserGroupHeader ugh = new UserGroupHeader();
+		ugh.setOwnerId("101");
+		tm.setMember(ugh);
+		tm.setIsAdmin(false);
+		List<TeamMember> tms = Collections.singletonList(tm);
+		String prefix = "pfx";
+
+		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
+
+		when(mockPrincipalPrefixDao.listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L))
+				.thenReturn(Arrays.asList(101L));
+		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(101L)))
+				.thenReturn(lw);
+
+		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
+		assertEquals(tms, pg.getResults());
+		assertEquals(1L, pg.getTotalNumberOfResults());
+		verify(mockTeamDAO, never()).getAdminTeamMemberIds(anyString());
+	}
+
+	@Test
+	public void testGetAdminMembersWithFragment() throws Exception {
+		TeamMember tm = new TeamMember();
+		tm.setTeamId(TEAM_ID);
+		UserGroupHeader ugh = new UserGroupHeader();
+		ugh.setOwnerId("101");
+		tm.setMember(ugh);
+		tm.setIsAdmin(true);
+		List<TeamMember> tms = Collections.singletonList(tm);
+		String prefix = "pfx";
+
+		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
+
+		List<String> adminMembers = Collections.singletonList("101");
+		Set<Long> adminMembersLong = Collections.singleton(101L);
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminMembers);
+		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminMembersLong, false, 10L, 0L))
+				.thenReturn(Collections.singletonList(101L));
+
+		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(101L)))
+				.thenReturn(lw);
+
+		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10, 0);
+		assertEquals(tms, pg.getResults());
+		assertEquals(1L, pg.getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testGetNonadminMembersWithFragment() throws Exception {
+		TeamMember tm = new TeamMember();
+		tm.setTeamId(TEAM_ID);
+		UserGroupHeader ugh = new UserGroupHeader();
+		ugh.setOwnerId("101");
+		tm.setMember(ugh);
+		tm.setIsAdmin(false);
+
+		TeamMember tm2 = new TeamMember();
+		tm2.setTeamId(TEAM_ID);
+		UserGroupHeader ugh2 = new UserGroupHeader();
+		ugh2.setOwnerId("102");
+		tm2.setMember(ugh2);
+		tm2.setIsAdmin(false);
+
+		List<TeamMember> tms = Arrays.asList(tm, tm2);
+		String prefix = "pfx";
+
+		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
+
+		List<String> adminMembers = Collections.singletonList("103");
+		Set<Long> adminMembersLong = Collections.singleton(103L);
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminMembers);
+		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminMembersLong, true, 10L, 0L))
+				.thenReturn(Arrays.asList(101L, 102L));
+		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(101L, 102L)))
+				.thenReturn(lw);
+
+		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10, 0);
+		assertEquals(tms, pg.getResults());
+		assertEquals(2L, pg.getTotalNumberOfResults());
 	}
 	
 	@Test
