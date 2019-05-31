@@ -86,6 +86,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -474,6 +475,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MEMBER_LIST = "/memberList";
 	protected static final String USER = "/user";
 	protected static final String NAME_FRAGMENT_FILTER = "fragment";
+	protected static final String NAME_MEMBERTYPE_FILTER = "memberType";
 	protected static final String ICON = "/icon";
 	protected static final String TEAM_MEMBERS = "/teamMembers";
 	protected static final String MEMBER = "/member";
@@ -3990,17 +3992,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public PaginatedResults<TeamMember> getTeamMembers(String teamId,
-			String fragment, long limit, long offset) throws SynapseException {
-		String uri = null;
-		if (fragment == null) {
-			uri = TEAM_MEMBERS + "/" + teamId + "?" + OFFSET + "=" + offset
-					+ "&" + LIMIT + "=" + limit;
-		} else {
-			uri = TEAM_MEMBERS + "/" + teamId + "?" + NAME_FRAGMENT_FILTER
-					+ "=" + urlEncode(fragment) + "&" + OFFSET + "=" + offset
-					+ "&" + LIMIT + "=" + limit;
+													   String fragment, TeamMemberTypeFilterOptions memberType,
+													   long limit, long offset) throws SynapseException {
+		URIBuilder uri = new URIBuilder();
+		uri.setPath(TEAM_MEMBERS + "/" + teamId);
+		if (fragment != null) {
+			uri.setParameter(NAME_FRAGMENT_FILTER, urlEncode(fragment));
 		}
-		return getPaginatedResults(getRepoEndpoint(), uri, TeamMember.class);
+		if (memberType != null) {
+			uri.setParameter(NAME_MEMBERTYPE_FILTER, memberType.toString());
+		}
+		uri.setParameter(OFFSET, String.valueOf(offset));
+		uri.setParameter(LIMIT, String.valueOf(limit));
+
+		return getPaginatedResults(getRepoEndpoint(), uri.toString(), TeamMember.class);
 	}
 
 	/**
