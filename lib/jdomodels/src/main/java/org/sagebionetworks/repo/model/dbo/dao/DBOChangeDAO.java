@@ -8,6 +8,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.util.Callback;
+
 
 /**
  * Abstraction for DBOChage CRUD.
@@ -68,6 +71,15 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @return
 	 */
 	List<ChangeMessage> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit);
+	
+	/**
+	 * Stream over all changes of the given object and change types.
+	 * 
+	 * @param objectTypes
+	 * @param changeTypes
+	 * @param callback
+	 */
+	void streamOverChanges(Set<ObjectType> objectTypes, Set<ChangeType> changeTypes, Callback<ChangeMessage>  callback);
 	
 	/**
 	 * Register that a message has been sent.  Any message that has been created but not registered as sent
