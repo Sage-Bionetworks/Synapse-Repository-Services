@@ -462,23 +462,26 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	public static String createStreamOverChangesSql(Set<ObjectType> objectTypes, Set<ChangeType> changeTypes) {
 		ValidateArgument.required(objectTypes, "objectTypes");
 		ValidateArgument.required(changeTypes, "changeTypes");
-		if(objectTypes.isEmpty()) {
+		if (objectTypes.isEmpty()) {
 			throw new IllegalArgumentException("Must inclue at least one ObjectType");
 		}
-		if(changeTypes.isEmpty()) {
+		if (changeTypes.isEmpty()) {
 			throw new IllegalArgumentException("Must include at least one ChangeType");
 		}
-		StringBuilder builder = new StringBuilder("SELECT * FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_TYPE+" IN (");
+		StringBuilder builder = new StringBuilder(
+				"SELECT * FROM " + TABLE_CHANGES + " WHERE " + COL_CHANGES_OBJECT_TYPE + " IN (");
 		StringJoiner joiner = new StringJoiner(",");
-		for(ObjectType objectType: objectTypes) {
-			joiner.add("'"+objectType.name()+"'");
+		for (ObjectType objectType : objectTypes) {
+			joiner.add("'" + objectType.name() + "'");
 		}
-		builder.append(joiner.toString()).append(") AND "+COL_CHANGES_CHANGE_TYPE+" IN (");
+		builder.append(joiner.toString());
+		builder.append(") AND " + COL_CHANGES_CHANGE_TYPE + " IN (");
 		joiner = new StringJoiner(",");
-		for(ChangeType changeType: changeTypes) {
-			joiner.add("'"+changeType.name()+"'");
+		for (ChangeType changeType : changeTypes) {
+			joiner.add("'" + changeType.name() + "'");
 		}
-		builder.append(joiner.toString()).append(") ORDER BY "+COL_CHANGES_CHANGE_NUM+" ASC");
+		builder.append(joiner.toString());
+		builder.append(") ORDER BY " + COL_CHANGES_CHANGE_NUM + " ASC");
 		return builder.toString();
 	}
 

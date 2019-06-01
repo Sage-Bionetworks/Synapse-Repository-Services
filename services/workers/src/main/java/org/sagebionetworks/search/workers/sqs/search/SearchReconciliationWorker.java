@@ -1,5 +1,6 @@
 package org.sagebionetworks.search.workers.sqs.search;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -59,7 +60,7 @@ public class SearchReconciliationWorker implements ProgressingRunner {
 	 */
 	void pushChange(ChangeMessage change) {
 		try {
-			searchManager.documentChangeMessages(Lists.newArrayList(change));
+			searchManager.documentChangeMessages(Collections.singletonList(change));
 		} catch (Exception e) {
 			log.warn(e.getMessage());
 			workerLogger.logWorkerFailure(SearchReconciliationWorker.class.getName(), e, false);
