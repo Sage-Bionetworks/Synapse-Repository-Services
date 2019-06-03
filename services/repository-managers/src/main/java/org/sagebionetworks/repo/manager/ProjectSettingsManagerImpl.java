@@ -9,7 +9,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.net.InternetDomainName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +50,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.net.InternetDomainName;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
@@ -330,8 +330,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
 			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
-				throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
-						+ getExplanation(userProfile, bucket, key));
+				if (key.equals(OWNER_MARKER)) {
+					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
+							+ getExplanation(userProfile, bucket, key));
+				} else {
+					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". If the S3 object is in a folder, please make sure you specify a trailing '/' in the base key. " + getExplanation(userProfile, bucket, key));
+				}
 			} else {
 				throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucket + ": "
 						+ e.getMessage() + ". " + getExplanation(userProfile, bucket, key));
