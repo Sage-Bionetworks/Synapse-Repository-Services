@@ -73,15 +73,6 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	List<ChangeMessage> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit);
 	
 	/**
-	 * Stream over all changes of the given object and change types.
-	 * 
-	 * @param objectTypes
-	 * @param changeTypes
-	 * @param callback
-	 */
-	void streamOverChanges(Set<ObjectType> objectTypes, Set<ChangeType> changeTypes, Callback<ChangeMessage>  callback);
-	
-	/**
 	 * Register that a message has been sent.  Any message that has been created but not registered as sent
 	 * will be returned by {@link #listUnsentMessages(long)}.  This is used to detect messages that need to be sent
 	 * either for the first time or re-sent on a new stacks.
