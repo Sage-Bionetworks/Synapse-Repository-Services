@@ -93,20 +93,6 @@
 		class="org.springframework.jdbc.core.JdbcTemplate">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
 	</bean>
-
-	<!-- By default, the MySQL driver will load the entire result set of a query 
-		into memory. In order to stream over the results without loading them into 
-		memory, the MySQL driver requires the the fetchSize to be set to Integer.MIN_VALUE. 
-		This template is initialized for streaming. 
-		See: https://dev.mysql.com/doc/connector-j/5.1/en/connector-j-reference-implementation-notes.html -->
-	<bean id="streamingJdbcTemplate"
-		class="org.springframework.jdbc.core.JdbcTemplate">
-		<constructor-arg ref="dataSourcePool"></constructor-arg>
-		<property name="fetchSize">
-			<util:constant
-				static-field="java.lang.Integer.MIN_VALUE" />
-		</property>
-	</bean>
 	
 	<bean id="namedParameterJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
 		<constructor-arg ref="jdbcTemplate"></constructor-arg>

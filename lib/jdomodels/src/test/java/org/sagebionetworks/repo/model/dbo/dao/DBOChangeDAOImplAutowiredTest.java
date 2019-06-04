@@ -11,7 +11,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +32,6 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -736,82 +734,5 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> results = changeDAO.getChangesForObjectIds(ObjectType.ENTITY, idsToFetch);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
-	}
-	
-	@Test
-	public void testCreateStreamOverChangesSql() {
-		Set<ObjectType> objectTypes = new LinkedHashSet<ObjectType>();
-		objectTypes.add(ObjectType.ACCESS_APPROVAL);
-		objectTypes.add(ObjectType.ACTIVITY);
-		Set<ChangeType> changeTypes = new LinkedHashSet<ChangeType>();
-		changeTypes.add(ChangeType.CREATE);
-		changeTypes.add(ChangeType.DELETE);
-		// call under test
-		String sql = DBOChangeDAOImpl.createStreamOverChangesSql(objectTypes, changeTypes);
-		assertEquals("SELECT * FROM CHANGES WHERE OBJECT_TYPE IN ('ACCESS_APPROVAL','ACTIVITY') AND CHANGE_TYPE IN ('CREATE','DELETE') ORDER BY CHANGE_NUM ASC", sql);
-	}
-	
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateStreamOverChangesSqlNullObjects() {
-		Set<ObjectType> objectTypes = null;
-		Set<ChangeType> changeTypes = new LinkedHashSet<ChangeType>();
-		changeTypes.add(ChangeType.CREATE);
-		changeTypes.add(ChangeType.DELETE);
-		// call under test
-		DBOChangeDAOImpl.createStreamOverChangesSql(objectTypes, changeTypes);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateStreamOverChangesSqlEmptyObjects() {
-		Set<ObjectType> objectTypes = new HashSet<>();;
-		Set<ChangeType> changeTypes = new LinkedHashSet<ChangeType>();
-		changeTypes.add(ChangeType.CREATE);
-		changeTypes.add(ChangeType.DELETE);
-		// call under test
-		DBOChangeDAOImpl.createStreamOverChangesSql(objectTypes, changeTypes);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateStreamOverChangesSqlNullChanges() {
-		Set<ObjectType> objectTypes = new LinkedHashSet<ObjectType>();
-		objectTypes.add(ObjectType.ACCESS_APPROVAL);
-		objectTypes.add(ObjectType.ACTIVITY);
-		Set<ChangeType> changeTypes = null;
-		// call under test
-		DBOChangeDAOImpl.createStreamOverChangesSql(objectTypes, changeTypes);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateStreamOverChangesSqlEmptyChanges() {
-		Set<ObjectType> objectTypes = new LinkedHashSet<ObjectType>();
-		objectTypes.add(ObjectType.ACCESS_APPROVAL);
-		objectTypes.add(ObjectType.ACTIVITY);
-		Set<ChangeType> changeTypes = new HashSet<>();
-		// call under test
-		DBOChangeDAOImpl.createStreamOverChangesSql(objectTypes, changeTypes);
-	}
-	
-	@Test
-	public void testStreamOverChanges() {
-		List<ChangeMessage> entityBatch = createList(3, ObjectType.ENTITY);
-		entityBatch = changeDAO.replaceChange(entityBatch);
-		List<ChangeMessage> principalBatch = createList(3, ObjectType.PRINCIPAL);
-		principalBatch = changeDAO.replaceChange(principalBatch);
-		List<ChangeMessage> activityBatch = createList(3, ObjectType.ACTIVITY);
-		activityBatch = changeDAO.replaceChange(activityBatch);
-		
-		Set<ObjectType> objectTypes = Sets.newHashSet(ObjectType.ENTITY, ObjectType.ACTIVITY);
-		Set<ChangeType> changeTypes = Sets.newHashSet(ChangeType.UPDATE);
-		
-		// Stream over all of the changes
-		List<ChangeMessage> results = new LinkedList<>();
-		changeDAO.streamOverChanges(objectTypes, changeTypes, (ChangeMessage value) -> {
-			results.add(value);
-		});
-		List<ChangeMessage> expected = new LinkedList<>();
-		expected.addAll(entityBatch);
-		expected.addAll(activityBatch);
-		assertEquals(expected, results);
 	}
 }
