@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -116,7 +116,7 @@
 						<containerId>tomcat7x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
-							<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache-tomcat/apache-tomcat/${tomcat-version}/apache-tomcat-${tomcat-version}.zip</url>
+							<url>https://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache-tomcat/apache-tomcat/${tomcat-version}/apache-tomcat-${tomcat-version}.zip</url>
 							<extractDir>${project.build.directory}/tomcat7x/container</extractDir>
 						</zipUrlInstaller>
 						<systemProperties>
