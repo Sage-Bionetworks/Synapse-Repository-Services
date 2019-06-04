@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.TeamSortOrder.TEAM_NAME;
@@ -9,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_ME
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
@@ -41,7 +39,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -77,7 +74,11 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private TransactionalMessenger transactionalMessenger;
 
 	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
-	
+
+	public static final String INCLUSION_USER_PROFILE_ID_PARAM		= "inclusion";
+	public static final String EXCLUSION_USER_PROFILE_ID_PARAM		= "exclusion";
+	public static final String GROUP_MEMBERS_GROUP_ID_PARAM_NAME  	= "group_id";
+
 	private static final String SELECT_MULTIPLE_CORE = 
 			"SELECT * FROM "+TABLE_TEAM;
 	
@@ -149,23 +150,14 @@ public class DBOTeamDAOImpl implements TeamDAO {
 					AliasEnum.USER_NAME.name()+"'"+") "+
 			", "+TABLE_USER_PROFILE+" up "+
 			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID;
-	
-	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
-			SELECT_MEMBERS_OF_TEAM_CORE+
-			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
-			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
-	private static final String SELECT_NONADMIN_MEMBERS_OF_TEAM_PAGINATED =
-			SELECT_MEMBERS_OF_TEAM_CORE+
-					" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
-					" and up."+COL_USER_PROFILE_ID+ " NOT IN (:" + COL_USER_PROFILE_ID+")"+
-					" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	private static final String AND_MEMBERS_FOR_ONE_GROUP = "and gm."+COL_GROUP_MEMBERS_GROUP_ID+ "=:" + GROUP_MEMBERS_GROUP_ID_PARAM_NAME;
 
-	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM_PAGINATED =
-			SELECT_MEMBERS_OF_TEAM_CORE+
-					" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
-					" and up."+COL_USER_PROFILE_ID+ " IN (:" + COL_USER_PROFILE_ID+")"+
-					" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	private static final String AND_USERS_NOT_IN_ID_LIST = "and up."+COL_USER_PROFILE_ID+ " NOT IN (:" + EXCLUSION_USER_PROFILE_ID_PARAM+")";
+
+	private static final String AND_USERS_IN_ID_LIST = "and up."+COL_USER_PROFILE_ID+ " IN (:" + INCLUSION_USER_PROFILE_ID_PARAM+")";
+
+	private static final String PAGINATED = "LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	private static final String SELECT_SINGLE_MEMBER_OF_TEAM =
 			SELECT_MEMBERS_OF_TEAM_CORE+
@@ -236,6 +228,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				team = TeamUtils.deserialize(teamProperties.getBytes(1, (int) teamProperties.length()));
 			}
 			team.setId(rs.getString(COL_TEAM_ID));
+			team.setEtag(rs.getString(COL_TEAM_ETAG));
 			tmp.setTeam(team);
 			String userName = rs.getString(COL_PRINCIPAL_ALIAS_DISPLAY);
 			{
@@ -518,46 +511,33 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 
 	@Override
-	public List<TeamMember> getMembersInRange(String teamId, TeamMemberTypeFilterOptions memberType, long limit, long offset)
+	public List<TeamMember> getMembersInRange(String teamId, Set<Long> include, Set<Long> exclude, long limit, long offset)
 			throws DatastoreException {
-		MapSqlParameterSource param = new MapSqlParameterSource();	
-		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		param.addValue(OFFSET_PARAM_NAME, offset);
-		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		param.addValue(LIMIT_PARAM_NAME, limit);
-		List<TeamMember> teamMembers;
-		switch (memberType) {
-			case ADMIN:
-				List<String> adminIds = getAdminTeamMemberIds(teamId);
-				if (adminIds.isEmpty()) { // No team admins is possible at the DAO level
-					return Collections.emptyList();
-				}
-				param.addValue(COL_USER_PROFILE_ID, adminIds);
-				teamMembers = namedJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAM_PAGINATED, param, TEAM_MEMBER_ROW_MAPPER);
-				teamMembers.forEach(tm -> tm.setIsAdmin(true));
-				break;
-			case MEMBER:
-				adminIds = getAdminTeamMemberIds(teamId);
-				if (adminIds.isEmpty()) { // No team admins is possible at the DAO level
-					teamMembers = namedJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, param, TEAM_MEMBER_ROW_MAPPER);
-				} else {
-					param.addValue(COL_USER_PROFILE_ID, adminIds);
-					param.addValue(COL_USER_PROFILE_ID, getAdminTeamMemberIds(teamId));
-					teamMembers = namedJdbcTemplate.query(SELECT_NONADMIN_MEMBERS_OF_TEAM_PAGINATED, param, TEAM_MEMBER_ROW_MAPPER);
-				}
-				teamMembers.forEach(tm -> tm.setIsAdmin(false));
-				break;
-			case ALL:
-				teamMembers = namedJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, param, TEAM_MEMBER_ROW_MAPPER);
-				setAdminStatus(teamMembers);
-				break;
-			default:
-				throw new IllegalArgumentException("memberType must be one of "
-						+ TeamMemberTypeFilterOptions.ALL.toString() + ", "
-						+ TeamMemberTypeFilterOptions.ADMIN.toString() + ", or "
-						+ TeamMemberTypeFilterOptions.MEMBER.toString() + ".");
+
+		if (limit <= 0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
+
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		StringBuilder sql = new StringBuilder();
+		sql.append(SELECT_MEMBERS_OF_TEAM_CORE).append(" ").append(AND_MEMBERS_FOR_ONE_GROUP);
+		param.addValue(GROUP_MEMBERS_GROUP_ID_PARAM_NAME, teamId);
+
+		if (include != null && !include.isEmpty()) {
+			sql.append(" ").append(AND_USERS_IN_ID_LIST);
+			param.addValue(INCLUSION_USER_PROFILE_ID_PARAM, include);
 		}
-		return teamMembers;
+
+		if (exclude != null && !exclude.isEmpty()) {
+			sql.append(" ").append(AND_USERS_NOT_IN_ID_LIST);
+			param.addValue(EXCLUSION_USER_PROFILE_ID_PARAM, exclude);
+		}
+
+		sql.append(" ").append(PAGINATED);
+		param.addValue(OFFSET_PARAM_NAME, offset);
+		param.addValue(LIMIT_PARAM_NAME, limit);
+
+		List<TeamMember> tms = namedJdbcTemplate.query(sql.toString(), param, TEAM_MEMBER_ROW_MAPPER);
+		setAdminStatus(tms); // todo: try to make sure this only gets called once at manager or dao level instead of both times
+		return tms;
 	}
 
 	// update the 'isAdmin' field for those members that are admins on their teams
