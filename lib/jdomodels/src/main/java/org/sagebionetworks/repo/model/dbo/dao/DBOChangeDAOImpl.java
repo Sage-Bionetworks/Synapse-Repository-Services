@@ -142,14 +142,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
-	/**
-	 * Use this template to stream over results sets without loading then entire
-	 * result into memory.
-	 */
-	@Autowired
-	private JdbcTemplate streamingJdbcTemplate;
-	
+		
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 	
@@ -434,55 +427,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		params.addValue("objectId", objectId);
 		params.addValue("objectType", objectType.name());
 		return basicDao.getObjectByPrimaryKey(DBOSentMessage.class, params);
-	}
-
-	@Override
-	public void streamOverChanges(Set<ObjectType> objectTypes, Set<ChangeType> changeTypes,
-			Callback<ChangeMessage> callback) {
-		ValidateArgument.required(callback, "callback");
-		String sql = createStreamOverChangesSql(objectTypes, changeTypes);
-		this.streamingJdbcTemplate.query(sql, new RowCallbackHandler() {
-
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				DBOChange dbo = rowMapper.mapRow(rs, 0);
-				ChangeMessage dto = ChangeMessageUtils.createDTO(dbo);
-				callback.invoke(dto);
-				return;
-			}});
-	}
-	
-	/**
-	 * Create the SQL to stream over all changes of the given object and change type.
-	 * 
-	 * @param objectTypes
-	 * @param changeTypes
-	 * @return
-	 */
-	public static String createStreamOverChangesSql(Set<ObjectType> objectTypes, Set<ChangeType> changeTypes) {
-		ValidateArgument.required(objectTypes, "objectTypes");
-		ValidateArgument.required(changeTypes, "changeTypes");
-		if (objectTypes.isEmpty()) {
-			throw new IllegalArgumentException("Must inclue at least one ObjectType");
-		}
-		if (changeTypes.isEmpty()) {
-			throw new IllegalArgumentException("Must include at least one ChangeType");
-		}
-		StringBuilder builder = new StringBuilder(
-				"SELECT * FROM " + TABLE_CHANGES + " WHERE " + COL_CHANGES_OBJECT_TYPE + " IN (");
-		StringJoiner joiner = new StringJoiner(",");
-		for (ObjectType objectType : objectTypes) {
-			joiner.add("'" + objectType.name() + "'");
-		}
-		builder.append(joiner.toString());
-		builder.append(") AND " + COL_CHANGES_CHANGE_TYPE + " IN (");
-		joiner = new StringJoiner(",");
-		for (ChangeType changeType : changeTypes) {
-			joiner.add("'" + changeType.name() + "'");
-		}
-		builder.append(joiner.toString());
-		builder.append(") ORDER BY " + COL_CHANGES_CHANGE_NUM + " ASC");
-		return builder.toString();
 	}
 
 }
