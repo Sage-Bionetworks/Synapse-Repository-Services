@@ -24,12 +24,13 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 
 	private static final String SQL_PARAM_GROUP_ID = "groupId";
-	private static final String SQL_PARAM_PRINCIPAL_ID = "principalId";
+	private static final String SQL_PARAM_INCLUDE_IDS = "include";
+	private static final String SQL_PARAM_EXCLUDE_IDS = "exclude";
 	private static final String SQL_PARAM_PATTERN = "pattern";
 	private static final String SQL_PARAM_LIMIT = "limit";
 	private static final String SQL_PARAM_OFFSET = "offset";
 
-	private static final String SQL_LIST_TEAM_MEMBERS_FOR_PREFIX = "SELECT DISTINCT P."
+	private static final String SQL_LIST_TEAM_MEMBERS_FOR_PREFIX_CORE = "SELECT DISTINCT P."
 			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
 			+ " FROM "
 			+ TABLE_PRINCIPAL_PREFIX
@@ -40,54 +41,17 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ " = M."
 			+ COL_GROUP_MEMBERS_MEMBER_ID
 			+ " AND M."
-			+ COL_GROUP_MEMBERS_GROUP_ID
-			+ " = ? AND P."
-			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ? LIMIT ? OFFSET ?";
-
-	// Get matching members that do not have one of the specified principal IDs
-	private static final String SQL_LIST_TEAM_MEMBERS_FOR_PREFIX_EXCLUDE = "SELECT DISTINCT P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " FROM "
-			+ TABLE_PRINCIPAL_PREFIX
-			+ " P, "
-			+ TABLE_GROUP_MEMBERS
-			+ " M WHERE P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " = M."
-			+ COL_GROUP_MEMBERS_MEMBER_ID
-			+ " AND M."
-			+ COL_GROUP_MEMBERS_MEMBER_ID
-			+ " NOT IN (:"
-			+ SQL_PARAM_PRINCIPAL_ID
-			+ ") AND M."
 			+ COL_GROUP_MEMBERS_GROUP_ID
 			+ " = :" + SQL_PARAM_GROUP_ID
-			+ " AND P."
-			+ COL_PRINCIPAL_PREFIX_TOKEN
-			+ " LIKE :" + SQL_PARAM_PATTERN
-			+ " LIMIT :" + SQL_PARAM_LIMIT
-			+ " OFFSET :" + SQL_PARAM_OFFSET;
+			+ " AND P." + COL_PRINCIPAL_PREFIX_TOKEN + " LIKE :" + SQL_PARAM_PATTERN;
 
-	// Get matching members that has one of the specified principal IDs
-	private static final String SQL_LIST_TEAM_MEMBERS_FOR_PREFIX_INCLUDE = "SELECT DISTINCT P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " FROM "
-			+ TABLE_PRINCIPAL_PREFIX
-			+ " P, "
-			+ TABLE_GROUP_MEMBERS
-			+ " M WHERE P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " = M."
-			+ COL_GROUP_MEMBERS_MEMBER_ID
-			+ " AND M."
-			+ COL_GROUP_MEMBERS_MEMBER_ID
-			+ " IN (:"
-			+ SQL_PARAM_PRINCIPAL_ID
-			+ ") AND M."
-			+ COL_GROUP_MEMBERS_GROUP_ID
-			+ " = :" + SQL_PARAM_GROUP_ID + " AND P."
-			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE :" + SQL_PARAM_PATTERN
-			+ " LIMIT :" + SQL_PARAM_LIMIT + " OFFSET :" + SQL_PARAM_OFFSET;
+	// Get matching members that do not have one of the specified principal IDs
+	private static final String SQL_EXCLUDE_GROUP_IDS = "AND M." + COL_GROUP_MEMBERS_MEMBER_ID + " NOT IN (:" + SQL_PARAM_EXCLUDE_IDS + ")";
+
+	// Get matching members that have one of the specified principal IDs
+	private static final String SQL_INCLUDE_GROUP_IDS = "AND M." + COL_GROUP_MEMBERS_MEMBER_ID + " IN (:" + SQL_PARAM_INCLUDE_IDS + ")";
+
+	private static final String SQL_PAGINATED = "LIMIT :" + SQL_PARAM_LIMIT + " OFFSET :" + SQL_PARAM_OFFSET;
 
 	private static final String SQL_COUNT_TEAM_MEMBERS_FOR_PREFIX = "SELECT COUNT( DISTINCT P."
 			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
@@ -282,30 +246,41 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	public List<Long> listTeamMembersForPrefix(String prefix, Long teamId,
 			Long limit, Long offset) {
 		String processed = preProcessToken(prefix);
-		return jdbcTemplate.queryForList(SQL_LIST_TEAM_MEMBERS_FOR_PREFIX,
-				Long.class, teamId, processed + WILDCARD, limit, offset);
+		String sql = SQL_LIST_TEAM_MEMBERS_FOR_PREFIX_CORE + " " + SQL_PAGINATED;
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQL_PARAM_PATTERN, processed + WILDCARD);
+		param.addValue(SQL_PARAM_GROUP_ID, teamId);
+		param.addValue(SQL_PARAM_LIMIT, limit);
+		param.addValue(SQL_PARAM_OFFSET, offset);
+
+		return namedJdbcTemplate.queryForList(sql, param, Long.class);
 	}
 
 	@Override
-	public List<Long> listCertainTeamMembersForPrefix(String prefix, Long teamId,
-											   Set<Long> specifiedIds,
-											   boolean exclude,
-											   Long limit, Long offset) {
+	public List<Long> listCertainTeamMembersForPrefix(String prefix, Long teamId, Set<Long> include, Set<Long> exclude, Long limit, Long offset) {
+		StringBuilder sql = new StringBuilder();
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		if (specifiedIds == null || specifiedIds.isEmpty()) { // No filtering by ID
-			return listTeamMembersForPrefix(prefix, teamId, limit, offset);
-		}
+
 		String processed = preProcessToken(prefix);
+
+		sql.append(SQL_LIST_TEAM_MEMBERS_FOR_PREFIX_CORE);
 		param.addValue(SQL_PARAM_PATTERN, processed + WILDCARD);
+		param.addValue(SQL_PARAM_GROUP_ID, teamId);
+
+		if (exclude != null && !exclude.isEmpty()) {
+			sql.append(" ").append(SQL_EXCLUDE_GROUP_IDS);
+			param.addValue(SQL_PARAM_EXCLUDE_IDS, exclude);
+		}
+
+		if (include != null && !include.isEmpty()) {
+			sql.append(" ").append(SQL_INCLUDE_GROUP_IDS);
+			param.addValue(SQL_PARAM_INCLUDE_IDS, include);
+		}
+
+		sql.append(" ").append(SQL_PAGINATED);
 		param.addValue(SQL_PARAM_LIMIT, limit);
 		param.addValue(SQL_PARAM_OFFSET, offset);
-		param.addValue(SQL_PARAM_GROUP_ID, teamId);
-		param.addValue(SQL_PARAM_PRINCIPAL_ID, specifiedIds);
-		if (exclude) {
-			return namedJdbcTemplate.queryForList(SQL_LIST_TEAM_MEMBERS_FOR_PREFIX_EXCLUDE, param, Long.class);
-		} else {
-			return namedJdbcTemplate.queryForList(SQL_LIST_TEAM_MEMBERS_FOR_PREFIX_INCLUDE, param, Long.class);
-		}
+		return namedJdbcTemplate.queryForList(sql.toString(), param, Long.class);
 	}
 
 	/*

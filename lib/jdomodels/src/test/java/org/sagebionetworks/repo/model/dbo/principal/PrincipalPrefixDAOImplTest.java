@@ -489,12 +489,10 @@ public class PrincipalPrefixDAOImplTest {
 	}
 
 	@Test
-	public void testListCertainTeamMembersForPrefixEmptySet(){
+	public void testListCertainTeamMembersForPrefixEmptyFilters(){
 		addDefaultAlias();
-		boolean exclude = true;
-		Set<Long> excludeIds = Collections.emptySet();
-		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId,
-				excludeIds, exclude, 1000L, 0L);
+		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId, Collections.emptySet(),
+				Collections.emptySet(), 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(3, results.size());
 		// Counts should match
@@ -507,10 +505,9 @@ public class PrincipalPrefixDAOImplTest {
 	@Test
 	public void testListCertainTeamMembersForPrefixExclude(){
 		addDefaultAlias();
-		boolean exclude = true;
+		Set<Long> includeIds = Collections.emptySet();
 		Set<Long> excludeIds = Collections.singleton(romanusId);
-		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId,
-				excludeIds, exclude, 1000L, 0L);
+		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId, includeIds, excludeIds, 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		assertEquals(romaneId, results.get(0));
@@ -521,10 +518,24 @@ public class PrincipalPrefixDAOImplTest {
 	@Test
 	public void testListCertainTeamMembersForPrefixInclude(){
 		addDefaultAlias();
-		boolean exclude = false;
-		Set<Long> excludeIds = Collections.singleton(romanusId);
-		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId,
-				excludeIds, exclude, 1000L, 0L);
+		Set<Long> includeIds = Collections.singleton(romanusId);
+		Set<Long> excludeIds = Collections.emptySet();
+
+		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId, includeIds, excludeIds, 1000L, 0L);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(romanusId, results.get(0));
+		assertFalse(results.contains(romaneId));
+		assertFalse(results.contains(romulusId));
+	}
+
+	@Test
+	public void testListCertainTeamMembersForPrefixIncludeAndExclude(){
+		addDefaultAlias();
+		Set<Long> includeIds = Collections.singleton(romanusId);
+		Set<Long> excludeIds = Collections.singleton(romulusId);
+
+		List<Long> results = principalPrefixDao.listCertainTeamMembersForPrefix("rom", teamAllId, includeIds, excludeIds, 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(romanusId, results.get(0));
