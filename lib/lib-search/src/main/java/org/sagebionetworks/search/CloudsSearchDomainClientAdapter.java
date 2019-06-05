@@ -3,8 +3,12 @@ package org.sagebionetworks.search;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.search.Document;
@@ -35,10 +39,11 @@ public class CloudsSearchDomainClientAdapter {
 		this.iteratorProvider = iteratorProvider;
 	}
 
-	public void sendDocuments(Iterator<Document> documents){
+	public List<UploadDocumentsResult> sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
 		Iterator<CloudSearchDocumentBatch> searchDocumentFileIterator = iteratorProvider.getIterator(documents);
 
+		List<UploadDocumentsResult> uploadDocumentsResults = new LinkedList<>();
 		while(searchDocumentFileIterator.hasNext()) {
 			Set<String> documentIds = null;
 			try (CloudSearchDocumentBatch batch = searchDocumentFileIterator.next();
@@ -50,7 +55,7 @@ public class CloudsSearchDomainClientAdapter {
 						.withContentType("application/json")
 						.withDocuments(fileStream)
 						.withContentLength(batch.size());
-				client.uploadDocuments(request);
+				uploadDocumentsResults.add(client.uploadDocuments(request));
 			} catch (DocumentServiceException e) {
 				logger.error("The following documents failed to upload: " +  documentIds);
 				documentIds = null;
@@ -59,6 +64,7 @@ public class CloudsSearchDomainClientAdapter {
 				throw new TemporarilyUnavailableException(e);
 			}
 		}
+		return uploadDocumentsResults;
 	}
 
 	public void sendDocument(Document document){

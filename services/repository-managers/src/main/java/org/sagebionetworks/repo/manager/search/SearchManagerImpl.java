@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -116,6 +117,7 @@ public class SearchManagerImpl implements SearchManager{
 		Iterator<Document> documentIterator = Iterators.filter(
 				Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
 				Objects::nonNull);
-		searchDao.sendDocuments(documentIterator);
+		List<UploadDocumentsResult> results = searchDao.sendDocuments(documentIterator);
+		//TODO: log to kinesis
 	}
 }

@@ -1,8 +1,10 @@
 package org.sagebionetworks.search;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.sagebionetworks.repo.model.search.Document;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
@@ -25,13 +27,13 @@ public interface SearchDao {
 
 	/**
 	 * Delete all documents with the passed set of document ids.
-	 * 
+	 *
 	 * @param docIdsToDelete
 	 */
 	@Deprecated
 	void deleteDocuments(Set<String> docIdsToDelete);
 
-	void sendDocuments(Iterator<Document> documentIterator);
+	List<UploadDocumentsResult> sendDocuments(Iterator<Document> documentIterator);
 
 	/**
 	 * Execute a query.

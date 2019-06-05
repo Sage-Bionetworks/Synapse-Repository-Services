@@ -422,6 +422,14 @@
 	<bean id="changeMessageToDocumentTranslator"
 		class="org.sagebionetworks.repo.manager.search.ChangeMessageToSearchDocumentTranslator"/>
 
+	<!-- Create the AWS kinesis firehose using the current credentials. -->
+	<bean id="awsKinesisFirehoseClient"
+		  class="org.sagebionetworks.aws.AwsClientFactory"
+		  factory-method="createAmazonKinesisFirehoseClient"/>
+
+	<bean id="kinesisFirehoseLogger"
+		  class="org.sagebionetworks.repo.manager.search.AwsKinesisFirehoseLoggerImpl"/>
+
 	<!-- Used to perform search and upload search documents-->
 	<bean id="searchManager"
 		  class="org.sagebionetworks.repo.manager.search.SearchManagerImpl"

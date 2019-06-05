@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,8 +73,8 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void sendDocuments(Iterator<Document> documentIterator){
-		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(documentIterator);
+	public List<UploadDocumentsResult> sendDocuments(Iterator<Document> documentIterator){
+		return cloudSearchClientProvider.getCloudSearchClient().sendDocuments(documentIterator);
 	}
 
 	@Override
