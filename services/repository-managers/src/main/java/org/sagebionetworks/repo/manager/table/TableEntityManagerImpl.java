@@ -12,10 +12,10 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.NewVersionInfo;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -113,6 +114,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	TableUploadManager tableUploadManager;
 	@Autowired
 	TableTransactionDao tableTransactionDao;
+	@Autowired
+	NodeManager nodeManager;
 	
 	/**
 	 * Injected via spring
@@ -902,6 +905,27 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public Optional<Long> getLastTableChangeNumber(String tableId) {
 		return this.tableRowTruthDao.getLastTableChangeNumber(tableId);
+	}
+
+
+	@Override
+	public void bindCurrentEntityVersionToLatestTransaction(String tableId) {
+		ValidateArgument.required(tableId, "TableId");
+		long currentVersionNumber = nodeManager.getCurrentRevisionNumbers(tableId);
+		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableId);
+		if(!lastTransactionNumber.isPresent()) {
+			throw new IllegalArgumentException("No transactions found for table: "+tableId);
+		}
+		
+	}
+
+	@Override
+	public void createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, NewVersionInfo newVersionInfo,
+			long transactionId) {
+		// create a new version
+		long newVersionNumber = nodeManager.createNewVersion(userInfo, tableId, newVersionInfo.getNewVersionComment(),
+				newVersionInfo.getNewVersionLabel(), newVersionInfo.getNewVersionActivityId());
+
 	}
 
 }

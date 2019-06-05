@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -30,6 +31,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.NewVersionInfo;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -250,10 +252,48 @@ public class TableEntityTransactionManagerTest {
 	}
 	
 	@Test
-	public void testDoIntransactionUpdateTable() throws RecoverableMessageException, TableUnavailableException {
+	public void testDoIntransactionUpdateTableNullVersionInfo() throws RecoverableMessageException, TableUnavailableException {
+		request.setNewVersionInfo(null);
 		// call under test
 		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
+		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(NewVersionInfo.class), anyLong());
+	}
+	
+	@Test
+	public void testDoIntransactionUpdateTableWithNewVersionNullBoolean() throws RecoverableMessageException, TableUnavailableException {
+		NewVersionInfo versionInfo = new NewVersionInfo();
+		versionInfo.setCreateNewTableVersion(null);
+		request.setNewVersionInfo(versionInfo);
+		// call under test
+		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
+		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(NewVersionInfo.class), anyLong());
+	}
+	
+	@Test
+	public void testDoIntransactionUpdateTableWithNewVersionFalse() throws RecoverableMessageException, TableUnavailableException {
+		NewVersionInfo versionInfo = new NewVersionInfo();
+		versionInfo.setCreateNewTableVersion(false);
+		request.setNewVersionInfo(versionInfo);
+		// call under test
+		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
+		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(NewVersionInfo.class), anyLong());
+	}
+	
+	@Test
+	public void testDoIntransactionUpdateTableWithNewVersiontrue() throws RecoverableMessageException, TableUnavailableException {
+		NewVersionInfo versionInfo = new NewVersionInfo();
+		versionInfo.setCreateNewTableVersion(true);
+		request.setNewVersionInfo(versionInfo);
+		// call under test
+		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
+		verify(tableEntityManager).createNewVersionAndBindToTransaction(userInfo, tableId, versionInfo, transactionId);
 	}
 }

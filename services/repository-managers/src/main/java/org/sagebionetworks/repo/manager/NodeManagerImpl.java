@@ -777,4 +777,33 @@ public class NodeManagerImpl implements NodeManager {
 		}
 	}
 
+	@WriteTransaction
+	@Override
+	public long createNewVersion(UserInfo userInfo, String nodeId, String comment, String label, String activityId) {
+		ValidateArgument.required(userInfo, "UserInfo");
+		ValidateArgument.required(nodeId, "id");
+		// User must have the update permission.
+		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+		// Must be authorized to use a provided activity.
+		canConnectToActivity(activityId, userInfo);
+		/*
+		 * Note: An Etag check is not required here because all of the existing data is
+		 * copied to the newly created version without modification. This means
+		 * concurrent modifications are not possible with this method.
+		 */
+		nodeDao.lockNode(nodeId);
+		Node currentNode = nodeDao.getNode(nodeId);
+		currentNode.setVersionComment(comment);
+		currentNode.setVersionLabel(label);
+		currentNode.setActivityId(activityId);
+		long newVersion = nodeDao.createNewVersion(currentNode);
+		nodeDao.touch(userInfo.getId(), nodeId);
+		return newVersion;
+	}
+
+	@Override
+	public long getCurrentRevisionNumbers(String entityId) {
+		return nodeDao.getCurrentRevisionNumber(entityId);
+	}
+
 }

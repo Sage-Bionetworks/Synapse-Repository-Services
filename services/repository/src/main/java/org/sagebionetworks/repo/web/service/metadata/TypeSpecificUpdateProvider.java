@@ -14,6 +14,7 @@ public interface TypeSpecificUpdateProvider<T extends Entity> extends EntityProv
 	 * Called when an entity is updated.
 	 * @param userInfo
 	 * @param entityId
+	 * @param True if a new version was created as a result of this update.
 	 */
-	public void entityUpdated(UserInfo userInfo, T entity);
+	public void entityUpdated(UserInfo userInfo, T entity, boolean wasNewVersionCreated);
 }

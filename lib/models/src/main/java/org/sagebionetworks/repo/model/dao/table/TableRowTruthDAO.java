@@ -53,6 +53,13 @@ public interface TableRowTruthDAO {
 	public TableRowChange getLastTableRowChange(String tableId);
 	
 	/**
+	 * Get the last transaction ID associated with the given table.
+	 * @param tableId
+	 * @return
+	 */
+	public Optional<Long> getLastTransactionId(String tableId);
+	
+	/**
 	 * Get the latest TableRowChange of a given type.
 	 * 
 	 * @param tableId

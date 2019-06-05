@@ -248,12 +248,12 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	private void fireAfterUpdateEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+	private void fireAfterUpdateEntityEvent(UserInfo userInfo, Entity entity, EntityType type, boolean wasNewVersionCreated) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		if(providers != null) {
 			for (EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof TypeSpecificUpdateProvider) {
-					((TypeSpecificUpdateProvider) provider).entityUpdated(userInfo, entity);
+					((TypeSpecificUpdateProvider) provider).entityUpdated(userInfo, entity, wasNewVersionCreated);
 				}
 			}
 		}
@@ -311,8 +311,8 @@ public class EntityServiceImpl implements EntityService {
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
 		// Now do the update
-		entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
-		fireAfterUpdateEntityEvent(userInfo, updatedEntity, type);
+		boolean wasNewVersionCrated = entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
+		fireAfterUpdateEntityEvent(userInfo, updatedEntity, type, wasNewVersionCrated);
 		// Return the updated entity
 		return getEntity(userInfo, entityId, clazz, eventType);
 	}

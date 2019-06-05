@@ -374,5 +374,24 @@ public interface NodeManager {
 	 * @return
 	 */
 	public String lookupChild(String parentId, String entityName);
+	
+	
+	/**
+	 * Create a new version of the provided node.
+	 * @param userId
+	 * @param nodeId
+	 * @param comment Optional. Version comment.
+	 * @param label Optional. Version label.
+	 * @param activity Optional. Associate an activity with the new version.
+	 * @return
+	 */
+	public long createNewVersion(UserInfo userInfo, String nodeId, String comment, String label, String activityId);
+
+	/**
+	 * Get the current revision number for the given Entity Id.
+	 * @param entityId
+	 * @return
+	 */
+	long getCurrentRevisionNumbers(String entityId);
 
 }

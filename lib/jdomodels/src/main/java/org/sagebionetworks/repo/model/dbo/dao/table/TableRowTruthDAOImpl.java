@@ -6,7 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_RO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
@@ -59,7 +59,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	private static final String SELECT_FIRST_ROW_VERSION_FOR_TABLE = "SELECT " + COL_TABLE_ROW_VERSION + " FROM "
 			+ TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TYPE + " = ? AND TABLE_ID = ? LIMIT 1";
-
+	
+	private static final String SELECT_LAST_TRANSACTION_ID = "SELECT " + COL_TABLE_ROW_TRX_ID + " FROM "
+			+ TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TABLE_ID + " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " DESC LIMIT 1";
+	
 	private static final String SQL_LAST_CHANGE_NUMBER = "SELECT MAX("+COL_TABLE_ROW_VERSION+") FROM "+TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_TABLE_ID+" = ?";
 
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
@@ -508,6 +511,18 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			return firstRowVersion != null;
 		} catch (EmptyResultDataAccessException e) {
 			return false;
+		} 
+	}
+
+	@Override
+	public Optional<Long> getLastTransactionId(String tableIdString) {
+		ValidateArgument.required(tableIdString, "tableId");
+		try {
+			long tableId = KeyFactory.stringToKey(tableIdString);
+			Long transactionId = jdbcTemplate.queryForObject(SELECT_LAST_TRANSACTION_ID, Long.class, tableId);
+			return Optional.of(transactionId);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
 		} 
 	}
 	

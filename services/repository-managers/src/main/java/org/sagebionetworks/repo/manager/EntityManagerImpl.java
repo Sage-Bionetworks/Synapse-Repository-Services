@@ -345,7 +345,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@WriteTransaction
 	@Override
-	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated,
+	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated,
 			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
@@ -384,6 +384,7 @@ public class EntityManagerImpl implements EntityManager {
 				annos.getPrimaryAnnotations());
 		// Now update both at the same time
 		nodeManager.update(userInfo, node, annos, newVersionFinal);
+		return newVersionFinal;
 	}
 
 	/**
