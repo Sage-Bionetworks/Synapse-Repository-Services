@@ -536,7 +536,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);
 
 		List<TeamMember> tms = namedJdbcTemplate.query(sql.toString(), param, TEAM_MEMBER_ROW_MAPPER);
-		setAdminStatus(tms); // todo: try to make sure this only gets called once at manager or dao level instead of both times
 		return tms;
 	}
 

@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -804,14 +805,9 @@ public class TeamManagerImplTest {
 
 	@Test
 	public void testGetMembers() throws Exception {
-		TeamMember tm = new TeamMember();
-		tm.setTeamId(TEAM_ID);
-		UserGroupHeader ugh = new UserGroupHeader();
-		ugh.setOwnerId("101");
-		tm.setMember(ugh);
-		tm.setIsAdmin(false);
+		TeamMember tm = createTeamMember("101", false);
 		List<TeamMember> tms = Collections.singletonList(tm);
-		when(mockTeamDAO.getMembersInRange(TEAM_ID, TeamMemberTypeFilterOptions.ALL,10, 0)).thenReturn(tms);
+		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, null,10, 0)).thenReturn(tms);
 		when(mockTeamDAO.getMembersCount(TEAM_ID)).thenReturn(1L);
 		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
 		assertEquals(tms, pg.getResults());
@@ -821,16 +817,12 @@ public class TeamManagerImplTest {
 		Long teamId = Long.parseLong(TEAM_ID);
 		when(mockTeamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L))).thenReturn(lw);
 		assertEquals(tms, teamManagerImpl.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L)).getList());
+		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(teamId), Collections.singletonList(101L));
 	}
 
 	@Test
-	public void testGetMembersWithFragment() throws Exception {
-		TeamMember tm = new TeamMember();
-		tm.setTeamId(TEAM_ID);
-		UserGroupHeader ugh = new UserGroupHeader();
-		ugh.setOwnerId("101");
-		tm.setMember(ugh);
-		tm.setIsAdmin(false);
+	public void testListMembersWithFragment() {
+		TeamMember tm = createTeamMember("101", false);
 		List<TeamMember> tms = Collections.singletonList(tm);
 		String prefix = "pfx";
 
@@ -844,68 +836,43 @@ public class TeamManagerImplTest {
 		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
+		verify(mockPrincipalPrefixDao, times(1)).listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L);
 		verify(mockTeamDAO, never()).getAdminTeamMemberIds(anyString());
 	}
 
 	@Test
-	public void testGetAdminMembersWithFragment() throws Exception {
-		TeamMember tm = new TeamMember();
-		tm.setTeamId(TEAM_ID);
-		UserGroupHeader ugh = new UserGroupHeader();
-		ugh.setOwnerId("101");
-		tm.setMember(ugh);
-		tm.setIsAdmin(true);
-		List<TeamMember> tms = Collections.singletonList(tm);
-		String prefix = "pfx";
+	public void testListTypesOfMembers() {
+		TeamMember adminMember = createTeamMember("101", true);
+		TeamMember nonAdminMember = createTeamMember("102", false);
+		List<String> adminIds = new ArrayList<>();
+		adminIds.add("101");
+		Set<Long> adminIdsSet = Collections.singleton(101L);
 
-		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
+		when(mockTeamDAO.getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L)).thenReturn(Collections.singletonList(adminMember));
+		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMember));
+		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, null,10L, 0L)).thenReturn(Arrays.asList(adminMember, nonAdminMember));
 
-		List<String> adminMembers = Collections.singletonList("101");
-		Set<Long> adminMembersLong = Collections.singleton(101L);
-		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminMembers);
-		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminMembersLong, false, 10L, 0L))
-				.thenReturn(Collections.singletonList(101L));
-
-		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(101L)))
-				.thenReturn(lw);
-
-		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10, 0);
-		assertEquals(tms, pg.getResults());
-		assertEquals(1L, pg.getTotalNumberOfResults());
-	}
-
-	@Test
-	public void testGetNonadminMembersWithFragment() throws Exception {
-		TeamMember tm = new TeamMember();
-		tm.setTeamId(TEAM_ID);
-		UserGroupHeader ugh = new UserGroupHeader();
-		ugh.setOwnerId("101");
-		tm.setMember(ugh);
-		tm.setIsAdmin(false);
-
-		TeamMember tm2 = new TeamMember();
-		tm2.setTeamId(TEAM_ID);
-		UserGroupHeader ugh2 = new UserGroupHeader();
-		ugh2.setOwnerId("102");
-		tm2.setMember(ugh2);
-		tm2.setIsAdmin(false);
-
-		List<TeamMember> tms = Arrays.asList(tm, tm2);
-		String prefix = "pfx";
-
-		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
-
-		List<String> adminMembers = Collections.singletonList("103");
-		Set<Long> adminMembersLong = Collections.singleton(103L);
-		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminMembers);
-		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminMembersLong, true, 10L, 0L))
-				.thenReturn(Arrays.asList(101L, 102L));
-		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(101L, 102L)))
-				.thenReturn(lw);
-
-		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10, 0);
-		assertEquals(tms, pg.getResults());
-		assertEquals(2L, pg.getTotalNumberOfResults());
+		for (TeamMemberTypeFilterOptions filter : TeamMemberTypeFilterOptions.values()) {
+			List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, filter, 10L, 0L).getResults();
+			switch (filter) {
+				case ADMIN:
+					verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L);
+					assertEquals(Collections.singletonList(adminMember), actual);
+					break;
+				case MEMBER:
+					verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L);
+					assertEquals(Collections.singletonList(nonAdminMember), actual);
+					break;
+				case ALL:
+					verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, null,10L, 0L);
+					assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
+					break;
+				default:
+					fail("Add behavior in the method and test for filter type " + filter.toString());
+			}
+		}
+		verify(mockTeamDAO, times(3)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
 	}
 	
 	@Test
@@ -1208,6 +1175,16 @@ public class TeamManagerImplTest {
 		verify(mockAclDAO).delete(TEAM_ID, ObjectType.TEAM);
 		verify(mockUserGroupDAO).delete(TEAM_ID);
 
+	}
+
+	private TeamMember createTeamMember(String ownerId, boolean isAdmin) {
+		TeamMember tm = new TeamMember();
+		tm.setTeamId(TEAM_ID);
+		UserGroupHeader ugh = new UserGroupHeader();
+		ugh.setOwnerId(ownerId);
+		tm.setMember(ugh);
+		tm.setIsAdmin(isAdmin);
+		return tm;
 	}
 
 }

@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.manager.team;
 
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -21,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
@@ -322,7 +320,30 @@ public class TeamManagerImpl implements TeamManager {
 	@Override
 	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit,
 			long offset) throws DatastoreException {
-		List<TeamMember> results = teamDAO.getMembersInRange(teamId, memberType, limit, offset);
+		List<TeamMember> results;
+		Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::valueOf).collect(Collectors.toSet());
+		switch (memberType) {
+			case ADMIN:
+				if (adminIds.isEmpty()) { // No team admins is possible at the DAO level
+					return new PaginatedResults<>();
+				}
+				results = teamDAO.getMembersInRange(teamId, adminIds, null, limit, offset);
+				results.forEach(tm -> tm.setIsAdmin(true));
+				break;
+			case MEMBER:
+				results = teamDAO.getMembersInRange(teamId, null, adminIds, limit, offset);
+				results.forEach(tm -> tm.setIsAdmin(false));
+				break;
+			case ALL:
+				results = teamDAO.getMembersInRange(teamId, null, null, limit, offset);
+				results.forEach(tm -> tm.setIsAdmin(adminIds.contains(Long.valueOf(tm.getMember().getOwnerId()))));
+				break;
+			default:
+				throw new IllegalArgumentException("memberType must be one of "
+						+ TeamMemberTypeFilterOptions.ALL.toString() + ", "
+						+ TeamMemberTypeFilterOptions.ADMIN.toString() + ", or "
+						+ TeamMemberTypeFilterOptions.MEMBER.toString() + ".");
+		}
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
 
@@ -333,14 +354,12 @@ public class TeamManagerImpl implements TeamManager {
 		List<Long> prefixMemberIds;
 		switch (memberType) {
 			case ADMIN:
-				HashSet<Long> adminIds = new HashSet<>();
-				teamDAO.getAdminTeamMemberIds(teamId).forEach(id -> adminIds.add(Long.parseLong(id)));
-				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId), adminIds, false, limit, offset);
+				Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::parseLong).collect(Collectors.toSet());
+				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId),  adminIds,null, limit, offset);
 				break;
 			case MEMBER:
-				adminIds = new HashSet<>();
-				teamDAO.getAdminTeamMemberIds(teamId).forEach(id -> adminIds.add(Long.parseLong(id)));
-				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId), adminIds, true, limit, offset);
+				adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::parseLong).collect(Collectors.toSet());
+				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId), null, adminIds, limit, offset);
 				break;
 			case ALL:
 				// Do not filter
