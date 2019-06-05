@@ -3990,6 +3990,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	/**
+	 *
+	 * @deprecated  Use {@link #getTeamMembers(String, String, TeamMemberTypeFilterOptions, long, long) getTeamMembers} instead
+	 */
+	@Deprecated
+	@Override
+	public PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException {
+		return getTeamMembers(teamId, fragment, TeamMemberTypeFilterOptions.ALL, limit, offset);
+	}
+
+
 	@Override
 	public PaginatedResults<TeamMember> getTeamMembers(String teamId,
 													   String fragment, TeamMemberTypeFilterOptions memberType,
