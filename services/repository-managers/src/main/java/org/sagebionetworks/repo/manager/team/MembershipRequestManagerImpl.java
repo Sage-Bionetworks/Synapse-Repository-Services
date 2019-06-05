@@ -139,7 +139,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 							mr.getMessage()+" </Blockquote> ");
 		}
 		
-		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mr.getTeamId()));
+		Set<String> teamAdmins = new HashSet<>(teamDAO.getAdminTeamMemberIds(mr.getTeamId()));
 		for (String recipientPrincipalId : teamAdmins) {
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
 					acceptRequestEndpoint, recipientPrincipalId, mr.getCreatedBy(), mr.getTeamId(), mr.getCreatedOn(), tokenGenerator));

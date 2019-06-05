@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -201,7 +202,6 @@ import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
-import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
@@ -1464,10 +1464,10 @@ public interface SynapseClient extends BaseClient {
 	ResponseMessage addTeamMember(JoinTeamSignedToken joinTeamSignedToken, 
 			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException;
-	
+
 	/**
 	 * Return the members of the given team matching the given name fragment.
-	 * 
+	 *
 	 * @param teamId
 	 * @param fragment if null then return all members in the team
 	 * @param limit
@@ -1476,6 +1476,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+
+	/**
+	 * Return the members of the given team matching the given name fragment.
+	 * 
+	 * @param teamId
+	 * @param fragment if null then return all members in the team
+	 * @param memberType if null then return all members in the team (that match the fragment)
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws SynapseException;
 	
 	/**
 	 * 
