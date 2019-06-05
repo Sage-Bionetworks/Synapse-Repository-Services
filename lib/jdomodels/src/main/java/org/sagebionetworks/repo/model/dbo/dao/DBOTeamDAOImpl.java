@@ -513,6 +513,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	@Override
 	public List<TeamMember> getMembersInRange(String teamId, Set<Long> include, Set<Long> exclude, long limit, long offset)
 			throws DatastoreException {
+		// Note: isAdmin is not set for each team member, do this in the manager!
 
 		if (limit <= 0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 
