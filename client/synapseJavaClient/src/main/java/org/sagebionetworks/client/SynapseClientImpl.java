@@ -505,7 +505,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
 	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
-	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
 
 	private static final String PROJECT = "/project";
 	private static final String FORUM = "/forum";
@@ -2996,21 +2995,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		return postJSONEntity(getRepoEndpoint(), uri, sub, Submission.class);
 	}
-	
-	/**
-	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
-	 * @param submissionId
-	 * @param contributor
-	 * @return
-	 */
-	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor)
-			throws SynapseException {
-		validateStringAsLong(submissionId);
-		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + submissionId + "/contributor";
-		return postJSONEntity(getRepoEndpoint(), uri, contributor, SubmissionContributor.class);
-	}
 
-	
 	@Override
 	public Submission getSubmission(String subId) throws SynapseException {
 		ValidateArgument.required(subId, "Submission Id");
@@ -4327,31 +4312,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), CERTIFIED_USER_TEST_RESPONSE,
 				response, PassingRecord.class);
-	}
-
-	@Override
-	public void setCertifiedUserStatus(String principalId, boolean status)
-			throws SynapseException {
-		String url = USER + "/" + principalId + CERTIFIED_USER_STATUS
-				+ "?isCertified=" + status;
-		voidPut(getRepoEndpoint(), url, null);
-	}
-
-	@Override
-	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(
-			long offset, long limit, String principalId)
-			throws SynapseException {
-
-		String uri = null;
-		if (principalId == null) {
-			uri = CERTIFIED_USER_TEST_RESPONSE + "?" + OFFSET + "=" + offset
-					+ "&" + LIMIT + "=" + limit;
-		} else {
-			uri = CERTIFIED_USER_TEST_RESPONSE + "?"
-					+ PRINCIPAL_ID_REQUEST_PARAM + "=" + principalId + "&"
-					+ OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
-		}
-		return getPaginatedResults(getRepoEndpoint(), uri, QuizResponse.class);
 	}
 
 	@Override

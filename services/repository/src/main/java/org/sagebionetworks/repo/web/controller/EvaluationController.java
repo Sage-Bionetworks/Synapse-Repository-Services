@@ -446,10 +446,18 @@ public class EvaluationController {
 		return serviceProvider.getEvaluationService().createSubmission(
 				userId, submission, entityEtag, submissionEligibilityHash, request, challengeEndpoint, notificationUnsubscribeEndpoint);
 	}
-	
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
+	public @ResponseBody
+	String addSubmissionContributor() {
+		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.SUBMISSION_CONTRIBUTOR + " and is only accessible to Synapse administrators";
+	}
+
 	/**
 	 * Add a contributor to an existing Submission.  This service is available to administrators only.
-	 * 
+	 *
 	 * @param userId
 	 * @param subId
 	 * @param submissionContributor
@@ -459,7 +467,7 @@ public class EvaluationController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
 	public @ResponseBody
 	SubmissionContributor addSubmissionContributor(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -468,7 +476,7 @@ public class EvaluationController {
 			) throws DatastoreException, InvalidModelException, NotFoundException {
 		return serviceProvider.getEvaluationService().addSubmissionContributor(userId, subId, submissionContributor);
 	}
-	
+
 	/**
 	 * Gets a Submission.
 	 * 

@@ -250,18 +250,25 @@ public class MessageController {
 			@RequestBody MessageStatus status) throws NotFoundException {
 		serviceProvider.getMessageService().updateMessageStatus(userId, status);
 	}
-	
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
+	public @ResponseBody String deleteMessage() throws NotFoundException {
+		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.MESSAGE_ID + " and is only accessible to Synapse administrators";
+	}
+
 	/**
 	 * Deletes a message.  Only accessible to administrators.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
 	public void deleteMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String messageId) throws NotFoundException {
 		serviceProvider.getMessageService().deleteMessage(userId, messageId);
 	}
-	
+
 	/**
 	 * Get the actual URL of the file associated with the message
 	 * </br>
