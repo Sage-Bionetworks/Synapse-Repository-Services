@@ -300,13 +300,16 @@ public interface TableEntityManager {
 	 */
 	public void createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, NewVersionInfo newVersionInfo,
 			long transactionId);
-
+	
 	/**
-	 * Link a table version to a transaction.
+	 * Get the transaction Id for a table version.
 	 * 
-	 * @param idAndVersion
-	 * @param transactionId
+	 * @param tableId
+	 * @param version
+	 * @return If there is a transaction for the given table and version then the
+	 *         transaction ID will be returned. Optional.empty() if such a
+	 *         transaction does not exist.
+	 * 
 	 */
-	void linkVersionToTransaction(String tableId, long version, long transactionId);
-
+	Optional<Long> getTransactionForVersion(String tableId, long version);
 }

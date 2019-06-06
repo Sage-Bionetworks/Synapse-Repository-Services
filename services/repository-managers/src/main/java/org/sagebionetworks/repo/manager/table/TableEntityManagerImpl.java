@@ -925,15 +925,21 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public void createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, NewVersionInfo newVersionInfo,
 			long transactionId) {
+		ValidateArgument.required(newVersionInfo, "newVersionInfo");
 		// create a new version
 		long newVersionNumber = nodeManager.createNewVersion(userInfo, tableId, newVersionInfo.getNewVersionComment(),
 				newVersionInfo.getNewVersionLabel(), newVersionInfo.getNewVersionActivityId());
 		linkVersionToTransaction(tableId, newVersionNumber, transactionId);
 	}
 	
-	@WriteTransaction
-	@Override
-	public void linkVersionToTransaction(String tableIdString, long version, long transactionId) {
+	/**
+	 * Link a table version to a transaction.
+	 * 
+	 * @param tableIdString
+	 * @param version
+	 * @param transactionId
+	 */
+	void linkVersionToTransaction(String tableIdString, long version, long transactionId) {
 		ValidateArgument.required(tableIdString, "tableId");
 		Long tableId = KeyFactory.stringToKey(tableIdString);
 		// Lock the parent row and check the table is associated with the transaction.
@@ -944,6 +950,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		tableTransactionDao.linkTransactionToVersion(transactionId, version);
 		// bump the parent etag so the change can migrate.
 		tableTransactionDao.updateTransactionEtag(transactionId);
+	}
+
+
+	@Override
+	public Optional<Long> getTransactionForVersion(String tableId, long version) {
+		return tableTransactionDao.getTransactionForVersion(tableId, version);
 	}
 
 }

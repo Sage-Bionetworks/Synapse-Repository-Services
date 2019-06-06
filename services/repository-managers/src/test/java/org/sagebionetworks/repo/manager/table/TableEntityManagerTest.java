@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Before;
@@ -43,6 +44,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -67,6 +69,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.NewVersionInfo;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -137,6 +140,8 @@ public class TableEntityManagerTest {
 	TableUploadManager mockTableUploadManager;
 	@Mock
 	TableTransactionDao mockTableTransactionDao;
+	@Mock
+	NodeManager mockNodeManager;
 	@InjectMocks
 	TableEntityManagerImpl manager;
 	
@@ -172,6 +177,8 @@ public class TableEntityManagerTest {
 	List<String> newColumnIds;
 	
 	Long transactionId;
+	
+	NewVersionInfo newVersionInfo;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -327,6 +334,13 @@ public class TableEntityManagerTest {
 		rowDto.setRows(Lists.newArrayList(new SparseRowDto()));
 		
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
+		
+		
+		newVersionInfo = new NewVersionInfo();
+		newVersionInfo.setCreateNewTableVersion(true);
+		newVersionInfo.setNewVersionActivityId("987");
+		newVersionInfo.setNewVersionComment("a new comment");
+		newVersionInfo.setNewVersionLabel("a new lablel");
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -1555,6 +1569,76 @@ public class TableEntityManagerTest {
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
 	}
 	
+	@Test
+	public void testLinkVersionToTransaction() {
+		long version = 14;
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		// call under test
+		manager.linkVersionToTransaction(tableId, version, transactionId);
+		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
+		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, version);
+		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testLinkVersionToTransactionWrongTable() {
+		long version = 14;
+		long otherTableId = tableIdLong+1;
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(otherTableId);
+		// call under test
+		manager.linkVersionToTransaction(tableId, version, transactionId);
+	}
+	
+	@Test
+	public void testCreateNewVersionAndBindToTransaction() {
+		long newVersionNumber = 333L;
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		when(mockNodeManager.createNewVersion(any(UserInfo.class), anyString(), anyString(), anyString(), anyString()))
+				.thenReturn(newVersionNumber);
+		// call under test
+		manager.createNewVersionAndBindToTransaction(user, tableId, newVersionInfo, transactionId);
+		verify(mockNodeManager).createNewVersion(user, tableId, newVersionInfo.getNewVersionComment(),
+				newVersionInfo.getNewVersionLabel(), newVersionInfo.getNewVersionActivityId());
+		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
+		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, newVersionNumber);
+		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNewVersionAndBindToTransactionNullInfo() {
+		newVersionInfo = null;
+		long newVersionNumber = 333L;
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		when(mockNodeManager.createNewVersion(any(UserInfo.class), anyString(), anyString(), anyString(), anyString()))
+				.thenReturn(newVersionNumber);
+		// call under test
+		manager.createNewVersionAndBindToTransaction(user, tableId, newVersionInfo, transactionId);
+	}
+	
+	
+	@Test
+	public void testBindCurrentEntityVersionToLatestTransaction() {
+		long lastVersionNumber = 444;
+		when(mockNodeManager.getCurrentRevisionNumbers(tableId)).thenReturn(lastVersionNumber);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		// call under test
+		manager.bindCurrentEntityVersionToLatestTransaction(tableId);
+		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
+		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, lastVersionNumber);
+		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBindCurrentEntityVersionToLatestTransactionNoTransaction() {
+		long lastVersionNumber = 444;
+		when(mockNodeManager.getCurrentRevisionNumbers(tableId)).thenReturn(lastVersionNumber);
+		// case where a table has no transactions.
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.empty());
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		// call under test
+		manager.bindCurrentEntityVersionToLatestTransaction(tableId);
+	}
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.
 	 * @param tableId
