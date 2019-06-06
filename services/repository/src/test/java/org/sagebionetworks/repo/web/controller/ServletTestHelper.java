@@ -956,7 +956,7 @@ public class ServletTestHelper {
 	public void deleteMessage(HttpServlet dispatchServlet,
 			Long userId, String id) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.MESSAGE + "/" + id, userId, null);
+				HTTPMODE.DELETE, UrlHelpers.ADMIN + UrlHelpers.MESSAGE + "/" + id, userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
