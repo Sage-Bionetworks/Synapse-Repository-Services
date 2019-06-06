@@ -76,6 +76,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
 
+	private static final String MESSAGE = "/message";
+
 	public SynapseAdminClientImpl() {
 		super();
 	}
@@ -343,10 +345,10 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 
 		String uri = null;
 		if (principalId == null) {
-			uri = CERTIFIED_USER_TEST_RESPONSE + "?" + OFFSET + "=" + offset
+			uri = ADMIN + CERTIFIED_USER_TEST_RESPONSE + "?" + OFFSET + "=" + offset
 					+ "&" + LIMIT + "=" + limit;
 		} else {
-			uri = CERTIFIED_USER_TEST_RESPONSE + "?"
+			uri = ADMIN + CERTIFIED_USER_TEST_RESPONSE + "?"
 					+ PRINCIPAL_ID_REQUEST_PARAM + "=" + principalId + "&"
 					+ OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		}
@@ -359,6 +361,15 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		String url = USER + "/" + principalId + CERTIFIED_USER_STATUS
 				+ "?isCertified=" + status;
 		voidPut(getRepoEndpoint(), url, null);
+	}
+
+	/**
+	 * Deletes a message.  Used for test cleanup only.  Admin only.
+	 */
+	@Override
+	public void deleteMessage(String messageId) throws SynapseException {
+		String uri = ADMIN + MESSAGE + "/" + messageId;
+		deleteUri(getRepoEndpoint(), uri);
 	}
 
 

@@ -2680,12 +2680,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		voidPut(getRepoEndpoint(), MESSAGE_STATUS, status);
 	}
 
-	@Override
-	public void deleteMessage(String messageId) throws SynapseException {
-		String uri = MESSAGE + "/" + messageId;
-		deleteUri(getRepoEndpoint(), uri);
-	}
-
 	private static String createDownloadMessageURI(String messageId, boolean redirect) {
 		return MESSAGE + "/" + messageId + FILE + "?" + REDIRECT_PARAMETER + redirect;
 	}

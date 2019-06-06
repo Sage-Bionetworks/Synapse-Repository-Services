@@ -251,4 +251,9 @@ public interface SynapseAdminClient extends SynapseClient {
 	 */
 	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, String principalId) throws SynapseException;
 
+	/**
+	 * Deletes a message.  Used for test cleanup only.  Admin only.
+	 */
+	public void deleteMessage(String messageId) throws SynapseException;
+
 }

@@ -827,12 +827,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void updateMessageStatus(MessageStatus status)
 			throws SynapseException;
-	
-	/**
-	 * Deletes a message.  Used for test cleanup only.  Admin only.
-	 */
-	public void deleteMessage(String messageId) throws SynapseException;
-	
+
 	/**
 	 * Downloads the body of a message and returns it in a String
 	 */
