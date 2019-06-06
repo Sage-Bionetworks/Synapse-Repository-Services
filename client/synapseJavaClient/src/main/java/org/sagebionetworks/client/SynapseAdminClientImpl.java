@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
@@ -75,6 +76,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
+	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
 
 	private static final String MESSAGE = "/message";
 
@@ -382,4 +384,13 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		}
 	}
 
+	@Override
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(
+			long offset, long limit, String principalId)
+			throws SynapseException {
+		ValidateArgument.required(principalId, "principalId");
+		String uri = ADMIN + USER + "/" + principalId + CERTIFIED_USER_PASSING_RECORDS
+				+ "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
+		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
+	}
 }

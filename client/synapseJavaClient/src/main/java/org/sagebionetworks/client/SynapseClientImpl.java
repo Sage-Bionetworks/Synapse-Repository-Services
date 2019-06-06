@@ -4322,15 +4322,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(getRepoEndpoint(), url, PassingRecord.class);
 	}
 
-	@Override
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(
-			long offset, long limit, String principalId)
-			throws SynapseException {
-		ValidateArgument.required(principalId, "principalId");
-		String uri = USER + "/" + principalId + CERTIFIED_USER_PASSING_RECORDS
-				+ "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
-		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
-	}
 
 	@Deprecated
 	@Override
