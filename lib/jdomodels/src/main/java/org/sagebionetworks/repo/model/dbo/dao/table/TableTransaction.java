@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import java.util.Date;
-
 /**
  * Simple DTO for TableTransaction information.
  * 
@@ -13,6 +11,7 @@ public class TableTransaction {
 	String tableId;
 	Long startedBy;
 	Long startedOn;
+	String etag;
 	
 	public Long getTransactionId() {
 		return transactionId;
@@ -42,10 +41,19 @@ public class TableTransaction {
 		this.startedOn = startedOn;
 		return this;
 	}
+	
+	public String getEtag() {
+		return etag;
+	}
+	public TableTransaction withEtag(String etag) {
+		this.etag = etag;
+		return this;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((startedBy == null) ? 0 : startedBy.hashCode());
 		result = prime * result + ((startedOn == null) ? 0 : startedOn.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
@@ -61,6 +69,11 @@ public class TableTransaction {
 		if (getClass() != obj.getClass())
 			return false;
 		TableTransaction other = (TableTransaction) obj;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
 		if (startedBy == null) {
 			if (other.startedBy != null)
 				return false;
@@ -85,8 +98,8 @@ public class TableTransaction {
 	}
 	@Override
 	public String toString() {
-		return "TableTransaction [transactionNumber=" + transactionId + ", tableId=" + tableId + ", startedBy="
-				+ startedBy + ", startedOn=" + startedOn + "]";
+		return "TableTransaction [transactionId=" + transactionId + ", tableId=" + tableId + ", startedBy=" + startedBy
+				+ ", startedOn=" + startedOn + ", etag=" + etag + "]";
 	}
 
 }

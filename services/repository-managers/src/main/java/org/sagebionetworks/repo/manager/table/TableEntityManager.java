@@ -10,6 +10,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.NewVersionInfo;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -299,5 +300,13 @@ public interface TableEntityManager {
 	 */
 	public void createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, NewVersionInfo newVersionInfo,
 			long transactionId);
+
+	/**
+	 * Link a table version to a transaction.
+	 * 
+	 * @param idAndVersion
+	 * @param transactionId
+	 */
+	void linkVersionToTransaction(String tableId, long version, long transactionId);
 
 }
