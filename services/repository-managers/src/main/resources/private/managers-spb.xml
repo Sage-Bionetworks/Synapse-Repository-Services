@@ -428,7 +428,7 @@
 		  factory-method="createAmazonKinesisFirehoseClient"/>
 
 	<bean id="kinesisFirehoseLogger"
-		  class="org.sagebionetworks.repo.manager.search.AwsKinesisFirehoseLoggerImpl"/>
+		  class="org.sagebionetworks.kinesis.AwsKinesisFirehoseLoggerImpl"/>
 
 	<!-- Used to perform search and upload search documents-->
 	<bean id="searchManager"

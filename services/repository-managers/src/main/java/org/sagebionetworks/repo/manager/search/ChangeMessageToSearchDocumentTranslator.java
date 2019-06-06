@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.kinesis.CloudSearchDocumentGenerationAwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -11,11 +15,13 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ChangeMessageToSearchDocumentTranslator {
 	private static final Logger log = LogManager.getLogger(ChangeMessageToSearchDocumentTranslator.class.getName());
 
+	private static ThreadLocal<Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordMap = ThreadLocalProvider.getInstanceWithInitial("cloudSearchRecordMap", HashMap::new);
 
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
@@ -32,8 +38,9 @@ public class ChangeMessageToSearchDocumentTranslator {
 			// Is this a create or update
 			if (ChangeType.CREATE == change.getChangeType()
 					|| ChangeType.UPDATE == change.getChangeType()) {
-				return createUpdateDocument(change.getObjectId(), change.getObjectEtag());
+				return createUpdateDocument(change.getChangeNumber(), change.getChangeType(), change.getObjectId(), change.getObjectEtag());
 			} else if (ChangeType.DELETE == change.getChangeType()) {
+				addSearchDocumentCreationRecord(change.getChangeNumber(),change.getChangeType(),change.getObjectId(), change.getObjectEtag());
 				return createDeleteDocument(change.getObjectId());
 			} else {
 				throw new IllegalArgumentException("Unknown change type: "
@@ -49,7 +56,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 				// If the owner of the wiki is a an entity then pass along the
 				// message.
 				if (ObjectType.ENTITY == key.getOwnerObjectType()) {
-					return createUpdateDocument(key.getOwnerObjectId(), null);
+					return createUpdateDocument(change.getChangeNumber(), ChangeType.UPDATE, key.getOwnerObjectId(), null);
 				}
 			} catch (NotFoundException e) {
 				// Nothing to do if the wiki does not exist
@@ -60,7 +67,12 @@ public class ChangeMessageToSearchDocumentTranslator {
 		return null;
 	}
 
-	private Document createUpdateDocument(String entityId, String entityEtag) {
+	private Document createUpdateDocument(Long changeNumber, ChangeType changeType, String entityId, String entityEtag) {
+
+		//for logging
+		CloudSearchDocumentGenerationAwsKinesisLogRecord record = addSearchDocumentCreationRecord(changeNumber, changeType, entityId, entityEtag);
+
+
 		// We want to ignore this message if a document with this ID and Etag
 		// already exists in the search index.
 		if (!searchDao.doesDocumentExist(entityId, entityEtag)) {
@@ -77,8 +89,20 @@ public class ChangeMessageToSearchDocumentTranslator {
 							+ e.getMessage());
 				}
 			}
+			record.withAlreadyExistsOnIndex(true);
+		}else{
+			record.withAlreadyExistsOnIndex(false);
 		}
 		return null;
+	}
+
+	private static CloudSearchDocumentGenerationAwsKinesisLogRecord addSearchDocumentCreationRecord(Long changeNumber, ChangeType changeType, String entityId, String entityEtag){
+		return threadLocalRecordMap.get().computeIfAbsent(changeNumber, (key)->{
+			return new CloudSearchDocumentGenerationAwsKinesisLogRecord()
+				.withSynapseId(entityId)
+				.withEtag(entityEtag)
+				.withChangeNumber(changeNumber)
+				.withChangeType(changeType);});
 	}
 
 

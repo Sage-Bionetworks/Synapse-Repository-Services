@@ -2,17 +2,21 @@ package org.sagebionetworks.search;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.kinesis.CloudSearchDocumentGenerationAwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
@@ -31,10 +35,14 @@ import com.google.common.collect.Iterators;
 public class CloudsSearchDomainClientAdapter {
 	static private Logger logger = LogManager.getLogger(CloudsSearchDomainClientAdapter.class);
 
+	private static ThreadLocal<Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordMap = ThreadLocalProvider.getInstanceWithInitial("cloudSearchRecordMap", HashMap::new);
+
+
 	private final AmazonCloudSearchDomain client;
 	private final CloudSearchDocumentBatchIteratorProvider iteratorProvider;
+	private final Kinesis
 
-	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider){
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider, ){
 		this.client = client;
 		this.iteratorProvider = iteratorProvider;
 	}
@@ -55,7 +63,8 @@ public class CloudsSearchDomainClientAdapter {
 						.withContentType("application/json")
 						.withDocuments(fileStream)
 						.withContentLength(batch.size());
-				uploadDocumentsResults.add(client.uploadDocuments(request));
+				UploadDocumentsResult result = client.uploadDocuments(request);
+
 			} catch (DocumentServiceException e) {
 				logger.error("The following documents failed to upload: " +  documentIds);
 				documentIds = null;

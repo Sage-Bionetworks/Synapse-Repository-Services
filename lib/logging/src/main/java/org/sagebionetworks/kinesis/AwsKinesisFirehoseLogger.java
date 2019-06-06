@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.search;
+package org.sagebionetworks.kinesis;
 
 public interface AwsKinesisFirehoseLogger {
 
