@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.search.CloudSearchDocumentGenerationAwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -98,7 +99,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 
 	static CloudSearchDocumentGenerationAwsKinesisLogRecord addSearchDocumentCreationRecord(Long changeNumber, ChangeType changeType, String entityId, String entityEtag, ObjectType objectType){
 		CloudSearchDocumentGenerationAwsKinesisLogRecord record = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
-				.withSynapseId(entityId)
+				.withSynapseId(KeyFactory.stringToKey(entityId).toString())
 				.withEtag(entityEtag)
 				.withChangeNumber(changeNumber)
 				.withChangeType(changeType)
