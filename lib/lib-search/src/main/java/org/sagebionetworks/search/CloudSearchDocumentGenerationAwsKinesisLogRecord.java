@@ -3,6 +3,7 @@ package org.sagebionetworks.search;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 
 public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKinesisLogRecord {
 	public static final String KINESIS_DATA_STREAM_NAME_SUFFIX = "cloudsearchDocumentGeneration";
+	private static final byte[] NEW_LINE_BYTES = "\n".getBytes(StandardCharsets.UTF_8);
 	//for converting AwsKinesisLogRecord to json
 	private static ObjectMapper jacksonObjectMapper = new ObjectMapper();
 	private static Logger logger = LogManager.getLogger(CloudSearchDocumentGenerationAwsKinesisLogRecord.class);
@@ -37,7 +39,7 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		try {
 			jacksonObjectMapper.writeValue(byteArrayOutputStream, this);
-			byteArrayOutputStream.write("\n".getBytes(StandardCharsets.UTF_8));
+			byteArrayOutputStream.write(NEW_LINE_BYTES);
 		} catch (IOException e) {
 			//should never happen
 			logger.error("unexpected error when coverting to JSON ", e);
@@ -152,5 +154,50 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 	public CloudSearchDocumentGenerationAwsKinesisLogRecord withDocumentBatchUpdateTimestamp(long documentBatchUpdateTimestamp) {
 		this.documentBatchUpdateTimestamp = documentBatchUpdateTimestamp;
 		return this;
+	}
+
+	///////////////////////////////////////////////////////
+	// hashCode equals and toString
+	///////////////////////////////////////////////////////
+
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		CloudSearchDocumentGenerationAwsKinesisLogRecord that = (CloudSearchDocumentGenerationAwsKinesisLogRecord) o;
+		return Objects.equals(changeNumber, that.changeNumber) &&
+				Objects.equals(synapseId, that.synapseId) &&
+				Objects.equals(etag, that.etag) &&
+				objectType == that.objectType &&
+				changeType == that.changeType &&
+				Objects.equals(existsOnIndex, that.existsOnIndex) &&
+				Objects.equals(documentBatchUUID, that.documentBatchUUID) &&
+				Objects.equals(documentBatchUpdateStatus, that.documentBatchUpdateStatus) &&
+				Objects.equals(documentBatchUpdateTimestamp, that.documentBatchUpdateTimestamp) &&
+				Objects.equals(stack, that.stack) &&
+				Objects.equals(instance, that.instance);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(changeNumber, synapseId, etag, objectType, changeType, existsOnIndex, documentBatchUUID, documentBatchUpdateStatus, documentBatchUpdateTimestamp, stack, instance);
+	}
+
+	@Override
+	public String toString() {
+		return "CloudSearchDocumentGenerationAwsKinesisLogRecord{" +
+				"changeNumber=" + changeNumber +
+				", synapseId='" + synapseId + '\'' +
+				", etag='" + etag + '\'' +
+				", objectType=" + objectType +
+				", changeType=" + changeType +
+				", existsOnIndex=" + existsOnIndex +
+				", documentBatchUUID='" + documentBatchUUID + '\'' +
+				", documentBatchUpdateStatus='" + documentBatchUpdateStatus + '\'' +
+				", documentBatchUpdateTimestamp=" + documentBatchUpdateTimestamp +
+				", stack='" + stack + '\'' +
+				", instance='" + instance + '\'' +
+				'}';
 	}
 }

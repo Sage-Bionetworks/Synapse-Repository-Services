@@ -330,16 +330,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return configuration.getProperty("org.sagebionetworks.synapseops.email.address");
 	}
 
-	//TODO: is this still used?
-	/**
-	 * @return the name of the S3 Bucket where logs are stored each stack (dev,
-	 *         staging, prod) and each instance of each stack will have it's own
-	 *         subfolder in this bucket
-	 */
-	public String getS3LogBucket() {
-		return configuration.getProperty("org.sagebionetworks.logging.sweeper.bucket");
-	}
-
 	/**
 	 * @return whether the cloudWatch profiler should be on or off boolean. True
 	 *         means on, false means off.

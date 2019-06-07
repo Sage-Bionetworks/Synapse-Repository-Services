@@ -76,6 +76,9 @@ public class CloudsSearchDomainClientAdapter {
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
 				throw new TemporarilyUnavailableException(e);
+			}finally{
+				//remove all records from the threadlocal list
+				threadLocalRecordList.get().clear();
 			}
 		}
 	}
@@ -98,9 +101,6 @@ public class CloudsSearchDomainClientAdapter {
 							.withDocumentBatchUUID(batchUUID)
 				);
 		firehoseLogger.logBatch(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, logRecordStream);
-
-		//remove all records from the map now that they are processed
-		threadLocalRecordList.get().clear();
 	}
 
 

@@ -24,10 +24,7 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 						.withDeliveryStreamName(kinesisStreamName(kinesisDataStreamSuffix))
 						.withRecords(
 								logRecordStream
-										.map((logRecord) -> {
-											logRecord.withStack(stackConfiguration.getStack())
-													.withInstance(stackConfiguration.getStackInstance());
-											return new Record().withData(ByteBuffer.wrap(logRecord.toBytes()));})
+										.map(this::updateWithStackInfoAndConvertToRecord)
 										.collect(Collectors.toList()))
 		);
 	}
@@ -36,5 +33,10 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 		return stackConfiguration.getStack() + stackConfiguration.getStackInstance() + kinesisDataStreamSuffix;
 	}
 
+	private Record updateWithStackInfoAndConvertToRecord(AwsKinesisLogRecord logRecord){
+		logRecord.withStack(stackConfiguration.getStack())
+				.withInstance(stackConfiguration.getStackInstance());
+		return new Record().withData(ByteBuffer.wrap(logRecord.toBytes()));
+	}
 }
 
