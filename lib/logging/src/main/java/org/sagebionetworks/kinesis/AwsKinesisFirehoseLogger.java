@@ -1,6 +1,9 @@
 package org.sagebionetworks.kinesis;
 
+import java.util.Collection;
+import java.util.stream.Stream;
+
 public interface AwsKinesisFirehoseLogger {
 
-	void log(AwsKinesisLogRecord logRecord);
+	void logBatch(String kinesisDataStreamSuffix, Stream<? extends AwsKinesisLogRecord> logRecords);
 }

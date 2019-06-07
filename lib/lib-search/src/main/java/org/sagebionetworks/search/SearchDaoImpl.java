@@ -73,8 +73,8 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public List<UploadDocumentsResult> sendDocuments(Iterator<Document> documentIterator){
-		return cloudSearchClientProvider.getCloudSearchClient().sendDocuments(documentIterator);
+	public void sendDocuments(Iterator<Document> documentIterator){
+		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(documentIterator);
 	}
 
 	@Override

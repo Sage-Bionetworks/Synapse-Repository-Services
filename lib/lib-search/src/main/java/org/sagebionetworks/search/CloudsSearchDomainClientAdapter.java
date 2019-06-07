@@ -4,16 +4,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.kinesis.CloudSearchDocumentGenerationAwsKinesisLogRecord;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
+import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ThreadLocalProvider;
@@ -35,23 +35,27 @@ import com.google.common.collect.Iterators;
 public class CloudsSearchDomainClientAdapter {
 	static private Logger logger = LogManager.getLogger(CloudsSearchDomainClientAdapter.class);
 
-	private static ThreadLocal<Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordMap = ThreadLocalProvider.getInstanceWithInitial("cloudSearchRecordMap", HashMap::new);
+	static ThreadLocal<Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordMap =
+			ThreadLocalProvider.getInstanceWithInitial(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, HashMap::new);
 
 
 	private final AmazonCloudSearchDomain client;
 	private final CloudSearchDocumentBatchIteratorProvider iteratorProvider;
-	private final Kinesis
 
-	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider, ){
+	//used for logging ifo about a batch of documents
+	private final AwsKinesisFirehoseLogger firehoseLogger;
+
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider, AwsKinesisFirehoseLogger firehoseLogger){
 		this.client = client;
 		this.iteratorProvider = iteratorProvider;
+		this.firehoseLogger = firehoseLogger;
 	}
 
-	public List<UploadDocumentsResult> sendDocuments(Iterator<Document> documents){
+	public void sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
 		Iterator<CloudSearchDocumentBatch> searchDocumentFileIterator = iteratorProvider.getIterator(documents);
 
-		List<UploadDocumentsResult> uploadDocumentsResults = new LinkedList<>();
+
 		while(searchDocumentFileIterator.hasNext()) {
 			Set<String> documentIds = null;
 			try (CloudSearchDocumentBatch batch = searchDocumentFileIterator.next();
@@ -64,17 +68,40 @@ public class CloudsSearchDomainClientAdapter {
 						.withDocuments(fileStream)
 						.withContentLength(batch.size());
 				UploadDocumentsResult result = client.uploadDocuments(request);
-
+				updateAndSendKinesisLogRecords(result.getStatus());
 			} catch (DocumentServiceException e) {
 				logger.error("The following documents failed to upload: " +  documentIds);
 				documentIds = null;
+				updateAndSendKinesisLogRecords(e.getStatus());
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
 				throw new TemporarilyUnavailableException(e);
 			}
 		}
-		return uploadDocumentsResults;
 	}
+
+	void updateAndSendKinesisLogRecords(final String status){
+		final long batchUploadTimestamp = System.currentTimeMillis();
+		final String batchUUID = UUID.randomUUID().toString();
+
+		//exit early if map is empty since kinesis does not allow pushing of empty messages
+		if(threadLocalRecordMap.get().isEmpty()){
+			return;
+		}
+
+		//add additional batch releated metadata to each record in the batch and push to kinesis
+		Stream<AwsKinesisLogRecord> logRecordStream = threadLocalRecordMap.get().values().stream()
+				.map((record) ->
+					record.withDocumentBatchUpdateStatus(status)
+							.withDocumentBatchUpdateTimestamp(batchUploadTimestamp)
+							.withDocumentBatchUUID(batchUUID)
+				);
+		firehoseLogger.logBatch(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, logRecordStream);
+
+		//remove all records from the map now that they are processed
+		threadLocalRecordMap.get().clear();
+	}
+
 
 	public void sendDocument(Document document){
 		ValidateArgument.required(document, "document");

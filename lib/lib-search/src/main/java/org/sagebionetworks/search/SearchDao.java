@@ -33,7 +33,7 @@ public interface SearchDao {
 	@Deprecated
 	void deleteDocuments(Set<String> docIdsToDelete);
 
-	List<UploadDocumentsResult> sendDocuments(Iterator<Document> documentIterator);
+	void sendDocuments(Iterator<Document> documentIterator);
 
 	/**
 	 * Execute a query.

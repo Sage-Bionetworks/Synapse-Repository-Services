@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.kinesis.CloudSearchDocumentGenerationAwsKinesisLogRecord;
+import org.sagebionetworks.search.CloudSearchDocumentGenerationAwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -21,7 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ChangeMessageToSearchDocumentTranslator {
 	private static final Logger log = LogManager.getLogger(ChangeMessageToSearchDocumentTranslator.class.getName());
 
-	private static ThreadLocal<Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordMap = ThreadLocalProvider.getInstanceWithInitial("cloudSearchRecordMap", HashMap::new);
+	static ThreadLocal<Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordMap =
+			ThreadLocalProvider.getInstanceWithInitial(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, HashMap::new);
 
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
@@ -89,14 +90,14 @@ public class ChangeMessageToSearchDocumentTranslator {
 							+ e.getMessage());
 				}
 			}
-			record.withAlreadyExistsOnIndex(true);
+			record.withExistsOnIndex(false);
 		}else{
-			record.withAlreadyExistsOnIndex(false);
+			record.withExistsOnIndex(true);
 		}
 		return null;
 	}
 
-	private static CloudSearchDocumentGenerationAwsKinesisLogRecord addSearchDocumentCreationRecord(Long changeNumber, ChangeType changeType, String entityId, String entityEtag){
+	static CloudSearchDocumentGenerationAwsKinesisLogRecord addSearchDocumentCreationRecord(Long changeNumber, ChangeType changeType, String entityId, String entityEtag){
 		return threadLocalRecordMap.get().computeIfAbsent(changeNumber, (key)->{
 			return new CloudSearchDocumentGenerationAwsKinesisLogRecord()
 				.withSynapseId(entityId)

@@ -117,7 +117,6 @@ public class SearchManagerImpl implements SearchManager{
 		Iterator<Document> documentIterator = Iterators.filter(
 				Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
 				Objects::nonNull);
-		List<UploadDocumentsResult> results = searchDao.sendDocuments(documentIterator);
-		//TODO: log to kinesis
+		searchDao.sendDocuments(documentIterator);
 	}
 }

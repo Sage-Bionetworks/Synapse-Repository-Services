@@ -48,7 +48,8 @@ public class ThreadLocalProvider {
 		@SuppressWarnings("unchecked")
 		ThreadLocal<T> threadLocal = (ThreadLocal<T>) threadLocals.get(key);
 		if (threadLocal == null) {
-			threadLocal = ThreadLocal.withInitial(supplier);
+			threadLocal = new ThreadLocal<>();
+			threadLocal.set(supplier.get());
 			threadLocals.put(key, threadLocal);
 		}
 		return threadLocal;

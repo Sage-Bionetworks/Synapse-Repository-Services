@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -21,16 +22,13 @@ public class CloudSearchClientProviderTest {
 
 	private String fakeEndpoint;
 
+	@InjectMocks
 	private CloudSearchClientProvider provider;
 
 	@Before
 	public void setup(){
-		provider = new CloudSearchClientProvider();
 		provider.setSearchEnabled(true);
 		fakeEndpoint = "http://endpoint.com";
-
-		ReflectionTestUtils.setField(provider,"searchDomainSetup", mockSearchDomainSetup);
-		ReflectionTestUtils.setField(CloudSearchClientProvider.class, "singletonWrapper", null);
 	}
 
 	@Test (expected = IllegalStateException.class)
