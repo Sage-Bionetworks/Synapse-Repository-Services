@@ -12,10 +12,10 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -30,11 +30,13 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.NewVersionInfo;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -113,6 +115,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	TableUploadManager tableUploadManager;
 	@Autowired
 	TableTransactionDao tableTransactionDao;
+	@Autowired
+	NodeManager nodeManager;
 	
 	/**
 	 * Injected via spring
@@ -460,7 +464,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	/**
-	 * Validate the caller has access to the fileHandles refrenced in the given changeset.
+	 * Validate the caller has access to the fileHandles referenced in the given changeset.
 	 * @param user
 	 * @param tableId
 	 * @param rowSet
@@ -902,6 +906,56 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public Optional<Long> getLastTableChangeNumber(String tableId) {
 		return this.tableRowTruthDao.getLastTableChangeNumber(tableId);
+	}
+
+
+	@WriteTransaction
+	@Override
+	public void bindCurrentEntityVersionToLatestTransaction(String tableId) {
+		ValidateArgument.required(tableId, "TableId");
+		long currentVersionNumber = nodeManager.getCurrentRevisionNumbers(tableId);
+		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableId);
+		if(!lastTransactionNumber.isPresent()) {
+			throw new IllegalArgumentException("No transactions found for table: "+tableId);
+		}
+		linkVersionToTransaction(tableId, currentVersionNumber, lastTransactionNumber.get());
+	}
+
+	@WriteTransaction
+	@Override
+	public void createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, NewVersionInfo newVersionInfo,
+			long transactionId) {
+		ValidateArgument.required(newVersionInfo, "newVersionInfo");
+		// create a new version
+		long newVersionNumber = nodeManager.createNewVersion(userInfo, tableId, newVersionInfo.getNewVersionComment(),
+				newVersionInfo.getNewVersionLabel(), newVersionInfo.getNewVersionActivityId());
+		linkVersionToTransaction(tableId, newVersionNumber, transactionId);
+	}
+	
+	/**
+	 * Link a table version to a transaction.
+	 * 
+	 * @param tableIdString
+	 * @param version
+	 * @param transactionId
+	 */
+	void linkVersionToTransaction(String tableIdString, long version, long transactionId) {
+		ValidateArgument.required(tableIdString, "tableId");
+		Long tableId = KeyFactory.stringToKey(tableIdString);
+		// Lock the parent row and check the table is associated with the transaction.
+		long transactionTableId = tableTransactionDao.getTableIdWithLock(transactionId);
+		if(transactionTableId != tableId) {
+			throw new IllegalArgumentException("Transaction: "+transactionId+" is not associated with table: "+tableIdString);
+		}
+		tableTransactionDao.linkTransactionToVersion(transactionId, version);
+		// bump the parent etag so the change can migrate.
+		tableTransactionDao.updateTransactionEtag(transactionId);
+	}
+
+
+	@Override
+	public Optional<Long> getTransactionForVersion(String tableId, long version) {
+		return tableTransactionDao.getTransactionForVersion(tableId, version);
 	}
 
 }

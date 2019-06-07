@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_STARTED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_STARTED_ON;
@@ -9,29 +10,31 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+
+import com.google.common.collect.Lists;
 
 public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTransaction, DBOTableTransaction> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("transactionId", COL_TABLE_TRX_ID, true).withIsBackupId(true),
-			new FieldColumn("tableId", COL_TABLE_TABLE_ID),
+			new FieldColumn("tableId", COL_TABLE_TRX_TABLE_ID),
 			new FieldColumn("startedBy", COL_TABLE_TRX_STARTED_BY),
-			new FieldColumn("startedOn", COL_TABLE_TRX_STARTED_ON) };
+			new FieldColumn("startedOn", COL_TABLE_TRX_STARTED_ON),
+			new FieldColumn("etag", COL_TABLE_TRX_ETAG).withIsEtag(true)};
 
 	Long transactionId;
 	Long tableId;
 	Long startedBy;
 	Long startedOn;
+	String etag;
 
 	public Long getTransactionId() {
 		return transactionId;
@@ -65,6 +68,14 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 		this.startedOn = startedOn;
 	}
 
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
 	public static FieldColumn[] getFields() {
 		return FIELDS;
 	}
@@ -77,9 +88,10 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 			public DBOTableTransaction mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOTableTransaction dto = new DBOTableTransaction();
 				dto.setTransactionId(rs.getLong(COL_TABLE_TRX_ID));
-				dto.setTableId(rs.getLong(COL_TABLE_TABLE_ID));
+				dto.setTableId(rs.getLong(COL_TABLE_TRX_TABLE_ID));
 				dto.setStartedOn(rs.getLong(COL_TABLE_TRX_STARTED_ON));
 				dto.setStartedBy(rs.getLong(COL_TABLE_TRX_STARTED_BY));
+				dto.setEtag(rs.getString(COL_TABLE_TRX_ETAG));
 				return dto;
 			}
 
@@ -112,7 +124,24 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 
 	@Override
 	public MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOTableTransaction>();
+		return new MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction>(){
+
+			@Override
+			public DBOTableTransaction createDatabaseObjectFromBackup(DBOTableTransaction backup) {
+				/*
+				 *  This DBO did not start out with an etag.  The etag was added to support
+				 *  linking a a transaction to a table's version.
+				 */
+				if(backup.getEtag() == null) {
+					backup.setEtag(UUID.randomUUID().toString());
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOTableTransaction createBackupFromDatabaseObject(DBOTableTransaction dbo) {
+				return dbo;
+			}};
 	}
 
 	@Override
@@ -127,13 +156,14 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		return null;
+		return Lists.newArrayList(new DBOTransactionToVersion());
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((startedBy == null) ? 0 : startedBy.hashCode());
 		result = prime * result + ((startedOn == null) ? 0 : startedOn.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
@@ -150,6 +180,11 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 		if (getClass() != obj.getClass())
 			return false;
 		DBOTableTransaction other = (DBOTableTransaction) obj;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
 		if (startedBy == null) {
 			if (other.startedBy != null)
 				return false;
@@ -175,8 +210,8 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 
 	@Override
 	public String toString() {
-		return "DBOTableTransaction [transactionNumber=" + transactionId + ", tableId=" + tableId + ", startedBy="
-				+ startedBy + ", startedOn=" + startedOn + "]";
+		return "DBOTableTransaction [transactionId=" + transactionId + ", tableId=" + tableId + ", startedBy="
+				+ startedBy + ", startedOn=" + startedOn + ", etag=" + etag + "]";
 	}
 
 }

@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.web.service.metadata.TypeSpecificUpdateProvider;
 
 @RunWith(MockitoJUnitRunner.class)
 public class EntityServiceImplUnitTest {
-	
+
 	@InjectMocks
 	EntityServiceImpl entityService;
 	@Mock
@@ -54,77 +54,104 @@ public class EntityServiceImplUnitTest {
 	TypeSpecificUpdateProvider<Project> mockProjectUpdateProvider;
 	@Mock
 	TypeSpecificCreateProvider<Project> mockProjectCreateProvider;
-	
+
 	List<EntityProvider<? extends Entity>> projectProviders;
-	
+
 	static final Long PRINCIPAL_ID = 101L;
 	UserInfo userInfo = null;
-	
+
 	Project project;
-	
+
 	@Before
-	public void before(){
-		
+	public void before() {
+
 		projectProviders = new ArrayList<EntityProvider<?>>();
 		projectProviders.add(mockProjectUpdateProvider);
 		projectProviders.add(mockProjectCreateProvider);
-		
+
 		userInfo = new UserInfo(false);
 		userInfo.setId(PRINCIPAL_ID);
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		
+
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
-		
+
 		project = new Project();
 		project.setId("syn123");
 		when(mockEntityManager.getEntity(any(UserInfo.class), anyString(), any(Class.class))).thenReturn(project);
-		when(mockEntityManager.createEntity(any(UserInfo.class), any(Entity.class), any(String.class))).thenReturn(project.getId());
-		
+		when(mockEntityManager.createEntity(any(UserInfo.class), any(Entity.class), any(String.class)))
+				.thenReturn(project.getId());
+
 		when(mockRequest.getServletPath()).thenReturn("path");
 
 	}
-	
+
 	@Test
 	public void testGetFileRedirectURLForCurrentVersion() throws Exception {
 		String entityId = "999";
 		String fileHandleId = "111";
-		when(mockEntityManager.
-				getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_FILE_DOWNLOAD)).
-				thenReturn(fileHandleId);
+		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_FILE_DOWNLOAD))
+				.thenReturn(fileHandleId);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId)).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForCurrentVersion(PRINCIPAL_ID, entityId));
 	}
-	
-	
+
 	@Test
 	public void testGetFileRedirectURLForVersion() throws Exception {
 		String entityId = "999";
 		String fileHandleId = "111";
 		Long version = 1L;
-		when(mockEntityManager.
-				getFileHandleIdForVersion(userInfo, entityId, version, FileHandleReason.FOR_FILE_DOWNLOAD)).
-				thenReturn(fileHandleId);
+		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, version,
+				FileHandleReason.FOR_FILE_DOWNLOAD)).thenReturn(fileHandleId);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId)).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForVersion(PRINCIPAL_ID, entityId, version));
 	}
-	
+
 	@Test
-	public void testFireCreate(){
+	public void testFireCreate() {
 		// Call under test.
 		entityService.createEntity(userInfo.getId(), project, null);
 		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
-		verify(mockProjectUpdateProvider, never()).entityUpdated(userInfo, project);
+		verify(mockProjectUpdateProvider, never()).entityUpdated(any(UserInfo.class), any(Project.class), anyBoolean());
 	}
-	
+
 	@Test
-	public void testFireUpdate(){
+	public void testFireUpdate() {
 		boolean newVersion = true;
+		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
-		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project);
+		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
 	}
-	
+
+	@Test
+	public void testFireUpdateNoNewVersion() {
+		boolean newVersion = false;
+		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
+		// Call under test.
+		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
+		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
+		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
+	}
+
+	/**
+	 * The new version parameter might be false, but we will still create a new
+	 * version under some conditions such as changing a file's handle ID. When a new
+	 * new version is created for such cases, the value must be forwarded to the
+	 * entity update.
+	 */
+	@Test
+	public void testFireUpdateTriggersNewVersion() {
+		boolean newVersionParameter = false;
+		final boolean wasNewVersionCreated = true;
+		when(mockEntityManager.updateEntity(userInfo, project, newVersionParameter, null))
+				.thenReturn(wasNewVersionCreated);
+		// Call under test.
+		entityService.updateEntity(userInfo.getId(), project, newVersionParameter, null);
+		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
+		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, wasNewVersionCreated);
+	}
+
 }
