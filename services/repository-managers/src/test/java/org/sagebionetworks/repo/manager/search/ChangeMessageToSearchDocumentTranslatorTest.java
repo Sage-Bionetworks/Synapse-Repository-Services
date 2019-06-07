@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -69,8 +70,8 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		docOne.setId(synapseId);
 		when(mockSearchDocumentDriver.formulateSearchDocument(synapseId)).thenReturn(docOne);
 
-		//clear the threadlocal log record map since each document might add it
-		ChangeMessageToSearchDocumentTranslator.threadLocalRecordMap.get().clear();
+		//clear the threadlocal log record map since each test will add to it
+		ChangeMessageToSearchDocumentTranslator.threadLocalRecordList.get().clear();
 	}
 
 
@@ -88,7 +89,7 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 
 		// Only a document needs to be generated
 		verifyZeroInteractions(mockSearchDao, mockWikiPageDao, mockSearchDocumentDriver);
-		verifyThreadLocalMap(ChangeType.DELETE, false, etag);
+		verifyThreadLocalMap(ChangeType.DELETE, null, etag);
 	}
 
 	@Test
@@ -213,13 +214,13 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		assertNull(generatedDoc);
 
 		verifyZeroInteractions(mockSearchDao, mockSearchDocumentDriver);
-		assertTrue(ChangeMessageToSearchDocumentTranslator.threadLocalRecordMap.get().isEmpty());
+		assertTrue(ChangeMessageToSearchDocumentTranslator.threadLocalRecordList.get().isEmpty());
 	}
 
-	private void verifyThreadLocalMap(ChangeType changeType, boolean doesDocumentExist, String etag){
-		Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord> threadLocalMap = ChangeMessageToSearchDocumentTranslator.threadLocalRecordMap.get();
+	private void verifyThreadLocalMap(ChangeType changeType, Boolean doesDocumentExist, String etag){
+		List<CloudSearchDocumentGenerationAwsKinesisLogRecord> threadLocalMap = ChangeMessageToSearchDocumentTranslator.threadLocalRecordList.get();
 		assertEquals(1, threadLocalMap.size());
-		CloudSearchDocumentGenerationAwsKinesisLogRecord record = threadLocalMap.get(changeNumber);
+		CloudSearchDocumentGenerationAwsKinesisLogRecord record = threadLocalMap.get(0);
 		assertEquals((Long) changeNumber, record.getChangeNumber());
 		assertEquals(synapseId, record.getSynapseId());
 		assertEquals(etag, record.getEtag());

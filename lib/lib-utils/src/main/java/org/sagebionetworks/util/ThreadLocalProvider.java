@@ -31,6 +31,7 @@ public class ThreadLocalProvider {
 		return threadLocal;
 	}
 
+	@SuppressWarnings("unchecked")
 	/**
 	 * Call this method from static initialization of your class to get a static threadlocal instance. Initializes the value with the provided supplier if the ThreadLocal does not already exist
 	 *
@@ -45,13 +46,6 @@ public class ThreadLocalProvider {
 	 * @return
 	 */
 	public static synchronized <T> ThreadLocal<T> getInstanceWithInitial(String key, Supplier<? extends T> supplier) {
-		@SuppressWarnings("unchecked")
-		ThreadLocal<T> threadLocal = (ThreadLocal<T>) threadLocals.get(key);
-		if (threadLocal == null) {
-			threadLocal = new ThreadLocal<>();
-			threadLocal.set(supplier.get());
-			threadLocals.put(key, threadLocal);
-		}
-		return threadLocal;
+		return (ThreadLocal<T>) threadLocals.computeIfAbsent( key, (k) ->ThreadLocal.withInitial(supplier));
 	}
 }

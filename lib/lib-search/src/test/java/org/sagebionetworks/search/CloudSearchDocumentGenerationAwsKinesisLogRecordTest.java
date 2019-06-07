@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 
 class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
@@ -14,6 +15,7 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 		CloudSearchDocumentGenerationAwsKinesisLogRecord logRecord = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
 				.withChangeNumber(123L)
 				.withChangeType(ChangeType.CREATE)
+				.withObjectType(ObjectType.ENTITY)
 				.withSynapseId("12345")
 				.withEtag("eeeeeeeeeeeeeeeeetag")
 				.withExistsOnIndex(false)
@@ -29,6 +31,7 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 		String expectedJSON = "{\"changeNumber\":123," +
 				"\"synapseId\":\"12345\"," +
 				"\"etag\":\"eeeeeeeeeeeeeeeeetag\"," +
+				"\"objectType\":\"ENTITY\","+
 				"\"changeType\":\"CREATE\"," +
 				"\"existsOnIndex\":false," +
 				"\"documentBatchUUID\":\"uuuuuuuuuuuuuuuuuuID\"," +

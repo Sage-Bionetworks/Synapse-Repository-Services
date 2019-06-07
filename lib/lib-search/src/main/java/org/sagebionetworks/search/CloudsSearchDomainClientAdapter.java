@@ -2,9 +2,9 @@ package org.sagebionetworks.search;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -35,8 +35,8 @@ import com.google.common.collect.Iterators;
 public class CloudsSearchDomainClientAdapter {
 	static private Logger logger = LogManager.getLogger(CloudsSearchDomainClientAdapter.class);
 
-	static ThreadLocal<Map<Long, CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordMap =
-			ThreadLocalProvider.getInstanceWithInitial(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, HashMap::new);
+	static ThreadLocal<List<CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordList =
+			ThreadLocalProvider.getInstanceWithInitial(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, ArrayList::new);
 
 
 	private final AmazonCloudSearchDomain client;
@@ -85,12 +85,13 @@ public class CloudsSearchDomainClientAdapter {
 		final String batchUUID = UUID.randomUUID().toString();
 
 		//exit early if map is empty since kinesis does not allow pushing of empty messages
-		if(threadLocalRecordMap.get().isEmpty()){
+		if(threadLocalRecordList.get().isEmpty()){
+			logger.warn("threadLocalMap was null");
 			return;
 		}
 
 		//add additional batch releated metadata to each record in the batch and push to kinesis
-		Stream<AwsKinesisLogRecord> logRecordStream = threadLocalRecordMap.get().values().stream()
+		Stream<AwsKinesisLogRecord> logRecordStream = threadLocalRecordList.get().stream()
 				.map((record) ->
 					record.withDocumentBatchUpdateStatus(status)
 							.withDocumentBatchUpdateTimestamp(batchUploadTimestamp)
@@ -99,7 +100,7 @@ public class CloudsSearchDomainClientAdapter {
 		firehoseLogger.logBatch(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, logRecordStream);
 
 		//remove all records from the map now that they are processed
-		threadLocalRecordMap.get().clear();
+		threadLocalRecordList.get().clear();
 	}
 
 

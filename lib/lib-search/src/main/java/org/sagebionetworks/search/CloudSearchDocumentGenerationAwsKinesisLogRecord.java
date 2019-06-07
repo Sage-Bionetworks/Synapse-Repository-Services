@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 
 public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKinesisLogRecord {
@@ -20,8 +21,9 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 	private Long changeNumber;
 	private String synapseId;
 	private String etag;
+	private ObjectType objectType;
 	private ChangeType changeType;
-	private boolean existsOnIndex; //this is the only field that should have a default value
+	private Boolean existsOnIndex;
 	private String documentBatchUUID;
 	private String documentBatchUpdateStatus;
 	private Long documentBatchUpdateTimestamp;
@@ -98,6 +100,15 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 		return this;
 	}
 
+	public ObjectType getObjectType(){
+		return this.objectType;
+	}
+
+	public CloudSearchDocumentGenerationAwsKinesisLogRecord withObjectType(ObjectType objectType){
+		this.objectType = objectType;
+		return this;
+	}
+
 	public ChangeType getChangeType() {
 		return changeType;
 	}
@@ -107,7 +118,7 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 		return this;
 	}
 
-	public boolean isExistsOnIndex() {
+	public Boolean isExistsOnIndex() {
 		return existsOnIndex;
 	}
 

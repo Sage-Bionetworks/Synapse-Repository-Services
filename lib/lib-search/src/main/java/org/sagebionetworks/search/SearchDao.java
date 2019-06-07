@@ -1,14 +1,11 @@
 package org.sagebionetworks.search;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
-
-import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
-import org.sagebionetworks.repo.model.search.Document;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import org.sagebionetworks.repo.model.search.Document;
 
 /**
  * Abstraction for interacting with the search index.

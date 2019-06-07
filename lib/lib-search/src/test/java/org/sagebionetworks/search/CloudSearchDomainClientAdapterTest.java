@@ -35,9 +35,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.jupiter.MockitoSettings;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.search.Document;
@@ -181,7 +179,7 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Test
 	public void testSendDocuments_iteratorMultipleBatchResults(){
-		setUpThreadLocalMapForTest();
+		setUpThreadLocalListForTest();
 		Iterator<Document> iterator = Arrays.asList(new Document(), new Document()).iterator();
 
 		when(mockProvider.getIterator(iterator)).thenReturn(Arrays.asList(mockDocumentBatch, mockDocumentBatch).iterator());
@@ -194,12 +192,15 @@ public class CloudSearchDomainClientAdapterTest {
 		verify(mockDocumentBatch, times(2)).getNewInputStream();
 
 		verify(mockCloudSearchDomainClient, times(2)).uploadDocuments(any());
-		verifyThreadLocalMapForTest(2);
+
+		//threadLocalwas only setup once so on second iteration of the iterator loop, nothing is logged.
+		// In real use, threadLocalList would once again have values added to it by the Iterator<Document> it relies on
+		verifyThreadLocalListForTest();
 	}
 
 	@Test
 	public void testSendDocuments_iteratorDocumentError(){
-		setUpThreadLocalMapForTest();
+		setUpThreadLocalListForTest();
 		when(mockCloudSearchDomainClient.uploadDocuments(any())).thenThrow(new DocumentServiceException("").withStatus("fakestatus"));
 		Iterator<Document> iterator = Arrays.asList(new Document(), new Document()).iterator();
 
@@ -211,7 +212,7 @@ public class CloudSearchDomainClientAdapterTest {
 			//expected
 		}
 
-		verifyThreadLocalMapForTest(1);
+		verifyThreadLocalListForTest();
 	}
 
 	@Test (expected = TemporarilyUnavailableException.class)
@@ -224,7 +225,7 @@ public class CloudSearchDomainClientAdapterTest {
 		cloudSearchDomainClientAdapter.sendDocuments(Collections.emptyIterator());
 	}
 
-	private void setUpThreadLocalMapForTest(){
+	private void setUpThreadLocalListForTest(){
 		CloudSearchDocumentGenerationAwsKinesisLogRecord record1 = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
 				.withChangeNumber(1);
 		CloudSearchDocumentGenerationAwsKinesisLogRecord record2 = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
@@ -237,20 +238,20 @@ public class CloudSearchDomainClientAdapterTest {
 			assertNull(record.getDocumentBatchUUID());
 		}
 
-		CloudsSearchDomainClientAdapter.threadLocalRecordMap.get().put(record1.getChangeNumber(), record1);
-		CloudsSearchDomainClientAdapter.threadLocalRecordMap.get().put(record2.getChangeNumber(), record2);
+		CloudsSearchDomainClientAdapter.threadLocalRecordList.get().add(record1);
+		CloudsSearchDomainClientAdapter.threadLocalRecordList.get().add(record2);
 
 		//consume the stream passed into the argument so that the lazily evaluated Stream.map() can be executed
 		doAnswer((invocationOnMock -> invocationOnMock.getArgument(1, Stream.class).collect(Collectors.toList())))
 				.when(mockFirehoseLogger).logBatch(anyString(), any(Stream.class));
 	}
 
-	private void verifyThreadLocalMapForTest(int expectedTimesLoggerCalled){
+	private void verifyThreadLocalListForTest(){
 		//the threadlocal map should have been cleared upon sending log records
-		assertTrue(CloudsSearchDomainClientAdapter.threadLocalRecordMap.get().isEmpty());
+		assertTrue(CloudsSearchDomainClientAdapter.threadLocalRecordList.get().isEmpty());
 
 		ArgumentCaptor<Stream<AwsKinesisLogRecord>> captor = ArgumentCaptor.forClass(Stream.class);
-		verify(mockFirehoseLogger, times(expectedTimesLoggerCalled)).logBatch(eq(KINESIS_DATA_STREAM_NAME_SUFFIX), captor.capture());
+		verify(mockFirehoseLogger, times(1)).logBatch(eq(KINESIS_DATA_STREAM_NAME_SUFFIX), captor.capture());
 
 		for(CloudSearchDocumentGenerationAwsKinesisLogRecord record : logRecordList){
 			assertEquals("fakestatus", record.getDocumentBatchUpdateStatus());
