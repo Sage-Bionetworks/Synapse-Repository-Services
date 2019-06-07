@@ -53,7 +53,7 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 	@Before
 	public void setUp(){
 		changeNumber = 111L;
-		synapseId = "one";
+		synapseId = "syn112233";
 		etag = "etag1";
 
 
