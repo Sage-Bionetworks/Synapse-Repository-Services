@@ -69,6 +69,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		authManager.invalidateSessionToken(sessionToken);
 	}
 
+	@WriteTransaction
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
 		final long userId = authManager.changePassword(request);

@@ -102,6 +102,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		authDAO.changePassword(principalId, passHash);
 	}
 
+	@WriteTransaction
 	public long changePassword(ChangePasswordInterface changePasswordInterface){
 		ValidateArgument.required(changePasswordInterface, "changePasswordInterface");
 
