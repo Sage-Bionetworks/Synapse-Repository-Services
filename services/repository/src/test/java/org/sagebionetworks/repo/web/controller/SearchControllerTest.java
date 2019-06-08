@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.UUID;
 
@@ -15,7 +16,11 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -42,9 +47,6 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private EntityService entityService;
-
-	@Autowired
-	private SearchDocumentDriver documentProvider;
 
 	@Autowired
 	private CloudSearchClientProvider cloudSearchClientProvider;
@@ -82,9 +84,15 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		project = new Project();
 		project.setName("SearchControllerTest" + UUID.randomUUID());
 		project = entityService.createEntity(adminUserId, project, null);
-		// Push this to the serach index
-		Document doc = documentProvider.formulateSearchDocument(project.getId());
-		searchManager.createOrUpdateSearchDocument(doc);
+		// Push this to the search index
+		ChangeMessage changeMessage = new ChangeMessage();
+		changeMessage.setChangeNumber(1L);
+		changeMessage.setChangeType(ChangeType.CREATE);
+		changeMessage.setObjectType(ObjectType.ENTITY);
+		changeMessage.setObjectEtag(project.getEtag());
+		changeMessage.setObjectId(KeyFactory.stringToKey(project.getId()).toString());
+
+		searchManager.documentChangeMessages(Collections.singletonList(changeMessage));
 		// Wait for it to show up
 		assertTrue(TimeUtils.waitFor(60000, 1000, null, new Predicate<Void>() {
 			@Override

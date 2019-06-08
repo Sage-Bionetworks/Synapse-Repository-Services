@@ -3,10 +3,9 @@ package org.sagebionetworks.search;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.search.Document;
-
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import org.sagebionetworks.repo.model.search.Document;
 
 /**
  * Abstraction for interacting with the search index.
@@ -25,7 +24,7 @@ public interface SearchDao {
 
 	/**
 	 * Delete all documents with the passed set of document ids.
-	 * 
+	 *
 	 * @param docIdsToDelete
 	 */
 	@Deprecated
