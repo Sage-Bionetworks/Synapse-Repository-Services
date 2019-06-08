@@ -10,6 +10,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl.AUTHENTICATION_RECEIPT_LIMIT;
@@ -506,6 +507,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).deleteSessionToken(userId);
 		verify(mockAuthDAO).changePassword(eq(userId), anyString());
+		verify(mockUserCredentialValidator).forceResetLoginThrottle(userId);
 	}
 
 	@Test
@@ -514,10 +516,11 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		assertEquals(userId, changedPasswordUserId);
-		verifyZeroInteractions(mockUserCredentialValidator);
 		verify(mockPasswordResetTokenGenerator).isValidToken(passwordResetSignedToken);
 		verify(mockAuthDAO).deleteSessionToken(userId);
 		verify(mockAuthDAO).changePassword(eq(userId), anyString());
+		verify(mockUserCredentialValidator).forceResetLoginThrottle(userId);
+		verifyNoMoreInteractions(mockUserCredentialValidator);
 	}
 
 	@Test

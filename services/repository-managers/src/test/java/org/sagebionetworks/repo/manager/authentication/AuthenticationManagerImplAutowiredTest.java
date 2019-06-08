@@ -30,9 +30,6 @@ public class AuthenticationManagerImplAutowiredTest {
 	@Autowired
 	UserManager userManager;
 
-	@Autowired
-	UnsuccessfulLoginLockoutDAO unsuccessfulLoginLockoutDAO;
-
 	Long createdUserId = null;
 
 	LoginRequest loginRequest;

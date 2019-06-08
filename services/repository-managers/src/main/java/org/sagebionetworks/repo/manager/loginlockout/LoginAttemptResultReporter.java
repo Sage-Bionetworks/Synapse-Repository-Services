@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.loginlockout;
 
 /**
  * Used to report success or failure on an attempt. Multiple calls to methods are idempotent
- * @see UnsuccessfulLoginLockout#checkIsLockedOut(long)
+ * @see LoginLockoutStatus#checkIsLockedOut(long)
  */
 public interface LoginAttemptResultReporter {
 	/**
