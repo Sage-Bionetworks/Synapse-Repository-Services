@@ -72,9 +72,13 @@ public class CloudsSearchDomainClientAdapter {
 						.withContentLength(batch.size());
 				UploadDocumentsResult result = client.uploadDocuments(request);
 				updateAndSendKinesisLogRecords(result.getStatus());
-				// PLFM-5570 and https://docs.aws.amazon.com/cloudsearch/latest/developerguide/limits.html
-				// limit on 1 batch per 10 seconds
-				clock.sleep(10000);
+
+				//dont upload large batches too frequently since CloudSearch may not be able to handle it fast enough.
+				if(documentIds.size() > 1) {
+					// PLFM-5570 and https://docs.aws.amazon.com/cloudsearch/latest/developerguide/limits.html
+					// limit on 1 batch per 10 seconds
+					clock.sleep(10000);
+				}
 			} catch (DocumentServiceException e) {
 				logger.error("The following documents failed to upload: " +  documentIds);
 				documentIds = null;
