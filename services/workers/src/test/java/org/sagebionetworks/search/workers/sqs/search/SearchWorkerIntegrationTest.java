@@ -52,7 +52,7 @@ import com.google.common.base.Predicate;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchWorkerIntegrationTest {
 	
-	private static final long MAX_WAIT = 5 * 60*1000; // 5 minutes
+	private static final long MAX_WAIT = 10 * 60*1000; // 10 minutes
 	
 	@Autowired
 	private EntityManager entityManager;
