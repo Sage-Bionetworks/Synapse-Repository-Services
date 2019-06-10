@@ -83,7 +83,8 @@ public class CloudsSearchDomainClientAdapter {
 			} catch (IOException e){
 				throw new TemporarilyUnavailableException(e);
 			} catch (InterruptedException e) {
-				logger.error("sleep was interrupted");
+				logger.warn("sleep was interrupted. exiting.");
+				return;
 			} finally{
 				//remove all records from the threadlocal list
 				threadLocalRecordList.get().clear();
