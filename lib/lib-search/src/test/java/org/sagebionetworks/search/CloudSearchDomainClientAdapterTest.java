@@ -8,11 +8,13 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
@@ -29,6 +31,7 @@ import java.util.stream.Stream;
 
 import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -174,7 +177,6 @@ public class CloudSearchDomainClientAdapterTest {
 
 		assertEquals(mockDocumentBatchInputStream, capturedRequest.getDocuments());
 		assertEquals(documentBatchSize, capturedRequest.getContentLength());
-		verify(mockClock).sleep(10000);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -188,7 +190,6 @@ public class CloudSearchDomainClientAdapterTest {
 		Iterator<Document> iterator = Arrays.asList(new Document(), new Document()).iterator();
 
 		when(mockProvider.getIterator(iterator)).thenReturn(Arrays.asList(mockDocumentBatch, mockDocumentBatch).iterator());
-
 		//method under test
 		cloudSearchDomainClientAdapter.sendDocuments(iterator);
 
@@ -197,12 +198,41 @@ public class CloudSearchDomainClientAdapterTest {
 		verify(mockDocumentBatch, times(2)).getNewInputStream();
 
 		verify(mockCloudSearchDomainClient, times(2)).uploadDocuments(any());
-		verify(mockClock, times(2)).sleep(10000);
-
 
 		//threadLocalwas only setup once so on second iteration of the iterator loop, nothing is logged.
 		// In real use, threadLocalList would once again have values added to it by the Iterator<Document> it relies on
 		verifyThreadLocalListForTest();
+	}
+
+	@Test
+	public void testSendDocuments_sleepForMultipleDocumentsInABatch() throws InterruptedException {
+		Iterator<Document> iterator = Collections.singletonList(new Document()).iterator();
+
+		when(mockProvider.getIterator(iterator)).thenReturn(Collections.singletonList(mockDocumentBatch).iterator());
+		//multiple documents in batch
+		when(mockDocumentBatch.getDocumentIds()).thenReturn(Sets.newHashSet("fakeId","fakeid2"));
+		//method under test
+		cloudSearchDomainClientAdapter.sendDocuments(iterator);
+
+		verify(mockDocumentBatch, times(1)).getDocumentIds();
+		//should sleep for multiple documents
+		verify(mockClock).sleep(10000);
+	}
+
+	@Test
+	public void testSendDocuments_noSleepForSingleDocumentInABatch() throws InterruptedException {
+		Iterator<Document> iterator = Collections.singletonList(new Document()).iterator();
+
+		when(mockProvider.getIterator(iterator)).thenReturn(Collections.singletonList(mockDocumentBatch).iterator());
+
+		//only one document in batch
+		when(mockDocumentBatch.getDocumentIds()).thenReturn(Sets.newHashSet("fakeId"));
+		//method under test
+		cloudSearchDomainClientAdapter.sendDocuments(iterator);
+
+		verify(mockDocumentBatch, times(1)).getDocumentIds();
+		//should never sleep for single documents
+		verify(mockClock, never()).sleep(anyLong());
 	}
 
 	@Test
