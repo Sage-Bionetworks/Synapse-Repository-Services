@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -27,6 +28,8 @@ public class CloudSearchClientProvider {
 	CloudSearchDocumentBatchIteratorProvider cloudSearchDocumentBatchIteratorProvider;
 	@Autowired
 	AwsKinesisFirehoseLogger firehoseLogger;
+	@Autowired
+	Clock clock;
 
 	public CloudsSearchDomainClientAdapter getCloudSearchClient(){
 		if(!isSearchEnabled()){
@@ -38,7 +41,7 @@ public class CloudSearchClientProvider {
 		}else{
 			if(searchDomainSetup.postInitialize()) {
 				awsCloudSearchDomainClient = AwsClientFactory.createAmazonCloudSearchDomain(searchDomainSetup.getDomainSearchEndpoint());
-				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider, firehoseLogger);
+				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider, firehoseLogger, clock);
 				return singletonWrapper;
 			} else{
 				throw new TemporarilyUnavailableException("Search has not yet been initialized. Please try again later!");

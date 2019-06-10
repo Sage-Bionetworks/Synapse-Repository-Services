@@ -48,6 +48,7 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
 import com.google.common.collect.Iterators;
+import org.sagebionetworks.util.Clock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CloudSearchDomainClientAdapterTest {
@@ -70,6 +71,9 @@ public class CloudSearchDomainClientAdapterTest {
 	@Mock
 	private AwsKinesisFirehoseLogger mockFirehoseLogger;
 
+	@Mock
+	private Clock mockClock;
+
 	@Captor
 	ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor;
 
@@ -91,7 +95,7 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Before
 	public void before() {
-		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient, mockProvider, mockFirehoseLogger);
+		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient, mockProvider, mockFirehoseLogger, mockClock);
 		searchRequest = new SearchRequest().withQuery("aQuery");
 		uploadDocumentsResult = new UploadDocumentsResult().withStatus("fakestatus");
 		when(mockCloudSearchDomainClient.uploadDocuments(any(UploadDocumentsRequest.class))).thenReturn(uploadDocumentsResult);
@@ -151,7 +155,7 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test
-	public void testSendDocument() throws IOException {
+	public void testSendDocument() throws IOException, InterruptedException {
 		Document document = new Document();
 		document.setId("syn123");
 		document.setType(DocumentTypeNames.add);
@@ -170,6 +174,7 @@ public class CloudSearchDomainClientAdapterTest {
 
 		assertEquals(mockDocumentBatchInputStream, capturedRequest.getDocuments());
 		assertEquals(documentBatchSize, capturedRequest.getContentLength());
+		verify(mockClock).sleep(10000);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -178,7 +183,7 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test
-	public void testSendDocuments_iteratorMultipleBatchResults(){
+	public void testSendDocuments_iteratorMultipleBatchResults() throws InterruptedException {
 		setUpThreadLocalListForTest();
 		Iterator<Document> iterator = Arrays.asList(new Document(), new Document()).iterator();
 
@@ -192,6 +197,8 @@ public class CloudSearchDomainClientAdapterTest {
 		verify(mockDocumentBatch, times(2)).getNewInputStream();
 
 		verify(mockCloudSearchDomainClient, times(2)).uploadDocuments(any());
+		verify(mockClock, times(2)).sleep(10000);
+
 
 		//threadLocalwas only setup once so on second iteration of the iterator loop, nothing is logged.
 		// In real use, threadLocalList would once again have values added to it by the Iterator<Document> it relies on

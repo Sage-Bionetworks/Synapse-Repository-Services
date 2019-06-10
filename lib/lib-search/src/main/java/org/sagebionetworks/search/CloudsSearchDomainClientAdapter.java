@@ -16,6 +16,7 @@ import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -41,14 +42,16 @@ public class CloudsSearchDomainClientAdapter {
 
 	private final AmazonCloudSearchDomain client;
 	private final CloudSearchDocumentBatchIteratorProvider iteratorProvider;
+	private final Clock clock;
 
 	//used for logging ifo about a batch of documents
 	private final AwsKinesisFirehoseLogger firehoseLogger;
 
-	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider, AwsKinesisFirehoseLogger firehoseLogger){
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider, AwsKinesisFirehoseLogger firehoseLogger, Clock clock){
 		this.client = client;
 		this.iteratorProvider = iteratorProvider;
 		this.firehoseLogger = firehoseLogger;
+		this.clock = clock;
 	}
 
 	public void sendDocuments(Iterator<Document> documents){
@@ -69,6 +72,9 @@ public class CloudsSearchDomainClientAdapter {
 						.withContentLength(batch.size());
 				UploadDocumentsResult result = client.uploadDocuments(request);
 				updateAndSendKinesisLogRecords(result.getStatus());
+				// PLFM-5570 and https://docs.aws.amazon.com/cloudsearch/latest/developerguide/limits.html
+				// limit on 1 batch per 10 seconds
+				clock.sleep(10000);
 			} catch (DocumentServiceException e) {
 				logger.error("The following documents failed to upload: " +  documentIds);
 				documentIds = null;
@@ -76,7 +82,9 @@ public class CloudsSearchDomainClientAdapter {
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
 				throw new TemporarilyUnavailableException(e);
-			}finally{
+			} catch (InterruptedException e) {
+				logger.error("sleep was interrupted");
+			} finally{
 				//remove all records from the threadlocal list
 				threadLocalRecordList.get().clear();
 			}
