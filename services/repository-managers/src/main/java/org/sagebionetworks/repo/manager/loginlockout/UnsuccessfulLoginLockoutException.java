@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.loginlockout;
 
 /**
  * Exception that is thrown when an attempt is being made while the lockout is still in place.
- * @see UnsuccessfulLoginLockout#checkIsLockedOut(long)
+ * @see LoginLockoutStatus#checkIsLockedOut(long)
  */
 public class UnsuccessfulLoginLockoutException extends RuntimeException{
 	final long lockoutExpirationTimestampSec;

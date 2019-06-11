@@ -6,7 +6,7 @@ import java.util.Date;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.loginlockout.LoginAttemptResultReporter;
-import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
+import org.sagebionetworks.repo.manager.loginlockout.LoginLockoutStatus;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
@@ -47,51 +47,50 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 	AuthenticationDAO authDAO;
 
 	@Autowired
-	UnsuccessfulLoginLockout unsuccessfulLoginLockout;
+	LoginLockoutStatus loginLockoutStatus;
 
 	@Autowired
 	private Consumer consumer;
 
 
-	private void logAttemptAfterAccountIsLocked(long principalId) {
+	private void logAttemptAfterAccountIsLocked(final long userId) {
 		ProfileData loginFailAttemptExceedLimit = new ProfileData();
 		loginFailAttemptExceedLimit.setNamespace(this.getClass().getName());
 		loginFailAttemptExceedLimit.setName(LOGIN_FAIL_ATTEMPT_METRIC_NAME);
 		loginFailAttemptExceedLimit.setValue(LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE);
 		loginFailAttemptExceedLimit.setUnit(LOGIN_FAIL_ATTEMPT_METRIC_UNIT);
 		loginFailAttemptExceedLimit.setTimestamp(new Date());
-		loginFailAttemptExceedLimit.setDimension(Collections.singletonMap("UserId", ""+principalId));
+		loginFailAttemptExceedLimit.setDimension(Collections.singletonMap("UserId", ""+userId));
 		consumer.addProfileData(loginFailAttemptExceedLimit);
 	}
 
 	/**
 	 * Check username, password combination
-	 *
-	 * @param principalId
+	 *  @param userId
 	 * @param password
 	 */
 	@Override
-	public boolean checkPassword(Long principalId, String password) {
-		byte[] salt = authDAO.getPasswordSalt(principalId);
+	public boolean checkPassword(final long userId, final String password) {
+		byte[] salt = authDAO.getPasswordSalt(userId);
 		String passHash = PBKDF2Utils.hashPassword(password, salt);
-		return authDAO.checkUserCredentials(principalId, passHash);
+		return authDAO.checkUserCredentials(userId, passHash);
 	}
 
 	@Override
 	@NewWriteTransaction
-	public boolean checkPasswordWithThrottling(Long principalId, String password){
+	public boolean checkPasswordWithThrottling(final long userId, final String password){
 		LoginAttemptResultReporter loginAttemptReporter;
 		try {
-			loginAttemptReporter = unsuccessfulLoginLockout.checkIsLockedOut(principalId);
+			loginAttemptReporter = loginLockoutStatus.checkIsLockedOut(userId);
 		} catch (UnsuccessfulLoginLockoutException e){
 			//log to cloudwatch and rethrow exception if too many consecutive unsuccessful logins.
 			if (e.getNumFailedAttempts() >= REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD){
-				logAttemptAfterAccountIsLocked(principalId);
+				logAttemptAfterAccountIsLocked(userId);
 			}
 			throw e;
 		}
 
-		boolean credentialsCorrect = checkPassword(principalId, password);
+		boolean credentialsCorrect = checkPassword(userId, password);
 		// check credentials and report success/failure of check
 		if(credentialsCorrect) {
 			loginAttemptReporter.reportSuccess();
@@ -100,5 +99,10 @@ public class UserCredentialValidatorImpl implements UserCredentialValidator {
 		}
 
 		return credentialsCorrect;
+	}
+
+	@Override
+	public void forceResetLoginThrottle(final long userId){
+		loginLockoutStatus.forceResetLockoutCount(userId);
 	}
 }

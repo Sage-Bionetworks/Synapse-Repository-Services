@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.loginlockout;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -14,12 +16,12 @@ import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDAO;
 import org.sagebionetworks.repo.model.UnsuccessfulLoginLockoutDTO;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ExponentialBackoffUnsuccessfulLoginLockoutImplTest {
+public class ExponentialBackoffLoginLockoutStatusImplTest {
 	@Mock
 	UnsuccessfulLoginLockoutDAO mockUnsuccessfulLoginLockoutDAO;
 
 	@InjectMocks
-	ExponentialBackoffUnsuccessfulLoginLockoutImpl lockout;
+	ExponentialBackoffLoginLockoutStatusImpl lockout;
 
 	long userId = 123456L;
 
@@ -61,5 +63,15 @@ public class ExponentialBackoffUnsuccessfulLoginLockoutImplTest {
 
 		assertEquals(new ExponentialBackoffLoginAttemptReporter(unsuccessfulLoginLockoutInfo, mockUnsuccessfulLoginLockoutDAO),
 				lockout.checkIsLockedOut(userId));
+	}
+
+	@Test
+	public void testForceResetLockout(){
+		lockout.forceResetLockoutCount(userId);
+
+		verify(mockUnsuccessfulLoginLockoutDAO).createOrUpdateUnsuccessfulLoginLockoutInfo(new UnsuccessfulLoginLockoutDTO(userId)
+				.withLockoutExpiration(0)
+				.withUnsuccessfulLoginCount(0));
+		verifyNoMoreInteractions(mockUnsuccessfulLoginLockoutDAO);
 	}
 }
