@@ -277,17 +277,13 @@ public class CloudSearchDomainClientAdapterTest {
 
 		CloudsSearchDomainClientAdapter.threadLocalRecordList.get().add(record1);
 		CloudsSearchDomainClientAdapter.threadLocalRecordList.get().add(record2);
-
-		//consume the stream passed into the argument so that the lazily evaluated Stream.map() can be executed
-		doAnswer((invocationOnMock -> invocationOnMock.getArgument(1, Stream.class).collect(Collectors.toList())))
-				.when(mockFirehoseLogger).logBatch(anyString(), any(Stream.class));
 	}
 
 	private void verifyThreadLocalListForTest(){
 		//the threadlocal map should have been cleared upon sending log records
 		assertTrue(CloudsSearchDomainClientAdapter.threadLocalRecordList.get().isEmpty());
 
-		ArgumentCaptor<Stream<AwsKinesisLogRecord>> captor = ArgumentCaptor.forClass(Stream.class);
+		ArgumentCaptor<List<AwsKinesisLogRecord>> captor = ArgumentCaptor.forClass(List.class);
 		verify(mockFirehoseLogger, times(1)).logBatch(eq(KINESIS_DATA_STREAM_NAME_SUFFIX), captor.capture());
 
 		for(CloudSearchDocumentGenerationAwsKinesisLogRecord record : logRecordList){

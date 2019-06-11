@@ -107,13 +107,14 @@ public class CloudsSearchDomainClientAdapter {
 		}
 
 		//add additional batch releated metadata to each record in the batch and push to kinesis
-		Stream<AwsKinesisLogRecord> logRecordStream = threadLocalRecordList.get().stream()
-				.map((record) ->
+		List<CloudSearchDocumentGenerationAwsKinesisLogRecord> recordList = threadLocalRecordList.get();
+
+		recordList.forEach((record) ->
 					record.withDocumentBatchUpdateStatus(status)
 							.withDocumentBatchUpdateTimestamp(batchUploadTimestamp)
 							.withDocumentBatchUUID(batchUUID)
-				);
-		firehoseLogger.logBatch(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, logRecordStream);
+		);
+		firehoseLogger.logBatch(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, recordList);
 	}
 
 
