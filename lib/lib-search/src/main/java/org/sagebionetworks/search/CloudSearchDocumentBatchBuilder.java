@@ -109,9 +109,11 @@ public class CloudSearchDocumentBatchBuilder implements Closeable {
 
 		byte[] documentBytes = SearchUtil.convertSearchDocumentToJSONString(document).getBytes(CHARSET);
 
-		//if a single document exceeds the single document size limit throw exception
+		//if a single document exceeds the single document size limit pretend like we can add it, but don't actually add it
+		//we effectively skip adding large documents
 		if (documentBytes.length > maxSingleDocumentSizeInBytes) {
-			throw new IllegalArgumentException("The document for " + document.getId() + " is " + documentBytes.length + " bytes and exceeds the maximum allowed " + maxSingleDocumentSizeInBytes + " bytes.");
+			return true;
+			//throw new IllegalArgumentException("The document for " + document.getId() + " is " + documentBytes.length + " bytes and exceeds the maximum allowed " + maxSingleDocumentSizeInBytes + " bytes.");
 		}
 
 		if(!willDocumentBytesFit(documentBytes.length)){

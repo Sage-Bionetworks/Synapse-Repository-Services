@@ -133,11 +133,13 @@ public class CloudSearchDocumentBatchBuilderTest {
 		}
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	//PLFM-5570
+	@Test
 	public void testTryAddDocument_singleDocumentSizeExceeded() throws Exception {
 		maxSingleDocumentSizeInBytes = 1;
 		builder = new CloudSearchDocumentBatchBuilder(mockFileProvider, maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);
-		builder.tryAddDocument(document1);
+		//pretend that we can add documents that are too large but don't actually do it. i.e. ignore files that are too large
+		assertTrue(builder.tryAddDocument(document1));
 	}
 
 	@Test
@@ -216,21 +218,6 @@ public class CloudSearchDocumentBatchBuilderTest {
 	public void testClose_BeforeBuild_beforeBuildCalled() throws IOException {
 		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider)){
 			batchBuilder.tryAddDocument(document1);
-		}
-
-		verify(spyOutputStream).close();
-		verify(mockFile).delete();
-	}
-
-	@Test
-	public void testClose_BeforeBuild_errorInBuilder() throws IOException {
-		maxSingleDocumentSizeInBytes = byteSizeOfDocument(documentLarge) - 1;
-		try(CloudSearchDocumentBatchBuilder batchBuilder = new CloudSearchDocumentBatchBuilder(mockFileProvider, maxSingleDocumentSizeInBytes, maxDocumentBatchSizeInBytes);){
-			batchBuilder.tryAddDocument(document1);
-			batchBuilder.tryAddDocument(documentLarge);
-			fail("expected IllegalArgumentException to be thrown");
-		}catch (IllegalArgumentException e){
-			//expected
 		}
 
 		verify(spyOutputStream).close();

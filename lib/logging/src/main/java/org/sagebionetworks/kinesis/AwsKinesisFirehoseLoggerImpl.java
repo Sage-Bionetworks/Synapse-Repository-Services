@@ -1,12 +1,13 @@
 package org.sagebionetworks.kinesis;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
 import com.amazonaws.services.kinesisfirehose.model.Record;
+import org.apache.commons.collections4.ListUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,15 +19,22 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 	StackConfiguration stackConfiguration;
 
 	@Override
-	public void logBatch(String kinesisDataStreamSuffix, Stream<? extends AwsKinesisLogRecord> logRecordStream){
-		kinesisFirehoseClient.putRecordBatch(
-				new PutRecordBatchRequest()
-						.withDeliveryStreamName(kinesisStreamName(kinesisDataStreamSuffix))
-						.withRecords(
-								logRecordStream
-										.map(this::updateWithStackInfoAndConvertToRecord)
-										.collect(Collectors.toList()))
-		);
+	public void logBatch(String kinesisDataStreamSuffix, List<? extends AwsKinesisLogRecord> logRecordList){
+
+		//Kinesis has a record limit of 500
+		List<? extends List<? extends AwsKinesisLogRecord>> partitionedRecords = ListUtils.partition(logRecordList, 500);
+
+
+		for(List<? extends AwsKinesisLogRecord> recordList : partitionedRecords) {
+			kinesisFirehoseClient.putRecordBatch(
+					new PutRecordBatchRequest()
+							.withDeliveryStreamName(kinesisStreamName(kinesisDataStreamSuffix))
+							.withRecords(
+									recordList.stream()
+											.map(this::updateWithStackInfoAndConvertToRecord)
+											.collect(Collectors.toList()))
+			);
+		}
 	}
 
 	private String kinesisStreamName(String kinesisDataStreamSuffix){
