@@ -2,8 +2,9 @@
 	"description": "Optional part of a TableUpdateTransactionRequest to provide information needed to create a new version of a table entity.",
 	"properties": {
 		"createNewTableVersion": {
-			"description": "Should a new table version be created if this transaction is successful?  False by default.",
-			"type": "boolean"
+			"description": "Should a new table version be created if this transaction is successful?",
+			"type": "boolean",
+			"required":true
 		},
 		"newVersionComment": {
 			"description": "Optional. If createNewTableVersion=true, the comment to be applied to the resulting version.  Null by default ",

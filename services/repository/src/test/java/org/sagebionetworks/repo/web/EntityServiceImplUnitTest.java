@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.web;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -122,7 +123,7 @@ public class EntityServiceImplUnitTest {
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
-		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
+		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
 	}
 
@@ -132,7 +133,7 @@ public class EntityServiceImplUnitTest {
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
-		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
+		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
 	}
 
@@ -150,7 +151,7 @@ public class EntityServiceImplUnitTest {
 				.thenReturn(wasNewVersionCreated);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersionParameter, null);
-		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
+		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, wasNewVersionCreated);
 	}
 
