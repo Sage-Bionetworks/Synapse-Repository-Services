@@ -157,13 +157,19 @@ public class CertifiedUserController {
 		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, id, limit, offset);
 	}
 
-	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
+	public @ResponseBody String setUserCertificationStatus()  {
+		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS + " and is only accessible to Synapse administrators";
+	}
+
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
 	public void setUserCertificationStatus(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
 			@RequestParam(value = AuthorizationConstants.IS_CERTIFIED) Boolean isCertified
-			) throws NotFoundException {
+	) throws NotFoundException {
 		serviceProvider.getCertifiedUserService().setUserCertificationStatus(userId, principalId, isCertified);
 	}
 

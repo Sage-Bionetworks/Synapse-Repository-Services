@@ -252,7 +252,7 @@ public class MessageController {
 	}
 
 	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
 	public @ResponseBody String deleteMessage() throws NotFoundException {
 		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.MESSAGE_ID + " and is only accessible to Synapse administrators";

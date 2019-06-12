@@ -448,7 +448,7 @@ public class EvaluationController {
 	}
 
 	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
 	public @ResponseBody
 	String addSubmissionContributor() {
