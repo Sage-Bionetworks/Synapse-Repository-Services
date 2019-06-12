@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.EntityId;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SQLElement;
@@ -327,7 +328,7 @@ public class TableQueryParserTest {
 		QuerySpecification element = TableQueryParser.parserQuery("select doesNotExist, isIn, string, sAnd, sNot, WeLikeIt from SyN456 limit 1 offset 2");
 		assertNotNull(element);
 		String sql = toSQL(element);
-		assertEquals("SELECT doesNotExist, isIn, string, sAnd, sNot, WeLikeIt FROM SyN456 LIMIT 1 OFFSET 2", sql);
+		assertEquals("SELECT doesNotExist, isIn, string, sAnd, sNot, WeLikeIt FROM syn456 LIMIT 1 OFFSET 2", sql);
 	}
 	
 	/**
@@ -378,5 +379,11 @@ public class TableQueryParserTest {
 				"select foo, group_concat(distinct bar order by bar desc separator '#') from syn123 group by foo");
 		assertEquals("SELECT foo, GROUP_CONCAT(DISTINCT bar ORDER BY bar DESC SEPARATOR '#') FROM syn123 GROUP BY foo",
 				element.toSql());
+	}
+	
+	@Test
+	public void testTableWithVersion() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123.567 where foo = 'bar'");
+		assertEquals("SELECT * FROM syn123.567 WHERE foo = 'bar'",	element.toSql());
 	}
 }
