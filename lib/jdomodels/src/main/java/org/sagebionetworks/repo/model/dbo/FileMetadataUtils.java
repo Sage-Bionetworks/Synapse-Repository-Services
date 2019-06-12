@@ -8,14 +8,15 @@ import java.util.List;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
+import org.sagebionetworks.repo.model.file.CloudFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -42,6 +43,8 @@ public class FileMetadataUtils {
 			updateDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
 		} else if (fileHandle instanceof S3FileHandle) {
 			dbo.setMetadataType(MetadataType.S3);
+		} else if (fileHandle instanceof GoogleCloudFileHandle) {
+			dbo.setMetadataType(MetadataType.GOOGLECLOUDSTORAGE);
 		} else if (fileHandle instanceof PreviewFileHandle) {
 			dbo.setMetadataType(MetadataType.PREVIEW);
 		} else if (fileHandle instanceof ProxyFileHandle) {
@@ -56,8 +59,8 @@ public class FileMetadataUtils {
 		if (fileHandle instanceof HasPreviewId) {
 			updateDBOFromDTO(dbo, (HasPreviewId) fileHandle);
 		}
-		if (fileHandle instanceof S3FileHandleInterface) {
-			updateDBOFromDTO(dbo, (S3FileHandleInterface) fileHandle);
+		if (fileHandle instanceof CloudFileHandleInterface) {
+			updateDBOFromDTO(dbo, (CloudFileHandleInterface) fileHandle);
 		}
 		if(fileHandle instanceof ProxyFileHandle){
 			updateDBOFromDTO(dbo, (ProxyFileHandle) fileHandle);
@@ -101,7 +104,7 @@ public class FileMetadataUtils {
 		dbo.setKey(fileHandle.getExternalURL());
 	}
 
-	private static void updateDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface fileHandle) {
+	private static void updateDBOFromDTO(DBOFileHandle dbo, CloudFileHandleInterface fileHandle) {
 		dbo.setBucketName(fileHandle.getBucketName());
 		dbo.setKey(fileHandle.getKey());
 		dbo.setContentSize(fileHandle.getContentSize());
@@ -137,6 +140,9 @@ public class FileMetadataUtils {
 			// S3 file
 			fileHandle = new S3FileHandle();
 			break;
+		case GOOGLECLOUDSTORAGE:
+			fileHandle = new GoogleCloudFileHandle();
+			break;
 		case PREVIEW:
 			// preview
 			fileHandle = new PreviewFileHandle();
@@ -149,7 +155,7 @@ public class FileMetadataUtils {
 			fileHandle = new ExternalObjectStoreFileHandle();
 			break;
 		default:
-			throw new IllegalArgumentException("Must be EXTERNAL, S3, PREVIEW, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
+			throw new IllegalArgumentException("Must be EXTERNAL, S3, GOOGLECLOUDSTORAGE, PREVIEW, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
 		}
 
 		// now fill in the information
@@ -160,8 +166,8 @@ public class FileMetadataUtils {
 		if (fileHandle instanceof ExternalFileHandle) {
 			updateDTOFromDBO((ExternalFileHandle) fileHandle, dbo);
 		}
-		if (fileHandle instanceof S3FileHandleInterface) {
-			updateDTOFromDBO((S3FileHandleInterface) fileHandle, dbo);
+		if (fileHandle instanceof CloudFileHandleInterface) {
+			updateDTOFromDBO((CloudFileHandleInterface) fileHandle, dbo);
 		}
 		if (fileHandle instanceof ProxyFileHandle) {
 			updateDTOFromDBO((ProxyFileHandle) fileHandle, dbo);
@@ -199,7 +205,7 @@ public class FileMetadataUtils {
 		fileHandle.setExternalURL(dbo.getKey());
 	}
 
-	private static void updateDTOFromDBO(S3FileHandleInterface fileHandle, DBOFileHandle dbo) {
+	private static void updateDTOFromDBO(CloudFileHandleInterface fileHandle, DBOFileHandle dbo) {
 		fileHandle.setBucketName(dbo.getBucketName());
 		fileHandle.setKey(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
