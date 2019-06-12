@@ -1,0 +1,22 @@
+{
+	"description": "The external upload destination setting contains information to generate an external Google Cloud Storage upload destination managed by Synapse.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
+		}
+	],
+	"properties": {
+		"endpointUrl": {
+			"type": "string",
+			"description": "the optional Google Cloud endpoint URL for uploading to (default: https://s3.amazonaws.com)"
+		},
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use"
+		},
+		"baseKey": {
+			"type": "string",
+			"description": "the optional base key to use"
+		}
+	}
+}

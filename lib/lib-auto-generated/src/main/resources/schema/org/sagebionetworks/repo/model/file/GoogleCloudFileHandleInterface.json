@@ -1,5 +1,5 @@
 {
-	"description": "Defines the common fields of FileHandles stored in AWS S3.",
+	"description": "Defines the common fields of FileHandles stored in Google Cloud Storage.",
 	"type": "interface",
 	"implements": [
 		{
