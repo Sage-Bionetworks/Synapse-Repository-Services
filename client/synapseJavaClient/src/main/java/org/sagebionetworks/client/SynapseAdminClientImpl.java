@@ -360,7 +360,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public void setCertifiedUserStatus(String principalId, boolean status)
 			throws SynapseException {
-		String url = USER + "/" + principalId + CERTIFIED_USER_STATUS
+		String url = ADMIN + USER + "/" + principalId + CERTIFIED_USER_STATUS
 				+ "?isCertified=" + status;
 		voidPut(getRepoEndpoint(), url, null);
 	}
