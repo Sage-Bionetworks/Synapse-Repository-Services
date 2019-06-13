@@ -31,13 +31,13 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.NewVersionInfo;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
@@ -253,43 +253,31 @@ public class TableEntityTransactionManagerTest {
 	
 	@Test
 	public void testDoIntransactionUpdateTableNullVersionInfo() throws RecoverableMessageException, TableUnavailableException {
-		request.setNewVersionInfo(null);
+		request.setVersionRequest(null);
 		// call under test
 		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
-		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(NewVersionInfo.class), anyLong());
-	}
-	
-	@Test
-	public void testDoIntransactionUpdateTableWithNewVersionNullBoolean() throws RecoverableMessageException, TableUnavailableException {
-		NewVersionInfo versionInfo = new NewVersionInfo();
-		versionInfo.setCreateNewTableVersion(null);
-		request.setNewVersionInfo(versionInfo);
-		// call under test
-		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
-		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
-		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
-		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(NewVersionInfo.class), anyLong());
+		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(VersionRequest.class), anyLong());
 	}
 	
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersionFalse() throws RecoverableMessageException, TableUnavailableException {
-		NewVersionInfo versionInfo = new NewVersionInfo();
+		VersionRequest versionInfo = new VersionRequest();
 		versionInfo.setCreateNewTableVersion(false);
-		request.setNewVersionInfo(versionInfo);
+		request.setVersionRequest(versionInfo);
 		// call under test
 		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
-		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(NewVersionInfo.class), anyLong());
+		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(), any(VersionRequest.class), anyLong());
 	}
 	
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersiontrue() throws RecoverableMessageException, TableUnavailableException {
-		NewVersionInfo versionInfo = new NewVersionInfo();
+		VersionRequest versionInfo = new VersionRequest();
 		versionInfo.setCreateNewTableVersion(true);
-		request.setNewVersionInfo(versionInfo);
+		request.setVersionRequest(versionInfo);
 		// call under test
 		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());

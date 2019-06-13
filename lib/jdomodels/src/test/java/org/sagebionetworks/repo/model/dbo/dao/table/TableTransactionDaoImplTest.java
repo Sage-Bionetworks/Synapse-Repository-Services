@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -185,7 +186,7 @@ public class TableTransactionDaoImplTest {
 		TableTransaction afterUpdate = tableTransactionDao.getTransaction(transactionId);
 		assertNotNull(afterUpdate);
 		assertNotNull(afterUpdate.getEtag());
-		assertFalse(afterUpdate.getEtag().equals(startTrans.getEtag()));
+		assertNotEquals(afterUpdate.getEtag(), startTrans.getEtag());
 		assertEquals(newEtag, afterUpdate.getEtag());
 	}
 	

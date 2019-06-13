@@ -12,12 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -588,8 +590,9 @@ public class SQLTranslatorUtils {
 	 * @param tableReference
 	 */
 	public static void translate(TableReference tableReference) {
-		Long tableId = KeyFactory.stringToKey(tableReference.getTableName());
-		tableReference.replaceTableName(SQLUtils.TABLE_PREFIX + tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableReference.getTableName());
+		String translatedName = SQLUtils.getTableNameForId(idAndVersion, TableType.INDEX);
+		tableReference.replaceTableName(translatedName);
 	}
 	
 }
