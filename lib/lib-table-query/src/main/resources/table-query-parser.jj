@@ -446,10 +446,12 @@ ActualIdentifier actualIdentifier():
 {
 	RegularIdentifier regularIdentifier = null;
 	DelimitedIdentifier delmitedIdentifier = null;
+	EntityId entityId = null;
 }
 {
 	regularIdentifier = regularIdentifier() { return new ActualIdentifier(regularIdentifier); }
 	| delmitedIdentifier = delimitedIdentifier() { return new ActualIdentifier(delmitedIdentifier); }
+	| entityId = entityId() { return new ActualIdentifier(entityId); }
 }
 DelimitedIdentifier delimitedIdentifier():
 { 
@@ -871,11 +873,9 @@ BooleanFunction booleanFunction():
 ValueExpression valueExpression():
 {
   	NumericValueExpression numericValueExpression = null;
-  	EntityId entityId = null;
 }
 {
 	numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
-	| entityId = entityId() { return new ValueExpression(entityId); }
 }
 /**
 * The reference BNF definition for numericValueExpression() is "left recursive"

@@ -9,7 +9,6 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.EntityId;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SQLElement;
@@ -385,5 +384,21 @@ public class TableQueryParserTest {
 	public void testTableWithVersion() throws ParseException {
 		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123.567 where foo = 'bar'");
 		assertEquals("SELECT * FROM syn123.567 WHERE foo = 'bar'",	element.toSql());
+	}
+	
+	@Test (expected=ParseException.class)
+	public void testTableNameTooManyDots() throws ParseException {
+		TableQueryParser.parserQuery("select * from syn123.567.333 where foo = 'bar'");
+	}
+	
+	@Test (expected=ParseException.class)
+	public void testTableNameTrailingDot() throws ParseException {
+		TableQueryParser.parserQuery("select * from syn123.567. where foo = 'bar'");
+	}
+	
+	@Test
+	public void testEntityIdColumnName() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 where syn567 = 'bar'");
+		assertEquals("SELECT * FROM syn123 WHERE syn567 = 'bar'", element.toSql());
 	}
 }

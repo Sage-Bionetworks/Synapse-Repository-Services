@@ -37,12 +37,6 @@ public class EntityIdTest {
 	}
 
 	@Test
-	public void testEntityIdTooManyDots() throws ParseException {
-		EntityId value = new TableQueryParser("syn123.456.222").entityId();
-		assertEquals("syn123.456", value.toSql());
-	}
-
-	@Test
 	public void testIdAndVersionDotOnly() throws ParseException {
 		EntityId value = new TableQueryParser("syn123.").entityId();
 		assertEquals("syn123", value.toSql());
