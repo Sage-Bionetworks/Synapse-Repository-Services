@@ -841,11 +841,9 @@ public class TeamManagerImplTest {
 	}
 
 	@Test
-	public void testListTypesOfMembersWithPrefix() {
+	public void testListAdminMembersWithPrefix() {
 		Long adminMemberId = 101L;
-		Long nonAdminMemberId = 102L;
 		TeamMember adminMember = createTeamMember("101", true);
-		TeamMember nonAdminMember = createTeamMember("102", false);
 		List<String> adminIds = new ArrayList<>();
 		adminIds.add("101");
 		Set<Long> adminIdsSet = Collections.singleton(101L);
@@ -853,72 +851,98 @@ public class TeamManagerImplTest {
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminIdsSet, null,10L, 0L)).thenReturn(Collections.singletonList(adminMemberId));
-		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMemberId));
-		when(mockPrincipalPrefixDao.listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID),10L, 0L)).thenReturn(Arrays.asList(adminMemberId, nonAdminMemberId));
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(adminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(adminMember), TeamMember.class));
-		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(nonAdminMember), TeamMember.class));
-		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId))).thenReturn(ListWrapper.wrap(Arrays.asList(adminMember, nonAdminMember), TeamMember.class));
-		for (TeamMemberTypeFilterOptions filter : TeamMemberTypeFilterOptions.values()) {
-			List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, filter, 10L, 0L).getResults();
-			switch (filter) {
-				case ADMIN:
-					verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminIdsSet, null,10L, 0L);
-					verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(adminMemberId));
-					assertEquals(Collections.singletonList(adminMember), actual);
-					break;
-				case MEMBER:
-					verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L);
-					verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId));
-					assertEquals(Collections.singletonList(nonAdminMember), actual);
-					break;
-				case ALL:
-					verify(mockPrincipalPrefixDao, times(1)).listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L);
-					verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId));
-					assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
-					break;
-				default:
-					fail("Add behavior in the method and test for filter type " + filter.toString());
-			}
-		}
-		verify(mockTeamDAO, times(2)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
+		verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminIdsSet, null,10L, 0L);
+		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(adminMemberId));
+		assertEquals(Collections.singletonList(adminMember), actual);
+		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
 	}
 
+	@Test
+	public void testListNonAdminMembersWithPrefix() {
+		Long nonAdminMemberId = 102L;
+		TeamMember nonAdminMember = createTeamMember("102", false);
+		List<String> adminIds = new ArrayList<>();
+		adminIds.add("101");
+		Set<Long> adminIdsSet = Collections.singleton(101L);
+		String prefix = "pfx";
+
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
+		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMemberId));
+		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(nonAdminMember), TeamMember.class));
+		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10L, 0L).getResults();
+		verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L);
+		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId));
+		assertEquals(Collections.singletonList(nonAdminMember), actual);
+	}
 
 	@Test
-	public void testListTypesOfMembers() {
-		TeamMember adminMember = createTeamMember("101", true);
+	public void testListAllMembersWithPrefix() {
+		Long adminMemberId = 101L;
+		TeamMember adminMember = createTeamMember("101", false);
+		Long nonAdminMemberId = 102L;
 		TeamMember nonAdminMember = createTeamMember("102", false);
+		List<String> adminIds = new ArrayList<>();
+		adminIds.add("101");
+		String prefix = "pfx";
+
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
+		when(mockPrincipalPrefixDao.listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID),10L, 0L)).thenReturn(Arrays.asList(adminMemberId, nonAdminMemberId));		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(nonAdminMember), TeamMember.class));
+		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId))).thenReturn(ListWrapper.wrap(Arrays.asList(adminMember, nonAdminMember), TeamMember.class));
+		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L).getResults();
+		verify(mockPrincipalPrefixDao, times(1)).listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L);
+		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId));
+		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
+	}
+
+	@Test
+	public void testListAdminMembers() {
+		TeamMember adminMember = createTeamMember("101", true);
 		List<String> adminIds = new ArrayList<>();
 		adminIds.add("101");
 		Set<Long> adminIdsSet = Collections.singleton(101L);
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L)).thenReturn(Collections.singletonList(adminMember));
+		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
+		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L);
+		assertEquals(Collections.singletonList(adminMember), actual);
+		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+	}
+
+	@Test
+	public void testListNonAdminMembers() {
+		TeamMember nonAdminMember = createTeamMember("102", false);
+		List<String> adminIds = new ArrayList<>();
+		adminIds.add("101");
+		Set<Long> adminIdsSet = Collections.singleton(101L);
+
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMember));
+
+		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10L, 0L).getResults();
+		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L);
+		assertEquals(Collections.singletonList(nonAdminMember), actual);
+		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+	}
+
+	@Test
+	public void testListAllTypesOfMembers() {
+		TeamMember adminMember = createTeamMember("101", true);
+		TeamMember nonAdminMember = createTeamMember("102", false);
+		List<String> adminIds = new ArrayList<>();
+		adminIds.add("101");
+
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, null,10L, 0L)).thenReturn(Arrays.asList(adminMember, nonAdminMember));
 
-		for (TeamMemberTypeFilterOptions filter : TeamMemberTypeFilterOptions.values()) {
-			List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, filter, 10L, 0L).getResults();
-			switch (filter) {
-				case ADMIN:
-					verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L);
-					assertEquals(Collections.singletonList(adminMember), actual);
-					break;
-				case MEMBER:
-					verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L);
-					assertEquals(Collections.singletonList(nonAdminMember), actual);
-					break;
-				case ALL:
-					verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, null,10L, 0L);
-					assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
-					break;
-				default:
-					fail("Add behavior in the method and test for filter type " + filter.toString());
-			}
-		}
-		verify(mockTeamDAO, times(3)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L).getResults();
+		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, null,10L, 0L);
+		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
+		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
 	}
-	
+
 	@Test
 	public void testSetPermissions() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());

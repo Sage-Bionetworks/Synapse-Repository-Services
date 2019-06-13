@@ -72,7 +72,7 @@ public interface TeamDAO {
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> principalIds) throws NotFoundException, DatastoreException;
 
 	/**
-	 *
+	 * Note: this method does not fill in the field {@link org.sagebionetworks.repo.model.TeamMember#getIsAdmin }
 	 * @param teamId The team which the returned members belong to.
 	 * @param include The set of principal IDs to explicitly include in search. All members with principal IDs that do not match
 	 *             IDs in this set will be filtered out. If null, a filter is not applied.
