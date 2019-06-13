@@ -1,11 +1,13 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -26,11 +28,11 @@ import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -71,7 +73,6 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.entity.query.Condition;
 import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
@@ -81,7 +82,6 @@ import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
-import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
@@ -104,7 +104,7 @@ public class IT500SynapseJavaClient {
 	private static Long user2ToDelete;
 	
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
-	
+
 	private static final String TEST_EMAIL = "test@test.com";
 
 	private List<String> toDelete;
@@ -125,7 +125,7 @@ public class IT500SynapseJavaClient {
 		return bootstrappedTeams.size() + number;
 	}
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
@@ -149,7 +149,7 @@ public class IT500SynapseJavaClient {
 		synapseTwo.updateMyProfile(profile);
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException {
 		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<>();
@@ -178,7 +178,7 @@ public class IT500SynapseJavaClient {
 		} while (numTeams > getBootstrapCountPlus(0));
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (String id: toDelete) {
 			try {
@@ -200,7 +200,7 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
@@ -245,15 +245,10 @@ public class IT500SynapseJavaClient {
 		// but we CAN'T just delete the ACL
 		assertFalse(uep.getCanEnableInheritance());
 		// and if we try, it won't work
-		try {
-			synapseOne.deleteACL(project.getId());
-			fail("exception expected");
-		} catch (SynapseForbiddenException e) {
-			// as expected
-		}
+		assertThrows(SynapseForbiddenException.class, () -> synapseOne.deleteACL(project.getId()));
 	}
 	
-	@Test(expected=SynapseBadRequestException.class)
+	@Test
 	public void testEmptyACLAccessTypeList() throws Exception {
 		// PLFM-412 said there was an error when 'PUBLIC' was given an empty array of permissions
 		AccessControlList acl = synapseOne.getACL(project.getId());
@@ -270,18 +265,18 @@ public class IT500SynapseJavaClient {
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra.getPrincipalId().equals(publicPrincipalId)) {
 				foundIt = true;
-				ra.setAccessType(new HashSet<ACCESS_TYPE>()); // make it an empty list
+				ra.setAccessType(new HashSet<>()); // make it an empty list
 				break;
 			}
 		}
 		if (!foundIt) {
 			ResourceAccess ra = new ResourceAccess();
 			ra.setPrincipalId(publicPrincipalId);
-			ra.setAccessType(new HashSet<ACCESS_TYPE>()); // make it an empty list
+			ra.setAccessType(new HashSet<>()); // make it an empty list
 			acl.getResourceAccess().add(ra);
 		}
 		// now push it, should get a SynapseBadRequestException
-		synapseOne.updateACL(acl);
+		assertThrows(SynapseBadRequestException.class, () -> synapseOne.updateACL(acl));
 	}
 
 	@Test
@@ -316,19 +311,19 @@ public class IT500SynapseJavaClient {
 		assertEquals(file.getId(), annos.getId());
 		assertNotNull(updatedAnnos.getEtag());
 		// The Etag should have changed
-		assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
+		assertNotEquals(updatedAnnos.getEtag(), annos.getEtag());
 
 		// Get the "zero" e-tag for specific versions. See PLFM-1420.
 		Entity datasetEntity = synapseOne.getEntityByIdForVersion(file.getId(), file.getVersionNumber());
-		assertFalse(NodeConstants.ZERO_E_TAG.equals(datasetEntity.getEtag()));
+		assertNotEquals(NodeConstants.ZERO_E_TAG, datasetEntity.getEtag());
 
 		// Get the Users permission for this entity
 		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(file.getId());
 		assertNotNull(uep);
-		assertEquals(true, uep.getCanEdit());
-		assertEquals(true, uep.getCanView());
-		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.UPDATE));
-		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.READ));
+		assertTrue(uep.getCanEdit());
+		assertTrue(uep.getCanView());
+		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.READ));
 		assertTrue(uep.getCanChangePermissions());
 		assertTrue(uep.getCanChangeSettings());
 		assertTrue(uep.getCanEnableInheritance());
@@ -345,7 +340,7 @@ public class IT500SynapseJavaClient {
 		AccessControlList acl = synapseOne.getACL(project.getId());
 		ResourceAccess readPermission = new ResourceAccess();
 		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
-		readPermission.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
+		readPermission.setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
 		acl.getResourceAccess().add(readPermission);
 		synapseOne.updateACL(acl);
 		
@@ -355,7 +350,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(file.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
-		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setSubjectIds(Collections.singletonList(rod));
 
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
@@ -395,7 +390,7 @@ public class IT500SynapseJavaClient {
 		acl = synapseOne.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		boolean foundit = false;
-		List<Long> foundPrincipals = new ArrayList<Long>();
+		List<Long> foundPrincipals = new ArrayList<>();
 		for (ResourceAccess ra : ras) {
 			assertNotNull(ra.getPrincipalId());
 			foundPrincipals.add(ra.getPrincipalId());
@@ -406,7 +401,7 @@ public class IT500SynapseJavaClient {
 				assertTrue(ats.contains(ACCESS_TYPE.UPDATE));
 			}
 		}
-		assertTrue("didn't find "+profile.getUserName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
+		assertTrue(foundit, "didn't find "+profile.getUserName()+"("+profile.getOwnerId()+") but found "+foundPrincipals);
 		
 		// Get the path
 		EntityPath path = synapseOne.getEntityPath(file.getId());
@@ -492,18 +487,12 @@ public class IT500SynapseJavaClient {
 		System.out.println("Bundle request time was " + requestTime + " ms");
 
 		assertNotNull(entityBundle.getRestrictionInformation());
-		assertEquals("Invalid fetched Entity in the EntityBundle", 
-				synapseOne.getEntityById(project.getId()), entityBundle.getEntity());
-		assertEquals("Invalid fetched Annotations in the EntityBundle", 
-				synapseOne.getAnnotations(project.getId()), entityBundle.getAnnotations());
-		assertEquals("Invalid fetched EntityPath in the EntityBundle", 
-				synapseOne.getEntityPath(project.getId()), entityBundle.getPath());
-		assertEquals("Invalid fetched ACL in the EntityBundle", 
-				synapseOne.getACL(project.getId()), entityBundle.getAccessControlList());
-		assertEquals("Unexpected ARs in the EntityBundle", 
-				0, entityBundle.getAccessRequirements().size());
-		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
-				0, entityBundle.getUnmetAccessRequirements().size());
+		assertEquals(synapseOne.getEntityById(project.getId()), entityBundle.getEntity(),"Invalid fetched Entity in the EntityBundle");
+		assertEquals(synapseOne.getAnnotations(project.getId()), entityBundle.getAnnotations(), "Invalid fetched Annotations in the EntityBundle");
+		assertEquals(synapseOne.getEntityPath(project.getId()), entityBundle.getPath(), "Invalid fetched EntityPath in the EntityBundle");
+		assertEquals(synapseOne.getACL(project.getId()), entityBundle.getAccessControlList(), "Invalid fetched ACL in the EntityBundle");
+		assertEquals(0, entityBundle.getAccessRequirements().size(), "Unexpected ARs in the EntityBundle");
+		assertEquals(0, entityBundle.getUnmetAccessRequirements().size(), "Unexpected unmet-ARs in the EntityBundle");
 		assertNull(entityBundle.getFileName());
 	}
 	
@@ -524,7 +513,7 @@ public class IT500SynapseJavaClient {
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create resource access for me
 		UserProfile myProfile = synapseOne.getMyProfile();
-		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+		Set<ACCESS_TYPE> accessTypes = new HashSet<>();
 		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
@@ -542,7 +531,7 @@ public class IT500SynapseJavaClient {
 		
 		// Create ACL for this entity
 		AccessControlList acl1 = new AccessControlList();
-		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
+		Set<ResourceAccess> resourceAccesses = new HashSet<>();
 		resourceAccesses.add(ra);
 		acl1.setResourceAccess(resourceAccesses);
 		
@@ -557,19 +546,19 @@ public class IT500SynapseJavaClient {
 		Folder s2 = (Folder) response.getEntity();
 		toDelete.add(s2.getId());
 		assertNotNull(s2);
-		assertNotNull("Etag should have been generated, but was not", s2.getEtag());
+		assertNotNull(s2.getEtag(), "Etag should have been generated, but was not");
 		assertEquals(s1.getName(), s2.getName());
 		
 		Annotations a2 = response.getAnnotations();
 		assertNotNull(a2);
-		assertNotNull("Etag should have been generated, but was not", a2.getEtag());
-		assertEquals("Retrieved Annotations in bundle do not match original ones", a1.getStringAnnotations(), a2.getStringAnnotations());
-		assertEquals("Retrieved Annotations in bundle do not match original ones", a1.getDoubleAnnotations(), a2.getDoubleAnnotations());
+		assertNotNull(a2.getEtag(), "Etag should have been generated, but was not");
+		assertEquals(a1.getStringAnnotations(), a2.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
+		assertEquals(a1.getDoubleAnnotations(), a2.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
 		
 		AccessControlList acl2 = response.getAccessControlList();
 		assertNotNull(acl2);
-		assertNotNull("Etag should have been generated, but was not", acl2.getEtag());
-		assertEquals("Retrieved ACL in bundle does not match original one", acl1.getResourceAccess(), acl2.getResourceAccess());
+		assertNotNull(acl2.getEtag(), "Etag should have been generated, but was not");
+		assertEquals(acl1.getResourceAccess(), acl2.getResourceAccess(), "Retrieved ACL in bundle does not match original one");
 	
 		// Update the bundle, verify contents
 		s2.setName("Dummy study 1 updated");
@@ -585,19 +574,19 @@ public class IT500SynapseJavaClient {
 		
 		Folder s3 = (Folder) response2.getEntity();
 		assertNotNull(s3);
-		assertFalse("Etag should have been updated, but was not", s2.getEtag().equals(s3.getEtag()));
+		assertNotEquals(s2.getEtag(), s3.getEtag(),"Etag should have been updated, but was not");
 		assertEquals(s2.getName(), s3.getName());
 		
 		Annotations a3 = response2.getAnnotations();
 		assertNotNull(a3);
-		assertFalse("Etag should have been updated, but was not", a2.getEtag().equals(a3.getEtag()));
-		assertEquals("Retrieved Annotations in bundle do not match original ones", a2.getStringAnnotations(), a3.getStringAnnotations());
-		assertEquals("Retrieved Annotations in bundle do not match original ones", a2.getDoubleAnnotations(), a3.getDoubleAnnotations());
+		assertNotEquals(a2.getEtag(), a3.getEtag(), "Etag should have been updated, but was not");
+		assertEquals(a2.getStringAnnotations(), a3.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
+		assertEquals(a2.getDoubleAnnotations(), a3.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
 		
 		AccessControlList acl3 = response2.getAccessControlList();
 		assertNotNull(acl3);
-		assertFalse("Etag should have been updated, but was not", acl2.getEtag().equals(acl3.getEtag()));
-		assertEquals("Retrieved ACL in bundle does not match original one", acl2.getResourceAccess(), acl3.getResourceAccess());
+		assertNotEquals(acl2.getEtag(), acl3.getEtag(), "Etag should have been updated, but was not");
+		assertEquals(acl2.getResourceAccess(), acl3.getResourceAccess(), "Retrieved ACL in bundle does not match original one");
 
 	}
 
@@ -611,14 +600,14 @@ public class IT500SynapseJavaClient {
 		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,1000);
 		assertTrue(users.getResults().size()>0);
 		boolean foundSelf = false;
-		List<String> allDisplayNames = new ArrayList<String>();
+		List<String> allDisplayNames = new ArrayList<>();
 		for (UserProfile up : users.getResults()) {
 			assertNotNull(up.getOwnerId());
 			String displayName = up.getUserName();
 			allDisplayNames.add(displayName);
 			if (up.getOwnerId().equals(myPrincipalId)) foundSelf=true;
 		}
-		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);	
+		assertTrue(foundSelf, "Didn't find self, only found "+allDisplayNames);
 	}
 	
 	@Test
@@ -693,7 +682,7 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testGetUserGroupHeadersById() throws Exception {
-		List<String> ids = new ArrayList<String>();		
+		List<String> ids = new ArrayList<>();
 		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,100);
 		for (UserProfile up : users.getResults()) {	
 			if (up.getUserName() != null) {
@@ -701,7 +690,7 @@ public class IT500SynapseJavaClient {
 			}
 		}
 		UserGroupHeaderResponsePage response = synapseOne.getUserGroupHeadersByIds(ids);
-		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		Map<String, UserGroupHeader> headers = new HashMap<>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
 		
@@ -729,7 +718,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(layer.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
-		r.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		r.setSubjectIds(Arrays.asList(rod));
 
 
 		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
@@ -790,22 +779,17 @@ public class IT500SynapseJavaClient {
 
 		adminSynapse.deleteAccessApproval(created.getId());
 
-		try {
-			adminSynapse.revokeAccessApprovals(r.getId().toString(), otherProfile.getOwnerId());
-			fail("Expecting IllegalArgumentException");
-		} catch (SynapseBadRequestException e) {
-			// The service is wired up.
-			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
-		}
+		String accessRequirementId = r.getId().toString();
+		assertThrows(SynapseBadRequestException.class, () -> adminSynapse.revokeAccessApprovals(accessRequirementId, otherProfile.getOwnerId()));
 	}
 
 	@Test
 	public void testUserSessionData() throws Exception {
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
-		assertNotNull("Failed to find session token", sessionToken);
+		assertNotNull(sessionToken, "Failed to find session token");
 		UserProfile integrationTestUserProfile = userSessionData.getProfile();
-		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
+		assertNotNull(integrationTestUserProfile, "Failed to get user profile from user session data");
 	}
 
 	/**
@@ -817,7 +801,7 @@ public class IT500SynapseJavaClient {
 		// First load an image from the classpath
 		String fileName = "images/profile_pic.png";
 		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
-		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
+		assertNotNull(url, "Failed to find: "+fileName+" on the classpath");
 		File originalFile = new File(url.getFile());
 
 		// Get the profile to update.
@@ -877,7 +861,7 @@ public class IT500SynapseJavaClient {
 		JSONObject row = array.getJSONObject(0);
 		assertNotNull(row);
 		String fullKey = "project."+key;
-		assertFalse("Failed to get an annotation back with 'select annotaionName'", row.isNull(fullKey));
+		assertFalse(row.isNull(fullKey), "Failed to get an annotation back with 'select annotaionName'");
 		JSONArray valueArray = row.getJSONArray(fullKey);
 		assertNotNull(valueArray);
 		assertEquals(1, valueArray.length());
@@ -915,11 +899,11 @@ public class IT500SynapseJavaClient {
 		assertTrue(offset1.get("results").toString().contains(dataset.getId()));
 	}
 
-	@Test (expected=SynapseBadRequestException.class)
-	public void testGetQueryWithOffset0() throws SynapseException, InterruptedException, JSONException{
+	@Test
+	public void testGetQueryWithOffset0(){
 		String queryString = "select id from entity offset 0";
 		// Wait for the query
-		waitForQuery(queryString, 1L);
+		assertThrows(SynapseBadRequestException.class, () -> waitForQuery(queryString, 1L));
 	}
 	
 	/**
@@ -936,7 +920,7 @@ public class IT500SynapseJavaClient {
 			System.out.println("Waiting for query: "+queryString);
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for annotations to be published for query: "+queryString, elapse < RDS_WORKER_TIMEOUT);
+			assertTrue(elapse < RDS_WORKER_TIMEOUT, "Timed out waiting for annotations to be published for query: "+queryString);
 			results = synapseOne.query(queryString);
 			System.out.println(results);
 		}
@@ -957,7 +941,7 @@ public class IT500SynapseJavaClient {
 			System.out.println("Waiting for query...");
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for query", elapse < RDS_WORKER_TIMEOUT);
+			assertTrue(elapse < RDS_WORKER_TIMEOUT, "Timed out waiting for query");
 			results = synapseOne.entityQuery(query);
 		}
 		return results;
@@ -998,18 +982,13 @@ public class IT500SynapseJavaClient {
 	public void testCertifiedUserQuiz() throws Exception {
 		// before taking the test there's no passing record
 		String myId = synapseOne.getMyProfile().getOwnerId();
-		try {
-			synapseOne.getCertifiedUserPassingRecord(myId);
-			fail("Expected SynapseNotFoundException");
-		} catch (SynapseNotFoundException e) {
-			// as expected
-		}
+		assertThrows(SynapseNotFoundException.class, () -> synapseOne.getCertifiedUserPassingRecord(myId));
 		Quiz quiz = synapseOne.getCertifiedUserTest();
 		assertNotNull(quiz);
 		assertNotNull(quiz.getId());
 		QuizResponse response = new QuizResponse();
 		response.setQuizId(quiz.getId());
-		response.setQuestionResponses(new ArrayList<QuestionResponse>());
+		response.setQuestionResponses(new ArrayList<>());
 		// this quiz will fail
 		PassingRecord pr = synapseOne.submitCertifiedUserTestResponse(response);
 		assertEquals(new Long(0L), pr.getScore());
@@ -1067,7 +1046,7 @@ public class IT500SynapseJavaClient {
 		// setup a query to find the project by ID.
 		EntityQuery query = new EntityQuery();
 		query.setFilterByType(EntityType.project);
-		query.setConditions(new ArrayList<Condition>(1));
+		query.setConditions(new ArrayList<>(1));
 		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
 		// Run the query
 		EntityQueryResults results = waitForQuery(query);

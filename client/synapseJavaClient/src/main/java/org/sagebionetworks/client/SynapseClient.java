@@ -827,12 +827,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void updateMessageStatus(MessageStatus status)
 			throws SynapseException;
-	
-	/**
-	 * Deletes a message.  Used for test cleanup only.  Admin only.
-	 */
-	public void deleteMessage(String messageId) throws SynapseException;
-	
+
 	/**
 	 * Downloads the body of a message and returns it in a String
 	 */
@@ -936,14 +931,6 @@ public interface SynapseClient extends BaseClient {
 	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException;
-	
-	/**
-	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
-	 * @param submissionId
-	 * @param contributor
-	 * @return
-	 */
-	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor) throws SynapseException ;
 
 	public Submission getSubmission(String subId) throws SynapseException;
 
@@ -1867,27 +1854,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
-	
-	/**
-	 * For integration testing only:  This allows an administrator to set the Certified user status
-	 * of a user.
-	 * @param prinicipalId
-	 * @param status
-	 * @throws SynapseException
-	 */
-	public void setCertifiedUserStatus(String prinicipalId, boolean status) throws SynapseException;
-	
-	/**
-	 * Must be a Synapse admin to make this request
-	 * 
-	 * @param offset
-	 * @param limit
-	 * @param principalId (optional)
-	 * @return the C.U. test responses in the system, optionally filtered by principalId
-	 * @throws SynapseException 
-	 */
-	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, String principalId) throws SynapseException;
-	
+
 	/**
 	 * Delete the Test Response indicated by the given id
 	 * 
@@ -1907,11 +1874,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
 
-	/**
-	 * Get all Passing Records on the Certified User test for the given user
-	 */
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
-	
 	/**
 	 * Start a new Asynchronous Job
 	 * @param jobBody

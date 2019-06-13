@@ -467,17 +467,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 		SubmissionContributor sb = clone.getContributors().iterator().next();
 		assertEquals(""+user1ToDelete, sb.getPrincipalId());
 		assertNotNull(sb.getCreatedOn());
-		
-		// add my colleague as a contributor
+
+		// an admin can add my colleague as a contributor
 		SubmissionContributor added = new SubmissionContributor();
 		added.setPrincipalId(""+user2ToDelete);
-		try {
-			synapseOne.addSubmissionContributor(clone.getId(), added);
-			fail("UnauthorizedException expected");
-		} catch (SynapseForbiddenException e) {
-			// as expected
-		}
-		// can't do it myself, but an admin can do it
 		SubmissionContributor created = adminSynapse.addSubmissionContributor(clone.getId(), added);
 		assertEquals(""+user2ToDelete, created.getPrincipalId());
 		assertNotNull(created.getCreatedOn());
