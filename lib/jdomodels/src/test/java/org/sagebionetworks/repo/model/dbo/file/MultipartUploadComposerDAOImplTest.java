@@ -63,12 +63,11 @@ class MultipartUploadComposerDAOImplTest {
 		request.setPartSizeBytes(5L);
 		request.setStorageLocationId(storageLocationId);
 		String uploadToken = "";
-		UploadType uploadType = UploadType.GOOGLECLOUDSTORAGE;
 		String bucket = "someBucket";
 		String key = "someKey";
 		int numberOfParts = 11;
 		String requestJSON = EntityFactory.createJSONStringForEntity(request);
-		CreateMultipartRequest createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, uploadType, bucket, key, numberOfParts);
+		CreateMultipartRequest createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, bucket, key, numberOfParts);
 
 		uploadId = multipartUploadDAO.createUploadStatus(createRequest).getMultipartUploadStatus().getUploadId();
 	}
