@@ -1,7 +1,12 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.search.CloudSearchDocumentGenerationAwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -11,11 +16,14 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ChangeMessageToSearchDocumentTranslator {
 	private static final Logger log = LogManager.getLogger(ChangeMessageToSearchDocumentTranslator.class.getName());
 
+	static ThreadLocal<List<CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordList =
+			ThreadLocalProvider.getInstanceWithInitial(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX, ArrayList::new);
 
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
@@ -32,8 +40,9 @@ public class ChangeMessageToSearchDocumentTranslator {
 			// Is this a create or update
 			if (ChangeType.CREATE == change.getChangeType()
 					|| ChangeType.UPDATE == change.getChangeType()) {
-				return createUpdateDocument(change.getObjectId(), change.getObjectEtag());
+				return createUpdateDocument(change.getChangeNumber(), change.getChangeType(), change.getObjectId(), change.getObjectEtag(), change.getObjectType());
 			} else if (ChangeType.DELETE == change.getChangeType()) {
+				addSearchDocumentCreationRecord(change.getChangeNumber(),change.getChangeType(),change.getObjectId(), change.getObjectEtag(), change.getObjectType());
 				return createDeleteDocument(change.getObjectId());
 			} else {
 				throw new IllegalArgumentException("Unknown change type: "
@@ -49,7 +58,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 				// If the owner of the wiki is a an entity then pass along the
 				// message.
 				if (ObjectType.ENTITY == key.getOwnerObjectType()) {
-					return createUpdateDocument(key.getOwnerObjectId(), null);
+					return createUpdateDocument(change.getChangeNumber(), ChangeType.UPDATE, key.getOwnerObjectId(), null, change.getObjectType());
 				}
 			} catch (NotFoundException e) {
 				// Nothing to do if the wiki does not exist
@@ -60,13 +69,18 @@ public class ChangeMessageToSearchDocumentTranslator {
 		return null;
 	}
 
-	private Document createUpdateDocument(String entityId, String entityEtag) {
+	private Document createUpdateDocument(Long changeNumber, ChangeType changeType, String entityId, String entityEtag, ObjectType objectType) {
+
+		//for logging
+		CloudSearchDocumentGenerationAwsKinesisLogRecord record = addSearchDocumentCreationRecord(changeNumber, changeType, entityId, entityEtag, objectType);
+
 		// We want to ignore this message if a document with this ID and Etag
 		// already exists in the search index.
 		if (!searchDao.doesDocumentExist(entityId, entityEtag)) {
 			// We want to ignore this message if a document with this ID and
 			// Etag are not in the repository as it is an
 			// old message.
+			record.withExistsOnIndex(false);
 			if (entityEtag == null || searchDocumentDriver.doesNodeExist( entityId, entityEtag)) {
 				try {
 					return searchDocumentDriver.formulateSearchDocument(entityId);
@@ -77,8 +91,22 @@ public class ChangeMessageToSearchDocumentTranslator {
 							+ e.getMessage());
 				}
 			}
+		}else{
+			record.withExistsOnIndex(true);
 		}
 		return null;
+	}
+
+	static CloudSearchDocumentGenerationAwsKinesisLogRecord addSearchDocumentCreationRecord(Long changeNumber, ChangeType changeType, String entityId, String entityEtag, ObjectType objectType){
+		CloudSearchDocumentGenerationAwsKinesisLogRecord record = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
+				.withSynapseId(KeyFactory.stringToKey(entityId).toString())
+				.withEtag(entityEtag)
+				.withChangeNumber(changeNumber)
+				.withChangeType(changeType)
+				.withObjectType(objectType);
+
+		threadLocalRecordList.get().add(record);
+		return record;
 	}
 
 

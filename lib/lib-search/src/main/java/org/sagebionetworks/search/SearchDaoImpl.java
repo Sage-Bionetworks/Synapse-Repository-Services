@@ -9,6 +9,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.model.Hit;
+import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import com.amazonaws.services.cloudsearchdomain.model.SearchException;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,12 +23,6 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.cloudsearchdomain.model.Hit;
-import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
-import com.amazonaws.services.cloudsearchdomain.model.SearchException;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 
 /**
  * Implementation of the Search DAO.
