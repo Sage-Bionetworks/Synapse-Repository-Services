@@ -9,6 +9,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Utilities for translating between DTOs and DBOs for  ChangeMessage.
@@ -49,6 +50,7 @@ public class ChangeMessageUtils {
 		dbo.setChangeType(dto.getChangeType().name());
 		dbo.setObjectEtag(dto.getObjectEtag());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
+		dbo.setObjectVersion(dto.getObjectVersion());
 		if (dto.getUserId() != null) {
 			dbo.setUserId(dto.getUserId());
 		}
@@ -88,6 +90,7 @@ public class ChangeMessageUtils {
 			// All other types are longs.
 			dto.setObjectId(dbo.getObjectId().toString());
 		}
+		dto.setObjectVersion(dbo.getObjectVersion());
 		dto.setChangeType(ChangeType.valueOf(dbo.getChangeType()));
 		if (dbo.getUserId() != null) {
 			dto.setUserId(dbo.getUserId());
@@ -105,15 +108,18 @@ public class ChangeMessageUtils {
 		Collections.sort(list, new Comparator<ChangeMessage>() {
 			@Override
 			public int compare(ChangeMessage one, ChangeMessage two) {
-				if(one == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(one.getObjectId() == null) throw new IllegalArgumentException("one.getObjectId() cannot be null");
-				if(two == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(two.getObjectId() == null) throw new IllegalArgumentException("two.getObjectId() cannot be null");
+				ChangeMessageUtils.validateChangeMessage(one);
+				ChangeMessageUtils.validateChangeMessage(two);
 				// First sort by ID
 				int idOrder = one.getObjectId().compareTo(two.getObjectId());
 				if(idOrder == 0){
-					// When equal sort by type.
-					return one.getObjectType().name().compareTo(two.getObjectType().name());
+					// check version number
+					int versionOrder = one.getObjectVersion().compareTo(two.getObjectVersion());
+					if( versionOrder == 0) {
+						// When equal sort by type.
+						return one.getObjectType().name().compareTo(two.getObjectType().name());
+					}
+					return versionOrder;
 				}else{
 					return idOrder;
 				}
@@ -143,4 +149,18 @@ public class ChangeMessageUtils {
 		return list;
 	}
 
+	
+	/**
+	 * Null checks for all required fields of a change message.
+	 * 
+	 * @param toValiate
+	 */
+	public static void validateChangeMessage(ChangeMessage toValiate) {
+		ValidateArgument.required(toValiate, "ChangeMessage");
+		ValidateArgument.required(toValiate.getObjectId(), "ChangeMessage.objectId");
+		ValidateArgument.required(toValiate.getObjectVersion(), "ChangeMessage.objectVersion");
+		ValidateArgument.required(toValiate.getObjectType(), "ChangeMessage.objectType");
+		ValidateArgument.required(toValiate.getObjectEtag(), "ChangeMessage.objectEtag");
+		ValidateArgument.required(toValiate.getChangeType(), "ChangeMessage.changeType");
+	}
 }

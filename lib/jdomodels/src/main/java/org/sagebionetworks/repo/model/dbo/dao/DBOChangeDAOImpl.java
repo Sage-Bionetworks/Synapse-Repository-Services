@@ -187,7 +187,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		DBOSentMessage sentDBO = new DBOSentMessage();
 		sentDBO.setChangeNumber(null);
 		sentDBO.setObjectId(changeDbo.getObjectId());
-		sentDBO.setObjectType(ObjectType.valueOf(changeDbo.getObjectType()));
+		sentDBO.setObjectVersion(changeDbo.getObjectVersion());
+		sentDBO.setObjectType(changeDbo.getObjectType());
 		basicDao.createOrUpdate(sentDBO);
 		return ChangeMessageUtils.createDTO(changeDbo);
 	}
@@ -301,7 +302,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			DBOSentMessage sent = new DBOSentMessage();
 			sent.setChangeNumber(message.getChangeNumber());
 			sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
-			sent.setObjectType(message.getObjectType());
+			sent.setObjectType(message.getObjectType().name());
 			sent.setTimeStamp(now);
 			dboBatch.add(sent);
 		}

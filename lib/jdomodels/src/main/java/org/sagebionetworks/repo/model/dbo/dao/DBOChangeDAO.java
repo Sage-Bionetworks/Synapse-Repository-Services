@@ -8,8 +8,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.util.Callback;
 
 
 /**

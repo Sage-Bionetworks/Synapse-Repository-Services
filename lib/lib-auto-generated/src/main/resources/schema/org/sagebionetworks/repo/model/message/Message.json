@@ -10,6 +10,10 @@
 			"type": "string",
 			"description":"The unique identifier of the object that changed."
 		},
+		"objectVersion": {
+			"type": "integer",
+			"description":"Identifier for a specific version of an object."
+		},
 		"objectType": {
 			"description": "The type of the object that changed",
 			"$ref":"org.sagebionetworks.repo.model.ObjectType"
