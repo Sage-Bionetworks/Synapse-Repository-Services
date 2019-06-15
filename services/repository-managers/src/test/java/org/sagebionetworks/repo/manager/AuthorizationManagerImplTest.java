@@ -617,7 +617,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDownload());
 		assertEquals(true, uep.getCanUpload()); 
 		assertEquals(false, uep.getCanEnableInheritance());
-		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
+		assertEquals(userInfo.getId(), uep.getOwnerPrincipalId());
 	}
 	
 	@Test
