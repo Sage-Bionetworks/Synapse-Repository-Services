@@ -202,9 +202,9 @@ public class EntityAuthorizationManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, certifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -227,9 +227,9 @@ public class EntityAuthorizationManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, nonCertifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(projectId, nonCertifiedUserInfo).isAuthorized());
 	}
 
 	@Test
@@ -252,9 +252,9 @@ public class EntityAuthorizationManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -287,9 +287,9 @@ public class EntityAuthorizationManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -312,9 +312,9 @@ public class EntityAuthorizationManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
 		
-		assertFalse(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).getAuthorized());
+		assertFalse(entityAuthorizationManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 		
-		assertFalse(entityAuthorizationManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
+		assertFalse(entityAuthorizationManager.canCreateWiki(folderId, nonCertifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -322,7 +322,7 @@ public class EntityAuthorizationManagerImplUnitTest {
     	UserInfo anonymousUser = new UserInfo(false);
     	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		assertFalse(entityAuthorizationManager.
-				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).getAuthorized());
+				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).isAuthorized());
 		
 	}
 	
