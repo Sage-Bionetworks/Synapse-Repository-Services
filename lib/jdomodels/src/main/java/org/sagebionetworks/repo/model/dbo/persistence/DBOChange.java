@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>  {
 
+	private static final long DEFAULT_NULL_VERSION = -1L;
+
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM).withIsBackupId(true),
 		new FieldColumn("timeStamp", COL_CHANGES_TIME_STAMP),
@@ -272,7 +274,20 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 
 	@Override
 	public MigratableTableTranslation<DBOChange, DBOChange> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOChange>();
+		return new MigratableTableTranslation<DBOChange, DBOChange>(){
+
+			@Override
+			public DBOChange createDatabaseObjectFromBackup(DBOChange backup) {
+				if(backup.getObjectVersion() == null) {
+					backup.setObjectVersion(DEFAULT_NULL_VERSION);
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOChange createBackupFromDatabaseObject(DBOChange dbo) {
+				return dbo;
+			}};
 	}
 
 	@Override

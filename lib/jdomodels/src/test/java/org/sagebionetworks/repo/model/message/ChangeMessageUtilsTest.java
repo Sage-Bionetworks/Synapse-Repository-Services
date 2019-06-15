@@ -38,5 +38,31 @@ public class ChangeMessageUtilsTest {
 		assertNotNull(clone);
 		assertEquals("Failed to make a round trip without data loss", list, clone);
 	}
+	
+	@Test
+	public void testValidateChangeMessage() {
+		ChangeMessage valid = createValidChange();
+		// call under test
+		ChangeMessageUtils.validateChangeMessage(valid);
+	}
+	
+	@Test
+	public void testSortByObjectId() {
+		
+	}
+	
+	/**
+	 * Helper to create a valid ChangeMessage
+	 * @return
+	 */
+	public static ChangeMessage createValidChange() {
+		ChangeMessage change = new ChangeMessage();
+		change.setChangeNumber(1L);
+		change.setObjectId("syn123");
+		change.setObjectVersion(-1L);
+		change.setObjectType(ObjectType.ENTITY);
+		change.setChangeType(ChangeType.CREATE);
+		return change;
+	}
 
 }

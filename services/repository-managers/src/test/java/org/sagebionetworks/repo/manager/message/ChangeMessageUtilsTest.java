@@ -80,4 +80,5 @@ public class ChangeMessageUtilsTest {
 		assertEquals(1, groupPartitions.size());
 		assertEquals(Arrays.asList(four), groupPartitions.get(0));
 	}
+
 }

@@ -14,8 +14,6 @@ import org.sagebionetworks.util.ValidateArgument;
 /**
  * Utilities for translating between DTOs and DBOs for  ChangeMessage.
  * 
- * @author John
- *
  */
 public class ChangeMessageUtils {
 	
