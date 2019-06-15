@@ -23,7 +23,7 @@ public class ConnectionPoolLogger {
 	 * @return
 	 * @throws Throwable
 	 */
-//	@Around("execution(* org.apache.commons.dbcp..*.*(..))")
+//	@Around("execution(* org.apache.commons.dbcp2..*.*(..))")
 	public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
 		if(log.isDebugEnabled()){
 //			log.debug(pjp.getSignature());

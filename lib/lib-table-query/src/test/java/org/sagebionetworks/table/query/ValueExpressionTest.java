@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.DerivedColumn;
@@ -56,6 +58,12 @@ public class ValueExpressionTest {
 	public void testArithmetic() throws ParseException{
 		ValueExpression one = new TableQueryParser("100/1").valueExpression();
 		assertEquals("100/1", one.toSql());
+	}
+	
+	@Test
+	public void testEntityId() throws ParseException {
+		ValueExpression one = new TableQueryParser("syn11.22").valueExpression();
+		assertEquals("syn11.22", one.toSql());
 	}
 
 }

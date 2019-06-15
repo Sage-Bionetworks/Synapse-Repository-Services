@@ -1,6 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
-import static org.sagebionetworks.table.query.model.FunctionReturnType.*;
+import static org.sagebionetworks.table.query.model.FunctionReturnType.DOUBLE;
+import static org.sagebionetworks.table.query.model.FunctionReturnType.LONG;
+import static org.sagebionetworks.table.query.model.FunctionReturnType.MATCHES_PARAMETER;
+import static org.sagebionetworks.table.query.model.FunctionReturnType.STRING;
 /**
  * This matches &ltset function type&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -20,6 +23,7 @@ public enum SetFunctionType {
 	VAR_POP(DOUBLE),
 	VAR_SAMP(DOUBLE),
 	VARIANCE(DOUBLE),
+	GROUP_CONCAT(STRING)
 	;
 	
 	FunctionReturnType returnType;

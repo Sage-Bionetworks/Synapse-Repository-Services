@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,13 +11,9 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.VersionableEntity;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -276,6 +271,11 @@ public class UrlHelpers {
 	public static final String PROJECT_SETTINGS = "/projectSettings";
 	public static final String PROJECT_SETTINGS_BY_ID = "/projectSettings" + ID;
 	public static final String PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE = "/projectSettings/{projectId}/type/{type}";
+
+	// Synapse storage report
+	public static final String STORAGE_REPORT = "/storageReport";
+	public static final String STORAGE_REPORT_ASYNC_START = STORAGE_REPORT + ASYNC_START_REQUEST;
+	public static final String STORAGE_REPORT_ASYNC_GET = STORAGE_REPORT + ASYNC_GET_REQUEST;
 
 	/**
 	 * The base URL for Synapse objects's type (a.k.a. EntityHeader)
@@ -573,8 +573,9 @@ public class UrlHelpers {
 	/**
 	 * The stack status of synapse 
 	 */
-	public static final String STACK_STATUS					= ADMIN+"/synapse/status";
-	
+	public static final String ADMIN_STACK_STATUS	= ADMIN+"/synapse/status";
+	public static final String STACK_STATUS			=  "/status";
+
 	/**
 	 * List change messages.
 	 */
@@ -809,6 +810,7 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_START = ENTITY_TABLE_UPLOAD_CSV + ASYNC_START_REQUEST;
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET = ENTITY_TABLE_UPLOAD_CSV + ASYNC_GET_REQUEST;
 	public static final String TABLE_COLUMNS_OF_SCOPE = COLUMN+"/view/scope";
+	public static final String TABLE_SQL_TRANSFORM = TABLE+"/sql/transform";
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
 	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";
@@ -821,6 +823,7 @@ public class UrlHelpers {
 	public static final String USER_TEAM = USER+ID+TEAM;
 	public static final String USER_TEAM_IDS = USER+ID+TEAM+"/id";
 	public static final String NAME_FRAGMENT_FILTER = "fragment";
+	public static final String MEMBER_TYPE_FILTER = "memberType";
 	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
 	private static final String MEMBER = "/member";
 	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";
@@ -972,6 +975,7 @@ public class UrlHelpers {
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
 	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
+	public static final String ENTITY_ID_DOCKER_TAG = ENTITY_ID+"/dockerTag";
 	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
 	// Data Access Services
@@ -1014,7 +1018,11 @@ public class UrlHelpers {
 	public static final String AUTH_SESSION = "/session";
 	public static final String AUTH_USER = "/user";
 	public static final String AUTH_USER_PASSWORD = AUTH_USER + "/password";
+	public static final String AUTH_USER_CHANGE_PASSWORD = AUTH_USER + "/changePassword";
+
 	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
+	public static final String AUTH_USER_PASSWORD_RESET = AUTH_USER_PASSWORD + "/reset";
+
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 	
@@ -1022,6 +1030,7 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
+	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 
 	public static final String AUTH_LOGIN = "/login";
 	
@@ -1047,80 +1056,6 @@ public class UrlHelpers {
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
-	}
-
-	
-	/**
-	 * Helper function to create a relative URL for an entity's annotations
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param loginRequest
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityAnnotationsUri(String entityId) {
-		return ENTITY + "/" + entityId + ANNOTATIONS;
-	}
-	
-	/**
-	 * Helper function to create a relative URL for an entity's ACL
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param loginRequest
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityACLUri(String entityId) {
-		return ENTITY + "/" + entityId + ACL;
-	}
-	
-	/**
-	 * Helper function to create a relative URL for an entity's dependent
-	 * property
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityPropertyUri(HttpServletRequest request) {
-		return request.getRequestURI();
-	}
-
-	/**
-	 * Helper function to create a relative URL for an entity's annotations
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param entity
-	 * @param propertyClass
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityPropertyUri(Entity entity,
-			Class propertyClass, HttpServletRequest request) {
-
-		String urlPrefix = getUrlPrefixFromRequest(request);
-
-		String uri = null;
-		try {
-			uri = urlPrefix + UrlHelpers.ENTITY
-					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8")
-					+ PROPERTY2URLSUFFIX.get(propertyClass);
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
 	}
 
 	/**
@@ -1158,123 +1093,8 @@ public class UrlHelpers {
 				: request.getServletPath();
 		return urlPrefix;
 	}
-	
-	/**
-	 * Set the URI for any entity.
-	 * @param entityId 
-	 * @param entityClass 
-	 * @param urlPrefix
-	 * @return the entity uri
-	 */
-	public static String createEntityUri(String entityId, Class<? extends Entity> entityClass, String urlPrefix){
-		if(entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
-		if(entityClass == null) throw new IllegalArgumentException("Entity class cannot be null");
-		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
-		StringBuilder builder = new StringBuilder();
-		builder.append(urlPrefix);
-		builder.append(UrlHelpers.REPO_PATH);
-		builder.append(UrlHelpers.ENTITY);
-		builder.append("/");
-		builder.append(entityId);
-		return builder.toString();
-	}
-	
-	/**
-	 * Set the base uri for any entity.
-	 * @param entity
-	 * @param request
-	 */
-	public static void setBaseUriForEntity(Entity entity, HttpServletRequest request){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(request == null) throw new IllegalArgumentException("Request cannot be null");
-		// First get the prefix
-		String prefix = UrlHelpers.getUrlPrefixFromRequest(request);
-		// Now build the uri.
-		String uri = UrlHelpers.createEntityUri(entity.getId(), entity.getClass(), prefix);
-		entity.setUri(uri);
-	}
-	
-	/**
-	 * Set the all of the Entity URLs (annotations, ACL)
-	 * @param entity
-	 */
-	public static void setAllEntityUrls(Entity entity){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-		// Add the annotations
-		entity.setAnnotations(entity.getUri()+ANNOTATIONS);
-		// Add the acl
-		entity.setAccessControlList(entity.getUri()+ACL);
-	}
-	
-	
-	/**
-	 * Set the URL of a versionable entity.
-	 * @param entity 
-	 */
-	public static void setVersionableUrl(VersionableEntity entity){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-		if(entity.getVersionNumber() == null) throw new IllegalArgumentException("Entity version number cannot be null");
-		// This URL wil list all version for this entity.
-		entity.setVersions(entity.getUri()+VERSION);
-		// This URL will reference this specific version of the entity.
-		entity.setVersionUrl(entity.getUri()+VERSION+"/"+entity.getVersionNumber());
-	}
-	
-	/**
-	 * 
-	 * @param entity
-	 * @param request
-	 */
-	public static void setAllUrlsForEntity(Entity entity, HttpServletRequest request){
-		// First set the base url
-		setBaseUriForEntity(entity, request);
-		// Set the Entity types
-		setAllEntityUrls(entity);
-		// Set the specialty types
-		// Versions
-		if(entity instanceof VersionableEntity){
-			setVersionableUrl((VersionableEntity)entity);
-		}
-		// Set the entity type
-		entity.setEntityType(entity.getClass().getName());
-	}
-	
-	/**
-	 * Helper method to validate all urs.
-	 * @param object
-	 */
-	public static void validateAllUrls(Entity object) {
-		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
-		EntityType type = EntityTypeUtils.getEntityTypeForClass(object.getClass());
-		String expectedBaseSuffix = UrlHelpers.ENTITY +"/"+object.getId();
-		if(!object.getUri().endsWith(expectedBaseSuffix)){
-			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());
-		}
-		String expected = object.getUri()+UrlHelpers.ANNOTATIONS;
-		if(!expected.equals(object.getAnnotations())){
-			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAnnotations());
-		}
-		expected =  object.getUri()+UrlHelpers.ACL;
-		if(!expected.equals(object.getAccessControlList())){
-			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAccessControlList());
-		}
-		// Versionable
-		if(object instanceof VersionableEntity){
-			VersionableEntity able = (VersionableEntity) object;
-			expected = object.getUri()+UrlHelpers.VERSION;
-			if(!expected.equals(able.getVersions())){
-				throw new IllegalArgumentException("Expected versions: "+expected+" but was: "+able.getVersions());
-			}
-			expected = object.getUri()+UrlHelpers.VERSION+"/"+able.getVersionNumber();
-			if(!expected.equals(able.getVersionUrl())){
-				throw new IllegalArgumentException("Expected versionUrl: "+expected+" but was: "+able.getVersionUrl());
-			}
-		}
-	}
-	
+
+
 	/**
 	 * Create an ACL redirect URL.
 	 * @param request - The initial request.

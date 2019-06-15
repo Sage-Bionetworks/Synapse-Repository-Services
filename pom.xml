@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org\
-                    /2001/XMLSchema-instance"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
                              http://maven.apache.org/maven-v4_0_0.xsd">
 
@@ -55,6 +54,10 @@
 			<url>http://repo1.maven.org/maven2/</url>
 		</repository>
 		<repository>
+			<id>mvnrepository.com</id>
+			<url>http://central.maven.org/maven2/</url>
+		</repository>		
+		<repository>
 			<id>sun-maven-repository</id>
 			<url>http://download.java.net/maven/2/</url>
 		</repository>
@@ -64,14 +67,8 @@
 			</url>
 		</repository>
 		<repository>
-			<id>central</id>
-			<name>Atlassian Public Repository</name>
-			<layout>default</layout>
-			<url>https://maven.atlassian.com/content/repositories/atlassian-public
-			</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
+			<id>spring-plugins</id>
+			<url>http://repo.spring.io/plugins-release/</url>
 		</repository>
 	</repositories>
 
@@ -129,6 +126,13 @@
 				<version>${commonslogging.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-collections4</artifactId>
+				<version>${commonscollections4.version}</version>
+				<type>jar</type>
+			</dependency>
+
+			<dependency>
 				<groupId>io.jsonwebtoken</groupId>
 				<artifactId>jjwt</artifactId>
 				<version>0.7.0</version>
@@ -167,37 +171,37 @@
 
 			<!-- Make sure all the Jackson libraries are of the same version -->
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-core-asl</artifactId>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-jaxrs</artifactId>
+				<groupId>com.fasterxml.jackson.jaxrs</groupId>
+				<artifactId>jackson-jaxrs-json-provider</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-xc</artifactId>
+				<groupId>com.fasterxml.jackson.module</groupId>
+				<artifactId>jackson-module-jaxb-annotations</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-mapper-asl</artifactId>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
 
 			<!-- Used for timer triggers (cron-like) Note: spring-context-support 
 				also depends on this libary as an optional dependancy. Since spring-context-support 
-				version 4.0.2-RELEASE uses quartz version 1.8.6 that is the version of quartz 
+				version 5.1.5.RELEASE uses quartz version 2.3.0 that is the version of quartz 
 				we are using. See the spring-context-support pom.xml. -->
 			<dependency>
 				<groupId>org.quartz-scheduler</groupId>
 				<artifactId>quartz</artifactId>
-				<version>2.2.3</version>
+				<version>2.3.0</version>
 			</dependency>
 			<dependency>
 				<groupId>javax.servlet</groupId>
@@ -249,7 +253,7 @@
 			</dependency>
 			<dependency>
 				<groupId>org.springframework</groupId>
-				<artifactId>spring-webmvc-portlet</artifactId>
+				<artifactId>spring-webmvc</artifactId>
 				<version>${org.springframework.version}</version>
 			</dependency>
 			<dependency>
@@ -278,18 +282,53 @@
 				<type>jar</type>
 				<scope>compile</scope>
 			</dependency>
-
+			<!--interface between junit5 and programmatic clients, such as IDEs and 
+				build tools, for running tests -->
 			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<version>4.12</version>
+				<groupId>org.junit.platform</groupId>
+				<artifactId>junit-platform-launcher</artifactId>
+				<version>${junit.platform.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<!--adds a subset of junit5 functionality to tests currently running under 
+				junit4. should be REMOVED once fully converted to junit5 -->
+			<dependency>
+				<groupId>org.junit.platform</groupId>
+				<artifactId>junit-platform-runner</artifactId>
+				<version>${junit.platform.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<!--junit5 engine -->
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter-engine</artifactId>
+				<version>${junit.jupiter.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter-api</artifactId>
+				<version>${junit.jupiter.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<!--junit4 engine for backwards compatibility -->
+			<dependency>
+				<groupId>org.junit.vintage</groupId>
+				<artifactId>junit-vintage-engine</artifactId>
+				<version>${junit.vintage.version}</version>
 				<scope>test</scope>
 			</dependency>
 
 			<dependency>
 				<groupId>org.mockito</groupId>
-				<artifactId>mockito-all</artifactId>
-				<version>1.10.19</version>
+				<artifactId>mockito-core</artifactId>
+				<version>${mockito.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-junit-jupiter</artifactId>
+				<version>${mockito.version}</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>
@@ -301,31 +340,37 @@
 			<dependency>
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>
-				<version>1.3.2</version>
+				<version>2.6</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-cli</groupId>
 				<artifactId>commons-cli</artifactId>
-				<version>1.1</version>
+				<version>1.4</version>
 			</dependency>
 
 			<dependency>
-				<groupId>commons-lang</groupId>
-				<artifactId>commons-lang</artifactId>
-				<version>2.3</version>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-lang3</artifactId>
+				<version>3.8.1</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-text</artifactId>
+				<version>1.6</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-codec</groupId>
 				<artifactId>commons-codec</artifactId>
-				<version>1.9</version>
+				<version>1.12</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-validator</groupId>
 				<artifactId>commons-validator</artifactId>
-				<version>1.4.0</version>
+				<version>1.6</version>
 			</dependency>
 
 			<dependency>
@@ -355,7 +400,7 @@
 			<dependency>
 				<groupId>commons-net</groupId>
 				<artifactId>commons-net</artifactId>
-				<version>3.0.1</version>
+				<version>3.6</version>
 			</dependency>
 			<dependency>
 				<!-- jsoup HTML parser library @ http://jsoup.org/ -->
@@ -546,17 +591,17 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>common-utilities</artifactId>
-				<version>1.0.9</version>
+				<version>1.0.10</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>1.0.8</version>
+				<version>3.0.1</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.0.28</version>
+				<version>1.1.1</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -626,7 +671,7 @@
 			<dependency>
 				<groupId>commons-fileupload</groupId>
 				<artifactId>commons-fileupload</artifactId>
-				<version>1.2</version>
+				<version>1.4</version>
 			</dependency>
 			<dependency>
 				<groupId>com.sun</groupId>
@@ -653,9 +698,9 @@
 				<version>${org.json.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>javax.mail</groupId>
-				<artifactId>mail</artifactId>
-				<version>1.4</version>
+				<groupId>com.sun.mail</groupId>
+				<artifactId>javax.mail</artifactId>
+				<version>1.6.1</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.inject</groupId>
@@ -673,6 +718,19 @@
 				<groupId>com.atlassian.jira</groupId>
 				<artifactId>jira-rest-java-client-core</artifactId>
 				<version>${jira.client.version}</version>
+			</dependency>
+
+			<!-- Dependency needed by jira-rest-java-client-core but it's not automatically included for some reason? -->
+			<dependency>
+				<groupId>io.atlassian.fugue</groupId>
+				<artifactId>fugue</artifactId>
+				<version>4.7.2</version>
+			</dependency>
+			<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-dbcp2</artifactId>
+				<version>2.6.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -767,7 +825,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>2.3.2</version>
+					<version>3.8.0</version>
 					<configuration>
 						<source>1.8</source>
 						<target>1.8</target>
@@ -776,12 +834,12 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>exec-maven-plugin</artifactId>
-					<version>1.2.1</version>
+					<version>1.6.0</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.12.1</version>
+					<version>3.0.0-M3</version>
 				</plugin>
 
 				<!-- Build JavaDocs -->
@@ -877,33 +935,36 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.5.1</gwtVersion>
-		<guavaVersion>17.0</guavaVersion>
+		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>4.3.20.RELEASE
+		<org.springframework.version>5.1.5.RELEASE
 		</org.springframework.version>
-		<jackson.version>1.8.1</jackson.version>
-		<xstream.version>1.3.1</xstream.version>
+		<jackson.version>2.9.9</jackson.version>
+		<xstream.version>1.4.11.1</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ
 		</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
-		<mysql.mysql-connector-java.version>5.1.13
+		<mysql.mysql-connector-java.version>8.0.11
 		</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<org.apache.commons.commons-dbcp.version>1.4
-		</org.apache.commons.commons-dbcp.version>
 		<schema-to-pojo.version>0.3.21</schema-to-pojo.version>
-		<com.amazonaws.version>1.11.421</com.amazonaws.version>
+		<com.amazonaws.version>1.11.535</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.2
+		<org.apache.httpcomponents.version>4.5.7
 		</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
+		<commonscollections4.version>4.1</commonscollections4.version>
 		<org.json.version>20090211</org.json.version>
-		<jira.client.version>2.0.0-m19</jira.client.version>
+		<jira.client.version>5.1.0-476bd700</jira.client.version>
+		<junit.jupiter.version>5.4.1</junit.jupiter.version>
+		<junit.vintage.version>5.4.1</junit.vintage.version>
+		<junit.platform.version>1.4.1</junit.platform.version>
+		<mockito.version>2.27.0</mockito.version>
 	</properties>
 
 	<distributionManagement>

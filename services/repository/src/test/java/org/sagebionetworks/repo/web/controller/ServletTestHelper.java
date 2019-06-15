@@ -12,7 +12,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServlet;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.VersionableEntity;
-import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -295,7 +294,6 @@ public class ServletTestHelper {
 	public <T extends Entity> T createEntity(
 			HttpServlet dispatchServlet, T entity, Long userId,
 			Map<String, String> extraParams) throws Exception {
-		entity.setEntityType(entity.getClass().getName());
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ENTITY, userId, entity);
@@ -704,8 +702,21 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
-		return (StackStatus) objectMapper.readValue(
-				response.getContentAsString(), StackStatus.class);
+		return objectMapper.readValue(response.getContentAsString(), StackStatus.class);
+	}
+
+	/**
+	 * Get the status of a backup/restore daemon, using the admin endpoint
+	 */
+	public StackStatus getAdminStackStatus(HttpServlet dispatchServlet)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ADMIN_STACK_STATUS, null, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(), StackStatus.class);
 	}
 
 	/**
@@ -714,7 +725,7 @@ public class ServletTestHelper {
 	public StackStatus updateStackStatus(HttpServlet dispatchServlet,
 			Long userId, StackStatus toUpdate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.STACK_STATUS, userId, toUpdate);
+				HTTPMODE.PUT, UrlHelpers.ADMIN_STACK_STATUS, userId, toUpdate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -945,7 +956,7 @@ public class ServletTestHelper {
 	public void deleteMessage(HttpServlet dispatchServlet,
 			Long userId, String id) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.MESSAGE + "/" + id, userId, null);
+				HTTPMODE.DELETE, UrlHelpers.ADMIN + UrlHelpers.MESSAGE + "/" + id, userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -2177,11 +2188,11 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
-	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, String entityId,
-			DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
+	public PaginatedResults<DockerCommit> listDockerTaggedCommits(Long userId, String entityId,
+	  		DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/"+entityId+"/dockerCommit", userId, null);
+				HTTPMODE.GET, "/entity/"+entityId+"/dockerTag", userId, null);
 
 		if (sortBy!=null) request.addParameter("sort", ""+sortBy);
 		if (ascending!=null) request.addParameter("ascending", ""+ascending);

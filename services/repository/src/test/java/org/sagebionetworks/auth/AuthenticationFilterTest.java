@@ -3,7 +3,7 @@ package org.sagebionetworks.auth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,41 +20,57 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 
 import org.joda.time.DateTime;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.sagebionetworks.auth.services.AuthenticationService;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+@ExtendWith({MockitoExtension.class})
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class AuthenticationFilterTest {
-	
+
+	@InjectMocks
 	private AuthenticationFilter filter;
-	
+
+	@Mock
 	private AuthenticationService mockAuthService;
+	@Mock
+	private UserManager mockUserManager;
+
 	private static final String sessionToken = "someSortaSessionToken";
 	private static final String secretKey = "Totally a plain text key :D";
 	private static final String username = "AuthFilter@test.sagebase.org";
 	private static final Long userId = 123456789L;
 
-	@Before
+	@BeforeEach
 	public void setupFilter() throws Exception {
-		mockAuthService = mock(AuthenticationService.class);
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId))).thenReturn(true);
-		when(mockAuthService.getUserId(eq(username))).thenReturn(userId);
+		PrincipalAlias pa = new PrincipalAlias();
+		pa.setPrincipalId(userId);
+		when(mockUserManager.lookupUserByUsernameOrEmail(eq(username))).thenReturn(pa);
 
 		final Map<String,String> filterParams = new HashMap<String, String>();
 		filterParams.put("allow-anonymous", "true");
 
-		filter = new AuthenticationFilter(mockAuthService);
 		filter.init(new FilterConfig() {
 			public String getFilterName() { 
 				return ""; 
@@ -193,14 +209,16 @@ public class AuthenticationFilterTest {
 		assertEquals(userId.toString(), passedAlongUsername);
 	}
 	
-	@Test(expected=UnauthenticatedException.class)
+	@Test
 	public void testMatchHMACSHA1SignatureOutOfDate() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		DateTime dt = new DateTime();
 		dt = dt.minusMinutes(35);
 		String timestamp = dt.toString();
 		signRequest(request, "/foo/bar/baz", username, secretKey, timestamp);
-		AuthenticationFilter.matchHMACSHA1Signature(request, secretKey);
+		Assertions.assertThrows(UnauthenticatedException.class, ()->{
+			AuthenticationFilter.matchHMACSHA1Signature(request, secretKey);
+		});
 	}
 
 	@Test

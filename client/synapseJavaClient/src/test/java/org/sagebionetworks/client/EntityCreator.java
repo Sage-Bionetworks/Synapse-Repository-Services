@@ -20,8 +20,6 @@ public class EntityCreator {
 		String id = "124";
 		toCreate.setId(id);
 		toCreate.setName("The Big Cheese");
-		toCreate.setAnnotations("/folder/"+id+"/annotations");
-		toCreate.setAnnotations("/folder/"+id+"/acl");
 		toCreate.setCreatedBy("creator@gmail.com");
 		toCreate.setModifiedBy("modifier@gmail.com");
 		long now = System.currentTimeMillis();
@@ -30,8 +28,6 @@ public class EntityCreator {
 		toCreate.setDescription("A detailed description");
 		toCreate.setEtag("335");
 		toCreate.setParentId("1");
-		toCreate.setUri("/folder/"+id);
-		toCreate.setEntityType(Folder.class.getName());
 		return toCreate;
 	}
 

@@ -1,18 +1,43 @@
 package org.sagebionetworks.table.cluster.utils;
 
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.TABLES_TOO_LARGE_FOR_FOUR_BYTE_UTF8;
+
 import java.io.UnsupportedEncodingException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class ColumnConstants {
 
-	public static final int MAX_BYTES_PER_CHAR_UTF_8;
-	static{
-		char[] chars = new char[]{Character.MAX_VALUE};
-		try {
-			MAX_BYTES_PER_CHAR_UTF_8 = new String(chars).getBytes("UTF-8").length;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
+	/**
+	 * With the upgrade to MySQL 8, the default character set for
+	 * tables changed from 'utf8' to 'utf8mb4'  The old 'utf8' is not a 
+	 * 'true' utf-8 as it is limited to only three bytes per character or less.  True
+	 * utf-8 requires a maximum of 4 bytes per character or less.  MySQL addressed
+	 * this issue by adding a 'utf8mb4' which means utf-8 max bytes 4.;
+	 */
+	public static final int MAX_BYTES_PER_CHAR_UTF_8 = 4;
+	
+	/**
+	 * It appears that the amount of memory used per character
+	 * is dependent on the JVM implementation.  Four bytes
+	 * per character seems to be the maximum.
+	 */
+	public static final int MAX_BYTES_PER_CHAR_MEMORY = 4;
+	
+	/**
+	 * This is the maximum number of bytes for a single row in MySQL.
+	 * This determines the maximum schema size for a table.
+	 */
+	public static final int MY_SQL_MAX_BYTES_PER_ROW = 64000;
+	
+	
+	/**
+	 * The maximum number of columns per MySQL table.
+	 */
+	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 152;
 	
 	/**
 	 * The maximum number of bytes of a boolean when represented as a string.
@@ -61,28 +86,80 @@ public class ColumnConstants {
 	 */
 	public static final int MAX_USER_ID_BYTES_AS_STRING = MAX_INTEGER_BYTES_AS_STRING;
 	
+	/**
+	 * The maximum available memory to each machine in bytes.
+	 * Currently 3 GB.
+	 */
+	public static final long MAX_AVAILABLE_MEMORY_PER_MACHINE_BYTES = 1024L*1024L*1024L*3L;
 	
 	/**
-	 * While the database will not count the bytes of a blob against the total size of 
-	 * of a row, we still need an estimate of the size of these blobs in memory.  
-	 * This will limit the size of table change sets and the maximum number of blob columns
-	 * that can be added to a table.
-	 * 
+	 * Sine a single table row must fit in memory.
+	 * The maximum of memory for a single row is a percentage of the total available memory.
+	 * Currently set to 2% of available memory.
 	 */
-	public static final int DEFAULT_LARGE_TEXT_BYTES = MAX_BYTES_PER_CHAR_UTF_8 *1000;
+	public static final long MAX_MEMORY_PER_ROW_BYTES = (long) (MAX_AVAILABLE_MEMORY_PER_MACHINE_BYTES*0.02);
 	
 	/**
-	 * Large text values must be under one MB.
+	 * Large text values must be under two MB.
 	 * 
 	 */
-	public static final long MAX_LARGE_TEXT_BYTES = 1024*1024; // 1 MB
+	public static final long MAX_LARGE_TEXT_BYTES = 1024*1024*2; // 2 MB
+	
+	/**
+	 * The maximum number of LARGE_TEXT columns per table is a function of the 
+	 * Memory available to the machines and the maximum size of single LARGE_TEXT value. 
+	 */
+	public static final long MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE = MAX_MEMORY_PER_ROW_BYTES/MAX_LARGE_TEXT_BYTES;
+	
+	/**
+	 * Conversion of the maximum number of LARGE_TEXT columns in memory to a size in terms of the max bytes per row in MySQL.
+	 */
+	public static final int SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES = (int) (MY_SQL_MAX_BYTES_PER_ROW/MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE);
 	
 	/**
 	 * The maximum number of characters allowed for a LARGETEXT value.
 	 */
 	public static final long MAX_LARGE_TEXT_CHARACTERS = MAX_LARGE_TEXT_BYTES/MAX_BYTES_PER_CHAR_UTF_8;
 	
-	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
+	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci";
+	
+	/**
+	 * When we switched from the MySQL proprietary 3 byte 'utf8' to the real 4 byte 'utf8mb4' we had tables
+	 * that were already close to the MySQL maximum size limit.  Switching these tables to use
+	 * the 4 byte UTF-8 would push these tables over the limit.  Therefore, we continue to build
+	 * these tables using the proprietary 3 byte 'utf8', while all other tables are switched to the real 
+	 * 4 byte UTF-8 (utf8mb4).  See PLFM-5458.
+	 */
+	public static final String DEPREICATED_THREE_BYTE_UTF8 = "CHARACTER SET utf8 COLLATE utf8_general_ci";
+	
+	/**
+	 * These are the tables that are too large for the four byte 'utf8mb4' that still
+	 * must be build with the MySQL proprietary 3 byte 'utf8'. See PLFM-5458.
+	 */
+	@SuppressWarnings("serial")
+	public static final Set<Long> TABLES_TOO_LARGE_FOR_FOUR_BYTE_UTF8 = Collections
+			.unmodifiableSet(new HashSet<Long>() {
+				{
+					add(3420233L);
+					add(3420252L);
+					add(3420259L);
+					add(3420485L);
+					add(3474927L);
+					add(3474928L);
+					add(10227900L);
+					add(11968325L);
+				}
+			});
+
+	/**
+	 * Is the given tableId too large for large for the four byte 'utf8mb4'?
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public static boolean isTableTooLargeForFourByteUtf8(Long tableId) {
+		return TABLES_TOO_LARGE_FOR_FOUR_BYTE_UTF8.contains(tableId);
+	}
 	
 	public static final int MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255;
 	

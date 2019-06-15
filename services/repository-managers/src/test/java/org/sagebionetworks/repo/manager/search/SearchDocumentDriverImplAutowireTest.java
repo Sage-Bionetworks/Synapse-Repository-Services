@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.search;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +21,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -57,8 +57,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3;
-
 /**
  * @author deflaux
  * 
@@ -84,7 +82,7 @@ public class SearchDocumentDriverImplAutowireTest {
 	@Autowired
 	FileHandleDao fileMetadataDao;	
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	
 	private UserInfo adminUserInfo;
 	private Project project;

@@ -19,6 +19,7 @@ import javax.servlet.ServletException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -70,6 +71,8 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	private Long adminUserId;
 	private String adminUserIdString;
 	
+	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
+
 	@Before
 	public void setUp() throws Exception {
 		assertNotNull(fileHandleDao);
@@ -84,7 +87,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminUserIdString);
 		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
+		handleOne.setBucketName(S3_BUCKET_NAME);
 		handleOne.setKey("EntityControllerTest.mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
@@ -95,7 +98,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewOne = new PreviewFileHandle();
 		previewOne.setCreatedBy(adminUserIdString);
 		previewOne.setCreatedOn(new Date());
-		previewOne.setBucketName("bucket");
+		previewOne.setBucketName(S3_BUCKET_NAME);
 		previewOne.setKey("EntityControllerTest.previewFileKey");
 		previewOne.setEtag("etag");
 		previewOne.setFileName("bar.txt");
@@ -106,7 +109,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo = new S3FileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
 		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName("bucket");
+		handleTwo.setBucketName(S3_BUCKET_NAME);
 		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("foo2.bar");
@@ -116,7 +119,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewTwo = new PreviewFileHandle();
 		previewTwo.setCreatedBy(adminUserIdString);
 		previewTwo.setCreatedOn(new Date());
-		previewTwo.setBucketName("bucket");
+		previewTwo.setBucketName(S3_BUCKET_NAME);
 		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
 		previewTwo.setEtag("etag");
 		previewTwo.setFileName("bar2.txt");
@@ -161,7 +164,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testCRUDEntity() throws Exception{
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());		
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -193,7 +195,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testAnnotationsCRUD() throws Exception {
 		Project p = new Project();
 		p.setName("AnnotCrud");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -218,7 +219,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testNaNAnnotationsCRUD() throws Exception {
 		Project p = new Project();
 		p.setName("AnnotCrud");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -243,7 +243,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testGetUserEntityPermissions() throws Exception{
 		Project p = new Project();
 		p.setName("UserEntityPermissions");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -258,7 +257,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		for(int i = 0; i < 12; i++) {
 			Project p = new Project();
 			p.setName("EntityTypeBatchItem" + i);
-			p.setEntityType(p.getClass().getName());
 			Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 			String id = clone.getId();
 			toDelete.add(id);
@@ -280,7 +278,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testEntityPath() throws Exception{
 		Project p = new Project();
 		p.setName("EntityPath");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -331,20 +328,17 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testPLFM_449NameConflict() throws Exception{
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());
 		p = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		toDelete.add(p.getId());
 		
 		Folder one = new Folder();
 		one.setName("one");
 		one.setParentId(p.getId());
-		one.setEntityType(Folder.class.getName());
 		one = (Folder) entityServletHelper.createEntity(one, adminUserId, null);
 		// Now try to re-use the name
 		Folder two = new Folder();
 		two.setName("one");
 		two.setParentId(p.getId());
-		two.setEntityType(Folder.class.getName());
 		two = (Folder) entityServletHelper.createEntity(two, adminUserId, null);
 	}
 
@@ -352,7 +346,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testActivityId404() throws Exception{
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());
 		String activityId = "123456789";
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, activityId);
 		String id = clone.getId();
@@ -373,14 +366,12 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		// Create a project
 		Project parent = new Project();
 		parent.setName("project");
-		parent.setEntityType(Project.class.getName());
 		Project parentClone = (Project) entityServletHelper.createEntity(parent, adminUserId, null);
 		String parentId = parentClone.getId();
 		toDelete.add(parentId);
 		// Create a file entity
 		FileEntity file = new FileEntity();
 		file.setName("FileName");
-		file.setEntityType(FileEntity.class.getName());
 		file.setParentId(parentId);
 		file.setDataFileHandleId(handleOne.getId());
 		// Save it
@@ -456,7 +447,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 
 		Project parent = new Project();
 		parent.setName("testGetEntityHeaderByMd5");
-		parent.setEntityType(Project.class.getName());
 		parent = (Project) entityServletHelper.createEntity(parent, adminUserId, null);
 		assertNotNull(parent);
 		String parentId = parent.getId();
@@ -464,7 +454,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 
 		FileEntity file = new FileEntity();
 		file.setName("testGetEntityHeaderByMd5 file");
-		file.setEntityType(FileEntity.class.getName());
 		file.setParentId(parentId);
 		file.setDataFileHandleId(handleOne.getId());
 		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);

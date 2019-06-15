@@ -13,14 +13,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.audit.dao.GzipCsvS3ObjectReader;
 import org.sagebionetworks.audit.dao.GzipCsvS3ObjectWriter;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.csv.utils.ExampleObject;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class GzipCsvS3ObjectWriterReaderTest {
 
-	private AmazonS3 mockS3Client;
+	private SynapseS3Client mockS3Client;
 	private String bucketName;
 	private Class<ExampleObject> objectClass;
 	private String[] headers;
@@ -29,7 +30,7 @@ public class GzipCsvS3ObjectWriterReaderTest {
 
 	@Before
 	public void setUp() {
-		mockS3Client = Mockito.mock(AmazonS3.class);
+		mockS3Client = Mockito.mock(SynapseS3Client.class);
 		bucketName = "object.csv.dao.test";
 		objectClass = ExampleObject.class;
 		headers = new String[]{"aString", "aLong", "aBoolean", "aDouble", "anInteger", "aFloat", "someEnum"};
@@ -60,7 +61,7 @@ public class GzipCsvS3ObjectWriterReaderTest {
 		// Can we read the results?
 		List<ExampleObject> results = reader.readFromStream(inCapture.getValue());
 		assertEquals(data, results);
-		assertEquals("attachment; filename="+key+";", metaCapture.getValue().getContentDisposition());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(key), metaCapture.getValue().getContentDisposition());
 		assertEquals("application/x-gzip", metaCapture.getValue().getContentType());
 		assertEquals("gzip", metaCapture.getValue().getContentEncoding());
 		assertTrue(metaCapture.getValue().getContentLength() > 1);

@@ -1,15 +1,21 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
-import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
-import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
-import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
-import com.google.common.collect.Iterators;
-import org.apache.commons.io.IOUtils;
-import org.hamcrest.core.IsInstanceOf;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,31 +23,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
+import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
+import com.google.common.collect.Iterators;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CloudSearchDomainClientAdapterTest {
@@ -109,7 +101,6 @@ public class CloudSearchDomainClientAdapterTest {
 	@Test
 	public void testHandleCloudSearchExceptionsErrorCode5xx() throws Exception {
 		when(mockedSearchException.getStatusCode()).thenReturn(504);
-		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
 
 		//method under test
 		RuntimeException resultException = cloudSearchDomainClientAdapter.handleCloudSearchExceptions(mockedSearchException);
@@ -180,11 +171,13 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test (expected = TemporarilyUnavailableException.class)
-	public void testSendDocuments_IOException(){
-		when(mockDocumentBatch.getNewInputStream()).thenThrow(IOException.class);
+	public void testSendDocuments_IOException() throws IOException {
+		InputStream mockInputStream = mock(InputStream.class);
+		when(mockDocumentBatch.getNewInputStream()).thenReturn(mockInputStream);
+		doThrow(IOException.class).when(mockInputStream).close();
 
 		//method under test
-		cloudSearchDomainClientAdapter.sendDocuments(Iterators.emptyIterator());
+		cloudSearchDomainClientAdapter.sendDocuments(Collections.emptyIterator());
 	}
 
 }

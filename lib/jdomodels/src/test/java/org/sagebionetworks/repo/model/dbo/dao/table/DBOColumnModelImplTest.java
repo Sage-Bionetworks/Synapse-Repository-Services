@@ -6,7 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,18 +15,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.codec.binary.Hex;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
-import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -389,29 +387,7 @@ public class DBOColumnModelImplTest {
 			// expected
 		}
 	}
-	
-	/**
-	 * Test to validate the a new ColumnModel hash is created each time 
-	 * a ColumnModel is restored from a Backup.
-	 */
-	@Test
-	public void testPLFM_4710() {
-		int maxNumberEnums = 10;
-		ColumnModel dto = new ColumnModel();
-		dto.setName("foo");
-		dto.setColumnType(ColumnType.STRING);
-		dto.setId("123");
-		dto.setMaximumSize(50L);
-		DBOColumnModel backup = ColumnModelUtils.createDBOFromDTO(dto, maxNumberEnums);
-		// clear the hash
-		backup.setHash(null);
-		// call under test
-		DBOColumnModel databaseDbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
-		// the database DBO should receive a new hash.
-		assertNotNull(databaseDbo.getHash());
-	}
-	
-	
+		
 	@Test
 	public void testGetColumnNames() {
 		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
@@ -454,6 +430,26 @@ public class DBOColumnModelImplTest {
 			results.add(cm);
 		}
 		return results;
+	}
+	
+	/**
+	 * Ensure we can write a UTF-8 column name to the database.
+	 * 
+	 * @throws UnsupportedEncodingException
+	 */
+	@Test
+	public void testPLFM_5429() throws UnsupportedEncodingException {
+		String name = "Aβ ELISA/WB";
+		byte[] latin = name.getBytes("ISO-8859-1");
+		System.out.println("Latin: "+Hex.encodeHexString(latin));
+		byte[] utf8 = name.getBytes("UTF-8");
+		System.out.println("utf-8: "+Hex.encodeHexString(utf8));
+		
+		ColumnModel column = new ColumnModel();
+		column.setName(name);
+		column.setColumnType(ColumnType.STRING);
+		column.setMaximumSize(10L);
+		columnModelDao.createColumnModel(column).getId();
 	}
 
 }

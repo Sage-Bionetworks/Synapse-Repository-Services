@@ -1,22 +1,23 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Test;
+import com.google.common.collect.Lists;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -33,11 +34,8 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 
-import com.google.common.collect.Lists;
-
 public class NodeTranslationUtilsTest {
-	
-	
+
 	@Test
 	public void testBinaryRoundTripString(){
 		ObjectSchema schema = new ObjectSchema(TYPE.STRING);
@@ -134,7 +132,7 @@ public class NodeTranslationUtilsTest {
 			}
 			// Only compare non-transient fields
 			if(!propSchema.isTransient()){
-				assertEquals("Name: "+field.getName(),field.get(one), field.get(two));
+				assertEquals(field.get(one), field.get(two), "Name: "+field.getName());
 			}
 		}
 	}
@@ -176,21 +174,7 @@ public class NodeTranslationUtilsTest {
 		FileEntity clone = cloneUsingNodeTranslation(code);
 		assertEquals(code, clone);
 	}
-	
-	@Test
-	public void testIsPrimaryFieldNames(){
-		// check all of the fields for each object type.
-		for(EntityType type: EntityType.values()){
-			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
-			for(Field field: fields){
-				String name = field.getName();
-				assertTrue(NodeTranslationUtils.isPrimaryFieldName(type, name));
-				String notName = name+"1";
-				assertFalse(NodeTranslationUtils.isPrimaryFieldName(type, notName));
-			}
-		}
-	}
-	
+
 	/**
 	 * Will clone an object by first creating a node and annotations for the passed object.
 	 * A new object will then be created and populated using the node and annotations.
@@ -313,5 +297,21 @@ public class NodeTranslationUtilsTest {
 		assertNotNull(clone);
 		assertEquals(view, clone);
 	}
-	
+
+	@Test
+	public void testUpdateNodeSecondaryFieldsFromObject_ConcreteTypeNotInAnnotations(){
+		Annotations annotations = new Annotations();
+		FileEntity fileEntity = new FileEntity();
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(fileEntity, annotations);
+		assertNull(annotations.getAllValues(ObjectSchema.CONCRETE_TYPE));
+	}
+
+
+	@Test
+	public void testGetTranslatableEntityFields(){
+		TableEntity entity = new TableEntity();
+		Field[] translatableFields = NodeTranslationUtils.getTranslatableEntityFields(entity);
+
+		assertTrue(Arrays.stream(translatableFields).noneMatch( field -> ObjectSchema.CONCRETE_TYPE.equals(field.getName())) );
+	}
 }

@@ -6,13 +6,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -39,7 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.google.common.base.Predicate;
 
 /**
@@ -77,7 +76,7 @@ public class SearchWorkerIntegrationTest {
 	private SemaphoreManager semphoreManager;
 	
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
 	private SearchManager searchManager;

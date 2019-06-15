@@ -1,7 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
 /**
- * ActualIdentifier ::= {@link RegularIdentifier} | {@link DelimitedIdentifier}
+ * ActualIdentifier ::= {@link RegularIdentifier} | {@link DelimitedIdentifier} | {@link EntityId}
  */
 public class ActualIdentifier extends SimpleBranch implements ColumnNameReference {
 	
@@ -12,6 +12,10 @@ public class ActualIdentifier extends SimpleBranch implements ColumnNameReferenc
 	
 	public ActualIdentifier(DelimitedIdentifier delimitedIdentifier) {
 		super(delimitedIdentifier);
+	}
+	
+	public ActualIdentifier(EntityId entityId) {
+		super(entityId);
 	}
 
 }

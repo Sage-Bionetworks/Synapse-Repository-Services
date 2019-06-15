@@ -2,27 +2,27 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY_NEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
@@ -32,22 +32,20 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.RawRowSet;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.S3Object;
 
@@ -59,7 +57,13 @@ import com.amazonaws.services.s3.model.S3Object;
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
-	private static final String SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY = "UPDATE "+TABLE_ROW_CHANGE+" SET "+COL_TABLE_ROW_KEY_NEW+" = ? WHERE "+COL_TABLE_ROW_TABLE_ID+" = ? AND "+COL_TABLE_ROW_VERSION+" =?";
+	private static final String SELECT_FIRST_ROW_VERSION_FOR_TABLE = "SELECT " + COL_TABLE_ROW_VERSION + " FROM "
+			+ TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TYPE + " = ? AND TABLE_ID = ? LIMIT 1";
+	
+	private static final String SELECT_LAST_TRANSACTION_ID = "SELECT " + COL_TABLE_ROW_TRX_ID + " FROM "
+			+ TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TABLE_ID + " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " DESC LIMIT 1";
+	
+	private static final String SQL_LAST_CHANGE_NUMBER = "SELECT MAX("+COL_TABLE_ROW_VERSION+") FROM "+TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_TABLE_ID+" = ?";
 
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
 
@@ -86,18 +90,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " = ? AND " + COL_TABLE_ROW_VERSION + " = ?";
 	
 	private static final String SQL_LIST_ALL_KEYS = "SELECT "
-			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY+" IS NOT NULL"
+			+ COL_TABLE_ROW_KEY_NEW + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL"
 					+ " UNION SELECT "+COL_TABLE_ROW_KEY_NEW+ " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL";
 	
 	private static final String SQL_LIST_ALL_KEYS_FOR_TABLE = "SELECT "
-			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?"
-					+ " UNION SELECT "+COL_TABLE_ROW_KEY_NEW+ " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?";
+			+ COL_TABLE_ROW_KEY_NEW + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?";
 	
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
-			+ " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " ASC";
+			+ " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " ASC LIMIT ? OFFSET ?";
 	
 	private static final String SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE = "FROM "
 			+ TABLE_ROW_CHANGE
@@ -128,7 +131,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
+	@Autowired
+	private FileProvider fileProvider;
 
 	private String s3Bucket;
 
@@ -137,7 +142,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange()
 			.getTableMapping();
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {
 		if (tableIdString == null)
@@ -200,17 +205,11 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
-	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta)
-			throws IOException {
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId) {
 		// Write the delta to S3
-		String key = saveToS3(new WriterCallback() {
-			@Override
-			public void write(OutputStream out) throws IOException {
-				TableModelUtils.writeSparesChangeSetToGz(delta, out);
-			}
-		});
+		String key = saveToS3((OutputStream out)-> TableModelUtils.writeSparesChangeSetToGz(delta, out));
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
@@ -222,62 +221,19 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		changeDBO.setChangeType(TableChangeType.ROW.name());
+		changeDBO.setTransactionId(transactionId);
 		basicDao.createNew(changeDBO);
 		return key;
 	}
 	
-	@WriteTransactionReadCommitted
-	@Override
-	public TableRowChange upgradeToNewChangeSet(String tableIdString, long rowVersion, final SparseChangeSetDto newDto) throws IOException {
-		// Write the delta to S3
-		String key = saveToS3(new WriterCallback() {
-			@Override
-			public void write(OutputStream out) throws IOException {
-				TableModelUtils.writeSparesChangeSetToGz(newDto, out);
-			}
-		});
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		// Set the new key only.
-		jdbcTemplate.update(SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY, key, tableId, rowVersion);
-		return getTableRowChange(tableIdString, rowVersion);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	@Deprecated
-	public void appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, RawRowSet delta)
-			throws IOException {
-		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveCSVToS3(columns, delta);
-		// record the change
-		DBOTableRowChange changeDBO = new DBOTableRowChange();
-		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
-		changeDBO.setRowVersion(versionNumber);
-		changeDBO.setEtag(etag);
-		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
-				TableModelUtils.getIds(columns)));
-		changeDBO.setCreatedBy(Long.parseLong(userId));
-		changeDBO.setCreatedOn(System.currentTimeMillis());
-		changeDBO.setKey(key);
-		changeDBO.setBucket(s3Bucket);
-		changeDBO.setRowCount(new Long(delta.getRows().size()));
-		changeDBO.setChangeType(TableChangeType.ROW.name());
-		basicDao.createNew(changeDBO);
-	}
-	
 	@Override
 	public long appendSchemaChangeToTable(String userId, String tableId,
-			List<String> current, final List<ColumnChange> changes) throws IOException {
+			List<String> current, final List<ColumnChange> changes, long transactionId) {
 		
 		long coutToReserver = 1;
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
 		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveToS3(new WriterCallback() {
-			@Override
-			public void write(OutputStream out) throws IOException {
-				ColumnModelUtils.writeSchemaChangeToGz(changes, out);
-			}
-		});
+		String key = saveToS3((OutputStream out) -> ColumnModelUtils.writeSchemaChangeToGz(changes, out));
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
@@ -286,10 +242,11 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(current));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
-		changeDBO.setKey(key);
+		changeDBO.setKeyNew(key);
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(0L);
 		changeDBO.setChangeType(TableChangeType.COLUMN.name());
+		changeDBO.setTransactionId(transactionId);
 		basicDao.createNew(changeDBO);
 		return range.getVersionNumber();
 	}
@@ -301,28 +258,27 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	String saveToS3(WriterCallback callback) throws IOException {
+	String saveToS3(WriterCallback callback) {
 		// First write to a temp file.
-		File temp = File.createTempFile("tempToS3", ".gz");
-		FileOutputStream out = null;
 		try {
-			out = new FileOutputStream(temp);
-			// write to the temp file.
-			callback.write(out);
-			out.flush();
-			out.close();
-			// upload it to S3.
-			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
-					.toString());
-			s3Client.putObject(s3Bucket, key, temp);
-			return key;
-		} finally {
-			if (out != null) {
+			File temp = fileProvider.createTempFile("tempToS3", ".gz");
+			try (OutputStream out = fileProvider.createFileOutputStream(temp);) {
+				// write to the temp file.
+				callback.write(out);
+				out.flush();
 				out.close();
+				// upload it to S3.
+				String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
+						.toString());
+				s3Client.putObject(s3Bucket, key, temp);
+				return key;
+			} finally {
+				if (temp != null) {
+					temp.delete();
+				}
 			}
-			if (temp != null) {
-				temp.delete();
-			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
@@ -331,7 +287,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			long versionNumber) throws IOException {
 		TableRowChange dto = getTableRowChange(tableId, versionNumber);
 		// Download the file from S3
-		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKeyNew());
 		try {
 			return ColumnModelUtils.readSchemaChangeFromGz(object.getObjectContent());
 		} finally {
@@ -402,50 +358,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	/**
-	 * Save a change to S3
-	 * 
-	 * @param models
-	 * @param delta
-	 * @param isDeletion
-	 * @return
-	 * @throws IOException
-	 * @throws FileNotFoundException
-	 */
-	@Deprecated
-	private String saveCSVToS3(List<ColumnModel> models, RawRowSet delta)
-			throws IOException, FileNotFoundException {
-		File temp = File.createTempFile("rowSet", "csv.gz");
-		FileOutputStream out = null;
-		try {
-			out = new FileOutputStream(temp);
-			// Save this to the the zipped CSV
-			TableModelUtils.validateAnWriteToCSVgz(models, delta, out);
-			// upload it to S3.
-			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
-					.toString());
-			s3Client.putObject(s3Bucket, key, temp);
-			return key;
-		} finally {
-			if (out != null) {
-				out.close();
-			}
-			if (temp != null) {
-				temp.delete();
-			}
-		}
-	}
-
-	/**
 	 * List all changes for this table.
 	 */
+	@Deprecated
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableIdString) {
-		if (tableIdString == null)
-			throw new IllegalArgumentException("TableId cannot be null");
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOTableRowChange> dboList = jdbcTemplate.query(
-				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId);
-		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
+		long limit = Long.MAX_VALUE;
+		long offset = 0L;
+		return getTableChangePage(tableIdString, limit, offset);
 	}
 
 	@Override
@@ -475,32 +395,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new NotFoundException(
 					"TableRowChange does not exist for tableId: " + tableId
 							+ " and row version: " + rowVersion);
-		}
-	}
-
-	/**
-	 * Read the RowSet from S3.
-	 * 
-	 * @throws NotFoundException
-	 */
-	@Override
-	@Deprecated
-	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns)
-			throws IOException, NotFoundException {
-		TableRowChange dto = getTableRowChange(tableId, rowVersion);
-		// Download the file from S3
-		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
-		try {
-			RowSet set = new RowSet();
-			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent());
-			set.setTableId(tableId);
-			set.setHeaders(TableModelUtils.getSelectColumnsFromColumnIds(dto.getIds(), columns));
-			set.setRows(rows);
-			set.setEtag(dto.getEtag());
-			return set;
-		} finally {
-			// Need to close the stream unconditionally.
-			object.getObjectContent().close();
 		}
 	}
 	
@@ -556,7 +450,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					@Override
 					public String mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
-						return rs.getString(COL_TABLE_ROW_KEY);
+						return rs.getString(COL_TABLE_ROW_KEY_NEW);
 					}
 				});
 	}
@@ -571,9 +465,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return jdbcTemplate.query(SQL_LIST_ALL_KEYS_FOR_TABLE, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getString(COL_TABLE_ROW_KEY);
+				return rs.getString(COL_TABLE_ROW_KEY_NEW);
 			}
-		}, tableIdLong, tableIdLong);
+		}, tableIdLong);
 	}
 
 	public String getS3Bucket() {
@@ -587,6 +481,49 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 */
 	public void setS3Bucket(String s3Bucket) {
 		this.s3Bucket = s3Bucket;
+	}
+
+	@Override
+	public List<TableRowChange> getTableChangePage(String tableIdString, long limit, long offset) {
+		ValidateArgument.required(tableIdString, "tableId");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		List<DBOTableRowChange> dboList = jdbcTemplate.query(
+				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId, limit, offset);
+		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
+	}
+
+	@Override
+	public Optional<Long> getLastTableChangeNumber(String tableIdString) {
+		ValidateArgument.required(tableIdString, "tableId");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		Long changeNumber = this.jdbcTemplate.queryForObject(SQL_LAST_CHANGE_NUMBER, Long.class, tableId);
+		return Optional.ofNullable(changeNumber);
+	}
+
+
+	@Override
+	public boolean hasAtLeastOneChangeOfType(String tableIdString, TableChangeType type) {
+		ValidateArgument.required(tableIdString, "tableId");
+		ValidateArgument.required(type, "TableChangeType");
+		try {
+			long tableId = KeyFactory.stringToKey(tableIdString);
+			Long firstRowVersion = jdbcTemplate.queryForObject(SELECT_FIRST_ROW_VERSION_FOR_TABLE, Long.class, type.name(), tableId);
+			return firstRowVersion != null;
+		} catch (EmptyResultDataAccessException e) {
+			return false;
+		} 
+	}
+
+	@Override
+	public Optional<Long> getLastTransactionId(String tableIdString) {
+		ValidateArgument.required(tableIdString, "tableId");
+		try {
+			long tableId = KeyFactory.stringToKey(tableIdString);
+			Long transactionId = jdbcTemplate.queryForObject(SELECT_LAST_TRANSACTION_ID, Long.class, tableId);
+			return Optional.of(transactionId);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		} 
 	}
 	
 }

@@ -108,6 +108,7 @@
 				<artifactId>cargo-maven2-plugin</artifactId>
 				<version>1.3.1</version>
 				<configuration>
+					<skip>${maven.test.skip}</skip>
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
@@ -132,6 +133,8 @@
 							<org.sagebionetworks.doi.datacite.enabled>${org.sagebionetworks.doi.datacite.enabled}</org.sagebionetworks.doi.datacite.enabled>
 							<org.sagebionetworks.doi.datacite.username>${org.sagebionetworks.doi.datacite.username}</org.sagebionetworks.doi.datacite.username>
 							<org.sagebionetworks.doi.datacite.password>${org.sagebionetworks.doi.datacite.password}</org.sagebionetworks.doi.datacite.password>
+							<org.sagebionetworks.repository.database.username>${org.sagebionetworks.repository.database.username}</org.sagebionetworks.repository.database.username>
+							<org.sagebionetworks.id.generator.database.username>${org.sagebionetworks.id.generator.database.username}</org.sagebionetworks.id.generator.database.username>
 						</systemProperties>
 					</container>
 					<configuration>
@@ -194,8 +197,29 @@
 			<artifactId>log4j-core</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-runner</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.vintage</groupId>
+			<artifactId>junit-vintage-engine</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<!-- Sage Bionetworks Dependencies -->
@@ -254,8 +278,8 @@
 
 		<!-- Jackson JSON Mapper -->
 		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
 		<dependency>
@@ -265,7 +289,12 @@
 
 		<dependency>
 			<groupId>org.mockito</groupId>
-			<artifactId>mockito-all</artifactId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 

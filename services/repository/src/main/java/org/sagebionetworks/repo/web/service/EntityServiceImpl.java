@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.web.service;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -38,7 +36,7 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.queryparser.ParseException;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
@@ -104,38 +102,37 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public <T extends Entity> T getEntity(Long userId, String id, HttpServletRequest request, Class<? extends T> clazz)
+	public <T extends Entity> T getEntity(Long userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return getEntity(userInfo, entityId, request, clazz, EventType.GET);
+		return getEntity(userInfo, entityId, clazz, EventType.GET);
 	}
 	
 	@Override
-	public Entity getEntity(Long userId, String id, HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Entity getEntity(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityHeader header = entityManager.getEntityHeader(userInfo, id, null);
 		EntityType type = EntityTypeUtils.getEntityTypeForClassName(header.getType());
-		return getEntity(userInfo, id, request, EntityTypeUtils.getClassForType(type), EventType.GET);
+		return getEntity(userInfo, id, EntityTypeUtils.getClassForType(type), EventType.GET);
 	}
 	/**
 	 * Any time we fetch an entity we do so through this path.
 	 * @param <T>
 	 * @param info
 	 * @param id
-	 * @param request
 	 * @param clazz
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException{
+	public <T extends Entity> T getEntity(UserInfo info, String id, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException{
 		// Determine the object type from the url.
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		T entity = entityManager.getEntity(info, id, clazz);
 		// Do all of the type specific stuff.
-		this.doAddServiceSpecificMetadata(info, entity, type, request, eventType);
+		this.doAddServiceSpecificMetadata(info, entity, type, eventType);
 		return entity;
 	}
 
@@ -145,67 +142,64 @@ public class EntityServiceImpl implements EntityService {
 	 * @param info
 	 * @param entity
 	 * @param type
-	 * @param request
 	 * @param eventType
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, HttpServletRequest request, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
+	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 
-		// Add the type specific metadata that is common to all objects.
-		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata
 		if(providers != null) {
 			for (EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof TypeSpecificMetadataProvider) {
-					((TypeSpecificMetadataProvider) provider).addTypeSpecificMetadata(entity, request, info, eventType);
+					((TypeSpecificMetadataProvider) provider).addTypeSpecificMetadata(entity, info, eventType);
 				}
 			}
 		}
 	}
 	
 	@Override
-	public <T extends Entity> T getEntityForVersion(Long userId,String id, Long versionNumber, HttpServletRequest request,
-			Class<? extends T> clazz) throws NotFoundException,
+	public <T extends Entity> T getEntityForVersion(Long userId, String id, Long versionNumber,
+													Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return getEntityForVersion(userInfo, id, versionNumber, request, clazz);
+		return getEntityForVersion(userInfo, id, versionNumber, clazz);
 	}
 	
 	@Override
-	public <T extends Entity> T getEntityForVersion(UserInfo info, String id, Long versionNumber, HttpServletRequest request,
-			Class<? extends T> clazz) throws NotFoundException,
+	public <T extends Entity> T getEntityForVersion(UserInfo info, String id, Long versionNumber,
+													Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Determine the object type from the url.
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		T entity = entityManager.getEntityForVersion(info, id, versionNumber, clazz);
 		// Do all of the type specific stuff.
-		this.doAddServiceSpecificMetadata(info, entity, type, request, EventType.GET);
+		this.doAddServiceSpecificMetadata(info, entity, type, EventType.GET);
 		return entity;
 	}
 	
 	@Override
-	public Entity getEntityForVersion(Long userId, String id,	Long versionNumber, HttpServletRequest request)
+	public Entity getEntityForVersion(Long userId, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityType type = entityManager.getEntityType(userInfo, id);
-		return getEntityForVersion(userId, id, versionNumber, request, EntityTypeUtils.getClassForType(type));
+		return getEntityForVersion(userId, id, versionNumber, EntityTypeUtils.getClassForType(type));
 	}
 
 	@Override
-	public List<EntityHeader> getEntityHeaderByMd5(Long userId, String md5, HttpServletRequest request)
+	public List<EntityHeader> getEntityHeaderByMd5(Long userId, String md5)
 			throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<EntityHeader> entityHeaders = entityManager.getEntityHeaderByMd5(userInfo, md5);
 		return entityHeaders;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
-	public <T extends Entity> T createEntity(Long userId, T newEntity, String activityId, HttpServletRequest request)
+	public <T extends Entity> T createEntity(Long userId, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 		// Determine the object type from the url.
@@ -221,7 +215,7 @@ public class EntityServiceImpl implements EntityService {
 		newEntity.setId(id);
 		fireAfterCreateEntityEvent(userInfo, newEntity, type);
 		// Return the resulting entity.
-		return getEntity(userInfo, id, request, clazz, eventType);
+		return getEntity(userInfo, id, clazz, eventType);
 	}
 
 	/**
@@ -257,12 +251,12 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	private void fireAfterUpdateEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+	private void fireAfterUpdateEntityEvent(UserInfo userInfo, Entity entity, EntityType type, boolean wasNewVersionCreated) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		if(providers != null) {
 			for (EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof TypeSpecificUpdateProvider) {
-					((TypeSpecificUpdateProvider) provider).entityUpdated(userInfo, entity);
+					((TypeSpecificUpdateProvider) provider).entityUpdated(userInfo, entity, wasNewVersionCreated);
 				}
 			}
 		}
@@ -300,10 +294,10 @@ public class EntityServiceImpl implements EntityService {
 		}
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public <T extends Entity> T updateEntity(Long userId,
-			T updatedEntity, boolean newVersion, String activityId, HttpServletRequest request)
+											 T updatedEntity, boolean newVersion, String activityId)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 		if(updatedEntity == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -320,13 +314,13 @@ public class EntityServiceImpl implements EntityService {
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
 		// Now do the update
-		entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
-		fireAfterUpdateEntityEvent(userInfo, updatedEntity, type);
+		boolean wasNewVersionCrated = entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
+		fireAfterUpdateEntityEvent(userInfo, updatedEntity, type, wasNewVersionCrated);
 		// Return the updated entity
-		return getEntity(userInfo, entityId, request, clazz, eventType);
+		return getEntity(userInfo, entityId, clazz, eventType);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteEntity(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -338,7 +332,7 @@ public class EntityServiceImpl implements EntityService {
 		deleteEntity(userId, entityId, EntityTypeUtils.getClassForType(type));
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public <T extends Entity> void deleteEntity(Long userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -361,7 +355,7 @@ public class EntityServiceImpl implements EntityService {
 		return;
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteEntityVersion(Long userId, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
@@ -373,7 +367,7 @@ public class EntityServiceImpl implements EntityService {
 		deleteEntityVersion(userId, entityId, versionNumber, EntityTypeUtils.getClassForType(type));
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public <T extends Entity> void deleteEntityVersion(Long userId, String id,
 			Long versionNumber, Class<? extends Entity> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException {
@@ -393,61 +387,52 @@ public class EntityServiceImpl implements EntityService {
 		}
 	}
 
-	private <T extends Entity> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
-		UrlHelpers.setAllUrlsForEntity(entity, request);
-	}
-
-	private void addServiceSpecificMetadata(String id, Annotations annotations,
-			HttpServletRequest request) {
+	private void addServiceSpecificMetadata(String id, Annotations annotations) {
 		annotations.setId(id); // the NON url-encoded id
-		annotations.setUri(UrlHelpers.makeEntityAnnotationsUri(id));
 	}
 
 	@Override
-	public Annotations getEntityAnnotations(Long userId, String id,
-			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Annotations getEntityAnnotations(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return getEntityAnnotations(userInfo, id, request);
+		return getEntityAnnotations(userInfo, id);
 	}
 	
 	@Override
-	public Annotations getEntityAnnotations(UserInfo info, String id,HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Annotations getEntityAnnotations(UserInfo info, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
 		Annotations annotations = entityManager.getAnnotations(info, id);
-		addServiceSpecificMetadata(id, annotations, request);
+		addServiceSpecificMetadata(id, annotations);
 		return annotations;
 	}
 	
 	@Override
 	public Annotations getEntityAnnotationsForVersion(Long userId, String id,
-			Long versionNumber, HttpServletRequest request)
+													  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		Annotations annotations = entityManager.getAnnotationsForVersion(userInfo, id, versionNumber);
-		addServiceSpecificMetadata(id, annotations, request);
+		addServiceSpecificMetadata(id, annotations);
 		return annotations;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Annotations updateEntityAnnotations(Long userId, String entityId,
-			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+											   Annotations updatedAnnotations) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updatedAnnotations.getId() == null) throw new IllegalArgumentException("Annotations must have a non-null id");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		entityManager.updateAnnotations(userInfo,entityId, updatedAnnotations);
 		Annotations annos = entityManager.getAnnotations(userInfo, updatedAnnotations.getId());
-		addServiceSpecificMetadata(updatedAnnotations.getId(), annos, request);
+		addServiceSpecificMetadata(updatedAnnotations.getId(), annos);
 		return annos;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
-	public AccessControlList createEntityACL(Long userId, AccessControlList newACL,
-			HttpServletRequest request) throws DatastoreException,
+	public AccessControlList createEntityACL(Long userId, AccessControlList newACL) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);		
 		AccessControlList acl = entityPermissionsManager.overrideInheritance(newACL, userInfo);
-		acl.setUri(request.getRequestURI());
 		return acl;
 	}
 
@@ -458,39 +443,37 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = entityPermissionsManager.getACL(entityId, userInfo);
 		
-		acl.setUri(UrlHelpers.makeEntityACLUri(entityId));
 
 		return acl;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public AccessControlList updateEntityACL(Long userId,
-			AccessControlList updated, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+											 AccessControlList updated, String recursive) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = entityPermissionsManager.updateACL(updated, userInfo);
 		if (recursive != null && recursive.equalsIgnoreCase("true"))
 			entityPermissionsManager.applyInheritanceToChildren(updated.getId(), userInfo);
-		acl.setUri(request.getRequestURI());
 		return acl;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public AccessControlList createOrUpdateEntityACL(Long userId,
-			AccessControlList acl, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+													 AccessControlList acl, String recursive) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String entityId = acl.getId();
 		if (entityPermissionsManager.hasLocalACL(entityId)) {
 			// Local ACL exists; update it
-			return updateEntityACL(userId, acl, recursive, request);
+			return updateEntityACL(userId, acl, recursive);
 		} else {
 			// Local ACL does not exist; create it
-			return createEntityACL(userId, acl, request);
+			return createEntityACL(userId, acl);
 		}
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteEntityACL(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
@@ -499,10 +482,10 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public boolean hasAccess(String entityId, Long userId, HttpServletRequest request, String accessType) 
+	public boolean hasAccess(String entityId, Long userId, String accessType)
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo).getAuthorized();
+		return entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo).isAuthorized();
 	}
 
 	@Override
@@ -527,7 +510,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId, Long userId, HttpServletRequest request) throws NotFoundException,
+	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId, Long userId) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException {
 		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -544,8 +527,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public boolean doesEntityHaveChildren(Long userId, String entityId,
-			HttpServletRequest request) throws DatastoreException,
+	public boolean doesEntityHaveChildren(Long userId, String entityId) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -554,8 +536,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public Activity getActivityForEntity(Long userId, String entityId,
-			HttpServletRequest request) throws DatastoreException,
+	public Activity getActivityForEntity(Long userId, String entityId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -564,8 +545,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public Activity getActivityForEntity(Long userId, String entityId, Long versionNumber,
-			HttpServletRequest request) throws DatastoreException,
+	public Activity getActivityForEntity(Long userId, String entityId, Long versionNumber) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -573,10 +553,10 @@ public class EntityServiceImpl implements EntityService {
 		return entityManager.getActivityForEntity(userInfo, entityId, versionNumber);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Activity setActivityForEntity(Long userId, String entityId,
-			String activityId, HttpServletRequest request)
+										 String activityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -586,10 +566,9 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
-	public void deleteActivityForEntity(Long userId, String entityId,
-			HttpServletRequest request) throws DatastoreException,
+	public void deleteActivityForEntity(Long userId, String entityId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -702,5 +681,11 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.changeEntityDataType(userInfo, id, dataType);
+	}
+
+	@Override
+	public Long TEMPORARYcleanupAnnotations(Long userId, long startId, long numNodes){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.TEMPORARYcleanupAnnotations(userInfo, startId, numNodes);
 	}
 }

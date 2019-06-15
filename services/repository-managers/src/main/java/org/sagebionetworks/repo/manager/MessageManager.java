@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import sun.security.util.Password;
 
 public interface MessageManager {
 	
@@ -104,8 +106,14 @@ public interface MessageManager {
 	/**
 	 * Sends a password reset email based on a template via Amazon SES
 	 */
-	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException;
-	
+	public void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken) throws NotFoundException;
+
+	/**
+	 * Send an email confirming to user that their password has been changed
+	 * @param userId
+	 */
+	public void sendPasswordChangeConfirmationEmail(long userId);
+
 	/**
 	 * Sends a welcome email based on a template via Amazon SES
 	 */

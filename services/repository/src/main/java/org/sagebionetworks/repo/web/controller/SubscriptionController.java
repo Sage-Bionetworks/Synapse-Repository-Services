@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Subscription Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class SubscriptionController extends BaseController{
+public class SubscriptionController{
 
 	@Autowired
 	ServiceProvider serviceProvider;

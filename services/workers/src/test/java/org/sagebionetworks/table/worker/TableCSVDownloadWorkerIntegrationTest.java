@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -67,7 +69,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
 
@@ -97,11 +98,13 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	@Autowired
 	SemaphoreManager semphoreManager;
 	@Autowired
 	TableViewManager tableViewManager;
+	@Autowired
+	TableTransactionDao tableTransactionDao;
 	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -323,8 +326,9 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
+		long transactionId = tableTransactionDao.startTransaction(tableId, adminUserInfo.getId());
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
-				null, null, null);
+				null, null, null, transactionId);
 		return input;
 	}
 	

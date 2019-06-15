@@ -66,7 +66,7 @@ public interface UserManager {
 	 * @param alias
 	 * @return
 	 */
-	public PrincipalAlias lookupUserForAuthentication(String alias);
+	public PrincipalAlias lookupUserByUsernameOrEmail(String alias);
 
 	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	

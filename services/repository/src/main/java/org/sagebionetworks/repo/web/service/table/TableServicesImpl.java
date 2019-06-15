@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -26,10 +27,15 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.ViewScope;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.TableSqlProcessor;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -219,12 +225,29 @@ public class TableServicesImpl implements TableServices {
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken){
-		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewId, nextPageToken);
+		Long viewIdLong = KeyFactory.stringToKey(viewId);
+		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewIdLong, nextPageToken);
 	}
 
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope, String nextPageToken) {
 		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scope, nextPageToken);
+	}
+
+	@Override
+	public SqlTransformResponse transformSqlRequest(SqlTransformRequest request) throws ParseException {
+		ValidateArgument.required(request, "request");
+		String transformedSql = null;
+		if (request instanceof TransformSqlWithFacetsRequest) {
+			TransformSqlWithFacetsRequest facetRequest = (TransformSqlWithFacetsRequest) request;
+			transformedSql = TableSqlProcessor.generateSqlWithFacets(facetRequest.getSqlToTransform(),
+					facetRequest.getSelectedFacets(), facetRequest.getSchema());
+		} else {
+			throw new IllegalArgumentException("Unknown request type: " + request.getClass().getName());
+		}
+		SqlTransformResponse response = new SqlTransformResponse();
+		response.setTransformedSql(transformedSql);
+		return response;
 	}
 	
 }

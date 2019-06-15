@@ -3,16 +3,18 @@ package org.sagebionetworks.repo.manager.table;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -21,14 +23,20 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -36,12 +44,10 @@ import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.FileProvider;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.util.StringInputStream;
 
 /**
@@ -50,6 +56,7 @@ import com.amazonaws.util.StringInputStream;
  * @author John
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class TableUploadManagerTest {
 	
 	@Mock
@@ -59,23 +66,27 @@ public class TableUploadManagerTest {
 	@Mock
 	FileHandleManager  mockFileHandleManger;
 	@Mock
-	AmazonS3 mockS3Client;
+	SynapseS3Client mockS3Client;
 	@Mock
 	UploadRowProcessor rowProcessor;
+	@Mock
+	FileProvider mockFileProvider;
+	@Mock
+	File mockFile;
 	
+	@InjectMocks
 	TableUploadManagerImpl manager;
 	S3FileHandle fileHandle;
 	UserInfo user;
 	UploadToTableRequest uploadRequest;
+	IdAndVersion idAndVersion;
 	List<ColumnModel> tableSchema;
 	ObjectMetadata fileMetadata;
-	S3Object s3Object;
 	String csvString;
 	List<SparseRowDto> rowsRead;
 	
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
 		// User
 		user = new UserInfo(false);
 		user.setId(999L);
@@ -84,6 +95,7 @@ public class TableUploadManagerTest {
 		uploadRequest.setTableId("syn456");
 		uploadRequest.setUploadFileHandleId("789");
 		uploadRequest.setUpdateEtag("updateEtag");
+		idAndVersion = IdAndVersion.parse(uploadRequest.getTableId());
 
 		// FileHandle
 		fileHandle = new S3FileHandle();
@@ -91,16 +103,11 @@ public class TableUploadManagerTest {
 		fileHandle.setBucketName("someBucket");
 		fileHandle.setKey("someKey");
 		fileHandle.setContentType("text/csv");
+		fileHandle.setContentSize(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES);
 		// meta
 		fileMetadata = new ObjectMetadata();
-		// Object 
-		s3Object = new S3Object();
 		// schema
 		tableSchema = TableModelTestUtils.createColumsWithNames("a","b","c");
-		manager = new TableUploadManagerImpl();
-		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
-		ReflectionTestUtils.setField(manager, "fileHandleManager", mockFileHandleManger);
-		ReflectionTestUtils.setField(manager, "s3Client", mockS3Client);
 		// Create the CSV
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -108,12 +115,13 @@ public class TableUploadManagerTest {
 		input.add(new String[] { "FFF", "4", "true" });
 		csvString = TableModelTestUtils.createCSVString(input);
 		StringInputStream csvStream = new StringInputStream(csvString);
-		s3Object.setObjectContent(new S3ObjectInputStream(csvStream, null));
+		
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockFileProvider.createFileInputStream(any(File.class))).thenReturn(csvStream);
 
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
-		when(mockS3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(s3Object);
-		when(mockTableManagerSupport.getColumnModelsForTable(uploadRequest.getTableId())).thenReturn(tableSchema);
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(tableSchema);
 		rowsRead = new LinkedList<SparseRowDto>();
 		doAnswer(new Answer<TableUpdateResponse>(){
 			@Override
@@ -142,6 +150,43 @@ public class TableUploadManagerTest {
 		assertEquals(new Long(2), uploadResult.getRowsProcessed());
 		assertEquals(2, rowsRead.size());
 		verify(rowProcessor).processRows(eq(user), eq(uploadRequest.getTableId()), eq(tableSchema), any(Iterator.class), eq(uploadRequest.getUpdateEtag()), eq(mockProgressCallback));
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testFileOverSizeLimit() {
+		// file over size
+		fileHandle.setContentSize(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES+1);
+		// call under test;
+		try {
+			manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains(""+FileConstants.MAX_FILE_SIZE_GB));
+		}
+	}
+	
+	@Test
+	public void testTempDeletedOnFailure() throws DatastoreException, NotFoundException, IOException {
+		// setup a failure
+		IllegalArgumentException wentWrong = new IllegalArgumentException("Something went wrong");
+		when(rowProcessor.processRows(eq(user), eq(uploadRequest.getTableId()), anyListOf(ColumnModel.class), any(Iterator.class), anyString(), eq(mockProgressCallback))).thenThrow(wentWrong);
+		// call under test;
+		try {
+			manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// expected
+		}
+		// the temp file should still be deleted.
+		verify(mockFile).delete();
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFileContentSizeNull() {
+		fileHandle.setContentSize(null);
+		// call under test
+		manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);
 	}
 	
 	/**
@@ -167,7 +212,9 @@ public class TableUploadManagerTest {
 		input.add(new String[] { "2", "10", "b" });
 		csvString = TableModelTestUtils.createCSVString(input);
 		StringInputStream csvStream = new StringInputStream(csvString);
-		s3Object.setObjectContent(new S3ObjectInputStream(csvStream, null));
+		
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockFileProvider.createFileInputStream(any(File.class))).thenReturn(csvStream);
 		
 		CsvTableDescriptor descriptor = new CsvTableDescriptor();
 		descriptor.setIsFirstLineHeader(false);
@@ -176,8 +223,7 @@ public class TableUploadManagerTest {
 		
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
-		when(mockS3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(s3Object);
-		when(mockTableManagerSupport.getColumnModelsForTable(uploadRequest.getTableId())).thenReturn(tableSchema);
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(tableSchema);
 		
 		// call under test;
 		TableUpdateResponse results = manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);

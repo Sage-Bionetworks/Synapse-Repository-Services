@@ -1,12 +1,19 @@
 package org.sagebionetworks.repo.manager.message.dataaccess;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -16,6 +23,7 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SubmissionStatusBroadcastMessageBuilderTest {
 	@Mock
 	MarkdownDao mockMarkdownDao;
@@ -30,8 +38,6 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-
 		requirementId = "1";
 
 		subscriber = new Subscriber();
@@ -96,13 +102,13 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 	
 	@Test (expected = MarkdownClientException.class)
 	public void testBuildEmailFailure() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenThrow(new MarkdownClientException(500, ""));
+		when(mockMarkdownDao.convertMarkdown(anyString(), isNull())).thenThrow(new MarkdownClientException(500, ""));
 		builder.buildEmailForSubscriber(subscriber);
 	}
 	
 	@Test
 	public void testBuildEmailSuccess() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenReturn("content");
+		when(mockMarkdownDao.convertMarkdown(anyString(), isNull())).thenReturn("content");
 		SendRawEmailRequest request = builder.buildEmailForSubscriber(subscriber);
 		assertNotNull(request);
 	}

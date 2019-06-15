@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -80,6 +81,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -111,7 +113,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
-import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
@@ -150,6 +152,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -170,6 +173,8 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
+import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -193,6 +198,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -213,7 +219,6 @@ import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Abstraction for Synapse.
@@ -539,7 +544,7 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteAccessRequirement(Long arId) throws SynapseException;
 
-	public <T extends Entity> T putEntity(T entity, String activityId)
+	public <T extends Entity> T putEntity(T entity, String activityId, Boolean newVersion)
 			throws SynapseException;
 
 	public <T extends Entity> void deleteEntity(T entity) throws SynapseException;
@@ -822,12 +827,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void updateMessageStatus(MessageStatus status)
 			throws SynapseException;
-	
-	/**
-	 * Deletes a message.  Used for test cleanup only.  Admin only.
-	 */
-	public void deleteMessage(String messageId) throws SynapseException;
-	
+
 	/**
 	 * Downloads the body of a message and returns it in a String
 	 */
@@ -931,14 +931,6 @@ public interface SynapseClient extends BaseClient {
 	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException;
-	
-	/**
-	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
-	 * @param submissionId
-	 * @param contributor
-	 * @return
-	 */
-	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor) throws SynapseException ;
 
 	public Submission getSubmission(String subId) throws SynapseException;
 
@@ -1024,20 +1016,11 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException;
 
-	public void createEntityDoi(String entityId) throws SynapseException;
-
-	public void createEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException;
-
-	public Doi getEntityDoi(String entityId) throws SynapseException;
-
-	public Doi getEntityDoi(String s, Long entityVersion) throws SynapseException;
-
 	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public org.sagebionetworks.repo.model.doi.v2.Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
+	public Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public String createOrUpdateDoiAsyncStart(org.sagebionetworks.repo.model.doi.v2.Doi doi) throws SynapseException;
+	public String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException;
 
 	public DoiResponse createOrUpdateDoiAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 
@@ -1468,10 +1451,10 @@ public interface SynapseClient extends BaseClient {
 	ResponseMessage addTeamMember(JoinTeamSignedToken joinTeamSignedToken, 
 			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException;
-	
+
 	/**
 	 * Return the members of the given team matching the given name fragment.
-	 * 
+	 *
 	 * @param teamId
 	 * @param fragment if null then return all members in the team
 	 * @param limit
@@ -1480,6 +1463,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+
+	/**
+	 * Return the members of the given team matching the given name fragment.
+	 * 
+	 * @param teamId
+	 * @param fragment if null then return all members in the team
+	 * @param memberType if null then return all members in the team (that match the fragment)
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws SynapseException;
 	
 	/**
 	 * 
@@ -1736,22 +1732,32 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
-	
+
+	public void sendNewPasswordResetEmail(String passwordResetEndpoint, String email) throws SynapseException;
+
 	/**
-	 * Changes the registering user's password
+	 * Change password for a user
+	 * @param username username to identify the user
+	 * @param currentPassword the user's current password
+	 * @param newPassword the new password for the user
+	 * @param authenticationReceipt Optional. Authentication receipt from a previous, successful login.
+	 * @throws SynapseException
 	 */
-	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
-	
+	public void changePassword(String username, String currentPassword, String newPassword, String authenticationReceipt)
+			throws SynapseException;
+
+	/**
+	 * Change password for user
+	 * @param changePasswordRequest the request object for changing the user's password
+	 * @throws SynapseException
+	 */
+	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
+
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the given user as if request came from Synapse.
-	 */
-	public void sendPasswordResetEmail(String email) throws SynapseException;
-	
+
 	/**
 	 * The first step in OAuth authentication involves sending the user to
 	 * authenticate on an OAuthProvider's web page. Use this method to get a
@@ -1786,6 +1792,28 @@ public interface SynapseClient extends BaseClient {
 	 */
 	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
 			throws SynapseException;
+	
+
+	/**
+	 * 
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and a session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException;
 	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
@@ -1826,27 +1854,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
-	
-	/**
-	 * For integration testing only:  This allows an administrator to set the Certified user status
-	 * of a user.
-	 * @param prinicipalId
-	 * @param status
-	 * @throws SynapseException
-	 */
-	public void setCertifiedUserStatus(String prinicipalId, boolean status) throws SynapseException;
-	
-	/**
-	 * Must be a Synapse admin to make this request
-	 * 
-	 * @param offset
-	 * @param limit
-	 * @param principalId (optional)
-	 * @return the C.U. test responses in the system, optionally filtered by principalId
-	 * @throws SynapseException 
-	 */
-	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, String principalId) throws SynapseException;
-	
+
 	/**
 	 * Delete the Test Response indicated by the given id
 	 * 
@@ -1866,11 +1874,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
 
-	/**
-	 * Get all Passing Records on the Certified User test for the given user
-	 */
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
-	
 	/**
 	 * Start a new Asynchronous Job
 	 * @param jobBody
@@ -2723,19 +2726,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void addDockerCommit(String entityId, DockerCommit dockerCommit) throws SynapseException;
-	
+
 	/**
-	 * Return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 * Return a paginated list of tagged commits (tag/digest pairs) for the given Docker repository.
 	 *
 	 * @param entityId the ID of the Docker repository entity
 	 * @param limit pagination parameter, optional (default is 20)
 	 * @param offset pagination parameter, optional (default is 0)
 	 * @param sortBy TAG or CREATED_ON, optional (default is CREATED_ON)
 	 * @param ascending, optional (default is false)
-	 * @return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 * @return a paginated list of tagged commits (tag/digest pairs) for the given Docker repository.
 	 * @throws SynapseException
 	 */
-	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
+	PaginatedResults<DockerCommit> listDockerTags(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
 
 	/**
 	 * Get threads that reference the given entity
@@ -3090,4 +3093,21 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
+
+	String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException;
+
+	DownloadStorageReportResponse generateStorageReportAsyncGet(String asyncJobToken) throws SynapseException;
+
+	/**
+	 * Request to transform the provided SQL based on the request parameters. For
+	 * example, a
+	 * {@linkplain org.sagebionetworks.repo.model.tabe.TransformSqlWithFacetsRequest}
+	 * can be used to alter the where clause of the provided SQL based on the
+	 * provided selected facets.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException;
 }

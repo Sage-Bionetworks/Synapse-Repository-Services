@@ -2,8 +2,8 @@ package org.sagebionetworks.asynchronous.workers.sqs;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.stub;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -46,7 +46,7 @@ public class QueueServiceDaoTest {
 		for(int i=0; i<10; i++){
 			messageQueue.push(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
 		}
-		stub(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).toAnswer(new Answer<ReceiveMessageResult>() {
+		when(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).thenAnswer(new Answer<ReceiveMessageResult>() {
 
 			@Override
 			public ReceiveMessageResult answer(InvocationOnMock invocation)

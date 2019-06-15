@@ -55,7 +55,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="User Profile Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class UserProfileController extends BaseController {
+public class UserProfileController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -259,7 +259,7 @@ public class UserProfileController extends BaseController {
 	 * 
 	 * @param prefixFilter
 	 *            The name to search for.
-	 * @param filter
+	 * @param typeFilter
 	 *            Restrict the results to a type of principal. 
 	 *            Available options: <a href="${org.sagebionetworks.repo.model.principal.TypeFilter}">TypeFilter</a>.
 	 * @param offset

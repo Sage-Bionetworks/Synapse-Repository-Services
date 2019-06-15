@@ -3,15 +3,14 @@ package org.sagebionetworks.repo.web.filter.throttle;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
 import org.sagebionetworks.repo.model.throttle.ThrottleLimit;
 import org.sagebionetworks.repo.model.throttle.ThrottleRule;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.atlassian.util.concurrent.atomic.AtomicLong;
-import com.atlassian.util.concurrent.atomic.AtomicReference;
 
 /**
  * Caches the THROTTLE_RULES database table

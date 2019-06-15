@@ -6,7 +6,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.PathParam;
 
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.logging.Log;
@@ -38,7 +37,6 @@ import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -53,7 +51,6 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.BaseController;
 import org.sagebionetworks.repo.web.controller.RedirectUtils;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -150,7 +147,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "File Services", path = "file/v1")
 @Controller
 @RequestMapping(UrlHelpers.FILE_PATH)
-public class UploadController extends BaseController {
+public class UploadController {
 
 	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";
 
@@ -748,7 +745,7 @@ public class UploadController extends BaseController {
 	public @ResponseBody MultipartUploadStatus startMultipartUpload(
 			@RequestParam(required = true, value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody(required = true) MultipartUploadRequest request,
-			@RequestParam(required = false) Boolean forceRestart) {
+			@RequestParam(required = false, defaultValue = "false") boolean forceRestart) {
 		return fileService.startMultipartUpload(userId, request, forceRestart);
 	}
 

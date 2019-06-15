@@ -2,15 +2,17 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
@@ -43,7 +45,7 @@ public class ObjectTypeManagerImplTest {
 	public void before() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(false);
 		boolean isAuthorized = true;
-		when(mockAuthStatus.getAuthorized()).thenReturn(isAuthorized);
+		when(mockAuthStatus.isAuthorized()).thenReturn(isAuthorized);
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class),
 				any(ACCESS_TYPE.class))).thenReturn(mockAuthStatus);
 
@@ -80,7 +82,7 @@ public class ObjectTypeManagerImplTest {
 	@Test
 	public void testChangeObjectsDataTypeSensitiveUnauthroized() {
 		boolean isAuthorized = false;
-		when(mockAuthStatus.getAuthorized()).thenReturn(isAuthorized);
+		when(mockAuthStatus.isAuthorized()).thenReturn(isAuthorized);
 		try {
 			// call under test
 			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);

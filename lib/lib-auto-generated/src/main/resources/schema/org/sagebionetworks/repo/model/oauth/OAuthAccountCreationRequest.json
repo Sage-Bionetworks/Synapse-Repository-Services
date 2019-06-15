@@ -1,0 +1,15 @@
+{
+    "title":"OAuthAccountCreationRequest",
+    "description":"Request to create an account, validated via OAuth",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.oauth.OAuthValidationRequestInterface"
+		}
+	],
+	"properties": {
+		"userName": {
+			"type": "string",
+			"description": "The requested user name for the new account."
+		}
+	}
+}

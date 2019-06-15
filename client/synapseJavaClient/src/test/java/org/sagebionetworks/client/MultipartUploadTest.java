@@ -2,13 +2,14 @@ package org.sagebionetworks.client;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.client.MultipartUpload.calculateMD5Hex;
 
 import java.io.ByteArrayInputStream;
@@ -34,20 +35,19 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
-import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
-import org.sagebionetworks.repo.model.file.TempFileProviderImpl;
+import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.FileProviderImpl;
 
 public class MultipartUploadTest {
 
 	@Mock
 	SynapseClient mockClient;
 	@Mock
-	TempFileProvider mockFileProvider;
+	FileProvider mockFileProvider;
 
 	List<PartData> partDataList;
 
@@ -110,7 +110,7 @@ public class MultipartUploadTest {
 
 		when(
 				mockClient.startMultipartUpload(
-						any(MultipartUploadRequest.class), any(Boolean.class)))
+						any(), any()))
 				.thenReturn(startStatus);
 
 		completeStatus = new MultipartUploadStatus();
@@ -156,7 +156,7 @@ public class MultipartUploadTest {
 				calculateMD5Hex(fileBytes, 4, 4),
 				calculateMD5Hex(fileBytes, 8, 2), };
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(), input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new FileProviderImpl(), input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(3, partDataList.size());
@@ -200,7 +200,7 @@ public class MultipartUploadTest {
 				calculateMD5Hex(fileBytes, 0, 10),
 		};
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(),input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new FileProviderImpl(),input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(1, partDataList.size());
@@ -229,7 +229,7 @@ public class MultipartUploadTest {
 				calculateMD5Hex(fileBytes, 5, 5),
 		};
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(),input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new FileProviderImpl(),input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(2, partDataList.size());
@@ -310,7 +310,7 @@ public class MultipartUploadTest {
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(
-				any(MultipartUploadRequest.class), any(Boolean.class));
+				any(), any());
 		verify(mockClient, times(1)).getMultipartPresignedUrlBatch(
 				any(BatchPresignedUploadUrlRequest.class));
 		verify(mockClient, times(1)).putFileToURL(any(URL.class),
@@ -337,7 +337,7 @@ public class MultipartUploadTest {
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(
-				any(MultipartUploadRequest.class), any(Boolean.class));
+				any(), any());
 		verify(mockClient, never()).getMultipartPresignedUrlBatch(
 				any(BatchPresignedUploadUrlRequest.class));
 		verify(mockClient, never()).putFileToURL(any(URL.class),

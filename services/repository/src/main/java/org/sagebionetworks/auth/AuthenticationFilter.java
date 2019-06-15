@@ -20,6 +20,7 @@ import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ErrorResponse;
@@ -48,17 +49,11 @@ public class AuthenticationFilter implements Filter {
 
 	@Autowired
 	private AuthenticationService authenticationService;
+
+	@Autowired
+	private UserManager userManager;
 	
 	private boolean allowAnonymous = false;
-	
-	public AuthenticationFilter() {}
-	
-	/**
-	 * For testing
-	 */
-	public AuthenticationFilter(AuthenticationService authenticationService) {
-		this.authenticationService = authenticationService;
-	}
 	
 	@Override
 	public void destroy() { }
@@ -121,7 +116,7 @@ public class AuthenticationFilter implements Filter {
 			String failureReason = "Invalid HMAC signature";
 			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
 			try {
-				userId = authenticationService.getUserId(username);
+				userId = userManager.lookupUserByUsernameOrEmail(username).getPrincipalId();
 				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthenticatedException e) {

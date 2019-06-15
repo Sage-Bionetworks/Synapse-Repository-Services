@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
@@ -24,6 +25,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.util.ValidateArgument;
@@ -33,6 +36,8 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class SynapseAdminClientImpl extends SynapseClientImpl implements SynapseAdminClient {
 
+	protected static final String ADMIN = "/admin";
+	protected static final String ADMIN_STACK_STATUS = ADMIN + "/synapse/status";
 	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
 	private static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + "/trashcan/purgeleaves";
@@ -64,7 +69,17 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	
 	private static final String ADMIN_ASYNCHRONOUS_JOB = "/admin/asynchronous/job";
 	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
-	
+
+	private static final String EVALUATION_URI_PATH = "/evaluation";
+	private static final String SUBMISSION = "submission";
+
+	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
+	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
+	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
+	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
+
+	private static final String MESSAGE = "/message";
+
 	public SynapseAdminClientImpl() {
 		super();
 	}
@@ -79,7 +94,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	 * @throws SynapseException
 	 */
 	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException {
-		return putJSONEntity(getRepoEndpoint(), STACK_STATUS, updated, StackStatus.class);
+		return putJSONEntity(getRepoEndpoint(), ADMIN_STACK_STATUS, updated, StackStatus.class);
 	}
 
 	@Override
@@ -309,5 +324,73 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public IdGeneratorExport createIdGeneratorExport() throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), ADMIN_ID_GEN_EXPORT, IdGeneratorExport.class);
+	}
+
+	/**
+	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
+	 * @param submissionId
+	 * @param contributor
+	 * @return
+	 */
+	@Override
+	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor)
+			throws SynapseException {
+		validateStringAsLong(submissionId);
+		String uri = ADMIN + EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + submissionId + "/contributor";
+		return postJSONEntity(getRepoEndpoint(), uri, contributor, SubmissionContributor.class);
+	}
+
+	@Override
+	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(
+			long offset, long limit, String principalId)
+			throws SynapseException {
+
+		String uri = null;
+		if (principalId == null) {
+			uri = ADMIN + CERTIFIED_USER_TEST_RESPONSE + "?" + OFFSET + "=" + offset
+					+ "&" + LIMIT + "=" + limit;
+		} else {
+			uri = ADMIN + CERTIFIED_USER_TEST_RESPONSE + "?"
+					+ PRINCIPAL_ID_REQUEST_PARAM + "=" + principalId + "&"
+					+ OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
+		}
+		return getPaginatedResults(getRepoEndpoint(), uri, QuizResponse.class);
+	}
+
+	@Override
+	public void setCertifiedUserStatus(String principalId, boolean status)
+			throws SynapseException {
+		String url = ADMIN + USER + "/" + principalId + CERTIFIED_USER_STATUS
+				+ "?isCertified=" + status;
+		voidPut(getRepoEndpoint(), url, null);
+	}
+
+	/**
+	 * Deletes a message.  Used for test cleanup only.  Admin only.
+	 */
+	@Override
+	public void deleteMessage(String messageId) throws SynapseException {
+		String uri = ADMIN + MESSAGE + "/" + messageId;
+		deleteUri(getRepoEndpoint(), uri);
+	}
+
+
+	private static final void validateStringAsLong(String s) throws SynapseClientException {
+		if (s==null) throw new NullPointerException();
+		try {
+			Long.parseLong(s);
+		} catch (NumberFormatException e) {
+			throw new SynapseClientException("Expected integer but found "+s, e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(
+			long offset, long limit, String principalId)
+			throws SynapseException {
+		ValidateArgument.required(principalId, "principalId");
+		String uri = ADMIN + USER + "/" + principalId + CERTIFIED_USER_PASSING_RECORDS
+				+ "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
+		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
 	}
 }

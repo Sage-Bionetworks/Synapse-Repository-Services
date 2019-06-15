@@ -1,13 +1,11 @@
 package org.sagebionetworks.worker;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.aws.MultiFactorAuthenticationCredentialProvider;
@@ -18,12 +16,11 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
-import au.com.bytecode.opencsv.CSVWriter;
-
-import com.amazonaws.services.sqs.model.Message;;
+import au.com.bytecode.opencsv.CSVWriter;;
 
 /**
  * This class will purge the give SQS queue and record each deleted message to a

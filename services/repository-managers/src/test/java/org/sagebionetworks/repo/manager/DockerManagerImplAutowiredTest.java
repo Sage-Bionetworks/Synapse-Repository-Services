@@ -7,7 +7,7 @@ import static org.junit.Assert.assertNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,7 +93,7 @@ public class DockerManagerImplAutowiredTest {
 		assertNotNull(createdEntityId);
 
 		PaginatedResults<DockerCommit> pgs = 
-				dockerManager.listDockerCommits(adminUserInfo, createdEntityId, 
+				dockerManager.listDockerTags(adminUserInfo, createdEntityId,
 						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0);
 		
 		assertEquals(1L, pgs.getTotalNumberOfResults());
@@ -119,7 +119,7 @@ public class DockerManagerImplAutowiredTest {
 		dockerManager.addDockerCommitToUnmanagedRespository(adminUserInfo, entityId, commit);
 		
 		PaginatedResults<DockerCommit> pgs = 
-				dockerManager.listDockerCommits(adminUserInfo, entityId, 
+				dockerManager.listDockerTags(adminUserInfo, entityId,
 						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0);
 		
 		assertEquals(1L, pgs.getTotalNumberOfResults());

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -149,9 +150,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		QuerySpecification model = parserQuery(query.getSql());
 		// We now have the table's ID.
 		String tableId = model.getTableName();
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 
 		// 2. Validate the user has read access on this table
-		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, tableId);
+		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, idAndVersion);
 
 		// 3. Get the table's schema
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
@@ -199,7 +201,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// current etag.
 		if (query.isConsistent()) {
 			// run with the read lock
-			return tryRunWithTableReadLock(progressCallback, query.getTableId(),
+			IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
+			return tryRunWithTableReadLock(progressCallback, idAndVersion,
 					new ProgressingCallable<QueryResultBundle>() {
 
 						@Override
@@ -234,11 +237,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws EmptyResultException
 	 */
-	<R, T> R tryRunWithTableReadLock(ProgressCallback callback, String tableId, ProgressingCallable<R> runner)
+	<R, T> R tryRunWithTableReadLock(ProgressCallback callback, IdAndVersion idAndversion, ProgressingCallable<R> runner)
 			throws TableUnavailableException, TableFailedException, EmptyResultException {
 
 		try {
-			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, tableId, READ_LOCK_TIMEOUT_SEC,
+			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, idAndversion, READ_LOCK_TIMEOUT_SEC,
 					runner);
 		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
 			// runtime exceptions are unchanged.
@@ -280,7 +283,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setSelectColumns(query.getSelectColumns());
 		}
 
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
+		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 
 		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets());
 
@@ -597,7 +601,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
-		final TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		final TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion);
 		switch (status.getState()) {
 		case AVAILABLE:
 			return status;
@@ -665,11 +670,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getTableName();
 		// Get a connection to the table.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = null;
 		try {
-			tableBenefactors = indexDao.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR);
+			tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 		} catch (BadSqlGrammarException e) { // table has not been created yet
 			tableBenefactors = Collections.emptySet();
 		}

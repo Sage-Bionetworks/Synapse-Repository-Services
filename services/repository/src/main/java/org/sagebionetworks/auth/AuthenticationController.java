@@ -6,6 +6,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -21,9 +23,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.BaseController;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -57,7 +57,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Authentication Services", path = "auth/v1")
 @Controller
 @RequestMapping(UrlHelpers.AUTH_PATH)
-public class AuthenticationController extends BaseController {
+public class AuthenticationController {
 
 	private static Log log = LogFactory.getLog(AuthenticationController.class);
 
@@ -116,40 +116,25 @@ public class AuthenticationController extends BaseController {
 	}
 
 	/**
-	 * Create a new user. An email will be sent regarding how to set a password for the account. <br/>
-	 * The query parameter <code>domain</code> may be appended to this URI. If absent or set to "synapse", the service
-	 * will send email specific to the Synapse application; <br/>
-	 * Note: The passed request body must contain an email. First, last, and full name are recommended but not required.
-	 * All other fields will be ignored.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
-	public void createUser(
-			@RequestBody NewUser user) {
-		authenticationService.createUser(user);
-	}
-
-	/**
-	 * Sends an email for setting a user's password. <br/>
-	 * The query parameter <code>domain</code> may be appended to this URI. If absent or set to "synapse", the service
-	 * will send email specific to the Synapse application;
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void sendPasswordEmail(
-			@RequestBody Username user)
-			throws NotFoundException {
-		authenticationService.sendPasswordEmail(user.getEmail());
-	}
-
-	/**
-	 * Change the current authenticated user's password.
+	 * Sends an email for resetting a user's password. <br/>
+	 * @param passwordResetEndpoint the Portal's url prefix for handling password resets.
+	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_RESET, method = RequestMethod.POST)
+	public void sendPasswordResetEmail(
+			@RequestParam(value = AuthorizationConstants.PASSWORD_RESET_PARAM, required = true) String passwordResetEndpoint,
+			@RequestBody Username user){
+		authenticationService.sendPasswordResetEmail(passwordResetEndpoint, user.getEmail());
+	}
+
+	/**
+	 * Change the current user's password. This will invalidate existing session tokens.
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_USER_CHANGE_PASSWORD, method = RequestMethod.POST)
 	public void changePassword(
-			@RequestBody ChangePasswordRequest request)
+			@RequestBody ChangePasswordInterface request)
 			throws NotFoundException {
 		authenticationService.changePassword(request);
 	}
@@ -203,6 +188,11 @@ public class AuthenticationController extends BaseController {
 	 * query parameter to the redirect URL named "code". The code parameter's
 	 * value is an authorization code that must be provided to Synapse to
 	 * validate a user.
+	 * 
+	 * Note:  The 'state' field in the request body is an arbitrary string
+	 * that certain Oauth providers (including Google) will return as a request 
+	 * parameter in the redirect URL. (The handling of 'state' is not prescribed by 
+	 * the OAuth standard.)
 	 * 
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -260,6 +250,32 @@ public class AuthenticationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws Exception {
 		return authenticationService.bindExternalID(userId, request);
+	}
+	
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and a session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return 
+	 * @throws Exception
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
+	public @ResponseBody
+	Session createAccountViaOAuth2(@RequestBody OAuthAccountCreationRequest request)
+			throws Exception {
+		return authenticationService.createAccountViaOauth(request);
 	}
 	
 	/**

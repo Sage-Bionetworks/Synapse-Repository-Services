@@ -1,7 +1,8 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
+
+import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
 
 public enum IndexFieldToSynapseFacetType {
 	LITERAL (IndexFieldType.Literal, FacetTypeNames.LITERAL),

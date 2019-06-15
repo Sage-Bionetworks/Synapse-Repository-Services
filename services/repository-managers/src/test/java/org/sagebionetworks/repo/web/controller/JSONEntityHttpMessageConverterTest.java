@@ -137,7 +137,6 @@ public class JSONEntityHttpMessageConverterTest {
 		ExampleEntity entity = new ExampleEntity();
 		entity.setName("name");
 		// this version requires a class name fo the entity type.
-		entity.setEntityType(ExampleEntity.class.getName());
 		entity.setDoubleList(new ArrayList<Double>());
 		entity.getDoubleList().add(123.45);
 		entity.getDoubleList().add(4.56);
@@ -180,7 +179,7 @@ public class JSONEntityHttpMessageConverterTest {
 	 */
 	@Test (expected=JSONObjectAdapterException.class)
 	public void testCreateEntityFromAdapterBadJSON() throws JSONObjectAdapterException{
-		// Test a vaild entity type with a field that does not exist on that type.
+		// Test a valid entity type with a field that does not exist on that type.
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter.put("entityType", ExampleEntity.class.getName());
 		adapter.put("notAField", "shoudld not exist");

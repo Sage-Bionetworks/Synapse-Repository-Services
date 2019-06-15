@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
+import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -76,7 +78,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	TransactionSynchronizationProxy transactionSynchronizationManager;
-	
+
+	@Autowired
+	PasswordValidator passwordValidator;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -154,6 +158,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		DBOTermsOfUseAgreement touAgreement = null;
 		DBOSessionToken token = null;
 		if (userSpecs.getPassword() != null) {
+			passwordValidator.validatePassword(userSpecs.getPassword());
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
 		if (userSpecs.getSession() != null) {
@@ -185,7 +190,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	@Override
 	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		tableManagerSupport.rebuildTable(userInfo, tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		tableManagerSupport.rebuildTable(userInfo, idAndVersion);
 	}
 
 	@Override

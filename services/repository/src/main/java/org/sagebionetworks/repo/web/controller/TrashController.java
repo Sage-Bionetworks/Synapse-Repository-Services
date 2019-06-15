@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.io.filefilter.FalseFileFilter;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -33,7 +32,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Recycle Bin Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class TrashController extends BaseController {
+public class TrashController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;

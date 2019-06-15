@@ -5,20 +5,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import static org.mockito.Mockito.*;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
@@ -122,11 +125,27 @@ public class EmailUtilsTest {
 		EmailUtils.validateSynapsePortalHost("http://localhost");
 		EmailUtils.validateSynapsePortalHost("http://127.0.0.1");
 		EmailUtils.validateSynapsePortalHost("https://synapse-staging.sagebase.org");
+		EmailUtils.validateSynapsePortalHost("https://www.synapse.org/Portal.html#!PasswordReset:");
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateSynapsePortalHostNotOk() throws Exception {
-		EmailUtils.validateSynapsePortalHost("www.spam.com");
+		try {
+			EmailUtils.validateSynapsePortalHost("https://www.spam.com");
+			fail("Expected exception to be thrown");
+		}catch (IllegalArgumentException e){
+			assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testValidateSynapsePortalHost_BaseDomainContainsSubstringSynapse() throws Exception {
+		try {
+			EmailUtils.validateSynapsePortalHost("https://www.notSynapse.org");
+			fail("Expected exception to be thrown");
+		}catch (IllegalArgumentException e){
+			assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
+		}
 	}
 	
 	@Test

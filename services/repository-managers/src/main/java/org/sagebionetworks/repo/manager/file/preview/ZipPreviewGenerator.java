@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
 import org.apache.commons.io.IOUtils;
@@ -21,21 +23,33 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 	public static final String TEXT_CSV 	= "text/csv";
 	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
-		ZipInputStream zip = new ZipInputStream(from);
-		ZipEntry zipEntry;
-		StringBuilder sb = new StringBuilder();
-		while((zipEntry = zip.getNextEntry()) != null) {
-			String name = zipEntry.getName();
-			//ignore these special entries
-			if (name.startsWith("__MACOSX") || name.endsWith(".DS_Store")) {
-				continue;
+		try {
+			ZipInputStream zip = new ZipInputStream(from);
+			ZipEntry zipEntry;
+			StringBuilder sb = new StringBuilder();
+			while ((zipEntry = zip.getNextEntry()) != null) {
+				String name = zipEntry.getName();
+				//ignore these special entries
+				if (name.startsWith("__MACOSX") || name.endsWith(".DS_Store")) {
+					continue;
+				}
+				sb.append(zipEntry.getName());
+				sb.append("\n");
 			}
-			sb.append(zipEntry.getName());
-			sb.append("\n");
+			IOUtils.write(sb.toString(), to, "UTF-8");
+
+			return new PreviewOutputMetadata(TEXT_CSV, ".csv");
+		} catch (ZipException e){
+			//can't support encrypted zips
+			if (e.getMessage().contains("encrypted ZIP entry not supported")){
+				throw new PreviewGenerationNotSupportedException("ZIP file is encrypted", e);
+			}else {
+				//rethrow for other zip exceptions
+				throw e;
+			}
+		} catch (EOFException e){
+			throw new PreviewGenerationNotSupportedException("Improperly formatted zip file", e);
 		}
-		IOUtils.write(sb.toString(), to, "UTF-8");
-		
-		return new PreviewOutputMetadata(TEXT_CSV, ".csv");
 	}
 
 	@Override

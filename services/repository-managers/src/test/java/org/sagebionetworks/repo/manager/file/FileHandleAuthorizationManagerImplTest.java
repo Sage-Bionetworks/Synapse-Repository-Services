@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.AuthorizationManagerUtil.ACCESS_DENIED;
-import static org.sagebionetworks.repo.manager.AuthorizationManagerUtil.AUTHORIZED;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -67,23 +66,23 @@ public class FileHandleAuthorizationManagerImplTest {
 						fha1.getAssociateObjectId(),
 						fha1.getAssociateObjectType())).thenReturn(
 				Arrays.asList(new FileHandleAuthorizationStatus(fha1
-						.getFileHandleId(), AUTHORIZED)));
+						.getFileHandleId(), AuthorizationStatus.authorized())));
 		// cannot download 2
 		when(
 				mockAuthManager.canDownloadFile(user, fileHandleIds,
 						fha2.getAssociateObjectId(),
 						fha2.getAssociateObjectType())).thenReturn(
 				Arrays.asList(new FileHandleAuthorizationStatus(fha2
-						.getFileHandleId(), ACCESS_DENIED)));
+						.getFileHandleId(), AuthorizationStatus.accessDenied(""))));
 		// call under test.
 		List<FileHandleAssociationAuthorizationStatus> resutls = manager
 				.canDownLoadFile(user, Arrays.asList(fha1, fha2));
 		// 1 authorized and 2 denied.
 		List<FileHandleAssociationAuthorizationStatus> expected = Arrays
 				.asList(new FileHandleAssociationAuthorizationStatus(fha1,
-						AUTHORIZED),
+						AuthorizationStatus.authorized()),
 						new FileHandleAssociationAuthorizationStatus(fha2,
-								ACCESS_DENIED));
+								AuthorizationStatus.accessDenied("")));
 		assertEquals(expected, resutls);
 		// auth manager should be called once for each object.
 		verify(mockAuthManager, times(2)).canDownloadFile(any(UserInfo.class),
@@ -99,8 +98,8 @@ public class FileHandleAuthorizationManagerImplTest {
 						fha2.getAssociateObjectId(),
 						fha2.getAssociateObjectType())).thenReturn(
 				Arrays.asList(
-						new FileHandleAuthorizationStatus(fha2.getFileHandleId(), ACCESS_DENIED),
-						new FileHandleAuthorizationStatus(fha3.getFileHandleId(), AUTHORIZED)));
+						new FileHandleAuthorizationStatus(fha2.getFileHandleId(), AuthorizationStatus.accessDenied("")),
+						new FileHandleAuthorizationStatus(fha3.getFileHandleId(), AuthorizationStatus.authorized())));
 
 		// call under test.
 		List<FileHandleAssociationAuthorizationStatus> resutls = manager
@@ -108,9 +107,9 @@ public class FileHandleAuthorizationManagerImplTest {
 		// 3 authorized and 2 denied.
 		List<FileHandleAssociationAuthorizationStatus> expected = Arrays
 				.asList(new FileHandleAssociationAuthorizationStatus(fha2,
-						ACCESS_DENIED),
+						AuthorizationStatus.accessDenied("")),
 						new FileHandleAssociationAuthorizationStatus(fha3,
-								AUTHORIZED));
+								AuthorizationStatus.authorized()));
 		assertEquals(expected, resutls);
 		// auth manager should be called once for this case.
 		verify(mockAuthManager, times(1)).canDownloadFile(any(UserInfo.class),

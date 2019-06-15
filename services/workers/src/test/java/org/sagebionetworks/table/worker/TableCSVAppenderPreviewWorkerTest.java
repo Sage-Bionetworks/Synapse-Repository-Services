@@ -1,13 +1,17 @@
 package org.sagebionetworks.table.worker;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
-
-import static org.mockito.Mockito.*;
-
+import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -20,9 +24,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
@@ -44,7 +46,7 @@ public class TableCSVAppenderPreviewWorkerTest {
 	@Mock
 	private FileHandleManager mockFileHandleManager;
 	@Mock
-	private AmazonS3 mockS3Client;
+	private SynapseS3Client mockS3Client;
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
@@ -56,31 +58,35 @@ public class TableCSVAppenderPreviewWorkerTest {
 	
 	
 	UploadToTablePreviewRequest body;
-	
+
+	@InjectMocks
 	TableCSVAppenderPreviewWorker worker;
 	
 	AsynchronousJobStatus status;
 	S3FileHandle fileHandle;
 	ObjectMetadata fileMetadata;
-	
+
+	long userId;
+	UserInfo userInfo;
+
 	@Before
 	public void before() throws JSONObjectAdapterException{
-		worker = new TableCSVAppenderPreviewWorker();
-		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAsynchJobStatusManager);
-		ReflectionTestUtils.setField(worker, "tableEntityManager", mockTableEntityManager);
-		ReflectionTestUtils.setField(worker, "userManger", mockUserManger);
-		ReflectionTestUtils.setField(worker, "fileHandleManager", mockFileHandleManager);
-		ReflectionTestUtils.setField(worker, "s3Client", mockS3Client);
-		
 		status = new AsynchronousJobStatus();
 		when(mockAsynchJobStatusManager.lookupJobStatus(anyString())).thenReturn(status);
 		
 		body = new UploadToTablePreviewRequest();
+		body.setUploadFileHandleId("fileHandleId");
 		status.setRequestBody(body);
+		status.setStartedByUserId(userId);
 		String jsonBody = EntityFactory.createJSONStringForEntity(body);
 		when(mockMessage.getBody()).thenReturn(jsonBody);
+
+		userInfo = new UserInfo(false, userId);
+		when(mockUserManger.getUserInfo(userId)).thenReturn(userInfo);
 		
 		fileHandle = new S3FileHandle();
+		fileHandle.setBucketName("bucketName");
+		fileHandle.setKey("key");
 		when(mockFileHandleManager.getRawFileHandle(any(UserInfo.class), anyString())).thenReturn(fileHandle);
 		
 		fileMetadata = new ObjectMetadata();

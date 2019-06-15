@@ -109,7 +109,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-		entityService.getEntity(userId, clone.getId(), mockRequest, Project.class);
+		entityService.getEntity(userId, clone.getId(), Project.class);
 	}
 
 	@Test
@@ -122,10 +122,8 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		toDelete.add(clone.getId());
 		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, clone.getId(), userId);
 		assertNotNull(acl);
-		assertNotNull(acl.getUri());
 		acl = servletTestHelper.updateEntityAcl(dispatchServlet, clone.getId(), acl, userId);
 		assertNotNull(acl);
-		assertNotNull(acl.getUri());
 	}
 
 	@Test
@@ -156,7 +154,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
 		assertEquals(clone.getId(), acl.getId());
-		assertNotNull(acl.getUri());
 
 		// now switch to child
 
@@ -168,7 +165,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 		// now POST to /dataset/{id}/acl with this acl as the body
 		AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, dsClone.getId(), childAcl, userId);
-		assertNotNull(acl2.getUri());
 		// now retrieve the acl for the child. should get its own back
 		AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
 		assertEquals(dsClone.getId(), acl3.getId());
@@ -250,7 +246,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		Project project = new Project();
 		project.setName(null);
 		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
-		;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Folder ds = new Folder();
@@ -282,7 +277,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		Project project = new Project();
 		project.setName(null);
 		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
-		;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Folder ds = new Folder();

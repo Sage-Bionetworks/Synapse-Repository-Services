@@ -9,10 +9,10 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang.NotImplementedException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -47,11 +47,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.net.InternetDomainName;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
@@ -77,7 +76,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	private NodeManager nodeManager;
 
 	@Autowired
-	private AmazonS3 s3client;
+	private SynapseS3Client s3client;
 
 	@Autowired
 	private UserProfileManager userProfileManager;
@@ -86,7 +85,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
 		if (projectSetting != null
-				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
+				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized()) {
 			throw new UnauthorizedException("Cannot read information from this project");
 		}
 		return projectSetting;
@@ -95,7 +94,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public ProjectSetting getProjectSettingByProjectAndType(UserInfo userInfo, String projectId, ProjectSettingsType type)
 			throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
+		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized()) {
 			throw new UnauthorizedException("Cannot read information from this project");
 		}
 		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
@@ -158,7 +157,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (EntityTypeUtils.getClassForType(nodeType) != Project.class && EntityTypeUtils.getClassForType(nodeType) != Folder.class) {
 			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
 		}
-		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
 		}
 		validateProjectSetting(projectSetting, userInfo);
@@ -169,7 +168,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@WriteTransaction
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized()) {
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
 		validateProjectSetting(projectSetting, userInfo);
@@ -181,7 +180,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
 		if (projectSetting != null
-				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized()) {
+				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 		projectSettingsDao.delete(id);
@@ -194,10 +193,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getEndpointUrl())
-					&& !externalS3StorageLocationSetting.getEndpointUrl().equals("https://" + Constants.S3_HOSTNAME)) {
-				throw new NotImplementedException("Synapse does not yet support external S3 buckets in non-us-east-1 locations");
-			}
+
+			//A valid bucket name must also be a valid domain name
+			ValidateArgument.requirement(InternetDomainName.isValid(externalS3StorageLocationSetting.getBucket()), "Invalid Bucket Name");
+
+			validateBucketAccess(externalS3StorageLocationSetting);
 			validateOwnership(externalS3StorageLocationSetting, userProfile);
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
@@ -205,13 +205,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
 		}else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){
 			ExternalObjectStorageLocationSetting externalObjectS3StorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
+
 			//strip leading and trailing slashes and whitespace from the endpointUrl and bucket
 			String strippedEndpoint = StringUtils.strip(externalObjectS3StorageLocationSetting.getEndpointUrl(), "/ \t");
-			String bucket = externalObjectS3StorageLocationSetting.getBucket();
 
-			//validate
+			//validate url
 			ValidateArgument.validUrl(strippedEndpoint);
-			ValidateArgument.requirement(StringUtils.isNotBlank(bucket) && !bucket.contains("/"), "bucket can not contain slashes('/') or be blank");
+			//A valid bucket name must also be a valid domain name
+			ValidateArgument.requirement(InternetDomainName.isValid(externalObjectS3StorageLocationSetting.getBucket()), "Invalid Bucket Name");
 
 			//passed validation, set endpoint as the stripped version
 			externalObjectS3StorageLocationSetting.setEndpointUrl(strippedEndpoint);
@@ -310,6 +311,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			}
 		}
 	}
+	
+	private void validateBucketAccess(ExternalS3StorageLocationSetting externalS3StorageLocationSetting) {
+		s3client.getRegionForBucket(externalS3StorageLocationSetting.getBucket());
+	}
 
 	private void validateOwnership(ExternalS3StorageLocationSetting externalS3StorageLocationSetting, UserProfile userProfile)
 			throws IOException, NotFoundException {
@@ -325,8 +330,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
 			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
-				throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
-						+ getExplanation(userProfile, bucket, key));
+				if (key.equals(OWNER_MARKER)) {
+					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
+							+ getExplanation(userProfile, bucket, key));
+				} else {
+					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". If the S3 object is in a folder, please make sure you specify a trailing '/' in the base key. " + getExplanation(userProfile, bucket, key));
+				}
 			} else {
 				throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucket + ": "
 						+ e.getMessage() + ". " + getExplanation(userProfile, bucket, key));

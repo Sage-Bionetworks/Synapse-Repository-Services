@@ -18,7 +18,8 @@ public class AuthorizationConstants {
 		CERTIFIED_USERS(3L),
 		ADMINISTRATORS_GROUP(2L),
 		ACCESS_AND_COMPLIANCE_GROUP(464532L),
-		TRUSTED_MESSAGE_SENDER_GROUP(4L);
+		TRUSTED_MESSAGE_SENDER_GROUP(4L),
+		SYNAPSE_REPORT_GROUP(5L);
 
 		private final long principalId;
 		
@@ -168,7 +169,12 @@ public class AuthorizationConstants {
 	 * A request parameter for specifying the portal endpoint for unsubscribing from email
 	 */
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
-	
+
+	/**
+	 * Request parameter for specifying the portal endpoint for resetting user's password.
+	 */
+	public static final String PASSWORD_RESET_PARAM = "passwordResetEndpoint";
+
 	/**
 	 * Request parameter for the Docker authorization request.
 	 * 

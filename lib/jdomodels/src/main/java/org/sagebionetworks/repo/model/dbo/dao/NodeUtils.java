@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -30,6 +32,8 @@ public class NodeUtils {
 	private static final String COLUMN_ID_DELIMITER = ",";
 	
 	public static final String ROOT_ENTITY_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Reference.class).build();
 
 	/**
 	 * Used to update an existing object
@@ -85,7 +89,20 @@ public class NodeUtils {
 		if(dto.getScopeIds() != null){
 			rev.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		}
-		rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
+		rev.setReference(compressReference(dto.getReference()));
+	}
+
+	/**
+	 * Convert the passed reference to a compressed (zip) byte array
+	 * @param dto
+	 * @return the compressed reference
+	 */
+	public static byte[] compressReference(Reference dto) {
+		try {
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 	
 	/**
@@ -125,7 +142,7 @@ public class NodeUtils {
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
 		dbo.setScopeIds(createByteForIdList(dto.getScopeIds()));
-		dbo.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
+		dbo.setReference(compressReference(dto.getReference()));
 		return dbo;
 	}
 	
@@ -233,7 +250,7 @@ public class NodeUtils {
 		} 
 		
 		try {
-			dto.setReference(JDOSecondaryPropertyUtils.decompressedReference(rev.getReference()));
+			dto.setReference((Reference) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, rev.getReference()));
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -385,5 +402,13 @@ public class NodeUtils {
 			return NodeConstants.DEFAULT_VERSION_NUMBER;
 		}
 		return versionNumber;
+	}
+
+	/**
+	 * Determines if a given bucket is Synapse storage.
+	 */
+	public static Boolean isBucketSynapseStorage(String bucketName) {
+		if (bucketName == null) return null;
+		return bucketName.equals(StackConfigurationSingleton.singleton().getS3Bucket());
 	}
 }

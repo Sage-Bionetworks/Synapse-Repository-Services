@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Certified User Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class CertifiedUserController extends BaseController {
+public class CertifiedUserController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
@@ -67,19 +67,26 @@ public class CertifiedUserController extends BaseController {
 		return serviceProvider.getCertifiedUserService().
 				submitCertificationQuizResponse(userId, response);
 	}
-	
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.GONE)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
+	public @ResponseBody String getQuizResponses() throws NotFoundException {
+		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE + " and is only accessible to Synapse administrators";
+	}
+
 	/**
 	 * Get the Certified User test responses in the system, optionally filtered by the one who took the test.
 	 * Note:  This service is available to Synapse administrators only.
 	 * @param userId
-	 * @param principalId
-	 * @param limit
-	 * @param offset
+	 * @param principalId If specified, only retrieve the quiz for this user, if it exists.
+	 * @param limit Limits the size of the page returned. For example, a page size of 10 requires limit = 10.
+	 * @param offset The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
 	public @ResponseBody 
 	PaginatedResults<QuizResponse> getQuizResponses(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -89,7 +96,14 @@ public class CertifiedUserController extends BaseController {
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().getQuizResponses(userId, principalId, limit, offset);
 	}
-	
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.GONE)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
+	public @ResponseBody String deleteQuizResponse() throws NotFoundException {
+		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID + " and is only accessible to Synapse administrators";
+	}
+
 	/**
 	 * Delete a test response.  Note:  This service is available to Synapse administrators only.
 	 * @param userId
@@ -97,7 +111,7 @@ public class CertifiedUserController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
 	public void deleteQuizResponse(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long responseId
@@ -121,12 +135,19 @@ public class CertifiedUserController extends BaseController {
 		return serviceProvider.getCertifiedUserService().getPassingRecord(userId, id);
 	}
 
+	@Deprecated
+	@ResponseStatus(HttpStatus.GONE)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
+	public @ResponseBody String getPassingRecords() throws NotFoundException {
+		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID + " and is only accessible to Synapse administrators";
+	}
+
 	/**
 	 * Retrieve all the Passing Record on the User Certification test for the given user.
 	 * Note:  This service is available to Synapse administrators only.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PaginatedResults<PassingRecord> getPassingRecords(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long id,
@@ -135,14 +156,20 @@ public class CertifiedUserController extends BaseController {
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, id, limit, offset);
 	}
-	
-	@ResponseStatus(HttpStatus.NO_CONTENT)
+
+	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
+	public @ResponseBody String setUserCertificationStatus()  {
+		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS + " and is only accessible to Synapse administrators";
+	}
+
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
 	public void setUserCertificationStatus(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
 			@RequestParam(value = AuthorizationConstants.IS_CERTIFIED) Boolean isCertified
-			) throws NotFoundException {
+	) throws NotFoundException {
 		serviceProvider.getCertifiedUserService().setUserCertificationStatus(userId, principalId, isCertified);
 	}
 

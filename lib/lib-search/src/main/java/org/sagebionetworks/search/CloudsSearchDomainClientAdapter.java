@@ -1,15 +1,15 @@
 package org.sagebionetworks.search;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
@@ -18,13 +18,7 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
-import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import com.google.common.collect.Iterators;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * A wrapper for AWS's AmazonCloudSearchDomain. DO NOT INSTANTIATE.

@@ -1,8 +1,9 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ValueParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
@@ -41,11 +42,16 @@ public enum ColumnTypeInfo {
 		this.parser = parser;
 	}
 	
+
 	/**
 	 * Get the SQL to define a column of this type in MySQL.
+	 * @param inputSize
+	 * @param defaultValue
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 * @return
 	 */
-	public String toSql(Long inputSize, String defaultValue){
+	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes){
 		StringBuilder builder = new StringBuilder();
 		builder.append(mySqlType.name());
 		Long size = maxSize;
@@ -63,7 +69,12 @@ public enum ColumnTypeInfo {
 		}
 		if(isStringType()){
 			builder.append(" ");
-			builder.append(CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI);
+			if(useDepricatedUtf8ThreeBytes) {
+				// This is a special case to support old large tables with UTF-8 3 bytes.
+				builder.append(DEPREICATED_THREE_BYTE_UTF8);
+			}else {
+				builder.append(CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI);
+			}
 		}
 		// default
 		builder.append(" ");
@@ -142,8 +153,11 @@ public enum ColumnTypeInfo {
 		if(defaultValue == null){
 			builder.append("NULL");
 		}else{
-			// Block SQL injections
-			defaultValue = StringEscapeUtils.escapeSql(defaultValue);
+			// escape single quotes
+			// NOTE: This originally used StringEscapeUtils.escapeSql() which only ever escaped single quotes and has been removed in later versions.
+			// https://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/StringEscapeUtils.html#escapeSql(java.lang.String)
+			// https://stackoverflow.com/questions/32096614/migrating-stringescapeutils-escapesql-from-commons-lang
+			defaultValue = StringUtils.replace(defaultValue, "'", "''");
 			// Validate the default can be applied.
 			Object objectValue = parseValueForDatabaseWrite(defaultValue);
 			if(isStringType()){

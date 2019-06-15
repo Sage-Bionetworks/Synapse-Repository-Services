@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_NAME;
@@ -53,6 +54,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -64,6 +67,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -90,6 +94,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
 			+ ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_ID + " IN (:rowIds)";
+
+	public static final String SQL_SELECT_PROJECTS_BY_SIZE =
+			"SELECT t1."+ENTITY_REPLICATION_COL_PROJECT_ID + ", t2." + ENTITY_REPLICATION_COL_NAME + ", t1.PROJECT_SIZE_BYTES "
+		+ " FROM (SELECT " + ENTITY_REPLICATION_COL_PROJECT_ID + ", "
+					+ " SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") AS PROJECT_SIZE_BYTES"
+					+ " FROM " + ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
+					+ " GROUP BY " + ENTITY_REPLICATION_COL_PROJECT_ID + ") t1," + ENTITY_REPLICATION_TABLE + " t2"
+					+ " WHERE t1." + ENTITY_REPLICATION_COL_PROJECT_ID + " = t2." + ENTITY_REPLICATION_COL_ID
+					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
 
 	/**
 	 * The MD5 used for tables with no schema.
@@ -121,26 +134,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		this.writeTransactionTemplate = createTransactionTemplate(this.transactionManager, false);
 		this.readTransactionTemplate = createTransactionTemplate(this.transactionManager, true);
 		/*
-		 * By default the MySQL driver will read all query results into memory
-		 * which can cause memory problems for large query results. (see:
-		 * <a hreft="http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html"/>) 
-		 * According to the MySQL driver docs the only way to get
-		 * the driver to change this default behavior is to create a statement
-		 * with TYPE_FORWARD_ONLY & CONCUR_READ_ONLY and then set statement
-		 * fetch size to Integer.MIN_VALUE. However, JdbcTemplate will not
-		 * set a fetch size less than zero. Therefore, we must override the
-		 * JdbcTemplate to force the fetch size of Integer.MIN_VALUE. See:
-		 * PLFM-3429
+		 * By default the MySQL driver will read all query results into memory which can
+		 * cause memory problems for large query results. (see: <a hreft=
+		 * "http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html"
+		 * />) According to the MySQL driver docs the only way to get the driver to
+		 * change this default behavior is to create a statement with TYPE_FORWARD_ONLY
+		 * & CONCUR_READ_ONLY and then set statement fetch size to Integer.MIN_VALUE.
+		 * With Spring 4.3 {@link JdbcTemplate#setFetchSize()} allows the fetch size to
+		 * be set to Integer.MIN_VALUE. See: PLFM-3429
 		 */
-		this.template = new JdbcTemplate(dataSource) {
-			@Override
-			protected void applyStatementSettings(Statement stmt) throws SQLException {
-				super.applyStatementSettings(stmt);
-				if (getFetchSize() == Integer.MIN_VALUE) {
-					stmt.setFetchSize(getFetchSize());
-				}
-			}
-		};
+		this.template = new JdbcTemplate(dataSource);
 		// See comments above.
 		this.template.setFetchSize(Integer.MIN_VALUE);
 	}
@@ -157,7 +160,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean deleteTable(String tableId) {
+	public boolean deleteTable(IdAndVersion tableId) {
 		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
 		try {
 			template.update(dropTableDML);
@@ -169,7 +172,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createOrUpdateOrDeleteRows(final Grouping grouping) {
+	public void createOrUpdateOrDeleteRows(final IdAndVersion tableId, final Grouping grouping) {
 		ValidateArgument.required(grouping, "grouping");
 		// Execute this within a transaction
 		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
@@ -180,14 +183,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				List<ColumnModel> groupingColumns = grouping.getColumnsWithValues();
 				if(groupingColumns.isEmpty()){
 					// This is a delete
-					String deleteSql = SQLUtils.buildDeleteSQL(grouping.getTableId());
+					String deleteSql = SQLUtils.buildDeleteSQL(tableId);
 					SqlParameterSource batchDeleteBinding = SQLUtils
 							.bindParameterForDelete(grouping.getRows());
 					namedTemplate.update(deleteSql, batchDeleteBinding);
 				}else{
 					// this is a create or update
-					String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(groupingColumns,
-							grouping.getTableId());
+					String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(groupingColumns, tableId);
 					SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
 							.bindParametersForCreateOrUpdate(grouping);
 					namedTemplate.batchUpdate(createOrUpdateSql,
@@ -199,7 +201,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Long getRowCountForTable(String tableId) {
+	public Long getRowCountForTable(IdAndVersion tableId) {
 		String sql = SQLUtils.getCountSQL(tableId);
 		try {
 			return template.queryForObject(sql,new SingleColumnRowMapper<Long>());
@@ -210,7 +212,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Long getMaxCurrentCompleteVersionForTable(String tableId) {
+	public Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId) {
 		String sql = SQLUtils.getStatusMaxVersionSQL(tableId);
 		try {
 			return template.queryForObject(sql, new SingleColumnRowMapper<Long>());
@@ -221,26 +223,26 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void setMaxCurrentCompleteVersionForTable(String tableId, Long version) {
+	public void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long version) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version, version);
 	}
 	
 	@Override
-	public void setCurrentSchemaMD5Hex(String tableId, String schemaMD5Hex) {
+	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, schemaMD5Hex, schemaMD5Hex);
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
+	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
 			String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
 	}
 
 	@Override
-	public String getCurrentSchemaMD5Hex(String tableId) {
+	public String getCurrentSchemaMD5Hex(IdAndVersion tableId) {
 		String sql = SQLUtils.getSchemaHashSQL(tableId);
 		try {
 			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
@@ -251,7 +253,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteSecondaryTables(String tableId) {
+	public void deleteSecondaryTables(IdAndVersion tableId) {
 		for(TableType type: SQLUtils.SECONDARY_TYPES){
 			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
 			try {
@@ -263,7 +265,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void createSecondaryTables(String tableId) {
+	public void createSecondaryTables(IdAndVersion tableId) {
 		for(TableType type: SQLUtils.SECONDARY_TYPES){
 			String sql = SQLUtils.createTableSQL(tableId, type);
 			template.update(sql);
@@ -342,7 +344,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @see org.sagebionetworks.table.cluster.TableIndexDAO#applyFileHandleIdsToTable(java.lang.String, java.util.Set)
 	 */
 	@Override
-	public void applyFileHandleIdsToTable(final String tableId,
+	public void applyFileHandleIdsToTable(final IdAndVersion tableId,
 			final Set<Long> fileHandleIds) {
 	
 		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
@@ -373,7 +375,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 */
 	@Override
 	public Set<Long> getFileHandleIdsAssociatedWithTable(
-			final Set<Long> fileHandleIds, final String tableId) {
+			final Set<Long> fileHandleIds, final IdAndVersion tableId) {
 		try {
 			return this.readTransactionTemplate.execute(new TransactionCallback<Set<Long>>() {
 				@Override
@@ -400,7 +402,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 
 	@Override
-	public boolean doesIndexStateMatch(String tableId, long versionNumber, String schemaMD5Hex) {
+	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex) {
 		long indexVersion = getMaxCurrentCompleteVersionForTable(tableId);
 		if(indexVersion != versionNumber){
 			return false;
@@ -410,20 +412,20 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Set<Long> getDistinctLongValues(String tableId, String columnName) {
+	public Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnName) {
 		String sql = SQLUtils.createSQLGetDistinctValues(tableId, columnName);
 		List<Long> results = template.queryForList(sql, Long.class);
 		return new HashSet<Long>(results);
 	}
 
 	@Override
-	public void createTableIfDoesNotExist(String tableId, boolean isView) {
+	public void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView) {
 		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
 		template.update(sql);
 	}
 
 	@Override
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
+	public boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
 		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
 		if(sql == null){
 			// no change are needed.
@@ -435,13 +437,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void truncateTable(String tableId) {
+	public void truncateTable(IdAndVersion tableId) {
 		String sql = SQLUtils.createTruncateSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public List<DatabaseColumnInfo> getDatabaseInfo(String tableId) {
+	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId) {
 		try {
 			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
 			// Bind variables do not seem to work here
@@ -471,7 +473,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void provideCardinality(final List<DatabaseColumnInfo> list,
-			String tableId) {
+			IdAndVersion tableId) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
 		if(list.isEmpty()){
@@ -489,7 +491,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId) {
+	public void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
 		if(list.isEmpty()){
@@ -516,7 +518,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list,
-			String tableId, int maxNumberOfIndex) {
+			IdAndVersion tableId, int maxNumberOfIndex) {
 		String alterSql = SQLUtils.createOptimizedAlterIndices(list, tableId, maxNumberOfIndex);
 		if(alterSql == null){
 			// No changes are needed.
@@ -526,25 +528,25 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createTemporaryTable(String tableId) {
+	public void createTemporaryTable(IdAndVersion tableId) {
 		String sql = SQLUtils.createTempTableSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public void copyAllDataToTemporaryTable(String tableId) {
+	public void copyAllDataToTemporaryTable(IdAndVersion tableId) {
 		String sql = SQLUtils.copyTableToTempSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public void deleteTemporaryTable(String tableId) {
+	public void deleteTemporaryTable(IdAndVersion tableId) {
 		String sql = SQLUtils.deleteTempTableSql(tableId);
 		template.update(sql);
 	}
 
 	@Override
-	public long getTempTableCount(String tableId) {
+	public long getTempTableCount(IdAndVersion tableId) {
 		String sql = SQLUtils.countTempRowsSql(tableId);
 		try {
 			return template.queryForObject(sql, Long.class);
@@ -627,6 +629,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 				}
+				if(dto.getIsInSynapseStorage() != null) {
+					ps.setBoolean(parameterIndex++, dto.getIsInSynapseStorage());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BOOLEAN);
+				}
 			}
 
 			@Override
@@ -699,7 +706,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					if(rs.wasNull()){
 						dto.setFileSizeBytes(null);
 					}
-					
+					dto.setIsInSynapseStorage(rs.getBoolean(ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE));
+					if(rs.wasNull()) {
+						dto.setIsInSynapseStorage(null);
+					}
+
 					return dto;
 				}}, entityId);
 		} catch (DataAccessException e) {
@@ -744,7 +755,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public long calculateCRC32ofTableView(String viewId){
+	public long calculateCRC32ofTableView(Long viewId){
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
 		Long result = this.template.queryForObject(sql, Long.class);
 		if(result == null){
@@ -754,7 +765,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToTable(String viewId, Long viewTypeMask,
+	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
@@ -857,7 +868,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				Long id = rs.getLong(TableConstants.ENTITY_REPLICATION_COL_ID);
 				String etag = rs.getString(ENTITY_REPLICATION_COL_ETAG);
-				return new IdAndEtag(id, etag);
+				Long benefactorId = rs.getLong(ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+				if(rs.wasNull()) {
+					benefactorId = null;
+				}
+				return new IdAndEtag(id, etag, benefactorId);
 			}}, parentId);
 	}
 
@@ -939,4 +954,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return sum;
 	}
 
+	@Override
+	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback) {
+		// We use spring to create create the prepared statement
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		namedTemplate.query(SQL_SELECT_PROJECTS_BY_SIZE, rs -> {
+			SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
+			stats.setId(rs.getString(1));
+			stats.setProjectName(rs.getString(2));
+			stats.setSizeInBytes(rs.getLong(3));
+			callback.invoke(stats);
+		});
+	}
 }

@@ -11,10 +11,10 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -37,7 +37,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 *             if the table does not exist
 	 */
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId)
+	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
 			throws NotFoundException;
 
 	/**
@@ -55,7 +55,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToAvailable(String tableId,
+	public void attemptToSetTableStatusToAvailable(IdAndVersion tableId,
 			String resetToken, String tableChangeEtag)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -74,7 +74,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToFailed(String tableId,
+	public void attemptToSetTableStatusToFailed(IdAndVersion tableId,
 			String resetToken, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -94,7 +94,7 @@ public interface TableManagerSupport {
 	 *             processing finished.
 	 * @throws NotFoundException
 	 */
-	public void attemptToUpdateTableProgress(String tableId, String resetToken,
+	public void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -105,7 +105,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public String startTableProcessing(String tableId);
+	public String startTableProcessing(IdAndVersion tableId);
 
 	/**
 	 * Is the table's index synchronized with the truth data?
@@ -113,7 +113,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexSynchronizedWithTruth(String tableId);
+	public boolean isIndexSynchronizedWithTruth(IdAndVersion tableId);
 
 	/**
 	 * Index work is required if the index is out-of-synch with the truth or the
@@ -122,21 +122,21 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexWorkRequired(String tableId);
+	public boolean isIndexWorkRequired(IdAndVersion tableId);
 
 	/**
 	 * Set the table to processing and send an update message.
 	 * 
 	 * @param tableId
 	 */
-	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId);
+	public TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion tableId);
 
 	/**
 	 * Set the table to be deleted.
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableDeleted(String deletedId, ObjectType tableType);
+	public void setTableDeleted(IdAndVersion deletedId, ObjectType tableType);
 
 	/**
 	 * The MD5 hex of a table's schema.
@@ -144,7 +144,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	String getSchemaMD5Hex(String tableId);
+	String getSchemaMD5Hex(IdAndVersion tableId);
 
 	/**
 	 * Get the version of the given table. This is can be different for each
@@ -154,7 +154,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	long getTableVersion(String tableId);
+	long getTableVersion(IdAndVersion tableId);
 
 	/**
 	 * Is the given table available.
@@ -162,7 +162,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	boolean isTableAvailable(String tableId);
+	boolean isTableAvailable(IdAndVersion tableId);
 
 	/**
 	 * Lookup the object type for this table.
@@ -170,7 +170,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	ObjectType getTableType(String tableId);
+	ObjectType getTableType(IdAndVersion tableId);
 
 	/**
 	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView. The CRC is
@@ -182,7 +182,7 @@ public interface TableManagerSupport {
 	 * @param table
 	 * @return
 	 */
-	public Long calculateViewCRC32(String table);
+	public Long calculateViewCRC32(IdAndVersion table);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -192,10 +192,10 @@ public interface TableManagerSupport {
 	 * All FileEntities within the the given view will have a parentId from the
 	 * returned set.
 	 * 
-	 * @param viewId
+	 * @param idAndVersion
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(String viewId, Long viewTypeMask);
+	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, Long viewTypeMask);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -212,35 +212,38 @@ public interface TableManagerSupport {
 
 	/**
 	 * <p>
-	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired,
-	 * the passed Callable will be run while holding lock. The lock will
-	 * automatically be release when the caller returns.
+	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired, the
+	 * passed Callable will be run while holding lock. The lock will automatically
+	 * be release when the caller returns.
 	 * </p>
 	 * There are several possible conditions that can occur.
 	 * <ul>
 	 * <li>An exclusive lock has already been issued to another caller. A
 	 * LockUnavilableException will be thrown for this case.</li>
 	 * <li>One or more non-exclusive locks have been issued for this table. When
-	 * this occurs, a reserve will placed that will block all new non-exclusive
-	 * and exclusive locks. A wait loop will be started to wait for all
-	 * outstanding non-exclusive locks to be release. Once all non-exclusive
-	 * locks are release, the exclusive lock will be issued and the passed
-	 * Caller will be run.</li>
+	 * this occurs, a reserve will placed that will block all new non-exclusive and
+	 * exclusive locks. A wait loop will be started to wait for all outstanding
+	 * non-exclusive locks to be release. Once all non-exclusive locks are release,
+	 * the exclusive lock will be issued and the passed Caller will be run.</li>
 	 * <li>Another caller has reserved the exclusive lock and is waiting for the
 	 * exclusive lock. A LockUnavilableException will be thrown for this case.</li>
-	 * <li>There are no outstanding non-exclusive locks, no executive lock
-	 * reserver, and no exclusive lock. For this case, the reserver and
-	 * exclusive lock will be acquired and the Callable will be run.</li>
+	 * <li>There are no outstanding non-exclusive locks, no executive lock reserver,
+	 * and no exclusive lock. For this case, the reserver and exclusive lock will be
+	 * acquired and the Callable will be run.</li>
 	 * </ul>
 	 * 
+	 * @param callback
 	 * @param tableId
+	 * @param timeoutSeconds The maximum number of seconds the lock should be held
+	 *                       before treated as expired.
 	 * @param runner
 	 * @return
+	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			String tableId, int timeoutMS, ProgressingCallable<R> runner)
+			IdAndVersion tableId, int timeoutSeconds, ProgressingCallable<R> runner)
 			throws Exception;
-
+	
 	/**
 	 * <p>
 	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
@@ -261,12 +264,16 @@ public interface TableManagerSupport {
 	 * non-exclusive lock will be issue and the passed Callable will be run.</li>
 	 * </ul>
 	 * 
+	 * @param callback
 	 * @param tableId
+	 * @param timeoutSeconds The maximum number of seconds the lock should be held
+	 *                       before treated as expired.
 	 * @param runner
 	 * @return
+	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, String tableId, int timeoutMS,
+			ProgressCallback callback, IdAndVersion tableId, int timeoutSeconds,
 			ProgressingCallable<R> runner) throws Exception;
 
 	/**
@@ -278,7 +285,7 @@ public interface TableManagerSupport {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	EntityType validateTableReadAccess(UserInfo userInfo, String tableId)
+	EntityType validateTableReadAccess(UserInfo userInfo, IdAndVersion tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
@@ -290,7 +297,7 @@ public interface TableManagerSupport {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void validateTableWriteAccess(UserInfo userInfo, String tableId)
+	void validateTableWriteAccess(UserInfo userInfo, IdAndVersion tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
@@ -301,7 +308,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public List<ColumnModel> getColumnModelsForTable(String tableId)
+	public List<ColumnModel> getColumnModelsForTable(IdAndVersion tableId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -356,7 +363,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public EntityType getTableEntityType(String tableId);
+	public EntityType getTableEntityType(IdAndVersion tableId);
 
 	/**
 	 * Get the path of the given entity.
@@ -364,15 +371,15 @@ public interface TableManagerSupport {
 	 * @param entityId
 	 * @return
 	 */
-	public Set<Long> getEntityPath(String entityId);
+	public Set<Long> getEntityPath(IdAndVersion entityId);
 
 	/**
 	 * Get the view type for the given table ID.
 	 * 
-	 * @param tableId
+	 * @param viewId
 	 * @return
 	 */
-	Long getViewTypeMask(String tableId);
+	Long getViewTypeMask(IdAndVersion viewId);
 
 	/**
 	 * Only Administrator can perform this action.
@@ -381,7 +388,7 @@ public interface TableManagerSupport {
 	 * @param userInfo
 	 * @param tableId
 	 */
-	public void rebuildTable(UserInfo userInfo, String tableId);
+	public void rebuildTable(UserInfo userInfo, IdAndVersion tableId);
 
 	/**
 	 * Validate that the given scope is within the size limit.
@@ -407,6 +414,6 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean doesTableExist(String tableId);
+	public boolean doesTableExist(IdAndVersion tableId);
 
 }

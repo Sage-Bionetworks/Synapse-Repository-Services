@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,7 +19,7 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 	@Autowired
 	AuthorizationManager authorizationManager;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DataTypeResponse changeObjectsDataType(UserInfo userInfo, String objectId, ObjectType objectType,
 			DataType dataType) {
@@ -34,7 +34,7 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 				throw new UnauthorizedException("Must be a member of the 'Synapse Access and Compliance Team' to change an object's DataType to: "+DataType.OPEN_DATA.name());
 			}
 			// must have the update permission.
-			if (!authorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE).getAuthorized()) {
+			if (!authorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE).isAuthorized()) {
 				throw new UnauthorizedException("Must have "+ACCESS_TYPE.UPDATE+" permission to change an object's DataType to : "+dataType.name());
 			}
 		}

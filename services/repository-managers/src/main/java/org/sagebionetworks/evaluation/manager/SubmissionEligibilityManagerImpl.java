@@ -23,7 +23,6 @@ import org.sagebionetworks.evaluation.model.SubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
@@ -203,24 +202,23 @@ public class SubmissionEligibilityManagerImpl implements
 			List<String> contributors, String submissionEligibilityHashString, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
 		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
-			return new AuthorizationStatus(false, 
-				"It is currently outside of the time range allowed for submissions.");
+			return AuthorizationStatus.accessDenied("It is currently outside of the time range allowed for submissions.");
 		}
 		
 		if (submissionEligibilityHashString==null) 
-			return new AuthorizationStatus(false, "Submission Eligibilty Hash is required.");
+			return AuthorizationStatus.accessDenied("Submission Eligibilty Hash is required.");
 		int seHash;
 		try {
 			seHash = Integer.parseInt(submissionEligibilityHashString);
 		} catch (NumberFormatException e) {
-			return new AuthorizationStatus(false, "Submission Eligibilty Hash is invalid.");
+			return AuthorizationStatus.accessDenied("Submission Eligibilty Hash is invalid.");
 		}
 		TeamSubmissionEligibility tse = getTeamSubmissionEligibility(evaluation, teamId);
 		if (seHash!=computeTeamSubmissionEligibilityHash(tse)) 
-			return new AuthorizationStatus(false, "Submissions or Team composition have changed.  Please try again.");
+			return AuthorizationStatus.accessDenied("Submissions or Team composition have changed.  Please try again.");
 
 		if (!tse.getTeamEligibility().getIsEligible()) {
-			return new AuthorizationStatus(false, "The specified Team is ineligible to submit to the specified Evaluation at this time.");			
+			return AuthorizationStatus.accessDenied("The specified Team is ineligible to submit to the specified Evaluation at this time.");
 		}
 		// this will be the list of all team members who CAN contribute
 		Set<String> eligibleContributors = new HashSet<String>();
@@ -235,11 +233,11 @@ public class SubmissionEligibilityManagerImpl implements
 			if (!eligibleContributors.contains(contributor)) ineligibleContributors.add(contributor);
 		}
 		if (!ineligibleContributors.isEmpty()) {
-			return new AuthorizationStatus(false, 
+			return AuthorizationStatus.accessDenied(
 					"The following Team members are ineligible to contribute to a Submission in the specified Evaluation at this time "+
 					ineligibleContributors);
 		}
-		return AuthorizationManagerUtil.AUTHORIZED;
+		return AuthorizationStatus.authorized();
 	}
 	
 	/*
@@ -260,16 +258,14 @@ public class SubmissionEligibilityManagerImpl implements
 				challenge = challengeDAO.getForProject(evaluation.getContentSource());
 				Long participantTeamId = Long.parseLong(challenge.getParticipantTeamId());
 				if (!userInfo.getGroups().contains(participantTeamId)) {
-					return new AuthorizationStatus(false, 
-							"Submitter is not registered for the challenge.");
+					return AuthorizationStatus.accessDenied("Submitter is not registered for the challenge.");
 				}
 			} catch (NotFoundException e) {
 				// skip this check
 			}
 		}
 		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
-			return new AuthorizationStatus(false, 
-				"It is currently outside of the time range allowed for submissions.");
+			return AuthorizationStatus.accessDenied("It is currently outside of the time range allowed for submissions.");
 		}
 		Pair<Date,Date> roundInterval = SubmissionQuotaUtil.getRoundInterval(evaluation, now);
 		int submissionCount = (int)submissionDAO.countSubmissionsByContributor(Long.parseLong(evalId), 
@@ -282,19 +278,18 @@ public class SubmissionEligibilityManagerImpl implements
 			
 		}
 		if (submissionLimit!=null && submissionCount>=submissionLimit) {
-			return new AuthorizationStatus(false, 
-					"Submitter has reached the limit of "+submissionLimit+messageSuffix);
+			return AuthorizationStatus.accessDenied("Submitter has reached the limit of "+submissionLimit+messageSuffix);
 		}
 		
 		if (submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
 				Long.parseLong(principalId), roundInterval.getFirst(), 
 				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA)) {
-			return new AuthorizationStatus(false, 
+			return AuthorizationStatus.accessDenied(
 					"Submitter may not submit as an individual when having submitted as part of a Team"+
 							messageSuffix	
 			);			
 		}
-		return AuthorizationManagerUtil.AUTHORIZED;
+		return AuthorizationStatus.authorized();
 	}
 
 

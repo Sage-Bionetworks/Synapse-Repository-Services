@@ -2,9 +2,12 @@ package org.sagebionetworks.repo.manager.discussion;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -20,7 +23,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -178,14 +181,14 @@ public class DiscussionReplyManagerImplTest {
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyUnauthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		replyManager.getReply(userInfo, replyId.toString());
 	}
 
 	@Test
 	public void testGetReplyAuthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		DiscussionReplyBundle reply = replyManager.getReply(userInfo, replyId.toString());
 		assertEquals(bundle, reply);
 	}
@@ -195,7 +198,7 @@ public class DiscussionReplyManagerImplTest {
 		bundle.setIsDeleted(true);
 		when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		replyManager.getReply(userInfo, replyId.toString());
 	}
 
@@ -204,7 +207,7 @@ public class DiscussionReplyManagerImplTest {
 		bundle.setIsDeleted(true);
 		when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		assertEquals(bundle, replyManager.getReply(userInfo, replyId.toString()));
 	}
 
@@ -248,7 +251,7 @@ public class DiscussionReplyManagerImplTest {
 	public void testMarkReplyAsDeletedUnauthorized() {
 		when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		verifyZeroInteractions(mockReplyDao);
 	}
@@ -257,7 +260,7 @@ public class DiscussionReplyManagerImplTest {
 	public void testMarkReplyAsDeletedAuthorized() {
 		when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		verify(mockReplyDao).markReplyAsDeleted(replyId);
 	}
@@ -286,7 +289,7 @@ public class DiscussionReplyManagerImplTest {
 				Mockito.anyLong(), (DiscussionReplyOrder) Mockito.any(), Mockito.anyBoolean(),
 				Mockito.any(DiscussionFilter.class))).thenReturn(Arrays.asList(bundle));
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER));
 	}
 
@@ -294,7 +297,7 @@ public class DiscussionReplyManagerImplTest {
 	public void testGetReplyUrlUnauthorized() {
 		when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		replyManager.getMessageUrl(userInfo, messageKey);
 	}
 
@@ -302,7 +305,7 @@ public class DiscussionReplyManagerImplTest {
 	public void testGetReplyUrlAuthorized() {
 		when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		MessageURL url = replyManager.getMessageUrl(userInfo, messageKey);
 		assertNotNull(url);
 		assertNotNull(url.getMessageUrl());
@@ -330,7 +333,7 @@ public class DiscussionReplyManagerImplTest {
 		Long count = 3L;
 		when(mockReplyDao.getReplyCount(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(count);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		assertEquals((Long)3L, replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER).getCount());
 	}
 

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
@@ -55,7 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -90,6 +91,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -99,7 +101,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -150,11 +152,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String SQL_SELECT_CHILD_CRC32 = 
 			"SELECT "+COL_NODE_PARENT_ID+","
-					+ " SUM(CRC32(CONCAT("+COL_NODE_ID+",\"-\","+COL_NODE_ETAG+"))) AS 'CRC'"
-							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+") GROUP BY "+COL_NODE_PARENT_ID;
+					+ " SUM(CRC32(CONCAT("+COL_NODE_ID
+					+",'-',"+COL_NODE_ETAG
+					+",'-',"+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
+							+ "))) AS 'CRC'"
+							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+")"
+									+ " GROUP BY "+COL_NODE_PARENT_ID;
 	
 	private static final String SQL_SELECT_CHILDREN_ID_AND_ETAG = 
-			"SELECT "+COL_NODE_ID+", "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ?";
+			"SELECT "+COL_NODE_ID
+			+", "+COL_NODE_ETAG
+			+", "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
+			+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ?";
 
 	private static final String SQL_SELECT_CHILD = "SELECT "+COL_NODE_ID
 			+ " FROM "+TABLE_NODE
@@ -315,7 +324,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N." + COL_NODE_NAME
 			+ ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
 			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
-			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_ANNOS_BLOB + ", F." + COL_FILES_CONTENT_SIZE
+			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_ANNOS_BLOB + ", F." + COL_FILES_CONTENT_SIZE +
+			", F." + COL_FILES_BUCKET_NAME
 			+ " FROM " + JOIN_NODE_REVISION_FILES+" WHERE N."
 			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ") ORDER BY N."+COL_NODE_ID+" ASC";
 	
@@ -335,7 +345,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		" ORDER BY " + LAST_ACCESSED_OR_CREATED;
 
 	private static final String SELECT_NAME_ORDER =
-		" ORDER BY n." + COL_NODE_NAME + " COLLATE 'latin1_general_ci'";
+		" ORDER BY n." + COL_NODE_NAME ;
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -366,7 +376,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
-	
+
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
 		@Override
 		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -424,14 +434,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ IDS_PARAM_NAME+")";
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		Node node = createNewNode(dto);
 		return node.getId();
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node bootstrapNode(Node node, long id) {
 		ValidateArgument.required(node, "Entity");
@@ -441,7 +451,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return create(node);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Node createNewNode(Node node) throws NotFoundException, DatastoreException, InvalidModelException {
 		ValidateArgument.required(node, "Entity");
@@ -505,7 +515,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		throw e;
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
@@ -555,7 +565,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public boolean delete(String id) throws DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
@@ -566,7 +576,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int delete(List<Long> ids) throws DatastoreException{
 		ValidateArgument.required(ids, "ids");
@@ -583,7 +593,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException {
 		// Get the version in question
@@ -718,7 +728,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			if(blob != null){
 				byte[] bytes = blob.getBytes(1, (int) blob.length());
 				try {
-					annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+					annos = AnnotationUtils.decompressedAnnotations(bytes);
 				} catch (IOException e) {
 					throw new DatastoreException(e);
 				}
@@ -728,9 +738,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 			// Pull out the rest of the data.
 			annos.setEtag(rs.getString(COL_NODE_ETAG));
-			annos.setCreationDate(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 			annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-			annos.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 			return annos;
 		}
 	}
@@ -753,7 +761,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return currentTag;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
 		if (updatedNode == null) {
@@ -784,14 +792,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long newFileHandleId = NodeUtils.translateFileHandleId(updatedNode.getFileHandleId());
 		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
 		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
-		byte[] newReferences = JDOSecondaryPropertyUtils.compressReference(updatedNode.getReference());
+		byte[] newReferences = NodeUtils.compressReference(updatedNode.getReference());
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
 				newScope, newReferences, nodeId, currentRevision);
 	}
 	
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
 
@@ -805,7 +813,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// now update the annotations from the passed values.
 		try {
 			// Compress the annotations.
-			byte[] newAnnos = JDOSecondaryPropertyUtils.compressAnnotations(updatedAnnos);
+			byte[] newAnnos = AnnotationUtils.compressAnnotations(updatedAnnos);
 			this.jdbcTemplate.update(SQL_UPDATE_ANNOTATIONS, newAnnos, nodeIdLong, currentRevision);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
@@ -850,7 +858,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		});
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void afterPropertiesSet() throws Exception {
 
@@ -1602,12 +1610,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()) {
 					dto.setFileSizeBytes(null);
 				}
+				dto.setIsInSynapseStorage(NodeUtils.isBucketSynapseStorage(rs.getString(COL_FILES_BUCKET_NAME)));
+				if (rs.wasNull()) {
+					dto.setIsInSynapseStorage(null);
+				}
 				Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
 				if(blob != null){
 					byte[] bytes = blob.getBytes(1, (int) blob.length());
 					try {
-						NamedAnnotations annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
-						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationSize));
+						NamedAnnotations annos = AnnotationUtils.decompressedAnnotations(bytes);
+						dto.setAnnotations(AnnotationUtils.translate(entityId, annos, maxAnnotationSize));
 					} catch (IOException e) {
 						throw new DatastoreException(e);
 					}
@@ -1790,7 +1802,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					throws SQLException {
 				Long id = rs.getLong(COL_NODE_ID);
 				String etag = rs.getString(COL_NODE_ETAG);
-				return new IdAndEtag(id, etag);
+				Long benefactorId = rs.getLong(3);
+				if(rs.wasNull()) {
+					benefactorId = null;
+				}
+				return new IdAndEtag(id, etag, benefactorId);
 			}}, parentId);
 	}
 
@@ -1815,14 +1831,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return results;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String touch(Long userId, String nodeIdString) {
 		ChangeType changeType = ChangeType.UPDATE;
 		return touch(userId, nodeIdString, changeType);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String touch(Long userId, String nodeIdString, ChangeType changeType) {
 		ValidateArgument.required(userId, "UserId");
@@ -1841,4 +1857,56 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return newEtag;
 	}
 
+	//////////////////////////////////
+	// temporary annotation fix code
+	//////////////////////////////////
+
+	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_REVISION  + " WHERE " + COL_REVISION_OWNER_NODE + "=?";
+
+	private static final String SQL_GET_ALL_NODE_IDS_IN_RANGE = "SELECT " + COL_NODE_ID +
+			" FROM " + TABLE_NODE +
+			" WHERE " + COL_NODE_ID + " >= ? AND " + COL_NODE_ID + " < ?" +
+			" ORDER BY " + COL_NODE_ID + " ASC";
+	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->
+		new Object[]{
+				rs.getBytes(COL_REVISION_ANNOS_BLOB),
+				rs.getLong(COL_REVISION_OWNER_NODE),
+				rs.getLong(COL_REVISION_NUMBER)
+		};
+
+
+
+	/**
+	 *
+	 * @param idsAndRevisions
+	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@Override
+	@MandatoryWriteTransaction
+	public List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId){
+		return jdbcTemplate.query(SQL_GET_ANNOTATIONS, ANNOBLOB_ID_REVISION_ROWMAPPER, nodeId);
+	}
+
+
+	/**
+	 *
+	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
+	 */
+	@Override
+	@MandatoryWriteTransaction
+	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
+		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
+	}
+
+	@Override
+	public List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes){
+		return jdbcTemplate.queryForList(SQL_GET_ALL_NODE_IDS_IN_RANGE, Long.class, nodeIdStart, nodeIdStart + numNodes);
+	}
+
+	@Override
+	@MandatoryWriteTransaction
+	public void TEMPORARYChangeEtagOnly(Long id){
+		String newEtag = "deadbeef-dead-beef-dead-beefdeadbeef";
+		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, id);
+	}
 }

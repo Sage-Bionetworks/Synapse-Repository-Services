@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -28,7 +30,6 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -70,15 +71,16 @@ public class DBOTeamDAOImplTest {
 	
 	private List<String> teamsToDelete;
 	private String aclToDelete;
-	private String userToDelete;
+	private List<String> usersToDelete;
 
 	@Before
-	public void setup() throws Exception {
+	public void setup() {
 		List<Team> teams = teamDAO.getInRange(1000, 0);
 		for (Team team : teams) {
 			teamDAO.delete(team.getId());
 		}
-		teamsToDelete = new ArrayList<String>();
+		teamsToDelete = new ArrayList<>();
+		usersToDelete = new ArrayList<>();
 	}
 
 	@After
@@ -88,7 +90,10 @@ public class DBOTeamDAOImplTest {
 			teamDAO.delete(teamId);
 			userGroupDAO.delete(teamId);
 		}
-		if (userToDelete!=null) userGroupDAO.delete(userToDelete);
+
+		for (String userId : usersToDelete) {
+			userGroupDAO.delete(userId);
+		}
 	}
 
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up, String userName) {
@@ -102,52 +107,33 @@ public class DBOTeamDAOImplTest {
 	}
 
 	@Test
-	public void testListTeams() throws Exception {
-		List<Team> createdTeams = new ArrayList<Team>();
+	public void testListTeams() {
+		List<Team> createdTeams = new ArrayList<>();
 		for (int i=0; i<3; i++) {
-			UserGroup group = new UserGroup();
-			group.setIsIndividual(false);
-			group.setId(userGroupDAO.create(group).toString());
-			teamsToDelete.add(group.getId());
-
-			// create a team
-			Team team = new Team();
-			Long id = Long.parseLong(group.getId());
-			team.setId(""+id);
-			team.setName("Super Team_"+i);
-			team.setDescription("This is a Team designated for testing.");
-			team.setIcon("999");
-			team.setCreatedOn(new Date());
-			team.setCreatedBy("101");
-			team.setModifiedOn(new Date());
-			team.setModifiedBy("102");
-			createdTeams.add(teamDAO.create(team));
+			createdTeams.add(createTeam("Super Team_"+i));
 		}
-		assertEquals(Arrays.asList(new Team[] {createdTeams.get(1), createdTeams.get(0)}),
-		teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)),
-				Long.parseLong(teamsToDelete.get(0))})).getList());
+		assertEquals(Arrays.asList(createdTeams.get(1), createdTeams.get(0)),
+		teamDAO.list(Arrays.asList(Long.parseLong(teamsToDelete.get(1)),
+				Long.parseLong(teamsToDelete.get(0)))).getList());
 		try {
-			teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)),
-					98776654L+Long.parseLong(teamsToDelete.get(0))}));
+			teamDAO.list(Arrays.asList(Long.parseLong(teamsToDelete.get(1)), 98776654L+Long.parseLong(teamsToDelete.get(0))));
 			fail("NotFoundException expected");
 		} catch (NotFoundException e) {
 			// as expected
 		}
 	}
 
-
 	@Test
-	public void testRoundTrip() throws Exception {
+	public void testCreateTeam() {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
-		// create a team
 		Team team = new Team();
 		Long id = Long.parseLong(group.getId());
 		team.setId(""+id);
-		team.setName("Super Team");
+		team.setName("Test Create Team Team");
 		team.setDescription("This is a Team designated for testing.");
 		team.setIcon("999");
 		team.setCreatedOn(new Date());
@@ -156,68 +142,67 @@ public class DBOTeamDAOImplTest {
 		team.setModifiedBy("102");
 		Team createdTeam = teamDAO.create(team);
 		assertNotNull(createdTeam.getEtag());
-		createdTeam.setEtag(null); // to allow comparison with 'team'
+		team.setEtag(createdTeam.getEtag()); // Fill in the missing eTag on the object we created
 		assertEquals(team, createdTeam);
-		// retrieve the team
-		Team clone = teamDAO.get(""+id);
-		team.setEtag(clone.getEtag()); // for comparison
-		assertEquals(team, clone);
-		// update the team
-		clone.setName("Super Duper Team");
-		clone.setDescription("this is the modified description");
-		clone.setIcon("111");
-		Team updated = teamDAO.update(clone);
-		clone.setEtag(updated.getEtag()); // for comparison
-		assertEquals(clone, updated);
 
-		Team retrieved = teamDAO.get(updated.getId());
-		assertEquals(updated, retrieved);
+		// Test all of the methods that retrieve teams
 		assertEquals(1, teamDAO.getInRange(1, 0).size());
-		assertEquals(0, teamDAO.getInRange(2, 1).size());
+		assertEquals(0, teamDAO.getInRange(2, 1).size()); // Pagination
 		assertEquals(1, teamDAO.getCount());
+
+		// Make sure the team isn't counted as a user in the team
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 0).size());
-		assertEquals(0, teamDAO.getForMemberInRange(""+id, 3, 1).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
+	}
 
-		ListWrapper<Team> listed = teamDAO.list(Collections.singletonList(id));
-		assertEquals(1, listed.getList().size());
-		assertEquals(updated, listed.getList().get(0));
+	@Test
+	public void testUpdateTeam() {
+		Team t = createTeam("Test Update Team");
+		Team toUpdate = teamDAO.get(t.getId());
+		toUpdate.setName("A Brand New Name");
+		toUpdate.setDescription("A New Description Too");
+		String oldEtag = toUpdate.getEtag();
+		Team retrieved = teamDAO.update(toUpdate);
+		assertNotEquals(retrieved.getEtag(), oldEtag);
+		toUpdate.setEtag(retrieved.getEtag());
+		assertEquals(retrieved, toUpdate);
+	}
 
-		List<Long> emptyIds = Collections.emptyList();
+	@Test
+	public void testDeleteTeam() {
+		Team t = createTeam("Test Delete Team");
+		teamDAO.delete(t.getId());
+		try {
+			teamDAO.get(t.getId());
+			fail("Expected NotFoundException");
+		} catch (NotFoundException e) {
+			// As expected
+		}
+	}
 
-		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
-		assertTrue(teamDAO.list(emptyIds).getList().isEmpty());
+	@Test
+	public void testList() {
+		Team t = createTeam("team name");
+		assertEquals(t, teamDAO.list(Collections.singletonList(Long.valueOf(t.getId()))).getList().get(0));
+		assertEquals(1, teamDAO.list(Collections.singletonList(Long.valueOf(t.getId()))).getList().size());
+		assertTrue(teamDAO.list(Collections.emptyList()).getList().isEmpty());
+	}
 
-		// need an arbitrary user to add to the group
-		UserGroup user = new UserGroup();
-		user.setIsIndividual(true);
-		user.setId(userGroupDAO.create(user).toString());
-		userToDelete = user.getId();
+	@Test
+	public void testListMembers() {
+		Team team = createTeam("Team for testing listMembers");
+		UserGroup user = createIndividual();
 
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias("user-name");
-		alias.setPrincipalId(Long.parseLong(user.getId()));
-		alias.setType(AliasType.USER_NAME);
-		principalAliasDAO.bindAliasToPrincipal(alias);
+		groupMembersDAO.addMembers(team.getId(), Collections.singletonList(user.getId()));
 
-		UserProfile profile = new UserProfile();
-		profile.setOwnerId(user.getId());
-		userProfileDAO.create(profile);
-
-		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{user.getId()}));
-		List<Team> membersTeams = teamDAO.getForMemberInRange(user.getId(), 1, 0);
-		assertEquals(1, membersTeams.size());
-		assertEquals(retrieved, membersTeams.get(0));
-		assertEquals(0, teamDAO.getForMemberInRange(user.getId(), 3, 1).size());
-		assertEquals(1, teamDAO.getCountForMember(user.getId()));
-
-		Long teamId = Long.parseLong(team.getId());
-		Long userIdLong = Long.parseLong(user.getId());
+		// Call under test, getting team members data
 		ListWrapper<TeamMember> listedMembers =
-				teamDAO.listMembers(Collections.singletonList(teamId), Arrays.asList(new Long[]{userIdLong, userIdLong}));
+				teamDAO.listMembers(Collections.singletonList(Long.parseLong(team.getId())),
+						Arrays.asList(Long.parseLong(user.getId()), Long.parseLong(user.getId())));
 		assertEquals(2, listedMembers.getList().size());
 		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
-		assertEquals(Arrays.asList(new TeamMember[]{member, member}), listedMembers.getList());
+		assertEquals(Arrays.asList(member, member), listedMembers.getList());
+
 		// check that nothing is returned for other team IDs and principal IDs
 		try {
 			teamDAO.listMembers(Collections.singletonList(0L), Collections.singletonList(Long.parseLong(user.getId())));
@@ -226,25 +211,137 @@ public class DBOTeamDAOImplTest {
 			// as expected
 		}
 		try {
-			teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(0L));
+			teamDAO.listMembers(Collections.singletonList(Long.parseLong(team.getId())), Collections.singletonList(0L));
 			fail("NotFoundException expected");
 		} catch (NotFoundException e) {
 			// as expected
 		}
+		assertTrue(teamDAO.listMembers(Collections.singletonList(Long.parseLong(team.getId())), Collections.emptyList()).getList().isEmpty());
+	}
 
-		assertTrue(teamDAO.listMembers(Collections.singletonList(teamId), emptyIds).getList().isEmpty());
 
+	@Test
+	public void testAddRemoveUser(){
+		Team team = createTeam("Test Add Remove User Team");
+		UserGroup user = createIndividual();
+		bindUserName("user-name", Long.parseLong(user.getId()));
+		// This adds the member
+		groupMembersDAO.addMembers(team.getId(), Collections.singletonList(user.getId()));
+
+		// Call under test, make sure we can find the user's team
+		List<Team> membersTeams = teamDAO.getForMemberInRange(user.getId(), 1, 0);
+		assertEquals(1, membersTeams.size());
+		assertEquals(team, membersTeams.get(0));
+
+		// Call under test, getting the number of teams
+		assertEquals(1, teamDAO.getCountForMember(user.getId()));
+	}
+
+	@Test
+	public void testMakeUserAdmin(){
+		Team team = createTeam("UserIsAdminTestTeam");
+		UserGroup user = createIndividual();
+		groupMembersDAO.addMembers(team.getId(), Collections.singletonList(user.getId()));
+		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
+
+		// Make requests before adding admin
+		assertEquals(0L, teamDAO.getAdminMemberCount(team.getId()));
+		assertEquals(team.getId(), member.getTeamId());
+		assertFalse(member.getIsAdmin());
+		UserGroupHeader ugh = member.getMember();
+		assertTrue(ugh.getIsIndividual());
+		assertEquals(user.getId(), ugh.getOwnerId());
+
+		List<String> teamIds = teamDAO.getAllTeamsUserIsAdmin(user.getId());
+		assertNotNull(teamIds);
+		assertTrue(teamIds.isEmpty());
+
+		// Add admin
+		addUserAsAdmin(Long.parseLong(user.getId()), team.getId());
+
+		// Again
+		assertEquals(1L, teamDAO.getAdminMemberCount(team.getId()));
+		member = teamDAO.getMember(team.getId(), user.getId());
+		assertEquals(team.getId(), member.getTeamId());
+		assertTrue(member.getIsAdmin());
+		assertEquals(1, teamDAO.getAdminTeamMemberIds(team.getId()).size());
+		assertEquals(user.getId(), teamDAO.getAdminTeamMemberIds(team.getId()).get(0));
+
+	}
+
+	@Test
+	public void testGetMembersCount() {
+		Team team = createTeam("UserIsAdminTestTeam");
+		UserGroup user = createIndividual();
+		assertEquals(0, teamDAO.getMembersCount(team.getId()));
+		groupMembersDAO.addMembers(team.getId(), Collections.singletonList(user.getId()));
+		assertEquals(1, teamDAO.getMembersCount(team.getId()));
+	}
+
+	@Test
+	public void testGetMembersNoFilter() {
+		Team team = createTeam("UserIsAdminTestTeam");
+		UserGroup user = createIndividual();
+
+		List<TeamMember> tms = teamDAO.getMembersInRange(team.getId(), null, null, 2, 0);
+		assertNotNull(tms);
+		assertTrue(tms.isEmpty());
+
+		groupMembersDAO.addMembers(team.getId(), Collections.singletonList(user.getId()));
+		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
+
+		tms = teamDAO.getMembersInRange(team.getId(), null, null, 2, 0);
+		assertEquals(1, tms.size());
+		assertEquals(member, tms.get(0));
+	}
+
+	@Test
+	public void testGetMembersWithFilters(){
+		Team team = createTeam("UserIsAdminTestTeam");
+		UserGroup user1 = createIndividual();
+		UserGroup user2 = createIndividual();
+		groupMembersDAO.addMembers(team.getId(), Arrays.asList(user1.getId(), user2.getId()));
+		TeamMember member1 = teamDAO.getMember(team.getId(), user1.getId());
+
+		// Exclude user2
+		List<TeamMember> tms = teamDAO.getMembersInRange(team.getId(), null, Collections.singleton(Long.parseLong(user2.getId())), 2, 0);
+		assertEquals(1, tms.size());
+		assertEquals(member1, tms.get(0));
+
+		// Include user1 only
+		tms = teamDAO.getMembersInRange(team.getId(), Collections.singleton(Long.parseLong(user1.getId())), null, 2, 0);
+		assertEquals(1, tms.size());
+		assertEquals(member1, tms.get(0));
+
+		// Include + exclude user1
+		tms = teamDAO.getMembersInRange(team.getId(), Collections.singleton(Long.parseLong(user1.getId())), Collections.singleton(Long.parseLong(user1.getId())), 2, 0);
+		assertNotNull(tms);
+		assertTrue(tms.isEmpty());
+
+	}
+
+	@Test
+	public void testGetAllTeamsAndMembers() {
+		Team team = createTeam("Get all teams and members test");
+
+		// Call under test, if there are no members in any teams, we should get nothing back
+		assertEquals(new HashMap<Team,Collection<TeamMember>>(), teamDAO.getAllTeamsAndMembers());
+
+		UserGroup user = createIndividual();
+		groupMembersDAO.addMembers(team.getId(), Collections.singletonList(user.getId()));
 		UserProfile up = userProfileDAO.get(user.getId());
+		bindUserName(up.getUserName(), Long.parseLong(user.getId()));
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
-		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
+
+		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<>();
 		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up, userName);
 		TeamMember tm = new TeamMember();
 		tm.setIsAdmin(false);
 		tm.setMember(ugh);
-		tm.setTeamId(""+id);
-		List<TeamMember> tmList = new ArrayList<TeamMember>();
+		tm.setTeamId(team.getId());
+		List<TeamMember> tmList = new ArrayList<>();
 		tmList.add(tm);
-		expectedAllTeamsAndMembers.put(updated,  tmList);
+		expectedAllTeamsAndMembers.put(team,  tmList);
 
 		// we have to check 'equals' on the pieces because a global 'assertEquals' fails
 		Map<Team,Collection<TeamMember>> actualAllTeamsAndMembers = teamDAO.getAllTeamsAndMembers();
@@ -258,63 +355,30 @@ public class DBOTeamDAOImplTest {
 				assertTrue("expected "+m+" but found "+actualTeamMembers, actualTeamMembers.contains(m));
 			}
 		}
+	}
 
-		// the team has one member,  'pg'
-		assertEquals(1L, teamDAO.getMembersCount(updated.getId()));
-		List<TeamMember> members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
-		assertEquals(1, members.size());
-		TeamMember m = members.get(0);
-		assertFalse(m.getIsAdmin());
-		assertEquals(user.getId(), m.getMember().getOwnerId());
-		assertEquals(updated.getId(), m.getTeamId());
-		assertTrue(teamDAO.getAdminTeamMembers(updated.getId()).isEmpty());
+	@Test
+	public void testGetAllTeamsUserIsAdmin() {
+		Team team = createTeam("UserIsAdminTestTeam");
+		UserGroup user = createIndividual();
 
-		// check pagination
-		assertEquals(0L, teamDAO.getMembersInRange(updated.getId(), 1, 2).size());
-		// try some other team.  should get no results
-		assertEquals(0L, teamDAO.getMembersInRange("-999", 10, 0).size());
-		assertEquals(0L, teamDAO.getMembersCount("-999"));
+		// Add the user to the team
+		groupMembersDAO.addMembers(team.getId(), Collections.singletonList(user.getId()));
 
-		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
-		assertEquals(updated.getId(), member.getTeamId());
-		assertFalse(member.getIsAdmin());
-		ugh = member.getMember();
-		assertTrue(ugh.getIsIndividual());
-		assertEquals(user.getId(), ugh.getOwnerId());
-
+		// Call under test, user is not an admin
 		List<String> teamIds = teamDAO.getAllTeamsUserIsAdmin(user.getId());
 		assertNotNull(teamIds);
-		assertTrue(teamIds.isEmpty());
+		assertEquals(0, teamIds.size());
 
-		// now make the member an admin
-		AccessControlList acl = AccessControlListUtil.createACL(updated.getId(), new UserInfo(true, user.getId()), Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE), new Date());
-		aclToDelete = aclDAO.create(acl, ObjectType.TEAM);
+		addUserAsAdmin(Long.parseLong(user.getId()), team.getId());
 
-		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
-		member = teamDAO.getMember(updated.getId(), user.getId());
-		assertEquals(updated.getId(), member.getTeamId());
-		assertTrue(member.getIsAdmin());
-		assertEquals(1, teamDAO.getAdminTeamMembers(updated.getId()).size());
-		assertEquals(user.getId(), teamDAO.getAdminTeamMembers(updated.getId()).get(0));
-		ugh = member.getMember();
-		assertTrue(ugh.getIsIndividual());
-		assertEquals(user.getId(), ugh.getOwnerId());
-
+		// Call under test, user is an admin
 		teamIds = teamDAO.getAllTeamsUserIsAdmin(user.getId());
 		assertNotNull(teamIds);
 		assertEquals(1, teamIds.size());
-		assertEquals(updated.getId(), teamIds.get(0));
-
-		members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
-		assertEquals(1, members.size());
-		assertEquals(member, members.get(0));
-
-		listedMembers = teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(Long.parseLong(user.getId())));
-		assertEquals(member, listedMembers.getList().get(0));
+		assertEquals(team.getId(), teamIds.get(0));
 	}
 
-
-	private UserGroup user;
 	private Team aTeam;
 	private Team bTeam;
 	private Team cTeam;
@@ -322,11 +386,8 @@ public class DBOTeamDAOImplTest {
 	private static final String bTeamName = "b team";
 	private static final String cTeamName = "C team";
 
-	private void beforeGetIdsForMember() {
-		user = new UserGroup();
-		user.setIsIndividual(true);
-		user.setId(userGroupDAO.create(user).toString());
-		userToDelete = user.getId();
+	private UserGroup beforeGetIdsForMember() {
+		UserGroup user = createIndividual();
 
 		bTeam = createTeam(bTeamName);
 		aTeam = createTeam(aTeamName);
@@ -335,11 +396,14 @@ public class DBOTeamDAOImplTest {
 		groupMembersDAO.addMembers(bTeam.getId(), Arrays.asList(user.getId()));
 		groupMembersDAO.addMembers(aTeam.getId(), Arrays.asList(user.getId()));
 		groupMembersDAO.addMembers(cTeam.getId(), Arrays.asList(user.getId()));
+
+		return user;
 	}
+
 
 	@Test
 	public void testGetIdsForMemberNoOrder() {
-		beforeGetIdsForMember();
+		UserGroup user = beforeGetIdsForMember();
 
 		// Method under test
 		List<String> teamIds = teamDAO.getIdsForMember(user.getId(), 3, 0, null, null);
@@ -352,7 +416,7 @@ public class DBOTeamDAOImplTest {
 
 	@Test
 	public void testGetIdsForMemberOrderByNameAsc() {
-		beforeGetIdsForMember();
+		UserGroup user = beforeGetIdsForMember();
 
 		// Method under test
 		List<String> teamIds = teamDAO.getIdsForMember(user.getId(), 2, 0, TeamSortOrder.TEAM_NAME, true);
@@ -364,7 +428,7 @@ public class DBOTeamDAOImplTest {
 
 	@Test
 	public void testGetIdsForMemberOrderByNameDesc() {
-		beforeGetIdsForMember();
+		UserGroup user = beforeGetIdsForMember();
 
 		// Method under test
 		List<String> teamIds = teamDAO.getIdsForMember(user.getId(), 2, 0, TeamSortOrder.TEAM_NAME, false);
@@ -417,13 +481,39 @@ public class DBOTeamDAOImplTest {
 		team.setModifiedOn(new Date());
 		team.setModifiedBy("102");
 		Team createdTeam = teamDAO.create(team);
-		assertNotNull(createdTeam.getEtag());
-		createdTeam.setEtag(null); // to allow comparison with 'team'
-		assertEquals(team, createdTeam);
-
 		bindTeamName(teamName, id);
 
-		return team;
+		return createdTeam;
+	}
+
+	private UserGroup createIndividual() {
+		UserGroup user = new UserGroup();
+		user.setIsIndividual(true);
+		user.setId(userGroupDAO.create(user).toString());
+		createUserProfile(user.getId());
+		usersToDelete.add(user.getId());
+		return user;
+	}
+
+	private void createUserProfile(String userId) {
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(userId);
+		profile.setUserName("user-name-" + UUID.randomUUID());
+		userProfileDAO.create(profile);
+	}
+
+	private void addUserAsAdmin(Long userId, String teamId) {
+		AccessControlList acl = AccessControlListUtil.createACL(teamId, new UserInfo(true, userId),
+				Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE), new Date());
+		aclToDelete = aclDAO.create(acl, ObjectType.TEAM);
+	}
+
+	private void bindUserName(String name, Long userId) {
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(name);
+		alias.setPrincipalId(userId);
+		alias.setType(AliasType.USER_NAME);
+		principalAliasDAO.bindAliasToPrincipal(alias);
 	}
 
 	private void bindTeamName(String name, Long teamId){

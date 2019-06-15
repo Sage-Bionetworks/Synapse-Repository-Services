@@ -124,6 +124,38 @@ public class SendRawEmailRequestBuilderTest {
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
 		assertTrue(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
 	}
+
+	/**
+	 * PLFM-5568
+	 */
+	@Test
+	public void testCreateRawNotificationEmailRequest_withUnicode() throws Exception {
+		String body = "this is the message body with unicode: \u2013 \u2018";
+		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
+				.withIsNotificationMessage(true)
+				.withUserId("101")
+				.withTo("TO <to@foo.bar>")
+				.withCc("Cc <cc@foo.bar>")
+				.withBcc("Bcc <bcc@foo.bar>")
+				.build();
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+
+		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
+		BodyPart bodyPart = content.getBodyPart(0);
+		assertTrue(bodyPart.getContentType(), bodyPart.getContentType().equals("text/plain; charset=UTF-8"));
+		String bodyContent = ((String)bodyPart.getContent());
+		assertTrue(bodyContent.startsWith(body));
+	}
 	
 	@Test
 	public void testCreateRawEmailRequestWithOneTextAttachment() throws Exception {
@@ -374,7 +406,7 @@ public class SendRawEmailRequestBuilderTest {
 		attachment.setContent_type("image/jpeg");
 		attachment.setContent_id("101");
 		attachment.setDisposition("foo");
-		attachment.setFile_name("bar.jpg");
+		attachment.setFile_name("bar bar.jpg");
 		attachment.setSize("1000");
 		attachment.setUrl("http://foo.bar.com");
 		messageBody.setAttachments(Collections.singletonList(attachment));
@@ -397,7 +429,7 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(content, attachmentString);
 		assertTrue(attachmentPart.getContentType(), attachmentPart.getContentType().startsWith("image/jpeg"));
 		assertEquals(attachmentPart.getContentType(), attachmentPart.getHeader("Content-Type")[0]);
-		assertEquals("foo; filename=bar.jpg", attachmentPart.getHeader("Content-Disposition")[0]);
+		assertEquals("foo; filename=\"bar bar.jpg\"", attachmentPart.getHeader("Content-Disposition")[0]);
 		assertEquals("101", attachmentPart.getHeader("Content-ID")[0]);
 		assertEquals("1000", attachmentPart.getHeader("size")[0]);
 		assertEquals("http://foo.bar.com", attachmentPart.getHeader("url")[0]);

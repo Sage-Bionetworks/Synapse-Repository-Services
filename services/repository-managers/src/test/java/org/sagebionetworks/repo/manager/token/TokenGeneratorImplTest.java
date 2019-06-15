@@ -5,9 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.token.TokenGeneratorImpl.*;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.token.TokenGeneratorImpl.DEFAULT_KEY_VERSION;
+import static org.sagebionetworks.repo.manager.token.TokenGeneratorImpl.OLD_TOKEN_EXPIRATION_EPOCH_MS;
+import static org.sagebionetworks.repo.manager.token.TokenGeneratorImpl.TOKEN_EXPIRATION_MS;
+import static org.sagebionetworks.repo.manager.token.TokenGeneratorImpl.TOKEN_HAS_EXPIRED;
+import static org.sagebionetworks.repo.manager.token.TokenGeneratorImpl.TOKEN_SIGNATURE_IS_INVALID;
 
 import java.util.Date;
 
@@ -15,7 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.Clock;
 import org.sagebionetworks.repo.model.UnauthorizedException;

@@ -188,6 +188,7 @@ TOKEN [IGNORE_CASE]: {
 | < unknown: "UNKNOWN">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
+| < separator: "SEPARATOR">
 }
 
 /* Aggregate functions */
@@ -208,6 +209,7 @@ TOKEN [IGNORE_CASE]: {
    | "VAR_POP"
    | "VAR_SAMP"
    | "VARIANCE"
+   | "GROUP_CONCAT"
   >
 }
 
@@ -273,6 +275,10 @@ TOKEN [IGNORE_CASE]:{
 }
 
 TOKEN [IGNORE_CASE]: {
+  < entity_id: "syn"(["0"-"9"])+("."(["0"-"9"])+)?>
+}
+
+TOKEN [IGNORE_CASE]: {
   < regular_identifier: ["a"-"z","A"-"Z","_"](["a"-"z","A"-"Z","0"-"9","_"])*>
 }
 
@@ -309,7 +315,13 @@ TOKEN: {
 | < right_curly_brace: "}">
 | < tilde: "~">
 }
-
+EntityId entityId():
+{
+	Token token = null;
+}
+{
+	token = <entity_id> { return new EntityId(token.image); }
+}
 RegularIdentifier regularIdentifier():
 {
 	Token token = null;
@@ -434,10 +446,12 @@ ActualIdentifier actualIdentifier():
 {
 	RegularIdentifier regularIdentifier = null;
 	DelimitedIdentifier delmitedIdentifier = null;
+	EntityId entityId = null;
 }
 {
 	regularIdentifier = regularIdentifier() { return new ActualIdentifier(regularIdentifier); }
 	| delmitedIdentifier = delimitedIdentifier() { return new ActualIdentifier(delmitedIdentifier); }
+	| entityId = entityId() { return new ActualIdentifier(entityId); }
 }
 DelimitedIdentifier delimitedIdentifier():
 { 
@@ -557,7 +571,7 @@ FromClause fromClause():
 }
 TableReference tableReference():
 {
-	String tableName = null;
+	TableName tableName = null;
 }
 {
 	tableName = tableName()
@@ -576,12 +590,14 @@ SetQuantifier setQuantifier():
 	<distinct> { return SetQuantifier.DISTINCT;}
 	|<all> { return SetQuantifier.ALL;}
 }
-String tableName():
+TableName tableName():
 { 
-	Token token = null;
+	EntityId entityId = null;
+	RegularIdentifier regularIdentifier = null;
 }
 {	
-	token = <regular_identifier> { return token.image; }
+	entityId = entityId() { return new TableName(entityId); } 
+	| regularIdentifier = regularIdentifier() { return new TableName(regularIdentifier); }
 }
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }
@@ -595,10 +611,17 @@ SetFunctionSpecification generalSetFunction():
 	SetFunctionType setFunctionType = null;
 	SetQuantifier setQuantifier = null;
 	ValueExpression valueExpression = null;
+	OrderByClause orderByClause = null;
+	Separator separatorClause = null;
 }
 {
-	setFunctionType = setFunctionType() <left_paren> [ setQuantifier = setQuantifier() ] valueExpression = valueExpression() <right_paren>
-	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
+	setFunctionType = setFunctionType() 
+	<left_paren>
+	 [ setQuantifier = setQuantifier() ] valueExpression = valueExpression()
+	 [ orderByClause = orderByClause() ]
+	 [ separatorClause = separatorClause() ] 
+	<right_paren>
+	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression, orderByClause, separatorClause);}
 }
 SetFunctionType setFunctionType():
 {
@@ -606,6 +629,13 @@ SetFunctionType setFunctionType():
 }
 {
 	functionName = <aggregate_functions_name> { return SetFunctionType.valueOf(functionName.image.toUpperCase()); }
+}
+Separator separatorClause():
+{
+	CharacterStringLiteral characterStringLiteral;
+}
+{
+	<separator> characterStringLiteral = characterStringLiteral() { return new Separator(characterStringLiteral); }
 }
 WhereClause whereClause():
 {

@@ -327,7 +327,7 @@ public class TableQueryParserTest {
 		QuerySpecification element = TableQueryParser.parserQuery("select doesNotExist, isIn, string, sAnd, sNot, WeLikeIt from SyN456 limit 1 offset 2");
 		assertNotNull(element);
 		String sql = toSQL(element);
-		assertEquals("SELECT doesNotExist, isIn, string, sAnd, sNot, WeLikeIt FROM SyN456 LIMIT 1 OFFSET 2", sql);
+		assertEquals("SELECT doesNotExist, isIn, string, sAnd, sNot, WeLikeIt FROM syn456 LIMIT 1 OFFSET 2", sql);
 	}
 	
 	/**
@@ -366,5 +366,39 @@ public class TableQueryParserTest {
 				fail("Encountered an unexpected TokenMgrError: " + tme);
 			}
 		}
+	}
+	
+	/**
+	 * Test for PLFM-5281
+	 * @throws ParseException 
+	 */
+	@Test
+	public void testGroupConcat() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery(
+				"select foo, group_concat(distinct bar order by bar desc separator '#') from syn123 group by foo");
+		assertEquals("SELECT foo, GROUP_CONCAT(DISTINCT bar ORDER BY bar DESC SEPARATOR '#') FROM syn123 GROUP BY foo",
+				element.toSql());
+	}
+	
+	@Test
+	public void testTableWithVersion() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123.567 where foo = 'bar'");
+		assertEquals("SELECT * FROM syn123.567 WHERE foo = 'bar'",	element.toSql());
+	}
+	
+	@Test (expected=ParseException.class)
+	public void testTableNameTooManyDots() throws ParseException {
+		TableQueryParser.parserQuery("select * from syn123.567.333 where foo = 'bar'");
+	}
+	
+	@Test (expected=ParseException.class)
+	public void testTableNameTrailingDot() throws ParseException {
+		TableQueryParser.parserQuery("select * from syn123.567. where foo = 'bar'");
+	}
+	
+	@Test
+	public void testEntityIdColumnName() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 where syn567 = 'bar'");
+		assertEquals("SELECT * FROM syn123 WHERE syn567 = 'bar'", element.toSql());
 	}
 }

@@ -57,16 +57,19 @@ public class MembershipInvitationServiceImpl implements
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipInvitation created = membershipInvitationManager.create(userInfo, dto);
 		// Post condition: created either has inviteeId or inviteeEmail, never both
-		if (created.getInviteeId() != null) {
+		if (created.getInviteeId()!=null && created.getInviteeEmail()==null) {
 		    // Invitation to existing user
 			MessageToUserAndBody message = membershipInvitationManager.
 					createInvitationMessageToUser(created, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 			if (message != null) {
 				notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
 			}
-		} else {
+		} else if (created.getInviteeId()==null && created.getInviteeEmail()!=null){
 			// Invitation to new user
 			membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint);
+		} else {
+			throw new IllegalArgumentException("Exactly one of invitee email or invitee user Id should be included. Received email: "+
+					created.getInviteeEmail()+", and user Id: "+created.getInviteeId());
 		}
 
 		return created;

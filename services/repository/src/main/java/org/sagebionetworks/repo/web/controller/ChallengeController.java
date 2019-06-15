@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Challenge Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class ChallengeController extends BaseController {
+public class ChallengeController {
 	@Autowired
 	ServiceProvider serviceProvider;
 

@@ -12,9 +12,7 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavaDocTestUtil;
-import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
-import org.sagebionetworks.repo.model.Entity;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;

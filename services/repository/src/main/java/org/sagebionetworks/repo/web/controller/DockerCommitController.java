@@ -5,7 +5,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -26,8 +25,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Note that create, update and delete of the Docker repositories themselves are done using
  * the <a href="#org.sagebionetworks.repo.web.controller.EntityController">Entity Services</a>,
  * for external/unmanaged repositories, or by direct integration with the Docker registry, for managed
- * Docker repositories.  Commits for both managed and external/unmanaged repositories may be
- * retrieved using the 'listDockerCommits' API included in this service.
+ * Docker repositories.  Tagged commits for both managed and external/unmanaged repositories may be
+ * retrieved using the 'listDockerTags' API included in this service.
  *
  */
 @Controller
@@ -57,11 +56,11 @@ public class DockerCommitController {
 	}
 
 	/**
-	 * List the commits (tag/digest pairs) for the given Docker repository.  Only the most recent
+	 * List the tagged commits (tag/digest pairs) for the given Docker repository.  Only the most recent
 	 * digest for each tag is returned since, following Docker's convention, a tag may be reassigned
-	 * to a newer commit. The list may be sorted by date or tag.  The default is to sort by 
+	 * to a newer commit. The list may be sorted by date or tag.  The default is to sort by
 	 * date, descending (newest first).
-	 * 
+	 *
 	 * @param userId
 	 * @param entityId the ID of the Docker repository entity
 	 * @param limit pagination parameter, optional (default is 20)
@@ -70,9 +69,9 @@ public class DockerCommitController {
 	 * @param ascending, optional (default is false)
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_DOCKER_TAG, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<DockerCommit> listDockerCommits(
+	PaginatedResults<DockerCommit> listDockerTags(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) String sortByParam,
@@ -80,11 +79,9 @@ public class DockerCommitController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset
 			) {
-		DockerCommitSortBy sortBy = sortByParam==null ? 
+		DockerCommitSortBy sortBy = sortByParam==null ?
 				DockerCommitSortBy.CREATED_ON : DockerCommitSortBy.valueOf(sortByParam);
-		return serviceProvider.getDockerService().listDockerCommits(userId, entityId, 
+		return serviceProvider.getDockerService().listDockerTags(userId, entityId,
 				sortBy, ascending, limit, offset);
 	}
-	
-
 }

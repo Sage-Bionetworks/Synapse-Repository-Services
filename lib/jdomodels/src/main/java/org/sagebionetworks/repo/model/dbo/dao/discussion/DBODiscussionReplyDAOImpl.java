@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -169,7 +169,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+ " AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_THREAD_ID
 			+" AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" = ?";
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionReplyBundle createReply(String threadId, String replyId, String messageKey, Long userId) {
 		ValidateArgument.required(threadId, "threadId");
@@ -256,14 +256,14 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return jdbcTemplate.queryForObject(addCondition(query, filter), Long.class, threadId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void markReplyAsDeleted(long replyId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_REPLY_AS_DELETED, etag, replyId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionReplyBundle updateMessageKey(long replyId, String newKey) {
 		ValidateArgument.required(newKey, "newKey");
@@ -273,7 +273,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return getReply(replyId, DEFAULT_FILTER);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String getEtagForUpdate(long replyId) {
 		List<String> results = jdbcTemplate.query(SQL_SELECT_ETAG_FOR_UPDATE, new RowMapper<String>(){

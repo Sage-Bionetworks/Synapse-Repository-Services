@@ -4,13 +4,10 @@ import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -26,27 +23,24 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
-import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -65,13 +59,13 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileDownloadRecord;
@@ -94,6 +88,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -104,16 +99,14 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
-import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -166,7 +159,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	AuthorizationManager authorizationManager;
 
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 
 	@Autowired
 	UploadDaemonStatusDao uploadDaemonStatusDao;
@@ -276,10 +269,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Get the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Only the user that created this handle is authorized to get it.
-		AuthorizationManagerUtil
-				.checkAuthorizationAndThrowException(authorizationManager
-						.canAccessRawFileHandleByCreator(userInfo, handleId,
-								handle.getCreatedBy()));
+		authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId,handle.getCreatedBy())
+				.checkAuthorizationOrElseThrow();
 		return handle;
 	}
 
@@ -295,10 +286,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		try {
 			FileHandle handle = fileHandleDao.get(handleId);
 			// Is the user authorized?
-			AuthorizationManagerUtil
-					.checkAuthorizationAndThrowException(authorizationManager
-							.canAccessRawFileHandleByCreator(userInfo,
-									handleId, handle.getCreatedBy()));
+			authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy())
+					.checkAuthorizationOrElseThrow();
 			// If this file has a preview then we want to delete the preview as
 			// well.
 			if (handle instanceof HasPreviewId) {
@@ -366,7 +355,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			}
 			String fileName = handle.getFileName();
 			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-				responseHeaderOverrides.setContentDisposition("attachment; filename=" + fileName);
+				responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
 			}
 
 			request.setResponseHeaders(responseHeaderOverrides);
@@ -398,7 +387,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Is the user authorized?
 		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo,
-				handleId, handle.getCreatedBy()).getAuthorized()) {
+				handleId, handle.getCreatedBy()).isAuthorized()) {
 			throw new UnauthorizedException(
 					"Only the creator of a FileHandle can clear the preview");
 		}
@@ -464,8 +453,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
 		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
-		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
-		ValidateArgument.required(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
+		ValidateArgument.requiredNotEmpty(fileHandle.getContentMd5(),"FileHandle.contentMd5");
+		ValidateArgument.requiredNotEmpty(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
 
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
@@ -775,7 +764,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ExternalS3UploadDestination externalS3UploadDestination = new ExternalS3UploadDestination();
 			externalS3UploadDestination.setBucket(externalS3StorageLocationSetting.getBucket());
 			externalS3UploadDestination.setBaseKey(externalS3StorageLocationSetting.getBaseKey());
-			externalS3UploadDestination.setEndpointUrl(externalS3StorageLocationSetting.getEndpointUrl());
 			uploadDestination = externalS3UploadDestination;
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			String filename = UUID.randomUUID().toString();
@@ -913,7 +901,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(fileContents.length);
-		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
+		meta.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
 		if (contentEncoding!=null) meta.setContentEncoding(contentEncoding);
 		String key = MultipartUtils.createNewKey(createdBy, fileName, null);
 		String bucket = StackConfigurationSingleton.singleton().getS3Bucket();
@@ -961,24 +949,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle) {
-		if (userInfo == null){
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		}
-		if (fileHandle == null){
-			throw new IllegalArgumentException("FileHandle cannot be null");
-		}
-		if(fileHandle.getBucketName() == null){
-			throw new IllegalArgumentException("FileHandle.bucket cannot be null");
-		}
-		if(fileHandle.getKey() == null){
-			throw new IllegalArgumentException("FileHandle.key cannot be null");
-		}
-		if(fileHandle.getStorageLocationId() == null){
-			throw new IllegalArgumentException("FileHandle.storageLocationId cannot be null");
-		}
-		if(fileHandle.getContentMd5() == null){
-			throw new IllegalArgumentException("FileHandle.contentMd5 cannot be null");
-		}
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(fileHandle, "fileHandle");
+		ValidateArgument.required(fileHandle.getStorageLocationId(), "FileHandle.storageLocationId");
+		ValidateArgument.requiredNotEmpty(fileHandle.getBucketName(), "FileHandle.bucket");
+		ValidateArgument.requiredNotEmpty(fileHandle.getKey(), "FileHandle.key");
+		ValidateArgument.requiredNotEmpty(fileHandle.getContentMd5(),"FileHandle.contentMd5");
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
 		}
@@ -1025,11 +1001,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
-		ValidateArgument.required(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");
 		ValidateArgument.required(proxyFileHandle.getContentSize(), "ProxyFileHandle.contentSize");
-		ValidateArgument.required(proxyFileHandle.getContentType(), "ProxyFileHandle.contentType");
-		ValidateArgument.required(proxyFileHandle.getFileName(), "ProxyFileHandle.fileName");
-		ValidateArgument.required(proxyFileHandle.getFilePath(), "ProxyFileHandle.filePath");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getContentType(), "ProxyFileHandle.contentType");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getFileName(), "ProxyFileHandle.fileName");
+		ValidateArgument.requiredNotEmpty(proxyFileHandle.getFilePath(), "ProxyFileHandle.filePath");
 		ValidateArgument.required(proxyFileHandle.getStorageLocationId(), "ProxyFileHandle.storageLocationId");
 		StorageLocationSetting sls = storageLocationDAO.get(proxyFileHandle.getStorageLocationId());
 		if(!(sls instanceof ProxyStorageLocationSettings)){
@@ -1042,7 +1018,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			if (proxyLocation.getBenefactorId() == null
 					|| !authorizationManager.canAccess(userInfo,
 							proxyLocation.getBenefactorId(), ObjectType.ENTITY,
-							ACCESS_TYPE.CREATE).getAuthorized()) {
+							ACCESS_TYPE.CREATE).isAuthorized()) {
 				throw new UnauthorizedException(
 						UNAUTHORIZED_PROXY_FILE_HANDLE_MSG);
 			}
@@ -1063,6 +1039,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.requirement(StringUtils.isNotEmpty(fileName) || StringUtils.isNotEmpty(contentType),
 				"Either the fileName or the contentType needs to be set");
 
+		NameValidation.validateName(fileName);
+
 		FileHandle originalFileHandle = fileHandleDao.get(handleIdToCopyFrom);
 		ValidateArgument.requireType(originalFileHandle, S3FileHandle.class, "file handle to copy from");
 		S3FileHandle newS3FileHandle = (S3FileHandle) originalFileHandle;
@@ -1072,7 +1050,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		 */
 		// Is the user authorized?
 		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleIdToCopyFrom, originalFileHandle.getCreatedBy())
-				.getAuthorized()) {
+				.isAuthorized()) {
 			throw new UnauthorizedException("Only the creator of a file handle can create a copy. File handle id=" + handleIdToCopyFrom
 					+ " is not owned by you");
 		}
@@ -1115,7 +1093,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, associations);
 		if (authResults.size()!=1) throw new IllegalStateException("Expected one result but found "+authResults.size());
 		AuthorizationStatus authStatus = authResults.get(0).getStatus();
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		authStatus.checkAuthorizationOrElseThrow();
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
 		return getURLForFileHandle(fileHandle);
 	}
@@ -1154,7 +1132,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			FileResult result = new FileResult();
 			idToFileHandleAssociation.put(fhas.getAssociation().getFileHandleId(), fhas.getAssociation());
 			result.setFileHandleId(fhas.getAssociation().getFileHandleId());
-			if(!fhas.getStatus().getAuthorized()){
+			if(!fhas.getStatus().isAuthorized()){
 				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
 			}else{
 				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());
@@ -1238,7 +1216,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return ObjectRecordBuilderUtils.buildObjectRecord(record, nowMs);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -1255,7 +1233,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileHandleCopyResult result = new FileHandleCopyResult();
 			result.setOriginalFileHandleId(fhas.getAssociation().getFileHandleId());
-			if(!fhas.getStatus().getAuthorized()){
+			if(!fhas.getStatus().isAuthorized()){
 				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
 			}else{
 				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());

@@ -215,6 +215,14 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "TABLE_TRANSACTION",
+			"description": "Tracks all table transactions."
+		},
+		{
+			"name": "TABLE_TRANSACTION_TO_VERSION",
+			"description": "Links a table transaction to a table version."
+		},
+		{
 			"name": "TABLE_SEQUENCE",
 			"description": "TODO: Auto-generated description"
 		},

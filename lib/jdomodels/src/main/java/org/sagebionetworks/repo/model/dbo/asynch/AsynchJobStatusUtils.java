@@ -27,7 +27,7 @@ public class AsynchJobStatusUtils {
 		AsynchronousJobStatus dto = new AsynchronousJobStatus();
 		try {
 			// The compressed body contains the truth data for all type specific data.
-			AsynchronousRequestBody asynchronousRequestBody = (AsynchronousRequestBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getRequestBody(), dbo.getJobType().name(), dbo.getJobType().getRequestClass());
+			AsynchronousRequestBody asynchronousRequestBody = (AsynchronousRequestBody) JDOSecondaryPropertyUtils.decompressObject(AsynchJobType.getRequestXStream(), dbo.getRequestBody());
 			asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
 			dto.setRequestBody(asynchronousRequestBody);
 		} catch (IOException e) {
@@ -35,7 +35,7 @@ public class AsynchJobStatusUtils {
 		}
 		if(dbo.getResponseBody() != null){
 			try {
-				dto.setResponseBody((AsynchronousResponseBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getResponseBody(), dbo.getJobType().name(), dbo.getJobType().getResponseClass()));
+				dto.setResponseBody((AsynchronousResponseBody) JDOSecondaryPropertyUtils.decompressObject(AsynchJobType.getResponseXStream(), dbo.getResponseBody()));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -66,7 +66,8 @@ public class AsynchJobStatusUtils {
 	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto){
 		if(dto == null) throw new IllegalArgumentException("AsynchronousJobStatus cannot be null");
 		// Lookup the type
-		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(dto.getRequestBody().getClass());
+		AsynchronousRequestBody requestBody = dto.getRequestBody();
+		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(requestBody.getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
 		dbo.setChangedOn(dto.getChangedOn()); 
 		dbo.setException(dto.getException());
@@ -85,7 +86,7 @@ public class AsynchJobStatusUtils {
 		dbo.setRuntimeMS(dto.getRuntimeMS());
 		// Compress the body
 		try {
-			dbo.setRequestBody(JDOSecondaryPropertyUtils.compressObject(dto.getRequestBody(), type.name()));
+			dbo.setRequestBody(JDOSecondaryPropertyUtils.compressObject(AsynchJobType.getRequestXStream(), requestBody));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -104,7 +105,7 @@ public class AsynchJobStatusUtils {
 	 */
 	public static byte[] getBytesForResponseBody(AsynchJobType type, AsynchronousResponseBody body){
 		try {
-			return JDOSecondaryPropertyUtils.compressObject(body, type.name());
+			return JDOSecondaryPropertyUtils.compressObject(AsynchJobType.getResponseXStream(), body);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

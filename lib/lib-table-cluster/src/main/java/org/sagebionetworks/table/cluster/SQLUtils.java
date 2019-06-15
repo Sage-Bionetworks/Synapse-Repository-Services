@@ -18,10 +18,12 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.isTableTooLargeForFourByteUtf8;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,10 +33,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -72,7 +76,6 @@ public class SQLUtils {
 	private static final String CREATE_TABLE_LIKE = "CREATE TABLE %1$S LIKE %2$S";
 	private static final String TEMP = "TEMP";
 	private static final String IDX = "idx_";
-	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	public static final String FILE_ID_BIND = "bFIds";
 	public static final String ROW_ID_BIND = "bRI";
 	public static final String ROW_VERSION_BIND = "bRV";
@@ -130,7 +133,7 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static String createTableSQL(String tableId, TableType type) {
+	public static String createTableSQL(IdAndVersion tableId, TableType type) {
 		ValidateArgument.required(tableId, "tableId");
 		StringBuilder columnDefinitions = new StringBuilder();
 		switch (type) {
@@ -148,11 +151,7 @@ public class SQLUtils {
 		return createTableSQL(tableId, type, columnDefinitions.toString());
 	}
 
-	public static String createTableSQL(Long tableId, TableType type) {
-		return createTableSQL(tableId.toString(), type);
-	}
-
-	private static String createTableSQL(String tableId, TableType type, String columnDefinitions) {
+	private static String createTableSQL(IdAndVersion tableId, TableType type, String columnDefinitions) {
 		return "CREATE TABLE IF NOT EXISTS `" + getTableNameForId(tableId, type) + "` ( " + columnDefinitions + " )";
 	}
 
@@ -210,15 +209,17 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTableNameForId(String tableId, TableType type) {
-		if (tableId == null)
-			throw new IllegalArgumentException("Table ID cannot be null");
-		return TABLE_PREFIX + KeyFactory.stringToKey(tableId) + type.getTablePostFix();
-	}
-
-	public static String getTableNameForId(Long tableId, TableType type) {
-		ValidateArgument.required(tableId, "Table ID");
-		return TABLE_PREFIX + tableId + type.getTablePostFix();
+	public static String getTableNameForId(IdAndVersion id, TableType type) {
+		if (id == null) {
+			throw new IllegalArgumentException("Table ID cannot be null");			
+		}
+		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
+		builder.append(id.getId());
+		if(id.getVersion().isPresent()) {
+			builder.append("_").append(id.getVersion().get());
+		}
+		builder.append(type.getTablePostFix());
+		return builder.toString();
 	}
 
 	/**
@@ -325,36 +326,9 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String dropTableSQL(String tableId, TableType type) {
+	public static String dropTableSQL(IdAndVersion tableId, TableType type) {
 		String tableName = getTableNameForId(tableId, type);
 		return "DROP TABLE " + tableName;
-	}
-
-	public static String dropTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DROP TABLE " + tableName;
-	}
-
-	/**
-	 * Create the delete a batch of row Ids SQL.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	public static String deleteBatchFromTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
-	}
-
-	/**
-	 * Create the delete a row Ids SQL.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	public static String deleteFromTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " = ?";
 	}
 
 	/**
@@ -363,7 +337,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, String tableId){
+	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, IdAndVersion tableId){
 		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
 		if(schema.size() < 1) throw new IllegalArgumentException("Schema must include at least on column");
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
@@ -417,7 +391,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildCreateOrUpdateStatusSQL(String tableId) {
+	public static String buildCreateOrUpdateStatusSQL(IdAndVersion tableId) {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -433,7 +407,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusHashSQL(String tableId) {
+	public static String buildCreateOrUpdateStatusHashSQL(IdAndVersion tableId) {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -449,7 +423,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusVersionAndHashSQL(String tableId){
+	public static String buildCreateOrUpdateStatusVersionAndHashSQL(IdAndVersion tableId){
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -472,7 +446,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildDeleteSQL(String tableId){
+	public static String buildDeleteSQL(IdAndVersion tableId){
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("DELETE FROM ");
@@ -565,7 +539,7 @@ public class SQLUtils {
 	 * 
 	 * @return
 	 */
-	public static String getCountSQL(String tableId){
+	public static String getCountSQL(IdAndVersion tableId){
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId, TableType.INDEX));
 		return builder.toString();
@@ -575,7 +549,7 @@ public class SQLUtils {
 	 * Create the SQL used to get the max version number from a table.
 	 * @return
 	 */
-	public static String getStatusMaxVersionSQL(String tableId) {
+	public static String getStatusMaxVersionSQL(IdAndVersion tableId) {
 		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 
@@ -584,19 +558,16 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getSchemaHashSQL(String tableId) {
+	public static String getSchemaHashSQL(IdAndVersion tableId) {
 		return "SELECT " + SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 	
-	public static String selectRowValuesForRowId(Long tableId) {
-		return "SELECT * FROM " + getTableNameForId(tableId, TableType.INDEX) + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
-	}
 	/**
 	 * Insert ignore file handle ids into a table's secondary file index.
 	 * @param tableId
 	 * @return
 	 */
-	public static String createSQLInsertIgnoreFileHandleId(String tableId){
+	public static String createSQLInsertIgnoreFileHandleId(IdAndVersion tableId){
 		return "INSERT IGNORE INTO "+getTableNameForId(tableId, TableType.FILE_IDS)+" ("+FILE_ID+") VALUES(?)";
 	}
 	
@@ -605,7 +576,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createSQLGetBoundFileHandleId(String tableId){
+	public static String createSQLGetBoundFileHandleId(IdAndVersion tableId){
 		return "SELECT "+FILE_ID+" FROM "+getTableNameForId(tableId, TableType.FILE_IDS)+" WHERE "+FILE_ID+" IN( :"+FILE_ID_BIND+")";
 	}
 	
@@ -616,7 +587,7 @@ public class SQLUtils {
 	 * @param columnName
 	 * @return
 	 */
-	public static String createSQLGetDistinctValues(String tableId, String columnName){
+	public static String createSQLGetDistinctValues(IdAndVersion tableId, String columnName){
 		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 	
@@ -625,7 +596,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTableIfDoesNotExistSQL(String tableId, boolean isView){
+	public static String createTableIfDoesNotExistSQL(IdAndVersion tableId, boolean isView){
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
@@ -651,7 +622,7 @@ public class SQLUtils {
 	 * @param changes
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChangeDetails> changes, String tableId, boolean alterTemp){
+	public static String createAlterTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId, boolean alterTemp){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		if(alterTemp){
@@ -663,7 +634,8 @@ public class SQLUtils {
 		boolean isFirst = true;
 		boolean hasChanges = false;
 		for(ColumnChangeDetails change: changes){
-			boolean hasChange = appendAlterTableSql(builder, change, isFirst);
+			boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
+			boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 			if(hasChange){
 				hasChanges = true;
 				isFirst = false;
@@ -680,16 +652,18 @@ public class SQLUtils {
 	 * Alter a single column for a given column change.
 	 * @param builder
 	 * @param change
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChangeDetails change, boolean isFirst) {
+			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
 			// nothing to do
 			return false;
 		}
 		if(change.getOldColumn() == null){
 			// add
-			appendAddColumn(builder, change.getNewColumn(), isFirst);
+			appendAddColumn(builder, change.getNewColumn(), isFirst, useDepricatedUtf8ThreeBytes);
 			// change was added.
 			return true;
 		}
@@ -706,7 +680,7 @@ public class SQLUtils {
 			return false;
 		}
 		// update
-		appendUpdateColumn(builder, change, isFirst);
+		appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		// change was added.
 		return true;
 
@@ -716,15 +690,17 @@ public class SQLUtils {
 	 * Append an add column statement to the passed builder.
 	 * @param builder
 	 * @param newColumn
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendAddColumn(StringBuilder builder,
-			ColumnModel newColumn, boolean isFirst) {
+			ColumnModel newColumn, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		ValidateArgument.required(newColumn, "newColumn");
 		if(!isFirst){
 			builder.append(", ");
 		}
 		builder.append("ADD COLUMN ");
-		appendColumnDefinition(builder, newColumn);
+		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
 			appendAddDoubleEnum(builder, newColumn.getId());
@@ -754,9 +730,11 @@ public class SQLUtils {
 	 * Append an update column statement to the passed builder.
 	 * @param builder
 	 * @param change
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendUpdateColumn(StringBuilder builder,
-			ColumnChangeDetails change, boolean isFirst) {
+			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getOldColumnInfo(), "change.getOldColumnInfo()");
@@ -774,7 +752,7 @@ public class SQLUtils {
 		builder.append("CHANGE COLUMN ");
 		builder.append(getColumnNameForId(change.getOldColumn().getId()));
 		builder.append(" ");
-		appendColumnDefinition(builder, change.getNewColumn());
+		appendColumnDefinition(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
 		// Is this a type change?
 		if(!change.getOldColumn().getColumnType().equals(change.getNewColumn().getColumnType())){
 			if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())){
@@ -792,17 +770,19 @@ public class SQLUtils {
 		}
 	}
 	
+	
 	/**
 	 * Append a column type definition to the passed builder.
-	 * 
 	 * @param builder
 	 * @param column
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
-	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
+	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column , boolean useDepricatedUtf8ThreeBytes){
 		builder.append(getColumnNameForId(column.getId()));
 		builder.append(" ");
 		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(column.getColumnType());
-		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue()));
+		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue(), useDepricatedUtf8ThreeBytes));
 	}
 
 	/**
@@ -851,7 +831,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTruncateSql(String tableId) {
+	public static String createTruncateSql(IdAndVersion tableId) {
 		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
@@ -863,7 +843,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createCardinalitySql(List<DatabaseColumnInfo> list, String tableId){
+	public static String createCardinalitySql(List<DatabaseColumnInfo> list, IdAndVersion tableId){
 		if(list.isEmpty()){
 			return null;
 		}
@@ -894,7 +874,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex){
 		IndexChange change = calculateIndexOptimization(list, tableId, maxNumberOfIndex);
 		return createAlterIndices(change, tableId);
 	}
@@ -909,7 +889,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex){
 		// us a copy of the list
 		list = new LinkedList<DatabaseColumnInfo>(list);
 		// sort by cardinality descending		
@@ -962,7 +942,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createAlterIndices(IndexChange change, String tableId){
+	public static String createAlterIndices(IndexChange change, IdAndVersion tableId){
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(tableId, "tableId");
 		
@@ -1122,8 +1102,8 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTemporaryTableName(String tableId){
-		return TEMP+KeyFactory.stringToKey(tableId);
+	public static String getTemporaryTableName(IdAndVersion tableId){
+		return TEMP+getTableNameForId(tableId, TableType.INDEX);
 	}
 
 	/**
@@ -1131,7 +1111,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTempTableSql(String tableId) {
+	public static String createTempTableSql(IdAndVersion tableId) {
 		String tableName = getTableNameForId(tableId, TableType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(CREATE_TABLE_LIKE, tempName, tableName);
@@ -1144,7 +1124,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String copyTableToTempSql(String tableId){
+	public static String copyTableToTempSql(IdAndVersion tableId){
 		String tableName = getTableNameForId(tableId, TableType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
@@ -1155,7 +1135,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String countTempRowsSql(String tableId){
+	public static String countTempRowsSql(IdAndVersion tableId){
 		String tempName = getTemporaryTableName(tableId);
 		return SELECT_COUNT_FROM_TEMP+tempName;
 	}
@@ -1165,7 +1145,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String deleteTempTableSql(String tableId){
+	public static String deleteTempTableSql(IdAndVersion tableId){
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
 	}
@@ -1259,12 +1239,12 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromEntityReplication(String viewId, Long viewTypeMask,
+	public static String createSelectInsertFromEntityReplication(Long viewId, Long viewTypeMask,
 			List<ColumnModel> currentSchema) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(viewId, TableType.INDEX));
+		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") SELECT ");
@@ -1433,8 +1413,8 @@ public class SQLUtils {
 	 * @param etagColumnId
 	 * @return
 	 */
-	public static String buildTableViewCRC32Sql(String viewId){
-		String tableName = getTableNameForId(viewId, TableType.INDEX);
+	public static String buildTableViewCRC32Sql(Long viewId){
+		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX);
 		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
 	}
 	
@@ -1548,10 +1528,17 @@ public class SQLUtils {
 	/**
 	 * Determine if an incompatibility between the passed two columns is the
 	 * cause of the passed exception.
-	 * 
+	 * <p>
+	 * The fix for PLFM-5348 was to change this method to only throw an exception
+	 * for the case where an annotation string value is too large for a view
+	 * string column.
+	 * </p>
 	 * @param exception
 	 * @param annotationMetadata
 	 * @param columnMetadata
+	 * @throws IllegalArgumentException if both the view column type and annotation type
+	 * are strings, and the annotation value size is larger than the view column size.
+	 * No other case will throw an exception.
 	 */
 	public static void determineCauseOfException(Exception exception,
 			ColumnModel columnModel, ColumnModel annotationModel) {
@@ -1578,18 +1565,6 @@ public class SQLUtils {
 										+ annotationModel.getMaximumSize()
 										+ " characters.", exception);
 					}
-				}
-				// do the column types match?
-				if (!columnModel.getColumnType().equals(
-						annotationModel.getColumnType())) {
-					throw new IllegalArgumentException(
-							"Cannot insert an annotation value of type "
-									+ annotationType
-									+ " into column '"
-									+ columnModel.getName()
-									+ "' which is of type "
-									+ columnModel.getColumnType() + ".",
-							exception);
 				}
 			}
 		}

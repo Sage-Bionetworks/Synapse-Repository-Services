@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_BYTES_PER_ROW;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -8,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -41,12 +43,6 @@ import com.google.common.collect.Lists;
 public class ColumnModelManagerImpl implements ColumnModelManager {
 
 	public static final String COLUMN_TYPE_ERROR_TEMPLATE = "A %1$s column cannot be changed to %2$s";
-	/**
-	 * This is the maximum number of bytes for a single row in MySQL.
-	 * This determines the maximum schema size for a table.
-	 */
-	public static final int MY_SQL_MAX_BYTES_PER_ROW = 64000;
-	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 152;
 	
 	@Autowired
 	ColumnModelDAO columnModelDao;
@@ -250,6 +246,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		// lookup the current schema.
 		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(tableId);
 		List<String> newSchemaIds = new LinkedList<>();
+		// start with all of the old Ids.
 		for(ColumnModel cm: oldSchema){
 			newSchemaIds.add(cm.getId());
 		}
@@ -376,8 +373,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> getColumnModelsForTable(UserInfo user,
 			String tableId) throws DatastoreException, NotFoundException {
 		// The user must be granted read permission on the table to get the columns.
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return columnModelDao.getColumnModelsForObject(tableId);
 	}
 

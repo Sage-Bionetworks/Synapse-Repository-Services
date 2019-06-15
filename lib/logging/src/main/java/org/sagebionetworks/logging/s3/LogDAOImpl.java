@@ -8,9 +8,10 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -29,7 +30,7 @@ public class LogDAOImpl implements LogDAO {
 	Logger log = LogManager.getLogger(LogDAOImpl.class);
 	
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 	private int stackInstanceNumber;
 	private String stackInstancePrefixString;
 	private String bucketName;
@@ -59,7 +60,7 @@ public class LogDAOImpl implements LogDAO {
 		ObjectMetadata om = new ObjectMetadata();
 		om.setContentType("application/x-gzip");
 		om.setContentEncoding("gzip");
-		om.setContentDisposition("attachment; filename=" + key + ";");
+		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(key));
 		s3Client.putObject(new PutObjectRequest(bucketName, key, toSave)
 				.withMetadata(om));
 		return key;

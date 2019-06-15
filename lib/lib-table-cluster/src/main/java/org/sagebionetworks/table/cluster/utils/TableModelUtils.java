@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,11 +20,11 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.repo.model.HasEtag;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -51,13 +51,12 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.ValidateArgument;
 
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -66,6 +65,8 @@ import com.google.common.collect.Sets;
  * 
  */
 public class TableModelUtils {
+
+	private static final String TABLE_LOCK_PREFIX = "TABLE-LOCK-";
 
 	public static final String UTF_8 = "UTF-8";
 
@@ -81,7 +82,6 @@ public class TableModelUtils {
 	public static final String EXCEEDS_MAX_SIZE_TEMPLATE = "Request exceeds the maximum number of bytes per request.  Maximum : %1$s bytes";
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
-	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
 	
 	/**
 	 * Delimiter used to list column model IDs as a string.
@@ -101,37 +101,6 @@ public class TableModelUtils {
 			return Long.parseLong(sc.getId());
 		}
 	};
-
-	/**
-	 * This utility will validate and convert the passed RowSet to an output CSV written to a GZip stream.
-	 * 
-	 * @param models
-	 * @param set
-	 * @param out
-	 * @param isDeletion
-	 * @throws IOException
-	 */
-	@Deprecated
-	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RawRowSet set, OutputStream out) throws IOException {
-		GZIPOutputStream zipOut = null;
-		OutputStreamWriter osw = null;
-		CSVWriter csvWriter = null;
-		try{
-			zipOut = new GZIPOutputStream(out);
-			osw = new OutputStreamWriter(zipOut);
-			csvWriter = new CSVWriter(osw);
-			// Write the data to the the CSV.
-			TableModelUtils.validateAndWriteToCSV(models, set, csvWriter);
-		}finally{
-			if(csvWriter != null){
-				csvWriter.flush();
-				csvWriter.close();
-			}
-			if(out != null){
-				out.close();
-			}
-		}
-	}
 	
 	/**
 	 * Write a SparseChangeSetDto to the given output stream as GZIP compressed JSON.
@@ -158,105 +127,6 @@ public class TableModelUtils {
 		}
 	}
 
-	/**
-	 * This utility will validate and convert the passed RowSet to an output
-	 * CSV.
-	 * 
-	 * @param models
-	 * @param set
-	 */
-	public static void validateAndWriteToCSV(List<ColumnModel> models,
-			RawRowSet set, CSVWriter out) {
-		if (models == null)
-			throw new IllegalArgumentException("Models cannot be null");
-		validateRowSet(set);
-		if (out == null)
-			throw new IllegalArgumentException("CSVWriter cannot be null");
-		if (models.size() != set.getIds().size())
-			throw new IllegalArgumentException(
-					"RowSet.headers size must be equal to the number of columns in the table.  The table has :"
-							+ models.size()
-							+ " columns and the passed RowSet.headers has: "
-							+ set.getIds().size());
-		// Now map the index of each column
-		Map<String, Integer> columnIndexMap = createColumnIdToIndexMap(set);
-		// Process each row
-		int count = 0;
-		for (Row row : set.getRows()) {
-			if (row.getRowId() == null)
-				throw new IllegalArgumentException(
-						"Row.rowId cannot be null for row number: " + count);
-			if (row.getVersionNumber() == null)
-				throw new IllegalArgumentException(
-						"Row.versionNumber cannot be null for row number: "
-								+ count);
-			String[] finalRow;
-			if (row.getValues() == null) {
-				// only output rowId and rowVersion
-				finalRow = new String[2];
-			} else {
-				if (row.getValues().size() == 0)
-					throw new IllegalArgumentException("Row " + count
-							+ " has empty list of values");
-				if (models.size() != row.getValues().size())
-					throw new IllegalArgumentException(
-							"Row.value size must be equal to the number of columns in the table.  The table has :"
-									+ models.size()
-									+ " columns and the passed Row.value has: "
-									+ row.getValues().size()
-									+ " for row number: " + count);
-				// Convert the values to an array for quick lookup
-				String[] values = row.getValues().toArray(
-						new String[row.getValues().size()]);
-				// Prepare the final array which includes the ID and version
-				// number
-				// as the first two columns.
-				finalRow = new String[values.length + 2];
-				// Now process all of the columns as defined by the schema
-				for (int i = 0; i < models.size(); i++) {
-					ColumnModel cm = models.get(i);
-					Integer valueIndex = columnIndexMap.get(cm.getId());
-					if (valueIndex == null)
-						throw new IllegalArgumentException(
-								"The Table's ColumnModels includes: name="
-										+ cm.getName()
-										+ " with id="
-										+ cm.getId()
-										+ " but "
-										+ cm.getId()
-										+ " was not found in the headers of the RowResults");
-					// Get the value
-					String value = values[valueIndex];
-					// Validate the value against the model
-					value = validateRowValue(value, cm, i, valueIndex);
-					// Add the value to the final
-					finalRow[i + 2] = value;
-				}
-			}
-			finalRow[0] = row.getRowId().toString();
-			finalRow[1] = row.getVersionNumber().toString();
-			out.writeNext(finalRow);
-			count++;
-		}
-	}
-
-
-	/**
-	 * @param set
-	 */
-	@Deprecated
-	public static void validateRowSet(RawRowSet set) {
-		if (set == null)
-			throw new IllegalArgumentException("RowSet cannot be null");
-		;
-		if (set.getIds() == null)
-			throw new IllegalArgumentException("RowSet.ids cannot be null");
-		if (set.getRows() == null)
-			throw new IllegalArgumentException("RowSet.rows cannot be null");
-		if (set.getRows().size() < 1)
-			throw new IllegalArgumentException(
-					"RowSet.rows must contain at least one row.");
-	}
 	
 	/**
 	 * Validate the given SparseChangeSetDto.
@@ -409,18 +279,6 @@ public class TableModelUtils {
 		}
 		return columnType.parseValueForDatabaseRead(value);
 	}
-	
-	@Deprecated
-	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
-		validateRowSet(set);
-		int count = 0;
-		for (Row row : set.getRows()) {
-			if(isNullOrInvalid(row.getRowId())){
-				count++;
-			}
-		}
-		return count;
-	}
 
 	/**
 	 * Count all of the empty or invalid rows in the set
@@ -456,38 +314,6 @@ public class TableModelUtils {
 	 */
 	public static boolean isDeletedRow(Row row) {
 		return row.getValues() == null || row.getValues().size() == 0;
-	}
-
-	/**
-	 * Assign RowIDs and version numbers to each row in the set according to the passed range.
-	 * @param set
-	 * @param range
-	 */
-	@Deprecated
-	public static void assignRowIdsAndVersionNumbers(RawRowSet set, IdRange range) {
-		validateRowSet(set);
-		Long id = range.getMinimumId();
-		for (Row row : set.getRows()) {
-			// Set the version number for each row
-			row.setVersionNumber(range.getVersionNumber());
-			if(isNullOrInvalid(row.getRowId())){
-				if(range.getMinimumId() == null){
-					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
-				}
-				// This row needs an id.
-				row.setRowId(id);
-				id++;
-				// Validate we have not exceeded the rows
-				if(row.getRowId() > range.getMaximumId()){
-					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
-				}
-			}else{
-				// Validate the rowId is within range
-				if(row.getRowId() > range.getMaximumUpdateId()){
-					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
-				}
-			}
-		}
 	}
 	
 	/**
@@ -569,31 +395,6 @@ public class TableModelUtils {
 			row.setValues(values);
 			// Pass to the handler
 			handler.nextRow(row);
-		}
-	}
-	
-	/**
-	 * Read the passed Gzip CSV into a RowSet.
-	 * 
-	 * @param zippedStream
-	 * @param rowsToGet
-	 * @return
-	 * @throws IOException
-	 */
-	@Deprecated
-	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException {
-		GZIPInputStream zipIn = null;
-		InputStreamReader isr = null;
-		CSVReader csvReader = null;
-		try{
-			zipIn = new GZIPInputStream(zippedStream);
-			isr = new InputStreamReader(zipIn);
-			csvReader = new CSVReader(isr);
-			return readFromCSV(csvReader);
-		}finally{
-			if(csvReader != null){
-				csvReader.close();
-			}
 		}
 	}
 	
@@ -926,7 +727,7 @@ public class TableModelUtils {
 			}
 			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
 		case LARGETEXT:
-			return ColumnConstants.DEFAULT_LARGE_TEXT_BYTES;	
+			return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;	
 		case BOOLEAN:
 			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
 		case INTEGER:
@@ -946,7 +747,8 @@ public class TableModelUtils {
 	
 	
 	/**
-	 * Calculate the actual size of a row.
+	 * Calculate the amount of memory needed load the given row.
+	 * 
 	 * @param row
 	 * @return
 	 */
@@ -958,16 +760,17 @@ public class TableModelUtils {
 				// Include references to both the key and value and arrays
 				bytes += ColumnConstants.MINUMUM_ROW_VALUE_SIZE;
 				// Include the size of the key
-				bytes += key.length()*(ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
+				bytes += key.length()*(ColumnConstants.MAX_BYTES_PER_CHAR_MEMORY);
 				String value = row.getValues().get(key);
 				if (value != null) {
 					bytes += value.length()
-							* (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
+							* (ColumnConstants.MAX_BYTES_PER_CHAR_MEMORY);
 				}
 			}
 		}
 		return bytes;
 	}
+	
 	
 	/**
 	 * Is a request within the maximum number of bytes per request?
@@ -1050,9 +853,16 @@ public class TableModelUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTableSemaphoreKey(String tableId){
-		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
-		return String.format(TABLE_SEMAPHORE_KEY_TEMPLATE, KeyFactory.stringToKey(tableId));
+	public static String getTableSemaphoreKey(IdAndVersion tableId){
+		if(tableId == null) {
+			throw new IllegalArgumentException("TableId cannot be null");
+		}
+		StringBuilder builder = new StringBuilder(TABLE_LOCK_PREFIX);
+		builder.append(tableId.getId());
+		if(tableId.getVersion().isPresent()) {
+			builder.append("-").append(tableId.getVersion().get());
+		}
+		return builder.toString();
 	}
 	
 	/**
@@ -1093,17 +903,6 @@ public class TableModelUtils {
 			map.put(cm.getId(), cm);
 		}
 		return map;
-	}
-
-
-	/**
-	 * Map the column id to the column index.
-	 * 
-	 * @param rowset
-	 * @return
-	 */
-	public static Map<String, Integer> createColumnIdToIndexMap(TableRowChange rowChange) {
-		return createColumnIdToIndexMap(rowChange.getIds());
 	}
 
 	/**
@@ -1280,7 +1079,7 @@ public class TableModelUtils {
 						// The values are not column names so this was not a header row.
 						throw new IllegalArgumentException(
 								"The first line is expected to be a header but the values do not match the names of of the columns of the table ("
-										+ name + " is not a vaild column name or id). Header row: " + StringUtils.join(rowValues, ','));
+										+ name + " is not a valid column name or id). Header row: " + StringUtils.join(rowValues, ','));
 					}
 				}
 				columnIdToColumnIndexMap.put(id, i);
@@ -1561,6 +1360,47 @@ public class TableModelUtils {
 		ValidateArgument.required(singleResponse, "TableUpdateTransactionResponse.results.get(0)");
 		ValidateArgument.requirement(clazz.isInstance(singleResponse), "Expected response to be of type "+clazz.getName());
 		return (T)singleResponse;
+	}
+	
+	/**
+	 * Given a new schema and an old schema, create the column changes needed
+	 * to convert the old schema to the new schema.
+	 * @param oldSchema
+	 * @param newSchema
+	 * @return
+	 */
+	public static List<ColumnChange> createChangesFromOldSchemaToNew(List<String> oldSchema, List<String> newSchema){
+		if(oldSchema == null) {
+			oldSchema = Collections.emptyList();
+		}
+		if(newSchema == null) {
+			newSchema = Collections.emptyList();
+		}
+		Set<String> oldIdSet = new HashSet<>(oldSchema);
+		Set<String> newIdSet = new HashSet<>(newSchema);
+		int maxSize = Math.max(oldSchema.size(), newSchema.size());
+		List<ColumnChange> changes = new ArrayList<>(maxSize);
+		// remove any column in the old that is not in the new
+		for(String oldColumnId: oldSchema) {
+			if(!newIdSet.contains(oldColumnId)) {
+				// remove this column
+				ColumnChange remove = new ColumnChange();
+				remove.setNewColumnId(null);
+				remove.setOldColumnId(oldColumnId);
+				changes.add(remove);
+			}
+		}
+		// add any column in the new that is not in the old
+		for(String newColumnId: newSchema) {
+			if(!oldIdSet.contains(newColumnId)) {
+				// add this column
+				ColumnChange add = new ColumnChange();
+				add.setNewColumnId(newColumnId);
+				add.setOldColumnId(null);
+				changes.add(add);
+			}
+		}
+		return changes;
 	}
 
 }

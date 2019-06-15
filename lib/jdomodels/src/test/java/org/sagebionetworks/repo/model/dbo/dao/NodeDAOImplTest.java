@@ -9,6 +9,8 @@ import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.util.ArrayList;
@@ -65,14 +67,17 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -85,6 +90,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -131,7 +138,10 @@ public class NodeDAOImplTest {
 	private MigratableTableDAO migratableTableDao;;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
+
+	@Autowired
+	DBOBasicDao basicDao;
+
 	private TransactionTemplate transactionTemplate;
 
 	// the datasets that must be deleted at the end of each test.
@@ -898,7 +908,6 @@ public class NodeDAOImplTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
-		assertEquals(node.getCreatedByPrincipalId(), named.getCreatedBy());
 		assertEquals(id, named.getId());
 		// Now add some annotations to this node.
 		annos.addAnnotation("stringOne", "one");
@@ -2299,7 +2308,7 @@ public class NodeDAOImplTest {
 		Long limit = 10L;
 		Long offset = 1L;
 		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
-		assertEquals(" ORDER BY n.NAME COLLATE 'latin1_general_ci' DESC limit :limitVal offset :offsetVal", result);
+		assertEquals(" ORDER BY n.NAME DESC limit :limitVal offset :offsetVal", result);
 		assertEquals(limit, parameters.get("limitVal"));
 		assertEquals(offset, parameters.get("offsetVal"));
 	}
@@ -2767,8 +2776,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreatedBy(file.getCreatedByPrincipalId());
-		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
 		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
@@ -2798,7 +2805,8 @@ public class NodeDAOImplTest {
 		assertEquals(file.getModifiedOn(), fileDto.getModifiedOn());
 		assertEquals(new Long(Long.parseLong(file.getFileHandleId())), fileDto.getFileHandleId());
 		assertEquals(fileHandle.getContentSize(), fileDto.getFileSizeBytes());
-		
+		assertEquals(NodeUtils.isBucketSynapseStorage(fileHandle.getBucketName()), fileDto.getIsInSynapseStorage());
+
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());
 		List<AnnotationDTO> expected = Lists.newArrayList(
@@ -2834,8 +2842,6 @@ public class NodeDAOImplTest {
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
-		annos.setCreatedBy(file.getCreatedByPrincipalId());
-		annos.setCreationDate(file.getCreatedOn());
 		annos.setEtag(file.getETag());
 		// added for PLFM_4184
 		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());
@@ -3534,12 +3540,19 @@ public class NodeDAOImplTest {
 		// parent
 		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
 		parent.setParentId(grandparent.getId());
+		parent.setNodeType(EntityType.folder);
 		parent = nodeDao.createNewNode(parent);
 		Long parentId = KeyFactory.stringToKey(parent.getId());
 		toDelete.add(parent.getId());
+		
+		// add an acl for the parent
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(""+parentId, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		
 		// child
 		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
 		child.setParentId(parent.getId());
+		child.setNodeType(EntityType.file);
 		child = nodeDao.createNewNode(child);
 		Long childId = KeyFactory.stringToKey(child.getId());
 		toDelete.add(child.getId());
@@ -3547,12 +3560,12 @@ public class NodeDAOImplTest {
 		List<IdAndEtag> results = nodeDao.getChildren(grandId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(parentId, parent.getETag()), results.get(0));
+		assertEquals(new IdAndEtag(parentId, parent.getETag(), parentId), results.get(0));
 		// call under test
 		results = nodeDao.getChildren(parentId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(childId, child.getETag()), results.get(0));
+		assertEquals(new IdAndEtag(childId, child.getETag(), parentId), results.get(0));
 		// call under test
 		results = nodeDao.getChildren(childId);
 		assertNotNull(results);
@@ -3623,5 +3636,52 @@ public class NodeDAOImplTest {
 		assertTrue(afterTouch.getModifiedOn().getTime() > start.getModifiedOn().getTime());
 		assertEquals(user2Id, afterTouch.getModifiedByPrincipalId());
 		assertEquals(user1Id, start.getCreatedByPrincipalId());
+	}
+	
+	@Test
+	public void testPLFM_5439() {
+		// Create two nodes with the same parent that differ by case only
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		// child one
+		Node one = NodeTestUtils.createNew("Foo", creatorUserGroupId);
+		one.setParentId(parent.getId());
+		one = nodeDao.createNewNode(one);
+		toDelete.add(one.getId());
+		// child two
+		Node two = NodeTestUtils.createNew("foo", creatorUserGroupId);
+		two.setParentId(parent.getId());
+		two = nodeDao.createNewNode(two);
+		toDelete.add(two.getId());
+	}
+
+	@Test
+	public void testNamedAnnotations_EmptyAnnotationsRoundTrip(){
+		Node node = nodeDao.createNewNode(privateCreateNew("testEmptyNamedAnnotations"));
+		String id = node.getId();
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now get the annotations for this node.
+		NamedAnnotations named = nodeDao.getAnnotations(id);
+		Annotations annos = named.getAdditionalAnnotations();
+		assertNotNull(annos);
+		assertTrue(annos.isEmpty());
+		// Write the annotation to database
+		nodeDao.updateAnnotations(id, named);
+
+		//check no BLOB no data has been stored in the actual JDOREVISIONS table
+		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+		parameterSource.addValue("owner", KeyFactory.stringToKey(id));
+		parameterSource.addValue("revisionNumber", nodeDao.getCurrentRevisionNumber(id));
+		DBORevision nodeRevision = basicDao.getObjectByPrimaryKey(DBORevision.class, parameterSource);
+		assertNull(nodeRevision.getAnnotations());
+
+		// Now retrieve it and we should stil get back an empty NamedAnnotation
+		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
+		Annotations copy = namedCopy.getAdditionalAnnotations();
+		assertNotNull(copy);
+		assertTrue(copy.isEmpty());
+		assertEquals(annos, copy);
 	}
 }

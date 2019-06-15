@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -166,7 +167,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	 * @return
 	 */
 	private MultipartUploadStatus startUpload() {
-		Boolean forceRestart = true;
+		boolean forceRestart = true;
 		MultipartUploadStatus status = multipartManagerV2
 				.startOrResumeMultipartUpload(adminUserInfo, request,
 						forceRestart);

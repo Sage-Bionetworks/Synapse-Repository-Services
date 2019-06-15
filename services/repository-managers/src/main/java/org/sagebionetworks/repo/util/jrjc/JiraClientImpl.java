@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.util.jrjc;
 import java.net.URI;
 import java.util.concurrent.ExecutionException;
 
+import io.atlassian.util.concurrent.Promise;
 import org.sagebionetworks.StackConfigurationSingleton;
 
 import com.atlassian.jira.rest.client.api.IssueRestClient;
@@ -14,7 +15,6 @@ import com.atlassian.jira.rest.client.api.domain.Field;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
-import com.atlassian.util.concurrent.Promise;
 
 /**
  * An implementation of JiraClient using the Jira-Rest-Java-Client

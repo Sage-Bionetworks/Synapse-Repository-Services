@@ -2,8 +2,6 @@ package org.sagebionetworks.util;
 
 import java.util.Date;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-
 public class DefaultClock implements Clock {
 
 	@Override

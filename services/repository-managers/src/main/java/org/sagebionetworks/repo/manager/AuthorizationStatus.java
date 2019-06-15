@@ -1,67 +1,100 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Objects;
+
+import org.sagebionetworks.repo.model.UnauthorizedException;
+
 /**
  * Holds the result of an authorization check.
- * If 'authorized' is false then 'reason' gives the user-presentable reason why
+ * If 'authorized' is false then 'message' gives the user-presentable message for denial
  * 
  * @author brucehoff
  *
  */
 public class AuthorizationStatus {
-	private boolean authorized;
-	private String reason;
-	
-	
-	public AuthorizationStatus(boolean authorized, String reason) {
-		this.authorized = authorized;
-		this.reason = reason;
+	private static final AuthorizationStatus AUTHORIZED_SINGLETON = new AuthorizationStatus(null);
+
+	// if not null, indicates access denied
+	private final RuntimeException denialException;
+
+
+	//do not expose constuctor. use static methods instead
+	private AuthorizationStatus(RuntimeException e) {
+		this.denialException = e;
+	}
+
+	/**
+	 * Create a AuthorizationStatus that indicates the action action is authorized.
+	 * @return AuthorizationStatus that indicates the action action is authorized.
+	 */
+	public static AuthorizationStatus authorized(){
+		return AUTHORIZED_SINGLETON;
+	}
+
+	/**
+	 * Create a AuthorizationStatus that indicates the action action is denied.
+	 * Provide an {@link RuntimeException} that will be thrown when {@link #checkAuthorizationOrElseThrow()} is called
+	 * @param denialException
+	 * @return a new AuthorizationStatus;
+	 */
+	public static AuthorizationStatus accessDenied(RuntimeException denialException){
+		return new AuthorizationStatus(denialException);
+	}
+
+	/**
+	 * Create a AuthorizationStatus that indicates the action action is denied.
+	 * Will use {@link org.sagebionetworks.repo.model.UnauthorizedException} as the underlying denialException that is
+	 * thrown when {@link #checkAuthorizationOrElseThrow()} is called
+	 * @param message message for the {@link org.sagebionetworks.repo.model.UnauthorizedException}
+	 * @return a new AuthorizationStatus;
+	 */
+	public static AuthorizationStatus accessDenied(String message){
+		return accessDenied(new UnauthorizedException(message));
+	}
+
+	public void checkAuthorizationOrElseThrow(){
+		if(!isAuthorized()){
+			throw denialException;
+		}
 	}
 	
-	public boolean getAuthorized() {
-		return authorized;
+	public boolean isAuthorized() {
+		return denialException == null;
 	}
-	public void setAuthorized(boolean authorized) {
-		this.authorized = authorized;
+
+	public String getMessage() {
+		return denialException == null ? null : denialException.getMessage();
 	}
-	public String getReason() {
-		return reason;
-	}
-	public void setReason(String reason) {
-		this.reason = reason;
+
+	//The equals() here is not the conventional "check all fields members are equal" because it holds
+	// a RuntimeException which does not by default @Override equals()
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		AuthorizationStatus that = (AuthorizationStatus) o;
+		return this.isAuthorized() == that.isAuthorized() &&
+				this.exceptionType() == that.exceptionType() &&
+				Objects.equals(this.getMessage(), that.getMessage());
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (authorized ? 1231 : 1237);
-		result = prime * result + ((reason == null) ? 0 : reason.hashCode());
-		return result;
+		return Objects.hash(isAuthorized(), getMessage(), exceptionType());
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		AuthorizationStatus other = (AuthorizationStatus) obj;
-		if (authorized != other.authorized)
-			return false;
-		if (reason == null) {
-			if (other.reason != null)
-				return false;
-		} else if (!reason.equals(other.reason))
-			return false;
-		return true;
+	private Class exceptionType (){
+		if (denialException == null){
+			return null;
+		}
+		return denialException.getClass();
 	}
 
 	@Override
 	public String toString() {
-		return "AuthorizationStatus [authorized=" + authorized + ", reason="
-				+ reason + "]";
+		return "AuthorizationStatus{" +
+				"denialException=" + denialException +
+				'}';
 	}
-
 }

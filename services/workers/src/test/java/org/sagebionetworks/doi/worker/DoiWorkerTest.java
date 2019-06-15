@@ -1,7 +1,8 @@
 package org.sagebionetworks.doi.worker;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -9,8 +10,9 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
@@ -31,6 +33,7 @@ public class DoiWorkerTest {
 	
 	public static final long MAX_WAIT_MS = 1000 * 60;
 
+	@InjectMocks
 	private DoiWorker doiWorker;
 	@Mock
 	private UserManager mockUserManager;
@@ -47,6 +50,7 @@ public class DoiWorkerTest {
 	Doi responseDoi;
 	UserInfo adminUser;
 	Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+	String jobId;
 
 	private static final Message message = new Message();
 
@@ -57,31 +61,27 @@ public class DoiWorkerTest {
 		request.setDoi(requestDoi);
 		adminUser = new UserInfo(true);
 		adminUser.setId(adminUserId);
-		doiWorker = new DoiWorker();
-		ReflectionTestUtils.setField(doiWorker, "asynchJobStatusManager", mockAsyncMgr);
-		ReflectionTestUtils.setField(doiWorker, "doiManager", mockDoiManager);
-		ReflectionTestUtils.setField(doiWorker, "userManager", mockUserManager);
+		message.setMessageId("messageID");
+		jobId="jobId";
+
+		when(mockAsyncMgr.lookupJobStatus(message.getBody())).thenReturn(mockStatus);
+		when(mockStatus.getRequestBody()).thenReturn(request);
+		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
+		when(mockStatus.getJobId()).thenReturn(jobId);
+		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
 	}
 
 	@Test
 	public void testSuccess() throws Exception {
-		when(mockAsyncMgr.lookupJobStatus(message.getBody())).thenReturn(mockStatus);
-		when(mockStatus.getRequestBody()).thenReturn(request);
-		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
 		when(mockDoiManager.createOrUpdateDoi(adminUser, request.getDoi())).thenReturn(responseDoi);
 		doiWorker.run(null, message);
 		// We can't use Mockito to verify that the correct job status was called because we cannot access the DoiResponse.
-		verify(mockAsyncMgr).setComplete(any(String.class), any(DoiResponse.class));
+		verify(mockAsyncMgr).setComplete(eq(jobId), any(DoiResponse.class));
 	}
 
 
 	@Test
 	public void testRecoverable() throws Exception {
-		when(mockAsyncMgr.lookupJobStatus(message.getBody())).thenReturn(mockStatus);
-		when(mockStatus.getRequestBody()).thenReturn(request);
-		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
 		when(mockDoiManager.createOrUpdateDoi(adminUser, request.getDoi())).thenThrow(new RecoverableMessageException());
 		try { // Call under test
 			doiWorker.run(null, message);
@@ -89,18 +89,14 @@ public class DoiWorkerTest {
 		} catch(RecoverableMessageException e) {
 			// As expected.
 		}
-		verify(mockAsyncMgr, never()).setJobFailed(any(String.class), any(Throwable.class));
-		verify(mockAsyncMgr, never()).setComplete(any(String.class), any(DoiResponse.class));
+		verify(mockAsyncMgr, never()).setJobFailed(any(), any());
+		verify(mockAsyncMgr, never()).setComplete(any(), any());
 	}
 
 	@Test
 	public void testFailure() throws Exception {
-		when(mockAsyncMgr.lookupJobStatus(message.getBody())).thenReturn(mockStatus);
-		when(mockStatus.getRequestBody()).thenReturn(request);
-		when(mockStatus.getStartedByUserId()).thenReturn(adminUserId);
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUser);
 		when(mockDoiManager.createOrUpdateDoi(adminUser, request.getDoi())).thenThrow(new IllegalArgumentException());
 		doiWorker.run(null, message);
-		verify(mockAsyncMgr).setJobFailed(any(String.class), any(Throwable.class));
+		verify(mockAsyncMgr).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
 	}
 }

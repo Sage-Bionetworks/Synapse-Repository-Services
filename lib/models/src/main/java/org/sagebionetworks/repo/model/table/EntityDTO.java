@@ -25,6 +25,7 @@ public class EntityDTO implements Comparable<EntityDTO> {
 	Date modifiedOn;
 	Long fileHandleId;
 	Long fileSizeBytes;
+	Boolean isInSynapseStorage;
 	List<AnnotationDTO> annotations;
 	
 	public Long getId() {
@@ -113,11 +114,18 @@ public class EntityDTO implements Comparable<EntityDTO> {
 		this.annotations = annotations;
 	}
 	public Long getFileSizeBytes() {
-		return fileSizeBytes;
+		return this.fileSizeBytes;
 	}
 	public void setFileSizeBytes(Long fileSizeBytes) {
 		this.fileSizeBytes = fileSizeBytes;
 	}
+	public Boolean getIsInSynapseStorage() {
+		return this.isInSynapseStorage;
+	}
+	public void setIsInSynapseStorage(Boolean isInSynapseStorage) {
+		this.isInSynapseStorage = isInSynapseStorage;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -130,6 +138,7 @@ public class EntityDTO implements Comparable<EntityDTO> {
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((fileSizeBytes == null) ? 0 : fileSizeBytes.hashCode());
+		result = prime * result + ((isInSynapseStorage == null) ? 0 : isInSynapseStorage.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
@@ -188,6 +197,11 @@ public class EntityDTO implements Comparable<EntityDTO> {
 				return false;
 		} else if (!fileSizeBytes.equals(other.fileSizeBytes))
 			return false;
+		if (isInSynapseStorage == null) {
+			if (other.isInSynapseStorage != null)
+				return false;
+		} else if (!isInSynapseStorage.equals(other.isInSynapseStorage))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -228,7 +242,7 @@ public class EntityDTO implements Comparable<EntityDTO> {
 				+ ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name + ", type=" + type + ", parentId="
 				+ parentId + ", benefactorId=" + benefactorId + ", projectId=" + projectId + ", modifiedBy="
 				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", fileSizeBytes="
-				+ fileSizeBytes + ", annotations=" + annotations + "]";
+				+ fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage + ", annotations=" + annotations + "]";
 	}
 	@Override
 	public int compareTo(EntityDTO o) {

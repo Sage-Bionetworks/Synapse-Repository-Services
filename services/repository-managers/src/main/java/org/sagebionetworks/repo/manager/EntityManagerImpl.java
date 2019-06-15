@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -40,7 +41,7 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +70,13 @@ public class EntityManagerImpl implements EntityManager {
 	ObjectTypeManager objectTypeManager;
 	
 	boolean allowCreationOfOldEntities = true;
-	
+
+	//Temporary fields!
+	@Autowired
+	NodeDAO nodeDAO;
+	@Autowired
+	TEMPORARYAnnotationCleanupMessageSender cleanupMessageSender;
+
 	/**
 	 * Injected via spring.
 	 * @param allowOldEntityTypes
@@ -78,7 +85,7 @@ public class EntityManagerImpl implements EntityManager {
 		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
@@ -268,7 +275,7 @@ public class EntityManagerImpl implements EntityManager {
 		return newEntity;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -277,7 +284,7 @@ public class EntityManagerImpl implements EntityManager {
 		nodeManager.delete(userInfo, entityId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteEntityVersion(UserInfo userInfo, String id,
 			Long versionNumber) throws NotFoundException, DatastoreException,
@@ -311,7 +318,7 @@ public class EntityManagerImpl implements EntityManager {
 		return annos.getAdditionalAnnotations();
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String entityId,
 			Annotations updated) throws ConflictingUpdateException,
@@ -330,19 +337,17 @@ public class EntityManagerImpl implements EntityManager {
 	
 	public static void cloneAnnotations(Annotations src, Annotations dst) {
 		dst.setBlobAnnotations(src.getBlobAnnotations());
-		dst.setCreationDate(src.getCreationDate());
 		dst.setDateAnnotations(src.getDateAnnotations());
 		dst.setDoubleAnnotations(src.getDoubleAnnotations());
 		dst.setEtag(src.getEtag());
 		dst.setId(src.getId());
 		dst.setLongAnnotations(src.getLongAnnotations());
 		dst.setStringAnnotations(src.getStringAnnotations());
-		dst.setUri(src.getUri());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
-	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated,
+	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated,
 			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
@@ -381,6 +386,7 @@ public class EntityManagerImpl implements EntityManager {
 				annos.getPrimaryAnnotations());
 		// Now update both at the same time
 		nodeManager.update(userInfo, node, annos, newVersionFinal);
+		return newVersionFinal;
 	}
 
 	/**
@@ -401,7 +407,7 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(entity.getEtag());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public <T extends Entity> List<String> aggregateEntityUpdate(
 			UserInfo userInfo, String parentId, Collection<T> update)
@@ -512,7 +518,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityAuthorizationManager.hasAccess(entityId,
-				ACCESS_TYPE.READ, userInfo).getAuthorized()) {
+				ACCESS_TYPE.READ, userInfo).isAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -523,7 +529,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityAuthorizationManager.hasAccess(entityId,
-				ACCESS_TYPE.UPDATE, userInfo).getAuthorized()) {
+				ACCESS_TYPE.UPDATE, userInfo).isAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -543,7 +549,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);		
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override	
 	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
 			String activityId) throws DatastoreException,
@@ -553,7 +559,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, null);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -600,8 +606,8 @@ public class EntityManagerImpl implements EntityManager {
 		}
 		if(!ROOT_ID.equals(request.getParentId())){
 			// Validate the caller has read access to the parent
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
+			entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user).checkAuthorizationOrElseThrow();
+
 		}
 
 		// Find the children of this entity that the caller cannot see.
@@ -635,12 +641,12 @@ public class EntityManagerImpl implements EntityManager {
 			request.setParentId(ROOT_ID);
 		}
 		if(!ROOT_ID.equals(request.getParentId())){
-			if(!entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).getAuthorized()){
+			if(!entityAuthorizationManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).isAuthorized()){
 				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
 			}
 		}
 		String entityId = nodeManager.lookupChild(request.getParentId(), request.getEntityName());
-		if(!entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()){
+		if(!entityAuthorizationManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized()){
 			throw new UnauthorizedException("Lack of READ permission on the requested entity.");
 		}
 		EntityId result = new EntityId();
@@ -654,5 +660,14 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(entityId, "id");
 		ValidateArgument.required(dataType, "DataType");
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
+	}
+
+	@Override
+	public Long TEMPORARYcleanupAnnotations(UserInfo userInfo, long startId, long numNodes){
+		ValidateArgument.requirement(userInfo.isAdmin(), "You must be an administrator");
+		List<Long> idsAndVersions = nodeDAO.TEMPORARYGetAllNodeIDsInRange(startId, numNodes);
+		cleanupMessageSender.sendMessages(idsAndVersions);
+
+		return idsAndVersions.isEmpty() ? 0L : idsAndVersions.get(idsAndVersions.size() - 1);
 	}
 }

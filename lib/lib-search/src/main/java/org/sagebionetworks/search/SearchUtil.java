@@ -21,13 +21,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import com.amazonaws.services.cloudsearchdomain.model.Bucket;
-import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
-import com.amazonaws.services.cloudsearchdomain.model.Hits;
-import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -50,6 +44,13 @@ import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchFacetSortTy
 import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.CollectionUtils;
+
+import com.amazonaws.services.cloudsearchdomain.model.Bucket;
+import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
+import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 
 public class SearchUtil{
 	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html

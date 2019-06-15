@@ -11,9 +11,9 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -27,11 +27,13 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -96,10 +98,12 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		final Evaluation eval = getEvaluation(evalId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS));
+		hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
+
+		validateAnonymousOrPublicPermissions(acl.getResourceAccess());
 
 		aclDAO.update(acl, ObjectType.EVALUATION);
 		return aclDAO.get(evalId, ObjectType.EVALUATION);
@@ -115,7 +119,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation Id cannot be null or empty.");
 		}
-		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getAuthorized()) {
+		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).isAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
@@ -152,15 +156,13 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (accessType == null) {
 			throw new IllegalArgumentException("Access type cannot be null.");
 		}
-		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if (userInfo.isAdmin()) return AuthorizationStatus.authorized();
 
 		if (isAnonymousWithNonReadAccess(userInfo, accessType))
-			return AuthorizationManagerUtil.accessDenied("Anonymous user is not allowed to access Evaluation.");
-		
+			return AuthorizationStatus.accessDenied("Anonymous user is not allowed to access Evaluation.");
 		if (!authorizationDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
-			return AuthorizationManagerUtil.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
-		
-		return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
+		return AuthorizationStatus.authorized();
 	}
 
 	@Override
@@ -181,19 +183,36 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ).getAuthorized());
+		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ).isAuthorized());
 
 		// Other permissions
-		permission.setCanView(hasAccess(userInfo, evalId, READ).getAuthorized());
-		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE).getAuthorized());
-		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE).getAuthorized());
-		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getAuthorized());
-		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT).getAuthorized());
-		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION).getAuthorized());
-		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION).getAuthorized());
-		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION).getAuthorized());
+		permission.setCanView(hasAccess(userInfo, evalId, READ).isAuthorized());
+		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE).isAuthorized());
+		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE).isAuthorized());
+		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).isAuthorized());
+		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT).isAuthorized());
+		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION).isAuthorized());
+		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION).isAuthorized());
+		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION).isAuthorized());
 
 		return permission;
+	}
+
+	/*
+	 * Ensures that public/anonymous users are not given more permissions than they should be allowed to have on an evaluation
+	 */
+	private static void validateAnonymousOrPublicPermissions(Set<ResourceAccess> resourceAccess) {
+		for (ResourceAccess ra : resourceAccess) {
+			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS)) {
+					throw new InvalidModelException("Public users may only have read and submit access on an evaluation.");
+				}
+			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS)) {
+					throw new InvalidModelException("Anonymous users may only have read access on an evaluation.");
+				}
+			}
+		}
 	}
 	
 	private static boolean isAnonymousWithNonReadAccess(UserInfo userInfo, ACCESS_TYPE accessType) {
@@ -230,9 +249,9 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	 */
 	@Override
 	public AuthorizationStatus canCheckTeamSubmissionEligibility(UserInfo userInfo, String evaluationId, String teamId) throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if (userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		if (!userInfo.getGroups().contains(Long.parseLong(teamId))) {
-			return new AuthorizationStatus(false, "Requester is not a member of the Submission Team.");
+			return AuthorizationStatus.accessDenied("Requester is not a member of the Submission Team.");
 		}
 		return hasAccess(userInfo, evaluationId, ACCESS_TYPE.SUBMIT);
 	}

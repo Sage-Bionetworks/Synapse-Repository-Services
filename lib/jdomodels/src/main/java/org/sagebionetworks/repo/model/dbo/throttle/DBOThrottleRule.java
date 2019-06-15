@@ -1,13 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.throttle;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_CALL_PERIOD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_MAX_CALLS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_THROTTLE_RULES_NORMALIZED_URI;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_THROTTLE_RULES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_THROTTLE_RULES;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;

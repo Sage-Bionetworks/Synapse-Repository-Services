@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Docker Registry Event Services", path="dockerRegistryListener/v1")
 @Controller
 @RequestMapping(UrlHelpers.DOCKER_REGISTRY_PATH)
-public class DockerRegistryEventController extends BaseController {
+public class DockerRegistryEventController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	

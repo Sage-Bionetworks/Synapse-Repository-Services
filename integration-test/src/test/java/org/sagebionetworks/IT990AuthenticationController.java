@@ -21,6 +21,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -37,8 +38,9 @@ public class IT990AuthenticationController {
 	private static SynapseClient synapse;
 	private static String email;
 	private static String username;
-	private static final String PASSWORD = "password";
+	private static final String PASSWORD = "password"+UUID.randomUUID().toString();
 	private static String receipt = null;
+	private static final String SYNAPSE_ENDPOINT = "https://www.synapse.org/";
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
@@ -92,16 +94,18 @@ public class IT990AuthenticationController {
 		synapse.logout();
 		assertNull(synapse.getCurrentSessionToken());
 	}
-	
+
 	@Test
-	public void testChangePassword() throws Exception {
-		String testNewPassword = "newPassword";
-		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
+	public void testChangePasswordWithOldPassword() throws Exception {
+		String testNewPassword = "newPassword"+UUID.randomUUID();
+		synapse.changePassword(username, PASSWORD, testNewPassword, null);
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
 		request.setPassword(testNewPassword);
 		synapse.login(request);
-		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
+
+		//change password back
+		synapse.changePassword(username, testNewPassword, PASSWORD,null);
 	}
 
 	@Test
@@ -111,18 +115,11 @@ public class IT990AuthenticationController {
 		// Reject the terms
 		synapse.signTermsOfUse(sessionToken, false);
 	}
-	
+
 	@Test
-	public void testSendResetPasswordEmail() throws Exception {
+	public void testNewSendResetPasswordEmail() throws Exception {
 		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.sendPasswordResetEmail(email);
-	}
-	
-	
-	@Test(expected = SynapseNotFoundException.class)
-	public void testSendEmailInvalidUser() throws Exception {
-		// There's no way a user like this exists :D
-		synapse.sendPasswordResetEmail("invalid-user-name@sagebase.org" + UUID.randomUUID());
+		synapse.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, email);
 	}
 	
 	@Test
@@ -187,6 +184,27 @@ public class IT990AuthenticationController {
 	 * @throws SynapseException 
 	 */
 	@Test
+	public void testCreateAccountViaOAuth2() throws SynapseException {
+		try {
+			OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
+			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			request.setRedirectUrl("https://www.synapse.org");
+			// this invalid code will trigger a SynapseForbiddenException
+			request.setAuthenticationCode("test auth code");
+			request.setUserName("uname");
+			synapse.createAccountViaOAuth2(request);
+			fail();
+		} catch (SynapseForbiddenException e) {
+			// OK
+		}
+	}
+	
+	/**
+	 * Since a browser is need to get a real authentication code, we are just testing
+	 * that everything is wires up correctly.
+	 * @throws SynapseException 
+	 */
+	@Test
 	public void testValidateOAuthAuthenticationCodeAndBindExternalId() throws SynapseException {
 		try {
 			OAuthValidationRequest request = new OAuthValidationRequest();
@@ -209,4 +227,5 @@ public class IT990AuthenticationController {
 	public void testUnbindExternalId() throws SynapseException {
 		synapse.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
 	}
+
 }

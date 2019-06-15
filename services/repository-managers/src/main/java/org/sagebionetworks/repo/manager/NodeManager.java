@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -21,9 +22,13 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
+
+	@WriteTransaction
+	void TEMPORARYcleanUpAnnotations(Long id) throws IOException;
 
 	public enum FileHandleReason {
 		FOR_PREVIEW_DOWNLOAD, FOR_FILE_DOWNLOAD, FOR_HANDLE_VIEW
@@ -369,5 +374,24 @@ public interface NodeManager {
 	 * @return
 	 */
 	public String lookupChild(String parentId, String entityName);
+	
+	
+	/**
+	 * Create a new version of the provided node.
+	 * @param userId
+	 * @param nodeId
+	 * @param comment Optional. Version comment.
+	 * @param label Optional. Version label.
+	 * @param activity Optional. Associate an activity with the new version.
+	 * @return
+	 */
+	public long createNewVersion(UserInfo userInfo, String nodeId, String comment, String label, String activityId);
+
+	/**
+	 * Get the current revision number for the given Entity Id.
+	 * @param entityId
+	 * @return
+	 */
+	long getCurrentRevisionNumbers(String entityId);
 
 }

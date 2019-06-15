@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -69,15 +70,20 @@ public interface TeamDAO {
 	 * @throws DatastoreException
 	 */
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> principalIds) throws NotFoundException, DatastoreException;
+
 	/**
-	 * 
-	 * @param teamId
+	 * Note: this method does not fill in the field {@link org.sagebionetworks.repo.model.TeamMember#getIsAdmin }
+	 * @param teamId The team which the returned members belong to.
+	 * @param include The set of principal IDs to explicitly include in search. All members with principal IDs that do not match
+	 *             IDs in this set will be filtered out. If null, a filter is not applied.
+	 * @param exclude The set of principal IDs to explicitly exclude in search. All members with principal IDs that do match
+	 *             IDs in this set will not be included in results. If null, a filter is not applied.
 	 * @param limit
 	 * @param offset
-	 * @return
+	 * @return A paginated list of members for that team
 	 * @throws DatastoreException
 	 */
-	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset) throws DatastoreException;
+	public List<TeamMember> getMembersInRange(String teamId, Set<Long> include, Set<Long> exclude, long limit, long offset) throws DatastoreException;
 
 	/**
 	 * 
@@ -93,7 +99,7 @@ public interface TeamDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public List<String> getAdminTeamMembers(String teamId) throws NotFoundException;
+	public List<String> getAdminTeamMemberIds(String teamId) throws NotFoundException;
 
 	/**
 	 * This is used to build up the team and member prefix caches

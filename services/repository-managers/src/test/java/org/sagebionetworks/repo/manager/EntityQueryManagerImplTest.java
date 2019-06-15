@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anySetOf;
-import static org.mockito.Matchers.eq;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,9 +25,11 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -42,16 +47,15 @@ import org.sagebionetworks.repo.model.query.entity.NodeQueryDaoV2;
 import org.sagebionetworks.repo.model.query.entity.QueryModel;
 import org.sagebionetworks.repo.model.query.entity.SqlExpression;
 import org.sagebionetworks.repo.model.query.jdo.NodeField;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
  * The unit test for EntityQueryManagerImpl.
- * @author John
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class EntityQueryManagerImplTest {
 
 	@Mock
@@ -62,7 +66,7 @@ public class EntityQueryManagerImplTest {
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
 	UserInfo mockUser;
-	
+	@InjectMocks
 	EntityQueryManagerImpl manager;
 	
 	EntityQueryResult result;
@@ -77,10 +81,6 @@ public class EntityQueryManagerImplTest {
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		manager = new EntityQueryManagerImpl();
-		ReflectionTestUtils.setField(manager, "nodeQueryDaoFactory", nodeQueryDaoFactory);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		when(nodeQueryDaoFactory.createConnection()).thenReturn(mockDao);
 		// Sample
 		result = new EntityQueryResult();

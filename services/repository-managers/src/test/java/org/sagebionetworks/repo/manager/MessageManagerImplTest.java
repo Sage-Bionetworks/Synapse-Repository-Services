@@ -5,9 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -744,20 +744,6 @@ public class MessageManagerImplTest {
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message3, inbox.get(0).getMessage());
-	}
-	
-	@Test
-	public void testSendTemplateEmail() throws Exception {
-		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getId(), "Blah?");
-		
-		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getId(), null);
-		
-		// Try the delivery failure email
-		List<String> mockErrors = new ArrayList<String>();
-		mockErrors.add(UUID.randomUUID().toString());
-		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
 	}
 	
 	@Test

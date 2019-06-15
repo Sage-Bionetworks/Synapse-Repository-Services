@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -29,7 +29,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 			"SELECT "+COL_DOCKER_REPOSITORY_NAME+" FROM "+TABLE_DOCKER_REPOSITORY_NAME+
 			" WHERE "+COL_DOCKER_REPOSITORY_OWNER_ID+"=?";
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void createRepositoryName(String entityId, String repositoryName) {
 		ValidateArgument.required(entityId, "entityId");

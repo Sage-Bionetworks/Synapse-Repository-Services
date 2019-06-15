@@ -2,7 +2,6 @@ package org.sagebionetworks.evaluation.dbo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
@@ -16,21 +15,17 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,8 +34,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SubmissionDBOTest {
- 
-    @Autowired
+	private static final UnmodifiableXStream TEST_X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionDBO.class).build();
+
+	@Autowired
     DBOBasicDao dboBasicDao;
 	@Autowired
 	NodeDAO nodeDAO;
@@ -124,7 +120,7 @@ public class SubmissionDBOTest {
         submission.setSubmitterAlias("Team Awesome");
         submission.setEvalId(evalId);
         submission.setCreatedOn(System.currentTimeMillis());
-        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));
+        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(TEST_X_STREAM, submission));
  
         // Create it
         SubmissionDBO clone = dboBasicDao.createNew(submission);

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.util.UUID;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;

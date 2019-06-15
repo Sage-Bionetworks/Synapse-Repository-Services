@@ -1,9 +1,13 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
+
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -12,6 +16,7 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -20,9 +25,12 @@ import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.EntityServiceImpl;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -43,31 +51,21 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class AdministrationController extends BaseController {
+public class AdministrationController {
 	
 	@Autowired
 	private ServiceProvider serviceProvider;
 	
 	/**
-	 * Get the current status of the stack
-	 * @param userId
-	 * @param header
-	 * @param loginRequest
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
+	 * @return the current status of the stack
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
+	@RequestMapping(value = {
+			UrlHelpers.ADMIN_STACK_STATUS,
 			UrlHelpers.STACK_STATUS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	StackStatus getStackStatus() {
-
 		return serviceProvider.getAdministrationService().getStackStatus();
 	}
 	
@@ -87,7 +85,7 @@ public class AdministrationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
-			UrlHelpers.STACK_STATUS
+			UrlHelpers.ADMIN_STACK_STATUS
 			}, method = RequestMethod.PUT)
 	public @ResponseBody
 	StackStatus updateStatusStackStatus(
@@ -277,5 +275,14 @@ public class AdministrationController extends BaseController {
 	IdGeneratorExport createIdGeneratorExport(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAdministrationService().createIdGeneratorExport(userId);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/admin/annotationCleanup/{idStart}", method = RequestMethod.POST)
+	public @ResponseBody
+	Long fixAnnotations(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+						@PathVariable("idStart") Long nodeIdStart,
+						@RequestParam(value = "numNodes",required=false, defaultValue="10000") Long numNodes){
+		return serviceProvider.getEntityService().TEMPORARYcleanupAnnotations(userId, nodeIdStart, numNodes);
 	}
 }

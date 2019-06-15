@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  *  To test methods in StackConfigurationImpl that are not directly related to the stack
@@ -66,6 +66,14 @@ public class StackConfigurationImplUnitTest {
 		verify(mockProperties).getProperty(StackConstants.STACK_PROPERTY_NAME);
 		verify(mockProperties).getProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME);
 		verify(mockProperties).getProperty(doiPrefixPropertyName);
+	}
+	
+	@Test
+	public void testGetSharedS3BackupBucket() {
+		String stackName = "prod";
+		when(mockProperties.getProperty(StackConstants.STACK_PROPERTY_NAME)).thenReturn(stackName);
+		when(mockProperties.getProperty("org.sagebionetworks.shared.s3.backup.bucket")).thenReturn(".bucket");
+		assertEquals("prod.bucket", config.getSharedS3BackupBucket());
 	}
 
 

@@ -63,7 +63,6 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -264,9 +263,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				
 				// Mark entities for deletion after the current test completes
 				toDelete.add(clone.getId());
-				
-				// Check the base urls
-				UrlHelpers.validateAllUrls(clone);
+
 				// Add this to the list of entities created
 				newChildren.add(clone);
 				index++;
@@ -600,13 +597,11 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 						versionableEntity.getId(), new Long(1), userId);
 				assertNotNull(v1);
 				assertEquals(new Long(1), v1.getVersionNumber());
-				UrlHelpers.validateAllUrls(v1);
 				// now get the second version
 				VersionableEntity v2 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
 						versionableEntity.getId(), new Long(2), userId);
 				assertNotNull(v2);
 				assertEquals(new Long(2), v2.getVersionNumber());
-				UrlHelpers.validateAllUrls(v2);
 			}
 		}
 	}

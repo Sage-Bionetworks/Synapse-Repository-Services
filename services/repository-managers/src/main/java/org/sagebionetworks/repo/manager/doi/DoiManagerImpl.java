@@ -7,7 +7,6 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
@@ -17,8 +16,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +68,7 @@ public class DoiManagerImpl implements DoiManager {
 		return association;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	public Doi createOrUpdateDoi(final UserInfo user, final Doi dto) throws RecoverableMessageException {
 		if (dto.getObjectId() == null) {
 			throw new IllegalArgumentException("Object ID cannot be null");
@@ -81,8 +79,7 @@ public class DoiManagerImpl implements DoiManager {
 
 		// Ensure the user is authorized to update the object that we are minting a DOI for
 		UserInfo.validateUserInfo(user);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE));
+		authorizationManager.canAccess(user, dto.getObjectId(), dto.getObjectType(), ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 
 		// Set updated fields
 		dto.setUpdatedBy(user.getId().toString());
@@ -161,8 +158,7 @@ public class DoiManagerImpl implements DoiManager {
 
 		// Ensure the user is authorized to update the object with the DOI (should verify that the object exists)
 		UserInfo.validateUserInfo(user);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.UPDATE));
+		authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 
 		// Retrieve the DOI (verify that it has been minted)
 		DoiAssociation doi = doiAssociationDao.getDoiAssociation(objectId, objectType, versionNumber);

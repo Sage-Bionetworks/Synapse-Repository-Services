@@ -11,25 +11,18 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_PROFILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -256,47 +249,7 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 
 	@Override
 	public MigratableTableTranslation<DBOUserProfile, DBOUserProfile> getTranslator() {
-		return new MigratableTableTranslation<DBOUserProfile, DBOUserProfile>(){
-
-			@Override
-			public DBOUserProfile createDatabaseObjectFromBackup(
-					DBOUserProfile backup) {
-				// ensure that aliases are not stored in the user profile
-				UserProfile up = UserProfileUtils.deserialize(backup.getProperties());
-				up.setEmail(null);
-				up.setEmails(null);
-				up.setOpenIds(null);
-				up.setUserName(null);
-				try {
-					backup.setProperties(JDOSecondaryPropertyUtils.compressObject(up));
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-				// Ensure the email notification is in the DB.
-				backup.setEmailNotification(true);
-				Settings settings = up.getNotificationSettings();
-				if(settings != null && settings.getSendEmailNotifications() != null){
-					backup.setEmailNotification(settings.getSendEmailNotifications());
-				}
-				try {
-					if (up.getFirstName() != null) {
-						backup.setFirstName(up.getFirstName().getBytes("UTF-8"));
-					}
-					if (up.getLastName() != null) {
-						backup.setLastName(up.getLastName().getBytes("UTF-8"));
-					}
-				} catch (UnsupportedEncodingException e) {
-					throw new RuntimeException(e);
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOUserProfile createBackupFromDatabaseObject(
-					DBOUserProfile dbo) {
-				return dbo;
-			}
-		};
+			return new BasicMigratableTableTranslation<DBOUserProfile>();
 	}
 
 

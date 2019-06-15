@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,6 +14,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -31,6 +30,8 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
+import org.sagebionetworks.repo.model.migration.BatchChecksumResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.IdRange;
@@ -39,15 +40,15 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Iterables;
 
@@ -72,7 +73,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Autowired
 	BackupFileStream backupFileStream;
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	@Autowired
 	FileProvider fileProvider;
 	
@@ -418,7 +419,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#restoreRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.RestoreTypeRequest)
 	 */
-	@WriteTransactionReadCommitted // required see PLFM-4832
+	@WriteTransaction // required see PLFM-4832
 	@Override
 	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest request) throws IOException {
 		ValidateArgument.required(user, "User");
@@ -469,7 +470,8 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param aliasType
 	 * @return
 	 */
-	RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
+	@Override
+	public RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
 			BackupAliasType backupAliasType, long batchSize) {
 		RestoreTypeResponse response = new RestoreTypeResponse();
 		if(!this.migratableTableDao.isMigrationTypeRegistered(primaryType)) {
@@ -583,6 +585,17 @@ public class MigrationManagerImpl implements MigrationManager {
 				request.getMinimumId(), request.getMaximumId(), request.getOptimalRowsPerRange());
 		CalculateOptimalRangeResponse response = new CalculateOptimalRangeResponse();
 		response.setRanges(ranges);
+		response.setMigrationType(request.getMigrationType());
+		return response;
+	}
+
+	@Override
+	public BatchChecksumResponse calculateBatchChecksums(UserInfo user, BatchChecksumRequest request) {
+		ValidateArgument.required(user, "User");
+		validateUser(user);
+		List<RangeChecksum> batches = migratableTableDao.calculateBatchChecksums(request);
+		BatchChecksumResponse response = new BatchChecksumResponse();
+		response.setCheksums(batches);
 		response.setMigrationType(request.getMigrationType());
 		return response;
 	}

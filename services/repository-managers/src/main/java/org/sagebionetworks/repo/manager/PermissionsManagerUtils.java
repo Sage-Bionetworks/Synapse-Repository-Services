@@ -6,6 +6,7 @@ import java.util.HashSet;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -48,9 +49,8 @@ public class PermissionsManagerUtils {
 			}
 			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())
 					&& ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)
-					&& !userInfo.isAdmin()
-					&& !userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId())) {
-				throw new UnauthorizedException("Only certified users can allow authenticated users to download.");
+					&& !AuthorizationUtils.isCertifiedUser(userInfo)) {
+				throw new UserCertificationRequiredException("Only certified users can allow authenticated users to download.");
 			}
 		}
 		

@@ -2,12 +2,13 @@ package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
-import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -39,24 +40,12 @@ public interface AuthenticationService {
 	 * Invalidates a session token
 	 */
 	public void invalidateSessionToken(String sessionToken);
-	
-	/**
-	 * Initializes a new user into the system
-	 * @throws UnauthorizedException If a user with the supplied email already exists 
-	 */
-	public void createUser(NewUser user);
-	
-	/**
-	 * Sends a password-reset email to the user
-	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
-	 */
-	public void sendPasswordEmail(Long userId) throws NotFoundException;
-	
+
 	/**
 	 * Changes the password of the user
 	 * Also invalidates the user's session token
 	 */
-	public void changePassword(ChangePasswordRequest request) throws NotFoundException;
+	public void changePassword(ChangePasswordInterface request) throws NotFoundException;
 	
 	/**
 	 * Identifies a user via session token and signs that user's terms of use
@@ -72,13 +61,7 @@ public interface AuthenticationService {
 	 * Invalidates the user's secret key
 	 */
 	public void deleteSecretKey(Long principalId) throws NotFoundException;
-	
-	/**
-	 * Temporary method used for converting usernames to user IDs
-	 */
-	@Deprecated
-	public Long getUserId(String username) throws NotFoundException;
-	
+
 	/**
 	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
 	 * This method will look a user by any of the aliases.
@@ -92,12 +75,20 @@ public interface AuthenticationService {
 	 */
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
 
-	public void sendPasswordEmail(String email) throws NotFoundException;
+	/**
+	 * Sends a password reset email to the user
+	 * @param email
+	 * @throws NotFoundException
+	 */
+	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String usernameOrEmail);
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 
 	public Session validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request) throws NotFoundException;
+	
+	public Session createAccountViaOauth(OAuthAccountCreationRequest request) throws NotFoundException;
+
 
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 
@@ -107,8 +98,8 @@ public interface AuthenticationService {
 	 * Authenticates username and password combination
 	 * User can use an authentication receipt from previous login to skip extra security checks
 	 * 
-	 * @return a session token if valid
-	 * @throws UnauthorizedException If the credentials are incorrect
+	 * @return a LoginResponse if username/password is valid
+	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
-	public LoginResponse login(LoginRequest request) throws NotFoundException;
+	public LoginResponse login(LoginRequest request);
 }

@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,7 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -79,7 +80,7 @@ public class TeamServiceTest {
 		when(mockTeamManager.listAllTeamsAndMembers()).thenReturn(universe);
 		
 		PaginatedResults<TeamMember> members = PaginatedResults.createWithLimitAndOffset(Arrays.asList(new TeamMember[]{member}), 100L, 0L);
-		when(mockTeamManager.listMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
+		when(mockTeamManager.listMembers(eq("101"), any(TeamMemberTypeFilterOptions.class), anyLong(), anyLong())).thenReturn(members);
 		
 		teamService = new TeamServiceImpl();
 		
@@ -118,12 +119,17 @@ public class TeamServiceTest {
 	
 	@Test
 	public void testGetTeamMembersByFragment() throws Exception {
+		List<TeamMember> tms1 = Collections.singletonList(member);
+		PaginatedResults<TeamMember> tms1paginated = PaginatedResults.createWithLimitAndOffset(tms1, 10L, 0L);
+		List<TeamMember> tms2 = Collections.emptyList();
+		PaginatedResults<TeamMember> tms2paginated = PaginatedResults.createWithLimitAndOffset(tms2, 10L, 0L);
+
 		Long teamId = 101L;
-		when(mockPrincipalPrefixDAO.listTeamMembersForPrefix("Smith", teamId, 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockTeamManager.listMembersForPrefix("Smith", teamId.toString(), TeamMemberTypeFilterOptions.ALL,1L, 0L)).thenReturn(tms1paginated);
 		when(mockPrincipalPrefixDAO.countTeamMembersForPrefix("Smith", teamId)).thenReturn(1L);
-		when(mockPrincipalPrefixDAO.listTeamMembersForPrefix("john", teamId, 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockTeamManager.listMembersForPrefix("john", teamId.toString(), TeamMemberTypeFilterOptions.ALL,1L, 0L)).thenReturn(tms1paginated);
 		when(mockPrincipalPrefixDAO.countTeamMembersForPrefix("john", teamId)).thenReturn(1L);
-		when(mockPrincipalPrefixDAO.listTeamMembersForPrefix("bas", teamId, 1L, 0L)).thenReturn(new LinkedList<Long>());
+		when(mockTeamManager.listMembersForPrefix("bas", teamId.toString(), TeamMemberTypeFilterOptions.ALL,1L, 0L)).thenReturn(tms2paginated);
 		when(mockPrincipalPrefixDAO.countTeamMembersForPrefix("bas", teamId)).thenReturn(0L);
 		List<TeamMember> expected = new ArrayList<TeamMember>();
 		expected.add(member);
@@ -131,22 +137,22 @@ public class TeamServiceTest {
 		wrapper.setList(expected);
 		when(mockTeamManager.listMembers(any(List.class), any(List.class))).thenReturn(wrapper);
 		// test last name match
-		PaginatedResults<TeamMember> pr = teamService.getMembers("101", "Smith", 1, 0);
-		assertEquals(2L, pr.getTotalNumberOfResults());
+		PaginatedResults<TeamMember> pr = teamService.getMembers("101", "Smith", TeamMemberTypeFilterOptions.ALL, 1, 0);
+		assertEquals(1L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 		
 		assertEquals(1L, teamService.getMemberCount("101", "Smith").getCount().longValue());
 		
 		// test first name match, different case
-		pr = teamService.getMembers("101", "john", 1, 0);
-		assertEquals(2L, pr.getTotalNumberOfResults());
+		pr = teamService.getMembers("101", "john", TeamMemberTypeFilterOptions.ALL, 1, 0);
+		assertEquals(1L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 
 		assertEquals(1L, teamService.getMemberCount("101", "john").getCount().longValue());
 
 		// no match
-		pr = teamService.getMembers("101", "bas", 1, 0);
-		assertEquals(2L, pr.getTotalNumberOfResults());
+		pr = teamService.getMembers("101", "bas", TeamMemberTypeFilterOptions.ALL,1, 0);
+		assertEquals(0L, pr.getTotalNumberOfResults());
 
 		assertEquals(0L, teamService.getMemberCount("101", "bas").getCount().longValue());
 }
@@ -176,9 +182,9 @@ public class TeamServiceTest {
 	public void testGetTeamMemberNoFragment() throws Exception {
 		PaginatedResults<TeamMember>results = new PaginatedResults<TeamMember>();
 		results.setResults(new ArrayList<TeamMember>());
-		when(mockTeamManager.listMembers("101", 1, 0)).thenReturn(results);
-		teamService.getMembers("101", null, 1, 0);
-		verify(mockTeamManager).listMembers("101", 1, 0);
+		when(mockTeamManager.listMembers("101", TeamMemberTypeFilterOptions.ALL, 1, 0)).thenReturn(results);
+		teamService.getMembers("101",null, TeamMemberTypeFilterOptions.ALL, 1, 0);
+		verify(mockTeamManager).listMembers("101", TeamMemberTypeFilterOptions.ALL, 1, 0);
 	}
 
 	@Test
@@ -189,17 +195,17 @@ public class TeamServiceTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetTeamMemberWithUnderMinLimit() {
-		teamService.getMembers("101", null, 0, 0);
+		teamService.getMembers("101", null, TeamMemberTypeFilterOptions.ALL, 0, 0);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetTeamMemberWithOverMaxLimit() {
-		teamService.getMembers("101", null, 51, 0);
+		teamService.getMembers("101", null, TeamMemberTypeFilterOptions.ALL, 51, 0);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetTeamMemberWithNegativeOffset() {
-		teamService.getMembers("101", null, 1, -1);
+		teamService.getMembers("101", null, TeamMemberTypeFilterOptions.ALL, 1, -1);
 	}
 	
 	@Test

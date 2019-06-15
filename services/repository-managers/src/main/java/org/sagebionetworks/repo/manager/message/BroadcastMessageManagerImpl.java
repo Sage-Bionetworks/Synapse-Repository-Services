@@ -20,12 +20,12 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
+import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -156,7 +156,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 				continue;
 			}
 			UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userNotificationInfo.getUserId()));
-			if (authManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).getAuthorized()) {
+			if (authManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).isAuthorized()) {
 				SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userNotificationInfo);
 				log.debug("sending email to "+userNotificationInfo.getNotificationEmail());
 				sesClient.sendRawEmail(emailRequest);

@@ -2,9 +2,10 @@ package org.sagebionetworks.search;
 
 import static org.junit.Assert.assertEquals;
 
-import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
+
+import com.amazonaws.services.cloudsearchv2.model.IndexFieldType;
 
 public class IndexFieldToSynapseFacetTypeTest {
 

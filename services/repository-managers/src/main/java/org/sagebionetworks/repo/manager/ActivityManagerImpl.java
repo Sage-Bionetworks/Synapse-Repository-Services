@@ -17,9 +17,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class ActivityManagerImpl implements ActivityManager {
 	static private Log log = LogFactory.getLog(ActivityManagerImpl.class);
@@ -112,8 +112,7 @@ public class ActivityManagerImpl implements ActivityManager {
 	public Activity getActivity(UserInfo userInfo, String activityId) 
 		throws DatastoreException, NotFoundException, UnauthorizedException {		
 		Activity act = activityDAO.get(activityId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccessActivity(userInfo, activityId));
+		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 		return act;
 	}
 
@@ -130,8 +129,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 
 		Activity act = activityDAO.get(activityId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccessActivity(userInfo, activityId));
+		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 		return activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
 	}
 

@@ -10,14 +10,17 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.csv.utils.ObjectCSVReader;
 import org.sagebionetworks.csv.utils.ObjectCSVWriter;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -28,14 +31,16 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  * This class helps write records to a file and push the file to S3.
  */
 public class ObjectCSVDAO<T> {
-	private AmazonS3 s3Client;
+	private static final int S3_BATCH_OPERATION_LIMIT = 1000;
+
+	private SynapseS3Client s3Client;
 	private int stackInstanceNumber;
 	private String bucketName;
 	private Class<T> objectClass;
 	private String[] headers;
 	String stackInstancePrefixString;
 
-	public ObjectCSVDAO(AmazonS3 s3Client, int stackInstanceNumber, 
+	public ObjectCSVDAO(SynapseS3Client s3Client, int stackInstanceNumber, 
 			String bucketName, Class<T> objectClass, String[] headers) {
 		this.s3Client = s3Client;
 		this.stackInstanceNumber = stackInstanceNumber;
@@ -70,7 +75,7 @@ public class ObjectCSVDAO<T> {
 		ObjectMetadata om = new ObjectMetadata();
 		om.setContentType("application/x-gzip");
 		om.setContentEncoding("gzip");
-		om.setContentDisposition("attachment; filename=" + key + ";");
+		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(key));
 		om.setContentLength(bytes.length);
 		s3Client.putObject(bucketName, key, in, om);
 		return key;
@@ -138,10 +143,13 @@ public class ObjectCSVDAO<T> {
 			ObjectListing listing = s3Client.listObjects(bucketName, stackInstancePrefixString);
 			done = !listing.isTruncated();
 			// Delete all
-			if(listing.getObjectSummaries() != null){
-				for(S3ObjectSummary summary: listing.getObjectSummaries()){
-					s3Client.deleteObject(bucketName, summary.getKey());
-				}
+			List<S3ObjectSummary> objectSummaries = listing.getObjectSummaries();
+			if(objectSummaries != null && !objectSummaries.isEmpty()){
+				List<DeleteObjectsRequest.KeyVersion> keysToDelete = objectSummaries.stream()
+						.limit(S3_BATCH_OPERATION_LIMIT)
+						.map( objectSummary -> new DeleteObjectsRequest.KeyVersion(objectSummary.getKey()) )
+						.collect(Collectors.toList());
+				s3Client.deleteObjects(new DeleteObjectsRequest(bucketName).withKeys(keysToDelete));
 			}
 		}
 	}

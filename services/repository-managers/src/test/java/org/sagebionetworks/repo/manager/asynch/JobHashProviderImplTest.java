@@ -2,42 +2,46 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryUtils;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class JobHashProviderImplTest {
 	
+	@Mock
 	TableManagerSupport mockTableManagerSupport;
-	JobHashProvider provider;
+	@InjectMocks
+	JobHashProviderImpl provider;
+	
+
 	TableStatus tableStatus;
 	
 	@Before
 	public void before() throws NotFoundException, IOException{
-		mockTableManagerSupport = Mockito.mock(TableManagerSupport.class);
-		provider = new JobHashProviderImpl();
-		ReflectionTestUtils.setField(provider, "tableManagerSupport", mockTableManagerSupport);
-		
 		tableStatus = new TableStatus();
 		tableStatus.setLastTableChangeEtag("someEtag");
 		tableStatus.setResetToken("someResetToken");
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(anyString())).thenReturn(tableStatus);
-		when(mockTableManagerSupport.getTableType(anyString())).thenReturn(ObjectType.TABLE);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any(IdAndVersion.class))).thenReturn(tableStatus);
+		when(mockTableManagerSupport.getTableType(any(IdAndVersion.class))).thenReturn(ObjectType.TABLE);
 	}
 
 	@Test
@@ -88,7 +92,8 @@ public class JobHashProviderImplTest {
 		
 		// an empty table will have a null lastTableChangeEtag
 		tableStatus.setLastTableChangeEtag(null);
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
+		IdAndVersion idAndVersion = IdAndVersion.parse(body1.getEntityId());
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(tableStatus);
 		// call under test
 		String etag = provider.getJobHash(body1);
 		assertEquals("172bcd947ddd904155e4cc35e06a410d", etag);

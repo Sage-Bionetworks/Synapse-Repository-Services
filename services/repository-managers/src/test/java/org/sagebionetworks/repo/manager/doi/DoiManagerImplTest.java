@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.doi;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -92,7 +92,7 @@ public class DoiManagerImplTest {
 		ReflectionTestUtils.setField(doiManager, "doiAssociationDao", mockDoiDao);
 		ReflectionTestUtils.setField(doiManager, "authorizationManager", mockAuthorizationManager);
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class)))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
+				.thenReturn(AuthorizationStatus.authorized());
 		inputDto = setUpDto(true);
 		outputDto = setUpDto(true);
 	}
@@ -165,7 +165,7 @@ public class DoiManagerImplTest {
 		UserInfo testInfo = new UserInfo(false);
 		testInfo.setId(12345L); // Arbitrary user ID, doesn't matter, just need to avoid a NPE
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
+				.thenReturn(AuthorizationStatus.authorized());
 		// The following mocks are necessary for the rest of the method to succeed on a "create"
 		when(mockDoiDao.getDoiAssociationForUpdate(inputDto.getObjectId(), inputDto.getObjectType(), inputDto.getObjectVersion())).thenReturn(null);
 		when(mockDoiDao.createDoiAssociation(inputDto)).thenReturn(outputDto);
@@ -180,7 +180,7 @@ public class DoiManagerImplTest {
 		UserInfo testInfo = new UserInfo(false);
 		// Undo the convenience authorization set in @Before
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(false, "mock"));
+				.thenReturn(AuthorizationStatus.accessDenied("mock"));
 		// Call under test
 		doiManager.createOrUpdateDoi(testInfo, inputDto);
 	}
@@ -361,7 +361,7 @@ public class DoiManagerImplTest {
 	public void testDeactivateAuthorization() throws Exception{
 		UserInfo testInfo = new UserInfo(false);
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(true, "mock"));
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
 		// Call under test
 		doiManager.deactivateDoi(testInfo, entityId, entityType, version);
@@ -373,8 +373,7 @@ public class DoiManagerImplTest {
 		UserInfo testInfo = new UserInfo(false);
 		// Undo the convenience authorization set in @Before
 		when(mockAuthorizationManager.canAccess(testInfo, entityId, entityType, ACCESS_TYPE.UPDATE))
-				.thenReturn(new AuthorizationStatus(false, "mock"));
-		when(mockDoiDao.getDoiAssociation(entityId, entityType, version)).thenReturn(outputDto);
+				.thenReturn(AuthorizationStatus.accessDenied("mock"));
 		// Call under test
 		doiManager.deactivateDoi(testInfo, entityId, entityType, version);
 	}
@@ -553,6 +552,7 @@ public class DoiManagerImplTest {
 		dto.setObjectId(entityId);
 		dto.setObjectType(entityType);
 		dto.setObjectVersion(version);
+		dto.setDoiUri(doiUri);
 
 		if (withMetadata) {
 			// Required metadata fields

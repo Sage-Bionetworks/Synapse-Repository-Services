@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -45,6 +47,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -118,7 +121,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class TableController extends BaseController {
+public class TableController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -722,17 +725,20 @@ public class TableController extends BaseController {
 	 * </p>
 	 * <p>
 	 * The 'partsMask' is an integer "mask" that can be combined into to request
-	 * any desired part. As of this writing, the mask is defined as follows:
+	 * any desired part. As of this writing, the mask is defined as follows (see <a href="${org.sagebionetworks.repo.model.table.QueryBundleRequest}">QueryBundleRequest</a>):
 	 * <ul>
 	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
 	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
 	 * <li>Select Columns <i>(selectColumns)</i> = 0x4</li>
 	 * <li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li>
+	 * <li>The Table Columns <i>(columnModels)</i> = 0x10</li>
+	 * <li>Facet statistics for each faceted column <i>(facetStatistics)</i> = 0x20</li>
+	 * <li>The sum of the file sizes <i>(sumFileSizesBytes)</i> = 0x40</li>
 	 * </ul>
 	 * </p>
 	 * <p>
 	 * For example, to request all parts, the request mask value should be: <br>
-	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0xF.
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 OR 0x10 OR 0x20 OR 0x40 = 0x7F.
 	 * </p>
 	 * <p>
 	 * Note: The caller must have the <a
@@ -1157,4 +1163,20 @@ public class TableController extends BaseController {
 						nextPageToken);
 	}
 
+	/**
+	 * Request to transform the provided SQL based on the request parameters. For
+	 * example, a <a href=
+	 * "${org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest}"
+	 * >TransformSqlWithFacetsRequest</a> can be used to alter the where clause
+	 * of the provided SQL based on the provided selected facets.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws ParseException 
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_SQL_TRANSFORM, method = RequestMethod.POST)
+	public @ResponseBody SqlTransformResponse transformSqlRequest(@RequestBody SqlTransformRequest request) throws ParseException {
+		return serviceProvider.getTableServices().transformSqlRequest(request);
+	}
 }

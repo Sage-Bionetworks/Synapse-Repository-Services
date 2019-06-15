@@ -4,11 +4,17 @@ import org.apache.commons.validator.routines.UrlValidator;
 
 public class ValidateArgument {
 
-	private static UrlValidatorPatched urlValidator = new UrlValidatorPatched(UrlValidator.ALLOW_2_SLASHES + UrlValidator.ALLOW_ALL_SCHEMES);
+	private static UrlValidator urlValidator = new UrlValidator(UrlValidator.ALLOW_2_SLASHES + UrlValidator.ALLOW_ALL_SCHEMES);
 
 	public static void required(Object fieldValue, String fieldName) {
 		if (fieldValue == null) {
 			throw new IllegalArgumentException(fieldName + " is required.");
+		}
+	}
+
+	public static void requiredNotEmpty(String fieldValue, String fieldName){
+		if(fieldValue == null || "".equals(fieldValue) ){
+			throw new IllegalArgumentException(fieldName + " is required and must not be the empty string.");
 		}
 	}
 

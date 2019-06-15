@@ -59,10 +59,15 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		// Determine the size of the image
 		// First load the image
-		BufferedImage image = loadImageWithSizeCheck(from, MAX_IMAGE_SIZE);
+		BufferedImage image;
+		try {
+			image = loadImageWithSizeCheck(from, MAX_IMAGE_SIZE);
+		}catch (ArrayIndexOutOfBoundsException e){
+			throw new PreviewGenerationNotSupportedException("Improperly formatted image", e);
+		}
 
 		if (image == null) {
-			throw new IllegalArgumentException("The passed input stream was not an image");
+			throw new PreviewGenerationNotSupportedException("The passed input stream was not an image");
 		}
 		// Let image scalar do the heavy lifting!
 		int maxWidthPixels = StackConfigurationSingleton.singleton().getMaximumPreviewWidthPixels();
@@ -122,7 +127,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	 * @param from
 	 * @param maxSize The maximum size (width*height) of the image to be loaded.
 	 * @return BufferedImage
-	 * @throws IllegalArgumentException if the given image size (width*height) is
+	 * @throws PreviewGenerationNotSupportedException if the given image size (width*height) is
 	 *                                  larger than the provided maxSize.
 	 */
 	public static BufferedImage loadImageWithSizeCheck(InputStream from, long maxSize) throws IOException {
@@ -138,7 +143,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 		long height = reader.getHeight(0);
 		long imageSize = width * height;
 		if (imageSize > maxSize) {
-			throw new IllegalArgumentException(IMAGE_EXCEEDS_THE_MAXIMUM_SIZE);
+			throw new PreviewGenerationNotSupportedException(IMAGE_EXCEEDS_THE_MAXIMUM_SIZE);
 		}
 		BufferedImage image;
 		try {

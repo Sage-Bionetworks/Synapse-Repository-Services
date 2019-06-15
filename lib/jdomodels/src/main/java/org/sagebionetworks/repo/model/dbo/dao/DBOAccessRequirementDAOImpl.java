@@ -49,7 +49,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevisi
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -256,7 +256,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return result;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -264,7 +264,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public <T extends AccessRequirement> T create(T dto) {
 		dto.setId(idGenerator.generateNewId(IdType.ACCESS_REQUIREMENT_ID));
@@ -364,7 +364,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public <T extends AccessRequirement> T update(T dto) {
 

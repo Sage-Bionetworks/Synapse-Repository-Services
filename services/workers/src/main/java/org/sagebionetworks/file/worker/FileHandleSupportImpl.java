@@ -10,6 +10,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -21,8 +22,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
 public class FileHandleSupportImpl implements FileHandleSupport {
@@ -32,7 +31,7 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	@Autowired
 	FileHandleDao fileHandleDao;
 	@Autowired
-	AmazonS3 s3client;
+	SynapseS3Client s3client;
 	@Autowired
 	FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	@Autowired

@@ -6,13 +6,11 @@ import org.junit.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
-import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.NullPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.TruthValue;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 public class PredicateTest {

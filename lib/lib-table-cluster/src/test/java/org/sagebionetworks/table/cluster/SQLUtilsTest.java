@@ -1,6 +1,11 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.verify;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -9,15 +14,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-
-import static org.mockito.Mockito.*;
-
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -31,6 +34,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -52,6 +56,11 @@ public class SQLUtilsTest {
 	AnnotationDTO annotationDto;
 	
 	boolean isFirst;
+	
+	boolean useDepricatedUtf8ThreeBytes;
+	
+	IdAndVersion tableId;
+	Long viewId;
 	
 	@Before
 	public void before(){
@@ -87,6 +96,10 @@ public class SQLUtilsTest {
 		annotationDto.setValue("someString");
 		
 		isFirst = true;
+		useDepricatedUtf8ThreeBytes = false;
+		
+		tableId = IdAndVersion.parse("syn999");
+		viewId = 123L;
 	}
 
 	
@@ -163,8 +176,15 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetTableNameForId(){
-		assertEquals("T123", SQLUtils.getTableNameForId("syn123", TableType.INDEX));
-		assertEquals("T123S", SQLUtils.getTableNameForId("syn123", TableType.STATUS));
+		assertEquals("T999", SQLUtils.getTableNameForId(tableId, TableType.INDEX));
+		assertEquals("T999S", SQLUtils.getTableNameForId(tableId, TableType.STATUS));
+	}
+	
+	@Test
+	public void testGetTableNameForIdWithVersion(){
+		tableId = IdAndVersion.parse("syn123.456");
+		assertEquals("T123_456", SQLUtils.getTableNameForId(tableId, TableType.INDEX));
+		assertEquals("T123_456S", SQLUtils.getTableNameForId(tableId, TableType.STATUS));
 	}
 	
 	@Test
@@ -203,8 +223,8 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildCreateOrUpdateRowSQL(){
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
-		String result = SQLUtils.buildCreateOrUpdateRowSQL(newSchema, "syn123");
-		String expected = "INSERT INTO T123 (ROW_ID, ROW_VERSION, _C0_, _C2_, _C4_) VALUES ( :bRI, :bRV, :_C0_, :_C2_, :_C4_) ON DUPLICATE KEY UPDATE ROW_VERSION = VALUES(ROW_VERSION), _C0_ = VALUES(_C0_), _C2_ = VALUES(_C2_), _C4_ = VALUES(_C4_)";
+		String result = SQLUtils.buildCreateOrUpdateRowSQL(newSchema, tableId);
+		String expected = "INSERT INTO T999 (ROW_ID, ROW_VERSION, _C0_, _C2_, _C4_) VALUES ( :bRI, :bRV, :_C0_, :_C2_, :_C4_) ON DUPLICATE KEY UPDATE ROW_VERSION = VALUES(ROW_VERSION), _C0_ = VALUES(_C0_), _C2_ = VALUES(_C2_), _C4_ = VALUES(_C4_)";
 		assertEquals(expected, result);
 	}
 	
@@ -283,36 +303,36 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetRowCountSQL(){
-		String expected = "SELECT COUNT(ROW_ID) FROM T123";
-		String result = SQLUtils.getCountSQL("123");
+		String expected = "SELECT COUNT(ROW_ID) FROM T999";
+		String result = SQLUtils.getCountSQL(tableId);
 		assertEquals(expected, result);
 	}
 	
 	@Test
 	public void testGetMaxVersionSQL(){
-		String expected = "SELECT ROW_VERSION FROM T123S";
-		String result = SQLUtils.getStatusMaxVersionSQL("123");
+		String expected = "SELECT ROW_VERSION FROM T999S";
+		String result = SQLUtils.getStatusMaxVersionSQL(tableId);
 		assertEquals(expected, result);
 	}
 	
 	@Test
 	public void testCreateSQLInsertIgnoreFileHandleId(){
-		String expected = "INSERT IGNORE INTO T987F (FILE_ID) VALUES(?)";
-		String result = SQLUtils.createSQLInsertIgnoreFileHandleId("987");
+		String expected = "INSERT IGNORE INTO T999F (FILE_ID) VALUES(?)";
+		String result = SQLUtils.createSQLInsertIgnoreFileHandleId(tableId);
 		assertEquals(expected, result);
 	}
 	
 	@Test
 	public void testCreateSQLGetBoundFileHandleId(){
-		String expected = "SELECT FILE_ID FROM T987F WHERE FILE_ID IN( :bFIds)";
-		String result = SQLUtils.createSQLGetBoundFileHandleId("987");
+		String expected = "SELECT FILE_ID FROM T999F WHERE FILE_ID IN( :bFIds)";
+		String result = SQLUtils.createSQLGetBoundFileHandleId(tableId);
 		assertEquals(expected, result);
 	}
 	
 	@Test
 	public void testCreateSQLGetDistinctValues(){
-		String expected = "SELECT DISTINCT ROW_BENEFACTORS FROM T123";
-		String result = SQLUtils.createSQLGetDistinctValues("syn123", "ROW_BENEFACTORS");
+		String expected = "SELECT DISTINCT ROW_BENEFACTORS FROM T999";
+		String result = SQLUtils.createSQLGetDistinctValues(tableId, "ROW_BENEFACTORS");
 		assertEquals(expected, result);
 	}
 	
@@ -343,7 +363,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		cm.setDefaultValue("456");
 		// call under test
-		SQLUtils.appendColumnDefinition(builder, cm);
+		SQLUtils.appendColumnDefinition(builder, cm, useDepricatedUtf8ThreeBytes);
 		assertEquals("_C123_ BIGINT(20) DEFAULT 456 COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -355,7 +375,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		cm.setDefaultValue(null);
 		// call under test
-		SQLUtils.appendColumnDefinition(builder, cm);
+		SQLUtils.appendColumnDefinition(builder, cm, useDepricatedUtf8ThreeBytes);
 		assertEquals("_C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -367,7 +387,7 @@ public class SQLUtilsTest {
 		cm.setId("123");
 		cm.setColumnType(ColumnType.INTEGER);
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, isFirst);
+		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -379,7 +399,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		isFirst = false;
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, isFirst);
+		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals(", ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -390,7 +410,7 @@ public class SQLUtilsTest {
 		cm.setId("123");
 		cm.setColumnType(ColumnType.DOUBLE);
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, isFirst);
+		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("ADD COLUMN _C123_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
@@ -403,7 +423,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.DOUBLE);
 		isFirst = false;
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, isFirst);
+		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals(", ADD COLUMN _C123_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
@@ -493,7 +513,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -514,7 +534,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 	}
 	
 	@Test
@@ -533,7 +553,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
 	}
 	
@@ -554,7 +574,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("DROP INDEX indexName, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -574,7 +594,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -594,7 +614,7 @@ public class SQLUtilsTest {
 		isFirst = false;
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals(", CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -614,7 +634,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'"
 				+ ", DROP COLUMN _DBL_C123_", builder.toString());
 	}
@@ -635,7 +655,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
@@ -656,7 +676,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
@@ -677,7 +697,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertTrue(hasChange);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
 	}
@@ -696,7 +716,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertFalse(hasChange);
 		assertEquals("", builder.toString());
 	}
@@ -713,7 +733,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertTrue(hasChange);
 		assertEquals("ADD COLUMN _C123_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
 	}
@@ -729,7 +749,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = null;
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertTrue(hasChange);
 		assertEquals("DROP COLUMN _C123_", builder.toString());
 	}
@@ -743,7 +763,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = null;
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		assertFalse(hasChange);
 		assertEquals("", builder.toString());
 	}
@@ -773,13 +793,12 @@ public class SQLUtilsTest {
 		newColumn.setMaximumSize(15L);
 		newColumn.setDefaultValue("foo");
 		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
-		String tableId = "syn999";
 		boolean alterTemp = false;
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertEquals("ALTER TABLE T999 "
 				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
-				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
 	}
 	
@@ -808,13 +827,12 @@ public class SQLUtilsTest {
 		newColumn.setMaximumSize(15L);
 		newColumn.setDefaultValue("foo");
 		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
-		String tableId = "syn999";
 		boolean alterTemp = true;
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
-		assertEquals("ALTER TABLE TEMP999 "
+		assertEquals("ALTER TABLE TEMPT999 "
 				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
-				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
 	}
 	
@@ -830,7 +848,6 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		boolean alterTemp = false;
 		
-		String tableId = "syn999";
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp);
 		assertEquals("when there are no changes the sql should be null",null, results);
@@ -865,7 +882,6 @@ public class SQLUtilsTest {
 		ColumnChangeDetails changeTwo = new ColumnChangeDetails(oldColumn, newColumn);
 		
 		boolean alterTemp = false;
-		String tableId = "syn999";
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp);
 		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C123_ _C123_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results);
@@ -900,19 +916,62 @@ public class SQLUtilsTest {
 		ColumnChangeDetails changeTwo = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		
 		boolean alterTemp = false;
-		String tableId = "syn999";
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp);
 		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C444_ _C444_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results);
 	}
 	
+	/**
+	 * This is a test case for altering a table that is not part of the set of
+	 * tables that are too large for 4 byte UTF-8.
+	 */
+	@Test
+	public void testPLFM_5458TableNotTooLarge() {
+		assertFalse(ColumnConstants.isTableTooLargeForFourByteUtf8(tableId.getId()));
+		// simple add column
+		ColumnModel oldColumn = null;
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("123");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(100L);
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldColumn, newColumn);
+		 
+		boolean alterTemp = false;
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne), tableId, alterTemp);
+		assertEquals("ALTER TABLE T999 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'", results);
+	}
+	
+	/**
+	 * This is a test case for altering a table that is
+	 * too large for 4 byte UTF-8.
+	 */
+	@Test
+	public void testPLFM_5458TableTooLarge() {
+		tableId = IdAndVersion.parse("syn10227900");
+		assertTrue(ColumnConstants.isTableTooLargeForFourByteUtf8(tableId.getId()));
+		// simple add column.
+		ColumnModel oldColumn = null;
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("123");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(100L);
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldColumn, newColumn);
+		 
+		boolean alterTemp = false;
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne), tableId, alterTemp);
+		assertEquals("ALTER TABLE T10227900 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", results);
+	}
+	
 	@Test
 	public void testCreateTableIfDoesNotExistSQL(){
-		String tableId = "syn123";
 		boolean isView = false;
 		// call under test
 		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
-		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
 				+ "ROW_ID bigint(20) NOT NULL, "
 				+ "ROW_VERSION bigint(20) NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID))", sql);
@@ -920,11 +979,10 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateTableIfDoesNotExistSQLView(){
-		String tableId = "syn123";
 		boolean isView = true;
 		// call under test
 		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
-		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
 				+ "ROW_ID bigint(20) NOT NULL, "
 				+ "ROW_VERSION bigint(20) NOT NULL, "
 				+ "ROW_ETAG varchar(36) NOT NULL, "
@@ -936,13 +994,12 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateTruncateSql(){
-		String sql = SQLUtils.createTruncateSql("syn123");
-		assertEquals("TRUNCATE TABLE T123", sql);
+		String sql = SQLUtils.createTruncateSql(tableId);
+		assertEquals("TRUNCATE TABLE T999", sql);
 	}
 	
 	@Test
 	public void testCreateCardinalitySqlEmpty(){
-		String tableId = "syn123";
 		List<DatabaseColumnInfo> list = new LinkedList<DatabaseColumnInfo>();
 		String results = SQLUtils.createCardinalitySql(list, tableId);
 		assertEquals(null, results);
@@ -955,10 +1012,9 @@ public class SQLUtilsTest {
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setColumnName("_C222_");
 		
-		String tableId = "syn123";
 		List<DatabaseColumnInfo> list = Lists.newArrayList(one, two);
 		String results = SQLUtils.createCardinalitySql(list, tableId);
-		assertEquals("SELECT COUNT(DISTINCT _C111_) AS _C111_, COUNT(DISTINCT _C222_) AS _C222_ FROM T123", results);
+		assertEquals("SELECT COUNT(DISTINCT _C111_) AS _C111_, COUNT(DISTINCT _C222_) AS _C222_ FROM T999", results);
 	}
 	
 	public List<DatabaseColumnInfo> createDatabaseColumnInfo(long rowCount){
@@ -992,7 +1048,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateIndexChangesIgnoreRowIdAndVersion(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 1;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(2);
 		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
@@ -1010,7 +1065,6 @@ public class SQLUtilsTest {
 	 */
 	@Test
 	public void testCalculateIndexOptimizationLargeTextWithNoIndex(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setCardinality(100L);
@@ -1037,7 +1091,6 @@ public class SQLUtilsTest {
 	 */
 	@Test
 	public void testCalculateIndexOptimizationLargeTextWithIndex(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setCardinality(100L);
@@ -1062,7 +1115,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateIndexChangesUnderMax(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
 		int columnCount = 2;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
@@ -1079,7 +1131,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateIndexChangesUnderMaxNeedsRename(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
 		int columnCount = 1;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
@@ -1100,7 +1151,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateIndexChangesUnderMaxNameCorrect(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
 		int columnCount = 1;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
@@ -1120,7 +1170,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateIndexChangesOverMaxWithTooManyIndices(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 1;
 		int columnCount = 1;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
@@ -1140,7 +1189,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateIndexChangesLowCardinalityReplacedWithHigh(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 2;
 		int columnCount = 2;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
@@ -1167,7 +1215,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateIndexChangesWithAddRemoveRename(){
-		String tableId = "syn123";
 		int maxNumberOfIndex = 3;
 		int columnCount = 3;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
@@ -1205,7 +1252,6 @@ public class SQLUtilsTest {
 		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
 		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
-		String tableId = "syn123";
 		// call under test
 		String results = SQLUtils.createAlterIndices(changes, tableId);
 		assertEquals(null, results);
@@ -1223,10 +1269,9 @@ public class SQLUtilsTest {
 		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
 		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
-		String tableId = "syn123";
 		// call under test
 		String results = SQLUtils.createAlterIndices(changes, tableId);
-		assertEquals("ALTER TABLE T123 ADD INDEX _C1_idx_ (_C1_(255))", results);
+		assertEquals("ALTER TABLE T999 ADD INDEX _C1_idx_ (_C1_(255))", results);
 	}
 	
 	@Test
@@ -1240,10 +1285,9 @@ public class SQLUtilsTest {
 		List<DatabaseColumnInfo> toRemove = Lists.newArrayList(info);
 		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
-		String tableId = "syn123";
 		// call under test
 		String results = SQLUtils.createAlterIndices(changes, tableId);
-		assertEquals("ALTER TABLE T123 DROP INDEX _C1_IDX", results);
+		assertEquals("ALTER TABLE T999 DROP INDEX _C1_IDX", results);
 	}
 	
 	@Test
@@ -1257,15 +1301,13 @@ public class SQLUtilsTest {
 		List<DatabaseColumnInfo> toRemove =  new LinkedList<DatabaseColumnInfo>();
 		List<DatabaseColumnInfo> toRename = Lists.newArrayList(info);
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
-		String tableId = "syn123";
 		// call under test
 		String results = SQLUtils.createAlterIndices(changes, tableId);
-		assertEquals("ALTER TABLE T123 DROP INDEX _C2_idx_, ADD INDEX _C1_idx_ (_C1_)", results);
+		assertEquals("ALTER TABLE T999 DROP INDEX _C2_idx_, ADD INDEX _C1_idx_ (_C1_)", results);
 	}
 	
 	@Test
 	public void testAlterSqlAddRemoveRename(){		
-		String tableId = "syn123";
 		int maxNumberOfIndex = 3;
 		int columnCount = 3;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
@@ -1289,7 +1331,7 @@ public class SQLUtilsTest {
 		lastInfo.setType(MySqlColumnType.BIGINT);
 		
 		String results = SQLUtils.createOptimizedAlterIndices(currentInfo, tableId, maxNumberOfIndex);
-		assertEquals("ALTER TABLE T123 "
+		assertEquals("ALTER TABLE T999 "
 				+ "DROP INDEX _C0_idx_, "
 				+ "DROP INDEX wrongName, ADD INDEX _C1_idx_ (_C1_), "
 				+ "ADD INDEX _C2_idx_ (_C2_)", results);
@@ -1377,30 +1419,26 @@ public class SQLUtilsTest {
 	
 	@Test 
 	public void testTemporaryTableName(){
-		String tableId = "syn123";
 		String temp = SQLUtils.getTemporaryTableName(tableId);
-		assertEquals("TEMP123", temp);
+		assertEquals("TEMPT999", temp);
 	}
 	
 	@Test 
 	public void testCreateTempTableSql(){
-		String tableId = "syn123";
 		String sql = SQLUtils.createTempTableSql(tableId);
-		assertEquals("CREATE TABLE TEMP123 LIKE T123", sql);
+		assertEquals("CREATE TABLE TEMPT999 LIKE T999", sql);
 	}
 	
 	@Test 
 	public void testCopyTableToTempSql(){
-		String tableId = "syn123";
 		String sql = SQLUtils.copyTableToTempSql(tableId);
-		assertEquals("INSERT INTO TEMP123 SELECT * FROM T123 ORDER BY ROW_ID", sql);
+		assertEquals("INSERT INTO TEMPT999 SELECT * FROM T999 ORDER BY ROW_ID", sql);
 	}
 	
 	@Test 
 	public void testDeleteTempTableSql(){
-		String tableId = "syn123";
 		String sql = SQLUtils.deleteTempTableSql(tableId);
-		assertEquals("DROP TABLE IF EXISTS TEMP123", sql);
+		assertEquals("DROP TABLE IF EXISTS TEMPT999", sql);
 	}
 
 	
@@ -1697,7 +1735,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateSelectInsertFromEntityReplication(){
-		String viewId = "syn123";
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -1724,7 +1761,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateSelectInsertFromEntityReplicationProjectView(){
-		String viewId = "syn123";
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
@@ -1750,7 +1786,6 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testCreateSelectInsertFromEntityReplicationWithDouble(){
-		String viewId = "syn123";
 		ColumnModel doubleAnnotation = new ColumnModel();
 		doubleAnnotation.setColumnType(ColumnType.DOUBLE);
 		doubleAnnotation.setId("3");
@@ -1776,7 +1811,6 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBuildTableViewCRC32Sql(){
-		String viewId = "syn123";
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
 		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', ROW_ETAG, '-', ROW_BENEFACTOR))) FROM T123", sql);
 	}
@@ -2043,7 +2077,18 @@ public class SQLUtilsTest {
 	
 	
 	/**
-	 * This is a test for PLFM-4260 where a boolean column was mapped to a string annotation.
+	 * <p>
+	 * The original fix to PLFM-4260 involved throwing an exception when trying to
+	 * map a string annotation to a boolean column. However, the fix for PLFM-4864
+	 * involved changing how we copy data from the ANNOTATION_REPLICATION table to
+	 * views. We now only copy data from ANNOTATION_REPLICATION from columns that
+	 * match the view column type. As a result, the only type of exception that can
+	 * occur is when a string annotation is too large of for a string column.
+	 * </p>
+	 * This means the original condition in PLFM-4260 will no longer result in an
+	 * error, so we should not throw an exception for this case.
+	 * <p>
+	 * This is part of the fix for PLFM-5348.
 	 */
 	@Test
 	public void testDetermineCauseOfExceptionWrongType() {
@@ -2056,18 +2101,8 @@ public class SQLUtilsTest {
 		annotationModel.setName("foo");
 		annotationModel.setColumnType(ColumnType.STRING);
 		annotationModel.setMaximumSize(11L);
-		try {
-			// call under test
-			SQLUtils.determineCauseOfException(oringal, columnModel,
-					annotationModel);
-			fail("Should have failed.");
-		} catch (IllegalArgumentException expected) {
-			assertEquals(
-					"Cannot insert an annotation value of type STRING into column 'foo' which is of type BOOLEAN.",
-					expected.getMessage());
-			// the cause should be kept
-			assertEquals(oringal, expected.getCause());
-		}
+		// call under test - this should not throw an exception
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
 	}
 	
 	@Test
@@ -2120,6 +2155,7 @@ public class SQLUtilsTest {
 			assertEquals(oringal, expected.getCause());
 		}
 	}
+	
 	
 	@Test
 	public void testGetViewScopeFilterColumnForType() {

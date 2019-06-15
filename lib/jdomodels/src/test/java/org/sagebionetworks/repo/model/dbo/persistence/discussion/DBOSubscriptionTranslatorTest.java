@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;

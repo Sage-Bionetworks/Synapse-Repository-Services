@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -25,7 +24,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,25 +41,23 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	@Autowired
 	private AuthorizationDAO authorizationDAO;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Subscription create(UserInfo userInfo, Topic toSubscribe) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(toSubscribe, "toSubscribe");
 		ValidateArgument.required(toSubscribe.getObjectId(), "Topic.objectId");
 		ValidateArgument.required(toSubscribe.getObjectType(), "Topic.objectType");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, toSubscribe.getObjectId(), toSubscribe.getObjectType()));
+		authorizationManager.canSubscribe(userInfo, toSubscribe.getObjectId(), toSubscribe.getObjectType()).checkAuthorizationOrElseThrow();
 		return subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Subscription subscribeAll(UserInfo userInfo, SubscriptionObjectType toSubscribe) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(toSubscribe, "toSubscribe");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, ALL_OBJECT_IDS, toSubscribe));
+		authorizationManager.canSubscribe(userInfo, ALL_OBJECT_IDS, toSubscribe).checkAuthorizationOrElseThrow();
 		return subscriptionDao.create(userInfo.getId().toString(), ALL_OBJECT_IDS, toSubscribe);
 	}
 
@@ -136,7 +133,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		return projectIds;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(UserInfo userInfo, String subscriptionId) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -153,7 +150,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteAll(UserInfo userInfo) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -193,8 +190,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(topic, "topic");
 		ValidateArgument.required(topic.getObjectId(), "Topic.objectId");
 		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
+		authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).checkAuthorizationOrElseThrow();
 		NextPageToken token = new NextPageToken(nextPageToken);
 		List<String> subscribers = subscriptionDao.getSubscribers(topic.getObjectId(), topic.getObjectType(), token.getLimitForQuery(), token.getOffset());
 		SubscriberPagedResults results = new SubscriberPagedResults();
@@ -209,8 +205,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(topic, "topic");
 		ValidateArgument.required(topic.getObjectId(), "Topic.objectId");
 		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
+		authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).checkAuthorizationOrElseThrow();
 		SubscriberCount count = new SubscriberCount();
 		count.setCount(subscriptionDao.getSubscriberCount(topic.getObjectId(), topic.getObjectType()));
 		return count;

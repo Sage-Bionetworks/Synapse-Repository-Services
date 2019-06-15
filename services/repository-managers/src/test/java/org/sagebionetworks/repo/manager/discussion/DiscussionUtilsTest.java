@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -46,15 +47,9 @@ public class DiscussionUtilsTest {
 	@Test
 	public void testGetMentionedUsernameCaseDoubleAlpha(){
 		Set<String> expected = new HashSet<String>();
-		expected.add("anonymous");
+		expected.add("anon");
+		expected.add("ymous");
 		assertEquals(expected, DiscussionUtils.getMentionedUsername("@anon@ymous"));
-	}
-
-	@Test
-	public void testGetMentionedUsernameCaseContainSpecialChar(){
-		Set<String> expected = new HashSet<String>();
-		expected.add("anonymous?#$%!^&*)(+-_=`~/'\"|.,<>");
-		assertEquals(expected, DiscussionUtils.getMentionedUsername("@anonymous?#$%!^&*)(+-_=`~/'\"|.,<>"));
 	}
 
 	@Test
@@ -70,6 +65,27 @@ public class DiscussionUtilsTest {
 		Set<String> expected = new HashSet<String>();
 		expected.add("anonymous");
 		assertEquals(expected, DiscussionUtils.getMentionedUsername("@ @anonymous"));
+	}
+
+	@Test
+	public void getMentionedUsernameSurroundedByParentheses() {
+		Set<String> expected = new HashSet<String>();
+		expected.add("anonymous");
+		assertEquals(expected, DiscussionUtils.getMentionedUsername("(@anonymous)"));
+	}
+
+	@Test
+	public void getMentionedUsernameFollowedByComma() {
+		Set<String> expected = new HashSet<String>();
+		expected.add("anonymous");
+		assertEquals(expected, DiscussionUtils.getMentionedUsername("@anonymous, check this out"));
+	}
+
+	@Test
+	public void getUsernameWithValidSpecialChars() {
+		Set<String> expected = new HashSet<String>();
+		expected.add("a.non-ymo_us");
+		assertEquals(expected, DiscussionUtils.getMentionedUsername("@a.non-ymo_us"));
 	}
 
 	@Test

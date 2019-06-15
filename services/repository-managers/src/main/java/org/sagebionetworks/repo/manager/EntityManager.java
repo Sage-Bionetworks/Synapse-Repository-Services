@@ -220,14 +220,15 @@ public interface EntityManager {
 	 * @param updated
 	 * @param newVersion should a new version be created for this update?
 	 * @param activityId Activity id for version. Activity id for entity will not be updated if new version is false and activity id is null
-	 * @return
+	 * @return True if this update created a new version of the entity.  Note: There are cases where the provided newVersion is false, but a 
+	 * new version is automatically created anyway.
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
 	
 	/**
 	 * Update multiple children of a single parent within the same transaction.
@@ -435,4 +436,6 @@ public interface EntityManager {
 	 * @return
 	 */
 	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
+
+	Long TEMPORARYcleanupAnnotations(UserInfo userInfo, long startId, long numNodes);
 }

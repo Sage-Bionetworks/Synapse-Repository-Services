@@ -41,7 +41,7 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -64,7 +64,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public SubmissionStatus create(UserInfo userInfo, CreateSubmissionRequest createSubmissionRequest) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -188,7 +188,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		submissionToCreate.setState(SubmissionState.SUBMITTED);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public SubmissionStatus cancel(UserInfo userInfo, String submissionId) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -203,7 +203,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Submission updateStatus(UserInfo userInfo, SubmissionStateChangeRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");

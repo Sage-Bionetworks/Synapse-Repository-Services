@@ -27,10 +27,9 @@ import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.base.Predicate;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Test for the search controller
@@ -82,7 +81,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest" + UUID.randomUUID());
-		project = entityService.createEntity(adminUserId, project, null, new MockHttpServletRequest());
+		project = entityService.createEntity(adminUserId, project, null);
 		// Push this to the serach index
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchManager.createOrUpdateSearchDocument(doc);

@@ -225,7 +225,6 @@ public class DMLUtils {
 		StringBuilder main = new StringBuilder();
 		main.append("DELETE FROM ");
 		main.append(mapping.getTableName());
-		main.append(" WHERE ");
 		addBackupRange(main, mapping);
 		return main.toString();
 	}
@@ -281,14 +280,62 @@ public class DMLUtils {
 		// batch by ranges of backup ids
 		// build the statement
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT CONCAT(");
-		builder.append(buildAggregateCrc32Call(mapping, "SUM"));
-		builder.append(", '%', ");
-		builder.append(buildAggregateCrc32Call(mapping, "BIT_XOR"));
+		builder.append("SELECT");
+		builderConcatSumBitXorCRC32(builder, mapping);
 		builder.append(") FROM ");
 		builder.append(mapping.getTableName());
-		buildWhereBackupIdInRange(mapping, builder);
+		buildWhereBackupIdBetween(builder, mapping);
 		return builder.toString();
+	}
+	
+	/**
+	 * Create a batched checksum over a table by grouping by bin.
+	 * @param mapping
+	 * @return
+	 */
+	public static String createSelectBatchChecksumStatement(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT");
+		builderBinCountMinMax(builder, mapping);
+		builder.append(",");
+		builderConcatSumBitXorCRC32(builder, mapping);
+		builder.append(") FROM ");
+		builder.append(mapping.getTableName());
+		buildWhereBackupIdBetween(builder, mapping);
+		builder.append(" GROUP BY BIN");
+		return builder.toString();
+	}
+	
+	/**
+	 * Builder: ' ID DIV ? AS BIN, COUNT(*), MIN(ID), MAX(ID),
+	 * @param builder
+	 * @param mapping
+	 */
+	public static void builderBinCountMinMax(StringBuilder builder, TableMapping mapping) {
+		String idColName = getBackupIdColumnName(mapping).getColumnName();
+		builder.append(" `");
+		builder.append(idColName);
+		builder.append("` DIV ? AS BIN,");
+		builder.append(" COUNT(*)");
+		builder.append(", MIN(`");
+		builder.append(idColName);
+		builder.append("`), MAX(`");
+		builder.append(idColName);
+		builder.append("`)");
+	}
+	
+	/**
+	 * Builds:
+	 * 'CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))))'
+	 * @param mapping
+	 * @return
+	 */
+	public static void builderConcatSumBitXorCRC32(StringBuilder builder, TableMapping mapping) {
+		builder.append(" CONCAT(");
+		buildAggregateCrc32Call(builder, mapping, "SUM");
+		builder.append(", '%', ");
+		buildAggregateCrc32Call(builder, mapping, "BIT_XOR");
 	}
 	
 	/**
@@ -296,23 +343,19 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	private static String buildAggregateCrc32Call(TableMapping mapping, String aggregate) {
-		String concatCall = buildCallConcatIdAndEtagIfExists(mapping);
-		StringBuilder builder = new StringBuilder();
+	private static void buildAggregateCrc32Call(StringBuilder builder, TableMapping mapping, String aggregate) {
 		builder.append(aggregate);
 		builder.append("(CRC32(");
-		builder.append(concatCall);
+		buildCallConcatIdAndEtagIfExists(builder, mapping);
 		builder.append("))");
-		return builder.toString();
 	}
 	
 	/**
 	 * Builds the concat() call
 	 */
-	private static String buildCallConcatIdAndEtagIfExists(TableMapping mapping) {
+	private static void buildCallConcatIdAndEtagIfExists(StringBuilder builder, TableMapping mapping) {
 		FieldColumn etagCol = getEtagColumn(mapping);
 		FieldColumn idCol = getBackupIdColumnName(mapping);
-		StringBuilder builder = new StringBuilder();
 		builder.append("CONCAT(`");
 		builder.append(idCol.getColumnName());
 		builder.append("`");
@@ -324,50 +367,35 @@ public class DMLUtils {
 		}
 		// Append salt parameter
 		builder.append(", '@@', ?");
-		builder.append(")");
-		return builder.toString();
-		
-	}
-	
-	private static void buildWhereBackupIdInRange(TableMapping mapping, StringBuilder builder) {
-		String idColName = getBackupIdColumnName(mapping).getColumnName();
-		builder.append(" WHERE `");
-		builder.append(idColName);
-		builder.append("` >= ? AND `");
-		builder.append(idColName);
-		builder.append("` <= ?");
-		return;
+		builder.append(")");		
 	}
 	
 	/**
-	 * 'ID' IN ( :BVIDLIST )
+	 * 'WHERE `ID` BETWEEN ? AND ?'
 	 * @param builder
 	 * @param mapping
 	 */
-	private static void addBackupIdInList(StringBuilder builder, TableMapping mapping){
-		// Find the backup id
-		builder.append("`");
-		builder.append(getBackupIdColumnName(mapping).getColumnName());
-		builder.append("`");
-		builder.append(" IN ( :"+BIND_VAR_ID_lIST+" )");
+	public static void buildWhereBackupIdBetween(StringBuilder builder, TableMapping mapping) {
+		String idColName = getBackupIdColumnName(mapping).getColumnName();
+		builder.append(" WHERE `");
+		builder.append(idColName);
+		builder.append("` BETWEEN ? AND ?");
+		return;
 	}
 	
 	
 	/**
-	 * 'ID' >= :BIND_MIN_ID AND 'ID' < BIND_MAX_ID
+	 * 'WHERE`ID` BETWEEN :BIND_MIN_ID AND :BIND_MAX_ID'
 	 * @param builder
 	 * @param mapping
 	 */
 	private static void addBackupRange(StringBuilder builder, TableMapping mapping) {
-		builder.append("`");
-		builder.append(getBackupIdColumnName(mapping).getColumnName());
-		builder.append("`");
-		builder.append(" >= :");
+		String idColName = getBackupIdColumnName(mapping).getColumnName();
+		builder.append(" WHERE `");
+		builder.append(idColName);
+		builder.append("` BETWEEN :");
 		builder.append(BIND_MIN_ID);
-		builder.append(" AND `");
-		builder.append(getBackupIdColumnName(mapping).getColumnName());
-		builder.append("`");
-		builder.append(" < :");
+		builder.append(" AND :");
 		builder.append(BIND_MAX_ID);
 	}
 	
@@ -424,7 +452,6 @@ public class DMLUtils {
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT * FROM ");
 		builder.append(mapping.getTableName());
-		builder.append(" WHERE ");
 		addBackupRange(builder, mapping);
 		return builder.toString();
 	}
@@ -561,7 +588,7 @@ public class DMLUtils {
 		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
 		builder.append(" >= :").append(BIND_MIN_ID).append(" AND P0.");
 		builder.append(getBackupIdColumnName(primaryMapping).getColumnName());
-		builder.append(" < :").append(BIND_MAX_ID);
+		builder.append(" <= :").append(BIND_MAX_ID);
 		builder.append(" ORDER BY P0.").append(primaryBackupColumnName).append(" ASC");
 		return builder.toString();
 	}
@@ -599,7 +626,7 @@ public class DMLUtils {
 		builder.append(primaryBackupIdColumnName);
 		builder.append(" >= :").append(BIND_MIN_ID).append(" AND P.");
 		builder.append(primaryBackupIdColumnName);
-		builder.append(" < :").append(BIND_MAX_ID);
+		builder.append(" <= :").append(BIND_MAX_ID);
 		builder.append(" GROUP BY P.");
 		builder.append(primaryBackupIdColumnName);
 		return builder.toString();

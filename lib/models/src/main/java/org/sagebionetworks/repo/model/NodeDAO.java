@@ -8,11 +8,12 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -541,4 +542,14 @@ public interface NodeDAO {
 	public String touch(Long userId, String nodeId, ChangeType changeType);
 
 
+	@MandatoryWriteTransaction
+	List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId);
+
+	@MandatoryWriteTransaction
+	void TEMPORARYBatchUpdateAnnotations(List<Object[]> args);
+
+	List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes);
+
+	@MandatoryWriteTransaction
+	void TEMPORARYChangeEtagOnly(Long id);
 }

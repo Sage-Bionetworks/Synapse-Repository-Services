@@ -1,13 +1,19 @@
 package org.sagebionetworks.repo.web.service.subscription;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -18,24 +24,24 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SubscriptionServiceImplTest {
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
 	private SubscriptionManager mockSubscriptionManager;
-	private SubscriptionService service;
+
+	@InjectMocks
+	private SubscriptionServiceImpl service;
 
 	private Long userId;
+	private UserInfo userInfo;
 
 	@Before
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-
-		service = new SubscriptionServiceImpl();
-		ReflectionTestUtils.setField(service, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(service, "subscriptionManager", mockSubscriptionManager);
-
 		userId = 1L;
+		userInfo = new UserInfo(false, userId);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 	}
 
 	@Test

@@ -95,7 +95,6 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 	public void testQueryByPrincipal() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException, JSONObjectAdapterException{
 		// Create a project
 		Project p = new Project();
-		p.setEntityType(Project.class.getName());
 		p.setName("name");
 		String id = entityManager.createEntity(testUserInfo, p, null);
 		p.setId(id);

@@ -461,7 +461,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getSharedS3BackupBucket() {
-		return configuration.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
+		return getStack()+configuration.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
 	}
 
 	public String getGoogleAppsOAuthAccessTokenSecret() {
@@ -601,27 +601,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * EZID user name.
-	 */
-	public String getEzidUsername() {
-		return configuration.getProperty("org.sagebionetworks.ezid.username");
-	}
-
-	/**
-	 * EZID password.
-	 */
-	public String getEzidPassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.ezid.password");
-	}
-
-	/**
-	 * EZID REST API URL.
-	 */
-	public String getEzidUrl() {
-		return configuration.getProperty("org.sagebionetworks.ezid.url");
-	}
-
-	/**
 	 * Prefix under which DOIs should be registered.
 	 */
 	public String getDoiPrefix() {
@@ -631,13 +610,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 			// We change the prefix to prevent collisions (separate developer builds may have objects with the same DOI)
 			return configuration.getProperty("org.sagebionetworks.doi.prefix") + "/" + getStackInstance();
 		}
-	}
-
-	/**
-	 * EZID DOI prefix.
-	 */
-	public String getEzidDoiPrefix() {
-		return configuration.getProperty("org.sagebionetworks.ezid.doi.prefix");
 	}
 
 	/**
@@ -659,13 +631,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 */
 	public String getDataciteAPIEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.doi.datacite.api.endpoint");
-	}
-
-	/**
-	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
-	 */
-	public String getEzidTargetUrlPrefix() {
-		return configuration.getProperty("org.sagebionetworks.ezid.doi.target.url.prefix");
 	}
 
 	/**
@@ -708,6 +673,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 */
 	public Integer getSemaphoreSharedMaxTimeoutMS() {
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.shared.max.timeout.ms"));
+	}
+
+	@Override
+	public Integer getWriteReadSemaphoreRunnerMaxReaders(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.write.read.semaphore.runner.max.readers"));
 	}
 
 	/**
@@ -1193,5 +1163,10 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 */
 	public int getCurrentHmacSigningKeyVersion() {
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.hmac.signing.key.current.version"));
+	}
+
+	@Override
+	public boolean useSSLConnectionForTablesDatabase() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.table.cluster.use.ssl"));
 	}
 }

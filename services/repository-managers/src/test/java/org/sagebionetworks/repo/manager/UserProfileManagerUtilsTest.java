@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -92,10 +91,6 @@ public class UserProfileManagerUtilsTest {
 	public void testClearPrivateFieldsAsAdmin() {
 		UserInfo userInfo = new UserInfo(true);
 		UserProfile up = new UserProfile();
-		AttachmentData pic = new AttachmentData();
-		pic.setPreviewId("a preview ID");
-		up.setPic(pic);
-		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
 	}
 

@@ -12,7 +12,7 @@
         },
         "defaultValue": {
             "type": "string",
-            "description": "The default value for this column. Columns of type FILEHANDLEID and ENTITYID are not allowed to have default values."
+            "description": "The default value for this column. Columns of type ENTITYID, FILEHANDLEID, USERID, and LARGETEXT are not allowed to have default values."
         },
         "columnType": {
             "type": "string",
@@ -54,7 +54,7 @@
                 },
                 {
                     "name": "LARGETEXT",
-                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 349,525 characters (1 MB of UTF-8 chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type."
+                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 524,288 characters (2 MB of UTF-8 4 byte chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type."
                 },
                 {
                     "name": "USERID",

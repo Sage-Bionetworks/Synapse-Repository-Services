@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
-import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -80,9 +79,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		Entity entity = null;
 		if ((mask & (EntityBundle.ENTITY | EntityBundle.FILE_NAME)) > 0) {
 			if(versionNumber == null) {
-				entity = serviceProvider.getEntityService().getEntity(userId, entityId, request);
+				entity = serviceProvider.getEntityService().getEntity(userId, entityId);
 			} else {
-				entity = serviceProvider.getEntityService().getEntityForVersion(userId, entityId, versionNumber, request);
+				entity = serviceProvider.getEntityService().getEntityForVersion(userId, entityId, versionNumber);
 			}
 			if ((mask & EntityBundle.ENTITY) > 0) {
 				eb.setEntity(entity);
@@ -90,9 +89,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if ((mask & EntityBundle.ANNOTATIONS) > 0) {
 			if(versionNumber == null) {
-				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId, request));
+				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId));
 			} else {
-				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, entityId, versionNumber, request));				
+				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, entityId, versionNumber));
 			}
 		}
 		if ((mask & EntityBundle.PERMISSIONS) > 0) {
@@ -108,7 +107,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is deprecated.");
 		}
 		if ((mask & EntityBundle.HAS_CHILDREN) > 0) {
-			eb.setHasChildren(serviceProvider.getEntityService().doesEntityHaveChildren(userId, entityId, request));
+			eb.setHasChildren(serviceProvider.getEntityService().doesEntityHaveChildren(userId, entityId));
 		}
 		if ((mask & EntityBundle.ACL) > 0) {
 			try {
@@ -173,20 +172,6 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			}
 		}
 		if((mask & EntityBundle.DOI) > 0 ){
-			 try {
-			 	Doi doi = null;
-			 	if (versionNumber == null) {
-					doi = serviceProvider.getDoiService().getDoiForCurrentVersion(userId, entityId, ObjectType.ENTITY);
-				} else {
-					doi = serviceProvider.getDoiService().getDoiForVersion(userId, entityId, ObjectType.ENTITY, versionNumber);
-				} 
-				eb.setDoi(doi);
-			} catch (NotFoundException e) {
-				// does not exist
-				eb.setDoi(null);
-			}
-		}
-		if((mask & EntityBundle.DOI) > 0 ){
 			try {
 				if (versionNumber == null && (entity instanceof VersionableEntity)) {
 					// DOIs on VersionableEntity cannot be versionless, so we want to get the DOI for the current version
@@ -247,22 +232,22 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		// Create the Entity
 		partsMask += EntityBundle.ENTITY;
 		Entity toCreate = ebc.getEntity();
-		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, activityId, request);
+		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, activityId);
 		
 		// Create the ACL
 		if (ebc.getAccessControlList() != null) {
 			partsMask += EntityBundle.ACL;
 			AccessControlList acl = ebc.getAccessControlList();
 			acl.setId(entity.getId());
-			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
 		}
 		
 		// Create the Annotations
 		if (ebc.getAnnotations() != null) {
 			partsMask += EntityBundle.ANNOTATIONS;
-			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId(), request);
+			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
 			annos.addAll(ebc.getAnnotations());
-			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos, request);
+			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
 		}
 		
 		return getEntityBundle(userId, entity.getId(), partsMask, request);
@@ -287,7 +272,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			if (!entityId.equals(ebc.getEntity().getId()))
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
 			partsMask += EntityBundle.ENTITY;
-			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
+			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId);
 		}
 			
 		// Update the ACL
@@ -298,7 +283,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw new IllegalArgumentException("ACL does not match requested entity ID");
 			}
 			partsMask += EntityBundle.ACL;
-			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
 		}
 		
 		// Update the Annotations
@@ -306,9 +291,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			if (!entityId.equals(ebc.getAnnotations().getId()))
 				throw new IllegalArgumentException("Annotations do not match requested entity ID");
 			partsMask += EntityBundle.ANNOTATIONS;
-			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId, request);
+			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
 			toUpdate.addAll(annos);
-			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate, request);
+			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
 		}
 		
 		return getEntityBundle(userId, entityId, partsMask, request);

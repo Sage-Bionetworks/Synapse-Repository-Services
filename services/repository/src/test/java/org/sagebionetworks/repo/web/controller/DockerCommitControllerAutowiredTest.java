@@ -38,12 +38,12 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		project = new Project();
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-		when(request.getServletPath()).thenReturn("/repo/v1/dockerCommit");
-		project = entityService.createEntity(adminUserId, project, null, request);
+		when(request.getServletPath()).thenReturn("/repo/v1/dockerTag");
+		project = entityService.createEntity(adminUserId, project, null);
 		unmanagedRepository = new DockerRepository();
 		unmanagedRepository.setParentId(project.getId());
 		unmanagedRepository.setRepositoryName("uname/reponame");
-		unmanagedRepository = entityService.createEntity(adminUserId, unmanagedRepository, null, request);
+		unmanagedRepository = entityService.createEntity(adminUserId, unmanagedRepository, null);
 		assertFalse(unmanagedRepository.getIsManaged());
 	}
 	
@@ -62,7 +62,7 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 		servletTestHelper.createDockerCommit(dispatchServlet, adminUserId, unmanagedRepository.getId(), commit);
 
 		// list the commits (should get back the added one)
-		PaginatedResults<DockerCommit> result = servletTestHelper.listDockerCommits(
+		PaginatedResults<DockerCommit> result = servletTestHelper.listDockerTaggedCommits(
 				adminUserId, unmanagedRepository.getId(), DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10L, 0L);
 		assertEquals(1, result.getTotalNumberOfResults());
 		assertEquals(1, result.getResults().size());
@@ -72,7 +72,7 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(TAG, retrieved.getTag());
 		
 		// make sure optional param's are optional
-		PaginatedResults<DockerCommit> result2 = servletTestHelper.listDockerCommits(
+		PaginatedResults<DockerCommit> result2 = servletTestHelper.listDockerTaggedCommits(
 				adminUserId, unmanagedRepository.getId(), null, null, null, null);
 		assertEquals(result, result2);
 	}

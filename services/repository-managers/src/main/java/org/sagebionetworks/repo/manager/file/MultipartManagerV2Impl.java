@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -35,8 +35,9 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -70,21 +71,24 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * org.sagebionetworks.repo.model.file.MultipartUploadRequest,
 	 * java.lang.Boolean)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user,
-			MultipartUploadRequest request, Boolean forceRestart) {
+															  MultipartUploadRequest request, boolean forceRestart) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(user.getId(), "UserInfo.getId");
 		ValidateArgument.required(request, "MultipartUploadRequest");
-		ValidateArgument.required(request.getFileName(),
+		ValidateArgument.requiredNotEmpty(request.getFileName(),
 				"MultipartUploadRequest.fileName");
 		ValidateArgument.required(request.getFileSizeBytes(),
 				"MultipartUploadRequest.fileSizeBytes");
 		ValidateArgument.required(request.getPartSizeBytes(),
 				"MultipartUploadRequest.PartSizeBytes");
-		ValidateArgument.required(request.getContentMD5Hex(),
+		ValidateArgument.requiredNotEmpty(request.getContentMD5Hex(),
 				"MultipartUploadRequest.MD5Hex");
+
+		//validate file name
+		NameValidation.validateName(request.getFileName());
 
 		// anonymous cannot upload. See: PLFM-2621.
 		if (AuthorizationUtils.isUserAnonymous(user)) {
@@ -94,7 +98,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// this user.
 		String requestMD5Hex = calculateMD5AsHex(request);
 		// Clear all data if this is a forced restart
-		if (forceRestart != null && forceRestart.booleanValue()) {
+		if (forceRestart) {
 			multipartUploadDAO.deleteUploadStatus(user.getId(), requestMD5Hex);
 		}
 
@@ -317,7 +321,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public AddPartResponse addMultipartPart(UserInfo user, String uploadId,
 			Integer partNumber, String partMD5Hex) {
@@ -360,7 +364,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return response;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MultipartUploadStatus completeMultipartUpload(UserInfo user,
 			String uploadId) {
@@ -462,7 +466,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public S3FileHandle createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
 		// Convert all of the data to a file handle.

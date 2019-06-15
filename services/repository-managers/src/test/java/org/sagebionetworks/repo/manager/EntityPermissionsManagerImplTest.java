@@ -24,7 +24,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -173,147 +172,10 @@ public class EntityPermissionsManagerImplTest {
 	}
 
 	@Test
-	public void testValidateACLContent() throws Exception {
-		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(userInfo.getId());
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		userRA.setAccessType(ats);
-		
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ras.add(userRA);
-		
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		acl.setResourceAccess(ras);	
-		
-		// Should not throw any exceptions
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-	}
-	
-	@Test(expected = InvalidModelException.class)
-	public void testValidateACLContent_UserMissing()throws Exception {
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		
-		// Should fail, since user is not included with proper permissions in ACL
-		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
-	}
-
-	
-	@Test
-	public void testValidateACLContent_AdminMissing()throws Exception {
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		
-		// Should not throw any exceptions
-		PermissionsManagerUtils.validateACLContent(acl, adminUserInfo, ownerId);
-	}
-	
-	@Test
-	public void testValidateACLContent_OwnerMissing()throws Exception {
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		
-		// Should not throw any exceptions
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-	}
-	
-	@Test(expected = InvalidModelException.class)
-	public void testValidateACLContent_UserInsufficientPermissions() throws Exception {
-		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(userInfo.getId());
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.READ);
-		userRA.setAccessType(ats);
-		
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ras.add(userRA);
-		
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		acl.setResourceAccess(ras);	
-		
-		// Should fail since user does not have permission editing rights in ACL
-		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
-	}
-	
-	@Test
-	public void testValidateACLContent_indirectMembership() throws Exception {
-		ResourceAccess userRA = new ResourceAccess();
-		// 'other user' should be a member of 'authenticated users'
-		Long groupId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
-		assertTrue(otherUserInfo.getGroups().contains(groupId));
-		// giving 'authenticated users' change_permissions access should fulfill the requirement
-		// that the editor of the ACL does not remove their own access
-		userRA.setPrincipalId(groupId);
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		userRA.setAccessType(ats);
-		
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ras.add(userRA);
-		
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		acl.setResourceAccess(ras);	
-		
-		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
-		
-	}
-	
-	@Test(expected = InvalidModelException.class)
-	public void testValidateACLContentAnonDownload() throws Exception {
-		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.DOWNLOAD);
-		userRA.setAccessType(ats);
-		
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ras.add(userRA);
-		
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		acl.setResourceAccess(ras);	
-
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-	}
-
-	/*
-	 * PLFM-3632s
-	 */
-	@Test(expected = UnauthorizedException.class)
-	public void testValidateACLContentNonCertifiedUserMakeACLPublic() throws Exception {
-		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.DOWNLOAD);
-		userRA.setAccessType(ats);
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ras.add(userRA);
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		acl.setResourceAccess(ras);	
-		// userInfo is not certified
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-	}
-
-	@Test
-	public void testValidateACLContentCertifiedUserMakeACLPublic() throws Exception {
-		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.DOWNLOAD);
-		userRA.setAccessType(ats);
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ras.add(userRA);
-		AccessControlList acl = new AccessControlList();
-		acl.setId("resource id");
-		acl.setResourceAccess(ras);
-		// certify userInfo
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+	public void testGetACLNoSYN() throws Exception {
+		// retrieve parent acl
+		AccessControlList acl = entityPermissionsManager.getACL(project.getId().substring("syn".length()), adminUserInfo);
+		assertNotNull(acl);
 	}
 
 	@Test
@@ -637,7 +499,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// baseline:  there is no restriction against downloading this entity
-		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 		// now create an access requirement on project and child
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -650,11 +512,11 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// now we can't download
-		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
 		arId=null;
 		// back to the baseline
-		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 		// now add the AR to the child node itself
 		ar.setId(null);
 		ar.setEtag(null);
@@ -664,6 +526,6 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// again, we can't download
-		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 	}
 }

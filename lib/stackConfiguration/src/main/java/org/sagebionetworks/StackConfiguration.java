@@ -1,7 +1,6 @@
 package org.sagebionetworks;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 
@@ -368,26 +367,6 @@ public interface StackConfiguration {
 	public boolean getShouldMessagesBePublishedToTopic();
 
 	/**
-	 * EZID user name.
-	 */
-	public String getEzidUsername();
-
-	/**
-	 * EZID password.
-	 */
-	public String getEzidPassword();
-
-	/**
-	 * EZID REST API URL.
-	 */
-	public String getEzidUrl();
-
-	/**
-	 * EZID DOI prefix.
-	 */
-	public String getEzidDoiPrefix();
-
-	/**
 	 * DataCite user name.
 	 */
 	public String getDataciteUsername();
@@ -406,11 +385,6 @@ public interface StackConfiguration {
 	 * Prefix under which DOIs should be registered. DOI prefix.
 	 */
 	public String getDoiPrefix();
-
-	/**
-	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
-	 */
-	public String getEzidTargetUrlPrefix();
 
 	/**
 	 * The maximum size of a backup batch.
@@ -441,6 +415,12 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public Integer getSemaphoreSharedMaxTimeoutMS();
+
+	/**
+	 * Maximum number of reader locks allowed at the same time for WriteReadSemaphoreRunner
+	 * @return
+	 */
+	public Integer getWriteReadSemaphoreRunnerMaxReaders();
 
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
@@ -641,6 +621,12 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getTablesDatabaseSchemaForIndex(int index);
+	
+	/**
+	 * Should an SSL connection be used when connecting to the table's database?
+	 * @return
+	 */
+	public boolean useSSLConnectionForTablesDatabase();
 
 	/**
 	 * @return for dev stacks, this controls whether emails are delivered or sent to

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -36,6 +35,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -228,7 +229,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId()).getAuthorized()
+		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId()).isAuthorized()
 				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
 			throw new UnauthorizedException("Invalid file handle given");
 		}
@@ -535,7 +536,7 @@ public class MessageManagerImpl implements MessageManager {
 			// Check permissions to send to non-individuals
 			if (!userIsTrustedMessageSender &&
 					!ug.getIsIndividual() &&
-					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getAuthorized()) {
+					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).isAuthorized()) {
 				String sender = null;
 				String team = null;
 				try {
@@ -593,33 +594,68 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageDAO.deleteMessage(messageId);
 	}
-	
-	
+
+
 	@Override
 	@WriteTransaction
-	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException {
-		String subject = "Set Synapse Password";
+	public void sendNewPasswordResetEmail(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken){
+		ValidateArgument.required(passwordResetToken, "passwordResetToken");
+		ValidateArgument.required(passwordResetUrlPrefix, "passwordResetPrefix");
+
+		String webLink = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
+		EmailUtils.validateSynapsePortalHost(webLink);
+
+		long userId = Long.parseLong(passwordResetToken.getUserId());
+
+
+		String subject = "Reset Synapse Password";
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
-		
-		String alias = principalAliasDAO.getUserName(recipientId);
-		UserProfile userProfile = userProfileManager.getUserProfile(recipientId.toString());
+
+		String alias = principalAliasDAO.getUserName(userId);
+		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
 		String displayName = EmailUtils.getDisplayName(userProfile);
 
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
-		
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		String webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
+
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
-		String email = getEmailForUser(recipientId);
+		String email = getEmailForUser(userId);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
 				.withBody(messageBody, BodyType.PLAIN_TEXT)
 				.withSenderUserName(alias)
 				.withSenderDisplayName(displayName)
-				.withUserId(recipientId.toString())
+				.withUserId(Long.toString(userId))
+				.withIsNotificationMessage(true)
+				.build();
+		sesClient.sendRawEmail(sendEmailRequest);
+	}
+
+	@Override
+	public void sendPasswordChangeConfirmationEmail(long userId){
+		String subject = "Your Synapse Password Has Been Changed";
+		Map<String,String> fieldValues = new HashMap<String,String>();
+
+		String alias = principalAliasDAO.getUserName(userId);
+		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
+		String displayName = EmailUtils.getDisplayName(userProfile);
+
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
+
+		String messageBody = EmailUtils.readMailTemplate("message/PasswordChangeConfirmationTemplate.txt", fieldValues);
+		String email = getEmailForUser(userId);
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
+				.withRecipientEmail(email)
+				.withSubject(subject)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
+				.withSenderUserName(alias)
+				.withSenderDisplayName(displayName)
+				.withUserId(Long.toString(userId))
 				.withIsNotificationMessage(true)
 				.build();
 		sesClient.sendRawEmail(sendEmailRequest);

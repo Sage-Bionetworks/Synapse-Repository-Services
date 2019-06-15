@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Log Service", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class LogController extends BaseController {
+public class LogController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;

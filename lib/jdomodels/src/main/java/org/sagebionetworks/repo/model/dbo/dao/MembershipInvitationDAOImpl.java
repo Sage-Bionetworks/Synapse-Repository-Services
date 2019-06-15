@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitation;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -118,7 +118,7 @@ public class MembershipInvitationDAOImpl implements MembershipInvitationDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MembershipInvitation create(MembershipInvitation dto) throws DatastoreException,
 	InvalidModelException {
@@ -262,7 +262,7 @@ public class MembershipInvitationDAOImpl implements MembershipInvitationDAO {
 		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param, Long.class);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteByTeamAndUser(long teamId, long inviteeId)
 			throws DatastoreException {
@@ -272,7 +272,7 @@ public class MembershipInvitationDAOImpl implements MembershipInvitationDAO {
 		namedJdbcTemplate.update(DELETE_INVITATIONS_BY_TEAM_AND_INVITEE, param);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateInviteeId(String misId, long inviteeId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();

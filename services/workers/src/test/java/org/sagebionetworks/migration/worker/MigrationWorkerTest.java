@@ -1,10 +1,11 @@
 package org.sagebionetworks.migration.worker;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,6 +19,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.AdminRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
@@ -27,9 +29,11 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumReques
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MigrationWorkerTest {
@@ -176,5 +180,18 @@ public class MigrationWorkerTest {
 		// call under test
 		migrationWorker.processRequest(user, request, jobId);
 		verify(mockMigrationManager).calculateOptimalRanges(user, request);
+	}
+	
+	@Test
+	public void  testProcessRequestBatchChecksumRequest() throws DatastoreException, NotFoundException, IOException {
+		String jobId = "123";
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		// call under tes
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).calculateBatchChecksums(user, request);
 	}
 }

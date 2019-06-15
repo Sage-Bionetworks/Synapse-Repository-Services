@@ -4,7 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BROADCAS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BROADCAST_MESSAGE;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ public class BroadcastMessageDaoImpl implements BroadcastMessageDao {
 		return count == 1;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void setBroadcast(Long changeNumber) {
 		ValidateArgument.required(changeNumber, "changeNumber");

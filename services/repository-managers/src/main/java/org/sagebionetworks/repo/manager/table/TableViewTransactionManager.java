@@ -9,6 +9,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -27,7 +28,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -53,7 +54,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	@Autowired
 	StackConfiguration stackConfig;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
 			ProgressCallback progressCallback, UserInfo userInfo,
@@ -63,8 +64,9 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		ValidateArgument.required(userInfo, "userInfo");
 		TableTransactionUtils.validateRequest(request);
 		String tableId = request.getEntityId();
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table.
-		tableManagerSupport.validateTableWriteAccess(userInfo, tableId);
+		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
 		
 		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
 		List<TableUpdateResponse> results = new LinkedList<>();
@@ -121,7 +123,8 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		ValidateArgument.required(change, "AppendableRowSetRequest");
 		ValidateArgument.required(change.getToAppend(), "AppendableRowSetRequest.toAppend");
 		ValidateArgument.required(change.getEntityId(), "AppendableRowSetRequest.entityId");
-		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(change.getEntityId());
+		IdAndVersion idAndVersion = IdAndVersion.parse(change.getEntityId());
+		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(idAndVersion);
 		if(change.getToAppend() instanceof PartialRowSet){
 			return applyPartialRowSet(progressCallback, user, currentSchema, (PartialRowSet)change.getToAppend());
 		}else if(change.getToAppend() instanceof RowSet){

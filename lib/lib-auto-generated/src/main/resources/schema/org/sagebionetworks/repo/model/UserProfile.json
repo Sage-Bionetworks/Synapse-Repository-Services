@@ -12,16 +12,6 @@
 				}
 			]
 		},
-		"uri": {
-			"type": "string",
-			"description": "The Uniform Resource Identifier (URI) for this entity.",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/access/public"
-				}
-			]
-		},
 		"etag": {
 			"type": "string",
 			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date."
@@ -144,11 +134,6 @@
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
-		},
-		"pic": {
-			"type": "object",
-			"description": "This field is deprecated and will be removed.  It will always be null. Replaced with 'profilePicureFileHandleId'",
-			"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData"
 		},
 		"profilePicureFileHandleId": {
 			"type": "string",

@@ -20,7 +20,6 @@
                     "description": "TODO: Auto-generated description"
                 }
             ]
-        },
-        "attachmentData": {"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData"}
+        }
     }
 }

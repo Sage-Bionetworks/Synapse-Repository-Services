@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.manager.EntityManagerImpl;
 import org.sagebionetworks.repo.manager.EntityQueryManagerImpl;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.Expression;

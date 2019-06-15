@@ -5,9 +5,9 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.amazonaws.services.sqs.model.Message;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * This implementation of CSVWriterStream will notify that progress is made for

@@ -3,9 +3,7 @@ package org.sagebionetworks.repo.model.file;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Request for statistics for a given parent object.

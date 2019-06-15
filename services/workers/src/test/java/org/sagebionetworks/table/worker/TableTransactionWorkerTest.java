@@ -1,10 +1,10 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -59,11 +60,12 @@ public class TableTransactionWorkerTest {
 	@Mock
 	TableExceptionTranslator mockTableExceptionTranslator;
 	
-	
+
 	TableTransactionWorker worker;
 	
 	String jobId;
 	String tableId;
+	IdAndVersion idAndVersion;
 	AsynchronousJobStatus status;
 	TableUpdateTransactionRequest request;
 	EntityType tableType;
@@ -81,13 +83,14 @@ public class TableTransactionWorkerTest {
 		ReflectionTestUtils.setField(worker, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(worker, "tableTransactionManagerProvider", mockTransactionManagerProvider);
 		ReflectionTestUtils.setField(worker, "tableExceptionTranslator", mockTableExceptionTranslator);
-		
+
 		userId = 987L;
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
 		
 		jobId = "123";
 		tableId = "syn123";
+		idAndVersion = IdAndVersion.parse(tableId);
 		tableType = EntityType.table;
 		
 		when(mockTransactionManagerProvider.getTransactionManagerForType(tableType)).thenReturn(mockTableTransactionManager);
@@ -104,7 +107,7 @@ public class TableTransactionWorkerTest {
 		
 		when(mockMessage.getBody()).thenReturn(jobId);
 		when(mockAsynchJobStatusManager.lookupJobStatus(jobId)).thenReturn(status);
-		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		
 		// simulate some progress and return a result
@@ -128,14 +131,10 @@ public class TableTransactionWorkerTest {
 			}
 		}).when(mockProgressCallback).addProgressListener(any(ProgressListener.class));
 		
-		doAnswer(new Answer<RuntimeException>() {
-
-			@Override
-			public RuntimeException answer(InvocationOnMock invocation) throws Throwable {
-				Throwable exception = (Throwable) invocation.getArguments()[0];
-				translatedException = new RuntimeException("translated",exception);
-				return translatedException;
-			}
+		doAnswer(invocation -> {
+			Throwable exception = (Throwable) invocation.getArguments()[0];
+			translatedException = new RuntimeException("translated",exception);
+			return translatedException;
 		}).when(mockTableExceptionTranslator).translateException(any(Throwable.class));
 
 	}
@@ -175,11 +174,11 @@ public class TableTransactionWorkerTest {
 	@Test
 	public void testNoManagerForType() throws RecoverableMessageException, Exception{
 		// setup an unknown type
-		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(EntityType.project);
+		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.project);
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
@@ -188,7 +187,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
@@ -197,7 +196,7 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// job should fail.
-		verify(mockAsynchJobStatusManager).setJobFailed(eq(jobId), any(IllegalArgumentException.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test

@@ -1,9 +1,21 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,10 +26,11 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
@@ -26,8 +39,8 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -36,14 +49,14 @@ import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewScope;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.thoughtworks.xstream.XStream;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableViewManagerImplTest {
 
 	@Mock
@@ -57,12 +70,15 @@ public class TableViewManagerImplTest {
 	@Mock
 	NodeManager mockNodeManager;
 	
+	@InjectMocks
 	TableViewManagerImpl manager;
 	
 	UserInfo userInfo;
 	List<String> schema;
 	List<String> scope;
 	String viewId;
+	Long viewIdLong;
+	IdAndVersion idAndVersion;
 	Long viewType;
 	
 	Set<Long> scopeIds;
@@ -81,21 +97,14 @@ public class TableViewManagerImplTest {
 
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		
-		manager = new TableViewManagerImpl();
-		ReflectionTestUtils.setField(manager, "viewScopeDao", viewScopeDao);
-		ReflectionTestUtils.setField(manager, "columModelManager", columnModelManager);
-		ReflectionTestUtils.setField(manager, "tableManagerSupport", tableManagerSupport);
-		ReflectionTestUtils.setField(manager, "columnModelDao", columnModelDao);
-		ReflectionTestUtils.setField(manager, "nodeManager", mockNodeManager);
-		
 		userInfo = new UserInfo(false, 888L);
 		schema = Lists.newArrayList("1","2","3");
 		scope = Lists.newArrayList("syn123", "syn456");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		
 		viewId = "syn555";
+		viewIdLong = KeyFactory.stringToKey(viewId);
+		idAndVersion = IdAndVersion.parse(viewId);
 		viewType =ViewTypeMask.File.getMask();
 		
 		viewScope = new ViewScope();
@@ -108,7 +117,7 @@ public class TableViewManagerImplTest {
 				return (ColumnModel) invocation.getArguments()[0];
 			}}).when(columnModelDao).createColumnModel(any(ColumnModel.class));
 		
-		when(tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewType)).thenReturn(scopeIds);
+		when(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
 		
 		rowCount = 13;
 		rows = new LinkedList<Row>();
@@ -137,7 +146,7 @@ public class TableViewManagerImplTest {
 					results.add(field.getColumnModel());
 				}
 				return results;
-			}}).when(tableManagerSupport).getColumnModels(Matchers.<EntityField>anyVararg());
+			}}).when(tableManagerSupport).getColumnModels(any());
 		
 		namedAnnotations = new NamedAnnotations();
 		when(mockNodeManager.getAnnotations(any(UserInfo.class), anyString())).thenReturn(namedAnnotations);
@@ -178,7 +187,7 @@ public class TableViewManagerImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySetOf(Long.class), any(Long.class));
+		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySet(), any(Long.class));
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 	}
@@ -191,7 +200,7 @@ public class TableViewManagerImplTest {
 		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
 		verify(columnModelManager).bindColumnToObject(schema, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -219,7 +228,7 @@ public class TableViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
 		verify(columnModelManager).bindColumnToObject(null, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -229,7 +238,7 @@ public class TableViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
 		verify(columnModelManager).bindColumnToObject(schema, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -272,7 +281,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testFindViewsContainingEntity(){
 		Set<Long> path = Sets.newHashSet(123L,456L);
-		when(tableManagerSupport.getEntityPath(viewId)).thenReturn(path);
+		when(tableManagerSupport.getEntityPath(idAndVersion)).thenReturn(path);
 		Set<Long> expected = Sets.newHashSet(789L);
 		when(viewScopeDao.findViewScopeIntersectionWithPath(path)).thenReturn(expected);
 		// call under test
@@ -282,29 +291,27 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
-		String tableId = "syn123";
 		List<ColumnModel> rawSchema = Lists.newArrayList(
 				EntityField.benefactorId.getColumnModel(),
 				EntityField.createdBy.getColumnModel(),
 				EntityField.etag.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(tableId);
+		List<ColumnModel> result = manager.getViewSchema(viewId);
 		assertEquals(rawSchema, result);
 	}
 	
 	@Test
 	public void testGetViewSchema(){
-		String tableId = "syn123";
 		List<ColumnModel> rawSchema = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
 				EntityField.createdOn.getColumnModel(),
 				EntityField.benefactorId.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(tableId);
+		List<ColumnModel> result = manager.getViewSchema(viewId);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
@@ -316,7 +323,6 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testApplySchemaChange(){
-		String viewId = "syn123";
 		ColumnChange change = new ColumnChange();
 		change.setOldColumnId(null);
 		change.setNewColumnId("456");
@@ -332,7 +338,7 @@ public class TableViewManagerImplTest {
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
 		assertEquals(schema, newSchema);
 		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	/**
@@ -418,7 +424,7 @@ public class TableViewManagerImplTest {
 	 * 
 	 */
 	@Test
-	public void testUpdateAnnotationsDate(){
+	public void testUpdateAnnotationsDate() throws IOException, JSONObjectAdapterException {
 		Date date = new Date(1509744902000L);
 		viewSchema = Lists.newArrayList(dateColumn);
 		Annotations annos = new Annotations();
@@ -435,11 +441,8 @@ public class TableViewManagerImplTest {
 		 * Note: With PLFM-4706 this is where the date gets 
 		 * converted to the same day at time 0.
 		 */
-		XStream xstream = JDOSecondaryPropertyUtils.createXStream();
-		String xml = xstream.toXML(annos);
-		Annotations annotationCopy = new Annotations();
-		xstream.fromXML(xml, annotationCopy);
-		
+		Annotations annotationCopy = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(annos), Annotations.class);
+
 		Object value = annotationCopy.getSingleValue(dateColumn.getName());
 		assertNotNull(value);
 		assertTrue(value instanceof Date);

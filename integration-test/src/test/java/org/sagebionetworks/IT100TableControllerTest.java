@@ -48,6 +48,8 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -63,6 +65,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -692,7 +695,7 @@ public class IT100TableControllerTest {
 
 	@Test
 	public void testQueryAsync() throws Exception {
-		int columnCount = 20;
+		int columnCount = 16;
 		int stringSize = 1000;
 		int rowsNeeded = 40;
 
@@ -738,7 +741,7 @@ public class IT100TableControllerTest {
 			}
 		});
 		
-		assertEquals(result.getMaxRowsPerPage().intValue(), result.getQueryResult().getQueryResults().getRows().size());
+		assertTrue(result.getMaxRowsPerPage().intValue() >= result.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowsNeeded, result.getQueryCount().intValue());
 		assertNotNull(result.getQueryResult().getNextPageToken());
 		
@@ -845,6 +848,25 @@ public class IT100TableControllerTest {
 		assertEquals(1, page.getResults().size());
 		ColumnModel cm = page.getResults().get(0);
 		assertEquals("keyB", cm.getName());
+	}
+	
+	@Test
+	public void tesSqlTransformRequest() throws SynapseException {
+		TransformSqlWithFacetsRequest request = new TransformSqlWithFacetsRequest();
+		request.setSqlToTransform("select * from syn123");
+		FacetColumnRangeRequest facet = new FacetColumnRangeRequest();
+		facet.setColumnName("foo");
+		facet.setMax("100");
+		facet.setMin("0");
+		request.setSelectedFacets(Lists.newArrayList(facet));
+		ColumnModel column = new ColumnModel();
+		column.setName("foo");
+		column.setFacetType(FacetType.range);
+		column.setColumnType(ColumnType.INTEGER);
+		request.setSchema(Lists.newArrayList(column));
+		// Call under test
+		String resultSql = synapse.transformSqlRequest(request);
+		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
 	}
 	
 	private TableEntity createTable(List<String> columns) throws SynapseException {

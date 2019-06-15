@@ -1,10 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -46,13 +43,13 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	AccessControlListDAO aclDAO;
 	
 	private static final AuthorizationStatus NOT_IN_CHALLENGE = 
-			new AuthorizationStatus(false, "You must be a Challenge participant for this operation.");
+			AuthorizationStatus.accessDenied("You must be a Challenge participant for this operation.");
 	
 	private static final AuthorizationStatus NOT_TEAM_ADMIN = 
-			new AuthorizationStatus(false, "You must be a Team manager for this operation.");
+			AuthorizationStatus.accessDenied("You must be a Team manager for this operation.");
 	
 	private static final AuthorizationStatus NOT_SELF = 
-			new AuthorizationStatus(false, "You may not make this request on another user's behalf.");
+			AuthorizationStatus.accessDenied("You may not make this request on another user's behalf.");
 
 	public ChallengeManagerImpl() {}
 	
@@ -82,9 +79,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	@Override
 	public Challenge createChallenge(UserInfo userInfo, Challenge challenge) throws DatastoreException, NotFoundException {
 		validateChallenge(challenge);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		authorizationManager.canAccess(userInfo, challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE)
+				.checkAuthorizationOrElseThrow();
 		return challengeDAO.create(challenge);
 	}
 
@@ -92,9 +88,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public Challenge getChallenge(UserInfo userInfo, long challengeId)
 			throws DatastoreException, NotFoundException {
 		Challenge challenge = challengeDAO.get(challengeId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 		return challenge;
 	}
 
@@ -102,9 +97,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public Challenge getChallengeByProjectId(UserInfo userInfo, String projectId)
 			throws DatastoreException, NotFoundException {
 		if (projectId==null) throw new IllegalArgumentException("Project ID is required.");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 		return challengeDAO.getForProject(projectId);
 	}
 
@@ -127,9 +121,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public Challenge updateChallenge(UserInfo userInfo, Challenge challenge)
 			throws DatastoreException, NotFoundException {
 		validateChallenge(challenge);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		authorizationManager.canAccess(userInfo, challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
+				.checkAuthorizationOrElseThrow();
 		return challengeDAO.update(challenge);
 	}
 
@@ -138,9 +131,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public void deleteChallenge(UserInfo userInfo, long challengeId)
 			throws DatastoreException, NotFoundException {
 		Challenge challenge = challengeDAO.get(challengeId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE));
+		authorizationManager.canAccess(userInfo, challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
+				.checkAuthorizationOrElseThrow();
 		challengeDAO.delete(challengeId);
 	}
 
@@ -149,9 +141,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			long challengeId, Boolean affiliated, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		Challenge challenge = challengeDAO.get(challengeId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 		PaginatedIds result = new PaginatedIds();
 		List<Long> longIds = challengeDAO.listParticipants(challengeId, affiliated, limit, offset);
 		List<String> stringIds = new ArrayList<String>(longIds.size());
@@ -179,7 +170,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	 * 
 	 */
 	public AuthorizationStatus isRegisteredAndIsAdminForChallengeTeam(UserInfo userInfo, ChallengeTeam challengeTeam) throws NotFoundException {
-		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if (userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		Challenge challenge = challengeDAO.get(Long.parseLong(challengeTeam.getChallengeId()));
 		try {
 			teamDAO.getMember(challenge.getParticipantTeamId(), userInfo.getId().toString());
@@ -193,7 +184,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			return NOT_TEAM_ADMIN;
 		}
 
-		return AuthorizationManagerUtil.AUTHORIZED;
+		return AuthorizationStatus.authorized();
 	}
 	
 	private static final int MAX_CHALLENGE_TEAM_MESSAGE_LENGTH = 500;
@@ -213,8 +204,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public ChallengeTeam createChallengeTeam(UserInfo userInfo,
 			ChallengeTeam challengeTeam) throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateChallengeTeam(challengeTeam);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
+		isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam).checkAuthorizationOrElseThrow();
 		return challengeTeamDAO.create(challengeTeam);
 	}
 
@@ -223,9 +213,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			long challengeId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		Challenge challenge = challengeDAO.get(challengeId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 		ChallengeTeamPagedResults result = new ChallengeTeamPagedResults();
 		result.setResults(challengeTeamDAO.listForChallenge(challengeId, limit, offset));
 		result.setTotalNumberOfResults(challengeTeamDAO.listForChallengeCount(challengeId));
@@ -237,9 +226,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			long challengeId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		Challenge challenge = challengeDAO.get(challengeId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, 
-						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 		PaginatedIds result = new PaginatedIds();
 		Long userId = userInfo.getId();
 		result.setResults(challengeTeamDAO.listRegistratable(challengeId, userId, limit, offset));
@@ -253,8 +241,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			ChallengeTeam challengeTeam) throws DatastoreException,
 			NotFoundException {
 		validateChallengeTeam(challengeTeam);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
+		isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam).checkAuthorizationOrElseThrow();
 		return challengeTeamDAO.update(challengeTeam);
 	}
 
@@ -263,8 +250,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public void deleteChallengeTeam(UserInfo userInfo, long challengeTeamId)
 			throws NotFoundException, DatastoreException {
 		ChallengeTeam challengeTeam = challengeTeamDAO.get(challengeTeamId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
+		isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam).checkAuthorizationOrElseThrow();
 		challengeTeamDAO.delete(challengeTeamId);
 	}
 	
@@ -273,7 +259,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	 */
 	public AuthorizationStatus canListSubmissionTeams(UserInfo userInfo, long submitterPrincipalId) {
 		if (userInfo.isAdmin() ||userInfo.getId().equals(submitterPrincipalId)) 
-			return AuthorizationManagerUtil.AUTHORIZED;
+			return AuthorizationStatus.authorized();
 		return NOT_SELF;
 	}
 
@@ -281,8 +267,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public PaginatedIds listSubmissionTeams(UserInfo userInfo,
 			long challengeId, long submitterPrincipalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				canListSubmissionTeams(userInfo, submitterPrincipalId));
+		canListSubmissionTeams(userInfo, submitterPrincipalId).checkAuthorizationOrElseThrow();
 		PaginatedIds result = new PaginatedIds();
 		result.setResults(challengeTeamDAO.listSubmissionTeams(challengeId, submitterPrincipalId, limit, offset));
 		result.setTotalNumberOfResults(challengeTeamDAO.listSubmissionTeamsCount(challengeId, submitterPrincipalId));

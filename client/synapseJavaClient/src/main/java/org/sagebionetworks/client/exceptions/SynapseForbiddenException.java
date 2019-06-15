@@ -1,5 +1,7 @@
 package org.sagebionetworks.client.exceptions;
 
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+
 /**
  * Exception throw for HTTP status code of 403.
  *
@@ -24,4 +26,7 @@ public class SynapseForbiddenException extends SynapseServerException {
 		super(cause);
 	}
 
+	public SynapseForbiddenException(String message, ErrorResponseCode errorResponseCode) {
+		super(message, errorResponseCode);
+	}
 }

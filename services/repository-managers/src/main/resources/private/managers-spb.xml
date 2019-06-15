@@ -24,6 +24,7 @@
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
 
 	<!-- The Entity manager -->
+	<bean id="annotationCleanupMessageSender" class="org.sagebionetworks.repo.manager.TEMPORARYAnnotationCleanupMessageSender" init-method="init"/>
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl">
 		<property name="allowCreationOfOldEntities" ref="stackConfiguration.allowCreationOfOldEntities"/>
 	</bean>
@@ -86,12 +87,6 @@
 	
 	<bean name="userApiThrottleMemoryTimeBlockSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphoreImpl" scope="singleton"/>
 	
-	<bean name="authenticationThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
-		<constructor-arg index="0">
-		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
-		</constructor-arg>
-	</bean>	
-	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
 	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
@@ -117,9 +112,6 @@
 		</property>
 		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
 	</bean>
-	
-	<!-- Temp file provider -->
-	<bean id="tempFileProvider" class="org.sagebionetworks.repo.model.file.TempFileProviderImpl" />
 	
 	<!-- File Upload manager -->
 	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
@@ -247,8 +239,16 @@
 	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
-		
-	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
+
+	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
+
+	<bean id="authManager" class="org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl" />
+
+	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffLoginLockoutStatusImpl"/>
+
+	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
+
+	<bean id="passwordResetTokenGenerator" class="org.sagebionetworks.repo.manager.authentication.PasswordResetTokenGeneratorImpl"/>
 	
 	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSimpleEmailServiceClient"/>
@@ -307,24 +307,17 @@
 	<bean id="doiManager" class="org.sagebionetworks.repo.manager.doi.DoiManagerImpl"
 		  scope="singleton" />
 
-	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
-		scope="singleton" />
-
 	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
 
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
-		
-	<bean id="writeReadSemaphore" class="org.sagebionetworks.database.semaphore.WriteReadSemaphoreImpl">
-		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-		<constructor-arg ref="txManager" index="1"></constructor-arg>
-	</bean>
 	
 	<bean id="writeReadSemaphoreRunner" class="org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunnerImpl">
-		<constructor-arg index="0" ref="writeReadSemaphore"/>
+		<constructor-arg index="0" ref="countingSemaphore"/>
 		<constructor-arg index="1"><bean class="org.sagebionetworks.common.util.ClockImpl"/>
 		</constructor-arg>
+		<constructor-arg index="2" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders"/>
 	</bean>
 	
 	<bean id="timeoutUtils" class="org.sagebionetworks.util.TimeoutUtils"/>
@@ -463,11 +456,16 @@
             <property name="id" value="464532" />
             <property name="name" value="Synapse Access and Compliance Team" />
         </bean>
-        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
-            <property name="id" value="4" />
-            <property name="name" value="Trusted Message Senders" />
-            <property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />
-           </bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="4" />
+			<property name="name" value="Trusted Message Senders" />
+			<property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="5" />
+			<property name="name" value="Synapse Report Team" />
+			<property name="description" value="Team for users authorized to generate reports about general resource usage and costs incurred by Synapse" />
+		</bean>
        </util:list>
 		
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
@@ -520,6 +518,15 @@
 		<property name="reconciliationQueueName" value="#{stackConfiguration.getQueueName('ENTITY_REPLICATION_RECONCILIATION')}" />
 	</bean>
 
+	<bean id="replicationMessageThreadPool" class="java.util.concurrent.Executors"
+		scope="singleton" factory-method="newFixedThreadPool">
+		<constructor-arg value="5" />
+	</bean>
+
+	<bean id="replicationMessageManagerAsynch"
+		class="org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynchImpl"
+		scope="singleton" />
+
 	<bean id="bulkDownloadManager"
 		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"
 		scope="singleton" />
@@ -528,4 +535,7 @@
 		class="org.sagebionetworks.repo.manager.ObjectTypeManagerImpl"
 		scope="singleton" />
 
+	<bean id="storageReportManager"
+		  class="org.sagebionetworks.repo.manager.report.StorageReportManagerImpl"
+		  scope="singleton"/>
 </beans>

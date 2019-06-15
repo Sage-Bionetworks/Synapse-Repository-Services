@@ -17,22 +17,20 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
-import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -49,7 +47,7 @@ public class PreviewManagerImplAutoWireTest {
 	public UserManager userManager;
 
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;
@@ -76,7 +74,7 @@ public class PreviewManagerImplAutoWireTest {
 		in.close();
 
 		// Now upload the file.
-		ContentType contentType = ContentType.create(ImagePreviewGenerator.IMAGE_PNG, "UTF-8");
+		ContentType contentType = ContentType.create(ImagePreviewGenerator.IMAGE_PNG);
 		S3FileHandle fileMetadata = fileUploadManager.createFileFromByteArray(adminUserInfo.getId().toString(), new Date(), fileContent,
 				filename, contentType, null);
 		toDelete.add(fileMetadata);
@@ -116,7 +114,7 @@ public class PreviewManagerImplAutoWireTest {
 		ObjectMetadata s3Meta = s3Client.getObjectMetadata(pfm.getBucketName(), pfm.getKey());
 		assertNotNull(s3Meta);
 		assertEquals(ImagePreviewGenerator.IMAGE_PNG, s3Meta.getContentType());
-		assertEquals(TransferUtils.getContentDispositionValue(pfm.getFileName()), s3Meta.getContentDisposition());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(pfm.getFileName()), s3Meta.getContentDisposition());
 	}
 
 	@Test

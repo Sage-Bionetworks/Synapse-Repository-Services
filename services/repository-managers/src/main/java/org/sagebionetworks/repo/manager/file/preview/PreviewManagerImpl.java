@@ -8,10 +8,11 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -19,14 +20,13 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.util.FileProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -47,10 +47,10 @@ public class PreviewManagerImpl implements  PreviewManager {
 	FileHandleDao fileMetadataDao;
 	
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	
 	@Autowired
-	TempFileProvider tempFileProvider;
+	FileProvider tempFileProvider;
 
 	@Autowired
 	IdGenerator idGenerator;
@@ -81,7 +81,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param maxPreviewMemory
 	 */
 	public PreviewManagerImpl(FileHandleDao fileMetadataDao,
-			AmazonS3 s3Client, TempFileProvider tempFileProvider,
+			SynapseS3Client s3Client, FileProvider tempFileProvider,
 			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;
@@ -175,7 +175,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		File tempUpload = null;
 		S3ObjectInputStream in = null;
 		OutputStream out = null;
-		try{
+		try {
 			// The upload file will hold the newly created preview file.
 			tempUpload = tempFileProvider.createTempFile("PreviewManagerImpl_upload", ".tmp");
 			S3Object s3Object = s3Client.getObject(new GetObjectRequest(metadata.getBucketName(), metadata.getKey()));
@@ -189,8 +189,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 			pfm.setBucketName(metadata.getBucketName());
 			pfm.setContentType(previewMetadata.getContentType());
 			pfm.setCreatedBy(metadata.getCreatedBy());
-			pfm.setFileName("preview"+previewMetadata.getExtension());
-			pfm.setKey(metadata.getCreatedBy()+"/"+UUID.randomUUID().toString());
+			pfm.setFileName("preview" + previewMetadata.getExtension());
+			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
 			pfm.setContentSize(tempUpload.length());
 			// Upload this to S3
 			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
@@ -203,8 +203,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
 			// done
 			return pfm;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException("Error generating preview for file handle " + metadata.toString(), e);
 		}finally{
 			// apparently, aborting (which also closes the stream) is an optimization for closing large streams that
 			// aren't fully read (see docs on the S3ObjectInputStream)

@@ -13,7 +13,7 @@
 	<import resource="stack-configuration.spb.xml" />
 
 	<!-- This is serving as the JDBC connection pool -->
-	<bean id="idGeneratorDataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
+	<bean id="idGeneratorDataSourcePool" class="org.apache.commons.dbcp2.BasicDataSource"
 		destroy-method="close" depends-on="stackConfiguration">
 		<property name="driverClassName" ref="stackConfiguration.idGeneratorDatabaseDriver" />
 		<property name="url" ref="stackConfiguration.idGeneratorDatabaseConnectionUrl" />
@@ -22,7 +22,7 @@
 		<!-- The minimum number of connections in the pool at all times -->
 		<property name="minIdle" ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
 		<!-- The maximum number of connections in the pool -->
-		<property name="maxActive" ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections"/>
+		<property name="maxTotal" ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections"/>
 		<!-- This will test a connection to see if it is alive when a connection 
 			is fetched from the pool -->
 		<property name="testOnBorrow" ref="stackConfiguration.databaseConnectionPoolShouldValidate"/>
@@ -33,7 +33,7 @@
 	<!-- a PlatformTransactionManager is still required -->
 	<bean id="idGeneratorJdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource">
-			<ref local="idGeneratorDataSourcePool" />
+			<ref bean="idGeneratorDataSourcePool" />
 		</property>
 	</bean>
 

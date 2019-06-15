@@ -1,16 +1,21 @@
 package org.sagebionetworks.repo.manager.message;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNotNull;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -25,6 +30,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ReplyMessageBuilderFactoryTest {
 
 	
@@ -50,22 +56,12 @@ public class ReplyMessageBuilderFactoryTest {
 	String key;
 	Long actorUserId;
 	String actorUsername;
-	
+
+	@InjectMocks
 	ReplyMessageBuilderFactory factory;
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		
-		factory = new ReplyMessageBuilderFactory();
-		ReflectionTestUtils.setField(factory, "replyDao", mockReplyDao);
-		ReflectionTestUtils.setField(factory, "threadDao", mockThreadDao);
-		ReflectionTestUtils.setField(factory, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(factory, "principalAliasDAO", mockPrincipalAliasDAO);
-		ReflectionTestUtils.setField(factory, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(factory, "uploadDao", mockUploadDao);
-		ReflectionTestUtils.setField(factory, "markdownDao", mockMarkdownDao);
-		
 		key = "key";
 		message = "message";
 		replyBundle = new DiscussionReplyBundle();
@@ -83,7 +79,7 @@ public class ReplyMessageBuilderFactoryTest {
 		
 		projectHeader = new EntityHeader();
 		projectHeader.setName("project name");
-		when(mockNodeDao.getEntityHeader(anyString(), anyLong())).thenReturn(projectHeader);
+		when(mockNodeDao.getEntityHeader(anyString(), isNull())).thenReturn(projectHeader);
 
 		when(mockUploadDao.getMessage(key)).thenReturn(message);
 

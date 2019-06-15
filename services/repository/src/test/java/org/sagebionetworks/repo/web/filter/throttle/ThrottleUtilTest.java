@@ -1,28 +1,29 @@
 package org.sagebionetworks.repo.web.filter.throttle;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
-import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.generateCloudwatchProfiledata;
-import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.setResponseError;
-import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.isMigrationAdmin;
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.JSON_HTTP_CONTENT_TYPE;
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.UTF8_ENCODING;
-
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.generateCloudwatchProfiledata;
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.isMigrationAdmin;
+import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.setResponseError;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-
-import javax.servlet.http.HttpServletResponse;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ThrottleUtilTest {

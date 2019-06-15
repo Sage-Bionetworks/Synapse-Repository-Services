@@ -7,11 +7,13 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.util.Callback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -27,7 +29,7 @@ public interface TableIndexDAO {
 	 * @param tableId The ID of the table.
 	 * @param isView Is this table a View?
 	 */
-	public void createTableIfDoesNotExist(String tableId, boolean isView);
+	public void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView);
 	
 	/**
 	 * Alter the given table as needed. The table will be changed
@@ -39,7 +41,7 @@ public interface TableIndexDAO {
 	 * @param alterTemp When true the temporary table will be altered.  When false the original table will be altered.
 	 * @return True if the table was altered. False if the table was not changed.
 	 */
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
+	public boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
 	
 	/**
 	 * 
@@ -47,7 +49,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean deleteTable(String tableId); 
+	public boolean deleteTable(IdAndVersion tableId); 
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
@@ -55,7 +57,7 @@ public interface TableIndexDAO {
 	 * @param grouping group of rows that change the same columns.
 	 * @return
 	 */
-	void createOrUpdateOrDeleteRows(Grouping grouping);
+	void createOrUpdateOrDeleteRows(IdAndVersion tableId, Grouping grouping);
 	
 	/**
 	 * Query a RowSet from the table.
@@ -87,7 +89,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return The row count of the table. If the table does not exist then null.
 	 */
-	public Long getRowCountForTable(String tableId);
+	public Long getRowCountForTable(IdAndVersion tableId);
 	
 	/**
 	 * Get the max complete version we currently have for this table.
@@ -96,7 +98,7 @@ public interface TableIndexDAO {
 	 * @param version the max complete version to remember
 	 * @return The max complete version of the table. If the table does not exist then -1L.
 	 */
-	public Long getMaxCurrentCompleteVersionForTable(String tableId);
+	public Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId);
 
 	/**
 	 * Set the max complete version for this table
@@ -104,7 +106,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param highestVersion
 	 */
-	public void setMaxCurrentCompleteVersionForTable(String tableId, Long highestVersion);
+	public void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
 	
 	/**
 	 * Set the MD5 hex of the table's current schema.
@@ -112,27 +114,27 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param schemaMD5Hex
 	 */
-	public void setCurrentSchemaMD5Hex(String tableId, String schemaMD5Hex);
+	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex);
 	
 	/**
 	 * Get the MD5 hex of the table's current schema.
 	 * @param tableId
 	 * @return
 	 */
-	public String getCurrentSchemaMD5Hex(String tableId);
+	public String getCurrentSchemaMD5Hex(IdAndVersion tableId);
 
 	/**
 	 * Delete all of the secondary tables used for an index if they exist.
 	 * 
 	 * @param tableId
 	 */
-	public void deleteSecondaryTables(String tableId);
+	public void deleteSecondaryTables(IdAndVersion tableId);
 	
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.
 	 * @param tableId
 	 */
-	public void createSecondaryTables(String tableId);
+	public void createSecondaryTables(IdAndVersion tableId);
 	
 	/**
 	 * Get the connection
@@ -161,7 +163,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param fileHandleIds
 	 */
-	public void applyFileHandleIdsToTable(String tableId,
+	public void applyFileHandleIdsToTable(IdAndVersion tableId,
 			Set<Long> fileHandleIds);
 	
 	/**
@@ -172,7 +174,7 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public Set<Long> getFileHandleIdsAssociatedWithTable(
-			Set<Long> toTest, String tableId);
+			Set<Long> toTest, IdAndVersion tableId);
 	
 	/**
 	 * Does the state of the index match the given data?
@@ -182,7 +184,7 @@ public interface TableIndexDAO {
 	 * @param schemaMD5Hex
 	 * @return
 	 */
-	public boolean doesIndexStateMatch(String tableId, long versionNumber, String schemaMD5Hex);
+	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex);
 
 	/**
 	 * Get the distinct Long values for a given column ID.
@@ -190,14 +192,14 @@ public interface TableIndexDAO {
 	 * @param id
 	 * @return
 	 */
-	public Set<Long> getDistinctLongValues(String tableId, String columnIds);
+	public Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnIds);
 
 	/**
 	 * Truncate all of the data in the given table.
 	 * 
 	 * @param tableId
 	 */
-	public void truncateTable(String tableId);
+	public void truncateTable(IdAndVersion tableId);
 	
 	
 	/**
@@ -206,7 +208,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public List<DatabaseColumnInfo> getDatabaseInfo(String tableId);
+	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
 	
 	/**
 	 * Provide the cardinality for the given columns and table.
@@ -216,14 +218,14 @@ public interface TableIndexDAO {
 	 * @param list
 	 * @param tableId
 	 */
-	public void provideCardinality(List<DatabaseColumnInfo> list, String tableId);
+	public void provideCardinality(List<DatabaseColumnInfo> list, IdAndVersion tableId);
 	
 	/**
 	 * Provide the index name for each column in the table.
 	 * @param list
 	 * @param tableId
 	 */
-	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId);
+	public void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId);
 	
 	
 	/**
@@ -241,31 +243,31 @@ public interface TableIndexDAO {
 	 * @param maxNumberOfIndex
 	 *            The maximum number of indices allowed on a single table.
 	 */
-	public void optimizeTableIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex);
+	public void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
 
 	/**
 	 * Create a temporary table like the given table.
 	 * @param tableId
 	 */
-	public void createTemporaryTable(String tableId);
+	public void createTemporaryTable(IdAndVersion tableId);
 
 	/**
 	 * Copy all of the data from the original table to the temporary table.
 	 * @param tableId
 	 */
-	public void copyAllDataToTemporaryTable(String tableId);
+	public void copyAllDataToTemporaryTable(IdAndVersion tableId);
 
 	/**
 	 * Delete the temporary table associated with the given table.
 	 */
-	public void deleteTemporaryTable(String tableId);
+	public void deleteTemporaryTable(IdAndVersion tableId);
 
 	/**
 	 * Count the rows in the temp table.
 	 * @param tableId
 	 * @return
 	 */
-	public long getTempTableCount(String tableId);
+	public long getTempTableCount(IdAndVersion tableId);
 	
 	/**
 	 * Create the entity replication tables if they do not exist.
@@ -313,7 +315,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	public void copyEntityReplicationToTable(String viewId, Long viewTypeMask,
+	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 
 	/**
@@ -325,7 +327,7 @@ public interface TableIndexDAO {
 	 * 
 	 * @return
 	 */
-	long calculateCRC32ofTableView(String viewId);
+	long calculateCRC32ofTableView(Long viewId);
 
 	/**
 	 * Save both the current version and schema MD5 for current index.
@@ -334,7 +336,7 @@ public interface TableIndexDAO {
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
-	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
+	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
 			String schemaMD5Hex);
 
 	/**
@@ -411,4 +413,9 @@ public interface TableIndexDAO {
 	 */
 	public long getSumOfFileSizes(List<Long> rowIds);
 
+	/**
+	 * Get the statistics about Synapse storage usage per-project.
+	 * @return
+	 */
+	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
 }

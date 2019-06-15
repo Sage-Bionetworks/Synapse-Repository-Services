@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -234,6 +233,15 @@ public class ColumnModelUtlisTest {
 		original.setEnumValues(Collections.nCopies(StackConfigurationSingleton.singleton().getTableMaxEnumValues() + 1, "aaa"));
 		original.setDefaultValue(null);
 		original.setMaximumSize(5L);
+
+		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testLargeText_DisallowDefaultValue(){
+		original.setName("name");
+		original.setColumnType(ColumnType.LARGETEXT);
+		original.setDefaultValue("value");
 
 		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 	}

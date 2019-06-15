@@ -3,9 +3,13 @@ import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -18,13 +22,12 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
@@ -39,6 +42,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -146,7 +150,7 @@ public class MessageManagerImplUnitTest {
 		when(messageDAO.canCreateMessage(eq(CREATOR_ID.toString()), 
 				anyLong(), anyLong())).thenReturn(true);
 		when(authorizationManager.canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID)).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			thenReturn(AuthorizationStatus.authorized());
 		UserGroup ug = new UserGroup();
 		ug.setId(RECIPIENT_ID.toString());
 		ug.setIsIndividual(true);
@@ -370,8 +374,13 @@ public class MessageManagerImplUnitTest {
 	}
 
 	@Test
-	public void testPasswordResetEmail() throws Exception{
-		messageManager.sendPasswordResetEmail(RECIPIENT_ID, "abcdefg");
+	public void testSendNewPasswordResetEmail() throws Exception{
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token);
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
@@ -381,8 +390,33 @@ public class MessageManagerImplUnitTest {
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
-		assertTrue(body.indexOf(
-				"Please follow the link below to set your password.")>=0);
+		assertTrue(body.contains("Please follow the link below to set your password."));
+	}
+
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testSendNewPasswordResetEmail_DisallowedSnapsePrefix() throws Exception{
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+		String synapsePrefix = "https://NOTsynapse.org/";
+
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token);
+	}
+
+
+	@Test
+	public void testSendPasswordChangeConfirmationEmail() throws Exception{
+		messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("noreply@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.contains("Your password for your Synapse account has been changed."));
 	}
 
 
@@ -417,7 +451,7 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
-				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);	
+				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		
 		// This will fail since non-admin users do not have permission to send to the public group
 		mtu.setRecipients(Collections.singleton(authUsersId.toString()));
@@ -432,7 +466,7 @@ public class MessageManagerImplUnitTest {
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(adminUserInfo);
 		
 		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
-				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);	
+				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.authorized());
 		
 		errors = messageManager.processMessage(MESSAGE_ID, null);
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());

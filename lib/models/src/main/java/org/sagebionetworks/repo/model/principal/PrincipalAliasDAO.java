@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.principal;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,13 +30,14 @@ public interface PrincipalAliasDAO {
 	 * @throws NotFoundException 
 	 */
 	public PrincipalAlias getPrincipalAlias(Long aliasId) throws NotFoundException;
-	
+
 	/**
-	 * Find a principal by an alias
+	 * Find a principal by an alias. If aliasTypes are passed in, will check that the principal is one of the aliasTypes.
 	 * @param alias
+	 * @param aliasTypes optional.
 	 * @return
 	 */
-	public PrincipalAlias findPrincipalWithAlias(String alias);
+	public PrincipalAlias findPrincipalWithAlias(String alias, AliasType... aliasTypes);
 	
 	/**
 	 * List all aliases for a given principal.

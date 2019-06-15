@@ -2,7 +2,7 @@ package org.sagebionetworks.audit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,9 +15,10 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.audit.dao.ObjectCSVDAO;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.csv.utils.ExampleObject;
+import org.sagebionetworks.util.ContentDispositionUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -25,7 +26,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 public class ObjectCSVDAOTest {
 
-	private AmazonS3 mockS3Client;
+	private SynapseS3Client mockS3Client;
 	private int stackInstanceNumber;
 	private String bucketName;
 	private Class<ExampleObject> objectClass;
@@ -34,7 +35,7 @@ public class ObjectCSVDAOTest {
 
 	@Before
 	public void setUp() {
-		mockS3Client = Mockito.mock(AmazonS3.class);
+		mockS3Client = Mockito.mock(SynapseS3Client.class);
 		stackInstanceNumber = 1;
 		bucketName = "object.csv.dao.test";
 		objectClass = ExampleObject.class;
@@ -66,7 +67,7 @@ public class ObjectCSVDAOTest {
 		// Can we read the results?
 		List<ExampleObject> results = dao.readFromStream(inCapture.getValue());
 		assertEquals(data, results);
-		assertEquals("attachment; filename="+key+";", metaCapture.getValue().getContentDisposition());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(key), metaCapture.getValue().getContentDisposition());
 		assertEquals("application/x-gzip", metaCapture.getValue().getContentType());
 		assertEquals("gzip", metaCapture.getValue().getContentEncoding());
 		assertTrue(metaCapture.getValue().getContentLength() > 1);

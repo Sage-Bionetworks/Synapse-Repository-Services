@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,10 +22,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -109,7 +108,7 @@ public class UserManagerImplUnitTest {
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(3333L);
 		principalAlias.setType(AliasType.USER_NAME);
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(alias)).thenReturn(principalAlias);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(eq(alias), any())).thenReturn(principalAlias);
 	}
 	
 	@Test
@@ -220,32 +219,19 @@ public class UserManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testLookupUserForAuthentication() {
+	public void testLookupUserByUsernameOrEmail() {
 		// call under test
-		PrincipalAlias pa = userManager.lookupUserForAuthentication(alias);
+		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(alias);
 		assertEquals(principalAlias, pa);
 	}
 	
 	@Test
-	public void testLookupUserForAuthenticationTeam() {
-		// set the alias as a team alias
-		principalAlias.setType(AliasType.TEAM_NAME);
-		try {
-			// call under test
-			userManager.lookupUserForAuthentication(alias);
-			fail();
-		} catch (UnauthenticatedException e) {
-			assertEquals("Cannot authenticate as team. Only users can authenticate.",e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testLookupUserForAuthenticationNotFound() {
+	public void testLookupUserByUsernameOrEmailNotFound() {
 		// unknown alias
 		alias = "unknown";
 		try {
 			// call under test
-			userManager.lookupUserForAuthentication(alias);
+			userManager.lookupUserByUsernameOrEmail(alias);
 			fail();
 		} catch (NotFoundException e) {
 			assertEquals("Did not find a user with alias: unknown",e.getMessage());

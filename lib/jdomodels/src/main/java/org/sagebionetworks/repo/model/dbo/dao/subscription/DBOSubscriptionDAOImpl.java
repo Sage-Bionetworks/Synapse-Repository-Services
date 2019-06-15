@@ -45,8 +45,7 @@ import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -159,7 +158,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		}
 	};
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Subscription create(String subscriberId, String objectId,
 			SubscriptionObjectType objectType) {
@@ -195,19 +194,19 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		return query.replace("*", "COUNT(*)");
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(long subscriptionId) {
 		jdbcTemplate.update(SQL_DELETE, subscriptionId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteAll(Long userId) {
 		jdbcTemplate.update(SQL_DELETE_ALL, userId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void subscribeAllUsers(Set<String> subscribers, final String objectId, final SubscriptionObjectType objectType) {
 		ValidateArgument.required(subscribers, "subscribers");

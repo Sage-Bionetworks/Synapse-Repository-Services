@@ -18,7 +18,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 /**
  * This filter is our last chance to log any type of unexpected error. Errors
@@ -69,6 +72,7 @@ public class UnexpectedExceptionFilter implements Filter {
 			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 			try {
 				er.writeToJSONObject(joa);
+				res.setContentType(MediaType.APPLICATION_JSON_VALUE);
 				res.getWriter().println(joa.toJSONString());
 			} catch (JSONObjectAdapterException e2) {
 				// give up here, just write constant string

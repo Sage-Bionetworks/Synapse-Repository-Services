@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -26,7 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
@@ -244,8 +244,8 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(LAST_NAME, user.getLastName());
 		assertEquals(USER_NAME, user.getUserName());
 		assertEquals(EMAIL, user.getEmail());
-		verify(mockAuthManager).changePassword(USER_ID, PASSWORD);
-		verify(mockAuthManager).login(USER_ID, PASSWORD, null);
+		verify(mockAuthManager).setPassword(USER_ID, PASSWORD);
+		verify(mockAuthManager).loginWithNoPasswordCheck(USER_ID);
 	}
 
 	// token is OK 23 hours from now

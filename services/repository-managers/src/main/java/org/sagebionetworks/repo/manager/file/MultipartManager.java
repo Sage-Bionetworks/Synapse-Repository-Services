@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.io.File;
 import java.net.URL;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -10,10 +9,7 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.amazonaws.event.ProgressListener;
 
 /**
  * Abstraction for multi-part support.

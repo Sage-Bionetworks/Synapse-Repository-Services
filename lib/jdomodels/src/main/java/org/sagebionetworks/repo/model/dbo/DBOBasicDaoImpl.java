@@ -26,6 +26,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	
 	public static final String GET_LAST_ID_SQL = "SELECT LAST_INSERT_ID()";
+
+	public static final String GET_DATABASE_UNIX_TIMESTAMP_MILLIS = "SELECT CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED)";
 	
 	@Autowired
 	private DDLUtils ddlUtils;	
@@ -297,7 +299,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		String countSql = getCountSQL(clazz);
 		return jdbcTemplate.queryForObject(countSql, Long.class);
 	}
-	
+
+	@Override
+	public long getDatabaseTimestampMillis() {
+		return jdbcTemplate.queryForObject(GET_DATABASE_UNIX_TIMESTAMP_MILLIS, Long.class);
+	}
+
 	@WriteTransaction
 	@Override
 	public <T extends DatabaseObject<T>> boolean deleteObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException {

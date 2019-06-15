@@ -4,8 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -18,10 +18,12 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -29,6 +31,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -52,10 +55,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableViewTransactionManagerTest {
 	
 	@Mock
@@ -68,11 +71,12 @@ public class TableViewTransactionManagerTest {
 	TableUploadManager mockTableUploadManager;
 	@Mock
 	StackConfiguration mockStackConfig;
-	
+	@InjectMocks
 	TableViewTransactionManager manager;
 	
 	UserInfo user;
 	String viewId;
+	IdAndVersion idAndVersion;
 	TableSchemaChangeRequest schemaChangeRequest;
 	List<ColumnChange> columnChanges;
 	List<ColumnModel> schema;
@@ -89,15 +93,9 @@ public class TableViewTransactionManagerTest {
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		manager = new TableViewTransactionManager();
-		ReflectionTestUtils.setField(manager, "tableViewManger", mockTableViewManger);
-		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
-		ReflectionTestUtils.setField(manager, "tableUploadManager", mockTableUploadManager);
-		ReflectionTestUtils.setField(manager, "stackConfig", mockStackConfig);
-		
 		user = new UserInfo(false, 12L);
 		viewId = "syn213";
+		idAndVersion  = IdAndVersion.parse(viewId);
 		schema = TableModelTestUtils.createColumsWithNames("one", "two");
 		
 		ColumnChange change = new ColumnChange();
@@ -142,7 +140,7 @@ public class TableViewTransactionManagerTest {
 		
 		when(mockTableViewManger.applySchemaChange(user, viewId, columnChanges, orderedColumnIds)).thenReturn(schema);
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
-		when(mockTableManagerSupport.getColumnModelsForTable(viewId)).thenReturn(schema);
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(schema);
 		
 		// setup 
 		doAnswer(new Answer<TableUpdateResponse>(){
@@ -208,7 +206,7 @@ public class TableViewTransactionManagerTest {
 		TableSchemaChangeResponse schemaResponse = (TableSchemaChangeResponse) single;
 		assertEquals(schema, schemaResponse.getSchema());
 		// user must have write on the view.
-		verify(mockTableManagerSupport).validateTableWriteAccess(user, viewId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -252,7 +250,7 @@ public class TableViewTransactionManagerTest {
 		// call under test
 		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
 		assertNotNull(result);
-		verify(mockTableManagerSupport).getColumnModelsForTable(viewId);
+		verify(mockTableManagerSupport).getColumnModelsForTable(idAndVersion);
 	}
 
 	@Test
@@ -261,7 +259,7 @@ public class TableViewTransactionManagerTest {
 		// call under test
 		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
 		assertNotNull(result);
-		verify(mockTableManagerSupport).getColumnModelsForTable(viewId);
+		verify(mockTableManagerSupport).getColumnModelsForTable(idAndVersion	);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

@@ -1,29 +1,44 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
+	
+	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 	
@@ -49,7 +64,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * .TableIndexConnection)
 	 */
 	@Override
-	public long getCurrentVersionOfIndex(String tableId) {
+	public long getCurrentVersionOfIndex(final IdAndVersion tableId) {
 		return tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 	}
 
@@ -63,7 +78,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * java.util.List, long)
 	 */
 	@Override
-	public void applyChangeSetToIndex(final String tableId, final SparseChangeSet rowset,
+	public void applyChangeSetToIndex(final IdAndVersion tableId, final SparseChangeSet rowset,
 			final long changeSetVersionNumber) {
 		// Validate all rows have the same version number
 		// Has this version already been applied to the table index?
@@ -77,7 +92,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 						public Void doInTransaction(TransactionStatus status) {
 							// apply all groups to the table
 							for(Grouping grouping: rowset.groupByValidValues()){
-								tableIndexDao.createOrUpdateOrDeleteRows(grouping);
+								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
 							}
 							// Extract all file handle IDs from this set
 							Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
@@ -103,7 +118,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * .TableIndexConnection, long)
 	 */
 	@Override
-	public boolean isVersionAppliedToIndex(final String tableId, long versionNumber) {
+	public boolean isVersionAppliedToIndex(final IdAndVersion tableId, long versionNumber) {
 		final long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		return currentVersion >= versionNumber;
 	}
@@ -116,47 +131,47 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(final String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> newSchema){
+	public void setIndexSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
-		updateTableSchema(tableId, isTableView, progressCallback, changes);
+		updateTableSchema(tableId, isTableView, changes);
 	}
 
 	@Override
-	public void deleteTableIndex(final String tableId) {
+	public void deleteTableIndex(final IdAndVersion tableId) {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
 		tableIndexDao.deleteSecondaryTables(tableId);
 	}
 	
 	@Override
-	public String getCurrentSchemaMD5Hex(final String tableId) {
+	public String getCurrentSchemaMD5Hex(final IdAndVersion tableId) {
 		return tableIndexDao.getCurrentSchemaMD5Hex(tableId);
 	}
 	
 	@Override
-	public void setIndexVersion(final String tableId, Long versionNumber) {
+	public void setIndexVersion(final IdAndVersion tableId, Long versionNumber) {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(
 				tableId, versionNumber);
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(final String tableId, Long viewCRC, String schemaMD5Hex) {
+	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
 		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 	}
 	
 	
 	@Override
-	public boolean updateTableSchema(final String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
+	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId, isTableView);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
 		boolean alterTemp = false;
 		// Alter the table
-		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
+		boolean wasSchemaChanged = alterTableAsNeededWithProgress(tableId, changes, alterTemp);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -175,9 +190,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}	
 	
 	@Override
-	public boolean alterTempTableSchmea(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
+	public boolean alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
-		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
+		return alterTableAsNeededWithProgress(tableId, changes, alterTemp);
 	}
 	
 	/**
@@ -188,7 +203,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
+	boolean alterTableAsNeededWithProgress(final IdAndVersion tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
 		try {
 			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {
@@ -205,7 +220,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param alterTemp
 	 * @return
 	 */
-	boolean alterTableAsNeededWithinAutoProgress(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
+	boolean alterTableAsNeededWithinAutoProgress(final IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
 		// Lookup the current schema of the index.
 		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// must also gather the names of each index currently applied to each column.
@@ -220,7 +235,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#optimizeTableIndices()
 	 */
 	@Override
-	public void optimizeTableIndices(final String tableId) {
+	public void optimizeTableIndices(final IdAndVersion tableId) {
 		// To optimize a table's indices, statistics must be gathered
 		// for each column of the table.
 		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -233,7 +248,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void createTemporaryTableCopy(final String tableId, ProgressCallback callback) {
+	public void createTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
 		// creating a temp table can take a long time so auto-progress is used.
 		try {
 			// create the table.
@@ -246,12 +261,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 	}
 	@Override
-	public void deleteTemporaryTableCopy(final String tableId, ProgressCallback callback) {
+	public void deleteTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
 		// delete
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback callback, final Long viewTypeMask,
+	public Long populateViewFromEntityReplication(final Long tableId, final ProgressCallback callback, final Long viewTypeMask,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		ValidateArgument.required(callback, "callback");
 		try {
@@ -277,7 +292,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
 	 * @throws Exception 
 	 */
-	Long populateViewFromEntityReplicationWithProgress(final String tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
+	Long populateViewFromEntityReplicationWithProgress(final Long tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
@@ -310,10 +325,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForView(
-			String viewId, String nextPageToken) {
+			final Long viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
-		Long type = tableManagerSupport.getViewTypeMask(viewId);
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId, type);
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
+		Long type = tableManagerSupport.getViewTypeMask(idAndVersion);
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, type);
 		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
 	}
 	
@@ -352,6 +368,123 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		return results;
+	}
+	
+	@Override
+	public void buildIndexToChangeNumber(final ProgressCallback progressCallback, final IdAndVersion idAndVersion,
+			final Iterator<TableChangeMetaData> iterator, final long targetChangeNumber) throws RecoverableMessageException {
+		// Only proceed if work is needed.
+		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
+			log.info("Index already up-to-date for table: " + idAndVersion);
+			return;
+		}
+		/*
+		 * Before we start working on the table make sure it is in the processing mode.
+		 * This will generate a new reset token and will not broadcast the change.
+		 */
+		final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion);
+		// Attempt to run with
+		try {
+
+			// Run with the exclusive lock on the table if we can get it.
+			String lastEtag = tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, 120,
+					(ProgressCallback callback) -> {
+						return buildIndexToChangeNumberWithExclusiveLock(idAndVersion, iterator, targetChangeNumber,
+								tableResetToken);
+					});
+			log.info("Completed index update for: " + idAndVersion);
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, lastEtag);
+		} catch (LockUnavilableException | TableUnavailableException | InterruptedException| IOException e) {
+			throw new RecoverableMessageException(e);
+		} catch (Exception e) {
+			// Any other error is a table failure.
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, tableResetToken, e);
+			// This is not an error we can recover from.
+			log.info("Unrecoverable failure to update table index: "+idAndVersion);
+		}
+	}
+	
+	/**
+	 * Note: The caller must be holding an exclusive lock on table while calling this method.
+	 * Build the table index
+	 * @param tableId
+	 * @param iterator
+	 * @param lastChangeNumber
+	 * @param tableResetToken
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 */
+	String buildIndexToChangeNumberWithExclusiveLock(final IdAndVersion idAndVersion, final Iterator<TableChangeMetaData> iterator,
+			final long targetChangeNumber, final String tableResetToken) throws NotFoundException, IOException {
+		String lastEtag = null;
+		// Inspect each change.
+		while(iterator.hasNext()) {
+			TableChangeMetaData changeMetadata = iterator.next();
+			if(changeMetadata.getChangeNumber() > targetChangeNumber) {
+				// all changes have been applied to the index.
+				break;
+			}
+			if(!isVersionAppliedToIndex(idAndVersion, changeMetadata.getChangeNumber())) {
+				// This change needs to be applied to the table
+				tableManagerSupport.attemptToUpdateTableProgress(idAndVersion,
+						tableResetToken, "Applying change: " + changeMetadata.getChangeNumber(), changeMetadata.getChangeNumber(),
+						targetChangeNumber);
+				appleyChangeToIndex(idAndVersion, changeMetadata);
+				lastEtag = changeMetadata.getETag();
+			}
+		}
+		// now that table is created and populated the indices on the table can be optimized.
+		optimizeTableIndices(idAndVersion);
+		return lastEtag;
+	}
+	
+	/**
+	 * Apply the provided change to the provided index.
+	 * 
+	 * @param idAndVersion
+	 * @param changeMetadata
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	void appleyChangeToIndex(IdAndVersion idAndVersion, TableChangeMetaData changeMetadata) throws NotFoundException, IOException {
+		// Load the change based on the type and added the change to the index.
+		switch(changeMetadata.getChangeType()) {
+		case ROW:
+			applyRowChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SparseChangeSet.class));
+			break;
+		case COLUMN:
+			applySchemaChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SchemaChange.class));
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown type: "+changeMetadata.getChangeType());
+		}
+	}
+	
+	/**
+	 * Apply the provided schema change to the provided table's index.
+	 * 
+	 * @param idAndVersion
+	 * @param schemaChangeData
+	 */
+	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
+		boolean isTableView = false;
+		updateTableSchema(idAndVersion, isTableView, schemaChangeData.getChange().getDetails());
+		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
+	}
+	
+	/**
+	 * Apply the provided row change set to the provied table's index.
+	 * @param idAndVersion
+	 * @param rowChange
+	 */
+	void applyRowChangeToIndex(IdAndVersion idAndVersion, ChangeData<SparseChangeSet> rowChange) {
+		// Get the change set.
+		SparseChangeSet sparseChangeSet = rowChange.getChange();
+		// match the schema to the change set.
+		boolean isTableView = false;
+		setIndexSchema(idAndVersion, isTableView, sparseChangeSet.getSchema());
+		// attempt to apply this change set to the table.
+		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
 	}
 
 }

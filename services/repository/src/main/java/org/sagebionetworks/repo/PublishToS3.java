@@ -7,9 +7,9 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.AwsClientFactory;
+import org.sagebionetworks.aws.SynapseS3Client;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
@@ -43,7 +43,7 @@ public class PublishToS3 {
 		String bucketName = stack+"."+instance+".rest.doc.sagebase.org";
 		
 		// Create an S3 Connection
-		AmazonS3 s3Client = AwsClientFactory.createAmazonS3Client();
+		SynapseS3Client s3Client = AwsClientFactory.createAmazonS3Client();
 		// Create the bucket if it does not exist
 		Bucket bucket = s3Client.createBucket(bucketName);
 		// Set the bucket to be a static website
@@ -97,7 +97,7 @@ public class PublishToS3 {
 	 * @param s3Client
 	 * @param bucketName
 	 */
-	public static void emptyBucket(AmazonS3 s3Client, String bucketName){
+	public static void emptyBucket(SynapseS3Client s3Client, String bucketName){
 		String token = null;
 		do{
 			ObjectListing ol = s3Client.listObjects(new ListObjectsRequest().withBucketName(bucketName).withMarker(token));

@@ -15,8 +15,8 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -58,7 +58,7 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
 	 * avoid race conditions.
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DoiAssociation createDoiAssociation(DoiAssociation dto) throws DuplicateKeyException {
 		Long newId = idGenerator.generateNewId(IdType.DOI_ID);
@@ -76,7 +76,7 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 		return getDoiAssociation(newId.toString());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DoiAssociation updateDoiAssociation(DoiAssociation dto) throws NotFoundException, ConflictingUpdateException {
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
@@ -103,7 +103,7 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 		return getDoiAssociation(objectId, objectType, versionNumber, forUpdate);
 	}
 
-	@MandatoryWriteReadCommittedTransaction
+	@MandatoryWriteTransaction
 	@Override
 	public DoiAssociation getDoiAssociationForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
 		boolean forUpdate = true;

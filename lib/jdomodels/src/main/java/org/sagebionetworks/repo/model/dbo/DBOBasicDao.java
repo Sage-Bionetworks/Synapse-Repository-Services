@@ -108,4 +108,6 @@ public interface DBOBasicDao {
 	public <T extends DatabaseObject<T>> boolean deleteObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException;
 
 	public <T extends DatabaseObject<T>> long getCount(Class<? extends T> clazz) throws DatastoreException;
+
+	public long getDatabaseTimestampMillis();
 }

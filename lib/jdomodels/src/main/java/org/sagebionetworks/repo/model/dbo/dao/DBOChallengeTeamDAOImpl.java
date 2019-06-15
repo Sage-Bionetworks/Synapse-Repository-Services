@@ -20,17 +20,18 @@ import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Autowired
@@ -100,7 +101,10 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	
 	private static TableMapping<DBOChallengeTeam> DBO_CHALLENGE_TEAM_TABLE_MAPPING =
 			(new DBOChallengeTeam()).getTableMapping();
-	
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(ChallengeTeam.class).build();
+
+
 	@WriteTransaction
 	@Override
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException {
@@ -144,7 +148,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		dbo.setEtag(dto.getEtag());
 		dbo.setTeamId(Long.parseLong(dto.getTeamId()));
 		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -153,7 +157,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	public static ChallengeTeam copyDBOtoDTO(DBOChallengeTeam dbo) {
 		ChallengeTeam dto;
 		try {
-			dto = (ChallengeTeam)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
+			dto = (ChallengeTeam)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerializedEntity());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

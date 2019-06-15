@@ -94,21 +94,18 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
-		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
 		
 		Folder s2 = new Folder();
 		s2.setName(DUMMY_STUDY_2);
-		s2.setEntityType(s2.getClass().getName());
 		s2.setParentId(id);
 		s2 = (Folder) entityServletHelper.createEntity(s2, adminUserId, null);
 		toDelete.add(s2.getId());
@@ -158,14 +155,12 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
-		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
@@ -187,7 +182,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
@@ -264,7 +258,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
@@ -272,7 +265,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		FileEntity file = new FileEntity();
 		file.setParentId(p2.getId());
 		file.setDataFileHandleId(handleOne.getId());
-		file.setEntityType(FileEntity.class.getName());
 		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
 		toDelete.add(file.getId());
 		

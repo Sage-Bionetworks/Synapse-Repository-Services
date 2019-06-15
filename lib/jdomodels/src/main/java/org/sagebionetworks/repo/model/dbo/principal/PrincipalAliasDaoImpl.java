@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -68,7 +70,10 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? AND "+ COL_PRINCIPAL_ALIAS_DISPLAY +" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_GET_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_ID+" = ?";
-	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
+	private static final String SET_ALIAS_TYPES = "aliasTypeSet";
+	private static final String ALIAS_UNIQUE = "aliasUnique";
+	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = :" + ALIAS_UNIQUE;
+	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS_AND_FILTER_BY_TYPES = SQL_FIND_PRINCIPAL_WITH_ALIAS + " AND `" + COL_PRINCIPAL_ALIAS_TYPE + "` IN (:"+SET_ALIAS_TYPES+")";
 	private static final String SQL_IS_ALIAS_AVAILABLE = "SELECT COUNT(*) FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
 	private static final String SET_BIND_VAR = "principalIdSet";
 	private static final String SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" IN (:"+SET_BIND_VAR+") ORDER BY "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
@@ -184,13 +189,21 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			throw new NotFoundException("An Alias with the ID: "+aliasId+" does not exist");
 		}
 	}
-	
+
 	@Override
-	public PrincipalAlias findPrincipalWithAlias(String alias) {
+	public PrincipalAlias findPrincipalWithAlias(String alias, AliasType... aliasTypes) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
 		String unique = AliasUtils.getUniqueAliasName(alias);
 		try {
-			DBOPrincipalAlias dbo = jdbcTemplate.queryForObject(SQL_FIND_PRINCIPAL_WITH_ALIAS, principalAliasMapper, unique);
+			String sql = SQL_FIND_PRINCIPAL_WITH_ALIAS;
+
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put(ALIAS_UNIQUE, unique);
+			if(aliasTypes.length > 0) {
+				paramMap.put(SET_ALIAS_TYPES, Arrays.stream(aliasTypes).map(Enum::name).collect(Collectors.toSet()));
+				sql = SQL_FIND_PRINCIPAL_WITH_ALIAS_AND_FILTER_BY_TYPES;
+			}
+			DBOPrincipalAlias dbo = namedTemplate.queryForObject(sql, paramMap, principalAliasMapper);
 			return AliasUtils.createDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// no match

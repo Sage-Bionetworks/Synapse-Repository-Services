@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,9 +16,9 @@ import java.util.Map;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 
+import com.google.common.net.InternetDomainName;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
-import org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -171,17 +173,24 @@ public class EmailUtils {
 	}
 	
 	public static void validateSynapsePortalHost(String urlString) {
-		URL url = null;
+		URI uri = null;
 		try {
-			url = new URL(urlString);
-		} catch (MalformedURLException e) {
+			uri = new URI(urlString);
+		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
 		}
-		String portalHost = url.getHost();
-		portalHost = portalHost.toLowerCase().trim();
-		if (portalHost.endsWith("synapse.org")) return;
-		if (portalHost.endsWith("sagebase.org")) return;
+
+		//check for local build endpoints
+		final String portalHost = uri.getHost().toLowerCase().trim();
 		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
+
+		// If not for local build, find the host's base domain.
+		// For example, the base domain for "staging.synapse.org" would be "synapse.org"
+		// It is VERY IMPORTANT to use .equals() and NOT .endsWith().
+		// Otherwise a domain such as notsynapse.org would pass the validation
+		final String baseDomain = InternetDomainName.from(portalHost).topPrivateDomain().toString();
+		if (baseDomain.equals("synapse.org") || baseDomain.equals("sagebase.org")) return;
+
 		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	

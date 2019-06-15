@@ -3,12 +3,12 @@ package org.sagebionetworks.repo.web;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import javax.servlet.http.Cookie;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.mock.web.MockHttpServletRequest;
-
-import javax.servlet.http.Cookie;
 
 public class HttpRequestIdentifierUtilsTest {
 	MockHttpServletRequest request;

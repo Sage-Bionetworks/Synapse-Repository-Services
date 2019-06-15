@@ -1,7 +1,13 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -88,7 +94,6 @@ public class AclObjectRecordWriterTest {
 		acl.setModifiedBy("modifiedBy");
 		acl.setModifiedOn(new Date());
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		acl.setUri("uri");
 		AclRecord record = AclObjectRecordWriter.buildAclRecord(acl, ObjectType.EVALUATION);
 		assertEquals(ObjectType.EVALUATION, record.getOwnerType());
 		assertEquals(acl.getCreatedBy(), record.getCreatedBy());
@@ -98,6 +103,5 @@ public class AclObjectRecordWriterTest {
 		assertEquals(acl.getModifiedOn(), record.getModifiedOn());
 		assertEquals(acl.getId(), record.getId());
 		assertEquals(acl.getResourceAccess(), record.getResourceAccess());
-		assertEquals(acl.getUri(), record.getUri());
 	}
 }

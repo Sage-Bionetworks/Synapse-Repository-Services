@@ -5,17 +5,16 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
-import org.sagebionetworks.upload.UploadUtils;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -34,7 +33,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 1000 * 60 * 15;
 
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 
 	/*
 	 * (non-Javadoc)
@@ -47,12 +46,12 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	public String initiateMultipartUpload(String bucket, String key,
 			MultipartUploadRequest request) {
 		String contentType = request.getContentType();
-		if (contentType == null) {
+		if (StringUtils.isEmpty(contentType)) {
 			contentType = "application/octet-stream";
 		}
 		ObjectMetadata objectMetadata = new ObjectMetadata();
 		objectMetadata.setContentType(contentType);
-		objectMetadata.setContentDisposition(UploadUtils
+		objectMetadata.setContentDisposition(ContentDispositionUtils
 				.getContentDispositionValue(request.getFileName()));
 		objectMetadata.setContentMD5(BinaryUtils.toBase64(BinaryUtils
 				.fromHex(request.getContentMD5Hex())));
@@ -80,7 +79,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		 * add due to SYNPY-409 (see also PLFM-4183)
 		 */
 		request.addRequestParameter("Expires", ""+(expiration/1000));
-		if(contentType != null){
+		if(StringUtils.isNotEmpty(contentType)){
 			request.setContentType(contentType);
 		}
 		return s3Client.generatePresignedUrl(request);

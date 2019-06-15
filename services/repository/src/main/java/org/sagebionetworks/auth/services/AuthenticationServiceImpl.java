@@ -1,20 +1,23 @@
 package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -24,10 +27,11 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
+
 
 	@Autowired
 	private UserManager userManager;
@@ -64,51 +68,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		authManager.invalidateSessionToken(sessionToken);
 	}
-	
-	@Override
+
 	@WriteTransaction
-	public void createUser(NewUser user) {
-		if (user == null || user.getEmail() == null) {
-			throw new IllegalArgumentException("Email must be specified");
-		}
-		
-		Long userid = userManager.createUser(user);
-		try {
-			sendPasswordEmail(userid);
-		} catch (NotFoundException e) {
-			throw new DatastoreException("Could not find user that was just created", e);
-		}
-	}
-	
 	@Override
-	@WriteTransaction
-	public void sendPasswordEmail(Long principalId) throws NotFoundException {
-		if (principalId == null) {
-			throw new IllegalArgumentException("PrincipalId may not be null");
-		}
-		
-		// Get the user's session token (which is refreshed)
-		String sessionToken = authManager.getSessionToken(principalId).getSessionToken();
-		
-		// Send the email
-		messageManager.sendPasswordResetEmail(principalId, sessionToken);
+	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
+		final long userId = authManager.changePassword(request);
+		messageManager.sendPasswordChangeConfirmationEmail(userId);
 	}
-	
-	@Override
-	@WriteTransaction
-	public void changePassword(ChangePasswordRequest request) throws NotFoundException {
-		if (request.getSessionToken() == null) {
-			throw new IllegalArgumentException("Session token may not be null");
-		}
-		if (request.getPassword() == null) { 			
-			throw new IllegalArgumentException("Password may not be null");
-		}
-		
-		Long principalId = authManager.checkSessionToken(request.getSessionToken(), false);
-		authManager.changePassword(principalId, request.getPassword());
-		authManager.invalidateSessionToken(request.getSessionToken());
-	}
-	
+
 	@Override
 	@WriteTransaction
 	public void signTermsOfUse(Session session) throws NotFoundException {
@@ -146,20 +113,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public Long getUserId(String username) throws NotFoundException {
-		PrincipalAlias pa = userManager.lookupUserForAuthentication(username);
-		return pa.getPrincipalId();
-	}
-
-	@Override
-	public void sendPasswordEmail(String email) throws NotFoundException {
-		PrincipalAlias pa = userManager.lookupUserForAuthentication(email);
-		sendPasswordEmail(pa.getPrincipalId());
+	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String email) {
+		try {
+			PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
+			PasswordResetSignedToken passwordRestToken = authManager.createPasswordResetToken(pa.getPrincipalId());
+			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken);
+		}catch (NotFoundException e){
+			//should not indicate that a email/user could not be found
+		}
 	}
 
 	@Override
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request) {
-		String url = oauthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl());
+		String url = oauthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl(), request.getState());
 		OAuthUrlResponse response = new OAuthUrlResponse();
 		response.setAuthorizationUrl(url);
 		return response;
@@ -175,9 +141,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
 		// This is the ID of the user within the provider's system.
-		PrincipalAlias emailAlias = userManager.lookupUserForAuthentication(providedInfo.getUsersVerifiedEmail());
+		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
 		// Return the user's session token
 		return authManager.getSessionToken(emailAlias.getPrincipalId());
+	}
+	
+	@WriteTransaction
+	public Session createAccountViaOauth(OAuthAccountCreationRequest request) {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// create account with the returned user info.
+		NewUser newUser = new NewUser();
+		newUser.setEmail(providedInfo.getUsersVerifiedEmail());
+		newUser.setFirstName(providedInfo.getFirstName());
+		newUser.setLastName(providedInfo.getLastName());
+		newUser.setUserName(request.getUserName());
+		long newPrincipalId = userManager.createUser(newUser);
+		
+		Session session = authManager.getSessionToken(newPrincipalId);
+		return session;
 	}
 	
 	@Override
@@ -200,23 +186,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public LoginResponse login(LoginRequest request) {
-		ValidateArgument.required(request, "request");
-		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
-		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		try {
-			// Lookup the user.
-			PrincipalAlias pa = userManager.lookupUserForAuthentication(request.getUsername());
-
-			// Fetch the user's session token
-			return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
-		} catch (NotFoundException e) {
-			// see PLFM-3914
-			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e);
-		}
+		return authManager.login(request);
 	}
 
 	@Override
 	public PrincipalAlias lookupUserForAuthentication(String alias) {
-		return userManager.lookupUserForAuthentication(alias);
+		return userManager.lookupUserByUsernameOrEmail(alias);
 	}
 }

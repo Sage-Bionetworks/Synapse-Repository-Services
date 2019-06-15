@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.manager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
-
 import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.Message.RecipientType;
@@ -17,6 +19,8 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import com.amazonaws.services.simpleemail.model.RawMessage;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
@@ -26,9 +30,7 @@ import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-
-import com.amazonaws.services.simpleemail.model.RawMessage;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import org.sagebionetworks.utils.ContentTypeUtil;
 
 /*
  * If sender is null then the 'notification email address' is used
@@ -154,18 +156,22 @@ public class SendRawEmailRequestBuilder {
 		}
 
 		MimeMultipart multipart;
-		switch (bodyType) {
-		case JSON:
-			multipart = createEmailBodyFromJSON(body, unsubscribeLink, profileSettingLink);
-			break;
-		case PLAIN_TEXT:
-			multipart = createEmailBodyFromText(body, ContentType.TEXT_PLAIN, unsubscribeLink, profileSettingLink);
-			break;
-		case HTML:
-			multipart = createEmailBodyFromText(body, ContentType.TEXT_HTML, unsubscribeLink, profileSettingLink);
-			break;
-		default:
-			throw new IllegalStateException("Unexpected type "+bodyType);
+		try {
+			switch (bodyType) {
+				case JSON:
+					multipart = createEmailBodyFromJSON(body, unsubscribeLink, profileSettingLink);
+					break;
+				case PLAIN_TEXT:
+					multipart = createEmailBodyFromPLAINText(body, unsubscribeLink, profileSettingLink);
+					break;
+				case HTML:
+					multipart = createEmailBodyFromHTMLText(body, unsubscribeLink, profileSettingLink);
+					break;
+				default:
+					throw new IllegalStateException("Unexpected type " + bodyType);
+			}
+		} catch (MessagingException e){
+			throw new RuntimeException(e);
 		}
 
 		Properties props = new Properties();
@@ -202,103 +208,100 @@ public class SendRawEmailRequestBuilder {
 		return request;
 	}
 	
-	public static MimeMultipart createEmailBodyFromJSON(String messageBodyString, String unsubscribeLink, String userProfileSettingLink) {
+	static MimeMultipart createEmailBodyFromJSON(String messageBodyString, String unsubscribeLink, String userProfileSettingLink) throws MessagingException {
+		MessageBody messageBody = null;
+		boolean canDeserializeJSON;
 		try {
-			MessageBody messageBody = null;
-			boolean canDeserializeJSON = false;
-			try {
-				messageBody = EntityFactory.createEntityFromJSONString(messageBodyString, MessageBody.class);
-				canDeserializeJSON=true;
-			} catch (JSONObjectAdapterException e) {
-				canDeserializeJSON = false;
-				// just send the content as plain text
-			}
-			
-			MimeMultipart mp = new MimeMultipart("related");
-			
-			if (canDeserializeJSON) {
-				String plain = messageBody.getPlain();
-				String html = messageBody.getHtml();
-				List<Attachment> attachments = messageBody.getAttachments();
-				
-				if (html!=null || plain!=null) {
-					MimeBodyPart alternativeBodyPart = new MimeBodyPart();
-					MimeMultipart alternativeMultiPart = new MimeMultipart("alternative");
-					alternativeBodyPart.setContent(alternativeMultiPart);
-					if (html!=null) {
-						BodyPart part = new MimeBodyPart();
-						part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink, userProfileSettingLink),
-							ContentType.TEXT_HTML.getMimeType());
-						alternativeMultiPart.addBodyPart(part);
-					} else if (plain!=null) {
-						BodyPart part = new MimeBodyPart();
-						part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink, userProfileSettingLink),
-								ContentType.TEXT_PLAIN.getMimeType());
-						alternativeMultiPart.addBodyPart(part);
-					}
-					mp.addBodyPart(alternativeBodyPart);
-				}
-
-				if (attachments!=null) {
-					for (Attachment attachment : attachments) {
-						MimeBodyPart part = new MimeBodyPart();
-						String content = attachment.getContent();
-						String contentType = attachment.getContent_type();
-						// CloudMailIn doesn't provide the Content-Transfer-Encoding
-						// header, so we assume it's base64 encoded, which is the norm
-						byte[] contentBytes;
-						try {
-							contentBytes = Base64.decodeBase64(content);
-						} catch (Exception e) {
-							contentBytes = content.getBytes();
-						}
-						if (contentType.toLowerCase().startsWith("text")) {
-							part.setContent(new String(contentBytes), contentType);
-						} else {
-							part.setContent(contentBytes, contentType);
-						}
-						if (attachment.getDisposition()!=null) part.setDisposition(attachment.getDisposition());
-						if (attachment.getContent_id()!=null) part.setContentID(attachment.getContent_id());
-						if (attachment.getFile_name()!=null) part.setFileName(attachment.getFile_name());
-						if (attachment.getSize()!=null) part.setHeader("size", attachment.getSize());
-						if (attachment.getUrl()!=null) part.setHeader("url", attachment.getUrl());
-						mp.addBodyPart(part);
-					}
-				}
-
-			} else {
-				BodyPart part = new MimeBodyPart();
-				part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink, userProfileSettingLink), 
-						ContentType.TEXT_PLAIN.getMimeType());
-				mp.addBodyPart(part);
-			}
-			return mp;
-		} catch (MessagingException e) {
-			throw new RuntimeException(e);
+			messageBody = EntityFactory.createEntityFromJSONString(messageBodyString, MessageBody.class);
+			canDeserializeJSON=true;
+		} catch (JSONObjectAdapterException e) {
+			canDeserializeJSON = false;
+			// just send the content as plain text
 		}
-	}
-	
-	public static MimeMultipart createEmailBodyFromText(String messageBodyString, ContentType contentType, String unsubscribeLink, String userProfileSettingLink) {
+
 		MimeMultipart mp = new MimeMultipart("related");
-		try {
-			BodyPart part = new MimeBodyPart();
-			if (contentType.getMimeType().equals(ContentType.TEXT_HTML.getMimeType())) {
-				part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink), 
-						ContentType.TEXT_HTML.getMimeType());
-			} else if (contentType.getMimeType().equals(ContentType.TEXT_PLAIN.getMimeType())) {
-				StringBuilder sb = new StringBuilder("<html>\n<body>\n");
-				sb.append("<div style=\"white-space: pre-wrap;\">\n");
-				sb.append(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink));
-				sb.append("\n</div>");
-				sb.append("\n</body>\n</html>\n");
-				part.setContent(sb.toString(), ContentType.TEXT_HTML.getMimeType());
-			} else {
-				throw new IllegalArgumentException("Unexpected mime type for text: "+contentType.getMimeType());
+
+		if (canDeserializeJSON) {
+			String plain = messageBody.getPlain();
+			String html = messageBody.getHtml();
+			List<Attachment> attachments = messageBody.getAttachments();
+
+			if (html!=null || plain!=null) {
+				MimeBodyPart alternativeBodyPart = new MimeBodyPart();
+				MimeMultipart alternativeMultiPart = new MimeMultipart("alternative");
+				alternativeBodyPart.setContent(alternativeMultiPart);
+				if (html!=null) {
+					BodyPart part = new MimeBodyPart();
+					part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink, userProfileSettingLink),
+						ContentTypeUtil.TEXT_HTML_UTF8.toString().toString());
+					alternativeMultiPart.addBodyPart(part);
+				} else if (plain!=null) {
+					BodyPart part = new MimeBodyPart();
+					part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink, userProfileSettingLink),
+							ContentTypeUtil.TEXT_PLAIN_UTF8.toString());
+					alternativeMultiPart.addBodyPart(part);
+				}
+				mp.addBodyPart(alternativeBodyPart);
 			}
+
+			if (attachments!=null) {
+				for (Attachment attachment : attachments) {
+					MimeBodyPart part = new MimeBodyPart();
+					String content = attachment.getContent();
+					ContentType contentType = ContentType.parse(attachment.getContent_type());
+					// CloudMailIn doesn't provide the Content-Transfer-Encoding
+					// header, so we assume it's base64 encoded, which is the norm
+					byte[] contentBytes;
+					try {
+						contentBytes = Base64.decodeBase64(content);
+					} catch (Exception e) {
+						contentBytes = content.getBytes();
+					}
+					if (contentType.getMimeType().toLowerCase().startsWith("text")) {
+						// default charset when not specified for "text/" is ISO_8859_1
+						Charset contentCharset = (contentCharset = contentType.getCharset()) == null ? StandardCharsets.ISO_8859_1 : contentCharset;
+						part.setContent(new String(contentBytes, contentCharset), contentType.toString());
+					} else {
+						part.setContent(contentBytes, contentType.toString());
+					}
+					if (attachment.getDisposition()!=null) part.setDisposition(attachment.getDisposition());
+					if (attachment.getContent_id()!=null) part.setContentID(attachment.getContent_id());
+					if (attachment.getFile_name()!=null) part.setFileName(attachment.getFile_name());
+					if (attachment.getSize()!=null) part.setHeader("size", attachment.getSize());
+					if (attachment.getUrl()!=null) part.setHeader("url", attachment.getUrl());
+					mp.addBodyPart(part);
+				}
+			}
+
+		} else {
+			BodyPart part = new MimeBodyPart();
+			part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink, userProfileSettingLink),
+					ContentTypeUtil.TEXT_PLAIN_UTF8.toString());
 			mp.addBodyPart(part);
-		} catch (MessagingException e) {
-			throw new RuntimeException(e);
 		}
+		return mp;
+	}
+
+	static MimeMultipart createEmailBodyFromHTMLText(String messageBodyString, String unsubscribeLink, String userProfileSettingLink) throws MessagingException {
+		MimeMultipart mp = new MimeMultipart("related");
+		BodyPart part = new MimeBodyPart();
+		part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink),
+				ContentTypeUtil.TEXT_HTML_UTF8.toString());
+		mp.addBodyPart(part);
+		return mp;
+	}
+
+	static MimeMultipart createEmailBodyFromPLAINText(String messageBodyString, String unsubscribeLink, String userProfileSettingLink) throws MessagingException {
+		MimeMultipart mp = new MimeMultipart("related");
+		BodyPart part = new MimeBodyPart();
+
+		//wrap text in html
+		String content = "<html>\n<body>\n" + "<div style=\"white-space: pre-wrap;\">\n" +
+				EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink) +
+				"\n</div>" +
+				"\n</body>\n</html>\n";
+		part.setContent(content, ContentTypeUtil.TEXT_HTML_UTF8.toString());
+		mp.addBodyPart(part);
 		return mp;
 	}
 

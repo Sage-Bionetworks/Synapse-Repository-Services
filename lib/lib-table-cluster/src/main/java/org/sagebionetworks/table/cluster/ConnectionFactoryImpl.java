@@ -6,14 +6,13 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-
-import com.amazonaws.services.rds.AmazonRDSClient;
 
 /**
  * Note: For the first pass at this feature we are only using one database.
@@ -43,7 +42,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	private StackConfiguration stackConfig;
 	
 	@Override
-	public TableIndexDAO getConnection(String tableId) {
+	public TableIndexDAO getConnection(IdAndVersion tableId) {
 		// Create a new DAO for this call.
 		return new TableIndexDAOImpl(singleConnectionPool);	
 	}
@@ -76,22 +75,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 			log.debug("Closing connection pool to: "+singleConnectionPool.getUrl());
 			singleConnectionPool.close();
 		}
-	}
-
-	@Override
-	public void dropAllTablesForAllConnections() {
-		// For now we only have one database
-		List<InstanceInfo> instances = instanceDiscovery.discoverAllInstances();
-		if(this.singleConnectionPool != null && instances != null && !instances.isEmpty()){
-			String schema = instances.get(0).getSchema();
-			JdbcTemplate template = new JdbcTemplate(this.singleConnectionPool);
-			template.update(DROP_DATABASE+schema);
-			template.update(CREATE_DATABASE+schema);
-			template.update(USE_DATABASE+schema);
-		}
-		// ensure the index has the correct tables
-		TableIndexDAOImpl dao = new TableIndexDAOImpl(singleConnectionPool);
-		dao.createEntityReplicationTablesIfDoesNotExist();
 	}
 
 	@Override

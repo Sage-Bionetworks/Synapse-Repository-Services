@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model.util;
 
 import java.util.Random;
 
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 
 /**
  * A utility to generate a random node.

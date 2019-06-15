@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,12 +18,13 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -41,7 +42,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
@@ -76,7 +76,8 @@ public class BroadcastMessageManagerImplTest {
 	UserManager mockUserManager;
 	@Mock
 	AuthorizationManager mockAuthManager;
-	
+
+	@InjectMocks
 	BroadcastMessageManagerImpl manager;
 	ChangeMessage change;
 	List<Subscriber> subscribers;
@@ -85,17 +86,7 @@ public class BroadcastMessageManagerImplTest {
 	@Before
 	public void before() throws Exception{
 		MockitoAnnotations.initMocks(this);
-		
-		manager = new BroadcastMessageManagerImpl();
-		ReflectionTestUtils.setField(manager, "subscriptionDAO", mockSubscriptionDAO);
-		ReflectionTestUtils.setField(manager, "broadcastMessageDao", mockBroadcastMessageDao);
-		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
-		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
-		ReflectionTestUtils.setField(manager, "sesClient", mockSesClient);
-		ReflectionTestUtils.setField(manager, "principalAliasDao", mockPrincipalAliasDao);
-		ReflectionTestUtils.setField(manager, "userProfileDao", mockUserProfileDao);
-		ReflectionTestUtils.setField(manager, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(manager, "authManager", mockAuthManager);
+
 		Map<ObjectType, MessageBuilderFactory> factoryMap = new HashMap<ObjectType, MessageBuilderFactory>();
 		factoryMap.put(ObjectType.REPLY, mockFactory);
 		manager.setMessageBuilderFactoryMap(factoryMap);
@@ -134,7 +125,8 @@ public class BroadcastMessageManagerImplTest {
 		
 		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
 		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
-		
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+
 	}
 	
 	@Test
@@ -166,9 +158,9 @@ public class BroadcastMessageManagerImplTest {
 		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo);
 		when(mockUserManager.getUserInfo(222L)).thenReturn(accessDeniedUserInfo);
 		when(mockAuthManager.canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 
 		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
@@ -231,9 +223,9 @@ public class BroadcastMessageManagerImplTest {
 		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo);
 		when(mockUserManager.getUserInfo(222L)).thenReturn(accessDeniedUserInfo);
 		when(mockAuthManager.canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				.thenReturn(AuthorizationStatus.accessDenied(""));
 		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
 		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
@@ -261,9 +253,9 @@ public class BroadcastMessageManagerImplTest {
 		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo1);
 		when(mockUserManager.getUserInfo(222L)).thenReturn(hasAccessUserInfo2);
 		when(mockAuthManager.canSubscribe(hasAccessUserInfo1, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canSubscribe(hasAccessUserInfo2, topic.getObjectId(), topic.getObjectType()))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+				.thenReturn(AuthorizationStatus.authorized());
 		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
 		verify(mockUserProfileDao).getUserNotificationInfo(userIds);

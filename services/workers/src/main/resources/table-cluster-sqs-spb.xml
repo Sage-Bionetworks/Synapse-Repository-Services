@@ -25,7 +25,7 @@
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableWorker" />
+									<bean class="org.sagebionetworks.table.worker.TableIndexWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="10" />
@@ -36,7 +36,7 @@
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
-								<property name="useProgressHeartbeat" value="true"/>
+
 							</bean>
 						</constructor-arg>
 					</bean>

@@ -1,7 +1,5 @@
 package org.sagebionetworks.asynchronous.workers.changes;
 
-import java.util.List;
-
 import org.sagebionetworks.workers.util.Gate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration;
 
@@ -68,15 +66,5 @@ public class ChangeMessageDrivenWorkerStackConfig {
 
 	public MessageDrivenWorkerStackConfiguration getConfig() {
 		return config;
-	}
-	
-	/**
-	 * When set to true a heartbeat progress event will automatically be generated
-	 * as long as  the runner is running.
-	 * Defaults to false (no heartbeat).
-	 * @param useProgressHeartbeat
-	 */
-	public void setUseProgressHeartbeat(boolean useProgressHeartbeat) {
-		config.setUseProgressHeartbeat(useProgressHeartbeat);
 	}
 }

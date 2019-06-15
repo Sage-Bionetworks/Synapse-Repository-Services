@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,9 +22,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-
-import static org.mockito.Mockito.*;
-
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -122,7 +120,7 @@ public class PrincipalAliasDaoImplTest {
 	}
 	
 	@Test
-	public void testFindPrincipalForAlias() throws NotFoundException{
+	public void testFindPrincipalForAlias(){
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
 		alias.setType(AliasType.USER_EMAIL);
@@ -135,6 +133,22 @@ public class PrincipalAliasDaoImplTest {
 		
 		// this alias does not exist
 		assertNull(principalAliasDao.findPrincipalWithAlias(UUID.randomUUID().toString()));
+	}
+
+	@Test
+	public void testFindPrincipalForAliasWithTypeFilter(){
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setPrincipalId(principalId);
+
+		PrincipalAlias expected = principalAliasDao.bindAliasToPrincipal(alias);
+
+		PrincipalAlias actual = principalAliasDao.findPrincipalWithAlias(alias.getAlias(), AliasType.USER_EMAIL, AliasType.USER_NAME);
+		assertEquals(expected, actual);
+
+		// this alias does not exist
+		assertNull(principalAliasDao.findPrincipalWithAlias(alias.getAlias(), AliasType.TEAM_NAME));
 	}
 	
 	@Test (expected=NotFoundException.class)

@@ -54,8 +54,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
 		// Get the id that this node inherits its permissions from
 		String benefactor = nodeDao.getBenefactor(nodeId);		
+		//
+		// PLFM-2399:  There is a case in which a node ID is passed in without the 'syn' prefix.  
+		// In this case 'nodeId' might be '12345' while benefactor might be 'syn12345'.
+		// The change below normalizes the format.
+		//
 		// This is a fix for PLFM-398
-		if (!benefactor.equals(nodeId)) {
+		if (!benefactor.equals(KeyFactory.keyToString(KeyFactory.stringToKey(nodeId)))) {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
 		AccessControlList acl = aclDAO.get(nodeId, ObjectType.ENTITY);
@@ -76,8 +81,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		String benefactor = nodeDao.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				entityAuthorizationManager.hasAccess(rId, CHANGE_PERMISSIONS, userInfo));
+		entityAuthorizationManager.hasAccess(rId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
@@ -120,8 +124,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new UnauthorizedException("Resource already has an ACL.");
 		}
 		// check permissions of user to change permissions for the resource
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				entityAuthorizationManager.hasAccess(benefactorId, CHANGE_PERMISSIONS, userInfo));
+		entityAuthorizationManager.hasAccess(benefactorId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+
 		
 		// validate the Entity owners will still have access.
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
@@ -143,8 +147,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AccessControlList restoreInheritance(String entityId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		String benefactorId = nodeDao.getBenefactor(entityId);
 		// check permissions of user to change permissions for the resource
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				entityAuthorizationManager.hasAccess(entityId, CHANGE_PERMISSIONS, userInfo));
+		entityAuthorizationManager.hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
+
 		if(!KeyFactory.equals(entityId, benefactorId)){
 			throw new UnauthorizedException("Resource already inherits its permissions.");	
 		}
@@ -178,8 +182,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList applyInheritanceToChildren(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// check permissions of user to change permissions for the resource
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				entityAuthorizationManager.hasAccess(parentId,CHANGE_PERMISSIONS, userInfo));
+		entityAuthorizationManager.hasAccess(parentId,CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
 		
 		// Before we can update the ACL we must grab the lock on the node.
 		nodeDao.touch(userInfo.getId(), parentId);
@@ -200,7 +203,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			// recursively apply to children
 			applyInheritanceToChildrenHelper(idToChange, benefactorId, userInfo);
 			// must be authorized to modify permissions
-			if (entityAuthorizationManager.hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo).getAuthorized()) {
+			if (entityAuthorizationManager.hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo).isAuthorized()) {
 				// delete child ACL, if present
 				if (hasLocalACL(idToChange)) {
 					// Touch and lock the owner node before updating the ACL.

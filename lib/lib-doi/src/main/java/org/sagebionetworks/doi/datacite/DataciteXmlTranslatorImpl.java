@@ -1,7 +1,34 @@
 package org.sagebionetworks.doi.datacite;
 
-import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
-import org.sagebionetworks.repo.model.doi.v2.*;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATORS;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR_NAME;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER_SCHEME;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLICATION_YEAR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE_GENERAL;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.TITLES;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+
+import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
+import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
+import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -9,21 +36,15 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.*;
-
 /*
  * Translates DataCite metadata from XML to our DoiV2 object.
  */
 public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	public DataciteMetadata translate(String xml) {
+		if (StringUtils.isBlank(xml)) {
+			return new Doi();
+		}
 		Document dom = parseXml(xml);
 		return translateUtil(dom);
 	}
@@ -45,7 +66,9 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 	static Document parseXml(String xml) {
 		Document dom = null;
 		try {
-			DocumentBuilder documentBuilder = DocumentBuilderFactoryImpl.newInstance().newDocumentBuilder();
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setNamespaceAware(true);
+			DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
 			dom = documentBuilder.parse(new InputSource(new StringReader(xml)));
 		} catch (ParserConfigurationException e) {
 			throw new RuntimeException("Error occurred while configuring XML parser", e);
@@ -65,9 +88,9 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	static DoiCreator getCreator(Element creatorElement) {
 		DoiCreator creator = new DoiCreator();
-		creator.setCreatorName(creatorElement.getElementsByTagName(CREATOR_NAME).item(0).getTextContent());
+		creator.setCreatorName(creatorElement.getElementsByTagNameNS("*", CREATOR_NAME).item(0).getTextContent());
 
-		NodeList idNodes = creatorElement.getElementsByTagName(NAME_IDENTIFIER);
+		NodeList idNodes = creatorElement.getElementsByTagNameNS("*", NAME_IDENTIFIER);
 		if (idNodes.getLength() > 0) {
 			List<DoiNameIdentifier> ids = new ArrayList<>();
 			for (int i = 0; i < idNodes.getLength(); i++) {
@@ -82,8 +105,8 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	static List<DoiCreator> getCreators(Document dom) {
 		List<DoiCreator> creators = new ArrayList<>();
-		Element creatorsElement = (Element)dom.getElementsByTagName(CREATORS).item(0);
-		NodeList creatorList = creatorsElement.getElementsByTagName(CREATOR);
+		Element creatorsElement = (Element)dom.getElementsByTagNameNS("*", CREATORS).item(0);
+		NodeList creatorList = creatorsElement.getElementsByTagNameNS("*", CREATOR);
 		for (int i = 0; i < creatorList.getLength(); i++) {
 			creators.add(getCreator((Element)creatorList.item(i)));
 		}
@@ -98,7 +121,7 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	static List<DoiTitle> getTitles(Document dom) {
 		List<DoiTitle> titles = new ArrayList<>();
-		NodeList titleList = ((Element)dom.getElementsByTagName(TITLES).item(0)).getElementsByTagName("title");
+		NodeList titleList = ((Element)dom.getElementsByTagNameNS("*", TITLES).item(0)).getElementsByTagNameNS("*", "title");
 		for (int i = 0; i < titleList.getLength(); i++) {
 			titles.add(getTitle(titleList.item(i)));
 		}
@@ -106,12 +129,12 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 	}
 
 	static String getPublicationYear(Document dom) {
-		return dom.getElementsByTagName(PUBLICATION_YEAR).item(0).getTextContent();
+		return dom.getElementsByTagNameNS("*", PUBLICATION_YEAR).item(0).getTextContent();
 	}
 
 	static DoiResourceType getResourceType(Document dom) {
 		DoiResourceType resourceType = null;
-		Node xmlResourceType = dom.getElementsByTagName(RESOURCE_TYPE).item(0);
+		Node xmlResourceType = dom.getElementsByTagNameNS("*", RESOURCE_TYPE).item(0);
 		if (xmlResourceType != null) {
 			resourceType = new DoiResourceType();
 			resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.valueOf(xmlResourceType

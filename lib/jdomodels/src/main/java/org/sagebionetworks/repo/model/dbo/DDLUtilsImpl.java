@@ -46,8 +46,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	 * @throws IOException 
 	 */
 	public boolean validateTableExists(TableMapping mapping) throws IOException{
-		String url = stackConfiguration.getRepositoryDatabaseConnectionUrl();
-		String schema = getSchemaFromConnectionString(url);
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
 		log.debug("Schema: "+schema);
 		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema);
 		log.debug("About to execute: "+sql);
@@ -65,7 +64,7 @@ public class DDLUtilsImpl implements DDLUtils{
 			// Make sure it exists
 			List<Map<String, Object>> second = jdbcTemplate.queryForList(sql);
 			if(second.size() != 1){
-				throw new RuntimeException("Failed to create the table: "+mapping.getTableName()+" using connection: "+url);
+				throw new RuntimeException("Failed to create the table: "+mapping.getTableName()+" for schema: "+schema);
 			}
 			// the table did not exist until this call
 			return false;
@@ -73,18 +72,6 @@ public class DDLUtilsImpl implements DDLUtils{
 			// the table already exists
 			return true;
 		}
-	}
-	
-	/**
-	 * Extract the schema from the connection string.
-	 * @param connection
-	 * @return
-	 */
-	public static String getSchemaFromConnectionString(String connectionString){
-		if(connectionString == null) throw new RuntimeException("StackConfiguration.getIdGeneratorDatabaseConnectionString() cannot be null");
-		int index = connectionString.lastIndexOf("/");
-		if(index < 0) throw new RuntimeException("Failed to extract the schema from the ID database connection string");
-		return connectionString.substring(index+1, connectionString.length());
 	}
 	
 	/**

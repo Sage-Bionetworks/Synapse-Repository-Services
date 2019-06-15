@@ -1,5 +1,7 @@
 package org.sagebionetworks.client.exceptions;
 
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+
 public class SynapseBadRequestException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
@@ -20,4 +22,7 @@ public class SynapseBadRequestException extends SynapseServerException {
 		super(cause);
 	}
 
+	public SynapseBadRequestException(String message, ErrorResponseCode errorResponseCode) {
+		super(message, errorResponseCode);
+	}
 }

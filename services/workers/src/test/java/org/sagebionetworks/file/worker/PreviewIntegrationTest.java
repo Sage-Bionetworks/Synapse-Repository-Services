@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -31,8 +32,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.services.s3.AmazonS3;
 
 /**
  * This test validates that when a file is created, the message propagates to the 
@@ -57,7 +56,7 @@ public class PreviewIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private AmazonS3 s3Client;
+	private SynapseS3Client s3Client;
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;

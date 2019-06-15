@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -20,12 +21,12 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
@@ -51,7 +52,7 @@ import com.amazonaws.util.BinaryUtils;
 public class MultipartManagerImpl implements MultipartManager {
 	
 	@Autowired
-	AmazonS3 s3Client;
+	SynapseS3Client s3Client;
 	@Autowired
 	FileHandleDao fileHandleDao;
 	@Autowired
@@ -111,7 +112,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		String key = MultipartUtils.createNewKey(userId, ccftr.getFileName(), storageLocationSetting);
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(contentType);
-		objMeta.setContentDisposition(TransferUtils.getContentDispositionValue(ccftr.getFileName()));
+		objMeta.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(ccftr.getFileName()));
 		if(ccftr.getContentMD5() != null){
 			// convert it from hex to base64.
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(ccftr.getContentMD5())));

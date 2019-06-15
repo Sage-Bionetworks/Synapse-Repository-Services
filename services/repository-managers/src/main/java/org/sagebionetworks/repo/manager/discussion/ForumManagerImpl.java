@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -9,7 +8,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,13 +21,12 @@ public class ForumManagerImpl implements ForumManager {
 	@Autowired
 	private AuthorizationManager authorizationManager;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Forum createForum(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);
 		UserInfo.validateUserInfo(user);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return forumDao.createForum(projectId);
 	}
 
@@ -39,13 +37,12 @@ public class ForumManagerImpl implements ForumManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Forum getForumByProjectId(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);
 		UserInfo.validateUserInfo(user);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		try {
 			return forumDao.getForumByProjectId(projectId);
 		} catch (NotFoundException e) {
@@ -58,8 +55,7 @@ public class ForumManagerImpl implements ForumManager {
 		ValidateArgument.required(forumId, "forumId");
 		UserInfo.validateUserInfo(user);
 		Forum forum = forumDao.getForum(Long.parseLong(forumId));
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(user, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return forum;
 	}
 }

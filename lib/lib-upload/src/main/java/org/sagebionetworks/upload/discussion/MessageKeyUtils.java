@@ -2,7 +2,7 @@ package org.sagebionetworks.upload.discussion;
 
 import java.util.UUID;
 
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class MessageKeyUtils {

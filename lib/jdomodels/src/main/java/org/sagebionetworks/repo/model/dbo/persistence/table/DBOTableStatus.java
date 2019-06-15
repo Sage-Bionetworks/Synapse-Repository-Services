@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_LAST_TABLE_CHANGE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_CHANGE_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ID;
@@ -11,14 +12,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ST
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RUNTIME_MS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_TABLE_STATUE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.Table;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 /**
  * DBO to track a table's status.
@@ -28,50 +31,89 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author John
  *
  */
-@Table(name = TABLE_STATUS)
 public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 	
-	private static TableMapping<DBOTableStatus> tableMapping = AutoTableMapping.create(DBOTableStatus.class);
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("tableId", COL_TABLE_STATUS_ID).withIsPrimaryKey(true),
+			new FieldColumn("version", COL_TABLE_STATUS_VERSION).withIsPrimaryKey(true),
+			new FieldColumn("state", COL_TABLE_STATUS_STATE),
+			new FieldColumn("resetToken", COL_TABLE_STATUS_RESET_TOKEN),
+			new FieldColumn("lastTableChangeEtag", COL_TABLE_LAST_TABLE_CHANGE_ETAG),
+			new FieldColumn("startedOn", COL_TABLE_STATUS_STARTED_ON),
+			new FieldColumn("changedOn", COL_TABLE_STATUS_CHANGE_ON),
+			new FieldColumn("progressMessage", COL_TABLE_STATUS_PROGRESS_MESSAGE),
+			new FieldColumn("progressCurrent", COL_TABLE_STATUS_PROGRESS_CURRENT),
+			new FieldColumn("progressTotal", COL_TABLE_STATUS_PROGRESS_TOTAL),
+			new FieldColumn("errorMessage", COL_TABLE_STATUS_ERROR_MESSAGE),
+			new FieldColumn("errorDetails", COL_TABLE_STATUS_ERROR_DETAILS),
+			new FieldColumn("totalRunTimeMS", COL_TABLE_STATUS_RUNTIME_MS)
+	};
 
-	@Field(name = COL_TABLE_STATUS_ID, nullable = false, primary=true)
 	private Long tableId;
-	
-	@Field(name = COL_TABLE_STATUS_STATE, nullable = false)
-	private TableStateEnum state;
-	
-	@Field(name = COL_TABLE_STATUS_RESET_TOKEN, nullable = false, fixedchar=200)
+	private Long version;
+	private String state;
 	private String resetToken;
-	
-	@Field(name = COL_TABLE_LAST_TABLE_CHANGE_ETAG, nullable = true, fixedchar=200)
 	private String lastTableChangeEtag;
-	
-	@Field(name = COL_TABLE_STATUS_STARTED_ON, nullable = false)
 	private Long startedOn;
-	
-	@Field(name = COL_TABLE_STATUS_CHANGE_ON, nullable = false)
 	private Long changedOn;
-	
-	@Field(name = COL_TABLE_STATUS_PROGRESS_MESSAGE, varchar = 1000, truncatable = true)
 	private String progressMessage;
-	
-	@Field(name = COL_TABLE_STATUS_PROGRESS_CURRENT)
 	private Long progressCurrent;
-	
-	@Field(name = COL_TABLE_STATUS_PROGRESS_TOTAL)
 	private Long progressTotal;
-	
-	@Field(name = COL_TABLE_STATUS_ERROR_MESSAGE, varchar = 1000, truncatable = true)
 	private String errorMessage;
-	
-	@Field(name = COL_TABLE_STATUS_ERROR_DETAILS, blob = "mediumblob")
 	private byte[] errorDetails;
-	
-	@Field(name = COL_TABLE_STATUS_RUNTIME_MS)
 	private Long totalRunTimeMS;
 	
 	@Override
 	public TableMapping<DBOTableStatus> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOTableStatus>(){
+
+			@Override
+			public DBOTableStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOTableStatus dbo = new DBOTableStatus();
+				dbo.setTableId(rs.getLong(COL_TABLE_STATUS_ID));
+				dbo.setVersion(rs.getLong(COL_TABLE_STATUS_VERSION));
+				dbo.setState(rs.getString(COL_TABLE_STATUS_STATE));
+				dbo.setResetToken(rs.getString(COL_TABLE_STATUS_RESET_TOKEN));
+				dbo.setLastTableChangeEtag(rs.getString(COL_TABLE_LAST_TABLE_CHANGE_ETAG));
+				dbo.setStartedOn(rs.getLong(COL_TABLE_STATUS_STARTED_ON));
+				dbo.setChangedOn(rs.getLong(COL_TABLE_STATUS_CHANGE_ON));
+				dbo.setProgressMessage(rs.getString(COL_TABLE_STATUS_PROGRESS_MESSAGE));
+				dbo.setProgressCurrent(rs.getLong(COL_TABLE_STATUS_PROGRESS_CURRENT));
+				if(rs.wasNull()) {
+					dbo.setProgressCurrent(null);
+				}
+				dbo.setProgressTotal(rs.getLong(COL_TABLE_STATUS_PROGRESS_TOTAL));
+				if(rs.wasNull()) {
+					dbo.setProgressTotal(null);
+				}
+				dbo.setErrorMessage(rs.getString(COL_TABLE_STATUS_ERROR_MESSAGE));
+				dbo.setErrorDetails(rs.getBytes(COL_TABLE_STATUS_ERROR_DETAILS));
+				dbo.setTotalRunTimeMS(rs.getLong(COL_TABLE_STATUS_RUNTIME_MS));
+				if(rs.wasNull()) {
+					dbo.setTotalRunTimeMS(null);
+				}
+				return dbo;
+			}
+
+			@Override
+			public String getTableName() {
+				return TABLE_STATUS;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return DDL_TABLE_STATUE;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+
+			@Override
+			public Class<? extends DBOTableStatus> getDBOClass() {
+				return DBOTableStatus.class;
+			}};
 	}
 
 	public Long getStartedOn() {
@@ -82,7 +124,7 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		this.startedOn = startedOn;
 	}
 
-	public TableStateEnum getState() {
+	public String getState() {
 		return state;
 	}
 
@@ -103,7 +145,7 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 	}
 
 
-	public void setState(TableStateEnum state) {
+	public void setState(String state) {
 		this.state = state;
 	}
 
@@ -163,10 +205,6 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		this.totalRunTimeMS = totalRunTimeMS;
 	}
 
-	public static void setTableMapping(TableMapping<DBOTableStatus> tableMapping) {
-		DBOTableStatus.tableMapping = tableMapping;
-	}
-
 	public Long getTableId() {
 		return tableId;
 	}
@@ -175,35 +213,31 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		this.tableId = tableId;
 	}
 
+	public Long getVersion() {
+		return version;
+	}
+
+	public void setVersion(Long version) {
+		this.version = version;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((changedOn == null) ? 0 : changedOn.hashCode());
+		result = prime * result + ((changedOn == null) ? 0 : changedOn.hashCode());
 		result = prime * result + Arrays.hashCode(errorDetails);
-		result = prime * result
-				+ ((errorMessage == null) ? 0 : errorMessage.hashCode());
-		result = prime
-				* result
-				+ ((lastTableChangeEtag == null) ? 0 : lastTableChangeEtag
-						.hashCode());
-		result = prime
-				* result
-				+ ((progressCurrent == null) ? 0 : progressCurrent.hashCode());
-		result = prime
-				* result
-				+ ((progressMessage == null) ? 0 : progressMessage.hashCode());
-		result = prime * result
-				+ ((progressTotal == null) ? 0 : progressTotal.hashCode());
-		result = prime * result
-				+ ((resetToken == null) ? 0 : resetToken.hashCode());
-		result = prime * result
-				+ ((startedOn == null) ? 0 : startedOn.hashCode());
+		result = prime * result + ((errorMessage == null) ? 0 : errorMessage.hashCode());
+		result = prime * result + ((lastTableChangeEtag == null) ? 0 : lastTableChangeEtag.hashCode());
+		result = prime * result + ((progressCurrent == null) ? 0 : progressCurrent.hashCode());
+		result = prime * result + ((progressMessage == null) ? 0 : progressMessage.hashCode());
+		result = prime * result + ((progressTotal == null) ? 0 : progressTotal.hashCode());
+		result = prime * result + ((resetToken == null) ? 0 : resetToken.hashCode());
+		result = prime * result + ((startedOn == null) ? 0 : startedOn.hashCode());
 		result = prime * result + ((state == null) ? 0 : state.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
-		result = prime * result
-				+ ((totalRunTimeMS == null) ? 0 : totalRunTimeMS.hashCode());
+		result = prime * result + ((totalRunTimeMS == null) ? 0 : totalRunTimeMS.hashCode());
+		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 
@@ -258,7 +292,10 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 				return false;
 		} else if (!startedOn.equals(other.startedOn))
 			return false;
-		if (state != other.state)
+		if (state == null) {
+			if (other.state != null)
+				return false;
+		} else if (!state.equals(other.state))
 			return false;
 		if (tableId == null) {
 			if (other.tableId != null)
@@ -270,21 +307,21 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 				return false;
 		} else if (!totalRunTimeMS.equals(other.totalRunTimeMS))
 			return false;
+		if (version == null) {
+			if (other.version != null)
+				return false;
+		} else if (!version.equals(other.version))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOTableStatus [tableId=" + tableId + ", state=" + state
-				+ ", resetToken=" + resetToken + ", lastTableChangeEtag="
-				+ lastTableChangeEtag + ", startedOn=" + startedOn
-				+ ", changedOn=" + changedOn + ", progressMessage="
-				+ progressMessage + ", progressCurrent=" + progressCurrent
-				+ ", progressTotal=" + progressTotal + ", errorMessage="
-				+ errorMessage + ", errorDetails="
-				+ Arrays.toString(errorDetails) + ", totalRunTimeMS="
-				+ totalRunTimeMS + "]";
+		return "DBOTableStatus [tableId=" + tableId + ", version=" + version + ", state=" + state + ", resetToken="
+				+ resetToken + ", lastTableChangeEtag=" + lastTableChangeEtag + ", startedOn=" + startedOn
+				+ ", changedOn=" + changedOn + ", progressMessage=" + progressMessage + ", progressCurrent="
+				+ progressCurrent + ", progressTotal=" + progressTotal + ", errorMessage=" + errorMessage
+				+ ", errorDetails=" + Arrays.toString(errorDetails) + ", totalRunTimeMS=" + totalRunTimeMS + "]";
 	}
-
 	
 }

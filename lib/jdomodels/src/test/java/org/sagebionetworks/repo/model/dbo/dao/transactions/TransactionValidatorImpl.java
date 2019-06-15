@@ -7,12 +7,9 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
-import org.sagebionetworks.repo.transactions.MandatoryWriteReadCommittedTransaction;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -73,7 +70,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 		return callable.call();
 	}
 
-	@MandatoryWriteReadCommittedTransaction
+	@MandatoryWriteTransaction
 	@Override
 	public String mandatoryReadCommitted(Callable<String> callable) throws Exception {
 		return callable.call();
@@ -97,8 +94,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	 */
 	public void initialize() throws IOException{
 		// Create the test table if needed.
-		String url = stackConfiguration.getRepositoryDatabaseConnectionUrl();
-		String schema = DDLUtilsImpl.getSchemaFromConnectionString(url);
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
 		String tableName = TRANS_TEST;
 		String sql = String.format(DDLUtilsImpl.TABLE_EXISTS_SQL_FORMAT, tableName, schema);
 		List<Map<String, Object>> list = jdbcTemplate.queryForList(sql);
@@ -108,16 +104,16 @@ public class TransactionValidatorImpl implements TransactionValidator {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String writeReadCommitted(Callable<String> callable)
 			throws Exception {
 		return callable.call();
 	}
 	
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
-	public String requiresNewReadCommitted(Callable<String> callable)
+	public String NewWriteTransaction(Callable<String> callable)
 			throws Exception {
 		return callable.call();
 	}

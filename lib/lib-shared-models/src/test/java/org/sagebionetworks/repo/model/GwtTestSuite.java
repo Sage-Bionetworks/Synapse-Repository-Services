@@ -23,7 +23,7 @@ public class GwtTestSuite extends GWTTestCase {
 	 * Must refer to a valid module that sources this class.
 	 */
 	public String getModuleName() { 
-		return "org.sagebionetworks.repo.SharedSynpaseDTOs";
+		return "org.sagebionetworks.repo.SharedSynapseDTOs";
 	}
 	
 	String registerJson = null;
@@ -41,7 +41,6 @@ public class GwtTestSuite extends GWTTestCase {
 	@Test
 	public void testAnnotationsRoundTrip() throws JSONObjectAdapterException {
 		Annotations annos = new Annotations();
-		annos.setCreationDate(new Date(100));
 		annos.addAnnotation("string", "one");
 		annos.addAnnotation("string", "two");
 		annos.addAnnotation("long", new Long(123));

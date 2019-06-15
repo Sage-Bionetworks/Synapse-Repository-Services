@@ -11,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -66,8 +66,9 @@ public class EntityViewMetadataProviderTest {
 	
 	@Test
 	public void testUpdate(){
+		boolean wasNewVersionCreated = false;
 		// call under test
-		provider.entityUpdated(userInfo, table);
+		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
 		verify(mockFileViewManager).setViewSchemaAndScope(userInfo, columnIds, scope, entityId);
 	}
 	
@@ -76,7 +77,7 @@ public class EntityViewMetadataProviderTest {
 		EntityView testEntity = new EntityView();
 		testEntity.setId(entityId);
 		when(mockFileViewManager.getTableSchema(entityId)).thenReturn(columnIds);
-		provider.addTypeSpecificMetadata(testEntity, null, null, null); //the other parameters are not used at all
+		provider.addTypeSpecificMetadata(testEntity, null, null); //the other parameters are not used at all
 		verify(mockFileViewManager).getTableSchema(entityId);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}

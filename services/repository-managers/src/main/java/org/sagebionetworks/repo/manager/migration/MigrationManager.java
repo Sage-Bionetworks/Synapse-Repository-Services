@@ -1,15 +1,19 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
+import org.sagebionetworks.repo.model.migration.BatchChecksumResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -116,7 +120,7 @@ public interface MigrationManager {
 
 	public MigrationRangeChecksum processAsyncMigrationRangeChecksumRequest(final UserInfo user,
 			final AsyncMigrationRangeChecksumRequest mReq);
-	
+
 	/**
 	 * <p>
 	 * See: PLFM-4729
@@ -136,10 +140,10 @@ public interface MigrationManager {
 	 * </p>
 	 * 
 	 * @param keyInfoList
-	 * @param tableNameToPrimaryGroup
-	 *            Mapping of the name of each secondary table to the set of table
-	 *            names that belong to the same primary table. Note: The primary
-	 *            table name is included in the set.
+	 * @param tableNameToPrimaryGroup Mapping of the name of each secondary table to
+	 *                                the set of table names that belong to the same
+	 *                                primary table. Note: The primary table name is
+	 *                                included in the set.
 	 */
 	public void validateForeignKeys();
 
@@ -195,7 +199,7 @@ public interface MigrationManager {
 	 * ID range might include a large numbers of rows.
 	 * 
 	 * This method is used to calculate a set of ranges, each of which will contain
-	 * the optimal number of rows regardless of cardinality or ID gaps. 
+	 * the optimal number of rows regardless of cardinality or ID gaps.
 	 * 
 	 * 
 	 * @param user
@@ -203,5 +207,26 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public CalculateOptimalRangeResponse calculateOptimalRanges(UserInfo user, CalculateOptimalRangeRequest request);
+
+	/**
+	 * Calculate n number of checksums for the provided ID range based on the
+	 * provided batch size.
+	 * 
+	 * @param user
+	 * @param req
+	 * @return
+	 */
+	public BatchChecksumResponse calculateBatchChecksums(UserInfo user, BatchChecksumRequest req);
+
+	/**
+	 * Restore from a stream.
+	 * @param input
+	 * @param primaryType
+	 * @param backupAliasType
+	 * @param batchSize
+	 * @return
+	 */
+	RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType, BackupAliasType backupAliasType,
+			long batchSize);
 
 }

@@ -220,8 +220,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			Set<String> fileIdsInZip, ZipEntryNameProvider zipEntryNameProvider) throws IOException {
 		String fileHandleId = fhas.getAssociation().getFileHandleId();
 		// Is the user authorized to download this file?
-		if (!fhas.getStatus().getAuthorized()) {
-			throw new BulkFileException(fhas.getStatus().getReason(),
+		if (!fhas.getStatus().isAuthorized()) {
+			throw new BulkFileException(fhas.getStatus().getMessage(),
 					FileDownloadCode.UNAUTHORIZED);
 		}
 		// Each file handle should only be added once

@@ -4,11 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -34,7 +34,8 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -49,11 +50,14 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
+import org.sagebionetworks.repo.model.migration.BatchChecksumResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -61,7 +65,6 @@ import org.sagebionetworks.util.FileProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -81,7 +84,7 @@ public class MigrationManagerImplTest {
 	@Mock
 	BackupFileStream mockBackupFileStream;
 	@Mock
-	AmazonS3 mockS3Client;
+	SynapseS3Client mockS3Client;
 	@Mock
 	FileProvider mockFileProvider;
 	@Mock
@@ -216,6 +219,10 @@ public class MigrationManagerImplTest {
 		ranges = Lists.newArrayList(range);
 		
 		when(mockDao.calculateRangesForType(any(MigrationType.class), anyLong(),  anyLong(),  anyLong())).thenReturn(ranges);
+		
+		RangeChecksum sum = new RangeChecksum();
+		sum.setBinNumber(1L);
+		when(mockDao.calculateBatchChecksums(any(BatchChecksumRequest.class))).thenReturn(Lists.newArrayList(sum));
 		
 		manager.initialize();
 	}
@@ -774,5 +781,48 @@ public class MigrationManagerImplTest {
 		optimalRangeRequest.setOptimalRowsPerRange(null);
 		// call under test
 		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test
+	public void testCalculateBatchChecksums() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		BatchChecksumResponse response = manager.calculateBatchChecksums(mockUser, request);
+		verify(mockDao).calculateBatchChecksums(request);
+		assertNotNull(response);
+		assertEquals(request.getMigrationType(), response.getMigrationType());
+		assertNotNull(response.getCheksums());
+		assertEquals(1, response.getCheksums().size());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCalculateBatchChecksumsNonAdmin() {
+		when(mockUser.isAdmin()).thenReturn(false);
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		manager.calculateBatchChecksums(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsNullUser() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		mockUser = null;
+		// call under test
+		manager.calculateBatchChecksums(mockUser, request);
 	}
 }

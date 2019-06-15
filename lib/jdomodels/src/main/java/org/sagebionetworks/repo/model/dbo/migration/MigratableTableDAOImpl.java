@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.model.dbo.migration;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,10 +14,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.database.StreamingJdbcTemplate;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -22,10 +29,12 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -58,6 +67,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
 	private static final String SET_UNIQUE_KEY_CHECKS = "SET UNIQUE_CHECKS = ?";
 
+	private static UnmodifiableXStream TABLE_NAME_ALIAS_X_STREAM;
+	private static UnmodifiableXStream MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
+
+
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
 	@Autowired
@@ -83,7 +96,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	/**
 	 * Injected via Spring
 	 */
-	private List<MigratableDatabaseObject> databaseObjectRegister;
+	List<MigratableDatabaseObject> databaseObjectRegister;
 
 	/**
 	 * Injected via Spring
@@ -97,7 +110,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public void setDatabaseObjectRegister(List<MigratableDatabaseObject> databaseObjectRegister) {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
-	
+
+	public List<MigratableDatabaseObject> getDatabaseObjectRegister() {
+		return Collections.unmodifiableList(this.databaseObjectRegister);
+	}
+
+
 	/**
 	 * Injected via Spring
 	 */
@@ -114,6 +132,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> batchChecksumSqlMap = new HashMap<>();
 	private Map<MigrationType, String> migrationTypeCountSqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
@@ -136,6 +155,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public void initialize() {
 		// Make sure we have a table for all registered objects
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
+
 		// Create the schema for each 
 		// This index is used to validate the order of migration.
 		int lastIndex = 0;
@@ -155,6 +175,28 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
 			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
+
+		initializeAliasTypeToXStreamMap(databaseObjectRegister);
+	}
+
+	static void initializeAliasTypeToXStreamMap(List<MigratableDatabaseObject> databaseObjectRegister) {
+		//create maps for alias type to xstream
+		UnmodifiableXStream.Builder tableNameXStreamBuilder = UnmodifiableXStream.builder();
+		tableNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
+		UnmodifiableXStream.Builder migrationTypeNameXStreamBuilder = UnmodifiableXStream.builder();
+		migrationTypeNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
+
+		for(MigratableDatabaseObject dbo: databaseObjectRegister){
+			// Add aliases to XStream for each alias type
+			//BackupAliasType.TABLE_NAME
+			tableNameXStreamBuilder.alias(dbo.getTableMapping().getTableName(), dbo.getBackupClass());
+			//BackupAliasType.MIGRATION_TYPE_NAME
+			migrationTypeNameXStreamBuilder.alias(dbo.getMigratableTableType().name(), dbo.getBackupClass());
+		}
+
+		//add map entries once the builders are done
+		TABLE_NAME_ALIAS_X_STREAM =  tableNameXStreamBuilder.build();
+		MIGRATION_TYPE_NAME_ALIAS_X_STREAM = migrationTypeNameXStreamBuilder.build();
 	}
 	
 	/*
@@ -223,6 +265,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		checksumRangeSqlMap.put(type, sumCrc);
 		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
 		checksumTableSqlMap.put(type, checksumTable);
+		String batchChecksumSql = DMLUtils.createSelectBatchChecksumStatement(mapping);
+		this.batchChecksumSqlMap.put(type, batchChecksumSql);
 		// Does this type have an etag?
 		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
 		if(etag != null){
@@ -506,7 +550,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
 		ValidateArgument.required(batch, "batch");
@@ -537,7 +581,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		});
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int deleteByRange(final MigrationType type, final long minimumId, final long maximumId) {
 		ValidateArgument.required(type,"MigrationType");
@@ -593,5 +637,43 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			}
 		}
 		return DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMapping);
+	}
+
+	@Override
+	public List<RangeChecksum> calculateBatchChecksums(BatchChecksumRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		ValidateArgument.required(request.getMinimumId(), "request.minimumId");
+		ValidateArgument.required(request.getMaximumId(), "request.maximumId");
+		ValidateArgument.required(request.getBatchSize(), "request.batchSize");
+		ValidateArgument.required(request.getSalt(), "request.salt");
+		// Lookup the SQL for this type
+		String sql = this.batchChecksumSqlMap.get(request.getMigrationType());
+		return this.jdbcTemplate.query(sql, new RowMapper<RangeChecksum>() {
+
+			@Override
+			public RangeChecksum mapRow(ResultSet rs, int rowNum) throws SQLException {
+				RangeChecksum result = new RangeChecksum();
+				result.setBinNumber(rs.getLong(1));
+				result.setCount(rs.getLong(2));
+				result.setMinimumId(rs.getLong(3));
+				result.setMaximumId(rs.getLong(4));
+				result.setChecksum(rs.getString(5));
+				return result;
+			}
+		}, request.getBatchSize(), request.getSalt(), request.getSalt(), request.getMinimumId(),
+				request.getMaximumId());
+	}
+
+	@Override
+	public UnmodifiableXStream getXStream(BackupAliasType backupAliasType) {
+		switch (backupAliasType){
+			case TABLE_NAME:
+				return TABLE_NAME_ALIAS_X_STREAM;
+			case MIGRATION_TYPE_NAME:
+				return MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
+			default:
+				throw new IllegalArgumentException("Unknown type: " + backupAliasType);
+		}
 	}
 }

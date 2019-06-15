@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.manager.team;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,10 +24,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -198,7 +198,7 @@ public class MembershipRequestManagerImplTest {
 	@Test
 	public void testCreateMembershipRequestNotification() throws Exception {
 		List<String> teamAdmins = Arrays.asList(new String[]{"222", "333"});
-		when(mockTeamDAO.getAdminTeamMembers(TEAM_ID)).thenReturn(teamAdmins);
+		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(teamAdmins);
 		UserProfile up = new UserProfile();
 		up.setUserName("auser");
 		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
@@ -262,12 +262,12 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
 		when(mockMembershipRequestDAO.get(anyString())).thenReturn(mrs);
-		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		assertEquals(mrs, membershipRequestManagerImpl.get(userInfo, "001"));
 		
 		// ok to get for another user, if you are an admin
 		mrs.setUserId("-1");
-		when(mockAuthorizationManager.canAccessMembershipRequest(adminInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessMembershipRequest(adminInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		assertEquals(mrs, membershipRequestManagerImpl.get(adminInfo, "001"));
 	}
 
@@ -277,7 +277,7 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId("-1");
 		when(mockMembershipRequestDAO.get(anyString())).thenReturn(mrs);
-		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertEquals(mrs, membershipRequestManagerImpl.get(userInfo, "001"));
 	}
 
@@ -289,13 +289,13 @@ public class MembershipRequestManagerImplTest {
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
 		mrs.setId(MRS_ID);
 		when(mockMembershipRequestDAO.get(MRS_ID)).thenReturn(mrs);
-		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.authorized());
 		membershipRequestManagerImpl.delete(userInfo, MRS_ID);
 		Mockito.verify(mockMembershipRequestDAO).delete(MRS_ID);
 		
 		// ok to delete if you are an admin
 		mrs.setUserId("333");
-		when(mockAuthorizationManager.canAccessMembershipRequest(adminInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessMembershipRequest(adminInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.authorized());
 		membershipRequestManagerImpl.delete(adminInfo, MRS_ID);
 	}
 	
@@ -307,7 +307,7 @@ public class MembershipRequestManagerImplTest {
 		mrs.setUserId("333");
 		mrs.setId(MRS_ID);
 		when(mockMembershipRequestDAO.get(MRS_ID)).thenReturn(mrs);
-		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		membershipRequestManagerImpl.delete(userInfo, MRS_ID);
 		Mockito.verify(mockMembershipRequestDAO).delete(MRS_ID);
 	}
@@ -322,7 +322,7 @@ public class MembershipRequestManagerImplTest {
 		when(mockMembershipRequestDAO.getOpenByTeamInRange(eq(teamId), anyLong(), anyLong(), anyLong())).
 			thenReturn(expected);
 		when(mockMembershipRequestDAO.getOpenByTeamCount(eq(teamId), anyLong())).thenReturn((long)expected.size());
-		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
@@ -331,7 +331,7 @@ public class MembershipRequestManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testGetOpenByTeamUnauthorized() throws Exception {
 		long teamId = 101L;
-		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
 	}
 	
@@ -346,7 +346,7 @@ public class MembershipRequestManagerImplTest {
 		when(mockMembershipRequestDAO.getOpenByTeamAndRequesterInRange(eq(teamId), eq(userId), anyLong(), anyLong(), anyLong())).
 			thenReturn(expected);
 		when(mockMembershipRequestDAO.getOpenByTeamAndRequesterCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
-		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequesterInRange(userInfo, ""+teamId,""+userId,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
@@ -356,7 +356,7 @@ public class MembershipRequestManagerImplTest {
 	public void testGetOpenByTeamAndRequesterUnauthorized() throws Exception {
 		long userId = 333L;
 		long teamId = 101L;
-		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		membershipRequestManagerImpl.getOpenByTeamAndRequesterInRange(userInfo, ""+teamId,""+userId,1,0);
 	}
 

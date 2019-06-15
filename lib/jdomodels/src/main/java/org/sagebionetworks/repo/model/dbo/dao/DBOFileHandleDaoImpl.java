@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,7 +34,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -128,7 +128,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@WriteTransaction
 	@Override
 	public FileHandle createFile(FileHandle fileHandle) {
-		createBatch(Arrays.asList(fileHandle));
+		createBatch(Collections.singletonList(fileHandle));
 		return get(fileHandle.getId());
 	}
 
@@ -311,7 +311,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void createBatch(List<FileHandle> list) {
 		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(list);
@@ -319,6 +319,12 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}
 		basicDao.createBatch(dbos);
+	}
+
+	@WriteTransaction
+	@Override
+	public void truncateTable() {
+		jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
 	}
 
 }
