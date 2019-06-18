@@ -12,8 +12,9 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
-import sun.security.util.Password;
 
 public interface MessageManager {
 	
@@ -102,11 +103,30 @@ public interface MessageManager {
 	 * Deletes a message, only accessible to admins
 	 */
 	public void deleteMessage(UserInfo userInfo, String messageId);
+	
+	/**
+	 * Sends a password reset email based on a template via Amazon SES, using as destination the default
+	 * notification email of the user identified by the given reset token
+	 * 
+	 * @param passwordResetPrefix The url prefix for the verification callback in the portal
+	 * @param passwordResetToken  The reset token generated for the user that needs the password reset
+	 */
+	public void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken);
 
 	/**
-	 * Sends a password reset email based on a template via Amazon SES
+	 * Sends a password reset email based on a template via Amazon SES, using as potential destination
+	 * the email defined by the given alias if of type {@link AliasType#USER_EMAIL}, otherwise falling
+	 * back to the default notification email for the user identified by the given alias.
+	 * 
+	 * @param passwordResetPrefix The url prefix for the verification callback in the portal
+	 * @param passwordResetToken  The reset token generated for the user that needs the password reset
+	 * @param alias               The alias to use as the destination, if the alias is not of type
+	 *                            {@link AliasType#USER_EMAIL} falls back to the default notification
+	 *                            email of the user that owns the given alias. The principal id in the
+	 *                            alias must match the user id of the signed token
 	 */
-	public void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken) throws NotFoundException;
+	public void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken,
+			PrincipalAlias alias) throws NotFoundException;
 
 	/**
 	 * Send an email confirming to user that their password has been changed

@@ -1,5 +1,5 @@
 package org.sagebionetworks.repo.manager;
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -50,6 +50,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -92,11 +94,14 @@ public class MessageManagerImplUnitTest {
 	
 	private static final String MESSAGE_ID = "101";
 	private static final Long CREATOR_ID = 999L;
+	private static final String CREATOR_EMAIL = "foo@sagebase.org";
 	private static final Long RECIPIENT_ID = 888L;
+	private static final String RECIPIENT_EMAIL = "bar@sagebase.org";
+	private static final String RECIPIENT_EMAIL_ALIAS = "bar@alternative.org";
 	private static final String FILE_HANDLE_ID = "222";
-	private UserInfo creatorUserInfo = null;
 	private static final String UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
 	private static final String PROFILE_SETTING_ENDPOINT = "https://www.synapse.org/#profile:edit";
+	private UserInfo creatorUserInfo = null;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -123,10 +128,11 @@ public class MessageManagerImplUnitTest {
 		creatorUserInfo = new UserInfo(false);
 		creatorUserInfo.setId(CREATOR_ID);
 		creatorUserInfo.setGroups(Collections.singleton(CREATOR_ID));
+		
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
 		
-		when(notificationEmailDao.getNotificationEmailForPrincipal(CREATOR_ID)).thenReturn("foo@sagebase.org");
-		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn("bar@sagebase.org");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(CREATOR_ID)).thenReturn(CREATOR_EMAIL);
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
 		
 		{
 			UserProfile userProfile = new UserProfile();
@@ -215,7 +221,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
@@ -243,7 +249,7 @@ public class MessageManagerImplUnitTest {
 		assertFalse(ser.getSource().equals("Foo FOO <foo@synapse.org>"));
 		assertEquals(from, ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
@@ -268,7 +274,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
@@ -295,7 +301,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		String body = new String(ser.getRawMessage().getData().array());
 		assertTrue(body.indexOf("message body")>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
@@ -322,7 +328,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		String body = new String(ser.getRawMessage().getData().array());
 		assertTrue(body.indexOf("message body")>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
@@ -366,7 +372,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("noreply@synapse.org", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
@@ -381,16 +387,58 @@ public class MessageManagerImplUnitTest {
 		String synapsePrefix = "https://synapse.org/";
 
 		messageManager.sendNewPasswordResetEmail(synapsePrefix, token);
+		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("noreply@synapse.org", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.contains("Please follow the link below to set your password."));
+	}
+	
+	@Test
+	public void testSendNewPasswordResetEmailWithEmailAlias() throws Exception {
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		PrincipalAlias recipientEmailAlias = new PrincipalAlias();
+		recipientEmailAlias.setAlias(RECIPIENT_EMAIL_ALIAS);
+		recipientEmailAlias.setPrincipalId(RECIPIENT_ID);
+		recipientEmailAlias.setType(AliasType.USER_EMAIL);
+
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias);
+
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("noreply@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals(RECIPIENT_EMAIL_ALIAS, ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.contains("Please follow the link below to set your password."));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testSendNewPassowrdResetEmailWithMismatchedEmailAlias() throws Exception {
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		PrincipalAlias recipientEmailAlias = new PrincipalAlias();
+		recipientEmailAlias.setAlias(RECIPIENT_EMAIL_ALIAS);
+		recipientEmailAlias.setPrincipalId(RECIPIENT_ID + 1);
+		recipientEmailAlias.setType(AliasType.USER_EMAIL);
+
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias);
 	}
 
 
@@ -412,7 +460,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("noreply@synapse.org", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
@@ -429,7 +477,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("noreply@synapse.org", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("foo@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(CREATOR_EMAIL, ser.getDestinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
@@ -493,7 +541,7 @@ public class MessageManagerImplUnitTest {
 		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
-		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
 		String body = new String(ser.getRawMessage().getData().array());
 		assertTrue(body.indexOf("message body")>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);

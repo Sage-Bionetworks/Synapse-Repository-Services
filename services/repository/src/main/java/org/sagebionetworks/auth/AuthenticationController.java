@@ -2,16 +2,12 @@ package org.sagebionetworks.auth;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
-import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -58,8 +54,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 @RequestMapping(UrlHelpers.AUTH_PATH)
 public class AuthenticationController {
-
-	private static Log log = LogFactory.getLog(AuthenticationController.class);
 
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -118,7 +112,6 @@ public class AuthenticationController {
 	/**
 	 * Sends an email for resetting a user's password. <br/>
 	 * @param passwordResetEndpoint the Portal's url prefix for handling password resets.
-	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_RESET, method = RequestMethod.POST)
