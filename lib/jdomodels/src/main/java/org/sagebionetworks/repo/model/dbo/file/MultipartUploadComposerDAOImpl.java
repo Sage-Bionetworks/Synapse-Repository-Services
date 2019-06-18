@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_UPLOAD_ID;
@@ -36,13 +35,17 @@ public class MultipartUploadComposerDAOImpl implements MultipartUploadComposerDA
 			"SELECT * FROM " + TABLE_MULTIPART_UPLOAD_COMPOSER_PART_STATE
 			+ " WHERE " + COL_MULTIPART_COMPOSER_PART_UPLOAD_ID + " = :" + PARAM_UPLOAD_ID;
 
-
-	private static final String SQL_SELECT_CONTIGS_FOR_UPDATE =
-			"SELECT * FROM " + TABLE_MULTIPART_UPLOAD_COMPOSER_PART_STATE
+	private static final String SQL_SELECT_PARTS_IN_RANGE =
+			"SELECT "
+			+ COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND + ", "
+			+ COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND
+			+ " FROM " + TABLE_MULTIPART_UPLOAD_COMPOSER_PART_STATE
 			+ " WHERE " + COL_MULTIPART_COMPOSER_PART_UPLOAD_ID + " = :" + PARAM_UPLOAD_ID
-			+ " AND (" + COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND + " = :" + PARAM_LOWER_BOUND
-			+ " OR " + COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND + " = :" + PARAM_UPPER_BOUND
-			+ ") ORDER BY " + COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND + " ASC FOR UPDATE";
+			+ " AND " + COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND + " >= :" + PARAM_LOWER_BOUND
+			+ " AND " + COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND + " <= :" + PARAM_UPPER_BOUND
+			+ " ORDER BY " + COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND + " ASC";
+
+	private static final String FOR_UPDATE = " FOR UPDATE";
 
 	private static final String SQL_DELETE_PARTS_IN_RANGE =
 			"DELETE FROM " + TABLE_MULTIPART_UPLOAD_COMPOSER_PART_STATE
@@ -102,7 +105,6 @@ public class MultipartUploadComposerDAOImpl implements MultipartUploadComposerDA
 		partState.setUploadId(Long.parseLong(uploadId));
 		partState.setPartRangeLowerBound(lowerBound);
 		partState.setPartRangeUpperBound(upperBound);
-		partState.setErrorDetails(null);
 		basicDao.createOrUpdate(partState);
 	}
 
