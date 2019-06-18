@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
@@ -21,7 +24,9 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
-import org.sagebionetworks.search.CloudSearchDocumentGenerationAwsKinesisLogRecord;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.search.CloudSearchDocumentLogRecord;
+import org.sagebionetworks.search.CloudSearchLogger;
 import org.sagebionetworks.search.DocumentAction;
 import org.sagebionetworks.search.SearchDao;
 
@@ -38,7 +43,10 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 	private V2WikiPageDao mockWikiPageDao;
 	
 	@Mock
-	private CloudSearchDocumentGenerationAwsKinesisLogRecord mocKRecord;
+	private CloudSearchDocumentLogRecord mocKRecord;
+	
+	@Mock
+	private CloudSearchLogger mockRecordLogger;
 
 	@InjectMocks
 	private ChangeMessageToSearchDocumentTranslator translator;
@@ -77,9 +85,7 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		wikiId = "987";
 		wikiKey = WikiPageKeyHelper.createWikiPageKey(synapseId, ObjectType.ENTITY, wikiId);
 		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenReturn(wikiKey);
-
-		//clear the threadlocal log record map since each test will add to it
-		ChangeMessageToSearchDocumentTranslator.threadLocalRecordList.get().clear();
+		when(mockRecordLogger.startRecordForChangeMessage(any(ChangeMessage.class))).thenReturn(mocKRecord);
 	}
 	
 	@Test
@@ -131,160 +137,42 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		verify(mockWikiPageDao).lookupWikiKey(wikiId);
 		verify(mocKRecord).withAction(DocumentAction.CREATE_OR_UPDATE);
 		verify(mocKRecord).withExistsOnIndex(false);
+		verify(mocKRecord).withWikiOwner(synapseId);
 		verify(mockSearchDocumentDriver).formulateSearchDocument(synapseId);
 	}
-
-
-//	@Test
-//	public void testGenerateSearchDocumentIfNecessary_ChangeTypeDelete() throws Exception{
-//		// create a few delete messages.
-//		message.setChangeType(ChangeType.DELETE);
-//		// call under test
-//		Document document = translator.generateSearchDocumentIfNecessary( message);
-//
-//		Document expectedDocument = new Document();
-//		expectedDocument.setId(message.getObjectId());
-//		expectedDocument.setType(DocumentTypeNames.delete);
-//		assertEquals(expectedDocument, document);
-//
-//		// Only a document needs to be generated
-//		verifyZeroInteractions(mockSearchDao, mockWikiPageDao, mockSearchDocumentDriver);
-//		verifyThreadLocalMap(ChangeType.DELETE, null, etag);
-//	}
-//
-//	@Test
-//	public void testGenerateSearchDocumentIfNecessary_ChangeTypeCreate() throws Exception{
-//
-//		// Create only occurs if the document exists in the repository
-//		when(mockSearchDocumentDriver.doesNodeExist(synapseId, etag)).thenReturn(true);
-//
-//		// Create only occurs if it is not already in the search index
-//		when(mockSearchDao.doesDocumentExist(synapseId, etag)).thenReturn(false);
-//
-//		// call under test
-//		Document generatedDoc = translator.generateSearchDocumentIfNecessary(message);
-//
-//		assertEquals(docOne, generatedDoc);
-//
-//		verify(mockSearchDocumentDriver).formulateSearchDocument(synapseId);
-//
-//		verify(mockSearchDocumentDriver).doesNodeExist(synapseId, etag);
-//		verifyThreadLocalMap(ChangeType.CREATE, false, etag);
-//	}
-//	@Test
-//	public void testGenerateSearchDocumentIfNecessary_ChangeTypeUpdate() throws Exception{
-//		message.setChangeType(ChangeType.UPDATE);
-//
-//		// Create only occurs if the document exists in the repository
-//		when(mockSearchDocumentDriver.doesNodeExist(synapseId, etag)).thenReturn(true);
-//
-//		// Create only occurs if it is not already in the search index
-//		when(mockSearchDao.doesDocumentExist(synapseId, etag)).thenReturn(false);
-//
-//		// call under test
-//		Document generatedDoc = translator.generateSearchDocumentIfNecessary(message);
-//
-//		assertEquals(docOne, generatedDoc);
-//
-//		verify(mockSearchDocumentDriver).formulateSearchDocument(synapseId);
-//
-//		verify(mockSearchDocumentDriver).doesNodeExist(synapseId, etag);
-//		verifyThreadLocalMap(ChangeType.UPDATE, false, etag);
-//	}
-//
-//
-//	/**
-//	 * When the document already exits in the search index with the same etag, we can ignore it.
-//	 */
-//	@Test
-//	public void testGenerateSearchDocumentIfNecessary_ChangeTypeCreateAlreadyInSearchIndex() throws IOException {
-//		// Create only occurs if the document exists in the repository
-//		when(mockSearchDocumentDriver.doesNodeExist(synapseId, etag)).thenReturn(true);
-//		// Create only occurs if it is not already in the search index
-//		when(mockSearchDao.doesDocumentExist(synapseId, etag)).thenReturn(true);
-//
-//		// call under test
-//		Document generatedDoc = translator.generateSearchDocumentIfNecessary(message);
-//		assertNull(generatedDoc);
-//
-//		// We should not call doesNodeExist() on the repository when it already exists in the search index.
-//		verify(mockSearchDocumentDriver, never()).doesNodeExist(synapseId, etag);
-//		verifyThreadLocalMap(ChangeType.CREATE, true, etag);
-//	}
-//
-//	/**
-//	 * When the document already exits in the search index with the same etag, we can ignore it.
-//	 */
-//	@Test
-//	public void testGenerateSearchDocumentIfNecessary_ChangeTypeCreateDoesNotExistInRepository() throws IOException {
-//		// Create only occurs if the document exists in the repository
-//		when(mockSearchDocumentDriver.doesNodeExist(synapseId, etag)).thenReturn(false);
-//		// Create only occurs if it is not already in the search index
-//		when(mockSearchDao.doesDocumentExist(synapseId, etag)).thenReturn(false);
-//
-//		// call under test
-//		Document generatedDoc = translator.generateSearchDocumentIfNecessary(message);
-//		assertNull(generatedDoc);
-//
-//		// We should not call doesNodeExist() one time.
-//		verify(mockSearchDocumentDriver).doesNodeExist(synapseId, etag);
-//		verifyThreadLocalMap(ChangeType.CREATE, false, etag);
-//	}
-//
-//	@Test
-//	public void testGenerateSearchDocumentIfNecessary_ObjectTypeIsWikiAndOwnerIsEntity(){
-//		String wikiOwnerId = synapseId;
-//
-//		message.setObjectType(ObjectType.WIKI);
-//		message.setObjectId("wiki");
-//
-//		WikiPageKey wikiPageKey = new WikiPageKey();
-//		wikiPageKey.setOwnerObjectId(wikiOwnerId);
-//		wikiPageKey.setOwnerObjectType(ObjectType.ENTITY);
-//
-//		when(mockWikiPageDao.lookupWikiKey("wiki")).thenReturn(wikiPageKey);
-//		when(mockSearchDao.doesDocumentExist(synapseId, null)).thenReturn(false);
-//
-//		//method under test
-//		Document generatedDoc = translator.generateSearchDocumentIfNecessary(message);
-//		assertEquals(docOne, generatedDoc);
-//
-//		verify(mockSearchDao).doesDocumentExist(synapseId, null);
-//		verify(mockSearchDocumentDriver, never()).doesNodeExist(anyString(), anyString());
-//		verify(mockSearchDocumentDriver).formulateSearchDocument(synapseId);
-//
-//		verifyThreadLocalMap(ChangeType.UPDATE, false, null);
-//	}
-//
-//
-//	@Test
-//	public void testGenerateSearchDocumentIfNecessary_ObjectTypeIsWikiAndOwnerIsNotEntity(){
-//		String wikiOwnerId = synapseId;
-//
-//		message.setObjectType(ObjectType.WIKI);
-//		message.setObjectId("wiki");
-//
-//		WikiPageKey wikiPageKey = new WikiPageKey();
-//		wikiPageKey.setOwnerObjectId(wikiOwnerId);
-//		wikiPageKey.setOwnerObjectType(ObjectType.FILE);
-//		when(mockWikiPageDao.lookupWikiKey("wiki")).thenReturn(wikiPageKey);
-//
-//		//method under test
-//		Document generatedDoc = translator.generateSearchDocumentIfNecessary(message);
-//		assertNull(generatedDoc);
-//
-//		verifyZeroInteractions(mockSearchDao, mockSearchDocumentDriver);
-//		assertTrue(ChangeMessageToSearchDocumentTranslator.threadLocalRecordList.get().isEmpty());
-//	}
-//
-//	private void verifyThreadLocalMap(ChangeType changeType, Boolean doesDocumentExist, DocumentAction action){
-//		List<CloudSearchDocumentGenerationAwsKinesisLogRecord> threadLocalMap = ChangeMessageToSearchDocumentTranslator.threadLocalRecordList.get();
-//		assertEquals(1, threadLocalMap.size());
-//		CloudSearchDocumentGenerationAwsKinesisLogRecord record = threadLocalMap.get(0);
-//		assertEquals((Long) changeNumber, record.getChangeNumber());
-//		assertEquals(synapseId, record.getSynapseId());
-//		assertEquals(action, record.getAction());
-//		assertEquals(changeType, changeType);
-//		assertEquals(doesDocumentExist, record.isExistsOnIndex());
-//	}
+	
+	@Test
+	public void testWikiChangeWikiNotFound() {
+		String wikiId = "987";
+		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenThrow(new NotFoundException());
+		
+		// call under test
+		Document doc = translator.wikiChange(wikiId, mocKRecord);
+		assertNull(doc);
+		verify(mocKRecord).withAction(DocumentAction.IGNORE);
+		verify(mockSearchDocumentDriver, never()).formulateSearchDocument(anyString());
+	}
+	
+	@Test
+	public void testGenerateSearchDocumentIfNecessaryEntity() {
+		// call under test
+		Document doc = translator.generateSearchDocumentIfNecessary(message);
+		assertEquals(docOne, doc);
+		verify(mockRecordLogger).startRecordForChangeMessage(message);
+		verify(mockWikiPageDao, never()).lockForUpdate(anyString());
+	}
+	
+	@Test
+	public void testGenerateSearchDocumentIfNecessaryWiki() {
+		String wikiId = "987";
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(synapseId, ObjectType.ENTITY, wikiId);
+		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenReturn(key);
+		message.setObjectId(wikiId);
+		message.setObjectType(ObjectType.WIKI);
+		// call under test
+		Document doc = translator.generateSearchDocumentIfNecessary(message);
+		assertEquals(docOne, doc);
+		verify(mockRecordLogger).startRecordForChangeMessage(message);
+		verify(mockWikiPageDao).lookupWikiKey(wikiId);
+	}
 }

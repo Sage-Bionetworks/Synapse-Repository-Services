@@ -11,6 +11,9 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<bean id="cloudSearchLogger"
+		  class="org.sagebionetworks.search.CloudSearchLoggerImpl"/>
+
 	<!-- Create the AWS kinesis firehose using the current credentials. -->
 	<bean id="awsKinesisFirehoseClient"
 		  class="org.sagebionetworks.aws.AwsClientFactory"

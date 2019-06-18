@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
@@ -13,18 +11,14 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.search.CloudSearchDocumentGenerationAwsKinesisLogRecord;
+import org.sagebionetworks.search.CloudSearchDocumentLogRecord;
+import org.sagebionetworks.search.CloudSearchLogger;
 import org.sagebionetworks.search.DocumentAction;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ChangeMessageToSearchDocumentTranslator {
 	private static final Logger log = LogManager.getLogger(ChangeMessageToSearchDocumentTranslator.class.getName());
-
-	static ThreadLocal<List<CloudSearchDocumentGenerationAwsKinesisLogRecord>> threadLocalRecordList = ThreadLocalProvider
-			.getInstanceWithInitial(CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX,
-					ArrayList::new);
 
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
@@ -34,10 +28,13 @@ public class ChangeMessageToSearchDocumentTranslator {
 
 	@Autowired
 	SearchDao searchDao;
+	
+	@Autowired
+	CloudSearchLogger recordLogger;
 
 	Document generateSearchDocumentIfNecessary(ChangeMessage change) {
 		// start a log record for this message.
-		CloudSearchDocumentGenerationAwsKinesisLogRecord record = startLogRecord(change);
+		CloudSearchDocumentLogRecord record = recordLogger.startRecordForChangeMessage(change);
 		switch (change.getObjectType()) {
 		case ENTITY:
 			return entityChange(change.getObjectId(), record);
@@ -49,38 +46,24 @@ public class ChangeMessageToSearchDocumentTranslator {
 	}
 
 	/**
-	 * Start a record for the given change.
-	 * @param change
-	 * @return
-	 */
-	CloudSearchDocumentGenerationAwsKinesisLogRecord startLogRecord(ChangeMessage change) {
-		CloudSearchDocumentGenerationAwsKinesisLogRecord record = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
-				.withSynapseId(change.getObjectId())
-				.withChangeNumber(change.getChangeNumber())
-				.withChangeType(change.getChangeType())
-				.withObjectType(change.getObjectType());
-		threadLocalRecordList.get().add(record);
-		return record;
-	}
-
-	/**
 	 * Wiki changes are converted into entity changes.
 	 * @param wikiId
 	 * @param record
 	 * @return
 	 */
-	Document wikiChange(String wikiId, CloudSearchDocumentGenerationAwsKinesisLogRecord record) {
+	Document wikiChange(String wikiId, CloudSearchDocumentLogRecord record) {
 		// Lookup the owner of the page
 		try {
 			WikiPageKey key = wikiPageDao.lookupWikiKey(wikiId);
 			// If the owner of the wiki is a an entity then pass along the
 			// message.
 			if (ObjectType.ENTITY == key.getOwnerObjectType()) {
+				record.withWikiOwner(key.getOwnerObjectId());
 				return entityChange(key.getOwnerObjectId(), record);
 			}
 		} catch (NotFoundException e) {
 			// Nothing to do if the wiki does not exist
-			log.info("Wiki not found for id: " + wikiId + " Message:" + e.getMessage());
+			log.info("Wiki not found for id: " + wikiId + " Message: " + e.getMessage());
 		}
 		// this change will be ignored.
 		record.withAction(DocumentAction.IGNORE);
@@ -94,7 +77,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 	 * @param record
 	 * @return
 	 */
-	Document entityChange(String entityId, CloudSearchDocumentGenerationAwsKinesisLogRecord record) {
+	Document entityChange(String entityId, CloudSearchDocumentLogRecord record) {
 		// Lookup the current etag for this entity
 		Optional<String> etag = searchDocumentDriver.getEntityEtag(entityId);
 		if(!etag.isPresent()) {
