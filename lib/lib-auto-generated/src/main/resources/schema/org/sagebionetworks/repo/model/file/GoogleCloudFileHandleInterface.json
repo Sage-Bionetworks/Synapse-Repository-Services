@@ -1,9 +1,0 @@
-{
-	"description": "Defines the common fields of FileHandles stored in Google Cloud Storage.",
-	"type": "interface",
-	"implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.file.CloudFileHandleInterface"
-		}
-	]
-}

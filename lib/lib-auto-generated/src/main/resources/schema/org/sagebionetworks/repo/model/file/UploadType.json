@@ -5,11 +5,7 @@
     "enum": [
         {
             "name": "S3",
-            "description": "An upload to an Amazon Web Services S3 bucket"
-        },
-        {
-            "name": "GOOGLECLOUDSTORAGE",
-            "description": "An upload to a Google Cloud Platform storage bucket"
+            "description": "TODO: Auto-generated description"
         },
         {
             "name": "SFTP",
