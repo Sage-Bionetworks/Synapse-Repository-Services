@@ -8,13 +8,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
@@ -26,12 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
-import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
-import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,11 +38,13 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
+import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import com.google.common.collect.Iterators;
-import org.sagebionetworks.util.Clock;
+import com.google.common.collect.Sets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CloudSearchDomainClientAdapterTest {
@@ -74,9 +67,6 @@ public class CloudSearchDomainClientAdapterTest {
 	@Mock
 	private AwsKinesisFirehoseLogger mockFirehoseLogger;
 
-	@Mock
-	private Clock mockClock;
-
 	@Captor
 	ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor;
 
@@ -98,7 +88,7 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Before
 	public void before() {
-		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient, mockProvider, mockFirehoseLogger, mockClock);
+		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient, mockProvider, mockFirehoseLogger);
 		searchRequest = new SearchRequest().withQuery("aQuery");
 		uploadDocumentsResult = new UploadDocumentsResult().withStatus("fakestatus");
 		when(mockCloudSearchDomainClient.uploadDocuments(any(UploadDocumentsRequest.class))).thenReturn(uploadDocumentsResult);
@@ -215,8 +205,6 @@ public class CloudSearchDomainClientAdapterTest {
 		cloudSearchDomainClientAdapter.sendDocuments(iterator);
 
 		verify(mockDocumentBatch, times(1)).getDocumentIds();
-		//should sleep for multiple documents
-		verify(mockClock).sleep(10000);
 	}
 
 	@Test
@@ -231,8 +219,6 @@ public class CloudSearchDomainClientAdapterTest {
 		cloudSearchDomainClientAdapter.sendDocuments(iterator);
 
 		verify(mockDocumentBatch, times(1)).getDocumentIds();
-		//should never sleep for single documents
-		verify(mockClock, never()).sleep(anyLong());
 	}
 
 	@Test

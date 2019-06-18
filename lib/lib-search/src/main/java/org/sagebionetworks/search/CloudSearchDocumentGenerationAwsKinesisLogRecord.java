@@ -22,9 +22,9 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 
 	private Long changeNumber;
 	private String synapseId;
-	private String etag;
 	private ObjectType objectType;
 	private ChangeType changeType;
+	private DocumentAction action;
 	private Boolean existsOnIndex;
 	private String documentBatchUUID;
 	private String documentBatchUpdateStatus;
@@ -93,15 +93,6 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 		return this;
 	}
 
-	public String getEtag() {
-		return etag;
-	}
-
-	public CloudSearchDocumentGenerationAwsKinesisLogRecord withEtag(String etag) {
-		this.etag = etag;
-		return this;
-	}
-
 	public ObjectType getObjectType(){
 		return this.objectType;
 	}
@@ -151,6 +142,17 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 		return documentBatchUpdateTimestamp;
 	}
 
+	public DocumentAction getAction() {
+		return action;
+	}
+
+
+	public CloudSearchDocumentGenerationAwsKinesisLogRecord withAction(DocumentAction action) {
+		this.action = action;
+		return this;
+	}
+
+
 	public CloudSearchDocumentGenerationAwsKinesisLogRecord withDocumentBatchUpdateTimestamp(long documentBatchUpdateTimestamp) {
 		this.documentBatchUpdateTimestamp = documentBatchUpdateTimestamp;
 		return this;
@@ -168,9 +170,9 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 		CloudSearchDocumentGenerationAwsKinesisLogRecord that = (CloudSearchDocumentGenerationAwsKinesisLogRecord) o;
 		return Objects.equals(changeNumber, that.changeNumber) &&
 				Objects.equals(synapseId, that.synapseId) &&
-				Objects.equals(etag, that.etag) &&
 				objectType == that.objectType &&
 				changeType == that.changeType &&
+				Objects.equals(action, that.action) &&
 				Objects.equals(existsOnIndex, that.existsOnIndex) &&
 				Objects.equals(documentBatchUUID, that.documentBatchUUID) &&
 				Objects.equals(documentBatchUpdateStatus, that.documentBatchUpdateStatus) &&
@@ -181,7 +183,7 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(changeNumber, synapseId, etag, objectType, changeType, existsOnIndex, documentBatchUUID, documentBatchUpdateStatus, documentBatchUpdateTimestamp, stack, instance);
+		return Objects.hash(changeNumber, synapseId, objectType, action, changeType, existsOnIndex, documentBatchUUID, documentBatchUpdateStatus, documentBatchUpdateTimestamp, stack, instance);
 	}
 
 	@Override
@@ -189,9 +191,9 @@ public class CloudSearchDocumentGenerationAwsKinesisLogRecord implements AwsKine
 		return "CloudSearchDocumentGenerationAwsKinesisLogRecord{" +
 				"changeNumber=" + changeNumber +
 				", synapseId='" + synapseId + '\'' +
-				", etag='" + etag + '\'' +
 				", objectType=" + objectType +
 				", changeType=" + changeType +
+				", changeType=" + action +
 				", existsOnIndex=" + existsOnIndex +
 				", documentBatchUUID='" + documentBatchUUID + '\'' +
 				", documentBatchUpdateStatus='" + documentBatchUpdateStatus + '\'' +

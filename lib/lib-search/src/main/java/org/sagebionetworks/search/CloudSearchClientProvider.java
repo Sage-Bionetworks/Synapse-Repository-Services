@@ -41,7 +41,7 @@ public class CloudSearchClientProvider {
 		}else{
 			if(searchDomainSetup.postInitialize()) {
 				awsCloudSearchDomainClient = AwsClientFactory.createAmazonCloudSearchDomain(searchDomainSetup.getDomainSearchEndpoint());
-				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider, firehoseLogger, clock);
+				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider, firehoseLogger);
 				return singletonWrapper;
 			} else{
 				throw new TemporarilyUnavailableException("Search has not yet been initialized. Please try again later!");

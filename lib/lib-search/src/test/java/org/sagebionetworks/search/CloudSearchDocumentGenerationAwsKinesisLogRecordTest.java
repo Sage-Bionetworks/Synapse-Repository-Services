@@ -17,7 +17,7 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 				.withChangeType(ChangeType.CREATE)
 				.withObjectType(ObjectType.ENTITY)
 				.withSynapseId("12345")
-				.withEtag("eeeeeeeeeeeeeeeeetag")
+				.withAction(DocumentAction.CREATE_OR_UPDATE)
 				.withExistsOnIndex(false)
 				.withDocumentBatchUpdateStatus("success")
 				.withDocumentBatchUpdateTimestamp(98765L)
@@ -30,9 +30,9 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 		//convert bytes back to JSON string to compare
 		String expectedJSON = "{\"changeNumber\":123," +
 				"\"synapseId\":\"12345\"," +
-				"\"etag\":\"eeeeeeeeeeeeeeeeetag\"," +
 				"\"objectType\":\"ENTITY\","+
 				"\"changeType\":\"CREATE\"," +
+				"\"action\":\"CREATE_OR_UPDATE\"," +
 				"\"existsOnIndex\":false," +
 				"\"documentBatchUUID\":\"uuuuuuuuuuuuuuuuuuID\"," +
 				"\"documentBatchUpdateStatus\":\"success\"," +
