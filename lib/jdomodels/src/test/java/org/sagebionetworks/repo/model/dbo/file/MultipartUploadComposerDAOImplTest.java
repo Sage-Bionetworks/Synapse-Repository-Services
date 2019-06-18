@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.file;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -18,10 +17,10 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
-import org.sagebionetworks.repo.model.file.CloudFileHandleInterface;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.upload.PartRange;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -46,7 +45,7 @@ class MultipartUploadComposerDAOImplTest {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private CloudFileHandleInterface file;
+	private S3FileHandleInterface file; // TODO: Change to Cloud/Google File handle interface
 	private Long userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	private String uploadId;
 
@@ -65,7 +64,7 @@ class MultipartUploadComposerDAOImplTest {
 		request.setPartSizeBytes(5L);
 		request.setStorageLocationId(storageLocationId);
 		String uploadToken = "";
-		UploadType uploadType = UploadType.GOOGLECLOUDSTORAGE;
+		UploadType uploadType = UploadType.S3; // TODO: UploadType Google cloud
 		String bucket = "someBucket";
 		String key = "someKey";
 		int numberOfParts = 11;
