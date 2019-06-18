@@ -22,7 +22,7 @@ public interface SearchDocumentDriver {
 	 * @param entityId
 	 * @return Returns Optional.empty() if the entity does not exist, else the entity's etag.
 	 */
-	public Optional<String> getEntityEtag(String entityId);
+	public Optional<String> getEntityEtagFromRepository(String entityId);
 	
 	/**
 	 * Create a search document for a given NodeId.

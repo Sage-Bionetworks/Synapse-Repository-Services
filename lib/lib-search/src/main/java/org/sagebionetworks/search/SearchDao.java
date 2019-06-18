@@ -48,7 +48,7 @@ public interface SearchDao {
 	 * @param etag
 	 * @return
 	 */
-	boolean doesDocumentExist(String id, String etag);
+	boolean doesDocumentExistInSearchIndex(String id, String etag);
 
 	 
 	 /**

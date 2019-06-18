@@ -79,14 +79,14 @@ public class ChangeMessageToSearchDocumentTranslator {
 	 */
 	Document entityChange(String entityId, CloudSearchDocumentLogRecord record) {
 		// Lookup the current etag for this entity
-		Optional<String> etag = searchDocumentDriver.getEntityEtag(entityId);
+		Optional<String> etag = searchDocumentDriver.getEntityEtagFromRepository(entityId);
 		if(!etag.isPresent()) {
 			// Deleted documents will not have an etag.
 			record.withAction(DocumentAction.DELETE);
 			return createDeleteDocument(entityId);
 		}
 		// Does this entity already exist in the search index with the given etag?
-		if(!searchDao.doesDocumentExist(entityId, etag.get())) {
+		if(!searchDao.doesDocumentExistInSearchIndex(entityId, etag.get())) {
 			record.withAction(DocumentAction.CREATE_OR_UPDATE);
 			record.withExistsOnIndex(false);
 			return searchDocumentDriver.formulateSearchDocument(entityId);

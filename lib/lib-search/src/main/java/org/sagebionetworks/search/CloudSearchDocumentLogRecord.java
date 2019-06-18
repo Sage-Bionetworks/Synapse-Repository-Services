@@ -29,7 +29,7 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 	private Boolean existsOnIndex;
 	private String documentBatchUUID;
 	private String documentBatchUpdateStatus;
-	private Long documentBatchUpdateTimestamp;
+	private Long timestamp;
 	
 
 	private String stack;
@@ -140,10 +140,6 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 		return this;
 	}
 
-	public Long getDocumentBatchUpdateTimestamp() {
-		return documentBatchUpdateTimestamp;
-	}
-
 	public DocumentAction getAction() {
 		return action;
 	}
@@ -153,8 +149,12 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 		return this;
 	}
 
-	public CloudSearchDocumentLogRecord withDocumentBatchUpdateTimestamp(long documentBatchUpdateTimestamp) {
-		this.documentBatchUpdateTimestamp = documentBatchUpdateTimestamp;
+	public Long getTimestamp() {
+		return timestamp;
+	}
+
+	public CloudSearchDocumentLogRecord withTimestamp(Long timestamp) {
+		this.timestamp = timestamp;
 		return this;
 	}
 
@@ -178,13 +178,12 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 		result = prime * result + ((changeType == null) ? 0 : changeType.hashCode());
 		result = prime * result + ((documentBatchUUID == null) ? 0 : documentBatchUUID.hashCode());
 		result = prime * result + ((documentBatchUpdateStatus == null) ? 0 : documentBatchUpdateStatus.hashCode());
-		result = prime * result
-				+ ((documentBatchUpdateTimestamp == null) ? 0 : documentBatchUpdateTimestamp.hashCode());
 		result = prime * result + ((existsOnIndex == null) ? 0 : existsOnIndex.hashCode());
 		result = prime * result + ((instance == null) ? 0 : instance.hashCode());
 		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
 		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
 		result = prime * result + ((stack == null) ? 0 : stack.hashCode());
+		result = prime * result + ((timestamp == null) ? 0 : timestamp.hashCode());
 		result = prime * result + ((wikiOwner == null) ? 0 : wikiOwner.hashCode());
 		return result;
 	}
@@ -218,11 +217,6 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 				return false;
 		} else if (!documentBatchUpdateStatus.equals(other.documentBatchUpdateStatus))
 			return false;
-		if (documentBatchUpdateTimestamp == null) {
-			if (other.documentBatchUpdateTimestamp != null)
-				return false;
-		} else if (!documentBatchUpdateTimestamp.equals(other.documentBatchUpdateTimestamp))
-			return false;
 		if (existsOnIndex == null) {
 			if (other.existsOnIndex != null)
 				return false;
@@ -245,6 +239,11 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 				return false;
 		} else if (!stack.equals(other.stack))
 			return false;
+		if (timestamp == null) {
+			if (other.timestamp != null)
+				return false;
+		} else if (!timestamp.equals(other.timestamp))
+			return false;
 		if (wikiOwner == null) {
 			if (other.wikiOwner != null)
 				return false;
@@ -259,8 +258,8 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 		return "CloudSearchDocumentLogRecord [changeNumber=" + changeNumber + ", objectId=" + objectId + ", objectType="
 				+ objectType + ", changeType=" + changeType + ", wikiOwner=" + wikiOwner + ", action=" + action
 				+ ", existsOnIndex=" + existsOnIndex + ", documentBatchUUID=" + documentBatchUUID
-				+ ", documentBatchUpdateStatus=" + documentBatchUpdateStatus + ", documentBatchUpdateTimestamp="
-				+ documentBatchUpdateTimestamp + ", stack=" + stack + ", instance=" + instance + "]";
+				+ ", documentBatchUpdateStatus=" + documentBatchUpdateStatus + ", timestamp=" + timestamp + ", stack="
+				+ stack + ", instance=" + instance + "]";
 	}
 
 }
