@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -17,12 +18,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface SearchDocumentDriver {
 	
 	/**
-	 * Does the given document exist.
-	 * @param nodeId
-	 * @param etag
-	 * @return
+	 * Get the etag of the entity if the entity exits.
+	 * @param entityId
+	 * @return Returns Optional.empty() if the entity does not exist, else the entity's etag.
 	 */
-	public boolean doesNodeExist(String nodeId, String etag);
+	public Optional<String> getEntityEtag(String entityId);
 	
 	/**
 	 * Create a search document for a given NodeId.
