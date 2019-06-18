@@ -27,10 +27,7 @@ import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
-import org.sagebionetworks.repo.model.file.CloudFileHandleInterface;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
-import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
-import org.sagebionetworks.repo.model.file.GoogleCloudFileHandleInterface;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -38,7 +35,6 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -46,8 +42,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
+import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -55,7 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 	@Autowired
-	CloudServiceMultipartUploadDAOProvider cloudMultipartUploadDAOProvider;
+	S3MultipartUploadDAO s3multipartUploadDAO;
 
 	@Autowired
 	MultipartUploadDAO multipartUploadDAO;
@@ -133,15 +129,13 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			UserInfo user, MultipartUploadRequest request, String requestMD5Hex) {
 		// This is the first time we have seen this request.
 		StorageLocationSetting locationSettings = getStorageLocationSettings(request.getStorageLocationId());
-		UploadType uploadType = locationSettings.getUploadType();
 		// the bucket depends on the upload location used.
 		String bucket = MultipartUtils.getBucket(locationSettings);
 		// create a new key for this file.
 		String key = MultipartUtils.createNewKey(user.getId().toString(),
 				request.getFileName(), locationSettings);
-		String uploadToken = cloudMultipartUploadDAOProvider
-				.getCloudServiceMultipartUploadDao(uploadType)
-				.initiateMultipartUpload(bucket, key, request);
+		String uploadToken = s3multipartUploadDAO.initiateMultipartUpload(
+				bucket, key, request);
 		String requestJson = createRequestJSON(request);
 		// How many parts will be needed to upload this file?
 		int numberParts = PartUtils.calculateNumberOfParts(request.getFileSizeBytes(),
@@ -149,7 +143,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// Start the upload
 		return multipartUploadDAO
 				.createUploadStatus(new CreateMultipartRequest(user.getId(),
-						requestMD5Hex, requestJson, uploadToken, uploadType,
+						requestMD5Hex, requestJson, uploadToken, UploadType.S3,
 						bucket, key, numberParts));
 	}
 
@@ -336,9 +330,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		response.setPartNumber(new Long(partNumber));
 		response.setUploadId(uploadId);
 		try {
-			s3multipartUploadDAO.addPart(new AddPartRequest(composite
-					.getUploadToken(), composite.getBucket(), composite
-					.getKey(), partKey, partMD5Hex, partNumber));
+			s3multipartUploadDAO.addPart(new AddPartRequest(uploadId,
+					composite.getUploadToken(), composite.getBucket(), composite
+					.getKey(), partKey, partMD5Hex, partNumber, composite.getNumberOfParts()));
 			// added the part successfully.
 			multipartUploadDAO
 					.addPartToUpload(uploadId, partNumber, partMD5Hex);

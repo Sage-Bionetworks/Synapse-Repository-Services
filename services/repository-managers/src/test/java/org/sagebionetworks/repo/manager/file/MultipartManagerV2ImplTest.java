@@ -440,12 +440,7 @@ public class MultipartManagerV2ImplTest {
 		//call under test.
 		MultipartManagerV2Impl.validatePartNumber(partNumber, numberOfParts);
 	}
-	
-	@Test
-	public void testCreatePartKey(){
-		assertEquals("baseKey/9999", MultipartManagerV2Impl.createPartKey("baseKey", 9999));
-	}
-	
+
 	@Test
 	public void testValidateStartedByHappy(){
 		MultipartManagerV2Impl.validateStartedBy(userInfo, composite);
