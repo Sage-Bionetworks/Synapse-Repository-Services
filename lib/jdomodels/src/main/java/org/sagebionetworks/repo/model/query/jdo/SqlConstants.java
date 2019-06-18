@@ -260,7 +260,6 @@ public class SqlConstants {
 	public static final String COL_MULTIPART_COMPOSER_PART_UPLOAD_ID = "UPLOAD_ID";
 	public static final String COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND = "PART_RANGE_LOWER_BOUND";
 	public static final String COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND = "PART_RANGE_UPPER_BOUND";
-	public static final String COL_MULTIPART_COMPOSER_PART_ERROR_DETAILS = "ERROR_DETAILS";
 	public static final String DDL_MULTIPART_COMPOSER_UPLOAD_PART_STATE = "schema/MultipartUploadComposerPartState-ddl.sql";
 
 	// 

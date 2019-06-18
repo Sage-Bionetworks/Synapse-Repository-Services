@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
+import org.sagebionetworks.repo.model.upload.PartRange;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -79,14 +80,20 @@ public class MultipartUploadComposerDAOImpl implements MultipartUploadComposerDA
 	private RowMapper<DBOMultipartUploadComposerPartState> rowMapper = (rs, rowNum) -> {
 		DBOMultipartUploadComposerPartState dbo = new DBOMultipartUploadComposerPartState();
 		dbo.setUploadId(rs.getLong(COL_MULTIPART_COMPOSER_PART_UPLOAD_ID));
-		dbo.setPartRangeUpperBound(rs.getInt(COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND));
-		dbo.setPartRangeLowerBound(rs.getInt(COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND));
-		dbo.setErrorDetails(rs.getBytes(COL_MULTIPART_COMPOSER_PART_ERROR_DETAILS));
+		dbo.setPartRangeUpperBound(rs.getLong(COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND));
+		dbo.setPartRangeLowerBound(rs.getLong(COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND));
 		return dbo;
 	};
 
+	private RowMapper<PartRange> partRangeRowMapper = (rs, rowNum) -> {
+		PartRange dto = new PartRange();
+		dto.setUpperBound(rs.getLong(COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND));
+		dto.setLowerBound(rs.getLong(COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND));
+		return dto;
+	};
+
 	@Override
-	public void addPartToUpload(String uploadId, int lowerBound, int upperBound) {
+	public void addPartToUpload(String uploadId, long lowerBound, long upperBound) {
 		ValidateArgument.required(uploadId, "UploadId");
 		// update the etag of the master row.
 		updateEtag(uploadId);
@@ -100,26 +107,26 @@ public class MultipartUploadComposerDAOImpl implements MultipartUploadComposerDA
 	}
 
 	@Override
-	public List<DBOMultipartUploadComposerPartState> getAddedParts(String uploadId) {
+	public List<DBOMultipartUploadComposerPartState> getAddedParts(Long uploadId) {
 		MapSqlParameterSource param = new MapSqlParameterSource().addValue(PARAM_UPLOAD_ID, uploadId);
 		return namedJdbcTemplate.query(SQL_SELECT_PARTS_BY_UPLOAD_ID, param, rowMapper);
 	}
 
 	@Override
-	public void deletePartsInRange(String uploadId, int lowerBound, int upperBound) {
+	public List<PartRange> getAddedPartRangesForUpdate(Long uploadId, Long lowerBound, Long upperBound) {
+		MapSqlParameterSource param = new MapSqlParameterSource()
+				.addValue(PARAM_UPLOAD_ID, uploadId)
+				.addValue(PARAM_LOWER_BOUND, lowerBound)
+				.addValue(PARAM_UPPER_BOUND, upperBound);
+		return namedJdbcTemplate.query(SQL_SELECT_PARTS_IN_RANGE + FOR_UPDATE, param, partRangeRowMapper);
+	}
+
+	@Override
+	public void deletePartsInRange(String uploadId, long lowerBound, long upperBound) {
 		namedJdbcTemplate.update(SQL_DELETE_PARTS_IN_RANGE, new MapSqlParameterSource()
 				.addValue(PARAM_UPLOAD_ID, uploadId)
 				.addValue(PARAM_LOWER_BOUND, lowerBound)
 				.addValue(PARAM_UPPER_BOUND, upperBound));
-	}
-
-	@Override
-	public List<DBOMultipartUploadComposerPartState> getContiguousParts(String uploadId, int partNumber) {
-		MapSqlParameterSource param = new MapSqlParameterSource()
-				.addValue(PARAM_UPLOAD_ID, uploadId)
-				.addValue(PARAM_LOWER_BOUND, partNumber + 1)
-				.addValue(PARAM_UPPER_BOUND, partNumber - 1);
-		return namedJdbcTemplate.query(SQL_SELECT_CONTIGS_FOR_UPDATE, param, rowMapper);
 	}
 
 	@Override

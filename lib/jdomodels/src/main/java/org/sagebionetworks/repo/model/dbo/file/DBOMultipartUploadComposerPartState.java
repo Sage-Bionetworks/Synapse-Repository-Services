@@ -1,16 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_COMPOSER_PART_UPLOAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_MULTIPART_COMPOSER_UPLOAD_PART_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD_COMPOSER_PART_STATE;
 
-import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -29,15 +26,13 @@ public class DBOMultipartUploadComposerPartState implements MigratableDatabaseOb
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("uploadId", COL_MULTIPART_COMPOSER_PART_UPLOAD_ID, true).withIsBackupId(true),
 		new FieldColumn("partRangeLowerBound", COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND, true),
-		new FieldColumn("partRangeUpperBound", COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND, true),
-		new FieldColumn("errorDetails", COL_MULTIPART_COMPOSER_PART_ERROR_DETAILS),
+		new FieldColumn("partRangeUpperBound", COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND, true)
 	};
 	
 	Long uploadId;
-	Integer partRangeLowerBound;
-	Integer partRangeUpperBound;
-	byte[] errorDetails;
-	
+	Long partRangeLowerBound;
+	Long partRangeUpperBound;
+
 	public Long getUploadId() {
 		return uploadId;
 	}
@@ -46,28 +41,20 @@ public class DBOMultipartUploadComposerPartState implements MigratableDatabaseOb
 		this.uploadId = uploadId;
 	}
 
-	public Integer getPartRangeLowerBound() {
+	public Long getPartRangeLowerBound() {
 		return partRangeLowerBound;
 	}
 
-	public void setPartRangeLowerBound(Integer lowerBound) {
+	public void setPartRangeLowerBound(Long lowerBound) {
 		this.partRangeLowerBound = lowerBound;
 	}
 
-	public Integer getPartRangeUpperBound() {
+	public Long getPartRangeUpperBound() {
 		return partRangeUpperBound;
 	}
 
-	public void setPartRangeUpperBound(Integer upperBound) {
+	public void setPartRangeUpperBound(Long upperBound) {
 		this.partRangeUpperBound = upperBound;
-	}
-
-	public byte[] getErrorDetails() {
-		return errorDetails;
-	}
-
-	public void setErrorDetails(byte[] errorDetails) {
-		this.errorDetails = errorDetails;
 	}
 
 	@Override
@@ -79,12 +66,8 @@ public class DBOMultipartUploadComposerPartState implements MigratableDatabaseOb
 					throws SQLException {
 				DBOMultipartUploadComposerPartState dbo = new DBOMultipartUploadComposerPartState();
 				dbo.setUploadId(rs.getLong(COL_MULTIPART_COMPOSER_PART_UPLOAD_ID));
-				dbo.setPartRangeLowerBound(rs.getInt(COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND));
-				dbo.setPartRangeUpperBound(rs.getInt(COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND));
-				Blob blob = rs.getBlob(COL_MULTIPART_COMPOSER_PART_ERROR_DETAILS);
-				if(blob  != null){
-					dbo.setErrorDetails(blob.getBytes(1L, (int) blob.length()));
-				}
+				dbo.setPartRangeLowerBound(rs.getLong(COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND));
+				dbo.setPartRangeUpperBound(rs.getLong(COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND));
 				return dbo;
 			}
 
@@ -139,7 +122,6 @@ public class DBOMultipartUploadComposerPartState implements MigratableDatabaseOb
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + Arrays.hashCode(errorDetails);
 		result = prime * result
 				+ ((partRangeUpperBound == null) ? 0 : partRangeUpperBound.hashCode());
 		result = prime * result
@@ -158,12 +140,7 @@ public class DBOMultipartUploadComposerPartState implements MigratableDatabaseOb
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMultipartUploadComposerPartState other = (DBOMultipartUploadComposerPartState) obj;
-		if (!Arrays.equals(errorDetails, other.errorDetails))
-			return false;
-		if (partRangeUpperBound == null) {
-			if (other.partRangeUpperBound != null)
-				return false;
-		} else if (!partRangeUpperBound.equals(other.partRangeUpperBound))
+		if (!partRangeUpperBound.equals(other.partRangeUpperBound))
 			return false;
 		if (partRangeLowerBound == null) {
 			if (other.partRangeLowerBound != null)
@@ -183,6 +160,6 @@ public class DBOMultipartUploadComposerPartState implements MigratableDatabaseOb
 		return "DBOMultipartUploadPartState [uploadId=" + uploadId
 				+ ", partRangeLowerBound=" + partRangeLowerBound
 				+ ", partRangeUpperBound=" + partRangeUpperBound
-				+ ", errorDetails=" + Arrays.toString(errorDetails) + "]";
+				+ "]";
 	}
 }

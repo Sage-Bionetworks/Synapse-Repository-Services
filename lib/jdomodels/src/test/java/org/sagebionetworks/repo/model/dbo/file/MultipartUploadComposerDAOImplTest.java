@@ -63,13 +63,14 @@ class MultipartUploadComposerDAOImplTest {
 		request.setPartSizeBytes(5L);
 		request.setStorageLocationId(storageLocationId);
 		String uploadToken = "";
+		UploadType uploadType = UploadType.GOOGLECLOUDSTORAGE;
 		String bucket = "someBucket";
 		String key = "someKey";
 		int numberOfParts = 11;
 		String requestJSON = EntityFactory.createJSONStringForEntity(request);
-		CreateMultipartRequest createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, bucket, key, numberOfParts);
+		CreateMultipartRequest createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, uploadType, bucket, key, numberOfParts);
 
-		uploadId = multipartUploadDAO.createUploadStatus(createRequest).getMultipartUploadStatus().getUploadId();
+		uploadId =  multipartUploadDAO.createUploadStatus(createRequest).getMultipartUploadStatus().getUploadId();
 	}
 
 	@After
@@ -90,7 +91,7 @@ class MultipartUploadComposerDAOImplTest {
 
 		// Calls under test
 		multipartUploadComposerDAO.addPartToUpload(uploadId, lowerBound, upperBound);
-		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(uploadId);
+		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId));
 
 		// Verify we get back the part we added
 		assertFalse(results.isEmpty());
@@ -114,7 +115,7 @@ class MultipartUploadComposerDAOImplTest {
 		// Call under test
 		multipartUploadComposerDAO.deletePartsInRange("83573295", lowerBound, upperBound);
 
-		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(uploadId);
+		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId));
 		assertEquals(1, results.size());
 		DBOMultipartUploadComposerPartState result = results.get(0);
 		assertEquals(Long.valueOf(uploadId), result.getUploadId());
@@ -132,7 +133,7 @@ class MultipartUploadComposerDAOImplTest {
 		// Call under test
 		multipartUploadComposerDAO.deletePartsInRange(uploadId, 28, 30);
 
-		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(uploadId);
+		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId));
 		assertEquals(1, results.size());
 	}
 
@@ -145,7 +146,7 @@ class MultipartUploadComposerDAOImplTest {
 		// Call under test
 		multipartUploadComposerDAO.deletePartsInRange(uploadId, 3, 10);
 
-		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(uploadId);
+		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId));
 		assertEquals(1, results.size());
 	}
 
@@ -158,7 +159,7 @@ class MultipartUploadComposerDAOImplTest {
 		// Call under test
 		multipartUploadComposerDAO.deletePartsInRange(uploadId, lowerBound, upperBound);
 
-		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(uploadId);
+		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId));
 		assertTrue(results.isEmpty());
 	}
 
@@ -171,7 +172,7 @@ class MultipartUploadComposerDAOImplTest {
 		// Call under test
 		multipartUploadComposerDAO.deletePartsInRange(uploadId, lowerBound - 1, upperBound + 1);
 
-		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(uploadId);
+		List<DBOMultipartUploadComposerPartState> results = multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId));
 		assertTrue(results.isEmpty());
 	}
 
@@ -233,7 +234,7 @@ class MultipartUploadComposerDAOImplTest {
 		// The upload state should be complete.
 		assertEquals(MultipartUploadState.COMPLETED, status.getMultipartUploadStatus().getState());
 		// All parts should have been removed from the composer table
-		assertTrue(multipartUploadComposerDAO.getAddedParts(uploadId).isEmpty());
+		assertTrue(multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId)).isEmpty());
 		assertNotEquals(oldEtag, status.getEtag());
 	}
 }

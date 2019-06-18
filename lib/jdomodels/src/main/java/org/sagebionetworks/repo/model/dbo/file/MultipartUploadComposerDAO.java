@@ -2,24 +2,14 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.upload.PartRange;
+
 
 /**
  * DAO to for metadata persisted for a multi-part upload.
  *
  */
 public interface MultipartUploadComposerDAO {
-
-
-	/**
-	 * Gets the parts that immediately precede and follow the given part number.
-	 * @param uploadId ID of the entire multipart upload
-	 * @param partNumber
-	 * @return A list of neighboring parts. If two parts are returned (a part before and after the given part number),
-	 * then the first part is necessarily the predecessor and the second part is necessarily the successor.
-	 * If only one part is returned, the caller should check the part ranges to determine if the part is the predecessor or
-	 * successor.
-	 */
-	List<DBOMultipartUploadComposerPartState> getContiguousParts(String uploadId, int partNumber);
 
 	/**
 	 * Add a part to a multipart upload.
@@ -28,14 +18,23 @@ public interface MultipartUploadComposerDAO {
 	 * @param lowerBound
 	 * @param upperBound
 	 */
-	void addPartToUpload(String uploadId, int lowerBound, int upperBound);
+	void addPartToUpload(String uploadId, long lowerBound, long upperBound);
 
 	/**
 	 * Get all the parts for a given upload ID
 	 * @param uploadId
 	 * @return
 	 */
-	List<DBOMultipartUploadComposerPartState> getAddedParts(String uploadId);
+	List<DBOMultipartUploadComposerPartState> getAddedParts(Long uploadId);
+
+	/**
+	 * Get all the parts for a given upload ID between the provided bounds (inclusive) for update.
+	 * @param uploadId
+	 * @param lowerBound
+	 * @param upperBound
+	 * @return
+	 */
+	List<PartRange> getAddedPartRangesForUpdate(Long uploadId, Long lowerBound, Long upperBound);
 
 	/**
 	 * Deletes all of the parts contained in a given range (inclusive).
@@ -46,7 +45,7 @@ public interface MultipartUploadComposerDAO {
 	 * @param lowerBound The lower bound of the range to be deleted
 	 * @param upperBound The upper bound of the range to be deleted
 	 */
-	void deletePartsInRange(String uploadId, int lowerBound, int upperBound);
+	void deletePartsInRange(String uploadId, long lowerBound, long upperBound);
 
 	/**
 	 * Set the given file upload to be complete.
