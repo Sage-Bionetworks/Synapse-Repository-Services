@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.After;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.upload.PartRange;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,7 +102,6 @@ class MultipartUploadComposerDAOImplTest {
 		assertEquals(Long.valueOf(uploadId), result.getUploadId());
 		assertEquals(lowerBound, result.getPartRangeLowerBound());
 		assertEquals(upperBound, result.getPartRangeUpperBound());
-		assertNull(result.getErrorDetails());
 
 		// Verify the eTag on the upload status changed
 		assertNotEquals(oldEtag, multipartUploadDAO.getUploadStatus(uploadId).getEtag());
@@ -121,7 +122,6 @@ class MultipartUploadComposerDAOImplTest {
 		assertEquals(Long.valueOf(uploadId), result.getUploadId());
 		assertEquals(lowerBound, result.getPartRangeLowerBound());
 		assertEquals(upperBound, result.getPartRangeUpperBound());
-		assertNull(result.getErrorDetails());
 	}
 
 	@Test
@@ -177,49 +177,21 @@ class MultipartUploadComposerDAOImplTest {
 	}
 
 	@Test
-	void getContiguousPartsWithNoNeighbors() {
-		int partNumber = 5;
+	void getAddedPartRangesForUpdate() {
+		multipartUploadComposerDAO.addPartToUpload(uploadId, 5, 7);
+		multipartUploadComposerDAO.addPartToUpload(uploadId, 8, 9);
+		multipartUploadComposerDAO.addPartToUpload(uploadId, 10, 20);
+		multipartUploadComposerDAO.addPartToUpload(uploadId, 21, 26);
 
-		int predecessorLowerBound = 2;
-		int predecessorUpperBound = 3; // part 4 is missing, so 5 has no neighbor yet
-		multipartUploadComposerDAO.addPartToUpload(uploadId, predecessorLowerBound, predecessorUpperBound);
-		int successorLowerBound = 7; // part 6 is missing, so 5 still has no neighbor
-		int successorUpperBound = 12;
-		multipartUploadComposerDAO.addPartToUpload(uploadId, successorLowerBound, successorUpperBound);
-
-		// Call under test
-		List<DBOMultipartUploadComposerPartState> results =
-				multipartUploadComposerDAO.getContiguousParts(uploadId, partNumber);
-
-		assertTrue(results.isEmpty());
-	}
-
-	@Test
-	void getContiguousPartsWithNeighbors() {
-		int partNumber = 5;
-
-		int predecessorLowerBound = 2;
-		int predecessorUpperBound = 4; // partNumber - 1
-		multipartUploadComposerDAO.addPartToUpload(uploadId, predecessorLowerBound, predecessorUpperBound);
-		int successorLowerBound = 6; // partNumber + 1
-		int successorUpperBound = 12;
-		multipartUploadComposerDAO.addPartToUpload(uploadId, successorLowerBound, successorUpperBound);
+		List<PartRange> expected = new ArrayList<>();
+		expected.add(new PartRange(8, 9));
+		expected.add(new PartRange(10, 20));
 
 		// Call under test
-		List<DBOMultipartUploadComposerPartState> results =
-				multipartUploadComposerDAO.getContiguousParts(uploadId, partNumber);
+		List<PartRange> actual = multipartUploadComposerDAO.getAddedPartRangesForUpdate(Long.valueOf(uploadId), 8L, 20L);
 
-		assertEquals(2, results.size());
-		DBOMultipartUploadComposerPartState predecessor = results.get(0);
-		assertEquals(Long.valueOf(uploadId), predecessor.getUploadId());
-		assertEquals(predecessorLowerBound, predecessor.getPartRangeLowerBound());
-		assertEquals(predecessorUpperBound, predecessor.getPartRangeUpperBound());
-		DBOMultipartUploadComposerPartState successor = results.get(1);
-		assertEquals(Long.valueOf(uploadId), successor.getUploadId());
-		assertEquals(successorLowerBound, successor.getPartRangeLowerBound());
-		assertEquals(successorUpperBound, successor.getPartRangeUpperBound());
+		assertEquals(expected, actual);
 	}
-
 
 	@Test
 	void setUploadComplete() {
