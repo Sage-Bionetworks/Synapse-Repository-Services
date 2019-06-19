@@ -21,14 +21,13 @@ public class CloudSearchLoggerImpl implements CloudSearchLogger {
 	public CloudSearchDocumentLogRecord startRecordForChangeMessage(ChangeMessage change) {
 		CloudSearchDocumentLogRecord record = new CloudSearchDocumentLogRecord().withObjectId(change.getObjectId())
 				.withChangeNumber(change.getChangeNumber()).withChangeType(change.getChangeType())
-				.withObjectType(change.getObjectType());
+				.withObjectType(change.getObjectType()).withTimestamp(System.currentTimeMillis());
 		threadLocalRecordList.get().add(record);
 		return record;
 	}
 
 	@Override
 	public void currentBatchFinshed(final String status) {
-		final long batchUploadTimestamp = System.currentTimeMillis();
 		final String batchUUID = UUID.randomUUID().toString();
 
 		// get
@@ -39,8 +38,7 @@ public class CloudSearchLoggerImpl implements CloudSearchLogger {
 			if (DocumentAction.CREATE_OR_UPDATE.equals(record.getAction())
 					|| DocumentAction.DELETE.equals(record.getAction())) {
 				// documents that are not ignored will be part of this batch.
-				record.withDocumentBatchUpdateStatus(status).withDocumentBatchUpdateTimestamp(batchUploadTimestamp)
-						.withDocumentBatchUUID(batchUUID);
+				record.withDocumentBatchUpdateStatus(status).withDocumentBatchUUID(batchUUID);
 			}
 		}
 	}

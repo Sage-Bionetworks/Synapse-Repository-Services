@@ -21,7 +21,7 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 				.withAction(DocumentAction.CREATE_OR_UPDATE)
 				.withExistsOnIndex(false)
 				.withDocumentBatchUpdateStatus("success")
-				.withDocumentBatchUpdateTimestamp(98765L)
+				.withTimestamp(98765L)
 				.withDocumentBatchUUID("uuuuuuuuuuuuuuuuuuID")
 				.withStack("dev")
 				.withInstance("test");
@@ -38,7 +38,7 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 				"\"existsOnIndex\":false," +
 				"\"documentBatchUUID\":\"uuuuuuuuuuuuuuuuuuID\"," +
 				"\"documentBatchUpdateStatus\":\"success\"," +
-				"\"documentBatchUpdateTimestamp\":98765," +
+				"\"timestamp\":98765," +
 				"\"stack\":\"dev\"," +
 				"\"instance\":\"test\"}" +
 				"\n"; //important that documents are separated by a new line for AWS Athena to process them

@@ -56,6 +56,7 @@ public class CloudSearchLoggerImplTest {
 		assertEquals(changeOne.getChangeNumber(), record.getChangeNumber());
 		assertEquals(changeOne.getChangeType(), record.getChangeType());
 		assertEquals(changeOne.getObjectType(), record.getObjectType());
+		assertNotNull(record.getTimestamp());
 	}
 
 	@Test
@@ -67,7 +68,6 @@ public class CloudSearchLoggerImplTest {
 		// call under test
 		logger.currentBatchFinshed(statusString);
 		assertEquals(statusString, record.getDocumentBatchUpdateStatus());
-		assertNotNull(record.getDocumentBatchUpdateTimestamp());
 		assertNotNull(record.getDocumentBatchUUID());
 	}
 
@@ -80,7 +80,6 @@ public class CloudSearchLoggerImplTest {
 		// call under test
 		logger.currentBatchFinshed(statusString);
 		assertEquals(statusString, record.getDocumentBatchUpdateStatus());
-		assertNotNull(record.getDocumentBatchUpdateTimestamp());
 		assertNotNull(record.getDocumentBatchUUID());
 	}
 
@@ -93,7 +92,6 @@ public class CloudSearchLoggerImplTest {
 		// call under test
 		logger.currentBatchFinshed(statusString);
 		assertNull(record.getDocumentBatchUpdateStatus());
-		assertNull(record.getDocumentBatchUpdateTimestamp());
 		assertNull(record.getDocumentBatchUUID());
 	}
 
