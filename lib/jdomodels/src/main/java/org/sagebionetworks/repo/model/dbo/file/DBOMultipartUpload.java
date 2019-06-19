@@ -154,8 +154,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<>();
 		list.add(new DBOMultipartUploadPartState());
+		list.add(new DBOMultipartUploadComposerPartState());
 		return list;
 	}
 

@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -12,22 +12,17 @@ import org.junit.After;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
-import org.sagebionetworks.repo.model.file.MultipartUploadState;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.upload.PartRange;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -40,12 +35,8 @@ class MultipartUploadComposerDAOImplTest {
 	private MultipartUploadDAO multipartUploadDAO;
 
 	@Autowired
-	private FileHandleDao fileHandleDao;
+	TransactionTemplate testTransactionTemplate;
 
-	@Autowired
-	private IdGenerator idGenerator;
-
-	private S3FileHandleInterface file; // TODO: Change to Cloud/Google File handle interface
 	private Long userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	private String uploadId;
 
@@ -64,7 +55,7 @@ class MultipartUploadComposerDAOImplTest {
 		request.setPartSizeBytes(5L);
 		request.setStorageLocationId(storageLocationId);
 		String uploadToken = "";
-		UploadType uploadType = UploadType.S3; // TODO: UploadType Google cloud
+		UploadType uploadType = UploadType.S3; // TODO: UploadType Google cloud would make more sense in this context
 		String bucket = "someBucket";
 		String key = "someKey";
 		int numberOfParts = 11;
@@ -78,9 +69,7 @@ class MultipartUploadComposerDAOImplTest {
 	public void after() {
 		multipartUploadComposerDAO.truncateAll();
 		multipartUploadDAO.truncateAll();
-		if(file != null){
-			fileHandleDao.delete(file.getId());;
-		}
+
 	}
 
 
@@ -88,7 +77,6 @@ class MultipartUploadComposerDAOImplTest {
 	void addAndGetParts() {
 		int lowerBound = 5;
 		int upperBound = 24;
-		String oldEtag = multipartUploadDAO.getUploadStatus(uploadId).getEtag();
 
 		// Calls under test
 		multipartUploadComposerDAO.addPartToUpload(uploadId, lowerBound, upperBound);
@@ -101,9 +89,6 @@ class MultipartUploadComposerDAOImplTest {
 		assertEquals(Long.valueOf(uploadId), result.getUploadId());
 		assertEquals(lowerBound, result.getPartRangeLowerBound());
 		assertEquals(upperBound, result.getPartRangeUpperBound());
-
-		// Verify the eTag on the upload status changed
-		assertNotEquals(oldEtag, multipartUploadDAO.getUploadStatus(uploadId).getEtag());
 	}
 
 	@Test
@@ -176,36 +161,43 @@ class MultipartUploadComposerDAOImplTest {
 	}
 
 	@Test
+	void getAddedPartRangesForUpdate_NotInTransaction() {
+		assertThrows(IllegalTransactionStateException.class,
+				() -> multipartUploadComposerDAO.getAddedPartRanges(Long.valueOf(uploadId), 8L, 20L));
+	}
+
+	@Test
 	void getAddedPartRangesForUpdate() {
 		multipartUploadComposerDAO.addPartToUpload(uploadId, 5, 7);
 		multipartUploadComposerDAO.addPartToUpload(uploadId, 8, 9);
 		multipartUploadComposerDAO.addPartToUpload(uploadId, 10, 20);
 		multipartUploadComposerDAO.addPartToUpload(uploadId, 21, 26);
 
-		List<PartRange> expected = new ArrayList<>();
-		expected.add(new PartRange(8, 9));
-		expected.add(new PartRange(10, 20));
+		List<DBOMultipartUploadComposerPartState> expected = new ArrayList<>();
+		expected.add(createDbo(Long.valueOf(uploadId), 8, 9));
+		expected.add(createDbo(Long.valueOf(uploadId), 10, 20));
 
 		// Call under test
-		List<PartRange> actual = multipartUploadComposerDAO.getAddedPartRangesForUpdate(Long.valueOf(uploadId), 8L, 20L);
+		List<DBOMultipartUploadComposerPartState> actual = (List<DBOMultipartUploadComposerPartState>)
+				testTransactionTemplate.execute((TransactionCallback<Object>) status -> multipartUploadComposerDAO.getAddedPartRanges(Long.valueOf(uploadId), 8L, 20L));
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void setUploadComplete() {
-		file = (S3FileHandle) fileHandleDao.createFile(TestUtils.createS3FileHandle(userId.toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+	void deleteAllParts() {
 		multipartUploadComposerDAO.addPartToUpload(uploadId, 2, 5);
-
-		String oldEtag = multipartUploadDAO.getUploadStatus(uploadId).getEtag();
-
 		// Call under test
-		CompositeMultipartUploadStatus status = multipartUploadComposerDAO.setUploadComplete(uploadId, file.getId());
-
-		// The upload state should be complete.
-		assertEquals(MultipartUploadState.COMPLETED, status.getMultipartUploadStatus().getState());
+		multipartUploadComposerDAO.deleteAllParts(uploadId);
 		// All parts should have been removed from the composer table
 		assertTrue(multipartUploadComposerDAO.getAddedParts(Long.valueOf(uploadId)).isEmpty());
-		assertNotEquals(oldEtag, status.getEtag());
+	}
+
+	private static DBOMultipartUploadComposerPartState createDbo(Long uploadId, long lowerBound, long upperBound) {
+		DBOMultipartUploadComposerPartState dbo = new DBOMultipartUploadComposerPartState();
+		dbo.setUploadId(uploadId);
+		dbo.setPartRangeLowerBound(lowerBound);
+		dbo.setPartRangeUpperBound(upperBound);
+		return dbo;
 	}
 }

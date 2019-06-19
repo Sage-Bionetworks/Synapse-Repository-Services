@@ -4,14 +4,9 @@ public class PartRange {
 
 	private long lowerBound;
 	private long upperBound;
+	private long numberOfParts;
 
 	public PartRange(){}
-
-	public PartRange(long lb, long ub){
-		lowerBound = lb;
-		upperBound = ub;
-	}
-
 
 	public long getUpperBound() {
 		return upperBound;
@@ -29,6 +24,13 @@ public class PartRange {
 		this.lowerBound = lowerBound;
 	}
 
+	public long getNumberOfParts() {
+		return numberOfParts;
+	}
+
+	public void setNumberOfParts(long numberOfParts) {
+		this.numberOfParts = numberOfParts;
+	}
 
 	@Override
 	public int hashCode() {
@@ -36,6 +38,7 @@ public class PartRange {
 		int result = 1;
 		result = prime * result + (int) lowerBound;
 		result = prime * result + (int) upperBound;
+		result = prime * result + (int) numberOfParts;
 		return result;
 	}
 
@@ -50,6 +53,7 @@ public class PartRange {
 		PartRange other = (PartRange) obj;
 		if (lowerBound != other.lowerBound) return false;
 		if (upperBound != other.upperBound) return false;
+		if (numberOfParts != other.numberOfParts) return false;
 		return true;
 	}
 
@@ -58,6 +62,7 @@ public class PartRange {
 		return "PartRange ["
 				+ "lowerBound=" + lowerBound
 				+ ", upperBound=" + upperBound
+				+ ", numberOfParts=" + numberOfParts
 				+ "]";
 	}
 }

@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.upload.PartRange;
-
 
 /**
  * DAO to for metadata persisted for a multi-part upload.
@@ -28,13 +26,13 @@ public interface MultipartUploadComposerDAO {
 	List<DBOMultipartUploadComposerPartState> getAddedParts(Long uploadId);
 
 	/**
-	 * Get all the parts for a given upload ID between the provided bounds (inclusive) for update.
+	 * Get all the parts for a given upload ID between the provided bounds (inclusive).
 	 * @param uploadId
 	 * @param lowerBound
 	 * @param upperBound
 	 * @return
 	 */
-	List<PartRange> getAddedPartRangesForUpdate(Long uploadId, Long lowerBound, Long upperBound);
+	List<DBOMultipartUploadComposerPartState> getAddedPartRanges(Long uploadId, Long lowerBound, Long upperBound);
 
 	/**
 	 * Deletes all of the parts contained in a given range (inclusive).
@@ -48,12 +46,10 @@ public interface MultipartUploadComposerDAO {
 	void deletePartsInRange(String uploadId, long lowerBound, long upperBound);
 
 	/**
-	 * Set the given file upload to be complete.
+	 * Deletes all the parts for a given upload Id
 	 * @param uploadId
-	 * @param fileHandleId
-	 * @return The final status of the file.
 	 */
-	CompositeMultipartUploadStatus setUploadComplete(String uploadId, String fileHandleId);
+	void deleteAllParts(String uploadId);
 
 	/**
 	 * Clears all multipart upload parts from the parts composer table.

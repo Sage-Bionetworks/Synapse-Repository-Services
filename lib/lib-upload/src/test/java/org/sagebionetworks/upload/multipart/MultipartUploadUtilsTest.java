@@ -1,10 +1,7 @@
 package org.sagebionetworks.upload.multipart;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.*;
-
-import java.util.ArrayList;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.upload.PartRange;
@@ -26,178 +23,195 @@ class MultipartUploadUtilsTest {
 	}
 
 	@Test
-	public void testGetRangesForPartSinglePart() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(4, 4, 100);
-
-		// Should get singleton parts [1, 1], [2, 2], [3, 3] ... [32, 32]
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 1; i <=32; i++) { // Parts are 1-indexed
-			expected.add(new PartRange(i, i));
-		}
-
-		assertEquals(expected, actual);
+	public void testComputeCurrentPartSizeSingletonEdgeCase() {
+		assertEquals(1L, MultipartUploadUtils.computeStitchTargetSize(1, 1));
 	}
 
 	@Test
 	public void testComputeCurrentPartSizeSingletonCase() {
-		assertEquals(1L, MultipartUploadUtils.computeCurrentPartSize(1L));
+		assertEquals(1L, MultipartUploadUtils.computeStitchTargetSize(5, 5));
 	}
 
 	@Test
 	public void testComputeCurrentPartSizeIncompletePartCase() {
 		assumeTrue(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE > 2);
-		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE, MultipartUploadUtils.computeCurrentPartSize(2L));
+		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE, MultipartUploadUtils.computeStitchTargetSize(4, 7));
 	}
 
 	@Test
 	public void testComputeCurrentPartSizeCompletePartCase() {
 		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE,
-				MultipartUploadUtils.computeCurrentPartSize(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE));
+				MultipartUploadUtils.computeStitchTargetSize(1, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE));
 	}
 
 	@Test
 	public void testComputeCurrentPartSize_NextSizeUp() {
 		// The part size should square when above the max
 		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE * MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE,
-				MultipartUploadUtils.computeCurrentPartSize(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE + 1));
+				MultipartUploadUtils.computeStitchTargetSize(1, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE + 1));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForFirstPart() {
-		assertEquals(1, MultipartUploadUtils.computeNewLowerBound(1, 32));
+		assertEquals(1, MultipartUploadUtils.computeNextLevelLowerBound(1, 32));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForLastPart() {
-		assertEquals(1, MultipartUploadUtils.computeNewLowerBound(32, 32));
+		assertEquals(1, MultipartUploadUtils.computeNextLevelLowerBound(32, 32));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForMiddlePart() {
-		assertEquals(1, MultipartUploadUtils.computeNewLowerBound(21, 32));
+		assertEquals(1, MultipartUploadUtils.computeNextLevelLowerBound(21, 32));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForFirstPart_MiddleChunk() {
-		assertEquals(33, MultipartUploadUtils.computeNewLowerBound(33, 32));
+		assertEquals(33, MultipartUploadUtils.computeNextLevelLowerBound(33, 32));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForLastPart_MiddleChunk() {
-		assertEquals(33, MultipartUploadUtils.computeNewLowerBound(64, 32));
+		assertEquals(33, MultipartUploadUtils.computeNextLevelLowerBound(64, 32));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForMiddlePart_MiddleChunk() {
-		assertEquals(33, MultipartUploadUtils.computeNewLowerBound(55, 32));
+		assertEquals(33, MultipartUploadUtils.computeNextLevelLowerBound(55, 32));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForFirstPart_LargerChunk() {
-		assertEquals(1, MultipartUploadUtils.computeNewLowerBound(1, 1024));
+		assertEquals(1, MultipartUploadUtils.computeNextLevelLowerBound(1, 1024));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForLastPart_LargerChunk() {
-		assertEquals(1, MultipartUploadUtils.computeNewLowerBound(1024, 1024));
+		assertEquals(1, MultipartUploadUtils.computeNextLevelLowerBound(1024, 1024));
 	}
 
 	@Test
 	public void testComputeNewLowerBoundForMiddlePart_LargerChunk() {
-		assertEquals(1, MultipartUploadUtils.computeNewLowerBound(650, 1024));
+		assertEquals(1, MultipartUploadUtils.computeNextLevelLowerBound(650, 1024));
+	}
+
+	@Test
+	public void testComputeNewLowerBoundForFirstPart_LargerMiddleChunk() {
+		assertEquals(1025, MultipartUploadUtils.computeNextLevelLowerBound(1025, 1024));
+	}
+
+	@Test
+	public void testComputeNewLowerBoundForMiddlePart_LargerMiddleChunk() {
+		assertEquals(1025, MultipartUploadUtils.computeNextLevelLowerBound(1500, 1024));
+	}
+
+	@Test
+	public void testComputeNewLowerBoundForLastPart_LargerMiddleChunk() {
+		assertEquals(1025, MultipartUploadUtils.computeNextLevelLowerBound(2048, 1024));
+	}
+
+
+	@Test
+	public void testGetRangesForPartSinglePart() {
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(4, 4, 100);
+
+		// Parts will be [1, 1], [2, 2], [3, 3] ... [32, 32]
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(32);
+		expected.setNumberOfParts(32);
+
+		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGetRangesForLastPart() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(32, 32, 1000);
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(32, 32, 1000);
 
-		// Should get parts [1, 32], [33, 64], [65, 96] ... [993, 1000] (note this last part is not full because of the maximum part number)
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 1; i <= 32; i++) {
-			expected.add(new PartRange(i, i));
-		}
+		// Parts will be [1, 1], [2, 2], [3, 3] ... [32, 32]
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(32);
+		expected.setNumberOfParts(32);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGetRangesForPartSinglePartWithMaxPartSize() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(4, 4, 13);
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(4, 4, 13);
 
 		// Should get singleton parts [1, 1], [2, 2], [3, 3] ... [13, 13]
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 1; i <=13; i++) { // Parts are 1-indexed
-			expected.add(new PartRange(i, i));
-		}
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(13);
+		expected.setNumberOfParts(13);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGetRangesForPartSinglePartMiddleChunk() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(71, 71, 200);
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(71, 71, 200);
 
 		// Should get singleton parts [65, 65], [66, 66], [67, 67] ... [96, 96]
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 65; i <=96; i++) {
-			expected.add(new PartRange(i, i));
-		}
+		PartRange expected = new PartRange();
+		expected.setLowerBound(65);
+		expected.setUpperBound(96);
+		expected.setNumberOfParts(32);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGetRangesForLargerFullChunk() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(1, 32, 1024);
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(1, 32, 1024);
 
 		// Should get parts [1, 32], [33, 64], [65, 96] ... [993, 1024]
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 1; i < 1024; i += 32) {
-			expected.add(new PartRange(i, i + 31));
-		}
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(1024);
+		expected.setNumberOfParts(32);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGetRangesForLargerTruncatedChunk() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(1, 32, 1000);
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(1, 32, 1000);
 
 		// Should get parts [1, 32], [33, 64], [65, 96] ... [993, 1000] (note this last part is not full because of the maximum part number)
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 1; i < 993; i += 32) {
-			expected.add(new PartRange(i, i + 31));
-		}
-		// Add the last expected part
-		expected.add(new PartRange(993, 1000));
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(1000);
+		expected.setNumberOfParts(32);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGetRangesForLargerTruncatedChunk_OffByOne() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(1, 32, 992);
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(1, 32, 992);
 
 		// Should get parts [1, 32], [33, 64], [65, 96] ... [961, 992]
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 1; i < 993; i += 32) {
-			expected.add(new PartRange(i, i + 31));
-		}
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(992);
+		expected.setNumberOfParts(31);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGetRangesForLargerTruncatedChunk_TruncatedChunkIsInput() {
-		List<PartRange> actual = MultipartUploadUtils.getListOfPartRangesToLookFor(993, 1000, 1000);
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(993, 1000, 1000);
 
 		// Should get parts [1, 32], [33, 64], [65, 96] ... [993, 1000] (note this last part is not full because of the maximum part number)
-		List<PartRange> expected = new ArrayList<>();
-		for (int i = 1; i < 993; i += 32) {
-			expected.add(new PartRange(i, i + 31));
-		}
-		// Add the last expected part
-		expected.add(new PartRange(993, 1000));
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(1000);
+		expected.setNumberOfParts(32);
 
 		assertEquals(expected, actual);
 	}

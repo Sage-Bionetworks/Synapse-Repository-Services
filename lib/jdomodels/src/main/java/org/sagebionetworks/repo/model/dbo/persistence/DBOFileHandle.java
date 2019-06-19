@@ -47,7 +47,6 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	 */
 	public static enum MetadataType {
 		S3,
-		GOOGLECLOUDSTORAGE,
 		EXTERNAL,
 		PREVIEW,
 		PROXY,

@@ -160,7 +160,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUpload" />
-                <bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
 				<bean class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiOwner" />
