@@ -242,19 +242,27 @@ public class SqlConstants {
 	public static final String COL_MULTIPART_FILE_HANDLE_ID			= "FILE_HANDLE_ID";
 	public static final String COL_MULTIPART_STATE					= "STATE";
 	public static final String COL_MULTIPART_UPLOAD_TOKEN			= "UPLOAD_TOKEN";
-	public static final String COL_MULTIPART_BUCKET					= "S3_BUCKET";
-	public static final String COL_MULTIPART_KEY					= "S3_KEY";
+	public static final String COL_MULTIPART_UPLOAD_TYPE			= "UPLOAD_TYPE";
+	public static final String COL_MULTIPART_BUCKET					= "BUCKET";
+	public static final String COL_MULTIPART_KEY					= "FILE_KEY";
 	public static final String COL_MULTIPART_NUMBER_OF_PARTS		= "NUMBER_OF_PARTS";
 	public static final String COL_MULTIPART_DDL					= "schema/MutipartUpload-ddl.sql";
 	
-	// multipar upload part state
+	// multipart upload part state
 	public static final String TABLE_MULTIPART_UPLOAD_PART_STATE	= "MULTIPART_UPLOAD_PART_STATE";
 	public static final String COL_MULTIPART_PART_UPLOAD_ID			= "UPLOAD_ID";
 	public static final String COL_MULTIPART_PART_NUMBER			= "PART_NUMBER";
 	public static final String COL_MULTIPART_PART_MD5_HEX			= "PART_MD5_HEX";
 	public static final String COL_MULTIPART_PART_ERROR_DETAILS		= "ERROR_DETAILS";
 	public static final String COL_MULTIPART_UPLOAD_PART_STATE_DDL	= "schema/MultipartUploadPartState-ddl.sql";
-	
+
+	// multipart upload composer part state
+	public static final String TABLE_MULTIPART_UPLOAD_COMPOSER_PART_STATE = "MULTIPART_UPLOAD_COMPOSER_PART_STATE";
+	public static final String COL_MULTIPART_COMPOSER_PART_UPLOAD_ID = "UPLOAD_ID";
+	public static final String COL_MULTIPART_COMPOSER_PART_RANGE_LOWER_BOUND = "PART_RANGE_LOWER_BOUND";
+	public static final String COL_MULTIPART_COMPOSER_PART_RANGE_UPPER_BOUND = "PART_RANGE_UPPER_BOUND";
+	public static final String DDL_MULTIPART_COMPOSER_UPLOAD_PART_STATE = "schema/MultipartUploadComposerPartState-ddl.sql";
+
 	// 
 	public static final String COL_STACK_STATUS_ID					= "ID";
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";

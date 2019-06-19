@@ -170,11 +170,12 @@ public class S3MultipartUploadDAOImplTest {
 		CopyPartResult result = new CopyPartResult();
 		when(mockS3Client.copyPart(any(CopyPartRequest.class))).thenReturn(result);
 		
-		String uplaodToken = "uploadToken";
+		String uploadToken = "uploadToken";
 		String partKey = key+"/101";
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		int partNumber = 101;
-		AddPartRequest request  = new AddPartRequest(uplaodToken, bucket, key, partKey, partMD5Hex, partNumber);
+		long totalNumberOfParts = 1001L;
+		AddPartRequest request  = new AddPartRequest(uploadId, uploadToken, bucket, key, partKey, partMD5Hex, partNumber, totalNumberOfParts);
 		// call under test.
 		dao.addPart(request);
 		
@@ -184,7 +185,7 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals(partKey, capture.getValue().getSourceKey());
 		assertEquals(bucket, capture.getValue().getDestinationBucketName());
 		assertEquals(key, capture.getValue().getDestinationKey());
-		assertEquals(uplaodToken, capture.getValue().getUploadId());
+		assertEquals(uploadToken, capture.getValue().getUploadId());
 		assertEquals(partNumber, capture.getValue().getPartNumber());
 		assertEquals(Lists.newArrayList(partMD5Hex), capture.getValue().getMatchingETagConstraints());
 	}
@@ -195,11 +196,12 @@ public class S3MultipartUploadDAOImplTest {
 		CopyPartResult result = null;
 		when(mockS3Client.copyPart(any(CopyPartRequest.class))).thenReturn(result);
 		
-		String uplaodToken = "uploadToken";
+		String uploadToken = "uploadToken";
 		String partKey = key+"/101";
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		int partNumber = 101;
-		AddPartRequest request  = new AddPartRequest(uplaodToken, bucket, key, partKey, partMD5Hex, partNumber);
+		long totalNumberOfParts = 1001L;
+		AddPartRequest request  = new AddPartRequest(uploadId, uploadToken, bucket, key, partKey, partMD5Hex, partNumber, totalNumberOfParts);
 		// call under test.
 		try {
 			dao.addPart(request);

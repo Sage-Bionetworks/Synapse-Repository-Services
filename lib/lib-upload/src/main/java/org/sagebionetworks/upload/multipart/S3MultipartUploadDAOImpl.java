@@ -100,7 +100,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		cpr.setDestinationKey(request.getKey());
 		cpr.setDestinationBucketName(request.getBucket());
 		cpr.setUploadId(request.getUploadToken());
-		cpr.setPartNumber(request.getPartNumber());
+		cpr.setPartNumber((int) request.getPartNumber());
 		// only add if the etag matches.
 		cpr.withMatchingETagConstraint(request.getPartMD5Hex());
 		CopyPartResult result = s3Client.copyPart(cpr);
