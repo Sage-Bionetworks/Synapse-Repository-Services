@@ -178,8 +178,8 @@ class MultipartUploadComposerDAOImplTest {
 		expected.add(createDbo(Long.valueOf(uploadId), 10, 20));
 
 		// Call under test
-		List<DBOMultipartUploadComposerPartState> actual = (List<DBOMultipartUploadComposerPartState>)
-				testTransactionTemplate.execute((TransactionCallback<Object>) status -> multipartUploadComposerDAO.getAddedPartRanges(Long.valueOf(uploadId), 8L, 20L));
+		List<DBOMultipartUploadComposerPartState> actual = testTransactionTemplate.execute(status ->
+				multipartUploadComposerDAO.getAddedPartRanges(Long.valueOf(uploadId), 8L, 20L));
 
 		assertEquals(expected, actual);
 	}
