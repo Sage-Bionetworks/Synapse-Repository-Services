@@ -81,7 +81,7 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public boolean doesDocumentExist(String id, String etag){
+	public boolean doesDocumentExistInSearchIndex(String id, String etag){
  		ValidateArgument.required(id, "id");
 
 		// Search for the document

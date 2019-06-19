@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -16,6 +15,7 @@ import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.search.CloudSearchLogger;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchUtil;
@@ -37,6 +37,9 @@ public class SearchManagerImpl implements SearchManager{
 
 	@Autowired
 	SearchDao searchDao;
+	
+	@Autowired
+	CloudSearchLogger recordLogger;
 
 	@Override
 	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) {
@@ -100,7 +103,7 @@ public class SearchManagerImpl implements SearchManager{
 
 	@Override
 	public boolean doesDocumentExist(String id, String etag) {
-		return searchDao.doesDocumentExist(id, etag);
+		return searchDao.doesDocumentExistInSearchIndex(id, etag);
 	}
 
 	@Override
@@ -114,9 +117,13 @@ public class SearchManagerImpl implements SearchManager{
 
 	@Override
 	public void documentChangeMessages(List<ChangeMessage> messages){
-		Iterator<Document> documentIterator = Iterators.filter(
-				Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
-				Objects::nonNull);
-		searchDao.sendDocuments(documentIterator);
+		try {
+			Iterator<Document> documentIterator = Iterators.filter(
+					Iterators.transform(messages.iterator(), translator::generateSearchDocumentIfNecessary),
+					Objects::nonNull);
+			searchDao.sendDocuments(documentIterator);
+		}finally {
+			recordLogger.pushAllRecordsAndReset();
+		}
 	}
 }

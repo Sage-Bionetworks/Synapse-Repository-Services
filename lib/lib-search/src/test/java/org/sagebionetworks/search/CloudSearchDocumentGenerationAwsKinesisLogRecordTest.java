@@ -12,15 +12,16 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 
 	@Test
 	void testToBytes() {
-		CloudSearchDocumentGenerationAwsKinesisLogRecord logRecord = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
+		CloudSearchDocumentLogRecord logRecord = new CloudSearchDocumentLogRecord()
 				.withChangeNumber(123L)
 				.withChangeType(ChangeType.CREATE)
 				.withObjectType(ObjectType.ENTITY)
-				.withSynapseId("12345")
-				.withEtag("eeeeeeeeeeeeeeeeetag")
+				.withObjectId("12345")
+				.withWikiOwner("456")
+				.withAction(DocumentAction.CREATE_OR_UPDATE)
 				.withExistsOnIndex(false)
 				.withDocumentBatchUpdateStatus("success")
-				.withDocumentBatchUpdateTimestamp(98765L)
+				.withTimestamp(98765L)
 				.withDocumentBatchUUID("uuuuuuuuuuuuuuuuuuID")
 				.withStack("dev")
 				.withInstance("test");
@@ -29,14 +30,15 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 
 		//convert bytes back to JSON string to compare
 		String expectedJSON = "{\"changeNumber\":123," +
-				"\"synapseId\":\"12345\"," +
-				"\"etag\":\"eeeeeeeeeeeeeeeeetag\"," +
+				"\"objectId\":\"12345\"," +
 				"\"objectType\":\"ENTITY\","+
 				"\"changeType\":\"CREATE\"," +
+				"\"wikiOwner\":\"456\"," +
+				"\"action\":\"CREATE_OR_UPDATE\"," +
 				"\"existsOnIndex\":false," +
 				"\"documentBatchUUID\":\"uuuuuuuuuuuuuuuuuuID\"," +
 				"\"documentBatchUpdateStatus\":\"success\"," +
-				"\"documentBatchUpdateTimestamp\":98765," +
+				"\"timestamp\":98765," +
 				"\"stack\":\"dev\"," +
 				"\"instance\":\"test\"}" +
 				"\n"; //important that documents are separated by a new line for AWS Athena to process them

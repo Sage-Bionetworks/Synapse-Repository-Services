@@ -145,7 +145,7 @@ public class SearchDaoImplTest {
 	///////////////////////
 	@Test(expected = IllegalArgumentException.class)
 	public void testDoesDocumentExistNullId()  {
-		dao.doesDocumentExist(null, "etag");
+		dao.doesDocumentExistInSearchIndex(null, "etag");
 	}
 
 	@Test
@@ -161,7 +161,7 @@ public class SearchDaoImplTest {
 	private void helperTestDoesDocumentExist(long numFoundHits, boolean expectedBooleanResult){
 		searchResult.withHits(new Hits().withFound(numFoundHits));
 
-		boolean result = dao.doesDocumentExist("syn123", "etagerino");
+		boolean result = dao.doesDocumentExistInSearchIndex("syn123", "etagerino");
 		assertEquals(expectedBooleanResult, result);
 
 		SearchRequest capturedRequest = requestArgumentCaptor.getValue();
@@ -175,7 +175,7 @@ public class SearchDaoImplTest {
 		when(mockCloudSearchDomainClient.rawSearch(any(SearchRequest.class))).thenThrow(new IllegalArgumentException(searchExceptionCause));
 
 		//method under test
-		dao.doesDocumentExist("syn123", "EEEEEEEEEtag");
+		dao.doesDocumentExistInSearchIndex("syn123", "EEEEEEEEEtag");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -184,7 +184,7 @@ public class SearchDaoImplTest {
 		when(mockCloudSearchDomainClient.rawSearch(any(SearchRequest.class))).thenThrow(new IllegalArgumentException(searchExceptionCause));
 
 		//method under test
-		dao.doesDocumentExist("syn123", "EEEEEEEEEtag");
+		dao.doesDocumentExistInSearchIndex("syn123", "EEEEEEEEEtag");
 	}
 
 	//////////////////////////////

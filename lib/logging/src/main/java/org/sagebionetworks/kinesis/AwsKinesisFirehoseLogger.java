@@ -1,8 +1,6 @@
 package org.sagebionetworks.kinesis;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Stream;
 
 public interface AwsKinesisFirehoseLogger {
 

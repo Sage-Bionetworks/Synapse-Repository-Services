@@ -2,23 +2,14 @@ package org.sagebionetworks.search;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
-import static org.sagebionetworks.search.CloudSearchDocumentGenerationAwsKinesisLogRecord.KINESIS_DATA_STREAM_NAME_SUFFIX;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,12 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
-import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
-import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,19 +25,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
-import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
+import com.amazonaws.services.cloudsearchdomain.model.DocumentServiceException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import com.google.common.collect.Iterators;
-import org.sagebionetworks.util.Clock;
+import com.google.common.collect.Sets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CloudSearchDomainClientAdapterTest {
@@ -72,10 +58,7 @@ public class CloudSearchDomainClientAdapterTest {
 	private AmazonCloudSearchDomainException mockedSearchException;
 
 	@Mock
-	private AwsKinesisFirehoseLogger mockFirehoseLogger;
-
-	@Mock
-	private Clock mockClock;
+	private CloudSearchLogger mockRecordLogger;
 
 	@Captor
 	ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor;
@@ -94,11 +77,11 @@ public class CloudSearchDomainClientAdapterTest {
 	UploadDocumentsResult uploadDocumentsResult;
 
 
-	List<CloudSearchDocumentGenerationAwsKinesisLogRecord> logRecordList;
+	List<CloudSearchDocumentLogRecord> logRecordList;
 
 	@Before
 	public void before() {
-		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient, mockProvider, mockFirehoseLogger, mockClock);
+		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient, mockProvider, mockRecordLogger);
 		searchRequest = new SearchRequest().withQuery("aQuery");
 		uploadDocumentsResult = new UploadDocumentsResult().withStatus("fakestatus");
 		when(mockCloudSearchDomainClient.uploadDocuments(any(UploadDocumentsRequest.class))).thenReturn(uploadDocumentsResult);
@@ -186,7 +169,6 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Test
 	public void testSendDocuments_iteratorMultipleBatchResults() throws InterruptedException {
-		setUpThreadLocalListForTest();
 		Iterator<Document> iterator = Arrays.asList(new Document(), new Document()).iterator();
 
 		when(mockProvider.getIterator(iterator)).thenReturn(Arrays.asList(mockDocumentBatch, mockDocumentBatch).iterator());
@@ -199,9 +181,8 @@ public class CloudSearchDomainClientAdapterTest {
 
 		verify(mockCloudSearchDomainClient, times(2)).uploadDocuments(any());
 
-		//threadLocalwas only setup once so on second iteration of the iterator loop, nothing is logged.
-		// In real use, threadLocalList would once again have values added to it by the Iterator<Document> it relies on
-		verifyThreadLocalListForTest();
+		verify(mockRecordLogger, times(2)).currentBatchFinshed("fakestatus");
+		verify(mockRecordLogger, times(2)).pushAllRecordsAndReset();
 	}
 
 	@Test
@@ -215,8 +196,6 @@ public class CloudSearchDomainClientAdapterTest {
 		cloudSearchDomainClientAdapter.sendDocuments(iterator);
 
 		verify(mockDocumentBatch, times(1)).getDocumentIds();
-		//should sleep for multiple documents
-		verify(mockClock).sleep(10000);
 	}
 
 	@Test
@@ -231,14 +210,12 @@ public class CloudSearchDomainClientAdapterTest {
 		cloudSearchDomainClientAdapter.sendDocuments(iterator);
 
 		verify(mockDocumentBatch, times(1)).getDocumentIds();
-		//should never sleep for single documents
-		verify(mockClock, never()).sleep(anyLong());
 	}
 
 	@Test
 	public void testSendDocuments_iteratorDocumentError(){
-		setUpThreadLocalListForTest();
-		when(mockCloudSearchDomainClient.uploadDocuments(any())).thenThrow(new DocumentServiceException("").withStatus("fakestatus"));
+		String failedStatus = "failedStatus";
+		when(mockCloudSearchDomainClient.uploadDocuments(any())).thenThrow(new DocumentServiceException("").withStatus(failedStatus));
 		Iterator<Document> iterator = Arrays.asList(new Document(), new Document()).iterator();
 
 		try {
@@ -248,8 +225,8 @@ public class CloudSearchDomainClientAdapterTest {
 		} catch (DocumentServiceException e){
 			//expected
 		}
-
-		verifyThreadLocalListForTest();
+		verify(mockRecordLogger).currentBatchFinshed(failedStatus);
+		verify(mockRecordLogger).pushAllRecordsAndReset();
 	}
 
 	@Test (expected = TemporarilyUnavailableException.class)
@@ -260,37 +237,6 @@ public class CloudSearchDomainClientAdapterTest {
 
 		//method under test
 		cloudSearchDomainClientAdapter.sendDocuments(Collections.emptyIterator());
-	}
-
-	private void setUpThreadLocalListForTest(){
-		CloudSearchDocumentGenerationAwsKinesisLogRecord record1 = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
-				.withChangeNumber(1);
-		CloudSearchDocumentGenerationAwsKinesisLogRecord record2 = new CloudSearchDocumentGenerationAwsKinesisLogRecord()
-				.withChangeNumber(2);
-
-		logRecordList = Arrays.asList(record1, record2);
-		for(CloudSearchDocumentGenerationAwsKinesisLogRecord record : logRecordList){
-			assertNull("fakestatus", record.getDocumentBatchUpdateStatus());
-			assertNull(record.getDocumentBatchUpdateTimestamp());
-			assertNull(record.getDocumentBatchUUID());
-		}
-
-		CloudsSearchDomainClientAdapter.threadLocalRecordList.get().add(record1);
-		CloudsSearchDomainClientAdapter.threadLocalRecordList.get().add(record2);
-	}
-
-	private void verifyThreadLocalListForTest(){
-		//the threadlocal map should have been cleared upon sending log records
-		assertTrue(CloudsSearchDomainClientAdapter.threadLocalRecordList.get().isEmpty());
-
-		ArgumentCaptor<List<AwsKinesisLogRecord>> captor = ArgumentCaptor.forClass(List.class);
-		verify(mockFirehoseLogger, times(1)).logBatch(eq(KINESIS_DATA_STREAM_NAME_SUFFIX), captor.capture());
-
-		for(CloudSearchDocumentGenerationAwsKinesisLogRecord record : logRecordList){
-			assertEquals("fakestatus", record.getDocumentBatchUpdateStatus());
-			assertNotNull(record.getDocumentBatchUpdateTimestamp());
-			assertNotNull(record.getDocumentBatchUUID());
-		}
 	}
 
 }
