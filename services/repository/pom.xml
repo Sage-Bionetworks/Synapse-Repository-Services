@@ -249,13 +249,13 @@
 					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
 					<!-- This name is used to link to the authentication controller -->
 					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
-					<additionnalDependencies>
-						<additionnalDependency>
+					<additionalDependencies>
+						<additionalDependency>
 							<groupId>org.sagebionetworks</groupId>
 							<artifactId>lib-table-query</artifactId>
 							<version>${project.version}</version>
-						</additionnalDependency>
-					</additionnalDependencies>
+						</additionalDependency>
+					</additionalDependencies>
 				</configuration>
 			</plugin>
 			<plugin>
