@@ -463,6 +463,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			fileHandle.setContentType(NOT_SET);
 		}
 
+		if (!FileHandleUtils.isValidMd5Digest(fileHandle.getContentMd5())) {
+			throw new IllegalArgumentException("The content MD5 digest must be a valid hexadecimal string of length 32.");
+		}
+
 		// Lookup the storage location
 		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
 		if(!(sls instanceof ExternalObjectStorageLocationSetting)){
