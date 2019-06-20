@@ -9,7 +9,7 @@ import org.sagebionetworks.PropertyProvider;
  * Maven .m2/settings.xml file.
  *
  */
-public class MavenSettingsAwsCredentialProvider extends AbstractSynapseCredentialProvider {
+public class MavenSettingsAWSCredentialsProvider extends AbstractSynapseAWSCredentialsProvider {
 
 	
 	private PropertyProvider propertyProvider;
@@ -19,7 +19,7 @@ public class MavenSettingsAwsCredentialProvider extends AbstractSynapseCredentia
 	 * The only constructor for dependency injection.
 	 * @param propertyProvider
 	 */
-	public MavenSettingsAwsCredentialProvider(PropertyProvider propertyProvider) {
+	public MavenSettingsAWSCredentialsProvider(PropertyProvider propertyProvider) {
 		super();
 		this.propertyProvider = propertyProvider;
 		this.refresh();

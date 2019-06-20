@@ -12,7 +12,7 @@ import com.amazonaws.util.StringUtils;
  * and 'org.sagebionetworks.stack.iam.key' in the provided properties.
  *
  */
-public abstract class AbstractSynapseCredentialProvider implements AWSCredentialsProvider {
+public abstract class AbstractSynapseAWSCredentialsProvider implements AWSCredentialsProvider {
 
 	public static final String AWS_CREDENTIALS_WERE_NOT_FOUND = "AWS credentials were not found.";
 	public static final String ORG_SAGEBIONETWORKS_STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";

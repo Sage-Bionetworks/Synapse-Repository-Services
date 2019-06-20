@@ -16,18 +16,18 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
  * <li>The default AWS chain provider {@link DefaultAWSCredentialsProviderChain}</li>
  * </ol>
  */
-public class SynapseCredentialProviderChain extends AWSCredentialsProviderChain {
+public class SynapseAWSCredentialsProviderChain extends AWSCredentialsProviderChain {
 
-	private static final SynapseCredentialProviderChain INSTANCE = new SynapseCredentialProviderChain(
+	private static final SynapseAWSCredentialsProviderChain INSTANCE = new SynapseAWSCredentialsProviderChain(
 			new PropertyProviderImpl(), new DefaultAWSCredentialsProviderChain());
 
 	/**
 	 * Dependency injection constructor.
 	 * @param propertyProvider
 	 */
-	SynapseCredentialProviderChain(PropertyProvider propertyProvider, AWSCredentialsProvider defaultProvider) {
-		super(new MavenSettingsAwsCredentialProvider(propertyProvider),
-				new SynapseSystemPropertiesCredentialProvider(propertyProvider),
+	SynapseAWSCredentialsProviderChain(PropertyProvider propertyProvider, AWSCredentialsProvider defaultProvider) {
+		super(new MavenSettingsAWSCredentialsProvider(propertyProvider),
+				new SynapseSystemPropertiesAWSCredentialsProvider(propertyProvider),
 				defaultProvider);
 	}
 
@@ -35,7 +35,7 @@ public class SynapseCredentialProviderChain extends AWSCredentialsProviderChain 
 	 * Access the singleton chain.
 	 * @return
 	 */
-	public static SynapseCredentialProviderChain getInstance() {
+	public static SynapseAWSCredentialsProviderChain getInstance() {
 		return INSTANCE;
 	}
 }

@@ -59,7 +59,7 @@ public class AwsClientFactory {
 		Map<Region, AmazonS3> regionSpecificS3Clients = new HashMap<Region, AmazonS3>();
 		for (Regions region: Regions.values() ) {
 			AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
-			builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+			builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 			builder.withRegion(region);
 			builder.withPathStyleAccessEnabled(true);
 			builder.withForceGlobalBucketAccessEnabled(true);
@@ -75,7 +75,7 @@ public class AwsClientFactory {
 	 * @return
 	 */
 	public static TransferManager createTransferManager() {
-		return new TransferManager(SynapseCredentialProviderChain.getInstance());
+		return new TransferManager(SynapseAWSCredentialsProviderChain.getInstance());
 	}
 
 	/**
@@ -86,7 +86,7 @@ public class AwsClientFactory {
 	public static AmazonCloudWatch createCloudWatchClient() {
 		AmazonCloudWatchClientBuilder builder = AmazonCloudWatchClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}
 
@@ -98,7 +98,7 @@ public class AwsClientFactory {
 	public static AmazonCloudSearch createAmazonCloudSearchClient() {
 		AmazonCloudSearchClientBuilder builder = AmazonCloudSearchClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}
 
@@ -110,7 +110,7 @@ public class AwsClientFactory {
 	public static AmazonCloudSearchDomain createAmazonCloudSearchDomain(String endpoint) {
 		AmazonCloudSearchDomainClientBuilder builder = AmazonCloudSearchDomainClientBuilder.standard();
 		builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, Regions.US_EAST_1.getName()));
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}
 
@@ -122,7 +122,7 @@ public class AwsClientFactory {
 	public static AmazonSQS createAmazonSQSClient() {
 		AmazonSQSClientBuilder builder = AmazonSQSClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}
 
@@ -134,7 +134,7 @@ public class AwsClientFactory {
 	public static AmazonSNS createAmazonSNSClient() {
 		AmazonSNSClientBuilder builder = AmazonSNSClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}
 
@@ -146,7 +146,7 @@ public class AwsClientFactory {
 	public static AmazonSimpleEmailService createAmazonSimpleEmailServiceClient() {
 		AmazonSimpleEmailServiceClientBuilder builder = AmazonSimpleEmailServiceClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}
 
@@ -158,7 +158,7 @@ public class AwsClientFactory {
 	public static AWSKMS createAmazonKeyManagementServiceClient() {
 		AWSKMSAsyncClientBuilder builder = AWSKMSAsyncClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}
 
