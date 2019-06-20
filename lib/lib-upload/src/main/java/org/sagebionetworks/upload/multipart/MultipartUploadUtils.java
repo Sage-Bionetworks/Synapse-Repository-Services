@@ -4,7 +4,6 @@ import java.math.RoundingMode;
 
 import org.sagebionetworks.repo.model.upload.PartRange;
 
-import com.google.common.math.IntMath;
 import com.google.common.math.LongMath;
 
 public class MultipartUploadUtils {
@@ -85,13 +84,8 @@ public class MultipartUploadUtils {
 	 * greater than or equal to the size of the given part.
 	 */
 	protected static long computeStitchTargetSize(long lowerBound, long upperBound) {
-		long partRange = upperBound - lowerBound;
-		int stitchTargetSize = 1;
-		while (partRange != 0) {
-			partRange = partRange  / MAX_PARTS_IN_ONE_COMPOSE;
-			stitchTargetSize *= MAX_PARTS_IN_ONE_COMPOSE;
-		}
-		return stitchTargetSize;
+		long partSize = upperBound - lowerBound + 1;
+		return  (long) Math.pow(MAX_PARTS_IN_ONE_COMPOSE, Math.ceil(log(partSize, MAX_PARTS_IN_ONE_COMPOSE)));
 	}
 
 	/**
@@ -101,6 +95,11 @@ public class MultipartUploadUtils {
 	 * @return
 	 */
 	protected static long computeNextLevelLowerBound(long oldLowerBound, long newPartSize) {
-		return (oldLowerBound - 1) / newPartSize * newPartSize + 1;
+		return (oldLowerBound - 1) - ((oldLowerBound - 1) % newPartSize) + 1;
+	}
+
+	private static double log(double value, double base) {
+		// log_x(a) / log_x(b) = log_b(a)
+		return Math.log(value) / Math.log(base);
 	}
 }
