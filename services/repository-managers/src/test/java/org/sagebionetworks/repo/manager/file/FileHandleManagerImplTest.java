@@ -871,8 +871,8 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateExternalObjectStoreFileHandleNullFileKey(){
-		externalObjectStoreFileHandle.setFileKey(null);
-		assertThrows(IllegalArgumentException.class, () -> manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle));
+		assertThrows(IllegalArgumentException.class, () -> externalObjectStoreFileHandle.setFileKey(null));
+		manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
 	}
 
 	@Test

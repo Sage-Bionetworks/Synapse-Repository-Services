@@ -965,6 +965,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (fileHandle.getContentType() == null) {
 			fileHandle.setContentType(NOT_SET);
 		}
+
+		if (!MD5ChecksumHelper.isValidMd5Digest(fileHandle.getContentMd5())) {
+			throw new IllegalArgumentException("The content MD5 digest must be a valid hexadecimal string of length 32.");
+		}
+
 		// Lookup the storage location
 		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
 		ExternalS3StorageLocationSetting esls = null;
@@ -1015,6 +1020,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!(sls instanceof ProxyStorageLocationSettings)){
 			throw new IllegalArgumentException("ProxyFileHandle.storageLocationId must refer to a valid ProxyStorageLocationSettings.");
 		}
+
+		if (!MD5ChecksumHelper.isValidMd5Digest(proxyFileHandle.getContentMd5())) {
+			throw new IllegalArgumentException("The content MD5 digest must be a valid hexadecimal string of length 32.");
+		}
+
 		ProxyStorageLocationSettings proxyLocation = (ProxyStorageLocationSettings) sls;
 		// If the user is not the creator of the location they must have 'create' on the benefactor.
 		if (!userInfo.getId().equals(proxyLocation.getCreatedBy())) {
