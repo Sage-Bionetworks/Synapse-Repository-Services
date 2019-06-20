@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.regex.Pattern;
 
 /**
  * Code lifted from http://www.rgagnon.com/javadetails/java-0416.html
@@ -18,6 +19,8 @@ import java.security.NoSuchAlgorithmException;
  * 
  */
 public class MD5ChecksumHelper {
+
+	private static final Pattern VALID_MD5_REGEX = Pattern.compile("^[0-9a-fA-F]{32}$");
 
 	/**
 	 * @param filename
@@ -110,4 +113,8 @@ public class MD5ChecksumHelper {
 		return new String(hex, "ASCII");
 	}
 
+	public static boolean isValidMd5Digest(String digest) {
+		if (digest == null) throw new IllegalArgumentException("The MD5 digest may not be null");
+		return VALID_MD5_REGEX.matcher(digest).matches();
+	}
 }
