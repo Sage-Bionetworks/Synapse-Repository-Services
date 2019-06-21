@@ -732,18 +732,18 @@ public class MessageManagerImpl implements MessageManager {
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
-	private String getEmailForAlias(PrincipalAlias alias) throws NotFoundException {
+	String getEmailForAlias(PrincipalAlias alias) throws NotFoundException {
 		if (AliasType.USER_EMAIL.equals(alias.getType())) {
 			return alias.getAlias();
 		}
 		return getEmailForUser(alias.getPrincipalId());
 	}
 	
-	private String getEmailForUser(Long principalId) throws NotFoundException {
+	String getEmailForUser(Long principalId) throws NotFoundException {
 		return notificationEmailDao.getNotificationEmailForPrincipal(principalId);
 	}
 	
-	private static String getPasswordResetUrl(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken) {
+	String getPasswordResetUrl(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken) {
 		String resetUrl = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
 		EmailUtils.validateSynapsePortalHost(resetUrl);
 		return resetUrl;

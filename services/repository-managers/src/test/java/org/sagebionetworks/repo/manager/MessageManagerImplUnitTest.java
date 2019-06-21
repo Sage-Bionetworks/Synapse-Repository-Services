@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -457,7 +458,47 @@ public class MessageManagerImplUnitTest {
 
 		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
 	}
-
+	
+	@Test
+	public void testGetEmailForUser() {
+		String email = messageManager.getEmailForUser(CREATOR_ID);
+		verify(notificationEmailDao).getNotificationEmailForPrincipal(CREATOR_ID);
+		assertEquals(CREATOR_EMAIL, email);
+	}
+	
+	@Test
+	public void testGetEmailForAliasWithUserNameAlias() {
+		String email = messageManager.getEmailForAlias(recipientUsernameAlias);
+		verify(notificationEmailDao).getNotificationEmailForPrincipal(recipientUsernameAlias.getPrincipalId());
+		assertEquals(RECIPIENT_EMAIL, email);
+	}
+	
+	@Test
+	public void testGetEmailForAliasWithEmailAlias() {
+		String email = messageManager.getEmailForAlias(recipientEmailAlias);
+		verify(notificationEmailDao, never()).getNotificationEmailForPrincipal(anyLong());
+		assertEquals(RECIPIENT_EMAIL_ALIAS, email);
+	}
+	
+	@Test
+	public void testGetPasswordResetUrl() {
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
+		String synapsePrefix = "https://synapse.org/";
+		String expectedUrl = synapsePrefix + serializedToken;
+		String resetUrl = messageManager.getPasswordResetUrl(synapsePrefix, token);
+		assertEquals(expectedUrl, resetUrl);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetPasswordResetUrlWithMalformedUrl() {
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+		String synapsePrefix = "https://malformedSynapse.org/";
+		messageManager.getPasswordResetUrl(synapsePrefix, token);
+	}
+	
 	@Test
 	public void testSendPasswordChangeConfirmationEmail() throws Exception{
 		messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
