@@ -105,15 +105,6 @@ public interface MessageManager {
 	public void deleteMessage(UserInfo userInfo, String messageId);
 	
 	/**
-	 * Sends a password reset email based on a template via Amazon SES, using as destination the default
-	 * notification email of the user identified by the given reset token
-	 * 
-	 * @param passwordResetPrefix The url prefix for the verification callback in the portal
-	 * @param passwordResetToken  The reset token generated for the user that needs the password reset
-	 */
-	public void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken);
-
-	/**
 	 * Sends a password reset email based on a template via Amazon SES, using as potential destination
 	 * the email defined by the given alias if of type {@link AliasType#USER_EMAIL}, otherwise falling
 	 * back to the default notification email for the user identified by the given alias.

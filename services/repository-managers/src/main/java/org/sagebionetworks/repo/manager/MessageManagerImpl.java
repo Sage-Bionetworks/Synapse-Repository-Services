@@ -610,20 +610,6 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@WriteTransaction
-	public void sendNewPasswordResetEmail(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken) {
-		ValidateArgument.required(passwordResetToken, "passwordResetToken");
-		ValidateArgument.required(passwordResetUrlPrefix, "passwordResetPrefix");
-
-		long userId = Long.parseLong(passwordResetToken.getUserId());
-
-		String resetUrl = getPasswordResetUrl(passwordResetUrlPrefix, passwordResetToken);
-		String email = getEmailForUser(userId);
-
-		sendNewPasswordResetEmail(resetUrl, userId, email);
-	}
-
-	@Override
-	@WriteTransaction
 	public void sendNewPasswordResetEmail(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken,
 			PrincipalAlias alias) {
 		ValidateArgument.required(passwordResetToken, "passwordResetToken");
@@ -639,7 +625,31 @@ public class MessageManagerImpl implements MessageManager {
 		String resetUrl = getPasswordResetUrl(passwordResetUrlPrefix, passwordResetToken);
 		String email = getEmailForAlias(alias);
 
-		sendNewPasswordResetEmail(resetUrl, userId, email);
+		String subject = "Reset Synapse Password";
+		Map<String, String> fieldValues = new HashMap<String, String>();
+
+		String username = principalAliasDAO.getUserName(userId);
+		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
+		String displayName = EmailUtils.getDisplayName(userProfile);
+
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, username);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, resetUrl);
+
+		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_RESET, fieldValues);
+
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
+				.withRecipientEmail(email)
+				.withSubject(subject)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
+				.withSenderUserName(username)
+				.withSenderDisplayName(displayName)
+				.withUserId(Long.toString(userId))
+				.withIsNotificationMessage(true)
+				.build();
+
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
 	@Override
@@ -728,42 +738,12 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		return getEmailForUser(alias.getPrincipalId());
 	}
-
+	
 	private String getEmailForUser(Long principalId) throws NotFoundException {
 		return notificationEmailDao.getNotificationEmailForPrincipal(principalId);
 	}
-
-	private void sendNewPasswordResetEmail(String resetUrl, long userId, String email) {
-
-		String subject = "Reset Synapse Password";
-		Map<String, String> fieldValues = new HashMap<String, String>();
-
-		String username = principalAliasDAO.getUserName(userId);
-		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
-		String displayName = EmailUtils.getDisplayName(userProfile);
-
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, username);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, resetUrl);
-
-		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_RESET, fieldValues);
-
-		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
-				.withRecipientEmail(email)
-				.withSubject(subject)
-				.withBody(messageBody, BodyType.PLAIN_TEXT)
-				.withSenderUserName(username)
-				.withSenderDisplayName(displayName)
-				.withUserId(Long.toString(userId))
-				.withIsNotificationMessage(true)
-				.build();
-
-		sesClient.sendRawEmail(sendEmailRequest);
-	}
-
-	private static String getPasswordResetUrl(String passwordResetUrlPrefix,
-			PasswordResetSignedToken passwordResetToken) {
+	
+	private static String getPasswordResetUrl(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken) {
 		String resetUrl = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
 		EmailUtils.validateSynapsePortalHost(resetUrl);
 		return resetUrl;

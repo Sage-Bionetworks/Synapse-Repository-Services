@@ -102,6 +102,8 @@ public class MessageManagerImplUnitTest {
 	private static final String UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
 	private static final String PROFILE_SETTING_ENDPOINT = "https://www.synapse.org/#profile:edit";
 	private UserInfo creatorUserInfo = null;
+	private PrincipalAlias recipientUsernameAlias = null;
+	private PrincipalAlias recipientEmailAlias = null;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -128,6 +130,16 @@ public class MessageManagerImplUnitTest {
 		creatorUserInfo = new UserInfo(false);
 		creatorUserInfo.setId(CREATOR_ID);
 		creatorUserInfo.setGroups(Collections.singleton(CREATOR_ID));
+		
+		recipientUsernameAlias = new PrincipalAlias();
+		recipientUsernameAlias.setAlias("bar");
+		recipientUsernameAlias.setPrincipalId(RECIPIENT_ID);
+		recipientUsernameAlias.setType(AliasType.USER_NAME);
+		
+		recipientEmailAlias = new PrincipalAlias();
+		recipientEmailAlias.setAlias(RECIPIENT_EMAIL_ALIAS);
+		recipientEmailAlias.setPrincipalId(RECIPIENT_ID);
+		recipientEmailAlias.setType(AliasType.USER_EMAIL);
 		
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
 		
@@ -386,7 +398,7 @@ public class MessageManagerImplUnitTest {
 
 		String synapsePrefix = "https://synapse.org/";
 
-		messageManager.sendNewPasswordResetEmail(synapsePrefix, token);
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
@@ -406,11 +418,6 @@ public class MessageManagerImplUnitTest {
 		token.setUserId(Long.toString(RECIPIENT_ID));
 
 		String synapsePrefix = "https://synapse.org/";
-
-		PrincipalAlias recipientEmailAlias = new PrincipalAlias();
-		recipientEmailAlias.setAlias(RECIPIENT_EMAIL_ALIAS);
-		recipientEmailAlias.setPrincipalId(RECIPIENT_ID);
-		recipientEmailAlias.setType(AliasType.USER_EMAIL);
 
 		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias);
 
@@ -448,9 +455,8 @@ public class MessageManagerImplUnitTest {
 		token.setUserId(Long.toString(RECIPIENT_ID));
 		String synapsePrefix = "https://NOTsynapse.org/";
 
-		messageManager.sendNewPasswordResetEmail(synapsePrefix, token);
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
 	}
-
 
 	@Test
 	public void testSendPasswordChangeConfirmationEmail() throws Exception{
