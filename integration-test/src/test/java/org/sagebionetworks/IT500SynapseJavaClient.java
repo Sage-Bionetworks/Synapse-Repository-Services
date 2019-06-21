@@ -25,9 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +35,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseDeprecatedServiceException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -75,8 +73,6 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
-import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
-import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
 import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -210,28 +206,6 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseException e) { }
 	}
 	
-
-	@Test
-	public void testJavaClientGetADataset() throws Exception {
-		JSONObject results = synapseOne.query("select * from folder limit 10");
-
-		assertTrue(0 <= results.getInt("totalNumberOfResults"));
-
-		JSONArray datasets = results.getJSONArray("results");
-
-		if (0 < datasets.length()) {
-			String datasetId = datasets.getJSONObject(0).getString("folder.id");
-
-			Folder aStoredDataset = synapseOne.getEntity(datasetId, Folder.class);
-
-			Annotations annos = synapseOne.getAnnotations(datasetId);
-			assertNotNull(annos.getStringAnnotations());
-			assertNotNull(annos.getDateAnnotations());
-			assertNotNull(annos.getLongAnnotations());
-			assertNotNull(annos.getDoubleAnnotations());
-			assertNotNull(annos.getBlobAnnotations());
-		}
-	}
 	
 	@Test
 	public void testNoDeleteACLOnProject() throws Exception {
@@ -838,138 +812,7 @@ public class IT500SynapseJavaClient {
 			}
 		}
 	}
-	
-	/**
-	 * PLFM-1166 annotations are not being returned from queries.
-	 * @throws InterruptedException 
-	 */
-	@Test 
-	public void testPLMF_1166() throws SynapseException, JSONException, InterruptedException{
-		// Get the project annotations
-		Annotations annos = synapseOne.getAnnotations(project.getId());
-		String key = "PLFM_1166";
-		annos.addAnnotation(key, "one");
-		synapseOne.updateAnnotations(project.getId(), annos);
-		// Make sure we can query for 
-		String query = "select id, "+key+" from project where id == '"+project.getId()+"'";
-		JSONObject total = waitForQuery(query, 1L);
-		System.out.println(total);
-		assertEquals(1l, total.getLong("totalNumberOfResults"));
-		assertNotNull(total);
-		assertTrue(total.has("results"));
-		JSONArray array = total.getJSONArray("results");
-		JSONObject row = array.getJSONObject(0);
-		assertNotNull(row);
-		String fullKey = "project."+key;
-		assertFalse(row.isNull(fullKey), "Failed to get an annotation back with 'select annotaionName'");
-		JSONArray valueArray = row.getJSONArray(fullKey);
-		assertNotNull(valueArray);
-		assertEquals(1, valueArray.length());
-		assertEquals("one", valueArray.get(0));
-		System.out.println(array);
-		
-	}
 
-	@Test
-	public void testPLFM_1548() throws SynapseException, InterruptedException, JSONException{
-		// Add a unique annotation and query for it
-		String key = "keyPLFM_1548";
-		String value = UUID.randomUUID().toString();
-		Annotations annos = synapseOne.getAnnotations(dataset.getId());
-		annos.addAnnotation(key, value);
-		synapseOne.updateAnnotations(dataset.getId(), annos);
-		String queryString = "select id from entity where entity."+key+" == '"+value+"'";
-		// Wait for the query
-		waitForQuery(queryString, 1L);
-	}
-
-	@Test
-	public void testGetQueryWithNoOffset() throws SynapseException, InterruptedException, JSONException{
-		JSONObject noOffset = waitForQuery("select id from entity", 2L);
-		assertEquals(2, noOffset.get("totalNumberOfResults"));
-		assertTrue(noOffset.get("results").toString().contains(project.getId()));
-		assertTrue(noOffset.get("results").toString().contains(dataset.getId()));
-	}
-
-	@Test
-	public void testGetQueryWithOffset1() throws SynapseException, InterruptedException, JSONException{
-		JSONObject offset1 = waitForQuery("select id from entity offset 1", 2L);
-		assertEquals(2, offset1.get("totalNumberOfResults"));
-		assertTrue(offset1.get("results").toString().contains(project.getId()));
-		assertTrue(offset1.get("results").toString().contains(dataset.getId()));
-	}
-
-	@Test
-	public void testGetQueryWithOffset0(){
-		String queryString = "select id from entity offset 0";
-		// Wait for the query
-		assertThrows(SynapseBadRequestException.class, () -> waitForQuery(queryString, 1L));
-	}
-	
-	/**
-	 * Helper 
-	 */
-	private JSONObject waitForQuery(String queryString, long expectedCount) throws SynapseException, InterruptedException, JSONException{
-		// Wait for the references to appear
-		JSONObject results = synapseOne.query(queryString);
-		assertNotNull(results);
-		assertTrue(results.has("totalNumberOfResults"));
-		assertNotNull(results.getLong("totalNumberOfResults"));
-		long start = System.currentTimeMillis();
-		while(results.getLong("totalNumberOfResults") < expectedCount){
-			System.out.println("Waiting for query: "+queryString);
-			Thread.sleep(1000);
-			long elapse = System.currentTimeMillis() - start;
-			assertTrue(elapse < RDS_WORKER_TIMEOUT, "Timed out waiting for annotations to be published for query: "+queryString);
-			results = synapseOne.query(queryString);
-			System.out.println(results);
-		}
-		return results;
-	}
-	
-	/**
-	 * Helper to wait for the expected query results.
-	 * @param query
-	 * @return
-	 * @throws SynapseException
-	 * @throws InterruptedException
-	 */
-	EntityQueryResults waitForQuery(EntityQuery query) throws SynapseException, InterruptedException {
-		EntityQueryResults results = synapseOne.entityQuery(query);
-		long start = System.currentTimeMillis();
-		while(results.getTotalEntityCount() < 1){
-			System.out.println("Waiting for query...");
-			Thread.sleep(1000);
-			long elapse = System.currentTimeMillis() - start;
-			assertTrue(elapse < RDS_WORKER_TIMEOUT, "Timed out waiting for query");
-			results = synapseOne.entityQuery(query);
-		}
-		return results;
-	}
-	
-	@Test
-	public void testEntityNaNAnnotations() throws SynapseException, InterruptedException, JSONException{
-		// Add a unique annotation and query for it
-		String key = "testEntityNaNAnnotations";
-		Double value = Double.NaN;
-		Annotations annos = synapseOne.getAnnotations(dataset.getId());
-		annos.addAnnotation(key, value);
-		annos.addAnnotation("foo", "bar");
-		annos.addAnnotation("baz", 10.3D);
-		synapseOne.updateAnnotations(dataset.getId(), annos);
-		String queryString = "select id, "+key+" from entity where entity.id == \""+dataset.getId()+"\" and entity."+key+" == \"NaN\"";
-		// Wait for the query
-		JSONObject result = waitForQuery(queryString, 1L);
-		// result should look like:
-		// {"totalNumberOfResults":1,"results":[{"entity.testEntityNaNAnnotations":["NaN"],"entity.id":"syn1681661"}]}
-		assertEquals(1, result.get("totalNumberOfResults"));
-		assertEquals("NaN", ((JSONObject)result.getJSONArray("results").get(0)).getJSONArray("entity.testEntityNaNAnnotations").get(0));
-
-		queryString = "select id from entity where entity."+key+" == \"NaN\"";
-		result = waitForQuery(queryString, 1L);
-		assertEquals(1, result.get("totalNumberOfResults"));
-		assertEquals(dataset.getId(), ((JSONObject)result.getJSONArray("results").get(0)).get("entity.id"));
-	}
 
 	@Test
 	public void testRetrieveApiKey() throws SynapseException {
@@ -1033,29 +876,6 @@ public class IT500SynapseJavaClient {
 		synapseOne.logError(logEntry);
 	}
 	
-	@Test
-	public void testQueryProjectId() throws SynapseException, JSONException, InterruptedException{
-		String query = "select id from entity where projectId == '"+project.getId()+"'";
-		JSONObject total = waitForQuery(query, 2L);
-		Long count = total.getLong("totalNumberOfResults");
-		assertEquals(new Long(2), count);
-	}
-	
-	@Test
-	public void testStructuredQuery() throws Exception {
-		// setup a query to find the project by ID.
-		EntityQuery query = new EntityQuery();
-		query.setFilterByType(EntityType.project);
-		query.setConditions(new ArrayList<>(1));
-		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
-		// Run the query
-		EntityQueryResults results = waitForQuery(query);
-		assertNotNull(results);
-		assertNotNull(results.getEntities());
-		assertEquals(1, results.getEntities().size());
-		EntityQueryResult projectResult = results.getEntities().get(0);
-		assertEquals(project.getId(), projectResult.getId());
-	}
 	
 	@Test
 	public void testGetEntityIdByAlias() throws SynapseException{
@@ -1098,5 +918,40 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testLookupEntity() throws SynapseException {
 		assertEquals(dataset.getId(), synapseOne.lookupChild(project.getId(), dataset.getName()));
+	}
+	
+	
+	/*
+	 * Test deprecated services
+	 * These test can be removed when the services are removed
+	 */
+	
+	@Test
+	public void testDeprecatedStructuredQuery() throws Exception {
+		// setup a query to find the project by ID.
+		EntityQuery query = new EntityQuery();
+		query.setFilterByType(EntityType.project);
+		query.setConditions(new ArrayList<>(1));
+		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
+		// Run the query
+		try {
+			synapseOne.entityQuery(query);
+		} catch (SynapseDeprecatedServiceException e) {
+			// expected
+			return;
+		}
+		fail("SynapseDeprecatedServiceException is not thrown.");
+	}
+	
+
+	@Test
+	public void testJavaClientDeprecatedQueryService() throws Exception {
+		try {
+			synapseOne.query("select * from folder limit 10");
+		} catch (SynapseDeprecatedServiceException e) {
+			// expected
+			return;
+		}
+		fail("SynapseDeprecatedServiceException is not thrown");
 	}
 }
