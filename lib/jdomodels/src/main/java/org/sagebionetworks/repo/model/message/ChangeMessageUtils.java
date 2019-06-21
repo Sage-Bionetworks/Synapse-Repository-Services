@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
@@ -49,6 +50,9 @@ public class ChangeMessageUtils {
 		dbo.setObjectEtag(dto.getObjectEtag());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
 		dbo.setObjectVersion(dto.getObjectVersion());
+		if(dto.getObjectVersion() == null) {
+			dbo.setObjectVersion(DBOChange.DEFAULT_NULL_VERSION);
+		}
 		if (dto.getUserId() != null) {
 			dbo.setUserId(dto.getUserId());
 		}
@@ -88,7 +92,12 @@ public class ChangeMessageUtils {
 			// All other types are longs.
 			dto.setObjectId(dbo.getObjectId().toString());
 		}
-		dto.setObjectVersion(dbo.getObjectVersion());
+		if(DBOChange.DEFAULT_NULL_VERSION == dbo.getObjectVersion()) {
+			dto.setObjectVersion(null);
+		}else {
+			dto.setObjectVersion(dbo.getObjectVersion());
+		}
+
 		dto.setChangeType(ChangeType.valueOf(dbo.getChangeType()));
 		if (dbo.getUserId() != null) {
 			dto.setUserId(dbo.getUserId());
@@ -103,27 +112,47 @@ public class ChangeMessageUtils {
 	 * @return
 	 */
 	public static List<ChangeMessage> sortByObjectId(List<ChangeMessage> list){
-		Collections.sort(list, new Comparator<ChangeMessage>() {
-			@Override
-			public int compare(ChangeMessage one, ChangeMessage two) {
-				ChangeMessageUtils.validateChangeMessage(one);
-				ChangeMessageUtils.validateChangeMessage(two);
-				// First sort by ID
-				int idOrder = one.getObjectId().compareTo(two.getObjectId());
-				if(idOrder == 0){
-					// check version number
-					int versionOrder = one.getObjectVersion().compareTo(two.getObjectVersion());
-					if( versionOrder == 0) {
-						// When equal sort by type.
-						return one.getObjectType().name().compareTo(two.getObjectType().name());
-					}
-					return versionOrder;
-				}else{
-					return idOrder;
-				}
-			}
+		Collections.sort(list, (ChangeMessage one, ChangeMessage two) -> {
+			return compareIdVersionType(one, two);
 		});
 		return list;
+	}
+	
+	/**
+	 * Compare two changes first by objectId, then objectVersion, then objectType.
+	 * @param one
+	 * @param two
+	 * @return
+	 */
+	public static int compareIdVersionType(ChangeMessage one, ChangeMessage two) {
+		ChangeMessageUtils.validateChangeMessage(one);
+		ChangeMessageUtils.validateChangeMessage(two);
+		// First 
+		int order = KeyFactory.compare(one.getObjectId(), two.getObjectId());
+		if(order != 0) {
+			return order;
+		}
+		// Ids match so compare versions
+		order = compareWithNull(one.getObjectVersion(), two.getObjectVersion());
+		if(order != 0) {
+			return order;
+		}
+		// Ids and version match so compare types.
+		return one.getObjectType().compareTo(two.getObjectType());
+	}
+	
+	/**
+	 * Compare two Longs.  Handles the case where either is null.
+	 * 
+	 * @param one
+	 * @param two
+	 * @return
+	 */
+	public static int compareWithNull(Long one, Long two) {
+		if(one == null) {
+			return two == null ? 0 : -1;
+		}
+		return two == null ? 1 : one.compareTo(two);
 	}
 
 	
@@ -156,9 +185,7 @@ public class ChangeMessageUtils {
 	public static void validateChangeMessage(ChangeMessage toValiate) {
 		ValidateArgument.required(toValiate, "ChangeMessage");
 		ValidateArgument.required(toValiate.getObjectId(), "ChangeMessage.objectId");
-		ValidateArgument.required(toValiate.getObjectVersion(), "ChangeMessage.objectVersion");
 		ValidateArgument.required(toValiate.getObjectType(), "ChangeMessage.objectType");
-		ValidateArgument.required(toValiate.getObjectEtag(), "ChangeMessage.objectEtag");
-		ValidateArgument.required(toValiate.getChangeType(), "ChangeMessage.changeType");
+		ValidateArgument.required(toValiate.getObjectType(), "ChangeMessage.objecType");
 	}
 }

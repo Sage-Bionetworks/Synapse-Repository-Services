@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>  {
 
-	private static final long DEFAULT_NULL_VERSION = -1L;
+	public static final long DEFAULT_NULL_VERSION = -1L;
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM).withIsBackupId(true),

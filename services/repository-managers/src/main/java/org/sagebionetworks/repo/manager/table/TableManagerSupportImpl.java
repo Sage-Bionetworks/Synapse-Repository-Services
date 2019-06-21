@@ -177,8 +177,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// building of the index and report the table as unavailable
 		String token = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		// notify all listeners.
-//		transactionalMessenger.sendMessageAfterCommit(idAndVersion.toString(), tableType, token, ChangeType.UPDATE);
-		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.toString())
+		transactionalMessenger.sendMessageAfterCommit( new MessageToSend().withObjectId(idAndVersion.getId().toString())
+				.withObjectVersion(idAndVersion.getVersion().orElse(null))
 				.withObjectType(tableType).withEtag(token).withChangeType(ChangeType.UPDATE));
 		// status should exist now
 		return tableStatusDAO.getTableStatus(idAndVersion);
