@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -933,25 +934,12 @@ public class IT500SynapseJavaClient {
 		query.setFilterByType(EntityType.project);
 		query.setConditions(new ArrayList<>(1));
 		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
-		// Run the query
-		try {
-			synapseOne.entityQuery(query);
-		} catch (SynapseDeprecatedServiceException e) {
-			// expected
-			return;
-		}
-		fail("SynapseDeprecatedServiceException is not thrown.");
+		assertThrows(SynapseDeprecatedServiceException.class, () -> synapseOne.entityQuery(query));
 	}
 	
 
 	@Test
 	public void testJavaClientDeprecatedQueryService() throws Exception {
-		try {
-			synapseOne.query("select * from folder limit 10");
-		} catch (SynapseDeprecatedServiceException e) {
-			// expected
-			return;
-		}
-		fail("SynapseDeprecatedServiceException is not thrown");
+		assertThrows(SynapseDeprecatedServiceException.class, () -> synapseOne.query("select * from folder limit 10"));
 	}
 }
