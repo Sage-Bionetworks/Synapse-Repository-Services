@@ -27,6 +27,9 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.util.BinaryUtils;
 
+/**
+ * This class handles the interaction with S3 during the steps of a multi-part upload
+ */
 public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 
 	// 15 minute.
@@ -108,19 +111,8 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 			throw new IllegalArgumentException(
 					"The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.");
 		}
-	}
-
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.upload.multipart.S3MultipartUploadDAO#deleteObject
-	 * (java.lang.String, java.lang.String)
-	 */
-	@Override
-	public void deleteObject(String bucket, String key) {
-		s3Client.deleteObject(bucket, key);
+		// After copying the part we can delete the old part file.
+		s3Client.deleteObject(request.getBucket(), request.getPartKey());
 	}
 
 	/*

@@ -337,8 +337,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			multipartUploadDAO
 					.addPartToUpload(uploadId, partNumber, partMD5Hex);
 			response.setAddPartState(AddPartState.ADD_SUCCESS);
-			// after a part is added we can delete the part file
-			s3multipartUploadDAO.deleteObject(composite.getBucket(), partKey);
 		} catch (Exception e) {
 			response.setErrorMessage(e.getMessage());
 			response.setAddPartState(AddPartState.ADD_FAILED);
