@@ -1,0 +1,82 @@
+package org.sagebionetworks.gcp;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.google.cloud.WriteChannel;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
+import com.google.common.io.ByteStreams;
+
+public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudStorageClient {
+
+	private static final int MAX_OBJECTS_IN_COMPOSE = 32;
+
+	private Storage storage;
+
+	public SynapseGoogleCloudStorageClientImpl(Storage storageClient) throws StorageException {
+		this.storage = storageClient;
+	}
+
+	@Override
+	public Blob getObject(String bucket, String key) throws StorageException {
+		return storage.get(BlobId.of(bucket, key));
+	}
+
+	@Override
+	public Blob putObject(String bucket, String key, InputStream inputStream) throws StorageException {
+		putObject(BlobInfo.newBuilder(BlobId.of(bucket, key)).build(), inputStream);
+		return this.getObject(bucket, key);
+	}
+
+	private void putObject(BlobInfo blobInfo, InputStream inputStream) {
+		try (WriteChannel writer = storage.writer(blobInfo)) {
+			ByteStreams.copy(inputStream, Channels.newOutputStream(writer));
+		} catch (IOException e) {
+			throw new RuntimeException("Error writing input stream to Google Cloud", e);
+		}
+	}
+
+	@Override
+	public void deleteObject(String bucketName, String key) throws StorageException {
+		BlobId blobId = BlobId.of(bucketName, key);
+		if (!storage.delete(blobId)) {
+			throw new RuntimeException("Error encountered when deleting the object in Google Cloud Storage. The item has not been deleted.");
+		}
+	}
+
+	@Override
+	public URL createSignedUrl(String bucket, String key, long expirationInMilliseconds, HttpMethod requestMethod) throws StorageException {
+		return storage.signUrl(BlobInfo.newBuilder(BlobId.of(bucket, key)).build(),
+				expirationInMilliseconds, TimeUnit.MILLISECONDS, Storage.SignUrlOption.withV4Signature(),
+				Storage.SignUrlOption.httpMethod(requestMethod));
+	}
+
+	@Override
+	public Blob composeObjects(String bucket, String newKey, List<String> partKeys) throws StorageException {
+		if (partKeys.size() > MAX_OBJECTS_IN_COMPOSE)
+			throw new IllegalArgumentException("Cannot compose more than " + MAX_OBJECTS_IN_COMPOSE + " objects in one request");
+		BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, newKey)).build();
+		Storage.ComposeRequest.Builder builder = Storage.ComposeRequest.newBuilder().setTarget(blobInfo);
+		for (String part : partKeys) {
+				builder.addSource(part);
+		}
+		return storage.compose(builder.build());
+	}
+
+	@Override
+	public void rename(String bucket, String oldKey, String newKey) throws StorageException {
+		storage.copy(Storage.CopyRequest.newBuilder().setSource(BlobId.of(bucket,oldKey)).setTarget(BlobId.of(bucket,newKey)).build());
+		storage.delete(BlobId.of(bucket,oldKey));
+	}
+}

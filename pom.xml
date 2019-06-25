@@ -380,6 +380,12 @@
 			</dependency>
 
 			<dependency>
+				<groupId>com.google.cloud</groupId>
+				<artifactId>google-cloud-storage</artifactId>
+				<version>${com.google.cloud.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
 				<version>${org.apache.httpcomponents.version}</version>
@@ -965,6 +971,7 @@
 		<junit.vintage.version>5.4.1</junit.vintage.version>
 		<junit.platform.version>1.4.1</junit.platform.version>
 		<mockito.version>2.27.0</mockito.version>
+		<com.google.cloud.version>1.77.0</com.google.cloud.version>
 	</properties>
 
 	<distributionManagement>
