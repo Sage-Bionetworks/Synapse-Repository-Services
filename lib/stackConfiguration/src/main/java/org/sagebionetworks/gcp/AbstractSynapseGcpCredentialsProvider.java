@@ -12,7 +12,7 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 public abstract class AbstractSynapseGcpCredentialsProvider implements CredentialsProvider {
 
 	public static final String GCP_CREDENTIALS_WERE_NOT_FOUND = "Google Cloud credentials were not found.";
-	public static final String ORG_SAGEBIONETWORKS_STACK_GCP_SVC_ACCOUNT_KEY = "org.sagebionetworks.stack.gcp.key";
+	public static final String ORG_SAGEBIONETWORKS_STACK_GCP_SVC_ACCOUNT_KEY = "org.sagebionetworks.gcp.key";
 
 	/**
 	 * Search the provided Properties for the credentials.
