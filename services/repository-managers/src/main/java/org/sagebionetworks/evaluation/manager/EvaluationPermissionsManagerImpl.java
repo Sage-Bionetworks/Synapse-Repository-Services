@@ -204,7 +204,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		for (ResourceAccess ra : resourceAccess) {
 			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS)) {
-					throw new InvalidModelException("Public users may only have read and submit access on an evaluation.");
+					throw new InvalidModelException("Public users may only have read access on an evaluation.");
 				}
 			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS)) {
