@@ -521,9 +521,6 @@ public class MultipartManagerV2ImplTest {
 		
 		// the part state should be saved
 		verify(mockMultiparUploadDAO).addPartToUpload(uploadId, partNumber, partMD5Hex);
-		
-		// the part should get deleted
-		verify(mockS3multipartUploadDAO).deleteObject(composite.getBucket(), partKey);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
