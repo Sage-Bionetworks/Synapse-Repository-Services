@@ -1,5 +1,7 @@
 package org.sagebionetworks.gcp;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Properties;
 
 import com.amazonaws.util.StringUtils;
@@ -30,7 +32,9 @@ public abstract class AbstractSynapseGoogleCloudCredentialsProvider implements C
 			if (properties != null) {
 				String clientId = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_ID));
 				String clientEmail = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_EMAIL));
-				String privateKeyPkcs8 = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_PRIVATE_KEY));
+				String privateKeyPkcs8 = new String(Base64.getDecoder().decode(
+						StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_PRIVATE_KEY)).getBytes(StandardCharsets.UTF_8)
+				), StandardCharsets.UTF_8);
 				String privateKeyId = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_PRIVATE_KEY_ID));;
 				if (clientId != null && clientEmail != null && privateKeyPkcs8 != null && privateKeyId != null) {
 					return ServiceAccountCredentials.fromPkcs8(clientId, clientEmail, privateKeyPkcs8, privateKeyId, null);
