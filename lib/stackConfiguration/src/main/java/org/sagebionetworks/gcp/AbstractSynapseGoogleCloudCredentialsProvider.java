@@ -9,10 +9,16 @@ import com.google.api.gax.core.CredentialsProvider;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 
-public abstract class AbstractSynapseGcpCredentialsProvider implements CredentialsProvider {
+public abstract class AbstractSynapseGoogleCloudCredentialsProvider implements CredentialsProvider {
 
-	public static final String GCP_CREDENTIALS_WERE_NOT_FOUND = "Google Cloud credentials were not found.";
+	public static final String GOOGLE_CLOUD_CREDENTIALS_WERE_NOT_FOUND = "Google Cloud credentials were not found.";
 	public static final String ORG_SAGEBIONETWORKS_STACK_GCP_SVC_ACCOUNT_KEY = "org.sagebionetworks.gcp.key";
+
+	final Properties properties;
+
+	AbstractSynapseGoogleCloudCredentialsProvider(Properties properties) {
+		this.properties = properties;
+	}
 
 	/**
 	 * Search the provided Properties for the credentials.
@@ -26,7 +32,7 @@ public abstract class AbstractSynapseGcpCredentialsProvider implements Credentia
 					return ServiceAccountCredentials.fromStream(new ByteArrayInputStream(accessKey.getBytes(StandardCharsets.UTF_8)));
 				}
 			}
-			throw new IllegalStateException(GCP_CREDENTIALS_WERE_NOT_FOUND);
+			throw new IllegalStateException(GOOGLE_CLOUD_CREDENTIALS_WERE_NOT_FOUND);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -36,7 +42,9 @@ public abstract class AbstractSynapseGcpCredentialsProvider implements Credentia
 	 * Extending classes provide a Properties object that could contain sage credentials.
 	 * @return
 	 */
-	abstract Properties getProperties();
+	 Properties getProperties() {
+	 	return this.properties;
+	 }
 
 
 }

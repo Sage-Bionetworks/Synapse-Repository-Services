@@ -37,6 +37,8 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
+import com.google.cloud.storage.StorageOptions;
 
 @ExtendWith(MockitoExtension.class)
 public class SynapseGoogleCloudStorageClientImplUnitTest {
@@ -46,12 +48,6 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 
 	@Mock
 	private Blob mockBlob;
-
-	@Captor
-	private ArgumentCaptor<Storage.SignUrlOption> signUrlMethodOptionCaptor;
-
-	@Captor
-	private ArgumentCaptor<Storage.SignUrlOption> signUrlTypeOptionCaptor;
 
 	@Captor
 	private ArgumentCaptor<Storage.ComposeRequest> composeRequestCaptor;
@@ -82,12 +78,12 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 		byte[] fileContents = "some file content".getBytes(StandardCharsets.UTF_8);
 		InputStream inputStream = new ByteArrayInputStream(fileContents);
 		// We use a stubbed class to verify that the contents are copied properly
-		WriteChannelStub writableByteChannel = new WriteChannelStub();
-		when(mockStorage.writer(OBJECT_BLOB_INFO)).thenReturn(writableByteChannel);
+		TestStubWriteChannel stubWriteChannel = new TestStubWriteChannel();
+		when(mockStorage.writer(OBJECT_BLOB_INFO)).thenReturn(stubWriteChannel);
 		client.putObject(BUCKET_NAME, OBJECT_KEY, inputStream);
 		verify(mockStorage).writer(OBJECT_BLOB_INFO);
 		// Byte array equality checks the object, we can just convert back to a string.
-		assertArrayEquals(fileContents, writableByteChannel.outputStream.toByteArray());
+		assertArrayEquals(fileContents, stubWriteChannel.outputStream.toByteArray());
 	}
 
 	@Test
@@ -100,7 +96,7 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	@Test
 	public void deleteObjectFailure() {
 		when(mockStorage.delete(OBJECT_BLOB_ID)).thenReturn(false);
-		assertThrows(RuntimeException.class, () -> client.deleteObject(BUCKET_NAME, OBJECT_KEY));
+		assertThrows(StorageException.class, () -> client.deleteObject(BUCKET_NAME, OBJECT_KEY));
 	}
 
 	@Test
@@ -111,8 +107,8 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 
 		verify(mockStorage).signUrl(eq(OBJECT_BLOB_INFO), eq(expirationTime),
 				eq(TimeUnit.MILLISECONDS),
-				signUrlTypeOptionCaptor.capture(),
-				signUrlMethodOptionCaptor.capture());
+				any(Storage.SignUrlOption.class),
+				any(Storage.SignUrlOption.class));
 	}
 
 	@Test
@@ -149,8 +145,8 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	/**
 	 * This class merely needs to implement the methods in {@link java.nio.channels.WritableByteChannel}
 	 */
-	private static class WriteChannelStub implements WriteChannel {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+	private static class TestStubWriteChannel implements WriteChannel {
+		private ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		private WritableByteChannel outputChannel = Channels.newChannel(outputStream);
 
 		@Override
@@ -174,7 +170,7 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() {
 		}
 	}
 }

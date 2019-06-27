@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.google.api.client.http.HttpStatusCodes;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -48,10 +49,11 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 	}
 
 	@Override
-	public void deleteObject(String bucketName, String key) throws StorageException {
-		BlobId blobId = BlobId.of(bucketName, key);
+	public void deleteObject(String bucket, String key) throws StorageException {
+		BlobId blobId = BlobId.of(bucket, key);
 		if (!storage.delete(blobId)) {
-			throw new RuntimeException("Error encountered when deleting the object in Google Cloud Storage. The item has not been deleted.");
+			throw new StorageException(HttpStatusCodes.STATUS_CODE_SERVICE_UNAVAILABLE,
+					"Error encountered when deleting the object in Google Cloud Storage. The item has not been deleted.");
 		}
 	}
 
@@ -67,16 +69,21 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 		if (partKeys.size() > MAX_OBJECTS_IN_COMPOSE)
 			throw new IllegalArgumentException("Cannot compose more than " + MAX_OBJECTS_IN_COMPOSE + " objects in one request");
 		BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, newKey)).build();
-		Storage.ComposeRequest.Builder builder = Storage.ComposeRequest.newBuilder().setTarget(blobInfo);
-		for (String part : partKeys) {
-				builder.addSource(part);
-		}
-		return storage.compose(builder.build());
+		return storage.compose(
+				Storage.ComposeRequest.newBuilder()
+						.setTarget(blobInfo)
+						.addSource(partKeys)
+						.build()
+		);
 	}
 
 	@Override
 	public void rename(String bucket, String oldKey, String newKey) throws StorageException {
-		storage.copy(Storage.CopyRequest.newBuilder().setSource(BlobId.of(bucket,oldKey)).setTarget(BlobId.of(bucket,newKey)).build());
+		storage.copy(
+				Storage.CopyRequest.newBuilder()
+						.setSource(BlobId.of(bucket,oldKey))
+						.setTarget(BlobId.of(bucket,newKey))
+						.build());
 		storage.delete(BlobId.of(bucket,oldKey));
 	}
 }

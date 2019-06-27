@@ -45,10 +45,10 @@ public interface SynapseGoogleCloudStorageClient {
 
 	/**
 	 * Deletes the object in Google Cloud Storage
-	 * @param bucketName The bucket containing the object
+	 * @param bucket The bucket containing the object
 	 * @param key The path/filename of the object
 	 */
-	void deleteObject(String bucketName, String key);
+	void deleteObject(String bucket, String key);
 
 	/**
 	 * Combines (concatenates) objects in the order they are given to create a new object.

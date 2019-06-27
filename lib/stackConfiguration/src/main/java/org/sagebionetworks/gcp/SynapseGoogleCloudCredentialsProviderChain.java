@@ -3,19 +3,19 @@
  */
 package org.sagebionetworks.gcp;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.PropertyProvider;
 import org.sagebionetworks.PropertyProviderImpl;
 
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.auth.Credentials;
 
 /**
- * Synapse credential chain will attempt to load AWS credentials in the
+ * Synapse credential chain will attempt to load Google Cloud credentials in the
  * following order:
  * <ol>
  * <li>sage.bionetworks properties from Maven .m2/settings.xml file</li>
@@ -23,35 +23,38 @@ import com.google.auth.Credentials;
  * <li>the default system credentials</li>
  * </ol>
  */
-public class SynapseGCPCredentialsProviderChain implements CredentialsProvider {
+public class SynapseGoogleCloudCredentialsProviderChain implements CredentialsProvider {
 
 	private List<CredentialsProvider> credentialsProviders = new LinkedList<>();
-	static private Logger log = LogManager.getLogger(SynapseGCPCredentialsProviderChain.class);
+	static private Logger log = LogManager.getLogger(SynapseGoogleCloudCredentialsProviderChain.class);
 
-	private static final SynapseGCPCredentialsProviderChain INSTANCE =
-			new SynapseGCPCredentialsProviderChain(new PropertyProviderImpl(), new DefaultGCPCredentialsProvider());
-
-	/**
-	 * Dependency injection constructor.
-	 * @param propertyProvider
-	 */
-	SynapseGCPCredentialsProviderChain(PropertyProvider propertyProvider, CredentialsProvider defaultProvider) {
-		credentialsProviders.add(new MavenSettingsGCPCredentialsProvider(propertyProvider));
-		credentialsProviders.add(new SynapseSystemPropertiesGCPCredentialsProvider(propertyProvider));
-		credentialsProviders.add(defaultProvider);
+	public SynapseGoogleCloudCredentialsProviderChain(List<CredentialsProvider> providers) {
+		if (providers == null || providers.isEmpty()) {
+			throw new IllegalArgumentException("At least one Google Cloud credentials provider must be given.");
+		}
+		credentialsProviders.addAll(providers);
 	}
+
+	private static final SynapseGoogleCloudCredentialsProviderChain INSTANCE =
+			new SynapseGoogleCloudCredentialsProviderChain(
+					Arrays.asList(
+							new MavenSettingsGoogleCloudCredentialsProvider(new PropertyProviderImpl()),
+							new SynapseSystemPropertiesGoogleCloudCredentialsProvider(new PropertyProviderImpl()),
+							new DefaultGoogleCloudCredentialsProvider()
+					)
+			);
 
 	/**
 	 * Access the singleton chain.
 	 * @return
 	 */
-	public static SynapseGCPCredentialsProviderChain getInstance() {
+	public static SynapseGoogleCloudCredentialsProviderChain getInstance() {
 		return INSTANCE;
 	}
 
 	@Override
 	public Credentials getCredentials() {
-		List<String> exceptionMessages = null;
+		List<String> exceptionMessages = new LinkedList<>();
 		for (CredentialsProvider provider : credentialsProviders) {
 			try {
 				Credentials credentials = provider.getCredentials();
@@ -61,12 +64,9 @@ public class SynapseGCPCredentialsProviderChain implements CredentialsProvider {
 				}
 			} catch (Exception e) {
 				// Ignore any exceptions and move onto the next provider
-				String message = provider + ": " + e.getMessage();
-				log.debug("Unable to load credentials from " + message);
-				if (exceptionMessages == null) {
-					exceptionMessages = new LinkedList<>();
-				}
-				exceptionMessages.add(message);
+				String providerExceptionMessage = provider + ": " + e.getMessage();
+				log.debug("Unable to load credentials from " + providerExceptionMessage);
+				exceptionMessages.add(providerExceptionMessage);
 			}
 		}
 		throw new RuntimeException(
