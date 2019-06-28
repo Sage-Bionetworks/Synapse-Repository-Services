@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS
 
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
@@ -37,6 +38,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
  */
 public class TableStatusDAOImpl implements TableStatusDAO {
 	
+	public static final int MAX_ERROR_MESSAGE_CHARS = 1000;
+
 	/**
 	 * Number used when the version number is null;
 	 */
@@ -145,7 +148,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		current.setState(state.name());
 		current.setChangedOn(now);
 		current.setProgressCurrent(progressCurrent);
-		current.setErrorMessage(errorMessage);
+		current.setErrorMessage(StringUtils.abbreviate(errorMessage, MAX_ERROR_MESSAGE_CHARS));
 		current.setErrorDetails(errorDetailsBytes);
 		current.setTotalRunTimeMS(runtimeMS);
 		current.setLastTableChangeEtag(tableChangeEtag);
