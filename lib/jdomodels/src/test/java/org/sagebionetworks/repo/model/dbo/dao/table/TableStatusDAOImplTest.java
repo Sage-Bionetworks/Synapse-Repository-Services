@@ -3,10 +3,12 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +19,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.TableIndexDAOImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -219,6 +222,48 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status);
 		// This should fail since the passed token does not match the current token
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken+"invalidated", "error", "error details");
+	}
+	
+	/**
+	 * Part of the issue with PLFM-5632 was the error message was too large for the status table.
+	 */
+	@Test
+	public void testAttemptToSetTableStatusToFailedMessageAtLimit() {
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		assertNotNull(status.getChangedOn());
+		String errorMessage = StringUtils.repeat("a", TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS);
+		// Not make available
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, errorMessage, "error details");
+		// the state should have changed
+		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertEquals(errorMessage, status.getErrorMessage());
+	}
+	
+	/**
+	 * Part of the issue with PLFM-5632 was the error message was too large for the status table.
+	 */
+	@Test
+	public void testAttemptToSetTableStatusToFailedMessageOverLimit() {
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		assertNotNull(status.getChangedOn());
+		String errorMessage = StringUtils.repeat("a", TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS+1);
+		// Not make available
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, errorMessage, "error details");
+		// the state should have changed
+		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertTrue(TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS <= status.getErrorMessage().length());
 	}
 	
 	@Test
