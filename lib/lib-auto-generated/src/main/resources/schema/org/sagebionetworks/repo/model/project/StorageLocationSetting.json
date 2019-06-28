@@ -1,5 +1,5 @@
 {
-	"description": "The upload destinations setting",
+	"description": "A storage location setting describes a location where files are uploaded to and downloaded from via Synapse. Storage location settings may be created for external locations, such as user-owned Amazon S3 buckets",
 	"type": "interface",
 	"properties": {
         "concreteType": {
@@ -8,7 +8,7 @@
         },
 		"storageLocationId": {
 			"type": "integer",
-			"description": "the unique id for this storage location"
+			"description": "The unique ID for this storage location"
 		},
 		"uploadType": {
 			"name": "UploadType",
@@ -16,11 +16,11 @@
 		},
 		"banner": {
 			"type": "string",
-			"description": "The optional banner to show every time a file is uploaded"
+			"description": "The banner text to display to a user every time a file is uploaded. This field is optional."
 		},
 		"description": {
 			"type": "string",
-			"description": "The description to show the user when the user has to choose which upload destination to use"
+			"description": "A description of the storage location. This description is shown when a user has to choose which upload destination to use."
 		},
 		"etag": {
 			"type": "string",
@@ -30,13 +30,13 @@
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this upload destinations setting was created.",
+			"description": "The date this storage location setting was created.",
 			"title": "Created On",
 			"transient": true
 		},
 		"createdBy": {
 			"type": "integer",
-			"description": "The ID of the user that created this upload destinations setting.",
+			"description": "The ID of the user that created this storage location setting.",
 			"title": "Created By",
 			"transient": true
 		}
