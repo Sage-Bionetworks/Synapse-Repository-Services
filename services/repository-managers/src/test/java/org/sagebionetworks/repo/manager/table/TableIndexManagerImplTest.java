@@ -774,6 +774,33 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
+		// Building without a version should attempt to set the current schema on the index.
+		verify(mockManagerSupport).getColumnModelsForTable(any(IdAndVersion.class));
+	}
+	
+	@Test
+	public void testBuildIndexToChangeNumberWithExclusiveLockWithVersion() throws Exception {
+		tableId = IdAndVersion.parse("syn123.1");
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		long targetChangeNumber = 1L;
+		String resetToken = "resetToken";
+		// call under test
+		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
+		assertEquals(list.get(1).getETag(), lastEtag);
+		// Progress should be made for both changes
+		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 1L);
+		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 1", 1L, 1L);
+		// row changes should be applied
+		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+		// column changes should be applied
+		boolean alterTemp = false;
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+		// The table should be optimized
+		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
+		// Building to a version should not attempt to set the current schema on the index.
+		verify(mockManagerSupport, never()).getColumnModelsForTable(any(IdAndVersion.class));
 	}
 	
 	@Test
@@ -806,7 +833,8 @@ public class TableIndexManagerImplTest {
 		// Progress should be made for both changes
 		verify(mockManagerSupport, never()).attemptToUpdateTableProgress(any(IdAndVersion.class), anyString(), anyString(), anyLong(), anyLong());
 		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
-		verify(mockIndexDao, never()).alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean());
+		// one time for applying the table schema to the index.
+		verify(mockIndexDao, times(1)).alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean());
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
 	}
