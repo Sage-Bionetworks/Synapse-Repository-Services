@@ -29,7 +29,7 @@
 										class="org.sagebionetworks.search.workers.sqs.search.SearchQueueWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="searchIndexWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="600" />
 								<property name="queueName"
