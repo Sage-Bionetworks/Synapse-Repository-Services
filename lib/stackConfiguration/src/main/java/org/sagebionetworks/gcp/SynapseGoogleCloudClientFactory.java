@@ -15,7 +15,7 @@ public class SynapseGoogleCloudClientFactory {
 	public static SynapseGoogleCloudStorageClient createGoogleCloudStorageClient() {
 		return new SynapseGoogleCloudStorageClientImpl(
 				StorageOptions.newBuilder()
-						.setCredentials(SynapseGoogleCloudCredentialsProviderChain.getInstance().getCredentials())
+						.setCredentials(SynapseGoogleCloudCredentialsProviderChain.getDefaultChainInstance().getCredentials())
 						.build()
 						.getService()
 		);

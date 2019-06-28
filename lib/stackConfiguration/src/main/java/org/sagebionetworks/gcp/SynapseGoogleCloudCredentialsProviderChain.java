@@ -25,10 +25,13 @@ import com.google.auth.Credentials;
  */
 public class SynapseGoogleCloudCredentialsProviderChain implements CredentialsProvider {
 
-	private List<CredentialsProvider> credentialsProviders = new LinkedList<>();
-	static private Logger log = LogManager.getLogger(SynapseGoogleCloudCredentialsProviderChain.class);
+	private static Logger log = LogManager.getLogger(SynapseGoogleCloudCredentialsProviderChain.class);
+	private List<CredentialsProvider> credentialsProviders;
+
+	protected static final String UNABLE_TO_LOAD_CREDS_MSG = "Unable to load Google Cloud credentials from any provider in the chain: ";
 
 	public SynapseGoogleCloudCredentialsProviderChain(List<CredentialsProvider> providers) {
+		credentialsProviders = new LinkedList<>();
 		if (providers == null || providers.isEmpty()) {
 			throw new IllegalArgumentException("At least one Google Cloud credentials provider must be given.");
 		}
@@ -48,14 +51,14 @@ public class SynapseGoogleCloudCredentialsProviderChain implements CredentialsPr
 	 * Access the singleton chain.
 	 * @return
 	 */
-	public static SynapseGoogleCloudCredentialsProviderChain getInstance() {
+	public static SynapseGoogleCloudCredentialsProviderChain getDefaultChainInstance() {
 		return INSTANCE;
 	}
 
 	@Override
 	public Credentials getCredentials() {
 		List<String> exceptionMessages = new LinkedList<>();
-		for (CredentialsProvider provider : credentialsProviders) {
+		for (CredentialsProvider provider : this.credentialsProviders) {
 			try {
 				Credentials credentials = provider.getCredentials();
 				if (credentials != null) {
@@ -69,8 +72,6 @@ public class SynapseGoogleCloudCredentialsProviderChain implements CredentialsPr
 				exceptionMessages.add(providerExceptionMessage);
 			}
 		}
-		throw new RuntimeException(
-				"Unable to load Google Cloud credentials from any provider in the chain: "
-				+ exceptionMessages);
+		throw new RuntimeException(UNABLE_TO_LOAD_CREDS_MSG + exceptionMessages);
 	}
 }
