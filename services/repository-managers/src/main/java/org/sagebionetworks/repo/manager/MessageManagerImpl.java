@@ -47,6 +47,8 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.MessageToUserUtils;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -59,7 +61,7 @@ import com.google.common.collect.Lists;
 
 
 public class MessageManagerImpl implements MessageManager {
-	
+
 	static private Logger log = LogManager.getLogger(MessageManagerImpl.class);
 	
 	/**
@@ -78,6 +80,17 @@ public class MessageManagerImpl implements MessageManager {
 	 * The maximum number of targets of a message
 	 */
 	protected static final long MAX_NUMBER_OF_RECIPIENTS = 50L;
+	
+	// Message templates
+	private static final String MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION = "message/PasswordChangeConfirmationTemplate.txt";
+
+	private static final String MESSAGE_TEMPLATE_WELCOME = "message/WelcomeTemplate.txt";
+
+	private static final String MESSAGE_TEMPLATE_DELIVERY_FAILURE = "message/DeliveryFailureTemplate.txt";
+
+	private static final String MESSAGE_TEMPLATE_PASSWORD_RESET = "message/PasswordResetTemplate.txt";
+
+	private static final String MESSAGE_VALUE_ORIGIN_CLIENT = "Synapse";
 	
 	@Autowired
 	private MessageDAO messageDAO;
@@ -594,43 +607,48 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageDAO.deleteMessage(messageId);
 	}
-
-
+	
 	@Override
 	@WriteTransaction
-	public void sendNewPasswordResetEmail(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken){
+	public void sendNewPasswordResetEmail(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken,
+			PrincipalAlias alias) {
 		ValidateArgument.required(passwordResetToken, "passwordResetToken");
 		ValidateArgument.required(passwordResetUrlPrefix, "passwordResetPrefix");
-
-		String webLink = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
-		EmailUtils.validateSynapsePortalHost(webLink);
+		ValidateArgument.required(alias, "alias");
 
 		long userId = Long.parseLong(passwordResetToken.getUserId());
 
+		ValidateArgument.requirement(alias.getPrincipalId().equals(userId),
+				String.format("The id of the alias principal must match the token user id: %d (Expected: %d)",
+						alias.getPrincipalId(), userId));
+
+		String resetUrl = getPasswordResetUrl(passwordResetUrlPrefix, passwordResetToken);
+		String email = getEmailForAlias(alias);
 
 		String subject = "Reset Synapse Password";
-		Map<String,String> fieldValues = new HashMap<String,String>();
+		Map<String, String> fieldValues = new HashMap<String, String>();
 
-		String alias = principalAliasDAO.getUserName(userId);
+		String username = principalAliasDAO.getUserName(userId);
 		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
 		String displayName = EmailUtils.getDisplayName(userProfile);
 
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, username);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, resetUrl);
 
-		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
-		String email = getEmailForUser(userId);
+		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_RESET, fieldValues);
+
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
 				.withBody(messageBody, BodyType.PLAIN_TEXT)
-				.withSenderUserName(alias)
+				.withSenderUserName(username)
 				.withSenderDisplayName(displayName)
 				.withUserId(Long.toString(userId))
 				.withIsNotificationMessage(true)
 				.build();
+
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
@@ -643,11 +661,11 @@ public class MessageManagerImpl implements MessageManager {
 		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
 		String displayName = EmailUtils.getDisplayName(userProfile);
 
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 
-		String messageBody = EmailUtils.readMailTemplate("message/PasswordChangeConfirmationTemplate.txt", fieldValues);
+		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION, fieldValues);
 		String email = getEmailForUser(userId);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
@@ -666,13 +684,13 @@ public class MessageManagerImpl implements MessageManager {
 	public void sendWelcomeEmail(Long recipientId, String notificationUnsubscribeEndpoint) throws NotFoundException {
 		String subject = "Welcome to Synapse!";
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
 		
 		String alias = principalAliasDAO.getUserName(recipientId);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		String messageBody = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
+		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_WELCOME, fieldValues);
 		String email = getEmailForUser(recipientId);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
@@ -701,7 +719,7 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_SUBJECT, dto.getSubject());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		String email = getEmailForUser(senderId);
-		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
+		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_DELIVERY_FAILURE, fieldValues);
 		
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
@@ -714,9 +732,21 @@ public class MessageManagerImpl implements MessageManager {
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
+	String getEmailForAlias(PrincipalAlias alias) throws NotFoundException {
+		if (AliasType.USER_EMAIL.equals(alias.getType())) {
+			return alias.getAlias();
+		}
+		return getEmailForUser(alias.getPrincipalId());
+	}
 	
-	private String getEmailForUser(Long principalId) throws NotFoundException {
+	String getEmailForUser(Long principalId) throws NotFoundException {
 		return notificationEmailDao.getNotificationEmailForPrincipal(principalId);
+	}
+	
+	String getPasswordResetUrl(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken) {
+		String resetUrl = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
+		EmailUtils.validateSynapsePortalHost(resetUrl);
+		return resetUrl;
 	}
 
 }

@@ -7,17 +7,31 @@ import java.util.List;
  * 
  */
 public class CompleteMultipartRequest {
-	
+
+	Long uploadId;
 	String uploadToken;
+	Long numberOfParts;
 	List<PartMD5> addedParts;
 	String bucket;
 	String key;
-	
+
+	public Long getUploadId() {
+		return uploadId;
+	}
+	public void setUploadId(Long uploadId) {
+		this.uploadId = uploadId;
+	}
 	public String getUploadToken() {
 		return uploadToken;
 	}
 	public void setUploadToken(String uploadToken) {
 		this.uploadToken = uploadToken;
+	}
+	public Long getNumberOfParts() {
+		return numberOfParts;
+	}
+	public void setNumberOfParts(Long numberOfParts) {
+		this.numberOfParts = numberOfParts;
 	}
 	public List<PartMD5> getAddedParts() {
 		return addedParts;
@@ -42,6 +56,10 @@ public class CompleteMultipartRequest {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((uploadId == null) ? 0 : uploadId.hashCode());
+		result = prime * result
+				+ ((numberOfParts == null) ? 0 : numberOfParts.hashCode());
+		result = prime * result
 				+ ((addedParts == null) ? 0 : addedParts.hashCode());
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
@@ -58,6 +76,16 @@ public class CompleteMultipartRequest {
 		if (getClass() != obj.getClass())
 			return false;
 		CompleteMultipartRequest other = (CompleteMultipartRequest) obj;
+		if (uploadId == null) {
+			if (other.uploadId != null)
+				return false;
+		} else if (!uploadId.equals(other.uploadId))
+			return false;
+		if (numberOfParts == null) {
+			if (other.numberOfParts != null)
+				return false;
+		} else if (!numberOfParts.equals(other.numberOfParts))
+			return false;
 		if (addedParts == null) {
 			if (other.addedParts != null)
 				return false;
@@ -82,8 +110,12 @@ public class CompleteMultipartRequest {
 	}
 	@Override
 	public String toString() {
-		return "CompleteMultipartRequest [uploadToken=" + uploadToken
-				+ ", addedParts=" + addedParts + ", bucket=" + bucket
+		return "CompleteMultipartRequest ["
+				+ "uploadId =" + uploadId
+				+ ", uploadToken=" + uploadToken
+				+ ", numberOfParts=" + numberOfParts
+				+ ", addedParts=" + addedParts
+				+ ", bucket=" + bucket
 				+ ", key=" + key + "]";
 	}
 

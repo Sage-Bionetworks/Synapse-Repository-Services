@@ -11,6 +11,10 @@ import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClientBuilder;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
+import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClientBuilder;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSAsyncClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
@@ -160,6 +164,13 @@ public class AwsClientFactory {
 		builder.withRegion(Regions.US_EAST_1);
 		builder.withCredentials(SynapseCredentialProviderChain.getInstance());
 		return builder.build();
+	}
+
+	public static AmazonKinesisFirehose createAmazonKinesisFirehoseClient(){
+		return AmazonKinesisFirehoseClientBuilder.standard()
+				.withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseCredentialProviderChain.getInstance())
+				.build();
 	}
 
 }

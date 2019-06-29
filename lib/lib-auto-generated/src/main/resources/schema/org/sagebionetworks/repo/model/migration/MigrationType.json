@@ -51,6 +51,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "MULTIPART_UPLOAD_COMPOSER_PART_STATE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
 			"name": "MESSAGE_CONTENT",
 			"description": "TODO: Auto-generated description"
 		},

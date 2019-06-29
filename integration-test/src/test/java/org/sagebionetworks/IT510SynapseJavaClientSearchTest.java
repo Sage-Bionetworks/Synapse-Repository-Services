@@ -32,7 +32,7 @@ public class IT510SynapseJavaClientSearchTest {
 	private static SynapseClient synapse;
 	private static Long userToDelete;
 	
-	private static final long MAX_WAIT_TIME_MS = 10*60*1000; // ten min
+	private static final long MAX_WAIT_TIME_MS = 15*60*1000; // 15 min
 	
 	/**
 	 * All objects are added to this project.

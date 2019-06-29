@@ -35,12 +35,14 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,7 +118,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	}
 
 	/**
-	 * Create a new multi-part upload both in S3 and the database.
+	 * Create a new multi-part upload both in the cloud service and the database.
 	 * 
 	 * @param user
 	 * @param request
@@ -126,8 +128,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	private CompositeMultipartUploadStatus createNewMultipartUpload(
 			UserInfo user, MultipartUploadRequest request, String requestMD5Hex) {
 		// This is the first time we have seen this request.
-		StorageLocationSetting locationSettings = getStorageLocationSettions(request
-				.getStorageLocationId());
+		StorageLocationSetting locationSettings = getStorageLocationSettings(request.getStorageLocationId());
 		// the bucket depends on the upload location used.
 		String bucket = MultipartUtils.getBucket(locationSettings);
 		// create a new key for this file.
@@ -142,8 +143,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// Start the upload
 		return multipartUploadDAO
 				.createUploadStatus(new CreateMultipartRequest(user.getId(),
-						requestMD5Hex, requestJson, uploadToken, bucket, key,
-						numberParts));
+						requestMD5Hex, requestJson, uploadToken, UploadType.S3,
+						bucket, key, numberParts));
 	}
 
 	/**
@@ -192,7 +193,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		}
 	}
 
-	private StorageLocationSetting getStorageLocationSettions(Long storageId) {
+	private StorageLocationSetting getStorageLocationSettings(Long storageId) {
 		if (storageId == null) {
 			return null;
 		}
@@ -212,11 +213,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			MessageDigest messageDigest = MessageDigest.getInstance("MD5");
 			byte[] md5Bytes = messageDigest.digest(jsonBytes);
 			return new String(Hex.encodeHex(md5Bytes));
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		} catch (NoSuchAlgorithmException e) {
+		} catch (JSONObjectAdapterException | UnsupportedEncodingException | NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -246,12 +243,12 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 		// validate the caller is the user that started this upload.
 		validateStartedBy(user, status);
-		List<PartPresignedUrl> partUrls = new LinkedList<PartPresignedUrl>();
+		List<PartPresignedUrl> partUrls = new LinkedList<>();
 		for (Long partNumberL : request.getPartNumbers()) {
 			ValidateArgument.required(partNumberL, "PartNumber cannot be null");
 			int partNumber = partNumberL.intValue();
 			validatePartNumber(partNumber, numberOfParts);
-			String partKey = createPartKey(status.getKey(), partNumber);
+			String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
 			URL url = s3multipartUploadDAO.createPreSignedPutUrl(
 					status.getBucket(), partKey, request.getContentType());
 			PartPresignedUrl part = new PartPresignedUrl();
@@ -262,17 +259,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		BatchPresignedUploadUrlResponse response = new BatchPresignedUploadUrlResponse();
 		response.setPartPresignedUrls(partUrls);
 		return response;
-	}
-
-	/**
-	 * Create a part key using the base and part number.
-	 * 
-	 * @param baseKey
-	 * @param partNumber
-	 * @return
-	 */
-	public static String createPartKey(String baseKey, int partNumber) {
-		return String.format("%1$s/%2$d", baseKey, partNumber);
 	}
 
 	/**
@@ -302,7 +288,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * Validate the caller started the given upload.
 	 * 
 	 * @param user
-	 * @param startedBy
 	 */
 	public static void validateStartedBy(UserInfo user,
 			CompositeMultipartUploadStatus composite) {
@@ -339,15 +324,15 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		validatePartNumber(partNumber, composite.getNumberOfParts());
 		// validate the user started this upload.
 		validateStartedBy(user, composite);
-		String partKey = createPartKey(composite.getKey(), partNumber);
+		String partKey = MultipartUploadUtils.createPartKey(composite.getKey(), partNumber);
 
 		AddPartResponse response = new AddPartResponse();
 		response.setPartNumber(new Long(partNumber));
 		response.setUploadId(uploadId);
 		try {
-			s3multipartUploadDAO.addPart(new AddPartRequest(composite
-					.getUploadToken(), composite.getBucket(), composite
-					.getKey(), partKey, partMD5Hex, partNumber));
+			s3multipartUploadDAO.addPart(new AddPartRequest(uploadId,
+					composite.getUploadToken(), composite.getBucket(), composite
+					.getKey(), partKey, partMD5Hex, partNumber, composite.getNumberOfParts()));
 			// added the part successfully.
 			multipartUploadDAO
 					.addPartToUpload(uploadId, partNumber, partMD5Hex);

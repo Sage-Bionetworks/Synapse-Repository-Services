@@ -66,8 +66,8 @@ public class AuthenticationServiceImplTest {
 	private static long userId = 123456789L;
 	private static String sessionToken = "Some session token";
 	
-	String alias;
-	PrincipalAlias principalAlias;
+	String alias, aliasEmail;
+	PrincipalAlias principalAlias, principalEmailAlias;
 	
 	LoginRequest loginRequest;
 	LoginResponse loginResponse;
@@ -94,6 +94,14 @@ public class AuthenticationServiceImplTest {
 		principalAlias.setAliasId(2222L);
 		principalAlias.setType(AliasType.USER_NAME);
 		when(mockUserManager.lookupUserByUsernameOrEmail(alias)).thenReturn(principalAlias);
+		
+		aliasEmail = "user_alternative@test.com";
+		principalEmailAlias = new PrincipalAlias();
+		principalEmailAlias.setPrincipalId(userId);
+		principalEmailAlias.setAliasId(3333L);
+		principalEmailAlias.setAlias(aliasEmail);
+		principalEmailAlias.setType(AliasType.USER_EMAIL);
+		when(mockUserManager.lookupUserByUsernameOrEmail(aliasEmail)).thenReturn(principalEmailAlias);
 		
 		loginRequest = new LoginRequest();
 		loginRequest.setAuthenticationReceipt("receipt");
@@ -291,8 +299,9 @@ public class AuthenticationServiceImplTest {
 		//method under test
 		service.sendPasswordResetEmail(passwordResetUrlPrefix, email);
 
+		verify(mockUserManager).lookupUserByUsernameOrEmail(email);
 		verify(mockAuthenticationManager).createPasswordResetToken(principalAlias.getPrincipalId());
-		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token);
+		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalAlias);
 	}
 
 	@Test
@@ -304,8 +313,25 @@ public class AuthenticationServiceImplTest {
 		//method under test
 		service.sendPasswordResetEmail(passwordResetUrlPrefix, email);
 
+		verify(mockUserManager).lookupUserByUsernameOrEmail(email);
 		//expect no errors to be throw but the token should never be generated and sent
 		verify(mockAuthenticationManager, never()).createPasswordResetToken(anyLong());
-		verify(mockMessageManager, never()).sendNewPasswordResetEmail(anyString(), any());
+		verify(mockMessageManager, never()).sendNewPasswordResetEmail(anyString(), any(), any());
 	}
+	
+	@Test
+	public void testSendPasswordResetEmailWithEmailAlias() {
+		String passwordResetUrlPrefix = "synapse.org";
+		
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		
+		when(mockAuthenticationManager.createPasswordResetToken(principalEmailAlias.getPrincipalId())).thenReturn(token);
+		
+		service.sendPasswordResetEmail(passwordResetUrlPrefix, aliasEmail);
+		
+		verify(mockUserManager).lookupUserByUsernameOrEmail(aliasEmail);
+		verify(mockAuthenticationManager).createPasswordResetToken(principalEmailAlias.getPrincipalId());
+		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalEmailAlias);	
+	}
+	
 }

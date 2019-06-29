@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.UploadType;
 
 /**
  * Includes the MultipartUploadStatus exposed in the API and data used internally.
@@ -14,6 +15,7 @@ public class CompositeMultipartUploadStatus {
 	String bucket;
 	String key;
 	Integer numberOfParts;
+	UploadType uploadType;
 	
 	public MultipartUploadStatus getMultipartUploadStatus() {
 		return multipartUploadStatus;
@@ -53,6 +55,14 @@ public class CompositeMultipartUploadStatus {
 	public void setEtag(String etag) {
 		this.etag = etag;
 	}
+
+	public UploadType getUploadType() {
+		return uploadType;
+	}
+	public void setUploadType(UploadType uploadType) {
+		this.uploadType = uploadType;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -68,6 +78,7 @@ public class CompositeMultipartUploadStatus {
 				+ ((numberOfParts == null) ? 0 : numberOfParts.hashCode());
 		result = prime * result
 				+ ((uploadToken == null) ? 0 : uploadToken.hashCode());
+		result = prime * result + ((uploadType == null) ? 0 : uploadType.hashCode());
 		return result;
 	}
 	@Override
@@ -109,6 +120,11 @@ public class CompositeMultipartUploadStatus {
 				return false;
 		} else if (!uploadToken.equals(other.uploadToken))
 			return false;
+		if (uploadType == null) {
+			if (other.uploadType != null)
+				return false;
+		} else if (!uploadType.equals(other.uploadType))
+			return false;
 		return true;
 	}
 	@Override
@@ -116,7 +132,8 @@ public class CompositeMultipartUploadStatus {
 		return "CompositeMultipartUploadStatus [multipartUploadStatus="
 				+ multipartUploadStatus + ", etag=" + etag + ", uploadToken="
 				+ uploadToken + ", bucket=" + bucket + ", key=" + key
-				+ ", numberOfParts=" + numberOfParts + "]";
+				+ ", numberOfParts=" + numberOfParts + ", uploadType="
+				+ uploadType + "]";
 	}
 
 }

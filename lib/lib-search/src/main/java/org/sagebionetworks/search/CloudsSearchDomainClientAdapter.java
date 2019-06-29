@@ -18,6 +18,7 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
+import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import com.google.common.collect.Iterators;
 
 /**
@@ -29,15 +30,18 @@ public class CloudsSearchDomainClientAdapter {
 
 	private final AmazonCloudSearchDomain client;
 	private final CloudSearchDocumentBatchIteratorProvider iteratorProvider;
+	private final CloudSearchLogger recordLogger;
 
-	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider){
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomain client, CloudSearchDocumentBatchIteratorProvider iteratorProvider, CloudSearchLogger recordLogger){
 		this.client = client;
 		this.iteratorProvider = iteratorProvider;
+		this.recordLogger = recordLogger;
 	}
 
 	public void sendDocuments(Iterator<Document> documents){
 		ValidateArgument.required(documents, "documents");
 		Iterator<CloudSearchDocumentBatch> searchDocumentFileIterator = iteratorProvider.getIterator(documents);
+
 
 		while(searchDocumentFileIterator.hasNext()) {
 			Set<String> documentIds = null;
@@ -50,13 +54,17 @@ public class CloudsSearchDomainClientAdapter {
 						.withContentType("application/json")
 						.withDocuments(fileStream)
 						.withContentLength(batch.size());
-				client.uploadDocuments(request);
+				UploadDocumentsResult result = client.uploadDocuments(request);
+				recordLogger.currentBatchFinshed(result.getStatus());
 			} catch (DocumentServiceException e) {
 				logger.error("The following documents failed to upload: " +  documentIds);
 				documentIds = null;
+				recordLogger.currentBatchFinshed(e.getStatus());
 				throw handleCloudSearchExceptions(e);
 			} catch (IOException e){
 				throw new TemporarilyUnavailableException(e);
+			} finally{
+				recordLogger.pushAllRecordsAndReset();
 			}
 		}
 	}

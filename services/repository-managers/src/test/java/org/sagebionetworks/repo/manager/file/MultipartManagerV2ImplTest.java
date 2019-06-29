@@ -17,7 +17,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.calculateMD5AsHex;
-import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createPartKey;
 import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createRequestJSON;
 
 import java.net.URL;
@@ -57,6 +56,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -440,12 +440,7 @@ public class MultipartManagerV2ImplTest {
 		//call under test.
 		MultipartManagerV2Impl.validatePartNumber(partNumber, numberOfParts);
 	}
-	
-	@Test
-	public void testCreatePartKey(){
-		assertEquals("baseKey/9999", MultipartManagerV2Impl.createPartKey("baseKey", 9999));
-	}
-	
+
 	@Test
 	public void testValidateStartedByHappy(){
 		MultipartManagerV2Impl.validateStartedBy(userInfo, composite);
@@ -507,7 +502,7 @@ public class MultipartManagerV2ImplTest {
 	public void testAddMultipartPartHappy(){
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		int partNumber = 2;
-		String partKey = createPartKey(composite.getKey(), partNumber);
+		String partKey = MultipartUploadUtils.createPartKey(composite.getKey(), partNumber);
 		
 		AddPartResponse response = manager.addMultipartPart(userInfo, uploadId, partNumber, partMD5Hex);
 		assertNotNull(response);
@@ -553,7 +548,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockMultiparUploadDAO.getUploadStatus(uploadId)).thenReturn(composite);
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		int partNumber = 2;
-		String partKey = createPartKey(composite.getKey(), partNumber);
+		String partKey = MultipartUploadUtils.createPartKey(composite.getKey(), partNumber);
 		
 		AddPartResponse response = manager.addMultipartPart(userInfo, uploadId, partNumber, partMD5Hex);
 		assertNotNull(response);

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
+import org.sagebionetworks.repo.model.file.UploadType;
+
 /**
  * DTO to create a new multi-part request.
  *
@@ -10,6 +12,7 @@ public class CreateMultipartRequest {
 	String hash;
 	String requestBody;
 	String uploadToken;
+	UploadType uploadType;
 	String bucket;
 	String key;
 	Integer numberOfParts;
@@ -24,12 +27,13 @@ public class CreateMultipartRequest {
 	 * @param key
 	 */
 	public CreateMultipartRequest(Long userId, String hash,
-			String requestBody, String uploadToken, String bucket, String key, Integer numberOfParts) {
+			String requestBody, String uploadToken, UploadType uploadType, String bucket, String key, Integer numberOfParts) {
 		super();
 		this.userId = userId;
 		this.hash = hash;
 		this.requestBody = requestBody;
 		this.uploadToken = uploadToken;
+		this.uploadType = uploadType;
 		this.bucket = bucket;
 		this.key = key;
 		this.numberOfParts = numberOfParts;
@@ -60,6 +64,12 @@ public class CreateMultipartRequest {
 	public void setUploadToken(String uploadToken) {
 		this.uploadToken = uploadToken;
 	}
+	public UploadType getUploadType() {
+		return uploadType;
+	}
+	public void setUploadType(UploadType uploadType) {
+		this.uploadType = uploadType;
+	}
 	public String getBucket() {
 		return bucket;
 	}
@@ -83,6 +93,7 @@ public class CreateMultipartRequest {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((uploadType == null) ? 0 : uploadType.hashCode());
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
 		result = prime * result + ((hash == null) ? 0 : hash.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
@@ -108,6 +119,11 @@ public class CreateMultipartRequest {
 			if (other.bucket != null)
 				return false;
 		} else if (!bucket.equals(other.bucket))
+			return false;
+		if (uploadType == null) {
+			if (other.uploadType != null)
+				return false;
+		} else if (!uploadType.equals(other.uploadType))
 			return false;
 		if (hash == null) {
 			if (other.hash != null)
@@ -145,7 +161,8 @@ public class CreateMultipartRequest {
 	public String toString() {
 		return "CreateMultipartRequest [userId=" + userId + ", hash=" + hash
 				+ ", requestBody=" + requestBody + ", uploadToken="
-				+ uploadToken + ", bucket=" + bucket + ", key=" + key
+				+ uploadToken + ", uploadType=" + uploadType
+				+ " ,bucket=" + bucket + ", key=" + key
 				+ ", numberOfParts=" + numberOfParts + "]";
 	}
 	
