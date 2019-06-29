@@ -21,7 +21,6 @@ class MessageKey {
 		ValidateArgument.required(message, "Message");
 		ValidateArgument.required(message.getObjectId(), "message.objectId");
 		ValidateArgument.required(message.getObjectType(), "message.objectType");
-		ValidateArgument.required(message.getObjectVersion(), "message.objectVersion");
 		this.type = message.getObjectType();
 		this.objectId = KeyFactory.stringToKey(message.getObjectId());
 		this.objectVersion = message.getObjectVersion();

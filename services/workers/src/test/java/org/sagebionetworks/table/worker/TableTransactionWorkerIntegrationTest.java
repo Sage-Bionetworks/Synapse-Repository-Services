@@ -4,9 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
@@ -24,10 +27,15 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.AppendableRowSet;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -35,6 +43,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -177,6 +186,73 @@ public class TableTransactionWorkerIntegrationTest {
 		assertNotNull(response);
 		assertNotNull(response.getResults());
 		assertEquals(1, response.getResults().size());
+	}
+	
+	@Test
+	public void testTableVersion() throws Exception {
+		// create a table with more than one version
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.newArrayList(intColumn.getId()));
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		
+		// Add some data to the table and create a new version
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "1");
+		PartialRow rowTwo = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "2");
+		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
+		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
+		// start a new version
+		transaction.setVersionRequest(createVersionRequest());
+		// start the transaction
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		System.out.println(response);
+	}
+	
+	/**
+	 * Helper to create a new version request.
+	 * @return
+	 */
+	public static VersionRequest createVersionRequest() {
+		VersionRequest version = new VersionRequest();
+		version.setCreateNewTableVersion(true);
+		return version;
+	}
+	
+	/**
+	 * Helper to create  PartialRowSet from the values.
+	 * @param tableId
+	 * @param values
+	 * @return
+	 */
+	public static PartialRowSet createRowSet(String tableId, PartialRow...partialRows) {
+		List<PartialRow> rows = new ArrayList<PartialRow>(partialRows.length);
+		for(PartialRow row: partialRows) {
+			rows.add(row);
+		}
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(rows);
+		rowSet.setTableId(tableId);
+		return rowSet;
+	}
+	
+	/**
+	 * Helper to create a transaction request to add data to a table.
+	 * 
+	 * @param tableId
+	 * @param column
+	 * @param count
+	 * @return
+	 */
+	public static TableUpdateTransactionRequest createAddDataRequest(String tableId, AppendableRowSet rowSet) {
+		AppendableRowSetRequest append = new AppendableRowSetRequest();
+		append.setEntityId(tableId);
+		append.setToAppend(rowSet);
+		TableUpdateTransactionRequest request = new TableUpdateTransactionRequest();
+		request.setEntityId(tableId);
+		request.setChanges(Lists.newArrayList(append));
+		return request;
 	}
 	
 	/**
