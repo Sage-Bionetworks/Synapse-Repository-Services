@@ -169,7 +169,7 @@ public class AwsClientFactory {
 	public static AmazonKinesisFirehose createAmazonKinesisFirehoseClient(){
 		return AmazonKinesisFirehoseClientBuilder.standard()
 				.withRegion(Regions.US_EAST_1)
-				.withCredentials(SynapseCredentialProviderChain.getInstance())
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
 				.build();
 	}
 
