@@ -10,11 +10,11 @@ import org.sagebionetworks.PropertyProvider;
  * the Java System.properties.
  *
  */
-public class SynapseSystemPropertiesCredentialProvider extends AbstractSynapseCredentialProvider {
+public class SynapseSystemPropertiesAWSCredentialsProvider extends AbstractSynapseAWSCredentialsProvider {
 
 	Properties properties;
 
-	public SynapseSystemPropertiesCredentialProvider(PropertyProvider propertyProvider) {
+	public SynapseSystemPropertiesAWSCredentialsProvider(PropertyProvider propertyProvider) {
 		this.properties = propertyProvider.getSystemProperties();
 	}
 
