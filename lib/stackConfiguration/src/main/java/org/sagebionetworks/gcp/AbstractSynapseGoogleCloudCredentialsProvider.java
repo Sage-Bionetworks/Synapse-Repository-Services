@@ -1,5 +1,6 @@
 package org.sagebionetworks.gcp;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Properties;
@@ -12,10 +13,7 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 public abstract class AbstractSynapseGoogleCloudCredentialsProvider implements CredentialsProvider {
 
 	public static final String GOOGLE_CLOUD_CREDENTIALS_WERE_NOT_FOUND = "Google Cloud credentials were not found.";
-	public static final String ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_ID = "org.sagebionetworks.google.cloud.client.id";
-	public static final String ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_EMAIL = "org.sagebionetworks.google.cloud.client.email";
-	public static final String ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_PRIVATE_KEY = "org.sagebionetworks.google.cloud.key";
-	public static final String ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_PRIVATE_KEY_ID = "org.sagebionetworks.google.cloud.key.id";
+	public static final String ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_KEY = "org.sagebionetworks.gcp.key";
 
 	final Properties properties;
 
@@ -30,15 +28,10 @@ public abstract class AbstractSynapseGoogleCloudCredentialsProvider implements C
 		try {
 			Properties properties = getProperties();
 			if (properties != null) {
-				String clientId = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_ID));
-				String clientEmail = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_EMAIL));
-				String privateKeyPkcs8 = new String(Base64.getDecoder().decode(
-						StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_PRIVATE_KEY)).getBytes(StandardCharsets.UTF_8)
-				), StandardCharsets.UTF_8);
-				String privateKeyId = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_PRIVATE_KEY_ID));;
-				if (clientId != null && clientEmail != null && privateKeyPkcs8 != null && privateKeyId != null) {
-					return ServiceAccountCredentials.fromPkcs8(clientId, clientEmail, privateKeyPkcs8, privateKeyId, null);
-				}
+				String accessKey = new String(Base64.getDecoder().decode(
+						StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_KEY))
+								.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+				return ServiceAccountCredentials.fromStream(new ByteArrayInputStream(accessKey.getBytes(StandardCharsets.UTF_8)));
 			}
 			throw new IllegalStateException(GOOGLE_CLOUD_CREDENTIALS_WERE_NOT_FOUND);
 		} catch (Exception e) {
