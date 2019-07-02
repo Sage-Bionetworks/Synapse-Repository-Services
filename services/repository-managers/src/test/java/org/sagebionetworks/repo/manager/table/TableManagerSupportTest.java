@@ -31,7 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -108,8 +107,6 @@ public class TableManagerSupportTest {
 	ReplicationMessageManagerAsynch mockReplicationMessageManager;
 	@Mock
 	ObjectTypeManager mockObjectTypeManager;
-	@Captor
-	ArgumentCaptor<MessageToSend> messageCaptor;
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
@@ -228,7 +225,9 @@ public class TableManagerSupportTest {
 		assertNotNull(result);
 		// must trigger processing
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger)
+		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
+				.withEtag(etag).withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 	
 	/**
@@ -253,7 +252,9 @@ public class TableManagerSupportTest {
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockNodeDao).isNodeAvailable(tableIdLong);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger)
+				.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
+						.withEtag(etag).withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 	
 	/**
@@ -297,7 +298,7 @@ public class TableManagerSupportTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(MessageToSend.class));
 	}
 	
 	/**
@@ -320,7 +321,9 @@ public class TableManagerSupportTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger)
+		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
+				.withEtag(etag).withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 
 
@@ -944,14 +947,10 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		assertEquals(status, resultStatus);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(messageCaptor.capture());
+		verify(mockTransactionalMessenger)
+				.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(3L)
+						.withObjectType(ObjectType.ENTITY_VIEW).withEtag(resetToken).withChangeType(ChangeType.UPDATE));
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
-		
-		MessageToSend sent = messageCaptor.getValue();
-		assertEquals("123", sent.getObjectId());
-		assertEquals(new Long(3), sent.getObjectVersion());
-		assertEquals(ObjectType.ENTITY_VIEW, sent.getObjectType());
-		assertEquals(resetToken, sent.getEtag());
 	}
 	
 	@Test
@@ -967,13 +966,9 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		assertEquals(status, resultStatus);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(messageCaptor.capture());
+		verify(mockTransactionalMessenger)
+		.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(null)
+				.withObjectType(ObjectType.ENTITY_VIEW).withEtag(resetToken).withChangeType(ChangeType.UPDATE));
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
-		
-		MessageToSend sent = messageCaptor.getValue();
-		assertEquals("123", sent.getObjectId());
-		assertEquals(null, sent.getObjectVersion());
-		assertEquals(ObjectType.ENTITY_VIEW, sent.getObjectType());
-		assertEquals(resetToken, sent.getEtag());
 	}
 }
