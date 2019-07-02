@@ -154,10 +154,10 @@ public class ChangeMessageUtilsTest {
 		one.setObjectVersion(two.getObjectVersion());
 		one.setObjectType(ObjectType.ACTIVITY);
 		two.setObjectType(ObjectType.ENTITY);
-		assertTrue(ChangeMessageUtils.compareIdVersionType(one, two) > 0);
+		assertTrue(ChangeMessageUtils.compareIdVersionType(one, two) < 0);
 		one.setObjectType(ObjectType.ENTITY);
 		two.setObjectType(ObjectType.ACTIVITY);
-		assertTrue(ChangeMessageUtils.compareIdVersionType(one, two) < 0);
+		assertTrue(ChangeMessageUtils.compareIdVersionType(one, two) > 0);
 	}
 	
 	/**

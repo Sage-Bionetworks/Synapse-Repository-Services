@@ -159,7 +159,7 @@ public class ChangeMessageUtils {
 			return order;
 		}
 		// Ids and version match so compare types.
-		return one.getObjectType().compareTo(two.getObjectType());
+		return one.getObjectType().name().compareTo(two.getObjectType().name());
 	}
 	
 	/**
@@ -207,6 +207,5 @@ public class ChangeMessageUtils {
 		ValidateArgument.required(toValiate, "ChangeMessage");
 		ValidateArgument.required(toValiate.getObjectId(), "ChangeMessage.objectId");
 		ValidateArgument.required(toValiate.getObjectType(), "ChangeMessage.objectType");
-		ValidateArgument.required(toValiate.getObjectType(), "ChangeMessage.objecType");
 	}
 }
