@@ -296,6 +296,7 @@ public interface TableEntityManager {
 	 * @param userInfo
 	 * @param versionRequest
 	 * @param transactionId
+	 * @return The version number of the newly created version.
 	 */
 	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
 			long transactionId);
