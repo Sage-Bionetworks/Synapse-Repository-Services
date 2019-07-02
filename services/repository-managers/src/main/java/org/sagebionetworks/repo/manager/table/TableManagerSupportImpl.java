@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -176,7 +177,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// building of the index and report the table as unavailable
 		String token = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		// notify all listeners.
-		transactionalMessenger.sendMessageAfterCommit(idAndVersion.getId().toString(), tableType, token, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit( new MessageToSend().withObjectId(idAndVersion.getId().toString())
+				.withObjectVersion(idAndVersion.getVersion().orElse(null))
+				.withObjectType(tableType).withEtag(token).withChangeType(ChangeType.UPDATE));
 		// status should exist now
 		return tableStatusDAO.getTableStatus(idAndVersion);
 	}

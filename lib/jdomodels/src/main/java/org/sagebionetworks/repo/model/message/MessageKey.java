@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.message;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * The change key is a composite of the object type and the object id.
@@ -13,17 +14,16 @@ class MessageKey {
 	
 	private ObjectType type;
 	private Long objectId;
+	private Long objectVersion;
 	private Class<? extends Message> messageType;
 	
 	public MessageKey(Message message) {
-		if (message == null)
-			throw new IllegalArgumentException("Message cannot be null");
-		if (message.getObjectId() == null)
-			throw new IllegalArgumentException("Message.getObjectId() cannot be null");
-		if (message.getObjectType() == null)
-			throw new IllegalArgumentException("Message.getObjectType() cannot be null");
+		ValidateArgument.required(message, "Message");
+		ValidateArgument.required(message.getObjectId(), "message.objectId");
+		ValidateArgument.required(message.getObjectType(), "message.objectType");
 		this.type = message.getObjectType();
 		this.objectId = KeyFactory.stringToKey(message.getObjectId());
+		this.objectVersion = message.getObjectVersion();
 		this.messageType = message.getClass();
 	}
 
@@ -33,6 +33,7 @@ class MessageKey {
 		int result = 1;
 		result = prime * result + ((messageType == null) ? 0 : messageType.hashCode());
 		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
+		result = prime * result + ((objectVersion == null) ? 0 : objectVersion.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
@@ -56,6 +57,11 @@ class MessageKey {
 				return false;
 		} else if (!objectId.equals(other.objectId))
 			return false;
+		if (objectVersion == null) {
+			if (other.objectVersion != null)
+				return false;
+		} else if (!objectVersion.equals(other.objectVersion))
+			return false;
 		if (type != other.type)
 			return false;
 		return true;
@@ -63,6 +69,7 @@ class MessageKey {
 
 	@Override
 	public String toString() {
-		return "MessageKey [type=" + type + ", objectId=" + objectId + ", messageType=" + messageType + "]";
+		return "MessageKey [type=" + type + ", objectId=" + objectId + ", objectVersion=" + objectVersion
+				+ ", messageType=" + messageType + "]";
 	}
 }
