@@ -9,6 +9,7 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -103,6 +104,26 @@ public class ChangeMessageUtils {
 			dto.setUserId(dbo.getUserId());
 		}
 		return dto;
+	}
+	
+	/**
+	 * Create a DBOSentMessage for the given change message.
+	 * @param message
+	 * @param now
+	 * @return
+	 */
+	public static DBOSentMessage createSentDBO(ChangeMessage message, Timestamp now) {
+		DBOSentMessage sent = new DBOSentMessage();
+		sent.setChangeNumber(message.getChangeNumber());
+		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
+		if(message.getObjectVersion() == null) {
+			sent.setObjectVersion(DBOChange.DEFAULT_NULL_VERSION);
+		}else {
+			sent.setObjectVersion(message.getObjectVersion());
+		}
+		sent.setObjectType(message.getObjectType().name());
+		sent.setTimeStamp(now);
+		return sent;
 	}
 	
 	/**

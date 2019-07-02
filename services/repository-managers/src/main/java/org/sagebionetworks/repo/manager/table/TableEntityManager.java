@@ -297,7 +297,7 @@ public interface TableEntityManager {
 	 * @param versionRequest
 	 * @param transactionId
 	 */
-	public void createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
+	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
 			long transactionId);
 	
 	/**

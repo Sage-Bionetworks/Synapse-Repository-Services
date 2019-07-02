@@ -923,13 +923,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
+	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
 			long transactionId) {
 		ValidateArgument.required(versionRequest, "newVersionInfo");
 		// create a new version
 		long newVersionNumber = nodeManager.createNewVersion(userInfo, tableId, versionRequest.getNewVersionComment(),
 				versionRequest.getNewVersionLabel(), versionRequest.getNewVersionActivityId());
 		linkVersionToTransaction(tableId, newVersionNumber, transactionId);
+		return newVersionNumber;
 	}
 	
 	/**

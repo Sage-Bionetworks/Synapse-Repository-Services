@@ -5,12 +5,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 
 /**
  * Test for ChangeMessageUtils.
@@ -86,6 +88,40 @@ public class ChangeMessageUtilsTest {
 		ChangeMessage dto = ChangeMessageUtils.createDTO(dbo);
 		assertNotNull(dto);
 		assertEquals(dbo.getObjectVersion(), dto.getObjectVersion());
+	}
+	
+	@Test
+	public void testCreateSentDBO() {
+		Timestamp now = new Timestamp(123L);
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectId("syn456");
+		message.setChangeNumber(111L);
+		message.setObjectVersion(1L);
+		message.setObjectType(ObjectType.ENTITY);
+		// call under test
+		DBOSentMessage sent = ChangeMessageUtils.createSentDBO(message, now);
+		assertNotNull(sent);
+		assertEquals(message.getChangeNumber(), sent.getChangeNumber());
+		assertEquals(new Long(456), sent.getObjectId());
+		assertEquals(message.getObjectVersion(), sent.getObjectVersion());
+		assertEquals(123L, sent.getTimeStamp().getTime());
+	}
+	
+	@Test
+	public void testCreateSentDBONullVersion() {
+		Timestamp now = new Timestamp(123L);
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectId("syn456");
+		message.setChangeNumber(111L);
+		message.setObjectVersion(null);
+		message.setObjectType(ObjectType.ENTITY);
+		// call under test
+		DBOSentMessage sent = ChangeMessageUtils.createSentDBO(message, now);
+		assertNotNull(sent);
+		assertEquals(message.getChangeNumber(), sent.getChangeNumber());
+		assertEquals(new Long(456), sent.getObjectId());
+		assertEquals(new Long(DBOChange.DEFAULT_NULL_VERSION), sent.getObjectVersion());
+		assertEquals(123L, sent.getTimeStamp().getTime());
 	}
 	
 	@Test

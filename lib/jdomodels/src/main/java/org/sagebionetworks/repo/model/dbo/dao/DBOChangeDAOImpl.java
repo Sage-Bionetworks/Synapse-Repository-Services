@@ -299,11 +299,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			if(message.getChangeNumber() == null){
 				throw new IllegalArgumentException("Change.changeNumber cannot be null");
 			}
-			DBOSentMessage sent = new DBOSentMessage();
-			sent.setChangeNumber(message.getChangeNumber());
-			sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
-			sent.setObjectType(message.getObjectType().name());
-			sent.setTimeStamp(now);
+			DBOSentMessage sent = ChangeMessageUtils.createSentDBO(message, now);
 			dboBatch.add(sent);
 		}
 		// batch insert all.
@@ -423,10 +419,11 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 	@Override
-	public DBOSentMessage getSentMessage(String objectId, ObjectType objectType) {
+	public DBOSentMessage getSentMessage(String objectId, Long objectVersion, ObjectType objectType) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("objectId", objectId);
 		params.addValue("objectType", objectType.name());
+		params.addValue("objectVersion", objectVersion);
 		return basicDao.getObjectByPrimaryKey(DBOSentMessage.class, params);
 	}
 

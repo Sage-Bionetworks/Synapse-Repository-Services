@@ -159,5 +159,5 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @param objectType
 	 * @return
 	 */
-	public DBOSentMessage getSentMessage(String objectId, ObjectType objectType);
+	public DBOSentMessage getSentMessage(String objectId, Long objectVersion, ObjectType objectType);
 }

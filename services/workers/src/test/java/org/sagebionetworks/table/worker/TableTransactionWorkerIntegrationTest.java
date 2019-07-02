@@ -6,10 +6,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
@@ -28,6 +26,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -36,6 +35,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -197,6 +199,9 @@ public class TableTransactionWorkerIntegrationTest {
 		String tableId = entityManager.createEntity(adminUserInfo, table, null);
 		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
 		toDelete.add(tableId);
+		// add add a column to the table.
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnRequest(intColumn, tableId);
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, addColumnRequest, TableUpdateTransactionResponse.class);
 		
 		// Add some data to the table and create a new version
 		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "1");
@@ -206,8 +211,54 @@ public class TableTransactionWorkerIntegrationTest {
 		// start a new version
 		transaction.setVersionRequest(createVersionRequest());
 		// start the transaction
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
-		System.out.println(response);
+		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getNewVersionNumber());
+		String sql = "select * from "+tableId+"."+response.getNewVersionNumber();
+		QueryBundleRequest queryRequest = createQueryRequest(sql, tableId);
+		QueryResultBundle queryResult = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class);
+		System.out.println(queryResult);
+	}
+	
+	/**
+	 * Helper to create a query request.
+	 * @param sql
+	 * @param tableId
+	 * @return
+	 */
+	public static QueryBundleRequest createQueryRequest(String sql, String tableId) {
+		Query query = new Query();
+		query.setSql(sql);
+		QueryBundleRequest request = new QueryBundleRequest();
+		request.setQuery(query);
+		request.setEntityId(tableId);
+		return request;
+	}
+	
+	/**
+	 * Helper to create a create column transaction request.
+	 * 
+	 * @param column
+	 * @param entityId
+	 * @return
+	 */
+	public static TableUpdateTransactionRequest createAddColumnRequest(ColumnModel column, String entityId) {
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId(column.getId());
+		List<ColumnChange> changes = Lists.newArrayList(add);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(column.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+		
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+		return transaction;
 	}
 	
 	/**
