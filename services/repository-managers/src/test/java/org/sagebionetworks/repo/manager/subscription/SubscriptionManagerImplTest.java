@@ -20,11 +20,14 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -53,6 +56,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SubscriptionManagerImplTest {
 
 	@Mock
@@ -65,7 +69,7 @@ public class SubscriptionManagerImplTest {
 	private AccessControlListDAO mockAclDao;
 	@Captor
 	ArgumentCaptor<SubscriptionListRequest> subscriptionRequestCapture;
-	
+	@InjectMocks
 	private SubscriptionManagerImpl manager;
 	private Topic topic;
 	private String objectId;
@@ -79,14 +83,6 @@ public class SubscriptionManagerImplTest {
 
 	@Before
 	public void before() {
-
-		MockitoAnnotations.initMocks(this);
-		manager = new SubscriptionManagerImpl();
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
-		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
-		ReflectionTestUtils.setField(manager, "aclDao", mockAclDao);
-
 		objectId = "1";
 		topic = new Topic();
 		topic.setObjectId(objectId);
