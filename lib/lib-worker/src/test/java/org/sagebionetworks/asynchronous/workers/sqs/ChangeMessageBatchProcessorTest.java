@@ -68,13 +68,11 @@ public class ChangeMessageBatchProcessorTest {
 		// one
 		one = new ChangeMessage();
 		one.setChangeType(ChangeType.DELETE);
-		one.setObjectEtag("etag1");
 		one.setObjectId("456");
 		one.setObjectId("synABC");
 		// two
 		two = new ChangeMessage();
 		two.setChangeType(ChangeType.DELETE);
-		two.setObjectEtag("etag2");
 		two.setObjectId("789");
 		two.setObjectId("synXYZ");
 		ChangeMessages messages = new ChangeMessages();

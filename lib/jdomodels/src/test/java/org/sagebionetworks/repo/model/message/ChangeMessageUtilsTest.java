@@ -25,7 +25,6 @@ public class ChangeMessageUtilsTest {
 		for(int i=0; i<3; i++){
 			ChangeMessage cm = new ChangeMessage();
 			cm.setChangeType(ChangeType.CREATE);
-			cm.setObjectEtag("etag"+i);
 			cm.setObjectType(ObjectType.ENTITY);
 			cm.setObjectId("syn"+i);
 			list.add(cm);

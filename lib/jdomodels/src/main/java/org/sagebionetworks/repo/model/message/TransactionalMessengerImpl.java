@@ -97,7 +97,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setChangeType(changeType);
 		message.setObjectType(entity.getObjectType());
 		message.setObjectId(entity.getIdString());
-		message.setObjectEtag(entity.getEtag());
 		sendMessageAfterCommit(message);
 	}
 	
@@ -120,7 +119,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setChangeType(changeType);
 		message.setObjectType(objectType);
 		message.setObjectId(objectId);
-		message.setObjectEtag(etag);
 		message.setUserId(userId);
 		sendMessageAfterCommit(message);
 	}

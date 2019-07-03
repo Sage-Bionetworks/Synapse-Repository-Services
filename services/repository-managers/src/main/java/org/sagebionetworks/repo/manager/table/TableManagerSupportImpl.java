@@ -571,7 +571,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(getTableType(idAndVersion));
 		message.setObjectId(idAndVersion.getId().toString());
-		message.setObjectEtag(resetToken);
 		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 

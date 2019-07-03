@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.web.service.subscription;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
@@ -56,11 +54,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	public Subscription get(Long userId, String id) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return subscriptionManager.get(userInfo, id);
-	}
-
-	@Override
-	public Etag getEtag(String objectId, ObjectType objectType) {
-		return subscriptionManager.getEtag(objectId, objectType);
 	}
 
 	@Override

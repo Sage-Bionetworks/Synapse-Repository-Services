@@ -438,39 +438,6 @@ public class SubscriptionManagerImplTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetEtagInvalidObjectId() {
-		manager.getEtag(null, ObjectType.FORUM);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetEtagInvalidObjectType() {
-		manager.getEtag(objectId, null);
-	}
-
-	@Test (expected=NumberFormatException.class)
-	public void testGetEtagWithObjectIdNaN(){
-		manager.getEtag("syn"+objectId, ObjectType.FORUM).getEtag();
-	}
-
-	@Test
-	public void testGetEtagForEntity(){
-		String etag = "etag";
-		when(mockChangeDao
-				.getEtag(KeyFactory.stringToKey(objectId), ObjectType.ENTITY))
-				.thenReturn(etag);
-		assertEquals(etag, manager.getEtag("syn"+objectId, ObjectType.ENTITY).getEtag());
-	}
-
-	@Test
-	public void testGetEtagForNonEntity(){
-		String etag = "etag";
-		when(mockChangeDao
-				.getEtag(Long.parseLong(objectId), ObjectType.FORUM))
-				.thenReturn(etag);
-		assertEquals(etag, manager.getEtag(objectId, ObjectType.FORUM).getEtag());
-	}
-
-	@Test (expected=IllegalArgumentException.class)
 	public void testGetSubscribersWithNullUserInfo(){
 		manager.getSubscribers(null, topic, new NextPageToken(1, 0).toToken());
 	}

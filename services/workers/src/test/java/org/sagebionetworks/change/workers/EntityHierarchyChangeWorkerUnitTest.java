@@ -76,7 +76,6 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		message = new ChangeMessage();
 		message.setTimestamp(new Date(1));
 		message.setChangeType(ChangeType.UPDATE);
-		message.setObjectEtag("etag");
 		message.setObjectId("syn123");
 		
 		when(mockClock.currentTimeMillis()).thenReturn(1L, 2L,3L,4L,5L);

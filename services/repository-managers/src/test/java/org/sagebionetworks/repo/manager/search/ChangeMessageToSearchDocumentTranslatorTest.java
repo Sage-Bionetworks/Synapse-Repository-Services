@@ -69,7 +69,6 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		//documentChangeMessage() test setup
 		message = new ChangeMessage();
 		message.setChangeType(ChangeType.CREATE);
-		message.setObjectEtag(etag);
 		message.setObjectId(synapseId);
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeNumber(changeNumber);

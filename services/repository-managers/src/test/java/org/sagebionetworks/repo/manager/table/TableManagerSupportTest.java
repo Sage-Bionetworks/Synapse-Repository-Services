@@ -884,7 +884,6 @@ public class TableManagerSupportTest {
 		ChangeMessage message = captor.getValue();
 		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.TABLE, message.getObjectType());
-		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 
@@ -902,7 +901,6 @@ public class TableManagerSupportTest {
 		ChangeMessage message = captor.getValue();
 		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.ENTITY_VIEW, message.getObjectType());
-		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	

@@ -146,7 +146,6 @@ public class NodeDaoUnitTest {
 		assertEquals(ObjectType.ENTITY, sent.getObjectType());
 		assertEquals(node.getCreatedByPrincipalId(), sent.getUserId());
 		assertEquals(ChangeType.CREATE, sent.getChangeType());
-		assertNotNull(sent.getEtag());
 	}
 	
 	@Test
@@ -162,7 +161,6 @@ public class NodeDaoUnitTest {
 		assertEquals(ObjectType.ENTITY, sent.getObjectType());
 		assertEquals(userId, sent.getUserId());
 		assertEquals(ChangeType.UPDATE, sent.getChangeType());
-		assertNotNull(sent.getEtag());
 	}
 	
 	@Test
@@ -179,7 +177,6 @@ public class NodeDaoUnitTest {
 		assertEquals(ObjectType.ENTITY, sent.getObjectType());
 		assertEquals(userId, sent.getUserId());
 		assertEquals(changeType, sent.getChangeType());
-		assertNotNull(sent.getEtag());
 	}
 	
 	@Test

@@ -121,7 +121,6 @@ public class TransactionalMessengerImplTest {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeNumber(new Long(123));
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
-		message.setObjectEtag("etag");
 		message.setObjectId("syn456");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);
@@ -147,16 +146,12 @@ public class TransactionalMessengerImplTest {
 		ChangeMessage first = new ChangeMessage();
 		first.setChangeNumber(new Long(123));
 		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
-		first.setObjectEtag("etag");
 		first.setObjectId("syn456");
 		first.setObjectType(ObjectType.ENTITY);
 		first.setChangeType(ChangeType.DELETE);
 		
 		String json = EntityFactory.createJSONStringForEntity(first);
 		ChangeMessage second = EntityFactory.createEntityFromJSONString(json, ChangeMessage.class);
-		// Change the etag of the second
-		second.setObjectEtag("etagtwo");
-		
 		// Send the message first message
 		messenger.sendMessageAfterCommit(first);
 		messenger.sendMessageAfterCommit(second);
@@ -226,7 +221,6 @@ public class TransactionalMessengerImplTest {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeNumber(new Long(123));
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
-		message.setObjectEtag("etag");
 		message.setObjectId("syn456");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);

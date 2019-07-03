@@ -33,7 +33,6 @@ import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
-import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -213,7 +212,6 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
@@ -4841,14 +4839,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public Subscription getSubscription(String subscriptionId) throws SynapseException {
 		ValidateArgument.required(subscriptionId, "subscriptionId");
 		return getJSONEntity(getRepoEndpoint(), SUBSCRIPTION+"/"+subscriptionId, Subscription.class);
-	}
-
-	@Override
-	public Etag getEtag(String objectId, ObjectType objectType) throws SynapseException {
-		ValidateArgument.required(objectId, "objectId");
-		ValidateArgument.required(objectType, "objectType");
-		String url = OBJECT+"/"+objectId+"/"+objectType.name()+"/"+ETAG;
-		return getJSONEntity(getRepoEndpoint(), url, Etag.class);
 	}
 
 	@Override

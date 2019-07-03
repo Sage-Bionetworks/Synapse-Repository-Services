@@ -126,7 +126,6 @@ public class AdministrationServiceImplTest {
 		ChangeMessages batch =  new ChangeMessages();
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
-		message.setObjectEtag("etag");
 		message.setObjectId("12345");
 		message.setObjectType(ObjectType.ENTITY);
 		batch.setList(Arrays.asList(message));

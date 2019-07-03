@@ -127,7 +127,6 @@ public class MessageSyndicationImplAutowiredTest {
 			message.setObjectId(""+i);
 			// Use all types
 			message.setChangeType(ChangeType.values()[i%ChangeType.values().length]);
-			message.setObjectEtag("etag"+i);
 			results.add(changeDAO.replaceChange(message));
 		}
 		return results;

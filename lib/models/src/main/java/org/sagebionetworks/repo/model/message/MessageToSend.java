@@ -11,14 +11,12 @@ public class MessageToSend {
 
 	String objectId;
 	ObjectType objectType;
-	String etag;
-	ChangeType changeType; 
+	ChangeType changeType;
 	Long userId;
 	
 	public MessageToSend withObservableEntity(ObservableEntity object) {
 		this.objectId = object.getIdString();
 		this.objectType = object.getObjectType();
-		this.etag = object.getEtag();
 		return this;
 	}
 	
@@ -34,13 +32,6 @@ public class MessageToSend {
 	}
 	public MessageToSend withObjectType(ObjectType objectType) {
 		this.objectType = objectType;
-		return this;
-	}
-	public String getEtag() {
-		return etag;
-	}
-	public MessageToSend withEtag(String etag) {
-		this.etag = etag;
 		return this;
 	}
 	public ChangeType getChangeType() {
@@ -62,7 +53,6 @@ public class MessageToSend {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((changeType == null) ? 0 : changeType.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
 		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
@@ -78,11 +68,6 @@ public class MessageToSend {
 			return false;
 		MessageToSend other = (MessageToSend) obj;
 		if (changeType != other.changeType)
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
 			return false;
 		if (objectId == null) {
 			if (other.objectId != null)
@@ -100,7 +85,7 @@ public class MessageToSend {
 	}
 	@Override
 	public String toString() {
-		return "MessageToSend [objectId=" + objectId + ", objectType=" + objectType + ", etag=" + etag + ", changeType="
+		return "MessageToSend [objectId=" + objectId + ", objectType=" + objectType + ", changeType="
 				+ changeType + ", userId=" + userId + "]";
 	}
 
@@ -113,7 +98,6 @@ public class MessageToSend {
 		message.setChangeType(changeType);
 		message.setObjectType(objectType);
 		message.setObjectId(objectId);
-		message.setObjectEtag(etag);
 		message.setUserId(userId);
 		return message;
 	}
