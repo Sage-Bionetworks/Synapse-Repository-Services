@@ -37,7 +37,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 		CloudSearchDocumentLogRecord record = recordLogger.startRecordForChangeMessage(change);
 		switch (change.getObjectType()) {
 		case ENTITY:
-			return entityChange(change.getObjectId(), record);
+			return entityChange(change.getObjectId(), record, false);
 		case WIKI:
 			return wikiChange(change.getObjectId(), record);
 		default:
@@ -59,7 +59,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 			// message.
 			if (ObjectType.ENTITY == key.getOwnerObjectType()) {
 				record.withWikiOwner(key.getOwnerObjectId());
-				return entityChange(key.getOwnerObjectId(), record);
+				return entityChange(key.getOwnerObjectId(), record, true);
 			}
 		} catch (NotFoundException e) {
 			// Nothing to do if the wiki does not exist
@@ -75,9 +75,10 @@ public class ChangeMessageToSearchDocumentTranslator {
 	 * 
 	 * @param entityId
 	 * @param record
+	 * @param forceDocumentUpdateIfExist If the entity exists, update it even if the same etag is already in the search index
 	 * @return
 	 */
-	Document entityChange(String entityId, CloudSearchDocumentLogRecord record) {
+	Document entityChange(String entityId, CloudSearchDocumentLogRecord record, boolean forceDocumentUpdateIfExist) {
 		// Lookup the current etag for this entity
 		Optional<String> etag = searchDocumentDriver.getEntityEtagFromRepository(entityId);
 		if(!etag.isPresent()) {
@@ -85,8 +86,9 @@ public class ChangeMessageToSearchDocumentTranslator {
 			record.withAction(DocumentAction.DELETE);
 			return createDeleteDocument(entityId);
 		}
-		// Does this entity already exist in the search index with the given etag?
-		if(!searchDao.doesDocumentExistInSearchIndex(entityId, etag.get())) {
+		// Always update if this is a wiki change since etag may not change upon updating a wiki
+		// Otherwise, check if this entity already exist in the search index with the given etag
+		if(forceDocumentUpdateIfExist || !searchDao.doesDocumentExistInSearchIndex(entityId, etag.get())) {
 			record.withAction(DocumentAction.CREATE_OR_UPDATE);
 			record.withExistsOnIndex(false);
 			return searchDocumentDriver.formulateSearchDocument(entityId);

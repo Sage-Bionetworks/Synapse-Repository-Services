@@ -90,7 +90,7 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 	@Test
 	public void testEntityChange() {
 		// call under test
-		Document doc = translator.entityChange(synapseId, mocKRecord);
+		Document doc = translator.entityChange(synapseId, mocKRecord, false);
 		assertEquals(docOne, doc);
 		verify(mocKRecord).withAction(DocumentAction.CREATE_OR_UPDATE);
 		verify(mocKRecord).withExistsOnIndex(false);
@@ -102,7 +102,7 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		// documents that do not exist do not have an etag.
 		when(mockSearchDocumentDriver.getEntityEtagFromRepository(synapseId)).thenReturn(Optional.empty());
 		// call under test
-		Document doc = translator.entityChange(synapseId, mocKRecord);
+		Document doc = translator.entityChange(synapseId, mocKRecord, false);
 		Document expectedDocument = new Document();
 		expectedDocument.setId(message.getObjectId());
 		expectedDocument.setType(DocumentTypeNames.delete);
@@ -113,19 +113,35 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 	}
 	
 	@Test
-	public void testEntityChangeIndexUpToDate() {
+	public void testEntityChangeIndexEtagUpToDate() {
 		// document with this etag already exists in the index.
 		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(true);
 		// call under test
-		Document doc = translator.entityChange(synapseId, mocKRecord);
+		Document doc = translator.entityChange(synapseId, mocKRecord, false);
 		assertNull(doc);
 		verify(mocKRecord).withAction(DocumentAction.IGNORE);
 		verify(mocKRecord).withExistsOnIndex(true);
 		verify(mockSearchDocumentDriver, never()).formulateSearchDocument(anyString());
 	}
+
+	@Test
+	public void testEntityChangeIndexEtagUpToDateButForceDocumentChange(){
+		// document with this etag already exists in the index.
+		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(true);
+
+		// call under test
+		Document doc = translator.entityChange(synapseId, mocKRecord, true);
+		assertEquals(docOne, doc);
+		verify(mocKRecord).withAction(DocumentAction.CREATE_OR_UPDATE);
+		verify(mocKRecord).withExistsOnIndex(false);
+		verify(mockSearchDocumentDriver).formulateSearchDocument(synapseId);
+	}
 	
 	@Test
 	public void testWikiChange() {
+		//when a wiki is updated, the entity to which it is associated may still have the same etag
+		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(true);
+
 		String wikiId = "987";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(synapseId, ObjectType.ENTITY, wikiId);
 		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenReturn(key);
