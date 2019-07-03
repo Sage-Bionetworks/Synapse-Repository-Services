@@ -1596,7 +1596,8 @@ public class TableEntityManagerTest {
 		when(mockNodeManager.createNewVersion(any(UserInfo.class), anyString(), anyString(), anyString(), anyString()))
 				.thenReturn(newVersionNumber);
 		// call under test
-		manager.createNewVersionAndBindToTransaction(user, tableId, versionRequest, transactionId);
+		long resultVersionNumber = manager.createNewVersionAndBindToTransaction(user, tableId, versionRequest, transactionId);
+		assertEquals(newVersionNumber, resultVersionNumber);
 		verify(mockNodeManager).createNewVersion(user, tableId, versionRequest.getNewVersionComment(),
 				versionRequest.getNewVersionLabel(), versionRequest.getNewVersionActivityId());
 		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);

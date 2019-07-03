@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.ObservableEntity;
 public class MessageToSend {
 
 	String objectId;
+	Long objectVersion;
 	ObjectType objectType;
 	ChangeType changeType;
 	Long userId;
@@ -48,6 +49,16 @@ public class MessageToSend {
 		this.userId = userId;
 		return this;
 	}
+	
+	public Long getObjectVersion() {
+		return objectVersion;
+	}
+
+	public MessageToSend withObjectVersion(Long objectVersion) {
+		this.objectVersion = objectVersion;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -98,6 +109,7 @@ public class MessageToSend {
 		message.setChangeType(changeType);
 		message.setObjectType(objectType);
 		message.setObjectId(objectId);
+		message.setObjectVersion(objectVersion);
 		message.setUserId(userId);
 		return message;
 	}

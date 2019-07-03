@@ -8,8 +8,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.util.Callback;
 
 
 /**
@@ -154,5 +152,5 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @param objectType
 	 * @return
 	 */
-	public DBOSentMessage getSentMessage(String objectId, ObjectType objectType);
+	public DBOSentMessage getSentMessage(String objectId, Long objectVersion, ObjectType objectType);
 }

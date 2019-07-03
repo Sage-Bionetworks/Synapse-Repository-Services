@@ -403,17 +403,19 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void testRegisterMessageSentBatch(){
 		List<ChangeMessage> batch = createList(5, ObjectType.ENTITY);
 		ChangeMessage fistMessage = batch.get(0);
+		fistMessage.setObjectVersion(-1L);
 		batch  = changeDAO.replaceChange(batch);
 		changeDAO.registerMessageSent(ObjectType.ENTITY, batch);
 		List<ChangeMessage> unsent = changeDAO.listUnsentMessages(10L);
 		assertEquals(0, unsent.size());
 		
 		// check the first sent (PLFM-3739).
-		DBOSentMessage sent = changeDAO.getSentMessage(fistMessage.getObjectId(), fistMessage.getObjectType());
+		DBOSentMessage sent = changeDAO.getSentMessage(fistMessage.getObjectId(), fistMessage.getObjectVersion(), fistMessage.getObjectType());
 		assertNotNull(sent);
 		assertNotNull(sent.getTimeStamp());
 		assertEquals(KeyFactory.stringToKey(fistMessage.getObjectId()), sent.getObjectId());
-		assertEquals(fistMessage.getObjectType(), sent.getObjectType());
+		assertEquals(fistMessage.getObjectType().name(), sent.getObjectType());
+		assertEquals(fistMessage.getObjectVersion(), sent.getObjectVersion());
 	}
 	
 	
