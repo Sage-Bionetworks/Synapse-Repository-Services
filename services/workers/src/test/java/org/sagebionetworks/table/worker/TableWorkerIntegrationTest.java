@@ -2354,7 +2354,7 @@ public class TableWorkerIntegrationTest {
 		/* Directly remove one of the columns from the table's bound columns
 		 * to simulate the bug state.
 		 */
-		columnManager.bindColumnToObject(Lists.newArrayList(columnOne.getId()), tableId);
+		columnManager.bindColumnsToDefaultVersionOfObject(Lists.newArrayList(columnOne.getId()), tableId);
 		// Should be able to query the table
 		query.setSql("select * from " + tableId);
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);

@@ -270,7 +270,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public String getSchemaMD5Hex(IdAndVersion idAndVersion) {
-		List<String> columnIds = columnModelDao.getColumnModelIdsForObject(idAndVersion.getId().toString());
+		List<String> columnIds = columnModelDao.getColumnModelIdsForObject(idAndVersion);
 		return TableModelUtils.createSchemaMD5Hex(columnIds);
 	}
 
@@ -480,7 +480,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	@Override
 	public List<ColumnModel> getColumnModelsForTable(IdAndVersion idAndVersion) throws DatastoreException, NotFoundException {
-		return columnModelDao.getColumnModelsForObject(idAndVersion.getId().toString());
+		return columnModelDao.getColumnModelsForObject(idAndVersion);
 	}
 	
 	@Override

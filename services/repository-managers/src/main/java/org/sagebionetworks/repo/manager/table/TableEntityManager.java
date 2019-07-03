@@ -10,6 +10,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -240,10 +241,10 @@ public interface TableEntityManager {
 	 * Get the schema for the table.
 	 * 
 	 * @param user
-	 * @param id
+	 * @param idAndVersion
 	 * @return
 	 */
-	public List<String> getTableSchema(String id);
+	public List<String> getTableSchema(IdAndVersion idAndVersion);
 
 	/**
 	 * Delete all data about a table if it no longer exists. If the passed tableId

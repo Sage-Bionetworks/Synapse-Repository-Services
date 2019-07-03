@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -199,15 +201,32 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 	@WriteTransaction
 	@Override
-	public List<ColumnModel> bindColumnToObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
+	public List<ColumnModel> bindColumnsToDefaultVersionOfObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
+		// Use null version to set the default schema of the table.
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(objectId)).setVersion(null)
+				.build();
+		return bindColumnsToVersionOfObject(columnIds, idAndVersion);
+	}
+	
+
+	@Override
+	public List<ColumnModel> bindDefaultColumnsToObjectVersion(IdAndVersion idAndVersion) {
+		// Lookup the current columns for the given object
+		List<String> currentSchema = columnModelDao.getColumnModelIdsForObject(IdAndVersion.newBuilder().setId(idAndVersion.getId()).build());
+		return bindColumnsToVersionOfObject(currentSchema, idAndVersion);
+	}
+	
+	@Override
+	public List<ColumnModel> bindColumnsToVersionOfObject(List<String> columnIds, IdAndVersion idAndVersion)
+			throws DatastoreException, NotFoundException {
 		if(columnIds == null || columnIds.isEmpty()) {
 			// remove all bound columns from this object
-			columnModelDao.unbindAllColumnsFromObject(objectId);
+			columnModelDao.unbindAllColumnsFromObject(idAndVersion);
 			return new LinkedList<>();
 		}else {
 			// Get the columns and validate the size
 			List<ColumnModel> schema = validateSchemaSize(columnIds);
-			columnModelDao.bindColumnToObject(schema, objectId);
+			columnModelDao.bindColumnToObject(schema, idAndVersion);
 			return schema;
 		}
 	}
@@ -244,7 +263,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes,
 			List<String> orderedColumnIds) {
 		// lookup the current schema.
-		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(tableId);
+		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(IdAndVersion.parse(tableId));
 		List<String> newSchemaIds = new LinkedList<>();
 		// start with all of the old Ids.
 		for(ColumnModel cm: oldSchema){
@@ -345,7 +364,6 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@WriteTransaction
 	@Override
 	public void unbindAllColumnsAndOwnerFromObject(String objectId) {
-		columnModelDao.unbindAllColumnsFromObject(objectId);
 		columnModelDao.deleteOwner(objectId);
 	}
 
@@ -374,7 +392,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			String tableId) throws DatastoreException, NotFoundException {
 		// The user must be granted read permission on the table to get the columns.
 		authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return columnModelDao.getColumnModelsForObject(tableId);
+		return columnModelDao.getColumnModelsForObject(IdAndVersion.parse(tableId));
 	}
 
 	@Override
@@ -428,13 +446,13 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public List<String> getColumnIdForTable(String id) {
-		return columnModelDao.getColumnIdsForObject(id);
+	public List<String> getColumnIdForTable(IdAndVersion idAndVersion) {
+		return columnModelDao.getColumnModelIdsForObject(idAndVersion);
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModelsForObject(String tableId) {
-		return columnModelDao.getColumnModelsForObject(tableId);
+	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) {
+		return columnModelDao.getColumnModelsForObject(idAndVersion);
 	}
 	
 }

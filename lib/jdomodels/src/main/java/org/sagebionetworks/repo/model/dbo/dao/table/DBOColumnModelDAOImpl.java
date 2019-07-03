@@ -5,7 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_COLUMN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_ORDINAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_OWNER_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_OWNER_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_ID;
@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -63,10 +64,14 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private static final String INPUT = "input";
 	private static final String SELECT_COLUMN_NAME = "SELECT "+ COL_CM_ID+","+COL_CM_NAME+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN (:"+INPUT+")";
 	private static final String SQL_SELECT_OWNER_ETAG_FOR_UPDATE = "SELECT "+COL_BOUND_OWNER_ETAG+" FROM "+TABLE_BOUND_COLUMN_OWNER+" WHERE "+COL_BOUND_OWNER_OBJECT_ID+" = ? FOR UPDATE";
-	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT_SUFFIX = "FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO, "+TABLE_COLUMN_MODEL+" CM WHERE BO."+COL_BOUND_CM_ORD_COLUMN_ID+" = CM."+COL_CM_ID+" AND BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
-	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT = "SELECT CM.* "+SQL_GET_COLUMN_MODELS_FOR_OBJECT_SUFFIX;
-	private static final String SQL_GET_COLUMN_ID_FOR_OBJECT = "SELECT "+COL_BOUND_CM_ORD_COLUMN_ID+" FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO WHERE BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
-	private static final String SQL_DELETE_BOUND_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ?";
+	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT = "SELECT CM.* FROM " + TABLE_BOUND_COLUMN_ORDINAL
+			+ " BO JOIN " + TABLE_COLUMN_MODEL + " ON (BO." + COL_BOUND_CM_ORD_COLUMN_ID + " = CM." + COL_CM_ID + ")"
+			+ "WHERE BO." + COL_BOUND_CM_ORD_OBJECT_ID + " = ? AND BO." + COL_BOUND_CM_ORD_OBJECT_VERSION
+			+ " = ? ORDER BY BO." + COL_BOUND_CM_ORD_ORDINAL + " ASC";
+	private static final String SQL_GET_COLUMN_ID_FOR_OBJECT = "SELECT " + COL_BOUND_CM_ORD_COLUMN_ID + " FROM "
+			+ TABLE_BOUND_COLUMN_ORDINAL + " BO WHERE BO." + COL_BOUND_CM_ORD_OBJECT_ID + " = ? AND BO."
+			+ COL_BOUND_CM_ORD_OBJECT_VERSION + " = ? ORDER BY BO." + COL_BOUND_CM_ORD_ORDINAL + " ASC";
+	private static final String SQL_DELETE_BOUND_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ? AND "+COL_BOUND_CM_ORD_OBJECT_VERSION+" = ?";
 	private static final String SQL_DELETE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ?";
 	private static final String SQL_DELETE_COLUMN_MODEL = "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" = ?";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT = "SELECT COUNT(*) FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ";
@@ -102,25 +107,19 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		// Convert to DTOs
 		return ColumnModelUtils.createDTOFromDBO(dbos);
 	}
+
 	@Override
-	public List<ColumnModel> getColumnModelsForObject(String tableIdString)
-			throws DatastoreException{
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOColumnModel> dbos = jdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
+	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) throws DatastoreException {
+		List<DBOColumnModel> dbos = jdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER,
+				idAndVersion.getId(), idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
 		// Convert to DTOs
 		return ColumnModelUtils.createDTOFromDBO(dbos);
 	}
 	
 	@Override
-	public List<String> getColumnModelIdsForObject(String tableIdString) {
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		return jdbcTemplate.queryForList(SQL_GET_COLUMN_ID_FOR_OBJECT, String.class, tableId);
-	}
-	
-	@Override
-	public List<String> getColumnIdsForObject(String tableIdString) {
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		return jdbcTemplate.queryForList(SQL_GET_COLUMN_ID_FOR_OBJECT, String.class, tableId);
+	public List<String> getColumnModelIdsForObject(IdAndVersion idAndVersion) {
+		return jdbcTemplate.queryForList(SQL_GET_COLUMN_ID_FOR_OBJECT, String.class, idAndVersion.getId(),
+				idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
 	}
 	
 	/**
@@ -177,12 +176,11 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@WriteTransaction
 	@Override
-	public int unbindAllColumnsFromObject(String objectIdString) {
-		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
-		Long objectId = KeyFactory.stringToKey(objectIdString);
+	public int unbindAllColumnsFromObject(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "IdAndVersion");
 		// Now replace the current current ordinal binding for this object.
-		jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
-		return jdbcTemplate.update(SQL_DELETE_BOUND_COLUMNS, objectId);
+		jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, idAndVersion.getId(), idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
+		return jdbcTemplate.update(SQL_DELETE_BOUND_COLUMNS, idAndVersion.getId());
 	}
 
 	@WriteTransaction
@@ -193,29 +191,28 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@WriteTransaction
 	@Override
-	public int bindColumnToObject(final List<ColumnModel> newColumns, final String objectIdString) throws NotFoundException {
+	public int bindColumnToObject(final List<ColumnModel> newColumns, final IdAndVersion idAndVersion) throws NotFoundException {
 		ValidateArgument.required(newColumns, "newColumns");
 		if(newColumns.isEmpty()) {
 			throw new IllegalArgumentException("NewColumns cannot be null");
 		}
-		ValidateArgument.required(objectIdString, "objectId");	
-		Long objectId = KeyFactory.stringToKey(objectIdString);
+		ValidateArgument.required(idAndVersion, "idAndVersion");	
 		// Create or update the owner.
 		DBOBoundColumnOwner owner = new DBOBoundColumnOwner();
-		owner.setObjectId(objectId);
+		owner.setObjectId(idAndVersion.getId());
 		owner.setEtag(UUID.randomUUID().toString());
 		basicDao.createOrUpdate(owner);
 		
 		// first bind these columns to the object. This binding is permanent and can only grow over time.
-		List<DBOBoundColumn> permanent = ColumnModelUtils.createDBOBoundColumnList(objectId, newColumns);
+		List<DBOBoundColumn> permanent = ColumnModelUtils.createDBOBoundColumnList(idAndVersion.getId(), newColumns);
 		// Sort by columnId to prevent deadlock
 		ColumnModelUtils.sortByColumnId(permanent);
 		// Insert or update the batch
 		basicDao.createOrUpdateBatch(permanent);
 		// Now replace the current current ordinal binding for this object.
-		jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
+		jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, idAndVersion.getId(), idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
 		// Now insert the ordinal values
-		List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtils.createDBOBoundColumnOrdinalList(objectId, newColumns);
+		List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtils.createDBOBoundColumnOrdinalList(idAndVersion, newColumns);
 		// this is just an insert
 		basicDao.createBatch(ordinal);
 		return newColumns.size();

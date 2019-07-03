@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_COLUMN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_ORDINAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_BOUND_COLUMN_ORDINAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_ORDINAL;
@@ -13,7 +14,6 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -24,14 +24,18 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal>{
 	
+	public static final long DEFAULT_NULL_VERSION = -1L;
+
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("columnId", COL_BOUND_CM_ORD_COLUMN_ID, true),
 		new FieldColumn("objectId", COL_BOUND_CM_ORD_OBJECT_ID, true).withIsBackupId(true),
+		new FieldColumn("objectVersion", COL_BOUND_CM_ORD_OBJECT_VERSION, true),
 		new FieldColumn("ordinal", COL_BOUND_CM_ORD_ORDINAL),
 	};
 	
 	Long columnId;
 	Long objectId;
+	Long objectVersion;
 	Long ordinal;
 
 	@Override
@@ -41,6 +45,7 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 			public DBOBoundColumnOrdinal mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOBoundColumnOrdinal dbo = new DBOBoundColumnOrdinal();
 				dbo.setColumnId(rs.getLong(COL_BOUND_CM_ORD_COLUMN_ID));
+				dbo.setObjectId(rs.getLong(COL_BOUND_CM_ORD_OBJECT_ID));
 				dbo.setObjectId(rs.getLong(COL_BOUND_CM_ORD_OBJECT_ID));
 				dbo.setOrdinal(rs.getLong(COL_BOUND_CM_ORD_ORDINAL));
 				return dbo;
@@ -84,6 +89,14 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 		this.objectId = objectId;
 	}
 
+	public Long getObjectVersion() {
+		return objectVersion;
+	}
+
+	public void setObjectVersion(Long objectVersion) {
+		this.objectVersion = objectVersion;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.BOUND_COLUMN_ORDINAL;
@@ -91,7 +104,22 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 
 	@Override
 	public MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOBoundColumnOrdinal>();
+		return new MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal>(){
+
+			@Override
+			public DBOBoundColumnOrdinal createDatabaseObjectFromBackup(DBOBoundColumnOrdinal backup) {
+				if(backup.getObjectVersion() == null) {
+					backup.setObjectVersion(DEFAULT_NULL_VERSION);
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOBoundColumnOrdinal createBackupFromDatabaseObject(DBOBoundColumnOrdinal dbo) {
+				return dbo;
+			}
+			
+		};
 	}
 
 	@Override
@@ -121,10 +149,9 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((columnId == null) ? 0 : columnId.hashCode());
-		result = prime * result
-				+ ((objectId == null) ? 0 : objectId.hashCode());
+		result = prime * result + ((columnId == null) ? 0 : columnId.hashCode());
+		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
+		result = prime * result + ((objectVersion == null) ? 0 : objectVersion.hashCode());
 		result = prime * result + ((ordinal == null) ? 0 : ordinal.hashCode());
 		return result;
 	}
@@ -148,12 +175,23 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 				return false;
 		} else if (!objectId.equals(other.objectId))
 			return false;
+		if (objectVersion == null) {
+			if (other.objectVersion != null)
+				return false;
+		} else if (!objectVersion.equals(other.objectVersion))
+			return false;
 		if (ordinal == null) {
 			if (other.ordinal != null)
 				return false;
 		} else if (!ordinal.equals(other.ordinal))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "DBOBoundColumnOrdinal [columnId=" + columnId + ", objectId=" + objectId + ", objectVersion="
+				+ objectVersion + ", ordinal=" + ordinal + "]";
 	}
 
 

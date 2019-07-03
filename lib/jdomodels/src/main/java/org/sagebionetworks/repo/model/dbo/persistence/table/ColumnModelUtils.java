@@ -16,6 +16,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -265,7 +266,7 @@ public class ColumnModelUtils {
 	 * @param ids
 	 * @return
 	 */
-	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(Long objectId, List<ColumnModel> columns){
+	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(IdAndVersion idAndVersion, List<ColumnModel> columns){
 		List<DBOBoundColumnOrdinal> list = new LinkedList<DBOBoundColumnOrdinal>();
 		// Keep the order of the columns
 		int index = 0;
@@ -273,7 +274,8 @@ public class ColumnModelUtils {
 			Long id = Long.parseLong(column.getId());
 			DBOBoundColumnOrdinal bc = new DBOBoundColumnOrdinal();
 			bc.setColumnId(id);
-			bc.setObjectId(objectId);
+			bc.setObjectId(idAndVersion.getId());
+			bc.setObjectVersion(idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
 			bc.setOrdinal(new Long(index));
 			list.add(bc);
 			index++;

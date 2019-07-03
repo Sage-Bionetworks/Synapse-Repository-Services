@@ -1174,7 +1174,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testUpdateTableSchema() throws IOException{
 		when(mockColumModelManager.getColumnIdForTable(tableId)).thenReturn(new LinkedList<>());
-		when(mockColumModelManager.bindColumnToObject(newColumnIds, tableId)).thenReturn(models);
+		when(mockColumModelManager.bindColumnsToDefaultVersionOfObject(newColumnIds, tableId)).thenReturn(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 		assertNotNull(response);

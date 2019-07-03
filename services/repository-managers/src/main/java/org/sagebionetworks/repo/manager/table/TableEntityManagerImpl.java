@@ -562,7 +562,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	void setTableSchemaWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema,
 			final String tableId) {
 		// Lookup the current schema for this table
-		List<String> oldSchema = columModelManager.getColumnIdForTable(tableId);
+		List<String> oldSchema = columModelManager.getColumnIdForTable(IdAndVersion.parse(tableId));
 		// Calculate the schema change (if there is one).
 		List<ColumnChange> schemaChange = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
 		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
@@ -745,16 +745,17 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 */
 	TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes, long transactionId) {
+		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 		// First determine if this will be an actual change to the schema.
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		List<String> currentSchemaIds = columModelManager.getColumnIdForTable(changes.getEntityId());
+		List<String> currentSchemaIds = columModelManager.getColumnIdForTable(idAndVersion);
 		List<ColumnModel> newSchema = null;
 		if (!currentSchemaIds.equals(newSchemaIds)) {
 			// This will 
 			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), transactionId);
 		}else {
 			// The schema will not change so return the current schema.
-			newSchema = columModelManager.getColumnModelsForObject(changes.getEntityId());
+			newSchema = columModelManager.getColumnModelsForObject(idAndVersion);
 		}
 		
 		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
@@ -775,7 +776,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			List<ColumnChange> changes, long transactionId) {
 		// This is a change.
 		tableManagerSupport.touchTable(userInfo, tableId);
-		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, tableId);
+		List<ColumnModel> newSchema = columModelManager.bindColumnsToDefaultVersionOfObject(newSchemaIds, tableId);
 		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes,
 				transactionId);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
@@ -793,8 +794,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	public List<String> getTableSchema(String id) {
-		return columModelManager.getColumnIdForTable(id);
+	public List<String> getTableSchema(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnIdForTable(idAndVersion);
 	}
 
 	
@@ -951,6 +952,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		tableTransactionDao.linkTransactionToVersion(transactionId, version);
 		// bump the parent etag so the change can migrate.
 		tableTransactionDao.updateTransactionEtag(transactionId);
+		// bind the current schema to the version
+		columModelManager.bindDefaultColumnsToObjectVersion(IdAndVersion.newBuilder().setId(tableId).setVersion(version).build());
 	}
 
 

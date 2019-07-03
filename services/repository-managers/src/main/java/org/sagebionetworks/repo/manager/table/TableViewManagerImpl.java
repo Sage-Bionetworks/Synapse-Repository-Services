@@ -79,7 +79,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, viewTypeMaks);
 		// Define the schema of this view.
-		columModelManager.bindColumnToObject(schema, viewIdString);
+		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -104,7 +104,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// first determine what the new Schema will be
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
 		validateViewSchemaSize(newSchemaIds);
-		List<ColumnModel> newSchema = columModelManager.bindColumnToObject(newSchemaIds, viewId);
+		List<ColumnModel> newSchema = columModelManager.bindColumnsToDefaultVersionOfObject(newSchemaIds, viewId);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);

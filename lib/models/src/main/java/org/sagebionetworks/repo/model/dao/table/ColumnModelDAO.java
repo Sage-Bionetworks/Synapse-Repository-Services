@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -74,7 +75,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModelsForObject(String tableId) throws DatastoreException;
+	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) throws DatastoreException;
 	
 	/**
 	 * Get the column IDs for the given Object.
@@ -82,7 +83,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @param tableId
 	 * @return
 	 */
-	public List<String> getColumnModelIdsForObject(String tableId);
+	public List<String> getColumnModelIdsForObject(IdAndVersion idAndVersion);
 	
 	/**
 	 * Delete a column model using its ID.  Note: Only a column model that is not currently in use can be deleted.
@@ -94,10 +95,10 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	
 	/**
 	 * Unbind all of the columns associated with an object.
-	 * @param objectId
+	 * @param idAndVersion
 	 * @return
 	 */
-	public int unbindAllColumnsFromObject(String objectId);
+	public int unbindAllColumnsFromObject(IdAndVersion idAndVersion);
 	
 	/**
 	 * Bind a list of ColumnModels to an object. This indicates that the passed object now depends on this passed column.
@@ -109,7 +110,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @return True if the this object was not already bound to this object.
 	 * @throws NotFoundException 
 	 */
-	public int bindColumnToObject(List<ColumnModel> columnModels, String objectId) throws NotFoundException;
+	public int bindColumnToObject(List<ColumnModel> columnModels, IdAndVersion idAndVersion) throws NotFoundException;
 	
 	/**
 	 * List all objects that are bound to a set of column IDs.
@@ -148,12 +149,5 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * 
 	 */
 	public boolean truncateAllColumnData();
-
-	/**
-	 * Get the column Ids for a given table.
-	 * @param id
-	 * @return
-	 */
-	public List<String> getColumnIdsForObject(String id);
 	
 }

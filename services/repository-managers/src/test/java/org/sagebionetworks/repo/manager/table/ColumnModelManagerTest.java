@@ -351,9 +351,9 @@ public class ColumnModelManagerTest {
 	public void testBindColumnToObject() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
 		// call under test
-		List<ColumnModel> results = columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
+		List<ColumnModel> results = columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
 		assertEquals(newSchema, results);
-		verify(mockColumnModelDAO).bindColumnToObject(newSchema, objectId);
+		verify(mockColumnModelDAO).bindColumnsToDefaultVersionOfObject(newSchema, objectId);
 		verify(mockColumnModelDAO, never()).unbindAllColumnsFromObject(anyString());
 	}
 	
@@ -365,10 +365,10 @@ public class ColumnModelManagerTest {
 		String objectId = "syn123";
 		List<String> columnIds = new LinkedList<>();
 		// call under test
-		List<ColumnModel> results = columnModelManager.bindColumnToObject(columnIds, objectId);
+		List<ColumnModel> results = columnModelManager.bindColumnsToDefaultVersionOfObject(columnIds, objectId);
 		// should be an emptyt list
 		assertEquals(new LinkedList<>(), results);
-		verify(mockColumnModelDAO, never()).bindColumnToObject(anyListOf(ColumnModel.class), anyString());
+		verify(mockColumnModelDAO, never()).bindColumnsToDefaultVersionOfObject(anyListOf(ColumnModel.class), anyString());
 		// should unbind all columns from this object
 		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
 	}
@@ -381,10 +381,10 @@ public class ColumnModelManagerTest {
 		String objectId = "syn123";
 		List<String> columnIds = null;
 		// call under test
-		List<ColumnModel> results = columnModelManager.bindColumnToObject(columnIds, objectId);
+		List<ColumnModel> results = columnModelManager.bindColumnsToDefaultVersionOfObject(columnIds, objectId);
 		// should be an emptyt list
 		assertEquals(new LinkedList<>(), results);
-		verify(mockColumnModelDAO, never()).bindColumnToObject(anyListOf(ColumnModel.class), anyString());
+		verify(mockColumnModelDAO, never()).bindColumnsToDefaultVersionOfObject(anyListOf(ColumnModel.class), anyString());
 		// should unbind all columns from this object
 		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
 	}
@@ -400,7 +400,7 @@ public class ColumnModelManagerTest {
 		expectedNewSchemaIds.add(expectedNewSchemaIds.get(1));
 		String objectId = "syn123";
 		// call under test
-		columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
+		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -411,7 +411,7 @@ public class ColumnModelManagerTest {
 		one.setName(zero.getName());
 		String objectId = "syn123";
 		// call under test
-		columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
+		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
 	}
 	
 	/**
@@ -425,7 +425,7 @@ public class ColumnModelManagerTest {
 		expectedNewSchemaIds.add("9999");
 		String objectId = "syn123";
 		// call under test
-		columnModelManager.bindColumnToObject(expectedNewSchemaIds, objectId);
+		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
 	}	
 	
 	@Test (expected =IllegalArgumentException.class)
@@ -603,7 +603,7 @@ public class ColumnModelManagerTest {
 		String objectId = "syn123";
 		when(mockColumnModelDAO.getColumnModel(underLimitSchemaIds)).thenReturn(underLimitSchema);
 		//call under test
-		columnModelManager.bindColumnToObject(underLimitSchemaIds, objectId);
+		columnModelManager.bindColumnsToDefaultVersionOfObject(underLimitSchemaIds, objectId);
 	}
 	
 	/**
@@ -614,7 +614,7 @@ public class ColumnModelManagerTest {
 		String objectId = "syn123";
 		when(mockColumnModelDAO.getColumnModel(overLimitSchemaIds)).thenReturn(overLimitSchema);
 		//call under test
-		columnModelManager.bindColumnToObject(overLimitSchemaIds, objectId);
+		columnModelManager.bindColumnsToDefaultVersionOfObject(overLimitSchemaIds, objectId);
 	}
 	
 	/**
@@ -635,7 +635,7 @@ public class ColumnModelManagerTest {
 		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
 		try {
 			//call under test
-			columnModelManager.bindColumnToObject(scheamIds, objectId);
+			columnModelManager.bindColumnsToDefaultVersionOfObject(scheamIds, objectId);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().startsWith("Too many columns"));

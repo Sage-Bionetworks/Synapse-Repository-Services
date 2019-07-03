@@ -464,6 +464,7 @@ public class SqlConstants {
 	public static final String TABLE_BOUND_COLUMN_ORDINAL		= "BOUND_COLUMN_ORDINAL";
 	public static final String COL_BOUND_CM_ORD_COLUMN_ID		= "COLUMN_ID";
 	public static final String COL_BOUND_CM_ORD_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_BOUND_CM_ORD_OBJECT_VERSION	= "OBJECT_VERSION";
 	public static final String COL_BOUND_CM_ORD_ORDINAL			= "ORDINAL";
 	public static final String DDL_BOUND_COLUMN_ORDINAL = "schema/BoundColumnOrdinal-ddl.sql";
 	
