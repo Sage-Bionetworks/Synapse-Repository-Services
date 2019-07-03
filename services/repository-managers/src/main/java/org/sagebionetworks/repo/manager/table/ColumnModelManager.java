@@ -114,18 +114,6 @@ public interface ColumnModelManager {
 	 * @param objectId
 	 */
 	public void unbindAllColumnsAndOwnerFromObject(String objectId);
-
-	/**
-	 * List all of the objects that are bound to the given column IDs.
-	 * 
-	 * @param user
-	 * @param columnIds
-	 * @param currentOnly
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public PaginatedIds listObjectsBoundToColumn(UserInfo user, Set<String> columnIds, boolean currentOnly, long limit, long offset);
 	
 	/**
 	 * Clear all data for tests.

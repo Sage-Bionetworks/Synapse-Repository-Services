@@ -208,15 +208,11 @@
 		},
 		{
 			"name": "BOUND_COLUMN_OWNER",
-			"description": "TODO: Auto-generated description"
-		},
-		{
-			"name": "BOUND_COLUMN",
-			"description": "TODO: Auto-generated description"
+			"description": "Primary table for all table to column binding."
 		},
 		{
 			"name": "BOUND_COLUMN_ORDINAL",
-			"description": "TODO: Auto-generated description"
+			"description": "Tracks the binding of columns to tables."
 		},
 		{
 			"name": "TABLE_TRANSACTION",

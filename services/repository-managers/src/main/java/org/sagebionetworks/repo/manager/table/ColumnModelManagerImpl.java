@@ -368,19 +368,6 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public PaginatedIds listObjectsBoundToColumn(UserInfo user,	Set<String> columnIds, boolean currentOnly, long limit, long offset) {
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		validateLimitOffset(limit, offset);
-		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
-		List<String> results = columnModelDao.listObjectsBoundToColumn(columnIds, currentOnly, limit, offset);
-		long totalCount = columnModelDao.listObjectsBoundToColumnCount(columnIds, currentOnly);
-		PaginatedIds page = new PaginatedIds();
-		page.setResults(results);
-		page.setTotalNumberOfResults(totalCount);
-		return page;
-	}
-
-	@Override
 	public boolean truncateAllColumnData(UserInfo user) {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an Administrator can call this method");
