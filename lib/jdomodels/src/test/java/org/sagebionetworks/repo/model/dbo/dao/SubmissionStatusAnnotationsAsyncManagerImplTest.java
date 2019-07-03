@@ -256,34 +256,6 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		annos.getLongAnnos().add(submitterIdAnno);
 	}
 	
-	@Test
-	public void testStaleCreateChangeMessage() throws Exception {
-		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
-		evalSubs.setEtag("some other etag");
-		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
-		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId());
-		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
-		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(anyListOf(Annotations.class));		
-	}
-
-	@Test
-	public void testStaleUpdateChangeMessage() throws Exception {
-		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
-		evalSubs.setEtag("some other etag");
-		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
-		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId());
-		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(anyListOf(Annotations.class));
-		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		
-	}
-
-	@Test
-	public void testStaleCreateChangeMessageNullEtag() throws Exception {
-		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(null);
-		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId());
-		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(anyListOf(Annotations.class));
-		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		
-	}
-	
 	private static void checkAnnoMetadata(Annotations annos, String submissionId) {
 		assertEquals(STATUS_VERSION, annos.getVersion());
 		assertEquals(submissionId, annos.getObjectId());

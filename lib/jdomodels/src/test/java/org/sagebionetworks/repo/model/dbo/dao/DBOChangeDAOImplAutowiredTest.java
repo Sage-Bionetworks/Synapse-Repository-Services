@@ -188,32 +188,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		ChangeMessage clone = changeDAO.replaceChange(change);
 		assertNotNull(clone);
 	}
-	
-	/**
-	 * Etag must not be null for create or update.
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void tesNullEtagForCreate(){
-		ChangeMessage change = new ChangeMessage();
-		change.setObjectId("syn334");
-		change.setChangeType(ChangeType.CREATE);
-		change.setObjectType(ObjectType.ENTITY);
-		ChangeMessage clone = changeDAO.replaceChange(change);
-		assertNotNull(clone);
-	}
-	
-	/**
-	 * Etag must not be null for create or update.
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void tesNullEtagForUpdate(){
-		ChangeMessage change = new ChangeMessage();
-		change.setObjectId("syn334");
-		change.setChangeType(ChangeType.UPDATE);
-		change.setObjectType(ObjectType.ENTITY);
-		ChangeMessage clone = changeDAO.replaceChange(change);
-		assertNotNull(clone);
-	}
+
 	
 	@Test
 	public void testSortByObjectId(){

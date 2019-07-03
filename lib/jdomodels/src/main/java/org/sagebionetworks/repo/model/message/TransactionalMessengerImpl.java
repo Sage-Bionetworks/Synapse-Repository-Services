@@ -137,7 +137,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// Get the bound list of messages if it already exists.
 		Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();
 		// If we already have a message going out for this object then we needs replace it with the latest.
-		// If an object's etag changes multiple times, only the final etag should be in the message.
 		currentMessages.put(new MessageKey(message), message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
