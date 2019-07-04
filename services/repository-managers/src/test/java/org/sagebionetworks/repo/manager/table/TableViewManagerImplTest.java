@@ -377,7 +377,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testGetTableSchema(){
-		when(columnModelManager.getColumnIdForTable(viewId)).thenReturn(schema);
+		when(columnModelManager.getColumnIdForTable(idAndVersion)).thenReturn(schema);
 		List<String> retrievedSchema = manager.getTableSchema(viewId);
 		assertEquals(schema, retrievedSchema);
 	}

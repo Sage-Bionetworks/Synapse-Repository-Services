@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -219,16 +218,10 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@Override
 	public List<ColumnModel> bindColumnsToVersionOfObject(List<String> columnIds, IdAndVersion idAndVersion)
 			throws DatastoreException, NotFoundException {
-		if(columnIds == null || columnIds.isEmpty()) {
-			// remove all bound columns from this object
-			columnModelDao.unbindAllColumnsFromObject(idAndVersion);
-			return new LinkedList<>();
-		}else {
-			// Get the columns and validate the size
-			List<ColumnModel> schema = validateSchemaSize(columnIds);
-			columnModelDao.bindColumnToObject(schema, idAndVersion);
-			return schema;
-		}
+		// Get the columns and validate the size
+		List<ColumnModel> schema = validateSchemaSize(columnIds);
+		columnModelDao.bindColumnToObject(schema, idAndVersion);
+		return schema;
 	}
 	
 	/**

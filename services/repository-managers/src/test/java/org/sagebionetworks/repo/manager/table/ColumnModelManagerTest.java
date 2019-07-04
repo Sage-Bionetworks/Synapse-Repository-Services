@@ -6,17 +6,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
 
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -27,11 +25,11 @@ import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -64,6 +62,7 @@ public class ColumnModelManagerTest {
 	UserInfo user;
 	
 	String tableId;
+	IdAndVersion idAndVersion;
 	List<ColumnModel> currentSchema;
 	List<ColumnChange> changes;
 	List<String> expectedNewSchemaIds;
@@ -83,6 +82,7 @@ public class ColumnModelManagerTest {
 		ReflectionTestUtils.setField(columnModelManager, "authorizationManager", mockauthorizationManager);
 		
 		tableId = "syn567";
+		idAndVersion = IdAndVersion.parse(tableId);
 		currentSchema = Lists.newArrayList(
 				TableModelTestUtils.createColumn(111L),
 				TableModelTestUtils.createColumn(222L),
@@ -90,7 +90,7 @@ public class ColumnModelManagerTest {
 				);
 		
 		
-		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
 		
 		ColumnChange remove = new ColumnChange();
 		remove.setOldColumnId("111");
@@ -350,11 +350,11 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testBindColumnToObject() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse(objectId);
 		// call under test
 		List<ColumnModel> results = columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
 		assertEquals(newSchema, results);
-		verify(mockColumnModelDAO).bindColumnsToDefaultVersionOfObject(newSchema, objectId);
-		verify(mockColumnModelDAO, never()).unbindAllColumnsFromObject(anyString());
+		verify(mockColumnModelDAO).bindColumnToObject(newSchema, expectedIdAndVersion);
 	}
 	
 	/**
@@ -363,14 +363,13 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testBindColumnToObjectEmptyList() {
 		String objectId = "syn123";
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse(objectId);
 		List<String> columnIds = new LinkedList<>();
 		// call under test
 		List<ColumnModel> results = columnModelManager.bindColumnsToDefaultVersionOfObject(columnIds, objectId);
-		// should be an emptyt list
+		// should be an empty list
 		assertEquals(new LinkedList<>(), results);
-		verify(mockColumnModelDAO, never()).bindColumnsToDefaultVersionOfObject(anyListOf(ColumnModel.class), anyString());
-		// should unbind all columns from this object
-		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
+		verify(mockColumnModelDAO).bindColumnToObject(Collections.emptyList(), expectedIdAndVersion);
 	}
 	
 	/**
@@ -379,14 +378,13 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testBindColumnToObjectNull() {
 		String objectId = "syn123";
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse(objectId);
 		List<String> columnIds = null;
 		// call under test
 		List<ColumnModel> results = columnModelManager.bindColumnsToDefaultVersionOfObject(columnIds, objectId);
 		// should be an emptyt list
 		assertEquals(new LinkedList<>(), results);
-		verify(mockColumnModelDAO, never()).bindColumnsToDefaultVersionOfObject(anyListOf(ColumnModel.class), anyString());
-		// should unbind all columns from this object
-		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
+		verify(mockColumnModelDAO).bindColumnToObject(Collections.emptyList(), expectedIdAndVersion);
 	}
 	
 	/**
@@ -428,36 +426,10 @@ public class ColumnModelManagerTest {
 		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
 	}	
 	
-	@Test (expected =IllegalArgumentException.class)
-	public void testListObjectsBoundToColumnNullUser(){
-		Set<String> columnId = new HashSet<String>();
-		columnModelManager.listObjectsBoundToColumn(null, columnId, true, Long.MAX_VALUE, 0);
-	}
-	
-	@Test (expected =IllegalArgumentException.class)
-	public void testListObjectsBoundToColumnNullSet(){
-		columnModelManager.listObjectsBoundToColumn(user, null, true, Long.MAX_VALUE, 0);
-	}
-	
-	@Test
-	public void testListObjectsBoundToColumnHappy(){
-		Set<String> columnIds = new HashSet<String>();
-		columnIds.add("134");
-		List<String> resultList = new LinkedList<String>();
-		resultList.add("syn987");
-		when(mockColumnModelDAO.listObjectsBoundToColumn(columnIds, false, 10, 0)).thenReturn(resultList);
-		when(mockColumnModelDAO.listObjectsBoundToColumnCount(columnIds, false)).thenReturn(1l);
-		PaginatedIds page = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 10, 0);
-		assertNotNull(page);
-		assertEquals(resultList, page.getResults());
-		assertEquals(new Long(1), page.getTotalNumberOfResults());
-	}
-	
 	@Test
 	public void testUnbindColumnFromObject() throws DatastoreException, NotFoundException {
 		String objectId = "syn123";
 		columnModelManager.unbindAllColumnsAndOwnerFromObject(objectId);
-		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
 		verify(mockColumnModelDAO).deleteOwner(objectId);
 	}
 
@@ -477,9 +449,10 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testGetColumnModelsForTableAuthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse(objectId);
 		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
 		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
+		when(mockColumnModelDAO.getColumnModelsForObject(expectedIdAndVersion)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 		assertEquals(expected, resutls);
 	}
@@ -487,9 +460,10 @@ public class ColumnModelManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testGetColumnModelsForTableUnauthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse(objectId);
 		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
 		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
+		when(mockColumnModelDAO.getColumnModelsForObject(expectedIdAndVersion)).thenReturn(expected);
 		columnModelManager.getColumnModelsForTable(user, objectId);
 	}
 	
@@ -721,7 +695,7 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testCalculateNewSchemaIdsAndValidateOverSizeLimit(){
 		// setup the current schema as empty
-		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<>());
+		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(new LinkedList<>());
 		// setup the new schema to be over the limit.
 		List<String> newSchemaIds = new LinkedList<>();
 		List<ColumnChange> changes = new LinkedList<>();
@@ -749,7 +723,7 @@ public class ColumnModelManagerTest {
 				TableModelTestUtils.createColumn(111L)
 		);
 		
-		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
 		// update a column that does not exist.
 		ColumnChange update = new ColumnChange();
 		update.setOldColumnId("222");

@@ -186,6 +186,28 @@ public class DBOColumnModelImplTest {
 		assertEquals(vOneSchema, vOneResults);
 		assertEquals(vTwoSchema, vTwoResults);
 		assertEquals(vThreeSchema, vThreeResults);
+		
+	}
+	
+	@Test
+	public void testGetColumnIdsMultipleVersion() {
+		IdAndVersion defaultId = IdAndVersion.parse("syn123");
+		IdAndVersion versionOne = IdAndVersion.parse("syn123.1");
+		
+		List<ColumnModel> defaultSchema = Lists.newArrayList(two, three);
+		List<ColumnModel> vOneSchema = Lists.newArrayList(one, three);
+	
+		columnModelDao.bindColumnToObject(defaultSchema, defaultId);
+		columnModelDao.bindColumnToObject(vOneSchema, versionOne);
+		
+		// call under test
+		List<String> defaultResults = columnModelDao.getColumnModelIdsForObject(defaultId);
+		List<String> vOneResults = columnModelDao.getColumnModelIdsForObject(versionOne);
+		//
+		List<String> defaultExpected = Lists.newArrayList(two.getId(), three.getId());
+		assertEquals(defaultExpected, defaultResults);
+		List<String> vOneExpected = Lists.newArrayList(one.getId(), three.getId());
+		assertEquals(vOneExpected, vOneResults);
 	}
 	
 	@Test

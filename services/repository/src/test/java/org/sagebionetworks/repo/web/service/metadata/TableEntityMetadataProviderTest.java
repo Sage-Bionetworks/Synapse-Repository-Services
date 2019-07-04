@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -25,6 +26,7 @@ public class TableEntityMetadataProviderTest  {
 	TableEntityMetadataProvider provider;
 	
 	String entityId;
+	IdAndVersion idAndVersion;
 	TableEntity table;
 	List<String> columnIds;
 	
@@ -40,6 +42,7 @@ public class TableEntityMetadataProviderTest  {
 		columnIds = Lists.newArrayList("123");
 		
 		entityId = "syn123";
+		idAndVersion = IdAndVersion.parse(entityId);
 		table = new TableEntity();
 		table.setId(entityId);
 		table.setColumnIds(columnIds);
@@ -83,9 +86,9 @@ public class TableEntityMetadataProviderTest  {
 	public void testAddTypeSpecificMetadata(){
 		TableEntity testEntity = new TableEntity();
 		testEntity.setId(entityId);
-		when(tableEntityManager.getTableSchema(entityId)).thenReturn(columnIds);
+		when(tableEntityManager.getTableSchema(idAndVersion)).thenReturn(columnIds);
 		provider.addTypeSpecificMetadata(testEntity, null, null); //the other parameters are not used at all
-		verify(tableEntityManager).getTableSchema(entityId);
+		verify(tableEntityManager).getTableSchema(idAndVersion);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}
 
