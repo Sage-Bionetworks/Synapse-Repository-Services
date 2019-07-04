@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -37,7 +35,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 		CloudSearchDocumentLogRecord record = recordLogger.startRecordForChangeMessage(change);
 		switch (change.getObjectType()) {
 		case ENTITY:
-			return entityChange(change.getObjectId(), record, false);
+			return entityChange(change.getObjectId(), record);
 		case WIKI:
 			return wikiChange(change.getObjectId(), record);
 		default:
@@ -59,7 +57,7 @@ public class ChangeMessageToSearchDocumentTranslator {
 			// message.
 			if (ObjectType.ENTITY == key.getOwnerObjectType()) {
 				record.withWikiOwner(key.getOwnerObjectId());
-				return entityChange(key.getOwnerObjectId(), record, true);
+				return entityChange(key.getOwnerObjectId(), record);
 			}
 		} catch (NotFoundException e) {
 			// Nothing to do if the wiki does not exist
@@ -75,28 +73,15 @@ public class ChangeMessageToSearchDocumentTranslator {
 	 * 
 	 * @param entityId
 	 * @param record
-	 * @param forceDocumentUpdateIfExist If the entity exists, update it even if the same etag is already in the search index
 	 * @return
 	 */
-	Document entityChange(String entityId, CloudSearchDocumentLogRecord record, boolean forceDocumentUpdateIfExist) {
-		// Lookup the current etag for this entity
-		Optional<String> etag = searchDocumentDriver.getEntityEtagFromRepository(entityId);
-		if(!etag.isPresent()) {
-			// Deleted documents will not have an etag.
+	Document entityChange(String entityId, CloudSearchDocumentLogRecord record) {
+		if(!searchDocumentDriver.doesEntityExistInRepository(entityId)) {
 			record.withAction(DocumentAction.DELETE);
 			return createDeleteDocument(entityId);
-		}
-		// Always update if this is a wiki change since etag may not change upon updating a wiki
-		// Otherwise, check if this entity already exist in the search index with the given etag
-		if(forceDocumentUpdateIfExist || !searchDao.doesDocumentExistInSearchIndex(entityId, etag.get())) {
-			record.withAction(DocumentAction.CREATE_OR_UPDATE);
-			record.withExistsOnIndex(false);
-			return searchDocumentDriver.formulateSearchDocument(entityId);
 		}else {
-			log.info("Search index is already already up-to-date for entity: "+entityId);
-			record.withAction(DocumentAction.IGNORE);
-			record.withExistsOnIndex(true);
-			return null;
+			record.withAction(DocumentAction.CREATE_OR_UPDATE);
+			return searchDocumentDriver.formulateSearchDocument(entityId);
 		}
 	}
 

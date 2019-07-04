@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 
-class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
+class CloudSearchDocumentLogRecordTest {
 
 	@Test
 	void testToBytes() {
@@ -19,7 +19,6 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 				.withObjectId("12345")
 				.withWikiOwner("456")
 				.withAction(DocumentAction.CREATE_OR_UPDATE)
-				.withExistsOnIndex(false)
 				.withDocumentBatchUpdateStatus("success")
 				.withTimestamp(98765L)
 				.withDocumentBatchUUID("uuuuuuuuuuuuuuuuuuID")
@@ -35,7 +34,6 @@ class CloudSearchDocumentGenerationAwsKinesisLogRecordTest {
 				"\"changeType\":\"CREATE\"," +
 				"\"wikiOwner\":\"456\"," +
 				"\"action\":\"CREATE_OR_UPDATE\"," +
-				"\"existsOnIndex\":false," +
 				"\"documentBatchUUID\":\"uuuuuuuuuuuuuuuuuuID\"," +
 				"\"documentBatchUpdateStatus\":\"success\"," +
 				"\"timestamp\":98765," +
