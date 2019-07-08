@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="https://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="https://maven.apache.org/POM/4.0.0\
-                             https://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 
 	<modelVersion>4.0.0</modelVersion>
@@ -46,20 +46,12 @@
 			</url>
 		</repository>
 		<repository>
-			<id>mvn-gae-plugin-repo</id>
-			<url>https://maven-gae-plugin.googlecode.com/svn/repository/</url>
-		</repository>
-		<repository>
 			<id>maven-central-rep-1</id>
 			<url>https://repo1.maven.org/maven2/</url>
 		</repository>
 		<repository>
 			<id>mvnrepository.com</id>
 			<url>https://central.maven.org/maven2/</url>
-		</repository>		
-		<repository>
-			<id>sun-maven-repository</id>
-			<url>https://download.java.net/maven/2/</url>
 		</repository>
 		<repository>
 			<id>apache-repo-releases</id>

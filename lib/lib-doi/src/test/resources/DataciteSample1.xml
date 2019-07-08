@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<resource xmlns="https://datacite.org/schema/kernel-4"
-          xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="https://datacite.org/schema/kernel-4
-    https://schema.datacite.org/meta/kernel-4/metadata.xsd">
+<resource xmlns="http://datacite.org/schema/kernel-4"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://datacite.org/schema/kernel-4
+    http://schema.datacite.org/meta/kernel-4/metadata.xsd">
     <identifier identifierType="DOI">10.0000/SYN0000000</identifier>
     <creators>
         <creator>
             <creatorName>Last, First</creatorName>
-            <nameIdentifier schemeURI="https://orcid.org/" nameIdentifierScheme="ORCID">0123-4567-8987-789X</nameIdentifier>
-            <nameIdentifier schemeURI="https://www.insi.org/" nameIdentifierScheme="ISNI">9876-5432-1012-456X</nameIdentifier>
+            <nameIdentifier schemeURI="http://orcid.org/" nameIdentifierScheme="ORCID">0123-4567-8987-789X</nameIdentifier>
+            <nameIdentifier schemeURI="http://www.insi.org/" nameIdentifierScheme="ISNI">9876-5432-1012-456X</nameIdentifier>
         </creator>
         <creator>
             <creatorName>Sample name</creatorName>
