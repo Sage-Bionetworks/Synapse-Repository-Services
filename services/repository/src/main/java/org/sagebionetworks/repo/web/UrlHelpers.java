@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +11,6 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -825,6 +823,7 @@ public class UrlHelpers {
 	public static final String USER_TEAM = USER+ID+TEAM;
 	public static final String USER_TEAM_IDS = USER+ID+TEAM+"/id";
 	public static final String NAME_FRAGMENT_FILTER = "fragment";
+	public static final String MEMBER_TYPE_FILTER = "memberType";
 	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
 	private static final String MEMBER = "/member";
 	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";

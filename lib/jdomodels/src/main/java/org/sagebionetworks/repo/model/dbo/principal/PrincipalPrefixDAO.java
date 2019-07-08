@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Abstraction for a DAO used to lookup principals using a prefix.
@@ -78,6 +79,21 @@ public interface PrincipalPrefixDAO {
 	 */
 	List<Long> listTeamMembersForPrefix(String prefix, Long teamId, Long limit,
 			Long offset);
+
+	/**
+	 * For a given team, list all members that share the given prefix, and have or do not have particular principal IDs.
+	 * Exclusion of particular principal IDs has precedence over inclusion.
+	 * @param prefix Prefix to filter by.
+	 * @param teamId The results will only include members of this team.
+	 * @param include The set of principal IDs to explicitly include in search. All members with principal IDs that do not match
+	 *             IDs in this set will be filtered out. If null, a filter is not applied.
+	 * @param exclude The set of principal IDs to explicitly exclude in search. All members with principal IDs that do match
+	 *             IDs in this set will not be included in results. If null, a filter is not applied.
+	 * @param limit Pagination parameter.
+	 * @param offset Pagination parameter.
+	 * @return List of principal IDs that match the query and filter parameters, ordered alphabetically.
+	 */
+	List<Long> listCertainTeamMembersForPrefix(String prefix, Long teamId, Set<Long> include, Set<Long> exclude, Long limit, Long offset);
 
 	/**
 	 * For a given team, count all members that share the given prefix.

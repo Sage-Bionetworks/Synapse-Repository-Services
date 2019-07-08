@@ -437,4 +437,39 @@ public class TableRowTruthDAOImplTest {
 		// call under test
 		tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, type);
 	}
+	
+	@Test
+	public void testgetLastTransactionIdTableDoesNotExist() {
+		// empty if the table does not exist
+		
+		Optional<Long> lastTrans = tableRowTruthDao.getLastTransactionId(tableId);
+		assertNotNull(lastTrans);
+		assertFalse(lastTrans.isPresent());
+	}
+	
+	@Test
+	public void testgetLastTransactionIdTable() throws IOException {
+
+		// append rows to the table
+		// Add a column to the table
+		ColumnModel aBoolean = TableModelTestUtils.createColumn(201L, "aBoolean", ColumnType.BOOLEAN);
+		List<ColumnModel> schema = Lists.newArrayList(aBoolean);
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, schema);
+		
+		SparseRow rowOne = changeSet.addEmptyRow();
+		rowOne.setCellValue(aBoolean.getId(), "true");
+		appendRowSetToTable(creatorUserGroupId, tableId, schema, changeSet);
+		
+		// call under test
+		Optional<Long> firstTransaction = tableRowTruthDao.getLastTransactionId(tableId);
+		assertNotNull(firstTransaction);
+		assertTrue(firstTransaction.isPresent());
+		// add more rows
+		appendRowSetToTable(creatorUserGroupId, tableId, schema, changeSet);
+		
+		Optional<Long> secondTransaction = tableRowTruthDao.getLastTransactionId(tableId);
+		assertNotNull(secondTransaction);
+		assertTrue(secondTransaction.isPresent());
+		assertTrue(secondTransaction.get() > firstTransaction.get());
+	}
 }

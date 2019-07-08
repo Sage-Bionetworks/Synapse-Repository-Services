@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.List;
 
@@ -62,10 +62,21 @@ public class TableEntityMetadataProviderTest  {
 	}
 	
 	@Test
-	public void testUpdate(){
+	public void testUpdateNoNewVersion(){
+		boolean wasNewVersionCreated = false;
 		// call under test
-		provider.entityUpdated(userInfo, table);
+		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
 		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager, never()).bindCurrentEntityVersionToLatestTransaction(anyString());;
+	}
+	
+	@Test
+	public void testUpdateWithNewVersion(){
+		boolean wasNewVersionCreated = true;
+		// call under test
+		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
+		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager).bindCurrentEntityVersionToLatestTransaction(entityId);;
 	}
 	
 	@Test

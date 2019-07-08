@@ -1,17 +1,14 @@
 package org.sagebionetworks.auth.services;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
-import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
-import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -27,7 +24,6 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -69,6 +65,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		authManager.invalidateSessionToken(sessionToken);
 	}
 
+	@WriteTransaction
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
 		final long userId = authManager.changePassword(request);
@@ -112,13 +109,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String email) {
+	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String usernameOrEmail) {
 		try {
-			PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(email);
-			PasswordResetSignedToken passwordRestToken = authManager.createPasswordResetToken(pa.getPrincipalId());
-			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken);
-		}catch (NotFoundException e){
-			//should not indicate that a email/user could not be found
+			PrincipalAlias principalAlias = userManager.lookupUserByUsernameOrEmail(usernameOrEmail);
+			PasswordResetSignedToken passwordRestToken = authManager.createPasswordResetToken(principalAlias.getPrincipalId());
+			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken, principalAlias);
+		} catch (NotFoundException e) {
+			// should not indicate that a email/user could not be found
 		}
 	}
 
@@ -192,4 +189,5 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public PrincipalAlias lookupUserForAuthentication(String alias) {
 		return userManager.lookupUserByUsernameOrEmail(alias);
 	}
+	
 }

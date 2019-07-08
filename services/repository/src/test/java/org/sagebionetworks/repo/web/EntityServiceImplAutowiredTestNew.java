@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.web;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,15 +20,18 @@ import org.apache.commons.lang3.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -35,15 +41,16 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 
-
-public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControllerTestBase {
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
+public class EntityServiceImplAutowiredTestNew  {
 
 	@Autowired
 	private EntityService entityService;
@@ -56,6 +63,8 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 	
 	@Autowired
 	private ColumnModelManager columnModelManager;
+	
+	@Autowired TableEntityManager tableEntityManager;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -238,8 +247,8 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		try {
 			entityService.createEntity(adminUserId, projectFailCreate, null);
 			fail("duplicate entry should have been rejected");
-		} catch (IllegalArgumentException e) {
-			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
+		} catch (NameConflictException e) {
+			// expected
 		}
 		// update to null
 		project2.setAlias(null);
@@ -250,8 +259,8 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 			project2.setAlias(alias1);
 			entityService.updateEntity(adminUserId, project2, false, null);
 			fail("duplicate entry should have been rejected");
-		} catch (IllegalArgumentException e) {
-			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
+		} catch (NameConflictException e) {
+			// expected
 		}
 		project2.setAlias(alias3);
 		project2 = entityService.updateEntity(adminUserId, project2, false, null);
@@ -278,5 +287,63 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		
 		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
 		assertEquals(columnIds, table.getColumnIds());
+	}
+	
+	@Test
+	public void testCreateTableEntityVersion() {
+		List<String> columnIds = Lists.newArrayList(column.getId());
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setColumnIds(columnIds);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		// the first version of a table should not have a transaction linked
+		Optional<Long> optional =tableEntityManager.getTransactionForVersion(table.getId(), table.getVersionNumber());
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
+	}
+	
+	@Test
+	public void testTableUpdateNewVersion() {
+		List<String> columnIds = Lists.newArrayList(column.getId());
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setColumnIds(columnIds);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		long firstVersion = table.getVersionNumber();
+		String activityId = null;
+		boolean newVersion = true;
+		table.setVersionLabel(null);
+		// Create a new version of the entity
+		table = entityService.updateEntity(adminUserId, table, newVersion, activityId);
+		assertTrue(firstVersion+1 == table.getVersionNumber());
+		// the new version should be bound to the last transaction.
+		Optional<Long> optional = tableEntityManager.getTransactionForVersion(table.getId(), table.getVersionNumber());
+		assertNotNull(optional);
+		assertTrue(optional.isPresent());
+	}
+	
+	@Test
+	public void testTableUpdateNoNewVersion() {
+		List<String> columnIds = Lists.newArrayList(column.getId());
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setColumnIds(columnIds);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		long firstVersion = table.getVersionNumber();
+		String activityId = null;
+		boolean newVersion = false;
+		// Create a new version of the entity
+		table = entityService.updateEntity(adminUserId, table, newVersion, activityId);
+		assertTrue(firstVersion == table.getVersionNumber());
+		// update without a version change should not result in the binding of a transaction.
+		Optional<Long> optional =tableEntityManager.getTransactionForVersion(table.getId(), table.getVersionNumber());
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
 	}
 }

@@ -59,5 +59,11 @@ public class ValueExpressionTest {
 		ValueExpression one = new TableQueryParser("100/1").valueExpression();
 		assertEquals("100/1", one.toSql());
 	}
+	
+	@Test
+	public void testEntityId() throws ParseException {
+		ValueExpression one = new TableQueryParser("syn11.22").valueExpression();
+		assertEquals("syn11.22", one.toSql());
+	}
 
 }

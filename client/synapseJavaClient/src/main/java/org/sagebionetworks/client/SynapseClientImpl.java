@@ -33,7 +33,6 @@ import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
-import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -86,6 +85,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -212,7 +212,6 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
@@ -474,6 +473,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MEMBER_LIST = "/memberList";
 	protected static final String USER = "/user";
 	protected static final String NAME_FRAGMENT_FILTER = "fragment";
+	protected static final String NAME_MEMBERTYPE_FILTER = "memberType";
 	protected static final String ICON = "/icon";
 	protected static final String TEAM_MEMBERS = "/teamMembers";
 	protected static final String MEMBER = "/member";
@@ -503,7 +503,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
 	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
-	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
 
 	private static final String PROJECT = "/project";
 	private static final String FORUM = "/forum";
@@ -2679,12 +2678,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		voidPut(getRepoEndpoint(), MESSAGE_STATUS, status);
 	}
 
-	@Override
-	public void deleteMessage(String messageId) throws SynapseException {
-		String uri = MESSAGE + "/" + messageId;
-		deleteUri(getRepoEndpoint(), uri);
-	}
-
 	private static String createDownloadMessageURI(String messageId, boolean redirect) {
 		return MESSAGE + "/" + messageId + FILE + "?" + REDIRECT_PARAMETER + redirect;
 	}
@@ -2994,21 +2987,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		return postJSONEntity(getRepoEndpoint(), uri, sub, Submission.class);
 	}
-	
-	/**
-	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
-	 * @param submissionId
-	 * @param contributor
-	 * @return
-	 */
-	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor)
-			throws SynapseException {
-		validateStringAsLong(submissionId);
-		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + submissionId + "/contributor";
-		return postJSONEntity(getRepoEndpoint(), uri, contributor, SubmissionContributor.class);
-	}
 
-	
 	@Override
 	public Submission getSubmission(String subId) throws SynapseException {
 		ValidateArgument.required(subId, "Submission Id");
@@ -3988,19 +3967,33 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	/**
+	 *
+	 * @deprecated  Use {@link #getTeamMembers(String, String, TeamMemberTypeFilterOptions, long, long) getTeamMembers} instead
+	 */
+	@Deprecated
+	@Override
+	public PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException {
+		return getTeamMembers(teamId, fragment, TeamMemberTypeFilterOptions.ALL, limit, offset);
+	}
+
+
 	@Override
 	public PaginatedResults<TeamMember> getTeamMembers(String teamId,
-			String fragment, long limit, long offset) throws SynapseException {
-		String uri = null;
-		if (fragment == null) {
-			uri = TEAM_MEMBERS + "/" + teamId + "?" + OFFSET + "=" + offset
-					+ "&" + LIMIT + "=" + limit;
-		} else {
-			uri = TEAM_MEMBERS + "/" + teamId + "?" + NAME_FRAGMENT_FILTER
-					+ "=" + urlEncode(fragment) + "&" + OFFSET + "=" + offset
-					+ "&" + LIMIT + "=" + limit;
+													   String fragment, TeamMemberTypeFilterOptions memberType,
+													   long limit, long offset) throws SynapseException {
+		URIBuilder uri = new URIBuilder();
+		uri.setPath(TEAM_MEMBERS + "/" + teamId);
+		if (fragment != null) {
+			uri.setParameter(NAME_FRAGMENT_FILTER, urlEncode(fragment));
 		}
-		return getPaginatedResults(getRepoEndpoint(), uri, TeamMember.class);
+		if (memberType != null) {
+			uri.setParameter(NAME_MEMBERTYPE_FILTER, memberType.toString());
+		}
+		uri.setParameter(OFFSET, String.valueOf(offset));
+		uri.setParameter(LIMIT, String.valueOf(limit));
+
+		return getPaginatedResults(getRepoEndpoint(), uri.toString(), TeamMember.class);
 	}
 
 	/**
@@ -4314,31 +4307,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void setCertifiedUserStatus(String principalId, boolean status)
-			throws SynapseException {
-		String url = USER + "/" + principalId + CERTIFIED_USER_STATUS
-				+ "?isCertified=" + status;
-		voidPut(getRepoEndpoint(), url, null);
-	}
-
-	@Override
-	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(
-			long offset, long limit, String principalId)
-			throws SynapseException {
-
-		String uri = null;
-		if (principalId == null) {
-			uri = CERTIFIED_USER_TEST_RESPONSE + "?" + OFFSET + "=" + offset
-					+ "&" + LIMIT + "=" + limit;
-		} else {
-			uri = CERTIFIED_USER_TEST_RESPONSE + "?"
-					+ PRINCIPAL_ID_REQUEST_PARAM + "=" + principalId + "&"
-					+ OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
-		}
-		return getPaginatedResults(getRepoEndpoint(), uri, QuizResponse.class);
-	}
-
-	@Override
 	public void deleteCertifiedUserTestResponse(String id)
 			throws SynapseException {
 		deleteUri(getRepoEndpoint(), CERTIFIED_USER_TEST_RESPONSE + "/" + id);
@@ -4352,15 +4320,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(getRepoEndpoint(), url, PassingRecord.class);
 	}
 
-	@Override
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(
-			long offset, long limit, String principalId)
-			throws SynapseException {
-		ValidateArgument.required(principalId, "principalId");
-		String uri = USER + "/" + principalId + CERTIFIED_USER_PASSING_RECORDS
-				+ "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
-		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
-	}
 
 	@Deprecated
 	@Override
@@ -4880,14 +4839,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public Subscription getSubscription(String subscriptionId) throws SynapseException {
 		ValidateArgument.required(subscriptionId, "subscriptionId");
 		return getJSONEntity(getRepoEndpoint(), SUBSCRIPTION+"/"+subscriptionId, Subscription.class);
-	}
-
-	@Override
-	public Etag getEtag(String objectId, ObjectType objectType) throws SynapseException {
-		ValidateArgument.required(objectId, "objectId");
-		ValidateArgument.required(objectType, "objectType");
-		String url = OBJECT+"/"+objectId+"/"+objectType.name()+"/"+ETAG;
-		return getJSONEntity(getRepoEndpoint(), url, Etag.class);
 	}
 
 	@Override

@@ -34,13 +34,13 @@ public class EvaluationSubmissionAnnotationsWorker implements ChangeMessageDrive
 			try {
 				// Is this a create, update, or delete?
 				if (ChangeType.CREATE == change.getChangeType()) {
-					ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
+					ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId());
 				} else if (ChangeType.UPDATE == change.getChangeType()) {
 					// update
-					ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
+					ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId());
 				} else if(ChangeType.DELETE == change.getChangeType()) {
 					// delete
-					ssAsyncMgr.deleteEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
+					ssAsyncMgr.deleteEvaluationSubmissionStatuses(change.getObjectId());
 				} else {
 					throw new IllegalArgumentException("Unknown change type: "+change.getChangeType());
 				}

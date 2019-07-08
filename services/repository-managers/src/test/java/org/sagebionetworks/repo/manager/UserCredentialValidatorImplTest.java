@@ -25,7 +25,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.loginlockout.LoginAttemptResultReporter;
-import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockout;
+import org.sagebionetworks.repo.manager.loginlockout.LoginLockoutStatus;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -36,7 +36,7 @@ public class UserCredentialValidatorImplTest {
 	@Mock
 	private LoginAttemptResultReporter mockLoginAttemptResultReporter;
 	@Mock
-	private UnsuccessfulLoginLockout mockUnsuccessfulLoginLockout;
+	private LoginLockoutStatus mockLoginLockoutStatus;
 	@Mock
 	private AuthenticationDAO mockAuthDAO;
 	@Mock
@@ -59,7 +59,7 @@ public class UserCredentialValidatorImplTest {
 
 
 		when(mockAuthDAO.checkUserCredentials(anyLong(), anyString())).thenReturn(true);
-		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(userId)).thenReturn(mockLoginAttemptResultReporter);
+		when(mockLoginLockoutStatus.checkIsLockedOut(userId)).thenReturn(mockLoginAttemptResultReporter);
 	}
 
 	@Test
@@ -84,7 +84,7 @@ public class UserCredentialValidatorImplTest {
 
 	@Test
 	public void testCheckPasswordWithThrottling_IsLockedOut_lessThanLogThreshold(){
-		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
+		when(mockLoginLockoutStatus.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
 		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD - 1);
 
 		try{
@@ -95,14 +95,14 @@ public class UserCredentialValidatorImplTest {
 			//expected
 		}
 
-		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
+		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockLoginAttemptResultReporter);
 		verifyZeroInteractions(mockConsumer);
 	}
 
 	@Test
 	public void testCheckPasswordWithThrottling_IsLockedOut_GreaterThanEqualLogThreshold(){
-		when(mockUnsuccessfulLoginLockout.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
+		when(mockLoginLockoutStatus.checkIsLockedOut(userId)).thenThrow(mockUnsuccessfulLoginLockoutException);
 		when(mockUnsuccessfulLoginLockoutException.getNumFailedAttempts()).thenReturn(REPORT_UNSUCCESSFUL_LOGIN_GREATER_OR_EQUAL_THRESHOLD);
 
 		try{
@@ -113,7 +113,7 @@ public class UserCredentialValidatorImplTest {
 			//expected
 		}
 
-		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
+		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockLoginAttemptResultReporter);
 		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
 		verify(mockConsumer).addProfileData(captor.capture());
@@ -129,7 +129,7 @@ public class UserCredentialValidatorImplTest {
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verify(mockLoginAttemptResultReporter).reportSuccess();
-		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
+		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockConsumer);
 	}
 
@@ -142,7 +142,7 @@ public class UserCredentialValidatorImplTest {
 
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
 		verify(mockLoginAttemptResultReporter).reportFailure();
-		verify(mockUnsuccessfulLoginLockout).checkIsLockedOut(userId);
+		verify(mockLoginLockoutStatus).checkIsLockedOut(userId);
 		verifyZeroInteractions(mockConsumer);
 	}
 

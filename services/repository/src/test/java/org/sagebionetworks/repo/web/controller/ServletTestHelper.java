@@ -93,7 +93,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -956,7 +955,7 @@ public class ServletTestHelper {
 	public void deleteMessage(HttpServlet dispatchServlet,
 			Long userId, String id) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.MESSAGE + "/" + id, userId, null);
+				HTTPMODE.DELETE, UrlHelpers.ADMIN + UrlHelpers.MESSAGE + "/" + id, userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -2131,13 +2130,6 @@ public class ServletTestHelper {
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
-	}
-
-	public Etag getEtag(DispatcherServlet dispatchServlet, Long userId, String objectId, ObjectType objectType) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.OBJECT+"/"+objectId+"/"+objectType.name()+UrlHelpers.ETAG, userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-		return objectMapper.readValue(response.getContentAsString(), Etag.class);
 	}
 
 	public ThreadCount getThreadCount(DispatcherServlet dispatchServlet, Long userId, String forumId,

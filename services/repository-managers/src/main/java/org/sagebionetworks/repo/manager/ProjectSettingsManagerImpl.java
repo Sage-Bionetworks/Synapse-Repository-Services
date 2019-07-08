@@ -8,8 +8,8 @@ import java.net.URL;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import com.google.common.net.InternetDomainName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,12 +51,13 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.net.InternetDomainName;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	public static final int MIN_SECRET_KEY_CHARS = 36;
 
-	private static final String EXTERNAL_S3_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external s3 upload destination";
+	private static final String EXTERNAL_S3_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external S3 upload destination";
 
 	static private Logger log = LogManager.getLogger(ProjectSettingsManagerImpl.class);
 
@@ -97,8 +98,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized()) {
 			throw new UnauthorizedException("Cannot read information from this project");
 		}
-		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
-		return projectSetting;
+		return projectSettingsDao.get(projectId, type);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -110,12 +110,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (nodePath.isEmpty()) {
 			throw new DatastoreException("No path for this parentId could be found");
 		}
-		List<Long> nodePathIds = Lists.transform(nodePath, new Function<EntityHeader, Long>() {
-			@Override
-			public Long apply(EntityHeader input) {
-				return KeyFactory.stringToKey(input.getId());
-			}
-		});
+		List<Long> nodePathIds = nodePath.stream().map(input -> KeyFactory.stringToKey(input.getId())).collect(Collectors.toList());
 
 		// get the first available project setting of the correct type
 		ProjectSetting projectSetting = projectSettingsDao.get(nodePathIds, type);
@@ -330,8 +325,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
 			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
-				throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
-						+ getExplanation(userProfile, bucket, key));
+				if (key.equals(OWNER_MARKER)) {
+					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
+							+ getExplanation(userProfile, bucket, key));
+				} else {
+					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". If the S3 object is in a folder, please make sure you specify a trailing '/' in the base key. " + getExplanation(userProfile, bucket, key));
+				}
 			} else {
 				throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucket + ": "
 						+ e.getMessage() + ". " + getExplanation(userProfile, bucket, key));

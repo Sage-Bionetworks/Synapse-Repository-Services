@@ -3,11 +3,12 @@ package org.sagebionetworks.repo.manager.search;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PATH;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.search.CloudSearchLogger;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchUtil;
 import org.springframework.test.context.ContextConfiguration;
@@ -56,6 +58,9 @@ public class SearchManagerImplTest {
 
 	@Mock
 	SearchDocumentDriver mockSearchDocumentDriver;
+	
+	@Mock
+	CloudSearchLogger mockRecordLogger;
 
 	@Captor
 	ArgumentCaptor<Iterator<Document>> iteratorArgumentCaptor;
@@ -167,6 +172,7 @@ public class SearchManagerImplTest {
 		searchManager.documentChangeMessages(messages);
 
 		verify(mockSearchDao).sendDocuments(iteratorArgumentCaptor.capture());
+		verify(mockRecordLogger).pushAllRecordsAndReset();
 
 		//check that the document iterator now only contains non-null Documents
 		Iterator<Document> generatedIterator = iteratorArgumentCaptor.getValue();
@@ -174,5 +180,21 @@ public class SearchManagerImplTest {
 		assertEquals(2, documentsInIterator.size());
 		assertEquals(doc1, documentsInIterator.get(0));
 		assertEquals(doc3, documentsInIterator.get(1));
+	}
+	
+	@Test
+	public void testDocumentChangeMessagesError(){
+		doThrow(new IllegalArgumentException("Fake failure")).when(mockSearchDao).sendDocuments(any(Iterator.class));
+		List<ChangeMessage> messages = Arrays.asList(new ChangeMessage(), new ChangeMessage(), new ChangeMessage());
+		try {
+			//method under test
+			searchManager.documentChangeMessages(messages);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// expected
+		}
+		// clear the records even on failure.
+		verify(mockRecordLogger).pushAllRecordsAndReset();
+
 	}
 }

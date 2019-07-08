@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -271,20 +272,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return formulateFromBackup(node);
 	}
 
-	@Override
-	public boolean doesNodeExist(String nodeId, String etag) {
-		if (nodeId == null)
-			throw new IllegalAccessError("NodeId cannot be null");
-		if (etag == null)
-			throw new IllegalArgumentException("Etag cannot be null");
-		try {
-			String current = nodeDao.peekCurrentEtag(nodeId);
-			return etag.equals(current);
-		} catch (DatastoreException | NotFoundException e) {
-			return false;
-		}
-	}
-
 	/**
 	 * Get all wiki text for an entity.
 	 * 
@@ -323,6 +310,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			// There is no WikiPage for this node.
 			return null;
 		}
+	}
+
+	@Override
+	public boolean doesEntityExistInRepository(String entityId){
+		return nodeDao.isNodeAvailable(entityId);
 	}
 
 }

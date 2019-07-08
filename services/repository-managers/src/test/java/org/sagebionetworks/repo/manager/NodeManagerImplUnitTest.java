@@ -22,9 +22,11 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -48,7 +50,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -59,6 +60,7 @@ import com.google.common.collect.Sets;
  * @author jmhill
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class NodeManagerImplUnitTest {
 	
 	@Mock
@@ -78,6 +80,7 @@ public class NodeManagerImplUnitTest {
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
 	
+	@InjectMocks
 	private NodeManagerImpl nodeManager = null;
 		
 	private UserInfo mockUserInfo;
@@ -93,17 +96,6 @@ public class NodeManagerImplUnitTest {
 	
 	@Before
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl();
-		ReflectionTestUtils.setField(nodeManager, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(nodeManager, "authorizationManager", mockAuthManager);
-		ReflectionTestUtils.setField(nodeManager, "aclDAO", mockAclDao);
-		ReflectionTestUtils.setField(nodeManager, "entityBootstrapper", mockEntityBootstrapper);
-		ReflectionTestUtils.setField(nodeManager, "activityManager", mockActivityManager);
-		ReflectionTestUtils.setField(nodeManager, "projectSettingsManager", projectSettingsManager);
-		ReflectionTestUtils.setField(nodeManager, "transactionalMessenger", transactionalMessenger);
-
 		mockUserInfo = new UserInfo(false, 101L);
 		
 		anonUserInfo = new UserInfo(false, 102L);
@@ -1004,5 +996,86 @@ public class NodeManagerImplUnitTest {
 		} 
 		verify(mockNodeDao).lockNode(nodeId);
 		verify(mockNodeDao, never()).touch(any(Long.class), anyString());
+	}
+	
+	@Test(expected = UnauthorizedException.class)
+	public void testCreateNewVersionUnauthorizedEntityUpdate() {
+		String comment = null;
+		String label = null;
+		String activityId = null;
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+				.thenReturn(AuthorizationStatus.accessDenied(""));
+		// call under test
+		nodeManager.createNewVersion(mockUserInfo, nodeId, comment, label, activityId);
+	}
+	
+	@Test(expected = UnauthorizedException.class)
+	public void testCreateNewVersionUnauthorizedActivityId() {
+		String comment = null;
+		String label = null;
+		String activityId = "987";
+		// can update the entity
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+				.thenReturn(AuthorizationStatus.authorized());
+		// but cannot access the activity.
+		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId))
+				.thenReturn(AuthorizationStatus.accessDenied(""));
+		// call under test
+		nodeManager.createNewVersion(mockUserInfo, nodeId, comment, label, activityId);
+	}
+	
+	@Test
+	public void testCreateNewVersion() {
+		String comment = "new comment";
+		String label = "new label";
+		String activityId = "987";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(AuthorizationStatus.authorized());
+		
+		Node currentNode = new Node();
+		currentNode.setId(nodeId);
+		currentNode.setVersionComment("old comment");
+		currentNode.setVersionLabel("old label");
+		currentNode.setActivityId("765");
+		when(mockNodeDao.getNode(nodeId)).thenReturn(currentNode);
+		long newVersion = 444L;
+		when(mockNodeDao.createNewVersion(any(Node.class))).thenReturn(newVersion);
+		
+		// call under test
+		long resultVersion = nodeManager.createNewVersion(mockUserInfo, nodeId, comment, label, activityId);
+		assertEquals(newVersion, resultVersion);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccessActivity(mockUserInfo, activityId);
+		verify(mockNodeDao).lockNode(nodeId);
+		Node expectedNewNode = new Node();
+		expectedNewNode.setId(nodeId);
+		expectedNewNode.setVersionComment(comment);
+		expectedNewNode.setVersionLabel(label);
+		expectedNewNode.setActivityId(activityId);
+		verify(mockNodeDao).createNewVersion(expectedNewNode);
+		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNewVersionNullUser() {
+		String comment = "new comment";
+		String label = "new label";
+		String activityId = "987";
+		UserInfo userInfo = null;
+		
+		// call under test
+		nodeManager.createNewVersion(userInfo, nodeId, comment, label, activityId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNewVersionNullNodeId() {
+		String comment = "new comment";
+		String label = "new label";
+		String activityId = "987";
+		String nullNodeId = null;
+		
+		// call under test
+		nodeManager.createNewVersion(mockUserInfo, nullNodeId, comment, label, activityId);
 	}
 }

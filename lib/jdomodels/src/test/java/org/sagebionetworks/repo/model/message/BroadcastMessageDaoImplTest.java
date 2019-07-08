@@ -40,7 +40,6 @@ public class BroadcastMessageDaoImplTest {
 		
 		changeMessage = new ChangeMessage();
 		changeMessage.setChangeType(ChangeType.CREATE);
-		changeMessage.setObjectEtag("etag");
 		changeMessage.setObjectId("123");
 		changeMessage.setObjectType(ObjectType.THREAD);
 		changeMessage = changeDao.replaceChange(changeMessage);

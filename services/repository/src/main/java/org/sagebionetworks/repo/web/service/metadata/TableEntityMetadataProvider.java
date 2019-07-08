@@ -27,8 +27,11 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 	}
 
 	@Override
-	public void entityUpdated(UserInfo userInfo, TableEntity entity) {
+	public void entityUpdated(UserInfo userInfo, TableEntity entity, boolean wasNewVersionCreated) {
 		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
+		if(wasNewVersionCreated) {
+			tableEntityManager.bindCurrentEntityVersionToLatestTransaction(entity.getId());
+		}
 	}
 
 	@Override

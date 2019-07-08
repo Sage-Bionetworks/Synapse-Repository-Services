@@ -6,8 +6,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.aws.AbstractSynapseCredentialProvider.ORG_SAGEBIONETWORKS_STACK_IAM_ID;
-import static org.sagebionetworks.aws.AbstractSynapseCredentialProvider.ORG_SAGEBIONETWORKS_STACK_IAM_KEY;
+import static org.sagebionetworks.aws.AbstractSynapseAWSCredentialsProvider.ORG_SAGEBIONETWORKS_STACK_IAM_ID;
+import static org.sagebionetworks.aws.AbstractSynapseAWSCredentialsProvider.ORG_SAGEBIONETWORKS_STACK_IAM_KEY;
 
 import java.util.Properties;
 
@@ -23,7 +23,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SynapseCredentialProviderChainTest {
+public class SynapseAWSCredentialsProviderChainTest {
 
 	@Mock
 	PropertyProvider mockPropertyProvider;
@@ -63,7 +63,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(settings);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(null);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -81,7 +81,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(null);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(system);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -101,7 +101,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(null);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(null);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -123,7 +123,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(settings);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(null);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -144,7 +144,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(settings);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(null);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -163,7 +163,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(settings);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(null);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -182,7 +182,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(null);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(system);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -202,7 +202,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(null);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(system);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -220,7 +220,7 @@ public class SynapseCredentialProviderChainTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(null);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(system);
 		
-		SynapseCredentialProviderChain chain = createChain();
+		SynapseAWSCredentialsProviderChain chain = createChain();
 		// call under test
 		AWSCredentials creds = chain.getCredentials();
 		assertNotNull(creds);
@@ -232,7 +232,7 @@ public class SynapseCredentialProviderChainTest {
 	 * Create a new chain.
 	 * @return
 	 */
-	SynapseCredentialProviderChain createChain() {
-		return new SynapseCredentialProviderChain(mockPropertyProvider, mockDefaultProvider);
+	SynapseAWSCredentialsProviderChain createChain() {
+		return new SynapseAWSCredentialsProviderChain(mockPropertyProvider, mockDefaultProvider);
 	}
 }

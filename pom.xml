@@ -4,6 +4,7 @@
 	xsi:schemaLocation="https://maven.apache.org/POM/4.0.0\
                              https://maven.apache.org/maven-v4_0_0.xsd">
 
+
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
 
@@ -376,6 +377,12 @@
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk</artifactId>
 				<version>${com.amazonaws.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.google.cloud</groupId>
+				<artifactId>google-cloud-storage</artifactId>
+				<version>${com.google.cloud.version}</version>
 			</dependency>
 
 			<dependency>
@@ -938,7 +945,7 @@
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
 		<org.springframework.version>5.1.5.RELEASE
 		</org.springframework.version>
-		<jackson.version>2.9.8</jackson.version>
+		<jackson.version>2.9.9</jackson.version>
 		<xstream.version>1.4.11.1</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ
 		</maven.build.timestamp.format>
@@ -964,6 +971,7 @@
 		<junit.vintage.version>5.4.1</junit.vintage.version>
 		<junit.platform.version>1.4.1</junit.platform.version>
 		<mockito.version>2.27.0</mockito.version>
+		<com.google.cloud.version>1.77.0</com.google.cloud.version>
 	</properties>
 
 	<distributionManagement>

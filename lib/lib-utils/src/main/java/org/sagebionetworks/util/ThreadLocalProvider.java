@@ -1,6 +1,7 @@
 package org.sagebionetworks.util;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.google.common.collect.Maps;
 
@@ -28,5 +29,23 @@ public class ThreadLocalProvider {
 			threadLocals.put(key, threadLocal);
 		}
 		return threadLocal;
+	}
+
+	@SuppressWarnings("unchecked")
+	/**
+	 * Call this method from static initialization of your class to get a static threadlocal instance. Initializes the value with the provided supplier if the ThreadLocal does not already exist
+	 *
+	 * <pre>
+	 * class Test {
+	 * 	private static final ThreadLocal&lt;Long&gt; id = ThreadLocalProvider.getInstance(&quot;my.special.key&quot;, ()->42L);
+	 * }
+	 * </pre>
+	 *
+	 * @param key
+	 * @param supplier
+	 * @return
+	 */
+	public static synchronized <T> ThreadLocal<T> getInstanceWithInitial(String key, Supplier<? extends T> supplier) {
+		return (ThreadLocal<T>) threadLocals.computeIfAbsent( key, (k) ->ThreadLocal.withInitial(supplier));
 	}
 }

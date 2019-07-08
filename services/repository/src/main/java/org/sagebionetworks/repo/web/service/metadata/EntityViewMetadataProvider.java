@@ -18,7 +18,7 @@ public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<En
 	TableViewManager fileViewManager;
 
 	@Override
-	public void entityUpdated(UserInfo userInfo, EntityView entityView) {
+	public void entityUpdated(UserInfo userInfo, EntityView entityView, boolean wasNewVersionCreated) {
 		ViewScope scope = createViewScope(entityView);
 		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), scope, entityView.getId());
 	}

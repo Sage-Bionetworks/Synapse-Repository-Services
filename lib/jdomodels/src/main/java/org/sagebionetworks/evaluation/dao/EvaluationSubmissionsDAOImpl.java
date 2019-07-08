@@ -106,7 +106,6 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 		message.setChangeType(changeType);
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setObjectId(evaluationId.toString());
-		message.setObjectEtag(etag);
 		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 	

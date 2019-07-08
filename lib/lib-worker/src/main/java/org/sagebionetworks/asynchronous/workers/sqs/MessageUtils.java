@@ -217,7 +217,6 @@ public class MessageUtils {
 			String etag, String messageId, String messageHandle){
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(type);
-		message.setObjectEtag(etag);
 		message.setObjectId(nodeId);
 		message.setObjectType(ObjectType.ENTITY);
 		return MessageUtils.createMessage(message, messageId, messageHandle);
@@ -236,7 +235,6 @@ public class MessageUtils {
 	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String parentId, String etag, long timestamp){
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(changeType);
-		message.setObjectEtag(etag);
 		message.setObjectId(objectId);
 		message.setObjectType(objectType);
 		message.setTimestamp(new Date(timestamp));

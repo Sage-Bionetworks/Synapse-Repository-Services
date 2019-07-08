@@ -5,16 +5,19 @@ package org.sagebionetworks.repo.model.file;
  * 
  */
 public class AddPartRequest {
-	
+
+	String uploadId;
 	String uploadToken;
 	String bucket;
 	String key;
 	String partKey;
 	String partMD5Hex;
-	int partNumber;
+	long partNumber;
+	long totalNumberOfParts;
 
 	/**
-	 * 
+	 * @param uploadId
+	 * 			  The Synapse upload ID
 	 * @param uploadToken
 	 *            The AWS S3 upload ID.
 	 * @param bucket
@@ -26,27 +29,43 @@ public class AddPartRequest {
 	 * @param partMD5Hex
 	 *            The part MD5 as a hex string.
 	 */
-	public AddPartRequest(String uploadToken, String bucket, String key,
-			String partKey, String partMD5Hex, int partNumber) {
+	public AddPartRequest(String uploadId, String uploadToken, String bucket, String key,
+			String partKey, String partMD5Hex, long partNumber, long totalNumberOfParts) {
 		super();
+		this.uploadId = uploadId;
 		this.uploadToken = uploadToken;
 		this.bucket = bucket;
 		this.key = key;
 		this.partKey = partKey;
 		this.partMD5Hex = partMD5Hex;
 		this.partNumber = partNumber;
+		this.totalNumberOfParts = totalNumberOfParts;
 	}
+
+	public String getUploadId() {
+		return uploadId;
+	}
+
+	public void setUploadId(String uploadId) { this.uploadId = uploadId; }
 
 	public String getUploadToken() {
 		return uploadToken;
 	}
 
-	public int getPartNumber() {
+	public long getPartNumber() {
 		return partNumber;
 	}
 
-	public void setPartNumber(int partNumber) {
+	public void setPartNumber(long partNumber) {
 		this.partNumber = partNumber;
+	}
+
+	public long getTotalNumberOfParts() {
+		return totalNumberOfParts;
+	}
+
+	public void setTotalNumberOfParts(long totalNumberOfParts) {
+		this.totalNumberOfParts = totalNumberOfParts;
 	}
 
 	public void setUploadToken(String uploadToken) {
@@ -89,12 +108,14 @@ public class AddPartRequest {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((uploadId == null) ? 0 : uploadId.hashCode());
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result + ((partKey == null) ? 0 : partKey.hashCode());
 		result = prime * result
 				+ ((partMD5Hex == null) ? 0 : partMD5Hex.hashCode());
-		result = prime * result + partNumber;
+		result = prime * result + (int) partNumber;
+		result = prime * result + (int) totalNumberOfParts;
 		result = prime * result
 				+ ((uploadToken == null) ? 0 : uploadToken.hashCode());
 		return result;
@@ -109,6 +130,11 @@ public class AddPartRequest {
 		if (getClass() != obj.getClass())
 			return false;
 		AddPartRequest other = (AddPartRequest) obj;
+		if (uploadId == null) {
+			if (other.uploadId != null)
+				return false;
+		} else if (!uploadId.equals(other.uploadId))
+			return false;
 		if (bucket == null) {
 			if (other.bucket != null)
 				return false;
@@ -141,9 +167,14 @@ public class AddPartRequest {
 
 	@Override
 	public String toString() {
-		return "AddPartRequest [uploadToken=" + uploadToken + ", bucket="
-				+ bucket + ", key=" + key + ", partKey=" + partKey
-				+ ", partMD5Hex=" + partMD5Hex + ", partNumber=" + partNumber
+		return "AddPartRequest ["
+				+ "uploadId=" + uploadId
+				+ ", uploadToken=" + uploadToken
+				+ ", bucket=" + bucket
+				+ ", key=" + key
+				+ ", partKey=" + partKey
+				+ ", partMD5Hex=" + partMD5Hex
+				+ ", partNumber=" + partNumber
 				+ "]";
 	}
 

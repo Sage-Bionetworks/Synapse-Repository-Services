@@ -19,7 +19,6 @@ import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
-import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -68,6 +67,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -177,7 +177,6 @@ import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
@@ -201,7 +200,6 @@ import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
-import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
@@ -827,12 +825,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void updateMessageStatus(MessageStatus status)
 			throws SynapseException;
-	
-	/**
-	 * Deletes a message.  Used for test cleanup only.  Admin only.
-	 */
-	public void deleteMessage(String messageId) throws SynapseException;
-	
+
 	/**
 	 * Downloads the body of a message and returns it in a String
 	 */
@@ -936,14 +929,6 @@ public interface SynapseClient extends BaseClient {
 	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException;
-	
-	/**
-	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
-	 * @param submissionId
-	 * @param contributor
-	 * @return
-	 */
-	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor) throws SynapseException ;
 
 	public Submission getSubmission(String subId) throws SynapseException;
 
@@ -1464,10 +1449,10 @@ public interface SynapseClient extends BaseClient {
 	ResponseMessage addTeamMember(JoinTeamSignedToken joinTeamSignedToken, 
 			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException;
-	
+
 	/**
 	 * Return the members of the given team matching the given name fragment.
-	 * 
+	 *
 	 * @param teamId
 	 * @param fragment if null then return all members in the team
 	 * @param limit
@@ -1476,6 +1461,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+
+	/**
+	 * Return the members of the given team matching the given name fragment.
+	 * 
+	 * @param teamId
+	 * @param fragment if null then return all members in the team
+	 * @param memberType if null then return all members in the team (that match the fragment)
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws SynapseException;
 	
 	/**
 	 * 
@@ -1854,27 +1852,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
-	
-	/**
-	 * For integration testing only:  This allows an administrator to set the Certified user status
-	 * of a user.
-	 * @param prinicipalId
-	 * @param status
-	 * @throws SynapseException
-	 */
-	public void setCertifiedUserStatus(String prinicipalId, boolean status) throws SynapseException;
-	
-	/**
-	 * Must be a Synapse admin to make this request
-	 * 
-	 * @param offset
-	 * @param limit
-	 * @param principalId (optional)
-	 * @return the C.U. test responses in the system, optionally filtered by principalId
-	 * @throws SynapseException 
-	 */
-	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, String principalId) throws SynapseException;
-	
+
 	/**
 	 * Delete the Test Response indicated by the given id
 	 * 
@@ -1894,11 +1872,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
 
-	/**
-	 * Get all Passing Records on the Certified User test for the given user
-	 */
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
-	
 	/**
 	 * Start a new Asynchronous Job
 	 * @param jobBody
@@ -2680,16 +2653,6 @@ public interface SynapseClient extends BaseClient {
 	SubscriberCount getSubscriberCount(Topic topic) throws SynapseException;
 
 
-	/**
-	 * Retrieve the current etag for a given object.
-	 * 
-	 * @param objectId
-	 * @param objectType
-	 * @return
-	 * @throws SynapseException
-	 */
-	Etag getEtag(String objectId, ObjectType objectType) throws SynapseException;
-	
 	/**
 	 * Get the entity ID assigned to a given alias.
 	 * 

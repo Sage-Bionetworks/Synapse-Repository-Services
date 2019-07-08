@@ -93,4 +93,20 @@ public class KeyFactoryTest {
 		assertTrue(KeyFactory.equals("syn1", "1"));
 		assertTrue(KeyFactory.equals("SYN1", " syn1 "));
 	}
+	
+	@Test
+	public void testCompare() {
+		assertEquals(0, KeyFactory.compare(null, null));
+		assertEquals(1, KeyFactory.compare("syn123", null));
+		assertEquals(-1, KeyFactory.compare(null, "syn123"));
+		assertEquals(0, KeyFactory.compare("syn123", "syn123"));
+		assertEquals(0, KeyFactory.compare("123", "syn123"));
+		assertEquals(0, KeyFactory.compare("syn123", "123"));
+		assertEquals(1, KeyFactory.compare("syn1234", "syn123"));
+		assertEquals(1, KeyFactory.compare("1234", "syn123"));
+		assertEquals(1, KeyFactory.compare("syn1234", "123"));
+		assertEquals(-1, KeyFactory.compare("syn123", "syn1234"));
+		assertEquals(-1, KeyFactory.compare("123", "syn1234"));
+		assertEquals(-1, KeyFactory.compare("syn123", "1234"));
+	}
 }

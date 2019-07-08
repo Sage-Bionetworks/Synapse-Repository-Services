@@ -10,11 +10,15 @@
 	],
 	"properties": {
 		"changes": {
-		    "description":"List of changes that describes column additions, deletions, and updates",
+			"description": "List of changes that describes schema and/or row changes to a table.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
 			}
+		},
+		"versionRequest": {
+			"description": "An optional parameter used to create a new version of table that includes all of the changes from this request.",
+			"$ref": "org.sagebionetworks.repo.model.table.VersionRequest"
 		}
 	}
 }

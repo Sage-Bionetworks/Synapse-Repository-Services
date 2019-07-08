@@ -66,8 +66,9 @@ public class EntityViewMetadataProviderTest {
 	
 	@Test
 	public void testUpdate(){
+		boolean wasNewVersionCreated = false;
 		// call under test
-		provider.entityUpdated(userInfo, table);
+		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
 		verify(mockFileViewManager).setViewSchemaAndScope(userInfo, columnIds, scope, entityId);
 	}
 	

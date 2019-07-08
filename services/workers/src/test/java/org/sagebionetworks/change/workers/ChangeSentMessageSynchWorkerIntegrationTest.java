@@ -87,8 +87,9 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			
 			@Override
 			public long currentTimeMillis() {
-				// always way in the future.
-				return Long.MAX_VALUE;
+				// Makes sure this is always in the future, enough so that the ChangeSentMessageSynchWorker will process the
+				// unsent messages right away without ignoring messages that are sent recently (the threshold is by default 60s)
+				return System.currentTimeMillis() + 60 * 60 * 1000;
 			}
 		});
 	}
@@ -189,7 +190,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			}else{
 				change.setObjectId(""+objectIdSequence++);
 			}
-			change.setObjectEtag(UUID.randomUUID().toString());
 			change.setChangeType(ChangeType.UPDATE);
 			change.setObjectType(type);
 			batch.add(change);

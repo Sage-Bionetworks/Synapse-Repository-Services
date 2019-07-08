@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -36,6 +39,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
@@ -250,10 +254,53 @@ public class TableEntityTransactionManagerTest {
 	}
 	
 	@Test
-	public void testDoIntransactionUpdateTable() throws RecoverableMessageException, TableUnavailableException {
+	public void testDoIntransactionUpdateTableNullVersionInfo()
+			throws RecoverableMessageException, TableUnavailableException {
+		request.setVersionRequest(null);
 		// call under test
-		manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
+				progressCallback, userInfo, request);
+		assertNotNull(response);
+		assertNull(response.getNewVersionNumber());
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
-		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(transactionId));
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
+				eq(transactionId));
+		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
+				any(VersionRequest.class), anyLong());
+	}
+	
+	@Test
+	public void testDoIntransactionUpdateTableWithNewVersionFalse()
+			throws RecoverableMessageException, TableUnavailableException {
+		VersionRequest versionInfo = new VersionRequest();
+		versionInfo.setCreateNewTableVersion(false);
+		request.setVersionRequest(versionInfo);
+		// call under test
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
+				progressCallback, userInfo, request);
+		assertNotNull(response);
+		assertNull(response.getNewVersionNumber());
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
+				eq(transactionId));
+		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
+				any(VersionRequest.class), anyLong());
+	}
+	
+	@Test
+	public void testDoIntransactionUpdateTableWithNewVersiontrue()
+			throws RecoverableMessageException, TableUnavailableException {
+		VersionRequest versionInfo = new VersionRequest();
+		versionInfo.setCreateNewTableVersion(true);
+		request.setVersionRequest(versionInfo);
+		// call under test
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
+				progressCallback, userInfo, request);
+		assertNotNull(response);
+		assertEquals(new Long(0), response.getNewVersionNumber());
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
+				eq(transactionId));
+		verify(tableEntityManager).createNewVersionAndBindToTransaction(userInfo, tableId, versionInfo, transactionId);
 	}
 }

@@ -595,10 +595,17 @@ public class SQLTranslatorUtilsTest {
 	}	
 	
 	@Test
-	public void testTranslateTableReference(){
-		TableReference element = new TableReference("syn123");
+	public void testTranslateTableReference() throws ParseException{
+		TableReference element = new TableQueryParser("syn123").tableReference();
 		SQLTranslatorUtils.translate(element);
 		assertEquals("T123",element.getTableName());
+	}
+	
+	@Test
+	public void testTranslateTableReferenceVerion() throws ParseException{
+		TableReference element = new TableQueryParser("syn123.456").tableReference();
+		SQLTranslatorUtils.translate(element);
+		assertEquals("T123_456",element.getTableName());
 	}
 	
 	@Test

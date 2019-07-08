@@ -82,7 +82,8 @@ public class BeanTest implements ApplicationContextAware {
 			"getUsersDownloadListForUpdate",
 			"getDoiAssociationForUpdate",
 			"getUnsuccessfulLoginLockoutInfoIfExist",
-			"checkIsLockedOut");
+			"checkIsLockedOut",
+			"getTableIdWithLock");
 
 	@Test
 	public void testNoGetterWriteTransactions() {

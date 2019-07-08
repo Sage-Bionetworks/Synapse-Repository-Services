@@ -783,7 +783,6 @@ public class TableWorkerIntegrationTest {
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectType(ObjectType.TABLE);
 		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
-		message.setObjectEtag(UUID.randomUUID().toString());
 		message = changeDAO.replaceChange(message);
 		// and pretend we just created it
 		repositoryMessagePublisher.publishToTopic(message);
@@ -2314,6 +2313,51 @@ public class TableWorkerIntegrationTest {
 		query.setSql(sql);
 		QueryResult results = waitForConsistentQuery(adminUserInfo, query, queryOptions);
 		assertNotNull(results);
+	}
+	
+	/**
+	 * In the past, changing a table's schema via PUT /entity did not add the schema change to the
+	 * tables history.  We have since corrected this, but there are still tables
+	 * that had such schema changes in production.  When we changed the TableIndexWorker to build
+	 * tables only from the table's history to support we discovered a few tables in this state.
+	 * The worker would build such tables using the table's history and set its status to available.
+	 * When a user would query the table, the query manager would detect the table's index schema
+	 * did not match the bound schema and would trigger the table to rebuild.  The result was a table
+	 * stuck in a perpetual state of processing.
+	 * 
+	 * This test creates the same setup for the bug.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_5639() throws Exception {
+		ColumnModel columnOne = new ColumnModel();
+		columnOne.setColumnType(ColumnType.INTEGER);
+		columnOne.setName("one");
+		columnOne = columnManager.createColumnModel(adminUserInfo, columnOne);
+		ColumnModel columnTwo = new ColumnModel();
+		columnTwo.setColumnType(ColumnType.STRING);
+		columnTwo.setMaximumSize(50L);
+		columnTwo.setName("two");
+		columnTwo = columnManager.createColumnModel(adminUserInfo, columnTwo);
+		schema = Lists.newArrayList(columnOne, columnTwo);
+		// build a table with this column.
+		createTableWithSchema();
+		// add a row
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "1", "foo"),
+				TableModelTestUtils.createRow(null, null, "2", "bar")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockPprogressCallback);
+		/* Directly remove one of the columns from the table's bound columns
+		 * to simulate the bug state.
+		 */
+		columnManager.bindColumnToObject(Lists.newArrayList(columnOne.getId()), tableId);
+		// Should be able to query the table
+		query.setSql("select * from " + tableId);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
+		assertEquals(2, queryResult.getQueryResults().getRows().size());
 	}
 	
 	/**

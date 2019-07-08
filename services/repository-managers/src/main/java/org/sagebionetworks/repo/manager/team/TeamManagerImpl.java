@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.manager.team;
 
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -21,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
@@ -29,7 +27,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
@@ -55,6 +52,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -64,6 +62,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
@@ -104,11 +103,11 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private MembershipRequestDAO membershipRequestDAO;
 	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
 	private PrincipalManager principalManager;
+	@Autowired
+	PrincipalPrefixDAO principalPrefixDAO;
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
@@ -264,8 +263,6 @@ public class TeamManagerImpl implements TeamManager {
 	 * This turns out to be very different from the normal create, bypassing checks for both 
 	 * principal and team creation. Also, it's not transactional.
 	 * @param team
-	 * @param now
-	 * @param teamIdTakesPriority
 	 * @return
 	 */
 	private Team bootstrapCreate(Team team) {
@@ -321,12 +318,63 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public PaginatedResults<TeamMember> listMembers(String teamId, long limit,
+	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit,
 			long offset) throws DatastoreException {
-		List<TeamMember> results = teamDAO.getMembersInRange(teamId, limit, offset);
+		List<TeamMember> results;
+		Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::valueOf).collect(Collectors.toSet());
+		switch (memberType) {
+			case ADMIN:
+				if (adminIds.isEmpty()) { // No team admins is possible at the DAO level
+					return new PaginatedResults<>();
+				}
+				results = teamDAO.getMembersInRange(teamId, adminIds, null, limit, offset);
+				results.forEach(tm -> tm.setIsAdmin(true));
+				break;
+			case MEMBER:
+				results = teamDAO.getMembersInRange(teamId, null, adminIds, limit, offset);
+				results.forEach(tm -> tm.setIsAdmin(false));
+				break;
+			case ALL:
+				results = teamDAO.getMembersInRange(teamId, null, null, limit, offset);
+				results.forEach(tm -> tm.setIsAdmin(adminIds.contains(Long.valueOf(tm.getMember().getOwnerId()))));
+				break;
+			default:
+				throw new IllegalArgumentException("memberType must be one of "
+						+ TeamMemberTypeFilterOptions.ALL.toString() + ", "
+						+ TeamMemberTypeFilterOptions.ADMIN.toString() + ", or "
+						+ TeamMemberTypeFilterOptions.MEMBER.toString() + ".");
+		}
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
-	
+
+	@Override
+	public PaginatedResults<TeamMember> listMembersForPrefix(String fragment, String teamId,
+															 TeamMemberTypeFilterOptions memberType,
+															 long limit, long offset) throws DatastoreException {
+		List<Long> prefixMemberIds;
+		switch (memberType) {
+			case ADMIN:
+				Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::parseLong).collect(Collectors.toSet());
+				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId),  adminIds,null, limit, offset);
+				break;
+			case MEMBER:
+				adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::parseLong).collect(Collectors.toSet());
+				prefixMemberIds = principalPrefixDAO.listCertainTeamMembersForPrefix(fragment, Long.parseLong(teamId), null, adminIds, limit, offset);
+				break;
+			case ALL:
+				// Do not filter
+				prefixMemberIds = principalPrefixDAO.listTeamMembersForPrefix(fragment, Long.parseLong(teamId), limit, offset);
+				break;
+			default:
+				throw new IllegalArgumentException("memberType must be one of "
+						+ TeamMemberTypeFilterOptions.ALL.toString() + ", "
+						+ TeamMemberTypeFilterOptions.ADMIN.toString() + ", or "
+						+ TeamMemberTypeFilterOptions.MEMBER.toString() + ".");
+		}
+		List<TeamMember> members = teamDAO.listMembers(Collections.singletonList(Long.parseLong(teamId)), prefixMemberIds).getList();
+		return PaginatedResults.createWithLimitAndOffset(members, limit, offset);
+	}
+
 	@Override
 	public Count countMembers(String teamId) throws DatastoreException {
 		ValidateArgument.required(teamId, "teamId");

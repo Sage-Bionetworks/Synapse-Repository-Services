@@ -102,6 +102,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		authDAO.changePassword(principalId, passHash);
 	}
 
+	@WriteTransaction
 	public long changePassword(ChangePasswordInterface changePasswordInterface){
 		ValidateArgument.required(changePasswordInterface, "changePasswordInterface");
 
@@ -117,6 +118,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		//change password and invalidate previous session token
 		setPassword(userId, changePasswordInterface.getNewPassword());
 		authDAO.deleteSessionToken(userId);
+		userCredentialValidator.forceResetLoginThrottle(userId);
 		return userId;
 	}
 
@@ -228,20 +230,20 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	/**
 	 * Validate authenticationReceipt and then checks that the password is correct for the given pricipalId
-	 * @param principalId id of the user
+	 * @param userId id of the user
 	 * @param password password of the user
 	 * @param authenticationReceipt Can be null. When valid, does not throttle attempts on consecutive incorrect passwords.
 	 * @return authenticationReceipt if it is valid and password check passed. null, if the authenticationReceipt was invalid, but password check passed.
 	 * @throws UnauthenticatedException if password check failed
 	 */
-	String validateAuthReceiptAndCheckPassword(final Long principalId, final String password, final String authenticationReceipt) {
+	String validateAuthReceiptAndCheckPassword(final long userId, final String password, final String authenticationReceipt) {
 		String validAuthReceipt = null;
-		if (authenticationReceipt != null && authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)){
+		if (authenticationReceipt != null && authReceiptDAO.isValidReceipt(userId, authenticationReceipt)){
 			validAuthReceipt = authenticationReceipt;
 		}
 
 		//callers that have previously logged in successfully are able to bypass lockout caused by failed attempts
-		boolean correctCredentials = validAuthReceipt != null ? userCredentialValidator.checkPassword(principalId, password) : userCredentialValidator.checkPasswordWithThrottling(principalId, password);
+		boolean correctCredentials = validAuthReceipt != null ? userCredentialValidator.checkPassword(userId, password) : userCredentialValidator.checkPasswordWithThrottling(userId, password);
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
