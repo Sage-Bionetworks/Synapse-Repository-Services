@@ -7,10 +7,6 @@
             "type": "integer",
             "description": "The application change number created as a result of this change."
         },
-        "objectEtag": {
-            "type": "string",
-            "description": "The new Etag of the changed object"
-        },
         "changeType": {
             "type": "string",
             "description": "The type of change that occurred",

@@ -783,7 +783,6 @@ public class TableWorkerIntegrationTest {
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectType(ObjectType.TABLE);
 		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
-		message.setObjectEtag(UUID.randomUUID().toString());
 		message = changeDAO.replaceChange(message);
 		// and pretend we just created it
 		repositoryMessagePublisher.publishToTopic(message);

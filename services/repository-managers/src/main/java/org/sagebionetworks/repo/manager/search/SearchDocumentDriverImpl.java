@@ -313,15 +313,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	}
 
 	@Override
-	public Optional<String> getEntityEtagFromRepository(String entityId) throws NotFoundException {
-		// check if the document is in the trash
-		if(!nodeDao.isNodeAvailable(entityId)) {
-			return Optional.empty();
-		}
-		try {
-			return Optional.of(nodeDao.peekCurrentEtag(entityId));
-		}catch(NotFoundException e) {
-			return Optional.empty();
-		}
+	public boolean doesEntityExistInRepository(String entityId){
+		return nodeDao.isNodeAvailable(entityId);
 	}
+
 }

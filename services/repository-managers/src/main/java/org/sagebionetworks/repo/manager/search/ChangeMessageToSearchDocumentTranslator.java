@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -78,23 +76,12 @@ public class ChangeMessageToSearchDocumentTranslator {
 	 * @return
 	 */
 	Document entityChange(String entityId, CloudSearchDocumentLogRecord record) {
-		// Lookup the current etag for this entity
-		Optional<String> etag = searchDocumentDriver.getEntityEtagFromRepository(entityId);
-		if(!etag.isPresent()) {
-			// Deleted documents will not have an etag.
+		if(!searchDocumentDriver.doesEntityExistInRepository(entityId)) {
 			record.withAction(DocumentAction.DELETE);
 			return createDeleteDocument(entityId);
-		}
-		// Does this entity already exist in the search index with the given etag?
-		if(!searchDao.doesDocumentExistInSearchIndex(entityId, etag.get())) {
-			record.withAction(DocumentAction.CREATE_OR_UPDATE);
-			record.withExistsOnIndex(false);
-			return searchDocumentDriver.formulateSearchDocument(entityId);
 		}else {
-			log.info("Search index is already already up-to-date for entity: "+entityId);
-			record.withAction(DocumentAction.IGNORE);
-			record.withExistsOnIndex(true);
-			return null;
+			record.withAction(DocumentAction.CREATE_OR_UPDATE);
+			return searchDocumentDriver.formulateSearchDocument(entityId);
 		}
 	}
 

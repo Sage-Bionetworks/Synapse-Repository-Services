@@ -89,7 +89,6 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		changeMessage.setChangeNumber(1L);
 		changeMessage.setChangeType(ChangeType.CREATE);
 		changeMessage.setObjectType(ObjectType.ENTITY);
-		changeMessage.setObjectEtag(project.getEtag());
 		changeMessage.setObjectId(KeyFactory.stringToKey(project.getId()).toString());
 
 		searchManager.documentChangeMessages(Collections.singletonList(changeMessage));

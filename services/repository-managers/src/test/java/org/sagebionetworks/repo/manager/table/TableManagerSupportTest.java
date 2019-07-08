@@ -227,7 +227,7 @@ public class TableManagerSupportTest {
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger)
 		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
-				.withEtag(etag).withChangeType(ChangeType.UPDATE).withObjectVersion(null));
+				.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 	
 	/**
@@ -254,7 +254,7 @@ public class TableManagerSupportTest {
 		verify(mockNodeDao).isNodeAvailable(tableIdLong);
 		verify(mockTransactionalMessenger)
 				.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
-						.withEtag(etag).withChangeType(ChangeType.UPDATE).withObjectVersion(null));
+						.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 	
 	/**
@@ -323,7 +323,7 @@ public class TableManagerSupportTest {
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockTransactionalMessenger)
 		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
-				.withEtag(etag).withChangeType(ChangeType.UPDATE).withObjectVersion(null));
+				.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 
 
@@ -891,7 +891,6 @@ public class TableManagerSupportTest {
 		ChangeMessage message = captor.getValue();
 		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.TABLE, message.getObjectType());
-		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 
@@ -909,7 +908,6 @@ public class TableManagerSupportTest {
 		ChangeMessage message = captor.getValue();
 		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.ENTITY_VIEW, message.getObjectType());
-		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	
@@ -949,7 +947,7 @@ public class TableManagerSupportTest {
 		assertEquals(status, resultStatus);
 		verify(mockTransactionalMessenger)
 				.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(3L)
-						.withObjectType(ObjectType.ENTITY_VIEW).withEtag(resetToken).withChangeType(ChangeType.UPDATE));
+						.withObjectType(ObjectType.ENTITY_VIEW).withChangeType(ChangeType.UPDATE));
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 	}
 	
@@ -968,7 +966,7 @@ public class TableManagerSupportTest {
 		assertEquals(status, resultStatus);
 		verify(mockTransactionalMessenger)
 		.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(null)
-				.withObjectType(ObjectType.ENTITY_VIEW).withEtag(resetToken).withChangeType(ChangeType.UPDATE));
+				.withObjectType(ObjectType.ENTITY_VIEW).withChangeType(ChangeType.UPDATE));
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 	}
 }

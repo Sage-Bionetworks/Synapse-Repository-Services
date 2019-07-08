@@ -81,7 +81,6 @@ public class PurgeAndRecordSqsQueue {
 						line[1] = change.getObjectType().name();
 						line[2] = "" + change.getTimestamp().getTime();
 						line[3] = "" + change.getChangeNumber();
-						line[4] = change.getObjectEtag();
 						line[5] = "" + change.getChangeType().name();
 						line[6] = "" + change.getUserId();
 

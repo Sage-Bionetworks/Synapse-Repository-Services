@@ -48,7 +48,6 @@ public class ChangeMessageUtils {
 		}
 		dbo.setObjectType(dto.getObjectType().name());
 		dbo.setChangeType(dto.getChangeType().name());
-		dbo.setObjectEtag(dto.getObjectEtag());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
 		dbo.setObjectVersion(dto.getObjectVersion());
 		if(dto.getObjectVersion() == null) {
@@ -84,7 +83,6 @@ public class ChangeMessageUtils {
 		ChangeMessage dto = new ChangeMessage();
 		dto.setChangeNumber(dbo.getChangeNumber());
 		dto.setTimestamp(dbo.getTimeStamp());
-		dto.setObjectEtag(dbo.getObjectEtag());
 		dto.setObjectType(ObjectType.valueOf(dbo.getObjectType()));
 		if(ObjectType.ENTITY == dto.getObjectType()){
 			// Entities get an 'syn' prefix

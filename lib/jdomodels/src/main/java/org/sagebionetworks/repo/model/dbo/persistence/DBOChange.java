@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_VERSION;
@@ -39,7 +38,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID, true),
 		new FieldColumn("objectVersion", COL_CHANGES_OBJECT_VERSION, true),
 		new FieldColumn("objectType", COL_CHANGES_OBJECT_TYPE, true),
-		new FieldColumn("objectEtag", COL_CHANGES_OBJECT_ETAG),
 		new FieldColumn("changeType", COL_CHANGES_CHANGE_TYPE),
 		new FieldColumn("userId", COL_CHANGES_USER_ID),
 	};
@@ -49,7 +47,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 	private Long objectId;
 	private Long objectVersion;
 	private String objectType;
-	private String objectEtag;
 	private String changeType;
 	private Long userId;
 
@@ -69,22 +66,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		this.timeStamp = timeStamp;
 	}
 
-	/**
-	 * The object's E-tag
-	 * @return
-	 */
-	public String getObjectEtag() {
-		return objectEtag;
-	}
-
-
-	/**
-	 * The object's E-tag
-	 * @param objectEtag
-	 */
-	public void setObjectEtag(String objectEtag) {
-		this.objectEtag = objectEtag;
-	}
 
 	public String getObjectType() {
 		return objectType;
@@ -156,7 +137,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		int result = 1;
 		result = prime * result + ((changeNumber == null) ? 0 : changeNumber.hashCode());
 		result = prime * result + ((changeType == null) ? 0 : changeType.hashCode());
-		result = prime * result + ((objectEtag == null) ? 0 : objectEtag.hashCode());
 		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
 		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
 		result = prime * result + ((objectVersion == null) ? 0 : objectVersion.hashCode());
@@ -183,11 +163,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 			if (other.changeType != null)
 				return false;
 		} else if (!changeType.equals(other.changeType))
-			return false;
-		if (objectEtag == null) {
-			if (other.objectEtag != null)
-				return false;
-		} else if (!objectEtag.equals(other.objectEtag))
 			return false;
 		if (objectId == null) {
 			if (other.objectId != null)
@@ -220,7 +195,7 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 	@Override
 	public String toString() {
 		return "DBOChange [changeNumber=" + changeNumber + ", timeStamp=" + timeStamp + ", objectId=" + objectId
-				+ ", objectVersion=" + objectVersion + ", objectType=" + objectType + ", objectEtag=" + objectEtag
+				+ ", objectVersion=" + objectVersion + ", objectType=" + objectType
 				+ ", changeType=" + changeType + ", userId=" + userId + "]";
 	}
 
@@ -240,7 +215,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 				if (!rs.wasNull()) {
 					dbo.setUserId(userId);
 				}
-				dbo.setObjectEtag(rs.getString(COL_CHANGES_OBJECT_ETAG));
 				dbo.setChangeType(rs.getString(COL_CHANGES_CHANGE_TYPE));
 				return dbo;
 			}

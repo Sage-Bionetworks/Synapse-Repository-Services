@@ -44,7 +44,6 @@ public class MessageToUserWorkerTest {
 		ChangeMessage chgMsg = new ChangeMessage();
 		chgMsg.setChangeNumber(1000L);
 		chgMsg.setChangeType(ChangeType.CREATE);
-		chgMsg.setObjectEtag("etag");
 		chgMsg.setObjectId("id");
 		chgMsg.setObjectType(ObjectType.ENTITY);
 		chgMsg.setTimestamp(new Date());
@@ -57,7 +56,6 @@ public class MessageToUserWorkerTest {
 		ChangeMessage chgMsg = new ChangeMessage();
 		chgMsg.setChangeNumber(1000L);
 		chgMsg.setChangeType(ChangeType.CREATE);
-		chgMsg.setObjectEtag("etag");
 		chgMsg.setObjectId("12345");
 		chgMsg.setObjectType(ObjectType.MESSAGE);
 		chgMsg.setTimestamp(new Date());
@@ -73,7 +71,6 @@ public class MessageToUserWorkerTest {
 		ChangeMessage chgMsg = new ChangeMessage();
 		chgMsg.setChangeNumber(1000L);
 		chgMsg.setChangeType(ChangeType.CREATE);
-		chgMsg.setObjectEtag("etag");
 		chgMsg.setObjectId("12345");
 		chgMsg.setObjectType(ObjectType.MESSAGE);
 		chgMsg.setTimestamp(new Date());

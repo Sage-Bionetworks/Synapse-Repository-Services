@@ -103,7 +103,6 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectType(ObjectType.ENTITY);
 		message.setObjectId("123");
-		message.setObjectEtag("ABCDEFG");
 		message.setChangeNumber(1l);
 		message.setTimestamp(new Date());
 		message = changeDao.replaceChange(message);
@@ -133,7 +132,6 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			message.setChangeType(ChangeType.CREATE);
 			message.setObjectType(ObjectType.ENTITY);
 			message.setObjectId(""+i);
-			message.setObjectEtag("ABCDEFG"+i);
 			message.setChangeNumber(1l);
 			message.setTimestamp(new Date());
 			message = changeDao.replaceChange(message);

@@ -26,7 +26,6 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 	private ChangeType changeType;
 	private String wikiOwner;
 	private DocumentAction action;
-	private Boolean existsOnIndex;
 	private String documentBatchUUID;
 	private String documentBatchUpdateStatus;
 	private Long timestamp;
@@ -113,12 +112,7 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 		return this;
 	}
 
-	public Boolean isExistsOnIndex() {
-		return existsOnIndex;
-	}
-
 	public CloudSearchDocumentLogRecord withExistsOnIndex(boolean alreadyExistsOnIndex) {
-		this.existsOnIndex = alreadyExistsOnIndex;
 		return this;
 	}
 
@@ -178,7 +172,6 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 		result = prime * result + ((changeType == null) ? 0 : changeType.hashCode());
 		result = prime * result + ((documentBatchUUID == null) ? 0 : documentBatchUUID.hashCode());
 		result = prime * result + ((documentBatchUpdateStatus == null) ? 0 : documentBatchUpdateStatus.hashCode());
-		result = prime * result + ((existsOnIndex == null) ? 0 : existsOnIndex.hashCode());
 		result = prime * result + ((instance == null) ? 0 : instance.hashCode());
 		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
 		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
@@ -217,11 +210,6 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 				return false;
 		} else if (!documentBatchUpdateStatus.equals(other.documentBatchUpdateStatus))
 			return false;
-		if (existsOnIndex == null) {
-			if (other.existsOnIndex != null)
-				return false;
-		} else if (!existsOnIndex.equals(other.existsOnIndex))
-			return false;
 		if (instance == null) {
 			if (other.instance != null)
 				return false;
@@ -257,7 +245,7 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 	public String toString() {
 		return "CloudSearchDocumentLogRecord [changeNumber=" + changeNumber + ", objectId=" + objectId + ", objectType="
 				+ objectType + ", changeType=" + changeType + ", wikiOwner=" + wikiOwner + ", action=" + action
-				+ ", existsOnIndex=" + existsOnIndex + ", documentBatchUUID=" + documentBatchUUID
+				+ ", documentBatchUUID=" + documentBatchUUID
 				+ ", documentBatchUpdateStatus=" + documentBatchUpdateStatus + ", timestamp=" + timestamp + ", stack="
 				+ stack + ", instance=" + instance + "]";
 	}

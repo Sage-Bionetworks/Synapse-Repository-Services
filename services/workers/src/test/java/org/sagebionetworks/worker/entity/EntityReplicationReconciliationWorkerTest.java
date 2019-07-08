@@ -188,7 +188,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		ChangeMessage message = worker.createChange(idAndEtag, ChangeType.DELETE);
 		assertNotNull(message);
 		assertEquals(""+idAndEtag.getId(), message.getObjectId());
-		assertEquals(idAndEtag.getEtag(), message.getObjectEtag());
 		assertEquals(ObjectType.ENTITY, message.getObjectType());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		assertNotNull(message.getChangeNumber());
@@ -375,7 +374,6 @@ public class EntityReplicationReconciliationWorkerTest {
 			ChangeMessage message = new ChangeMessage();
 			message.setChangeNumber(new Long(i));
 			message.setChangeType(ChangeType.UPDATE);
-			message.setObjectEtag("etag"+i);
 			message.setObjectId("id"+i);
 			message.setObjectType(ObjectType.ENTITY);
 			list.add(message);

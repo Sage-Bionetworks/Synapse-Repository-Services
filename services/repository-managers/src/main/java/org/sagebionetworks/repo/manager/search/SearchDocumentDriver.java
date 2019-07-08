@@ -16,14 +16,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *
  */
 public interface SearchDocumentDriver {
-	
+
 	/**
-	 * Get the etag of the entity if the entity exits.
-	 * @param entityId
-	 * @return Returns Optional.empty() if the entity does not exist, else the entity's etag.
+	 * Returns true if the entity exists in the repository. false otherwise.
+	 * @param entityId id of the entity
+	 * @return true if the entity exists in the repository. false otherwise.
 	 */
-	public Optional<String> getEntityEtagFromRepository(String entityId);
-	
+	boolean doesEntityExistInRepository(String entityId);
+
 	/**
 	 * Create a search document for a given NodeId.
 	 * @param nodeId

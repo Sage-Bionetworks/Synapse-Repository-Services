@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service.subscription;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
@@ -70,15 +68,6 @@ public interface SubscriptionService {
 	 * @return
 	 */
 	public Subscription get(Long userId, String id);
-
-	/**
-	 * retrieve the current etag of the given topic's object
-	 * 
-	 * @param objectId
-	 * @param objectType
-	 * @return
-	 */
-	public Etag getEtag(String objectId, ObjectType objectType);
 
 	/**
 	 * retrieve a page of subscribers for a given topic

@@ -8,8 +8,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,7 +67,6 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		//documentChangeMessage() test setup
 		message = new ChangeMessage();
 		message.setChangeType(ChangeType.CREATE);
-		message.setObjectEtag(etag);
 		message.setObjectId(synapseId);
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeNumber(changeNumber);
@@ -79,7 +76,7 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		docOne.setId(synapseId);
 		when(mockSearchDocumentDriver.formulateSearchDocument(synapseId)).thenReturn(docOne);
 		
-		when(mockSearchDocumentDriver.getEntityEtagFromRepository(synapseId)).thenReturn(Optional.of(etag));
+		when(mockSearchDocumentDriver.doesEntityExistInRepository(synapseId)).thenReturn(true);
 		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(false);
 		
 		wikiId = "987";
@@ -94,14 +91,13 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		Document doc = translator.entityChange(synapseId, mocKRecord);
 		assertEquals(docOne, doc);
 		verify(mocKRecord).withAction(DocumentAction.CREATE_OR_UPDATE);
-		verify(mocKRecord).withExistsOnIndex(false);
 		verify(mockSearchDocumentDriver).formulateSearchDocument(synapseId);
 	}
 	
 	@Test
 	public void testEntityChangeEntityDoesNotExist() {
 		// documents that do not exist do not have an etag.
-		when(mockSearchDocumentDriver.getEntityEtagFromRepository(synapseId)).thenReturn(Optional.empty());
+		when(mockSearchDocumentDriver.doesEntityExistInRepository(synapseId)).thenReturn(false);
 		// call under test
 		Document doc = translator.entityChange(synapseId, mocKRecord);
 		Document expectedDocument = new Document();
@@ -109,24 +105,14 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		expectedDocument.setType(DocumentTypeNames.delete);
 		assertEquals(expectedDocument, doc);
 		verify(mocKRecord).withAction(DocumentAction.DELETE);
-		verify(mocKRecord, never()).withExistsOnIndex(any(Boolean.class));
-		verify(mockSearchDocumentDriver, never()).formulateSearchDocument(anyString());
-	}
-	
-	@Test
-	public void testEntityChangeIndexUpToDate() {
-		// document with this etag already exists in the index.
-		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(true);
-		// call under test
-		Document doc = translator.entityChange(synapseId, mocKRecord);
-		assertNull(doc);
-		verify(mocKRecord).withAction(DocumentAction.IGNORE);
-		verify(mocKRecord).withExistsOnIndex(true);
 		verify(mockSearchDocumentDriver, never()).formulateSearchDocument(anyString());
 	}
 	
 	@Test
 	public void testWikiChange() {
+		//when a wiki is updated, the entity to which it is associated may still have the same etag
+		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(true);
+
 		String wikiId = "987";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(synapseId, ObjectType.ENTITY, wikiId);
 		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenReturn(key);
@@ -136,16 +122,15 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		assertEquals(docOne, doc);
 		verify(mockWikiPageDao).lookupWikiKey(wikiId);
 		verify(mocKRecord).withAction(DocumentAction.CREATE_OR_UPDATE);
-		verify(mocKRecord).withExistsOnIndex(false);
 		verify(mocKRecord).withWikiOwner(synapseId);
 		verify(mockSearchDocumentDriver).formulateSearchDocument(synapseId);
 	}
-	
+
 	@Test
 	public void testWikiChangeWikiNotFound() {
 		String wikiId = "987";
 		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenThrow(new NotFoundException());
-		
+
 		// call under test
 		Document doc = translator.wikiChange(wikiId, mocKRecord);
 		assertNull(doc);

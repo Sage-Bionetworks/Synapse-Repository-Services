@@ -95,7 +95,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void testReplace(){
 		ChangeMessage change = new ChangeMessage();
 		change.setObjectId("syn123");
-		change.setObjectEtag("myEtag");
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectType(ObjectType.ENTITY);
 		ChangeMessage clone = changeDAO.replaceChange(change);
@@ -107,7 +106,6 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertTrue(changeDAO.doesChangeNumberExist(clone.getChangeNumber()));
 		long firstChangeNumber = clone.getChangeNumber();
 		assertEquals(change.getObjectId(), clone.getObjectId());
-		assertEquals(change.getObjectEtag(), clone.getObjectEtag());
 		assertEquals(change.getChangeType(), clone.getChangeType());
 		assertEquals(change.getObjectType(), clone.getObjectType());
 		// Now replace it again
@@ -125,7 +123,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void testReplaceDuplicateObjectId(){
 		ChangeMessage changeOne = new ChangeMessage();
 		changeOne.setObjectId("123");
-		changeOne.setObjectEtag("myEtag");
 		changeOne.setChangeType(ChangeType.CREATE);
 		changeOne.setObjectType(ObjectType.ACTIVITY);
 		changeDAO.replaceChange(changeOne);
@@ -133,7 +130,6 @@ public class DBOChangeDAOImplAutowiredTest {
 		// Now create a second change with the same id but different type.
 		ChangeMessage changeTwo = new ChangeMessage();
 		changeTwo.setObjectId(changeOne.getObjectId());
-		changeTwo.setObjectEtag("myEtag");
 		changeTwo.setChangeType(ChangeType.CREATE);
 		changeTwo.setObjectType(ObjectType.PRINCIPAL);
 		changeDAO.replaceChange(changeTwo);
@@ -157,7 +153,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void tesNullId(){
 		ChangeMessage change = new ChangeMessage();
 		change.setObjectId(null);
-		change.setObjectEtag("myEtag");
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectType(ObjectType.ENTITY);
 		changeDAO.replaceChange(change);
@@ -167,7 +162,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void tesNullChangeType(){
 		ChangeMessage change = new ChangeMessage();
 		change.setObjectId("syn334");
-		change.setObjectEtag("myEtag");
 		change.setChangeType(null);
 		change.setObjectType(ObjectType.ENTITY);
 		changeDAO.replaceChange(change);
@@ -177,7 +171,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void tesNullObjectTypeType(){
 		ChangeMessage change = new ChangeMessage();
 		change.setObjectId("syn123");
-		change.setObjectEtag("myEtag");
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectType(null);
 		changeDAO.replaceChange(change);
@@ -190,43 +183,12 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void tesNullEtagForDelete(){
 		ChangeMessage change = new ChangeMessage();
 		change.setObjectId("syn223");
-		change.setObjectEtag(null);
 		change.setChangeType(ChangeType.DELETE);
 		change.setObjectType(ObjectType.ENTITY);
 		ChangeMessage clone = changeDAO.replaceChange(change);
 		assertNotNull(clone);
-		assertNull(clone.getObjectEtag());
 	}
-	
-	/**
-	 * Etag must not be null for create or update.
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void tesNullEtagForCreate(){
-		ChangeMessage change = new ChangeMessage();
-		change.setObjectId("syn334");
-		change.setObjectEtag(null);
-		change.setChangeType(ChangeType.CREATE);
-		change.setObjectType(ObjectType.ENTITY);
-		ChangeMessage clone = changeDAO.replaceChange(change);
-		assertNotNull(clone);
-		assertNull(clone.getObjectEtag());
-	}
-	
-	/**
-	 * Etag must not be null for create or update.
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void tesNullEtagForUpdate(){
-		ChangeMessage change = new ChangeMessage();
-		change.setObjectId("syn334");
-		change.setObjectEtag(null);
-		change.setChangeType(ChangeType.UPDATE);
-		change.setObjectType(ObjectType.ENTITY);
-		ChangeMessage clone = changeDAO.replaceChange(change);
-		assertNotNull(clone);
-		assertNull(clone.getObjectEtag());
-	}
+
 	
 	@Test
 	public void testSortByObjectId(){
@@ -269,7 +231,6 @@ public class DBOChangeDAOImplAutowiredTest {
 		for(int i=0; i<5; i++){
 			ChangeMessage change = new ChangeMessage();
 			change.setObjectId("syn"+i);
-			change.setObjectEtag("etag"+i);
 			change.setChangeType(ChangeType.UPDATE);
 			change.setObjectType(ObjectType.ENTITY);
 			change.setChangeNumber(new Long(i));
@@ -345,7 +306,6 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> expectedFiltered = new ArrayList<ChangeMessage>();
 		for(int i=0; i<5; i++){
 			ChangeMessage change = new ChangeMessage();
-			change.setObjectEtag("etag"+i);
 			change.setChangeType(ChangeType.UPDATE);
 			if(i%2 > 0){
 				change.setObjectType(ObjectType.ENTITY);
@@ -684,26 +644,9 @@ public class DBOChangeDAOImplAutowiredTest {
 		}else{
 			change.setObjectId(""+i);
 		}
-		change.setObjectEtag("etag"+i);
 		change.setChangeType(ChangeType.UPDATE);
 		change.setObjectType(type);
 		return change;
-	}
-
-	@Test (expected = NotFoundException.class)
-	public void testGetEtagDoesNotExist() {
-		changeDAO.getEtag(123L, ObjectType.FORUM);
-	}
-
-	@Test
-	public void testGetEtag() {
-		ChangeMessage change = new ChangeMessage();
-		change.setObjectId("123");
-		change.setObjectEtag("myEtag");
-		change.setChangeType(ChangeType.CREATE);
-		change.setObjectType(ObjectType.FORUM);
-		ChangeMessage clone = changeDAO.replaceChange(change);
-		assertEquals(clone.getObjectEtag(), changeDAO.getEtag(123L, ObjectType.FORUM));
 	}
 	
 	@Test

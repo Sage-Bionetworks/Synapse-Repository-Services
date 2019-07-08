@@ -148,7 +148,6 @@ public class SqlConstants {
 	public static final String COL_CHANGES_OBJECT_ID				= "OBJECT_ID";
 	public static final String COL_CHANGES_OBJECT_VERSION			= "OBJECT_VERSION";
 	public static final String COL_CHANGES_OBJECT_TYPE				= "OBJECT_TYPE";
-	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
 	public static final String COL_CHANGES_USER_ID					= "USER_ID";
 	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";

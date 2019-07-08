@@ -179,7 +179,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// notify all listeners.
 		transactionalMessenger.sendMessageAfterCommit( new MessageToSend().withObjectId(idAndVersion.getId().toString())
 				.withObjectVersion(idAndVersion.getVersion().orElse(null))
-				.withObjectType(tableType).withEtag(token).withChangeType(ChangeType.UPDATE));
+				.withObjectType(tableType).withChangeType(ChangeType.UPDATE));
 		// status should exist now
 		return tableStatusDAO.getTableStatus(idAndVersion);
 	}
@@ -574,7 +574,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(getTableType(idAndVersion));
 		message.setObjectId(idAndVersion.getId().toString());
-		message.setObjectEtag(resetToken);
 		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 
