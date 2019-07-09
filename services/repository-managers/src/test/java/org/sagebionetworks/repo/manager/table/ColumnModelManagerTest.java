@@ -382,7 +382,7 @@ public class ColumnModelManagerTest {
 		List<String> columnIds = null;
 		// call under test
 		List<ColumnModel> results = columnModelManager.bindColumnsToDefaultVersionOfObject(columnIds, objectId);
-		// should be an emptyt list
+		// should be an empty list
 		assertEquals(new LinkedList<>(), results);
 		verify(mockColumnModelDAO).bindColumnToObject(Collections.emptyList(), expectedIdAndVersion);
 	}
@@ -425,6 +425,25 @@ public class ColumnModelManagerTest {
 		// call under test
 		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
 	}	
+	
+	@Test
+	public void testBindDefaultColumnsToObjectVersion() {
+		IdAndVersion targetVersion = IdAndVersion.parse("syn123.5");
+		IdAndVersion defaultVersion = IdAndVersion.parse("syn123");
+		when(mockColumnModelDAO.getColumnModelIdsForObject(defaultVersion)).thenReturn(expectedNewSchemaIds);
+		// call under test
+		List<ColumnModel> results =columnModelManager.bindDefaultColumnsToObjectVersion(targetVersion);
+		assertEquals(newSchema, results);
+		verify(mockColumnModelDAO).bindColumnToObject(newSchema, targetVersion);
+	}
+	
+	@Test
+	public void testBindColumnsToVersionOfObject() {
+		// call under test
+		List<ColumnModel> results =columnModelManager.bindColumnsToVersionOfObject(expectedNewSchemaIds, idAndVersion);
+		assertEquals(newSchema, results);
+		verify(mockColumnModelDAO).bindColumnToObject(newSchema, idAndVersion);
+	}
 	
 	@Test
 	public void testUnbindColumnFromObject() throws DatastoreException, NotFoundException {
