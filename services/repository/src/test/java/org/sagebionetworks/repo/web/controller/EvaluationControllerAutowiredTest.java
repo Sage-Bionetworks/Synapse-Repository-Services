@@ -27,6 +27,7 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -34,6 +35,8 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
@@ -65,15 +68,20 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	
 	@Autowired
 	private SubmissionStatusDAO submissionStatusDAO;
-	
+
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
+
+	@Autowired
+	private TeamManager teamManager;
 
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
 	
 	private Long testUserId;
 	private UserInfo testUserInfo;
+
+	private String submittingTeamId;
 
 	private String parentProjectId;
 	private Evaluation eval1;
@@ -103,6 +111,13 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 		 Collections.singletonList(testUserId.toString()));
 		testUserInfo = userManager.getUserInfo(testUserId);
+
+		Team team = new Team();
+		team.setName(UUID.randomUUID().toString() + " evaluation test team");
+		submittingTeamId = teamManager.create(adminUserInfo, team).getId();
+		teamManager.addMember(adminUserInfo, submittingTeamId, testUserInfo);
+
+		groupMembersDAO.addMembers(submittingTeamId, Collections.singletonList(testUserId.toString()));
 
 		// Initialize project to store evaluations
 		parentProjectId = createNode("Some project name", testUserInfo);
@@ -156,7 +171,8 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 				nodeManager.delete(adminUserInfo, id);
 			} catch (Exception e) {}
 		}
-		
+
+		teamManager.delete(adminUserInfo, submittingTeamId);
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getId().toString()));
 	}
 	
@@ -237,7 +253,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		ra.setPrincipalId(Long.valueOf(submittingTeamId));
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(adminUserId, eval1.getId());
 		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
@@ -342,7 +358,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		ra.setPrincipalId(Long.valueOf(submittingTeamId));
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(adminUserId, eval1.getId());
 		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);

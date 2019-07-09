@@ -12,9 +12,9 @@ public class AuthorizationConstants {
 	 */
 	public enum BOOTSTRAP_PRINCIPAL {
 		THE_ADMIN_USER(1L), 
-		AUTHENTICATED_USERS_GROUP(273948L), 
-		PUBLIC_GROUP(273949L), 
-		ANONYMOUS_USER(273950L),
+		AUTHENTICATED_USERS_GROUP(273948L), // Group that includes all Synapse users, except Anonymous
+		PUBLIC_GROUP(273949L), // Group that includes all users, including the Anonymous user
+		ANONYMOUS_USER(273950L), // "Anonymous" is an individual that represents users that are not logged in.
 		CERTIFIED_USERS(3L),
 		ADMINISTRATORS_GROUP(2L),
 		ACCESS_AND_COMPLIANCE_GROUP(464532L),
