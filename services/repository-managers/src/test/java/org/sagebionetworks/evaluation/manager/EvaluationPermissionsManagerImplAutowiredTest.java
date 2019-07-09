@@ -529,12 +529,72 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 
-		// add READ privilege to ACL for anonymous
+		// add READ privilege to ACL for public users
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.READ)) {
 				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 				ResourceAccess ra = new ResourceAccess();
 				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+				ra.setAccessType(Collections.singleton(type));
+				Set<ResourceAccess> raSet = Collections.singleton(ra);
+				acl.setResourceAccess(raSet);
+				try {
+					// Call under test
+					evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+					fail("Expected InvalidModelException");
+				} catch (InvalidModelException e) {
+					// as expected
+				}
+			}
+		}
+	}
+
+	@Test
+	public void authenticatedUserGrantAndRevokeRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// Ensure the user does not have access before granting read and submit
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
+
+		// add READ, SUBMIT privilege to ACL for authenticated user
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after granting)
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+
+		// Revoke access
+		acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		raSet = new HashSet<>();
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after revoking)
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+	}
+
+	@Test
+	public void authenticatedUserCannotBeGrantedNonRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// add READ privilege to ACL for authenticated users
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.READ)) {
+				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+				ResourceAccess ra = new ResourceAccess();
+				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 				ra.setAccessType(Collections.singleton(type));
 				Set<ResourceAccess> raSet = Collections.singleton(ra);
 				acl.setResourceAccess(raSet);
