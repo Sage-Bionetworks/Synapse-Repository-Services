@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -34,6 +35,8 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Lists;
 
@@ -49,6 +52,9 @@ public class TableRowTruthDAOImplTest {
 	
 	@Autowired
 	private TableTransactionDao tableTransactionDao;
+	
+	@Autowired
+	TransactionTemplate readCommitedTransactionTemplate;
 
 	protected String creatorUserGroupId;
 
@@ -143,6 +149,12 @@ public class TableRowTruthDAOImplTest {
 		return appendRowSetToTable(userId, tableId, columns, spars);
 	}
 	
+	private long appendRowSetToTable(String userId,
+			String tableId, List<ColumnModel> columns, SparseChangeSet delta) throws IOException {
+		Long linkToVersion = null;
+		return appendRowSetToTable(userId, tableId, columns, delta, linkToVersion);
+	}
+	
 	/**
 	 * Helper to append SparseChangeSetDto to a table.
 	 * @param userId
@@ -152,19 +164,25 @@ public class TableRowTruthDAOImplTest {
 	 * @return
 	 * @throws IOException
 	 */
-	private long appendRowSetToTable(String userId,
-			String tableId, List<ColumnModel> columns, SparseChangeSet delta) throws IOException {
-		// Now set the row version numbers and ID.
-		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
-		// Reserver IDs for the missing
-		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
-		// Now assign the rowIds and set the version number
-		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
-		Long transactionId = tableTransactionDao.startTransaction(tableId, Long.parseLong(userId));
-		tableRowTruthDao.appendRowSetToTable(userId, delta.getTableId(), range.getEtag(), range.getVersionNumber(), columns, delta.writeToDto(), transactionId);
-		TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
-		assertEquals(transactionId, change.getTransactionId());
-		return range.getVersionNumber();
+	private long appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, SparseChangeSet delta,
+			Long linkToVersion) throws IOException {
+		return readCommitedTransactionTemplate.execute((TransactionStatus status) -> {
+			// Now set the row version numbers and ID.
+			int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+			// Reserver IDs for the missing
+			IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
+			// Now assign the rowIds and set the version number
+			TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
+			Long transactionId = tableTransactionDao.startTransaction(tableId, Long.parseLong(userId));
+			tableRowTruthDao.appendRowSetToTable(userId, delta.getTableId(), range.getEtag(), range.getVersionNumber(),
+					columns, delta.writeToDto(), transactionId);
+			TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
+			if (linkToVersion != null) {
+				tableTransactionDao.linkTransactionToVersion(transactionId, linkToVersion);
+			}
+			assertEquals(transactionId, change.getTransactionId());
+			return range.getVersionNumber();
+		});
 	}
 	
 	/**
@@ -309,7 +327,7 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
 		// call under test
-		Optional<Long> lastChangeNumber = tableRowTruthDao.getLastTableChangeNumber(tableId);
+		Optional<Long> lastChangeNumber = tableRowTruthDao.getLastTableChangeNumber(KeyFactory.stringToKey(tableId));
 		assertNotNull(lastChangeNumber);
 		assertTrue(lastChangeNumber.isPresent());
 		assertEquals(new Long(0), lastChangeNumber.get());
@@ -318,9 +336,27 @@ public class TableRowTruthDAOImplTest {
 	@Test
 	public void testGetLastTableChangeNumberEmpty() throws IOException{
 		// call under test
-		Optional<Long> lastChangeNumber = tableRowTruthDao.getLastTableChangeNumber(tableId);
+		Optional<Long> lastChangeNumber = tableRowTruthDao.getLastTableChangeNumber(KeyFactory.stringToKey(tableId));
 		assertNotNull(lastChangeNumber);
 		assertFalse(lastChangeNumber.isPresent());
+	}
+	
+	@Test
+	public void testGetLastTableChangeNumberWithVersion() throws IOException{
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		SparseChangeSet spars = TableModelUtils.createSparseChangeSet(set, columns);
+		Long linkToVersion = 12L;
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, spars, linkToVersion);
+		// call under test
+		Optional<Long> lastChangeNumber = tableRowTruthDao.getLastTableChangeNumber(KeyFactory.stringToKey(tableId), linkToVersion);
+		assertNotNull(lastChangeNumber);
+		assertTrue(lastChangeNumber.isPresent());
+		assertEquals(new Long(0), lastChangeNumber.get());
 	}
 	
 	

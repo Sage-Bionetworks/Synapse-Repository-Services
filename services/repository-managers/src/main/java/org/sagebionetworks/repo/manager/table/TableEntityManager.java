@@ -275,15 +275,6 @@ public interface TableEntityManager {
 	List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset);
 
 	/**
-	 * Get the last change number applied to the table.
-	 * 
-	 * @param tableId
-	 * @return Will return an empty optional if no changes have been applied to the
-	 *         table.
-	 */
-	public Optional<Long> getLastTableChangeNumber(String tableId);
-
-	/**
 	 * Bind the current entity version to the latest table transaction.
 	 * 
 	 * @param id

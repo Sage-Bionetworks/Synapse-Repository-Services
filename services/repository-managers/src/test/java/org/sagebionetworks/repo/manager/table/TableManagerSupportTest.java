@@ -17,7 +17,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -339,11 +338,11 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testIsIndexSynchronizedWithTruth(){
-		long currentVersion = 123L;
+		long currentVersion = 3L;
 
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(currentVersion);
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(currentVersion));
+		when(mockTableTruthDao.getLastTableChangeNumber(tableIdLong)).thenReturn(Optional.of(currentVersion));
 		// setup a match
 		when(mockTableIndexDAO.doesIndexStateMatch(idAndVersion, currentVersion, schemaMD5Hex)).thenReturn(true);
 		
@@ -486,19 +485,29 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
-		// no last version
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.empty());
-		//call under test
-		assertEquals(-1, manager.getVersionOfLastTableEntityChange(idAndVersion));
+	public void testGetLastTableChangeNumberNoVersion() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		when(mockTableTruthDao.getLastTableChangeNumber(123L)).thenReturn(Optional.of(12L));
+		// call under test
+		Optional<Long> result = manager.getLastTableChangeNumber(idAndVersion);
+		assertNotNull(result);
+		assertTrue(result.isPresent());
+		assertEquals(new Long(12L), result.get());
+		verify(mockTableTruthDao).getLastTableChangeNumber(123L);
+		verify(mockTableTruthDao, never()).getLastTableChangeNumber(anyLong(), anyLong());
 	}
 	
 	@Test
-	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
-		long currentVersion = 123L;
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(currentVersion));;
+	public void testGetLastTableChangeNumberWithVersion() {
+		idAndVersion = IdAndVersion.parse("syn123.456");
+		when(mockTableTruthDao.getLastTableChangeNumber(123L, 456L)).thenReturn(Optional.of(18L));
 		// call under test
-		assertEquals(currentVersion, manager.getVersionOfLastTableEntityChange(idAndVersion));
+		Optional<Long> result = manager.getLastTableChangeNumber(idAndVersion);
+		assertNotNull(result);
+		assertTrue(result.isPresent());
+		assertEquals(new Long(18L), result.get());
+		verify(mockTableTruthDao, never()).getLastTableChangeNumber(anyLong());
+		verify(mockTableTruthDao).getLastTableChangeNumber(123L, 456L);
 	}
 	
 	
@@ -636,15 +645,37 @@ public class TableManagerSupportTest {
 		// the scope should be sent
 		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 	}
-	
+
 	@Test
-	public void testGetTableVersionForTableEntity() {
-		Long versionNumber = 999L;
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(versionNumber));
+	public void testGetTableVersionForTableEntityNoVersion() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		Long changeNumber = 12L;
+		when(mockTableTruthDao.getLastTableChangeNumber(123L)).thenReturn(Optional.of(changeNumber));
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// call under test
 		Long version = manager.getTableVersion(idAndVersion);
-		assertEquals(versionNumber, version);
+		assertEquals(changeNumber, version);
+	}
+	
+	@Test
+	public void testGetTableVersionForTableEntityNoChanges() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		when(mockTableTruthDao.getLastTableChangeNumber(123L)).thenReturn(Optional.empty());
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		// call under test
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(new Long(-1), version);
+	}
+	
+	@Test
+	public void testGetTableVersionForTableEntityWithVersion() {
+		idAndVersion = IdAndVersion.parse("syn123.456");
+		Long changeNumber = 16L;
+		when(mockTableTruthDao.getLastTableChangeNumber(123L, 456L)).thenReturn(Optional.of(changeNumber));
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		// call under test
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(changeNumber, version);
 	}
 	
 	@Test

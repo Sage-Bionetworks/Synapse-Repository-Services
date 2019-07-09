@@ -904,12 +904,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	}
 
-	@Override
-	public Optional<Long> getLastTableChangeNumber(String tableId) {
-		return this.tableRowTruthDao.getLastTableChangeNumber(tableId);
-	}
-
-
 	@WriteTransaction
 	@Override
 	public void bindCurrentEntityVersionToLatestTransaction(String tableId) {

@@ -176,7 +176,15 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @return Will return an empty Optional if no changes have been applied to the table.
 	 */
-	public Optional<Long> getLastTableChangeNumber(String tableId);
+	public Optional<Long> getLastTableChangeNumber(long tableId);
+	
+	/**
+	 * Get the last change number applied to the given table and version number combination.
+	 * @param tableId
+	 * @param tableVersion
+	 * @return
+	 */
+	public Optional<Long> getLastTableChangeNumber(long tableId, long tableVersion);
 
 	/**
 	 * Does the given table have at least one change of the provided type?
