@@ -13,6 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.gcp.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -37,6 +38,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOFavoriteDAOImplAutowiredTest {
+
+	@Autowired
+	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Autowired
 	private FavoriteDAO favoriteDao;

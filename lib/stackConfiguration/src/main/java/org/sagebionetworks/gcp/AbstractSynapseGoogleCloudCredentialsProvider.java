@@ -28,9 +28,12 @@ public abstract class AbstractSynapseGoogleCloudCredentialsProvider implements C
 		try {
 			Properties properties = getProperties();
 			if (properties != null) {
+				System.out.println("Got encoded: " + properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_KEY));
+
 				String accessKey = new String(Base64.getDecoder().decode(
 						StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_GOOGLE_CLOUD_CLIENT_KEY))
 								.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+				System.out.println("Decoded as: " + accessKey);
 				return ServiceAccountCredentials.fromStream(new ByteArrayInputStream(accessKey.getBytes(StandardCharsets.UTF_8)));
 			}
 			throw new IllegalStateException(GOOGLE_CLOUD_CREDENTIALS_WERE_NOT_FOUND);

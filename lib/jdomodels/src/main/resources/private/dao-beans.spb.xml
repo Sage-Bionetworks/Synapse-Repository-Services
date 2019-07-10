@@ -160,8 +160,11 @@
 	<bean id="favoriteDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOFavoriteDAOImpl" />
 
+	<bean id="googleCloudStorageClient" class="org.sagebionetworks.gcp.SynapseGoogleCloudClientFactory"
+		  factory-method="createGoogleCloudStorageClient" scope="singleton" />
+
 	<bean id="amazonS3Client" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonS3Client" scope="singleton" />
+		  factory-method="createAmazonS3Client" scope="singleton" />
 
 	<bean id="transferManager" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createTransferManager" scope="singleton" />
