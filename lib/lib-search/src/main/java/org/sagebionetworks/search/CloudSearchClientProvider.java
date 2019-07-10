@@ -15,17 +15,18 @@ import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 public class CloudSearchClientProvider {
 	static private Logger log = LogManager.getLogger(CloudSearchClientProvider.class);
 
+	//stateful fields that determine whether or not a CloudsSearchDomainClientAdapter can be provided
+	AmazonCloudSearchDomain awsCloudSearchDomainClient;
+	private boolean isSearchEnabled;
+	private static CloudsSearchDomainClientAdapter singletonWrapper = null;
+
+	//autowired fields
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
-
 	@Autowired
 	CloudSearchDocumentBatchIteratorProvider cloudSearchDocumentBatchIteratorProvider;
-
-	AmazonCloudSearchDomain awsCloudSearchDomainClient;
-
-	private boolean isSearchEnabled;
-
-	private static CloudsSearchDomainClientAdapter singletonWrapper;
+	@Autowired
+	CloudSearchLogger recordLogger;
 
 	public CloudsSearchDomainClientAdapter getCloudSearchClient(){
 		if(!isSearchEnabled()){
@@ -37,7 +38,7 @@ public class CloudSearchClientProvider {
 		}else{
 			if(searchDomainSetup.postInitialize()) {
 				awsCloudSearchDomainClient = AwsClientFactory.createAmazonCloudSearchDomain(searchDomainSetup.getDomainSearchEndpoint());
-				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider);
+				singletonWrapper = new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient, cloudSearchDocumentBatchIteratorProvider, recordLogger);
 				return singletonWrapper;
 			} else{
 				throw new TemporarilyUnavailableException("Search has not yet been initialized. Please try again later!");

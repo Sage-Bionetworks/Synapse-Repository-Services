@@ -109,4 +109,18 @@ public class KeyFactory {
 		// ignore syn for the final equals
 		return KeyFactory.stringToKey(idOne).equals(KeyFactory.stringToKey(idTwo));
 	}
+	
+	/**
+	 * Compare two keys.  Handles null comparisons.
+	 * 
+	 * @param one
+	 * @param two
+	 * @return
+	 */
+	public static int compare(String one, String two) {
+		if(one == null) {
+			return two == null ? 0 : -1;
+		}
+		return two == null ? 1 : KeyFactory.stringToKey(one).compareTo(KeyFactory.stringToKey(two));
+	}
 }

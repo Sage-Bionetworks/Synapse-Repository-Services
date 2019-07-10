@@ -19,7 +19,6 @@ import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
-import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -178,7 +177,6 @@ import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
@@ -2655,16 +2653,6 @@ public interface SynapseClient extends BaseClient {
 	SubscriberCount getSubscriberCount(Topic topic) throws SynapseException;
 
 
-	/**
-	 * Retrieve the current etag for a given object.
-	 * 
-	 * @param objectId
-	 * @param objectType
-	 * @return
-	 * @throws SynapseException
-	 */
-	Etag getEtag(String objectId, ObjectType objectType) throws SynapseException;
-	
 	/**
 	 * Get the entity ID assigned to a given alias.
 	 * 

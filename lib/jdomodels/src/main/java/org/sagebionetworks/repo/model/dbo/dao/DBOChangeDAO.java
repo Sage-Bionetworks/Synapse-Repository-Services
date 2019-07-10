@@ -8,8 +8,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.util.Callback;
 
 
 /**
@@ -138,13 +136,6 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	public boolean doesChangeNumberExist(Long changeNumber);
 
 	/**
-	 * Look up object's etag
-	 * @param objectId
-	 * @param objectType
-	 */
-	public String getEtag(Long objectId, ObjectType objectType);
-
-	/**
 	 * Get the current change message for each objectId.
 	 * 
 	 * @param objectType
@@ -161,5 +152,5 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @param objectType
 	 * @return
 	 */
-	public DBOSentMessage getSentMessage(String objectId, ObjectType objectType);
+	public DBOSentMessage getSentMessage(String objectId, Long objectVersion, ObjectType objectType);
 }

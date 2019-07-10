@@ -6,6 +6,8 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +45,12 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 	public void addTypeSpecificMetadata(TableEntity entity,
 										UserInfo user, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		List<String> tableSchema = tableEntityManager.getTableSchema(entity.getId());
+		/*
+		 * Note: We are always returning the current schema regardless of the version
+		 * of the table because all tables created before July 2019 only have a current schema.
+		 */
+		List<String> tableSchema = tableEntityManager.getTableSchema(IdAndVersion.newBuilder()
+				.setId(KeyFactory.stringToKey(entity.getId())).build());
 		entity.setColumnIds(tableSchema);
 	}
 }

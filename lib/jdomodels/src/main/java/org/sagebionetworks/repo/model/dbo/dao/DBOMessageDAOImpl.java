@@ -233,7 +233,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectType(ObjectType.MESSAGE);
 		change.setObjectId(messageId.toString());
-		change.setObjectEtag(content.getEtag());
 		transactionalMessenger.sendMessageAfterCommit(change);
 		
 		// Insert the message info

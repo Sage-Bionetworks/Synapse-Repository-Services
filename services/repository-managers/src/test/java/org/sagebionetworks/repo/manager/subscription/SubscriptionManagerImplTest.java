@@ -20,11 +20,14 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -37,7 +40,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
@@ -53,6 +55,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SubscriptionManagerImplTest {
 
 	@Mock
@@ -65,7 +68,7 @@ public class SubscriptionManagerImplTest {
 	private AuthorizationDAO mockAuthorizationDao;
 	@Captor
 	ArgumentCaptor<SubscriptionListRequest> subscriptionRequestCapture;
-	
+	@InjectMocks
 	private SubscriptionManagerImpl manager;
 	private Topic topic;
 	private String objectId;
@@ -79,14 +82,11 @@ public class SubscriptionManagerImplTest {
 
 	@Before
 	public void before() {
-
 		MockitoAnnotations.initMocks(this);
 		manager = new SubscriptionManagerImpl();
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
-		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
 		ReflectionTestUtils.setField(manager, "authorizationDAO", mockAuthorizationDao);
-
 		objectId = "1";
 		topic = new Topic();
 		topic.setObjectId(objectId);
@@ -435,39 +435,6 @@ public class SubscriptionManagerImplTest {
 	public void testDeleteAll() {
 		manager.deleteAll(userInfo);
 		verify(mockDao).deleteAll(userInfo.getId());
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetEtagInvalidObjectId() {
-		manager.getEtag(null, ObjectType.FORUM);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetEtagInvalidObjectType() {
-		manager.getEtag(objectId, null);
-	}
-
-	@Test (expected=NumberFormatException.class)
-	public void testGetEtagWithObjectIdNaN(){
-		manager.getEtag("syn"+objectId, ObjectType.FORUM).getEtag();
-	}
-
-	@Test
-	public void testGetEtagForEntity(){
-		String etag = "etag";
-		when(mockChangeDao
-				.getEtag(KeyFactory.stringToKey(objectId), ObjectType.ENTITY))
-				.thenReturn(etag);
-		assertEquals(etag, manager.getEtag("syn"+objectId, ObjectType.ENTITY).getEtag());
-	}
-
-	@Test
-	public void testGetEtagForNonEntity(){
-		String etag = "etag";
-		when(mockChangeDao
-				.getEtag(Long.parseLong(objectId), ObjectType.FORUM))
-				.thenReturn(etag);
-		assertEquals(etag, manager.getEtag(objectId, ObjectType.FORUM).getEtag());
 	}
 
 	@Test (expected=IllegalArgumentException.class)

@@ -1853,7 +1853,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		long currentTime = System.currentTimeMillis();
 		this.jdbcTemplate.update(SQL_TOUCH_REVISION, userId, currentTime, nodeId, revisionNumber);
 		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(nodeIdString)
-				.withObjectType(ObjectType.ENTITY).withChangeType(changeType).withEtag(newEtag).withUserId(userId));
+				.withObjectType(ObjectType.ENTITY).withChangeType(changeType).withUserId(userId));
 		return newEtag;
 	}
 

@@ -270,7 +270,6 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 		message.setChangeNumber(1L);
 		message.setChangeType(type);
 		message.setObjectId("" + info.getId());
-		message.setObjectEtag(info.getEtag());
 		message.setObjectType(ObjectType.ENTITY);
 		message.setTimestamp(new Date());
 		return message;

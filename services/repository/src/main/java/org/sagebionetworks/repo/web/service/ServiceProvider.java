@@ -21,8 +21,6 @@ public interface ServiceProvider {
 	
 	public EntityBundleService getEntityBundleService();
 	
-	public NodeQueryService getNodeQueryService();
-	
 	public UserGroupService getUserGroupService();
 	
 	public UserProfileService getUserProfileService();

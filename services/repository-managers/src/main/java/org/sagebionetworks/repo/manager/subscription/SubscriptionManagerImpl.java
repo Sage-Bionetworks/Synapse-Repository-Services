@@ -12,9 +12,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
@@ -36,8 +33,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
 	private AuthorizationManager authorizationManager;
-	@Autowired
-	private DBOChangeDAO changeDao;
+	
 	@Autowired
 	private AuthorizationDAO authorizationDAO;
 
@@ -167,21 +163,6 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 			throw new UnauthorizedException("Only the user who created this subscription can perform this action.");
 		}
 		return sub;
-	}
-
-	@Override
-	public Etag getEtag(String objectId, ObjectType objectType) {
-		ValidateArgument.required(objectId, "objectId");
-		ValidateArgument.required(objectType, "objectType");
-		Long objectIdLong = null;
-		if (objectType == ObjectType.ENTITY) {
-			objectIdLong = KeyFactory.stringToKey(objectId);
-		} else {
-			objectIdLong = Long.parseLong(objectId);
-		}
-		Etag etag = new Etag();
-		etag.setEtag(changeDao.getEtag(objectIdLong, objectType));
-		return etag;
 	}
 
 	@Override

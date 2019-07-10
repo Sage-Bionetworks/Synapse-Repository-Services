@@ -190,7 +190,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			}else{
 				change.setObjectId(""+objectIdSequence++);
 			}
-			change.setObjectEtag(UUID.randomUUID().toString());
 			change.setChangeType(ChangeType.UPDATE);
 			change.setObjectType(type);
 			batch.add(change);

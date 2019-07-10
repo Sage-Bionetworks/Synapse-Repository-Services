@@ -17,7 +17,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -60,6 +59,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -152,10 +152,10 @@ public class TableManagerSupportTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("444");
 		List<ColumnModel> columns = Lists.newArrayList(cm);
-		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(
+		when(mockColumnModelDao.getColumnModelsForObject(idAndVersion)).thenReturn(
 				columns);
 		List<String> columnIds = TableModelUtils.getIds(columns);
-		when(mockColumnModelDao.getColumnModelIdsForObject(tableId)).thenReturn(columnIds);
+		when(mockColumnModelDao.getColumnModelIdsForObject(idAndVersion)).thenReturn(columnIds);
 		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(cm.getId()));
 
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
@@ -224,7 +224,9 @@ public class TableManagerSupportTest {
 		assertNotNull(result);
 		// must trigger processing
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger)
+		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
+				.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 	
 	/**
@@ -249,7 +251,9 @@ public class TableManagerSupportTest {
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		verify(mockNodeDao).isNodeAvailable(tableIdLong);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger)
+				.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
+						.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 	
 	/**
@@ -293,7 +297,7 @@ public class TableManagerSupportTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(MessageToSend.class));
 	}
 	
 	/**
@@ -316,7 +320,9 @@ public class TableManagerSupportTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger)
+		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
+				.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
 	}
 
 
@@ -332,11 +338,11 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testIsIndexSynchronizedWithTruth(){
-		long currentVersion = 123L;
+		long currentVersion = 3L;
 
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(currentVersion);
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(currentVersion));
+		when(mockTableTruthDao.getLastTableChangeNumber(tableIdLong)).thenReturn(Optional.of(currentVersion));
 		// setup a match
 		when(mockTableIndexDAO.doesIndexStateMatch(idAndVersion, currentVersion, schemaMD5Hex)).thenReturn(true);
 		
@@ -479,19 +485,29 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
-		// no last version
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.empty());
-		//call under test
-		assertEquals(-1, manager.getVersionOfLastTableEntityChange(idAndVersion));
+	public void testGetLastTableChangeNumberNoVersion() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		when(mockTableTruthDao.getLastTableChangeNumber(123L)).thenReturn(Optional.of(12L));
+		// call under test
+		Optional<Long> result = manager.getLastTableChangeNumber(idAndVersion);
+		assertNotNull(result);
+		assertTrue(result.isPresent());
+		assertEquals(new Long(12L), result.get());
+		verify(mockTableTruthDao).getLastTableChangeNumber(123L);
+		verify(mockTableTruthDao, never()).getLastTableChangeNumber(anyLong(), anyLong());
 	}
 	
 	@Test
-	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
-		long currentVersion = 123L;
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(currentVersion));;
+	public void testGetLastTableChangeNumberWithVersion() {
+		idAndVersion = IdAndVersion.parse("syn123.456");
+		when(mockTableTruthDao.getLastTableChangeNumber(123L, 456L)).thenReturn(Optional.of(18L));
 		// call under test
-		assertEquals(currentVersion, manager.getVersionOfLastTableEntityChange(idAndVersion));
+		Optional<Long> result = manager.getLastTableChangeNumber(idAndVersion);
+		assertNotNull(result);
+		assertTrue(result.isPresent());
+		assertEquals(new Long(18L), result.get());
+		verify(mockTableTruthDao, never()).getLastTableChangeNumber(anyLong());
+		verify(mockTableTruthDao).getLastTableChangeNumber(123L, 456L);
 	}
 	
 	
@@ -629,15 +645,37 @@ public class TableManagerSupportTest {
 		// the scope should be sent
 		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 	}
-	
+
 	@Test
-	public void testGetTableVersionForTableEntity() {
-		Long versionNumber = 999L;
-		when(mockTableTruthDao.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(versionNumber));
+	public void testGetTableVersionForTableEntityNoVersion() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		Long changeNumber = 12L;
+		when(mockTableTruthDao.getLastTableChangeNumber(123L)).thenReturn(Optional.of(changeNumber));
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// call under test
 		Long version = manager.getTableVersion(idAndVersion);
-		assertEquals(versionNumber, version);
+		assertEquals(changeNumber, version);
+	}
+	
+	@Test
+	public void testGetTableVersionForTableEntityNoChanges() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		when(mockTableTruthDao.getLastTableChangeNumber(123L)).thenReturn(Optional.empty());
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		// call under test
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(new Long(-1), version);
+	}
+	
+	@Test
+	public void testGetTableVersionForTableEntityWithVersion() {
+		idAndVersion = IdAndVersion.parse("syn123.456");
+		Long changeNumber = 16L;
+		when(mockTableTruthDao.getLastTableChangeNumber(123L, 456L)).thenReturn(Optional.of(changeNumber));
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		// call under test
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(changeNumber, version);
 	}
 	
 	@Test
@@ -884,7 +922,6 @@ public class TableManagerSupportTest {
 		ChangeMessage message = captor.getValue();
 		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.TABLE, message.getObjectType());
-		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 
@@ -902,7 +939,6 @@ public class TableManagerSupportTest {
 		ChangeMessage message = captor.getValue();
 		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.ENTITY_VIEW, message.getObjectType());
-		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	
@@ -925,5 +961,43 @@ public class TableManagerSupportTest {
 		tableId = null;
 		// call under test
 		manager.touchTable(userInfo, tableId);
+	}
+	
+	@Test
+	public void testSetTableToProcessingAndTriggerUpdateWithVersion() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.3");
+		String resetToken = "a reset token";
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(resetToken);
+		EntityType type = EntityType.entityview;
+		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		// call under test
+		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		assertEquals(status, resultStatus);
+		verify(mockTransactionalMessenger)
+				.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(3L)
+						.withObjectType(ObjectType.ENTITY_VIEW).withChangeType(ChangeType.UPDATE));
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+	}
+	
+	@Test
+	public void testSetTableToProcessingAndTriggerUpdateNoVersion() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		String resetToken = "a reset token";
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(resetToken);
+		EntityType type = EntityType.entityview;
+		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		// call under test
+		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		assertEquals(status, resultStatus);
+		verify(mockTransactionalMessenger)
+		.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(null)
+				.withObjectType(ObjectType.ENTITY_VIEW).withChangeType(ChangeType.UPDATE));
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 	}
 }

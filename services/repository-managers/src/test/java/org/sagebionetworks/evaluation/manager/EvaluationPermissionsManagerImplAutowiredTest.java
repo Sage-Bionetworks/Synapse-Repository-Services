@@ -1,10 +1,10 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
@@ -40,11 +40,9 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.Sets;
-
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EvaluationPermissionsManagerImplAutowiredTest {
 
@@ -71,7 +69,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	private List<String> evalsToDelete;
 	private List<String> nodesToDelete;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
@@ -86,7 +84,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		nodesToDelete = new ArrayList<String>();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (String id : aclsToDelete) {
 			aclDAO.delete(id, ObjectType.EVALUATION);
@@ -492,7 +490,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	@Test
-	public void publicUserGrantAndRevokeReadAndSubmit() throws Exception {
+	public void publicUserGrantAndRevokeRead() throws Exception {
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
 		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
 		String evalName = nodeName;
@@ -506,14 +504,13 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.SUBMIT));
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
 		Set<ResourceAccess> raSet = Collections.singleton(ra);
 		acl.setResourceAccess(raSet);
 		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 
 		// Call under test (after granting)
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 
 		// Revoke access
 		acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
@@ -523,11 +520,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// Call under test (after revoking)
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 	}
 
 	@Test
-	public void publicUserCannotBeGrantedNonReadOrSubmit() throws Exception {
+	public void publicUserCannotBeGrantedNonRead() throws Exception {
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
 		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
 		String evalName = nodeName;
@@ -535,7 +531,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// add READ privilege to ACL for anonymous
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
-			if (!((type.equals(ACCESS_TYPE.READ) || type.equals(ACCESS_TYPE.SUBMIT)))) {
+			if (!type.equals(ACCESS_TYPE.READ)) {
 				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 				ResourceAccess ra = new ResourceAccess();
 				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
@@ -563,7 +559,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		// Ensure the user does not have access before granting read and submit
 		assertFalse(evaluationPermissionsManager.hasAccess(anonymousUserInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
 
-		// add READ, SUBMIT privilege to ACL for public
+		// add READ privilege to ACL for anonymous
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());

@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -74,7 +74,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModelsForObject(String tableId) throws DatastoreException;
+	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) throws DatastoreException;
 	
 	/**
 	 * Get the column IDs for the given Object.
@@ -82,7 +82,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @param tableId
 	 * @return
 	 */
-	public List<String> getColumnModelIdsForObject(String tableId);
+	public List<String> getColumnModelIdsForObject(IdAndVersion idAndVersion);
 	
 	/**
 	 * Delete a column model using its ID.  Note: Only a column model that is not currently in use can be deleted.
@@ -93,40 +93,13 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	public int deleteColumModel(String id);
 	
 	/**
-	 * Unbind all of the columns associated with an object.
-	 * @param objectId
-	 * @return
-	 */
-	public int unbindAllColumnsFromObject(String objectId);
-	
-	/**
-	 * Bind a list of ColumnModels to an object. This indicates that the passed object now depends on this passed column.
-	 * Once an object is bound to a column it cannot be unbound.  A ColumnModel can no longer be deleted once bound to an object.
-	 * The order of the list is maintained for the current column models of a table.
+	 * Bind the passed columns to the given object and version.
 	 * @param columnId The ID of the column to bind.
-	 * @param objectId The ID of the object to bind.
+	 * @param objectIdAndVersion The ID of the object to bind, with an optional version.
 	 * 
-	 * @return True if the this object was not already bound to this object.
 	 * @throws NotFoundException 
 	 */
-	public int bindColumnToObject(List<ColumnModel> columnModels, String objectId) throws NotFoundException;
-	
-	/**
-	 * List all objects that are bound to a set of column IDs.
-	 * 
-	 * @param columnIds The list of column IDs.
-	 * @param currentOnly When true, only objects that are currently using the IDs will be returned.  
-	 * @param limit - Pagination parameter to limit the number of columns returned.
-	 * @param offset - Pagination parameter that is the index of the first column in the page to be returned.
-	 * @return
-	 */
-	public List<String> listObjectsBoundToColumn(Set<String> columnIds, boolean currentOnly, long limit, long offest);
-	
-	/**
-	 * Used for pagination to determine the total number of results for this query.
-	 * @return
-	 */
-	public long listObjectsBoundToColumnCount(Set<String> columnIds, boolean currentOnly);
+	public void bindColumnToObject(List<ColumnModel> columnModels, IdAndVersion objectIdAndVersion) throws NotFoundException;
 	
 	/**
 	 * Select for update on an owner object.
@@ -148,12 +121,5 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * 
 	 */
 	public boolean truncateAllColumnData();
-
-	/**
-	 * Get the column Ids for a given table.
-	 * @param id
-	 * @return
-	 */
-	public List<String> getColumnIdsForObject(String id);
 	
 }

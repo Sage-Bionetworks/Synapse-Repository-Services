@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
-                             http://maven.apache.org/maven-v4_0_0.xsd">
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 
 	<modelVersion>4.0.0</modelVersion>
@@ -12,12 +12,12 @@
 	<!-- This is not the same as the application version. This is a constant. -->
 	<version>develop-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<url>http://www.sagebase.org/</url>
+	<url>https://www.sagebase.org/</url>
 
 	<scm>
 		<connection>scm:svn:https://sagebionetworks.jira.com/svn/PLFM/trunk
 		</connection>
-		<url>http://sagebionetworks.jira.com/source/browse/PLFM</url>
+		<url>https://sagebionetworks.jira.com/source/browse/PLFM</url>
 	</scm>
 
 	<name>Sage Bionetworks Platform</name>
@@ -36,30 +36,22 @@
 		<repository>
 			<id>sagebionetworks-releases-local</id>
 			<name>sagebionetworks-releases-local</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
 			</url>
 		</repository>
 		<repository>
 			<id>sagebionetworks-ext</id>
 			<name>sagebionetworks-releases-ext</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local
 			</url>
 		</repository>
 		<repository>
-			<id>mvn-gae-plugin-repo</id>
-			<url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
-		</repository>
-		<repository>
 			<id>maven-central-rep-1</id>
-			<url>http://repo1.maven.org/maven2/</url>
+			<url>https://repo1.maven.org/maven2/</url>
 		</repository>
 		<repository>
 			<id>mvnrepository.com</id>
-			<url>http://central.maven.org/maven2/</url>
-		</repository>		
-		<repository>
-			<id>sun-maven-repository</id>
-			<url>http://download.java.net/maven/2/</url>
+			<url>https://central.maven.org/maven2/</url>
 		</repository>
 		<repository>
 			<id>apache-repo-releases</id>
@@ -68,14 +60,14 @@
 		</repository>
 		<repository>
 			<id>spring-plugins</id>
-			<url>http://repo.spring.io/plugins-release/</url>
+			<url>https://repo.spring.io/plugins-release/</url>
 		</repository>
 	</repositories>
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>sagebionetworks-plugins-releases-local</id>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/plugins-releases-local/
+			<id>sagebionetworks-libs-releases-local</id>
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local/
 			</url>
 			<snapshots>
 				<enabled>true</enabled>
@@ -86,7 +78,7 @@
 		</pluginRepository>
 		<pluginRepository>
 			<id>Maven Repo 1</id>
-			<url>http://repo1.maven.org/maven2/</url>
+			<url>https://repo1.maven.org/maven2/</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -380,6 +372,12 @@
 			</dependency>
 
 			<dependency>
+				<groupId>com.google.cloud</groupId>
+				<artifactId>google-cloud-storage</artifactId>
+				<version>${com.google.cloud.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
 				<version>${org.apache.httpcomponents.version}</version>
@@ -403,7 +401,7 @@
 				<version>3.6</version>
 			</dependency>
 			<dependency>
-				<!-- jsoup HTML parser library @ http://jsoup.org/ -->
+				<!-- jsoup HTML parser library @ https://jsoup.org/ -->
 				<groupId>org.jsoup</groupId>
 				<artifactId>jsoup</artifactId>
 				<version>1.7.2</version>
@@ -739,7 +737,7 @@
 		<pluginManagement>
 			<plugins>
 				<!-- Tell the eclipse m2e plugin to execute these lifecycle mappings 
-					See: http://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
+					See: https://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
@@ -949,7 +947,7 @@
 		</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.3.21</schema-to-pojo.version>
+		<schema-to-pojo.version>0.3.23</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.535</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.7
@@ -965,19 +963,20 @@
 		<junit.vintage.version>5.4.1</junit.vintage.version>
 		<junit.platform.version>1.4.1</junit.platform.version>
 		<mockito.version>2.27.0</mockito.version>
+		<com.google.cloud.version>1.77.0</com.google.cloud.version>
 	</properties>
 
 	<distributionManagement>
 		<repository>
 			<id>sagebionetworks</id>
 			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
 			</url>
 		</repository>
 		<snapshotRepository>
 			<id>sagebionetworks</id>
 			<name>sagebionetworks-snapshots</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/libs-snapshots-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-snapshots-local
 			</url>
 			<uniqueVersion>false</uniqueVersion>
 		</snapshotRepository>

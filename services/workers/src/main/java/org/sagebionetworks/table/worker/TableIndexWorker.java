@@ -9,9 +9,11 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -19,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableIndexWorker implements ChangeMessageDrivenRunner {
 
+	@Autowired
+	TableManagerSupport tableManagerSupport;
 	@Autowired
 	TableEntityManager tableEntityManager;
 	@Autowired
@@ -30,7 +34,9 @@ public class TableIndexWorker implements ChangeMessageDrivenRunner {
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((message.getObjectType()))) {
 			final String tableId = message.getObjectId();
-			final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+			final IdAndVersion idAndVersion = IdAndVersion.newBuilder()
+					.setId(KeyFactory.stringToKey(message.getObjectId())).setVersion(message.getObjectVersion())
+					.build();
 			final TableIndexManager indexManager;
 			try {
 				indexManager = connectionFactory.connectToTableIndex(idAndVersion);
@@ -45,7 +51,7 @@ public class TableIndexWorker implements ChangeMessageDrivenRunner {
 				return;
 			} else {
 				// Build the table's index.
-				Optional<Long> targetChangeNumber = tableEntityManager.getLastTableChangeNumber(tableId);
+				Optional<Long> targetChangeNumber = tableManagerSupport.getLastTableChangeNumber(idAndVersion);
 				if(targetChangeNumber.isPresent()) {
 					Iterator<TableChangeMetaData> iterator = tableEntityManager.newTableChangeIterator(tableId);
 					indexManager.buildIndexToChangeNumber(progressCallback, idAndVersion, iterator, targetChangeNumber.get());

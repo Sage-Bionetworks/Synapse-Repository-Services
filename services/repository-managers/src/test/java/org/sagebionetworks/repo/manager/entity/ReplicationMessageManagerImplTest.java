@@ -179,7 +179,6 @@ public class ReplicationMessageManagerImplTest {
 			ChangeMessage message = new ChangeMessage();
 			message.setChangeNumber(new Long(i));
 			message.setChangeType(ChangeType.UPDATE);
-			message.setObjectEtag("etag"+i);
 			message.setObjectId("id"+i);
 			message.setObjectType(ObjectType.ENTITY);
 			list.add(message);

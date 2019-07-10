@@ -3,10 +3,8 @@ package org.sagebionetworks.auth.services;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
-import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -76,9 +74,10 @@ public interface AuthenticationService {
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
 
 	/**
-	 * Sends a password reset email to the user
-	 * @param email
-	 * @throws NotFoundException
+	 * Sends a password reset email to the user identified by the given alias (username or email)
+	 * 
+	 * @param passwordResetUrlPrefix The url prefix for the verification callback in the portal
+	 * @param usernameOrEmail An alias identifier for the user, might be a username or email
 	 */
 	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String usernameOrEmail);
 

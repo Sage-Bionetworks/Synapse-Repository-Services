@@ -12,7 +12,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -23,7 +22,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.dao.TransientDataAccessException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Test for AnnotationsWorker
@@ -57,8 +55,8 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the DAO should not be called
-		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
-		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class));
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class));
 	}
 	
 	@Test
@@ -67,12 +65,11 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectId("123");
-		message.setObjectEtag("etag");
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the manager should not be called
-		verify(mockDAO).updateEvaluationSubmissionStatuses(message.getObjectId(), message.getObjectEtag());
-		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(), any());
+		verify(mockDAO).updateEvaluationSubmissionStatuses(message.getObjectId());
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any());
 	}
 	
 	@Test
@@ -81,12 +78,11 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.DELETE);
 		message.setObjectId("123");
-		message.setObjectEtag("etag");
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the manager should not be called
-		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(), any());
-		verify(mockDAO).deleteEvaluationSubmissionStatuses(message.getObjectId(), message.getObjectEtag());
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any());
+		verify(mockDAO).deleteEvaluationSubmissionStatuses(message.getObjectId());
 	}
 	
 	
@@ -109,7 +105,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		String failId = "fail";
 		message2.setObjectId(failId);
 		// Simulate a not found
-		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(any(),any());
+		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(any());
 		worker.run(mockProgressCallback, message2);
 	}
 	
@@ -132,7 +128,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		String failId = "fail";
 		message2.setObjectId(failId);
 		// Simulate a runtime exception
-		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(any(), any());
+		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(any());
 		worker.run(mockProgressCallback, message2);
 	}
 	
@@ -140,12 +136,11 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 	public void testDeadlockException() throws Exception {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.CREATE);
-		message.setObjectEtag("etag");
 		message.setObjectId("101");
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		doThrow(new TransientDataAccessException("foo", null) {
 			private static final long serialVersionUID = 1L;
-		}).when(mockDAO).createEvaluationSubmissionStatuses(anyString(), anyString());
+		}).when(mockDAO).createEvaluationSubmissionStatuses(anyString());
 		// Make the call
 		worker.run(mockProgressCallback, message);
 	}

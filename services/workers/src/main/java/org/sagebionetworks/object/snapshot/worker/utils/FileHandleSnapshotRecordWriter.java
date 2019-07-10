@@ -86,9 +86,6 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 			}
 			try {
 				FileHandle fileHandle = fileHandleDao.get(message.getObjectId());
-				if (!fileHandle.getEtag().equals(message.getObjectEtag())) {
-					log.info("Ignoring old message.");
-				}
 				FileHandleSnapshot snapshot = buildFileHandleSnapshot(fileHandle);
 				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(snapshot, message.getTimestamp().getTime());
 				toWrite.add(objectRecord);

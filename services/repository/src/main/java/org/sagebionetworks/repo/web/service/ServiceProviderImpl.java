@@ -25,8 +25,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private EntityBundleService entityBundleService;
 	@Autowired
-	private NodeQueryService nodeQueryService;
-	@Autowired
 	private UserGroupService userGroupService;
 	@Autowired
 	private UserProfileService userProfileService;
@@ -93,9 +91,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	}
 	public EntityBundleService getEntityBundleService() {
 		return entityBundleService;
-	}
-	public NodeQueryService getNodeQueryService() {
-		return nodeQueryService;
 	}
 	public UserGroupService getUserGroupService() {
 		return userGroupService;

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -79,15 +80,33 @@ public interface ColumnModelManager {
 	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Bind a set of columns to an object.
+	 * Bind a set of columns to the default version (version = null) of the given object.
 	 * @param user
 	 * @param columnIds
-	 * @param objectId
+	 * @param idAndVersion
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public List<ColumnModel> bindColumnToObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> bindColumnsToDefaultVersionOfObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Bind a set of columns to the given version of the given object
+	 * @param user
+	 * @param columnIds
+	 * @param idAndVersion
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public List<ColumnModel> bindColumnsToVersionOfObject(List<String> columnIds, IdAndVersion idAndVersion) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Bind the current schema of an object to a targeted version of that object.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public List<ColumnModel> bindDefaultColumnsToObjectVersion(IdAndVersion idAndVersion);
 	
 	/**
 	 * Remove all column bindings for an object
@@ -95,18 +114,6 @@ public interface ColumnModelManager {
 	 * @param objectId
 	 */
 	public void unbindAllColumnsAndOwnerFromObject(String objectId);
-
-	/**
-	 * List all of the objects that are bound to the given column IDs.
-	 * 
-	 * @param user
-	 * @param columnIds
-	 * @param currentOnly
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public PaginatedIds listObjectsBoundToColumn(UserInfo user, Set<String> columnIds, boolean currentOnly, long limit, long offset);
 	
 	/**
 	 * Clear all data for tests.
@@ -152,16 +159,16 @@ public interface ColumnModelManager {
 
 	/**
 	 * Get the columnIds for a table.
-	 * @param id
+	 * @param idAndVersion
 	 * @return
 	 */
-	public List<String> getColumnIdForTable(String id);
+	public List<String> getColumnIdForTable(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the column models bound to this object.
-	 * @param tableId
+	 * @param idAndVersion
 	 * @return
 	 */
-	public List<ColumnModel> getColumnModelsForObject(String tableId);
+	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion);
 }
 

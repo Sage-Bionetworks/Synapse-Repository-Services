@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_REQUEST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
 
 import java.sql.ResultSet;
@@ -26,8 +27,8 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -35,7 +36,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  *
  */
 public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipartUpload, DBOMultipartUpload>{
-		
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_MULTIPART_UPLOAD_ID, true).withIsBackupId(true),
 		new FieldColumn("requestHash", COL_MULTIPART_REQUEST_HASH),
@@ -47,6 +48,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		new FieldColumn("fileHandleId", COL_MULTIPART_FILE_HANDLE_ID),
 		new FieldColumn("state", COL_MULTIPART_STATE),
 		new FieldColumn("uploadToken", COL_MULTIPART_UPLOAD_TOKEN),
+		new FieldColumn("uploadType", COL_MULTIPART_UPLOAD_TYPE),
 		new FieldColumn("bucket", COL_MULTIPART_BUCKET),
 		new FieldColumn("key", COL_MULTIPART_KEY),
 		new FieldColumn("numberOfParts", COL_MULTIPART_NUMBER_OF_PARTS)
@@ -65,6 +67,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	String bucket;
 	String key;
 	Integer numberOfParts;
+	String uploadType;
 
 	@Override
 	public TableMapping<DBOMultipartUpload> getTableMapping() {
@@ -87,6 +90,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				dbo.setState(rs.getString(COL_MULTIPART_STATE));
 				dbo.setRequestBlob(rs.getBytes(COL_MULTIPART_UPLOAD_REQUEST));
 				dbo.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
+				dbo.setUploadType(rs.getString(COL_MULTIPART_UPLOAD_TYPE));
 				dbo.setBucket(rs.getString(COL_MULTIPART_BUCKET));
 				dbo.setKey(rs.getString(COL_MULTIPART_KEY));
 				dbo.setNumberOfParts(rs.getInt(COL_MULTIPART_NUMBER_OF_PARTS));
@@ -121,7 +125,21 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOMultipartUpload>();
+		return new MigratableTableTranslation<DBOMultipartUpload, DBOMultipartUpload>() {
+			@Override
+			public DBOMultipartUpload createDatabaseObjectFromBackup(DBOMultipartUpload backup) {
+				if (backup.getUploadType() == null) {
+					backup.setUploadType(UploadType.S3.toString());
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOMultipartUpload createBackupFromDatabaseObject(DBOMultipartUpload dbo) {
+
+				return dbo;
+			}
+		};
 	}
 
 	@Override
@@ -136,8 +154,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<>();
 		list.add(new DBOMultipartUploadPartState());
+		list.add(new DBOMultipartUploadComposerPartState());
 		return list;
 	}
 
@@ -221,6 +240,14 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.uploadToken = uploadToken;
 	}
 
+	public String getUploadType() {
+		return uploadType;
+	}
+
+	public void setUploadType(String uploadType) {
+		this.uploadType = uploadType;
+	}
+
 	public String getBucket() {
 		return bucket;
 	}
@@ -249,6 +276,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((uploadType == null) ? 0 : uploadType.hashCode());
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result
@@ -281,6 +309,11 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMultipartUpload other = (DBOMultipartUpload) obj;
+		if (uploadType == null) {
+			if (other.uploadType != null)
+				return false;
+		} else if (!uploadType.equals(other.uploadType))
+			return false;
 		if (bucket == null) {
 			if (other.bucket != null)
 				return false;
@@ -348,13 +381,22 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public String toString() {
-		return "DBOMultipartUpload [id=" + id + ", requestHash=" + requestHash
-				+ ", etag=" + etag + ", requestBlob="
-				+ Arrays.toString(requestBlob) + ", startedBy=" + startedBy
-				+ ", startedOn=" + startedOn + ", updatedOn=" + updatedOn
-				+ ", fileHandleId=" + fileHandleId + ", state=" + state
-				+ ", uploadToken=" + uploadToken + ", bucket=" + bucket
-				+ ", key=" + key + ", numberOfParts=" + numberOfParts + "]";
+		return "DBOMultipartUpload ["
+				+ "id=" + id
+				+ ", requestHash=" + requestHash
+				+ ", etag=" + etag
+				+ ", requestBlob="  + Arrays.toString(requestBlob)
+				+ ", startedBy=" + startedBy
+				+ ", startedOn=" + startedOn
+				+ ", updatedOn=" + updatedOn
+				+ ", fileHandleId=" + fileHandleId
+				+ ", state=" + state
+				+ ", uploadToken=" + uploadToken
+				+ ", uploadType=" + uploadType
+				+ ", bucket=" + bucket
+				+ ", key=" + key
+				+ ", numberOfParts="
+				+ numberOfParts + "]";
 	}
 
 

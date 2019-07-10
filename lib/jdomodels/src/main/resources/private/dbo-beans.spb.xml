@@ -29,6 +29,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUpload" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadPartState" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient" />
@@ -80,7 +81,6 @@
 				<!-- Table -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableTransaction" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTransactionToVersion" />
