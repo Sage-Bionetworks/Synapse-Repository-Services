@@ -100,7 +100,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
 
-		validateAnonymousOrPublicPermissions(acl.getResourceAccess());
+		validateUserGroupPermissions(acl.getResourceAccess());
 
 		aclDAO.update(acl, ObjectType.EVALUATION);
 		return aclDAO.get(evalId, ObjectType.EVALUATION);
@@ -200,7 +200,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	/*
 	 * Ensures that public/anonymous users are not given more permissions than they should be allowed to have on an evaluation
 	 */
-	private static void validateAnonymousOrPublicPermissions(Set<ResourceAccess> resourceAccess) {
+	private static void validateUserGroupPermissions(Set<ResourceAccess> resourceAccess) {
 		for (ResourceAccess ra : resourceAccess) {
 			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS)) {
@@ -209,6 +209,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS)) {
 					throw new InvalidModelException("Anonymous users may only have read access on an evaluation.");
+				}
+			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())) {
+				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_AUTH_USER_MAXIMUM_ACCESS_PERMISSIONS)) {
+					throw new InvalidModelException("Only read access on an evaluation can be granted to all authenticated Synapse users.");
 				}
 			}
 		}
