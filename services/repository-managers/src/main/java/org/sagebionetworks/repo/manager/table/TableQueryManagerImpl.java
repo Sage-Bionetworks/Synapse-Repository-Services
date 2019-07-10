@@ -11,7 +11,6 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -61,8 +60,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	TableManagerSupport tableManagerSupport;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
-	@Autowired
-	ColumnModelDAO columnModelDAO;
 
 	/**
 	 * Injected via spring
@@ -156,7 +153,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, idAndVersion);
 
 		// 3. Get the table's schema
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(idAndVersion.getId().toString());
+		List<ColumnModel> columnModels = tableManagerSupport.getColumnModelsForTable(idAndVersion);
 		if (columnModels.isEmpty()) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}

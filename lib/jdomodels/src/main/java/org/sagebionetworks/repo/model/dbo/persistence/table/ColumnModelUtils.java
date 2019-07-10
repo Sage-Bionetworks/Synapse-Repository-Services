@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -16,6 +15,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -238,26 +238,7 @@ public class ColumnModelUtils {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	/**
-	 * Create a list of DBOBoundColumn from the passed list of IDs.
-	 * @param tableId
-	 * @param ids
-	 * @return
-	 */
-	public static List<DBOBoundColumn> createDBOBoundColumnList(Long objectId, List<ColumnModel> columns){
-		List<DBOBoundColumn> list = new LinkedList<DBOBoundColumn>();
-		long now = System.currentTimeMillis();
-		// Add each id
-		for(ColumnModel column: columns){
-			DBOBoundColumn bc = new DBOBoundColumn();
-			bc.setColumnId(Long.parseLong(column.getId()));
-			bc.setObjectId(objectId);
-			bc.setUpdatedOn(now);
-			list.add(bc);
-		}
-		return list;
-	}
+
 	
 	/**
 	 * Create a list DBOBoundColumnOrdinal where the order of the list is preserved.
@@ -265,7 +246,7 @@ public class ColumnModelUtils {
 	 * @param ids
 	 * @return
 	 */
-	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(Long objectId, List<ColumnModel> columns){
+	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(IdAndVersion idAndVersion, List<ColumnModel> columns){
 		List<DBOBoundColumnOrdinal> list = new LinkedList<DBOBoundColumnOrdinal>();
 		// Keep the order of the columns
 		int index = 0;
@@ -273,24 +254,13 @@ public class ColumnModelUtils {
 			Long id = Long.parseLong(column.getId());
 			DBOBoundColumnOrdinal bc = new DBOBoundColumnOrdinal();
 			bc.setColumnId(id);
-			bc.setObjectId(objectId);
+			bc.setObjectId(idAndVersion.getId());
+			bc.setObjectVersion(idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
 			bc.setOrdinal(new Long(index));
 			list.add(bc);
 			index++;
 		}
 		return list;
-	}
-	
-	/**
-	 * Sort the passed list of DBOs by column Id.
-	 * @param toSort
-	 */
-	public static void sortByColumnId(List<DBOBoundColumn> toSort){
-		Collections.sort(toSort, new Comparator<DBOBoundColumn>(){
-			@Override
-			public int compare(DBOBoundColumn o1, DBOBoundColumn o2) {
-				return o1.columnId.compareTo(o2.columnId);
-			}});
 	}
 	
 	/**

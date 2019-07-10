@@ -451,18 +451,12 @@ public class SqlConstants {
 	public static final String TABLE_TABLE_FILE_ASSOCIATION 	= "TABLE_FILE_ASSOCIATION";
 	public static final String COL_TABLE_FILE_ASSOC_TABLE_ID	= "TABLE_ID";
 	public static final String COL_TABLE_FILE_ASSOC_FILE_ID		= "FILE_ID";
-	
-	// The bound column model table
-	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
-	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
-	public static final String COL_BOUND_CM_OBJECT_ID		= "OBJECT_ID";
-	public static final String COL_BOUND_CM_UPDATED_ON		= "UPDATED_ON";
-	public static final String DDL_BOUND_COLUMN = "schema/BoundColumn-ddl.sql";
-	
+		
 	// The bound column ordinal model table
 	public static final String TABLE_BOUND_COLUMN_ORDINAL		= "BOUND_COLUMN_ORDINAL";
 	public static final String COL_BOUND_CM_ORD_COLUMN_ID		= "COLUMN_ID";
 	public static final String COL_BOUND_CM_ORD_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_BOUND_CM_ORD_OBJECT_VERSION	= "OBJECT_VERSION";
 	public static final String COL_BOUND_CM_ORD_ORDINAL			= "ORDINAL";
 	public static final String DDL_BOUND_COLUMN_ORDINAL = "schema/BoundColumnOrdinal-ddl.sql";
 	

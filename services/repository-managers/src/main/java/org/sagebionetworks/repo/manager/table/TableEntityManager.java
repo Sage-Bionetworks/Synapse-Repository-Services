@@ -10,6 +10,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -240,10 +241,10 @@ public interface TableEntityManager {
 	 * Get the schema for the table.
 	 * 
 	 * @param user
-	 * @param id
+	 * @param idAndVersion
 	 * @return
 	 */
-	public List<String> getTableSchema(String id);
+	public List<String> getTableSchema(IdAndVersion idAndVersion);
 
 	/**
 	 * Delete all data about a table if it no longer exists. If the passed tableId
@@ -274,15 +275,6 @@ public interface TableEntityManager {
 	List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset);
 
 	/**
-	 * Get the last change number applied to the table.
-	 * 
-	 * @param tableId
-	 * @return Will return an empty optional if no changes have been applied to the
-	 *         table.
-	 */
-	public Optional<Long> getLastTableChangeNumber(String tableId);
-
-	/**
 	 * Bind the current entity version to the latest table transaction.
 	 * 
 	 * @param id
@@ -296,6 +288,7 @@ public interface TableEntityManager {
 	 * @param userInfo
 	 * @param versionRequest
 	 * @param transactionId
+	 * @return The version number of the newly created version.
 	 */
 	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
 			long transactionId);

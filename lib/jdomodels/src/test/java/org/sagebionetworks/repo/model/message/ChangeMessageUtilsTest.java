@@ -49,6 +49,28 @@ public class ChangeMessageUtilsTest {
 		ChangeMessageUtils.validateChangeMessage(valid);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateChangeMessageNull() {
+		// call under test
+		ChangeMessageUtils.validateChangeMessage(null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateChangeMessageNullObjectId() {
+		ChangeMessage change = createValidChange();
+		change.setObjectId(null);
+		// call under test
+		ChangeMessageUtils.validateChangeMessage(change);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateChangeMessageNullObjectType() {
+		ChangeMessage change = createValidChange();
+		change.setObjectType(null);
+		// call under test
+		ChangeMessageUtils.validateChangeMessage(change);
+	}
+	
 	@Test
 	public void testCreateDBOWithVersionNull() {
 		ChangeMessage dto = createValidChange();

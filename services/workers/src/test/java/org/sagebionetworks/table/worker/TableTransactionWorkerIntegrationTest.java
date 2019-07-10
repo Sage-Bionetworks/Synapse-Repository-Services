@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -12,7 +13,6 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -190,7 +191,6 @@ public class TableTransactionWorkerIntegrationTest {
 		assertEquals(1, response.getResults().size());
 	}
 	
-	@Ignore
 	@Test
 	public void testTableVersion() throws Exception {
 		// create a table with more than one version
@@ -215,10 +215,48 @@ public class TableTransactionWorkerIntegrationTest {
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
 		assertNotNull(response.getNewVersionNumber());
-		String sql = "select * from "+tableId+"."+response.getNewVersionNumber();
+		long firstVersion = response.getNewVersionNumber();
+		
+		// add two more rows and create another version.
+		PartialRow rowThree = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "3");
+		PartialRow rowFour = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "4");
+		rowSet = createRowSet(tableId, rowThree, rowFour);
+		transaction = createAddDataRequest(tableId, rowSet);
+		// start a new version
+		transaction.setVersionRequest(createVersionRequest());
+		// start the transaction
+		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getNewVersionNumber());
+		long secondVersion = response.getNewVersionNumber();
+		
+		// Add two more rows without creating a version.
+		PartialRow rowFive = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "5");
+		PartialRow rowSix = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "6");
+		rowSet = createRowSet(tableId, rowFive, rowSix);
+		transaction = createAddDataRequest(tableId, rowSet);
+		// start the transaction
+		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNull(response.getNewVersionNumber());
+		// query first version
+		String sql = "select * from " + tableId + "." + firstVersion;
 		QueryBundleRequest queryRequest = createQueryRequest(sql, tableId);
-		QueryResultBundle queryResult = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class);
-		System.out.println(queryResult);
+		List<Row> firstVersionRows = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
+				.getQueryResult().getQueryResults().getRows();
+		assertEquals(2, firstVersionRows.size());
+		// query second version
+		sql = "select * from "+tableId+"."+secondVersion;
+		queryRequest = createQueryRequest(sql, tableId);
+		List<Row> secondVersionRows = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
+				.getQueryResult().getQueryResults().getRows();
+		assertEquals(4, secondVersionRows.size());
+		// query latest without a version
+		sql = "select * from "+tableId;
+		queryRequest = createQueryRequest(sql, tableId);
+		List<Row> latestVersion = startAndWaitForJob(adminUserInfo, queryRequest, QueryResultBundle.class)
+				.getQueryResult().getQueryResults().getRows();
+		assertEquals(6, latestVersion.size());
 	}
 	
 	/**

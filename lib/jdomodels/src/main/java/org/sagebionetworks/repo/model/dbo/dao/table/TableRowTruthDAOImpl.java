@@ -5,10 +5,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY_NEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TRX_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_TO_VER_TRX_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_TRX_TO_VER_VER_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_TRX_TO_VERSION;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +26,6 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
@@ -41,7 +44,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -63,7 +65,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private static final String SELECT_LAST_TRANSACTION_ID = "SELECT " + COL_TABLE_ROW_TRX_ID + " FROM "
 			+ TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TABLE_ID + " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " DESC LIMIT 1";
 	
-	private static final String SQL_LAST_CHANGE_NUMBER = "SELECT MAX("+COL_TABLE_ROW_VERSION+") FROM "+TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_TABLE_ID+" = ?";
+	private static final String SQL_LAST_CHANGE_NUMBER = "SELECT MAX(" + COL_TABLE_ROW_VERSION + ") FROM "
+			+ TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TABLE_ID + " = ?";
+	
+	private static final String SQL_LAST_CHANGE_NUMBER_FOR_VERSION = "SELECT MAX(" + COL_TABLE_ROW_VERSION + ") FROM "
+			+ TABLE_ROW_CHANGE + " C JOIN " + TABLE_TABLE_TRX_TO_VERSION + " V ON (C." + COL_TABLE_ROW_TRX_ID + " = V."
+			+ COL_TABLE_TRX_TO_VER_TRX_ID + ") WHERE C." + COL_TABLE_ROW_TABLE_ID + " = ? AND V."
+			+ COL_TABLE_TRX_TO_VER_VER_NUM + " = ?";
 
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
 
@@ -493,10 +501,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public Optional<Long> getLastTableChangeNumber(String tableIdString) {
-		ValidateArgument.required(tableIdString, "tableId");
-		long tableId = KeyFactory.stringToKey(tableIdString);
+	public Optional<Long> getLastTableChangeNumber(long tableId) {
 		Long changeNumber = this.jdbcTemplate.queryForObject(SQL_LAST_CHANGE_NUMBER, Long.class, tableId);
+		return Optional.ofNullable(changeNumber);
+	}
+	
+	@Override
+	public Optional<Long> getLastTableChangeNumber(long tableId, long tableVersion) {
+		Long changeNumber = this.jdbcTemplate.queryForObject(SQL_LAST_CHANGE_NUMBER_FOR_VERSION, Long.class, tableId, tableVersion);
 		return Optional.ofNullable(changeNumber);
 	}
 

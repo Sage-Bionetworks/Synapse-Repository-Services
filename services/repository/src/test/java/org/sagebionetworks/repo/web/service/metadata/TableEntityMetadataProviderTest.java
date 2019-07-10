@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -25,6 +26,7 @@ public class TableEntityMetadataProviderTest  {
 	TableEntityMetadataProvider provider;
 	
 	String entityId;
+	IdAndVersion idAndVersion;
 	TableEntity table;
 	List<String> columnIds;
 	
@@ -40,6 +42,7 @@ public class TableEntityMetadataProviderTest  {
 		columnIds = Lists.newArrayList("123");
 		
 		entityId = "syn123";
+		idAndVersion = IdAndVersion.parse(entityId);
 		table = new TableEntity();
 		table.setId(entityId);
 		table.setColumnIds(columnIds);
@@ -79,13 +82,22 @@ public class TableEntityMetadataProviderTest  {
 		verify(tableEntityManager).bindCurrentEntityVersionToLatestTransaction(entityId);;
 	}
 	
+	/**
+	 * When returning a TableEntity, ideally, we would include the schema
+	 * that matches table's version.  However, all tables created before
+	 * we added support for table versions do not have a schema for each version.
+	 * Nor do newly created tables.  As a compromise, we always return the 'current'
+	 * schema regardless of the table's version. 
+	 */
 	@Test
 	public void testAddTypeSpecificMetadata(){
 		TableEntity testEntity = new TableEntity();
 		testEntity.setId(entityId);
-		when(tableEntityManager.getTableSchema(entityId)).thenReturn(columnIds);
+		testEntity.setVersionNumber(33L);
+		IdAndVersion expectedId = IdAndVersion.parse("syn123");
+		when(tableEntityManager.getTableSchema(expectedId)).thenReturn(columnIds);
 		provider.addTypeSpecificMetadata(testEntity, null, null); //the other parameters are not used at all
-		verify(tableEntityManager).getTableSchema(entityId);
+		verify(tableEntityManager).getTableSchema(expectedId);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}
 

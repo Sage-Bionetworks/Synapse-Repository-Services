@@ -270,19 +270,17 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public String getSchemaMD5Hex(IdAndVersion idAndVersion) {
-		List<String> columnIds = columnModelDao.getColumnModelIdsForObject(idAndVersion.getId().toString());
+		List<String> columnIds = columnModelDao.getColumnModelIdsForObject(idAndVersion);
 		return TableModelUtils.createSchemaMD5Hex(columnIds);
 	}
-
-	/**
-	 * Get the version of the last change applied to a table entity.
-	 * 
-	 * @param tableId
-	 * @return returns -1 if there are no changes applied to the table.
-	 */
-	long getVersionOfLastTableEntityChange(IdAndVersion idAndVersion) {
-		Optional<Long> optional = tableTruthDao.getLastTableChangeNumber(idAndVersion.getId().toString());
-		return optional.orElse(-1L);
+	
+	@Override
+	public Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion) {
+		if(idAndVersion.getVersion().isPresent()) {
+			return this.tableTruthDao.getLastTableChangeNumber(idAndVersion.getId(), idAndVersion.getVersion().get());
+		}else {
+			return this.tableTruthDao.getLastTableChangeNumber(idAndVersion.getId());
+		}
 	}
 
 	/*
@@ -418,7 +416,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		switch (type) {
 		case TABLE:
 			// For TableEntity the version of the last change set is used.
-			return getVersionOfLastTableEntityChange(idAndVersion);
+			Optional<Long> value = getLastTableChangeNumber(idAndVersion);
+			return value.orElse(-1L);
 		case ENTITY_VIEW:
 			// For FileViews the CRC of all files in the view is used.
 			return calculateViewCRC32(idAndVersion);
@@ -480,7 +479,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	@Override
 	public List<ColumnModel> getColumnModelsForTable(IdAndVersion idAndVersion) throws DatastoreException, NotFoundException {
-		return columnModelDao.getColumnModelsForObject(idAndVersion.getId().toString());
+		return columnModelDao.getColumnModelsForObject(idAndVersion);
 	}
 	
 	@Override

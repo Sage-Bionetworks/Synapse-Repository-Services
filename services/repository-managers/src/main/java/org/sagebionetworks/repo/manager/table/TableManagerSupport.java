@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -415,5 +416,13 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public boolean doesTableExist(IdAndVersion tableId);
+
+	/**
+	 * Get the last change number for the given table ID and version pair.
+	 * 
+	 * @param idAndVersion Present if there is at least one change for the given pair.
+	 * @return
+	 */
+	Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion);
 
 }

@@ -1,12 +1,16 @@
 package org.sagebionetworks.table.worker;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Optional;
-
-import static org.mockito.Mockito.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +23,7 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -29,6 +34,8 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 @RunWith(MockitoJUnitRunner.class)
 public class TableIndexWorkerTest {
 
+	@Mock
+	TableManagerSupport mockTableManagerSupport;
 	@Mock
 	TableEntityManager mockTableEntityManager;
 	@Mock
@@ -85,13 +92,13 @@ public class TableIndexWorkerTest {
 		worker.run(mockProgressCallback, message);
 		verify(mockTableEntityManager).deleteTableIfDoesNotExist(message.getObjectId());
 		verify(mockTableIndexManger).deleteTableIndex(idAndVersion);
-		verify(mockTableEntityManager, never()).getLastTableChangeNumber(anyString());
+		verify(mockTableManagerSupport, never()).getLastTableChangeNumber(any(IdAndVersion.class));
 	}
 
 	@Test
 	public void testRunCreateMessage() throws RecoverableMessageException, Exception {
 		long targetChangeNumber = 12L;
-		when(mockTableEntityManager.getLastTableChangeNumber(message.getObjectId()))
+		when(mockTableManagerSupport.getLastTableChangeNumber(idAndVersion))
 				.thenReturn(Optional.of(targetChangeNumber));
 		Iterator<TableChangeMetaData> iterator = new LinkedList<TableChangeMetaData>().iterator();
 		when(mockTableEntityManager.newTableChangeIterator(message.getObjectId())).thenReturn(iterator);
@@ -106,7 +113,7 @@ public class TableIndexWorkerTest {
 	@Test
 	public void testRunCreateMessageNoTarget() throws RecoverableMessageException, Exception {
 		// empty means no change for this table.
-		when(mockTableEntityManager.getLastTableChangeNumber(message.getObjectId())).thenReturn(Optional.empty());
+		when(mockTableManagerSupport.getLastTableChangeNumber(idAndVersion)).thenReturn(Optional.empty());
 		Iterator<TableChangeMetaData> iterator = new LinkedList<TableChangeMetaData>().iterator();
 		when(mockTableEntityManager.newTableChangeIterator(message.getObjectId())).thenReturn(iterator);
 		// call under test

@@ -52,7 +52,6 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -101,8 +100,6 @@ import com.google.common.collect.Sets;
 @RunWith(MockitoJUnitRunner.class)
 public class TableQueryManagerImplTest {
 	
-	@Mock
-	ColumnModelDAO mockColumnModelDAO;
 	@Mock
 	TableManagerSupport mockTableManagerSupport;
 	@Mock
@@ -181,7 +178,7 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
 		
-		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion.getId().toString())).thenReturn(models);
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
 			@Override
@@ -693,7 +690,7 @@ public class TableQueryManagerImplTest {
 	@Test 
 	public void testQuerySinglePageEmptySchema() throws Exception {
 		// Return no columns
-		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion.getId().toString())).thenReturn(new LinkedList<ColumnModel>());
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
 		query.setIsConsistent(true);
@@ -909,8 +906,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightEmptySchema() throws Exception {
-		// setup an empty schema.
-		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion.getId().toString())).thenReturn(new LinkedList<ColumnModel>());
+		// Return no columns
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
 		List<SortItem> sortList= null;
 		// call under test
 		try {
@@ -1071,8 +1068,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testRunQueryDownloadAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
-		// setup an empty schema.
-		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion.getId().toString())).thenReturn(new LinkedList<ColumnModel>());
+		// Return no columns
+		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select * from "+tableId);
 		request.setSort(null);
