@@ -10,33 +10,47 @@ import org.sagebionetworks.util.ValidateArgument;
  * 
  */
 public class FlatZipEntryNameProvider implements ZipEntryNameProvider {
-	
-	Map<String, Integer> prefixCounts;
-	
+
+	Map<String, Integer> fileNamesCount;
+
 	public FlatZipEntryNameProvider() {
-		prefixCounts = new HashMap<String, Integer>();
+		fileNamesCount = new HashMap<String, Integer>();
 	}
 
 	@Override
-	public String createZipEntryName(String fileName, Long fileHandleId) {
+	public String createZipEntryName(final String fileName, final Long fileHandleId) {
 		ValidateArgument.required(fileName, "fileName");
-		int suffixIndex = fileName.indexOf(".");
-		if(suffixIndex < 0) {
-			suffixIndex = fileName.length();
+
+		Integer fileNameCount = fileNamesCount.getOrDefault(fileName, 0);
+		String finalFileName;
+
+		if (fileNameCount == 0) {
+			// All good, first time we see this file
+			finalFileName = fileName;
+			fileNameCount++;
+		} else {
+			// Split over the first dot to create versioned name
+			int suffixIndex = fileName.indexOf(".");
+			
+			if (suffixIndex < 0) {
+				suffixIndex = fileName.length();
+			}
+			
+			String prefix = fileName.substring(0, suffixIndex);
+			String suffix = fileName.substring(suffixIndex, fileName.length());
+
+			// Try to generate a version until there is no collision
+			do {
+				finalFileName = prefix + "(" + fileNameCount + ")" + suffix;
+				fileNameCount++;
+			} while (fileNamesCount.containsKey(finalFileName));
+			
 		}
-		String prefix = fileName.substring(0, suffixIndex);
-		String suffix = fileName.substring(suffixIndex, fileName.length());
-		// how many times have we seen this prefix?
-		Integer prefixCount = prefixCounts.get(prefix);
-		if(prefixCount == null) {
-			prefixCount = 0;
-		}
-		prefixCount++;
-		prefixCounts.put(prefix, prefixCount);
-		if(prefixCount > 1) {
-			prefix += "("+(prefixCount-1)+")";
-		}
-		return prefix+suffix;
+		
+		fileNamesCount.put(fileName, fileNameCount);
+
+		return finalFileName;
+
 	}
 
 }

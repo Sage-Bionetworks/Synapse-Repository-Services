@@ -44,6 +44,15 @@ public class FlatZipEntryNameProviderTest {
 	}
 	
 	@Test
+	public void testDuplicateExistingGeneratedName() {
+		String name = "foo(1).txt";
+	
+		assertEquals("foo(1).txt", provider.createZipEntryName(name, fileHandleId));
+		assertEquals("foo(1)(1).txt", provider.createZipEntryName(name, fileHandleId));
+		assertEquals("foo(1)(2).txt", provider.createZipEntryName(name, fileHandleId));
+	}
+	
+	@Test
 	public void testExistingGeneratedNameWithRepetition() {
 		String name = "foo(1).txt";
 		String name2 = "foo.txt";
@@ -62,6 +71,7 @@ public class FlatZipEntryNameProviderTest {
 		assertEquals("foo.txt", provider.createZipEntryName(name2, fileHandleId));
 		assertEquals("foo(1).txt", provider.createZipEntryName(name2, fileHandleId));
 		assertEquals("foo(3).txt", provider.createZipEntryName(name2, fileHandleId));
+		assertEquals("foo(2)(1).txt", provider.createZipEntryName(name, fileHandleId));
 	}
 	
 	@Test
@@ -71,6 +81,7 @@ public class FlatZipEntryNameProviderTest {
 	
 		assertEquals("foo(1).txt", provider.createZipEntryName(name, fileHandleId));
 		assertEquals("foo.bar", provider.createZipEntryName(name2, fileHandleId));
+		assertEquals("foo(1).bar", provider.createZipEntryName(name2, fileHandleId));
 	}
 
 	@Test
