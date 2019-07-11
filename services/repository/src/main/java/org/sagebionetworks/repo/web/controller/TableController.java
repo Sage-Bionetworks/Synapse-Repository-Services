@@ -62,11 +62,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * A Synapse <a
- * href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
+ * A Synapse
+ * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
  * model object represents the metadata of a table. Each TableEntity is defined
- * by a list of <a
- * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
+ * by a list of
+ * <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
  * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModel
  * objects. Each ColumnModel object is immutable, so to change a column of a
  * table a new column must be added and the old column must be removed.
@@ -88,35 +88,80 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * 
  * Once the columns for a TableEntity have been created and assigned to the
- * TableEntity, rows can be added to the table using <a
- * href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>. 
- * Each <a href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
+ * TableEntity, rows can be added to the table using
+ * <a href="${POST.entity.id.table.transaction.async.start}">POST
+ * /entity/{id}/table/transaction/async/start</a>. Each
+ * <a href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
  * table will automatically be assigned a rowId and a versionNumber and can be
- * found in the resulting <a
- * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
+ * found in the resulting
+ * <a href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
  * >RowReferenceSet</a>. To update a row, simply include the row's rowId in the
  * passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>.
  * Any row without a rowId will be treated as a new row. When a row is updated a
  * new versionNumber will automatically be assigned the Row. While previous
  * versions of any row are kept, only the current version of any row will appear
- * in the table index used to support the query service: <a
- * href="${POST.entity.id.table.query.async.start}">POST /entity/{id}/table/query/async/start</a> </p>
- * <p>
- * Use the <a href="${POST.entity.id.table.query.async.start}">POST
- * /entity/{id}/table/query/async/start</a> services to query for the current rows of a
- * table. The returned <a
- * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
- * query can be modified and returned to update the rows of a table using <a
- * href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>.
+ * in the table index used to support the query service:
+ * <a href="${POST.entity.id.table.query.async.start}">POST
+ * /entity/{id}/table/query/async/start</a>
  * </p>
  * <p>
- * There is also an <a
- * href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}"
- * >asynchronous service</a> to <a
- * href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}"
- * >upload</a> and <a
- * href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}"
+ * Use the <a href="${POST.entity.id.table.query.async.start}">POST
+ * /entity/{id}/table/query/async/start</a> services to query for the current
+ * rows of a table. The returned
+ * <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the
+ * table query can be modified and returned to update the rows of a table using
+ * <a href="${POST.entity.id.table.transaction.async.start}">POST
+ * /entity/{id}/table/transaction/async/start</a>.
+ * </p>
+ * <p>
+ * There is also an <a href=
+ * "${org.sagebionetworks.repo.web.controller.AsynchronousJobController}"
+ * >asynchronous service</a> to
+ * <a href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}"
+ * >upload</a> and
+ * <a href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}"
  * >download</a> csv files, suitable for large datasets.
+ * </p>
+ * <p>
+ * <b>Table Service Limits</b>
+ * <table border="1">
+ * <tr>
+ * <th>resource</th>
+ * <th>limit</th>
+ * <th>notes</th>
+ * </tr>
+ * <tr>
+ * <td>Maximum size of column names</td>
+ * <td>256 characters</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>Maximum number of columns per table/view</td>
+ * <td>152</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>The maximum possible width of a
+ * table/view</td>
+ * <td>64 KB</td>
+ * <td>Each
+ * <a href="${org.sagebionetworks.repo.model.table.ColumnType}" >ColumnType</a>
+ * has a maximum possible size. The total width of a table/view is the sum of
+ * the maximum size of each of its columns</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum number of LARG_TEXT columns per table/view</td>
+ * <td>30</td>
+ * <td></td>
+ * </tr>
+ * <td>Maximum table size</td>
+ * <td>~146 GB</td>
+ * <td>All row changes applied to a table are automatically batched into changes sets with a maximum size of 5242880 bytes (5 MB).  Currently, there is a limit
+ * of 30,000 change sets per table.  Therefore, the theoretical maximum size of table is 5242880 bytes * 30,000 = ~ 146 GB.</td>
+ * </tr>
+ * </table>
+ * 
+ * 
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller

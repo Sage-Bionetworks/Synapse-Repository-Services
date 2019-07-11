@@ -22,43 +22,43 @@
             "enum": [
                 {
                     "name": "STRING",
-                    "description": "The STRING data type is a small text strings with between 1 and 1,000 characters.  Each STRING column will have a declared maximum size between 1 and 1,000 characters (with 50 characters as the default when maximumSize = null).  The maximum STRING size is applied to the budget of the maximum table width, therefore it is best to use the smallest possible maximum size for the data.  For strings larger than 250 characters, consider using the LARGETEXT column type for improved performance."
+                    "description": "The STRING data type is a small text strings with between 1 and 1,000 characters.  Each STRING column will have a declared maximum size between 1 and 1,000 characters (with 50 characters as the default when maximumSize = null).  The maximum STRING size is applied to the budget of the maximum table width, therefore it is best to use the smallest possible maximum size for the data. For strings larger than 250 characters, consider using the LARGETEXT column type for improved performance. Each STRING column counts as maxSize*4 (4 bytes per character) towards the total width of a table."
                 },
                 {
                     "name": "DOUBLE",
-                    "description": "The DOUBLE data type is a double-precision 64-bit IEEE 754 floating point. Its range of values is approximately +/-1.79769313486231570E+308 (15 significant decimal digits)."
+                    "description": "The DOUBLE data type is a double-precision 64-bit IEEE 754 floating point. Its range of values is approximately +/-1.79769313486231570E+308 (15 significant decimal digits).  Each DOUBLE column counts as 23 bytes towards the total width of a table."
                 },
                 {
                     "name": "INTEGER",
-                    "description": "The INTEGER data type is a 64-bit two's complement integer. The signed integer has a minimum value of -2^63 and a maximum value of 2^63-1."
+                    "description": "The INTEGER data type is a 64-bit two's complement integer. The signed integer has a minimum value of -2^63 and a maximum value of 2^63-1. Each INTEGER column counts as 20 bytes towards the total width of a table."
                 },
                 {
                     "name": "BOOLEAN",
-                    "description": "The BOOLEAN data type has only two possible values: 'true' and 'false'."
+                    "description": "The BOOLEAN data type has only two possible values: 'true' and 'false'.  Each BOOLEAN column counts as 5 bytes towards the total width of a table."
                 },
                 {
                     "name": "DATE",
-                    "description": "The DATE data type represent the specified number of milliseconds since the standard base time known as 'the epoch', namely January 1, 1970, 00:00:00 GMT"
+                    "description": "The DATE data type represent the specified number of milliseconds since the standard base time known as 'the epoch', namely January 1, 1970, 00:00:00 GM. Each DATE column counts as 20 bytes towards the total width of a table.T"
                 },
                 {
                     "name": "FILEHANDLEID",
-                    "description": "The FILEHANDLEID data type represents a file stored within a table.  To store a file in a table, first use the 'File Services' to upload a file to generate a new FileHandle, then apply the fileHandle.id as the value for this column.  Note: This column type works best for files that are binary (non-text) or text files that are 1 MB or larger.  For text files that are smaller than 1 MB consider using the LARGETEXT column type to improve download performance."
+                    "description": "The FILEHANDLEID data type represents a file stored within a table.  To store a file in a table, first use the 'File Services' to upload a file to generate a new FileHandle, then apply the fileHandle.id as the value for this column.  Note: This column type works best for files that are binary (non-text) or text files that are 1 MB or larger.  For text files that are smaller than 1 MB consider using the LARGETEXT column type to improve download performance. Each FILEHANDLEID column counts as 20 bytes towards the total width of a table."
                 },
                 {
                     "name": "ENTITYID",
-                    "description": "The ENTITYID type represents a reference to a Synapse Entity.  Values will include the 'syn' prefix, such as 'syn123'."
+                    "description": "The ENTITYID type represents a reference to a Synapse Entity.  Values will include the 'syn' prefix, such as 'syn123'.  Each ENTITYID column counts as 44 bytes towards the total width of a table."
                 },
                 {
                     "name": "LINK",
-                    "description": "The LINK data type represents any URL with 1,000 characters or less."
+                    "description": "The LINK data type represents any URL with 1,000 characters or less.  Each LINK column counts as maxSize*4 (4 bytes per character) towards the total width of a table."
                 },
                 {
                     "name": "LARGETEXT",
-                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 524,288 characters (2 MB of UTF-8 4 byte chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type."
+                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 524,288 characters (2 MB of UTF-8 4 byte chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type. Each LARGE_TEXT column counts as 2133 bytes towards the total width of a table."
                 },
                 {
                     "name": "USERID",
-                    "description": "The USERID data type represents a reference to a Synapse User.  The value should be the ID of the referenced User."
+                    "description": "The USERID data type represents a reference to a Synapse User.  The value should be the ID of the referenced User.  Each USERID column counts as 20 bytes towards the total width of a table."
                 }
             ]
         },
