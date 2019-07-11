@@ -135,7 +135,8 @@
 							<org.sagebionetworks.doi.datacite.password>${org.sagebionetworks.doi.datacite.password}</org.sagebionetworks.doi.datacite.password>
 							<org.sagebionetworks.repository.database.username>${org.sagebionetworks.repository.database.username}</org.sagebionetworks.repository.database.username>
 							<org.sagebionetworks.id.generator.database.username>${org.sagebionetworks.id.generator.database.username}</org.sagebionetworks.id.generator.database.username>
-							<org.sagebionetworks.gcp.key>${org.sagebionetworks.gcp.key}</org.sagebionetworks.gcp.key>
+							<org.sagebionetworks.google.cloud.enabled>${org.sagebionetworks.google.cloud.enabled}</org.sagebionetworks.google.cloud.enabled>
+							<org.sagebionetworks.google.cloud.key>${org.sagebionetworks.google.cloud.key}</org.sagebionetworks.google.cloud.key>
 						</systemProperties>
 					</container>
 					<configuration>

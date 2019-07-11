@@ -771,4 +771,17 @@ public interface StackConfiguration {
 	 */
 	public int getCurrentHmacSigningKeyVersion();
 
+	/**
+	 * Get whether Google Cloud features should be enabled or not.
+	 * @return
+	 */
+	public boolean getGoogleCloudEnabled();
+
+	/**
+	 * Get the credentials for a Google Cloud service account.
+	 *
+	 * @return
+	 */
+	public String getDecodedGoogleCloudServiceAccountCredentials();
+
 }
