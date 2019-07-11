@@ -30,7 +30,7 @@ import com.amazonaws.util.BinaryUtils;
 /**
  * This class handles the interaction with S3 during the steps of a multi-part upload
  */
-public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
+public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
 
 	// 15 minute.
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 1000 * 60 * 15;

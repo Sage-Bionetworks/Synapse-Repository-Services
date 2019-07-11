@@ -43,7 +43,7 @@ import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
-import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
+import org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -51,7 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 	@Autowired
-	S3MultipartUploadDAO s3multipartUploadDAO;
+	S3MultipartUploadDAOImpl s3multipartUploadDAO;
 
 	@Autowired
 	MultipartUploadDAO multipartUploadDAO;

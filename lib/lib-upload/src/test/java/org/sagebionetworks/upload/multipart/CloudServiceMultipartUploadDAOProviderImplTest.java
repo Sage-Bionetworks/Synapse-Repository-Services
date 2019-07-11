@@ -14,22 +14,22 @@ import org.sagebionetworks.repo.model.file.UploadType;
 class CloudServiceMultipartUploadDAOProviderImplTest {
 
 	@Mock
-	S3MultipartUploadDAO mockS3Dao;
+	S3MultipartUploadDAOImpl mockS3Dao;
 
 	@Mock
-	GoogleCloudStorageMultipartUploadDAO mockGoogleCloudDao;
+	GoogleCloudStorageMultipartUploadDAOImpl mockGoogleCloudDao;
 
 	@InjectMocks
 	private CloudServiceMultipartUploadDAOProviderImpl provider = new CloudServiceMultipartUploadDAOProviderImpl();
 
 	@Test
 	void getS3MultipartUploadDao() {
-		assertTrue(provider.getCloudServiceMultipartUploadDao(UploadType.S3) instanceof S3MultipartUploadDAO);
+		assertTrue(provider.getCloudServiceMultipartUploadDao(UploadType.S3) == mockS3Dao);
 	}
 
 	@Test
 	void getGoogleCloudMultipartUploadDao() {
-		assertTrue(provider.getCloudServiceMultipartUploadDao(UploadType.GOOGLECLOUDSTORAGE) instanceof GoogleCloudStorageMultipartUploadDAO);
+		assertTrue(provider.getCloudServiceMultipartUploadDao(UploadType.GOOGLECLOUDSTORAGE) == mockGoogleCloudDao);
 	}
 
 	@Test

@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 
-public class GoogleCloudStorageMultipartUploadDAOImpl implements GoogleCloudStorageMultipartUploadDAO {
+public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
 
 	// 15 minutes
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 15 * 1000 * 60;

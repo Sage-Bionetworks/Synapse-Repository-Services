@@ -6,10 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class CloudServiceMultipartUploadDAOProviderImpl implements CloudServiceMultipartUploadDAOProvider {
 
 	@Autowired
-	private S3MultipartUploadDAO s3MultipartUploadDAO;
+	private S3MultipartUploadDAOImpl s3MultipartUploadDAO;
 
 	@Autowired
-	private GoogleCloudStorageMultipartUploadDAO googleCloudStorageMultipartUploadDAO;
+	private GoogleCloudStorageMultipartUploadDAOImpl googleCloudStorageMultipartUploadDAO;
 
 	@Override
 	public CloudServiceMultipartUploadDAO getCloudServiceMultipartUploadDao(UploadType uploadType) {
@@ -18,9 +18,6 @@ public class CloudServiceMultipartUploadDAOProviderImpl implements CloudServiceM
 				return s3MultipartUploadDAO;
 			case GOOGLECLOUDSTORAGE:
 				return googleCloudStorageMultipartUploadDAO;
-			case SFTP:
-			case HTTPS:
-			case PROXYLOCAL:
 			default:
 				throw new IllegalArgumentException("Multipart upload for upload type " + uploadType.toString() + " is not supported.");
 		}

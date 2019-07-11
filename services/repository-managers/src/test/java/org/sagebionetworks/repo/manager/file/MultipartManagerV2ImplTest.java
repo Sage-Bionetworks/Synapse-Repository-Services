@@ -57,7 +57,7 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
-import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
+import org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -71,7 +71,7 @@ public class MultipartManagerV2ImplTest {
 	@Mock
 	ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
-	S3MultipartUploadDAO mockS3multipartUploadDAO;
+	S3MultipartUploadDAOImpl mockS3multipartUploadDAO;
 	@Mock
 	FileHandleDao mockFileHandleDao;
 	@Mock
