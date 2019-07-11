@@ -525,6 +525,92 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
+	public void testGetURLRequestBypassingAuthCheck() throws Exception {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setCreatedBy("456");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		
+		String expectedURL = "https://amamzon.com";
+		
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+
+		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId()).withBypassAuthCheck(true);
+		
+		String redirectURL = manager.getRedirectURLForFileHandle(request);
+		
+		verify(mockAuthorizationManager, never()).isUserCreatorOrAdmin(any(UserInfo.class), any(String.class));
+		assertEquals(expectedURL, redirectURL);
+	}
+	
+	@Test
+	public void testGetURLRequestWithOwnerAuthCheck() throws Exception {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		
+		String expectedURL = "https://amamzon.com";
+		
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
+		
+		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId());
+		
+		String redirectURL = manager.getRedirectURLForFileHandle(request);
+		
+		verify(mockAuthorizationManager, times(1)).isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy());
+		verify(mockFileHandleAuthorizationManager, never()).canDownLoadFile(any(UserInfo.class), any(List.class));
+		
+		assertEquals(expectedURL, redirectURL);
+	}
+	
+	@Test
+	public void testGetURLRequestWithAssociateAuthCheck() throws Exception {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		
+		String expectedURL = "https://amamzon.com";
+		
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		
+		association.setAssociateObjectId("999");
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setFileHandleId(s3FileHandle.getId());
+		
+		List<FileHandleAssociation> associations = Collections.singletonList(association);
+		
+		FileHandleAssociationAuthorizationStatus authorizationResult = 
+				new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.authorized());
+
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).
+		thenReturn(Collections.singletonList(authorizationResult));
+		
+		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId())
+				.withAssociation(association.getAssociateObjectType(), association.getAssociateObjectId());
+		
+		String redirectURL = manager.getRedirectURLForFileHandle(request);
+		
+		verify(mockAuthorizationManager, never()).isUserCreatorOrAdmin(any(UserInfo.class), any(String.class));
+		verify(mockFileHandleAuthorizationManager, times(1)).canDownLoadFile(mockUser, associations);
+		
+		assertEquals(expectedURL, redirectURL);
+	}
+	
+	@Test
 	public void testGetURLAuthorized() throws Exception{
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
