@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
-import org.sagebionetworks.gcp.SynapseGoogleCloudStorageClient;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
@@ -99,7 +99,6 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements GoogleCloudStor
 			addPartWithoutValidatingMd5(uploadId.toString(), bucket, key, newStitchedPartRange.getLowerBound(), newStitchedPartRange.getUpperBound(), totalNumberOfParts);
 		}
 	}
-
 
 	@WriteTransaction
 	@Override
