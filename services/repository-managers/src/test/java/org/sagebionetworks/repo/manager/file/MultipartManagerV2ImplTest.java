@@ -56,9 +56,10 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -72,6 +73,8 @@ public class MultipartManagerV2ImplTest {
 	ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
 	S3MultipartUploadDAOImpl mockS3multipartUploadDAO;
+	@Mock
+	CloudServiceMultipartUploadDAOProvider mockUploadDAOProvider;
 	@Mock
 	FileHandleDao mockFileHandleDao;
 	@Mock
@@ -169,7 +172,8 @@ public class MultipartManagerV2ImplTest {
 				composite.setUploadToken("anUploadToken");
 				return composite;
 			}}).when(mockMultiparUploadDAO).createUploadStatus(any(CreateMultipartRequest.class));
-		
+
+		when(mockUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3)).thenReturn(mockS3multipartUploadDAO);
 		when(mockS3multipartUploadDAO.initiateMultipartUpload(anyString(), anyString(), any(MultipartUploadRequest.class))).thenReturn(uploadToken);
 		
 		// Simulate the number of parts

@@ -8,7 +8,7 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
 	<import resource="stack-configuration.spb.xml" />
@@ -21,9 +21,5 @@
 		<property name="bucketName" ref="stackConfiguration.discussionBucketName" />
 	</bean>
 	
-	<bean id="s3multipartUploadDAO" class="org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl"
-		scope="singleton"/>
-
-	<bean id="googleCloudStorageMultipartUploadDAO" class="org.sagebionetworks.upload.multipart.GoogleCloudStorageMultipartUploadDAOImpl"/>
 	<bean id="cloudServiceMultipartUploadDAOProvider" class="org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProviderImpl"/>
 </beans>
