@@ -13,9 +13,6 @@
 
 	<import resource="stack-configuration.spb.xml" />
 
-	<bean id="googleCloudStorageClient" class="org.sagebionetworks.gcp.SynapseGoogleCloudClientFactory"
-		  factory-method="createGoogleCloudStorageClient" scope="singleton" />
-
 	<bean id="amazonS3Client" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonS3Client" scope="singleton" />
 
