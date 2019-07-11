@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,12 +43,10 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
-import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -65,7 +62,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
  */
 public class NodeManagerImpl implements NodeManager {
 
-	private static final String REQUESTER_DOWNLOAD_COPY_NEEDED = "This download is marked for requester pays download. To download this file, follow the instructions as described in https://www.synapse.org/#!Help:RequesterPays";
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	private static final Pattern INVALID_ALIAS_CHARACTERS = Pattern.compile("[^a-zA-Z0-9_]");
@@ -658,24 +654,10 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws NotFoundException, UnauthorizedException {
 		// Validate that the user has download permission.
 		authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
-
-		switch (reason) {
-		case FOR_FILE_DOWNLOAD:
-			// validate that this is not requesterPays
-			RequesterPaysSetting requesterPays = projectSettingsManager.getProjectSettingForNode(userInfo, id,
-					ProjectSettingsType.requester_pays, RequesterPaysSetting.class);
-			if (requesterPays != null && BooleanUtils.isTrue(requesterPays.getRequesterPays())) {
-				throw new UnauthorizedException(REQUESTER_DOWNLOAD_COPY_NEEDED);
-			}
-			break;
-		case FOR_PREVIEW_DOWNLOAD:
-		case FOR_HANDLE_VIEW:
-			break;
-		}
 		// Get the value from the dao
 		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, versionNumber);
 		checkFileHandleId(id, fileHandleId);

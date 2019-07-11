@@ -20,7 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
@@ -91,7 +90,7 @@ public class EntityServiceImplUnitTest {
 	public void testGetFileRedirectURLForCurrentVersion() throws Exception {
 		String entityId = "999";
 		String fileHandleId = "111";
-		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_FILE_DOWNLOAD))
+		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null))
 				.thenReturn(fileHandleId);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
@@ -103,8 +102,7 @@ public class EntityServiceImplUnitTest {
 		String entityId = "999";
 		String fileHandleId = "111";
 		Long version = 1L;
-		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, version,
-				FileHandleReason.FOR_FILE_DOWNLOAD)).thenReturn(fileHandleId);
+		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, version)).thenReturn(fileHandleId);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForVersion(PRINCIPAL_ID, entityId, version));

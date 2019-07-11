@@ -16,7 +16,6 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
@@ -34,8 +33,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -237,29 +234,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		// The user does not have permission to dowload the file
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
-	}
-	
-	/**
-	 * For this case the user has access, but it is requester pays.
-	 * 
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Test(expected = UnauthorizedException.class)
-	public void testRequesterPaysGetFileHandle() throws DatastoreException, NotFoundException {
-		// The user has access to read the node
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-				AuthorizationStatus.authorized());
-		// The user does not have permission to dowload the file
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(
-				AuthorizationStatus.authorized());
-		RequesterPaysSetting setting = new RequesterPaysSetting();
-		setting.setRequesterPays(true);
-		when(
-				mockProjectSettingsManager.getProjectSettingForNode(mockUserInfo, mockNode.getId(), ProjectSettingsType.requester_pays,
-						RequesterPaysSetting.class)).thenReturn(setting);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_FILE_DOWNLOAD);
+		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null);
 	}
 
 	/**
@@ -273,7 +248,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(null);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
+		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null);
 	}
 	
 	@Test
@@ -282,24 +257,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		String expectedFileHandleId = "999999";
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(expectedFileHandleId);
-		String handleId = nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
-		assertEquals(expectedFileHandleId, handleId);
-	}
-
-	@Test
-	public void testGetFileHandleIdForCurrentVersionRequesterPaysFalse() throws DatastoreException, NotFoundException {
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-				AuthorizationStatus.authorized());
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(
-				AuthorizationStatus.authorized());
-		RequesterPaysSetting setting = new RequesterPaysSetting();
-		setting.setRequesterPays(false);
-		when(
-				mockProjectSettingsManager.getProjectSettingForNode(mockUserInfo, mockNode.getId(), ProjectSettingsType.requester_pays,
-						RequesterPaysSetting.class)).thenReturn(setting);
-		String expectedFileHandleId = "999999";
-		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(expectedFileHandleId);
-		String handleId = nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_FILE_DOWNLOAD);
+		String handleId = nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null);
 		assertEquals(expectedFileHandleId, handleId);
 	}
 
@@ -315,7 +273,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// The user does have permission to dowload the file
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
+		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

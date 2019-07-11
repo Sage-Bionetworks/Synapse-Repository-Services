@@ -6,7 +6,6 @@ import java.util.List;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
-import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
@@ -581,7 +580,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null, FileHandleReason.FOR_FILE_DOWNLOAD);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null);
 		
 		// Use the FileHandle ID to get the URL
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
@@ -597,7 +596,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_PREVIEW_DOWNLOAD);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null);
 		// Look up the preview for this file.
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 
@@ -616,7 +615,7 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(versionNumber, "versionNumber");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_FILE_DOWNLOAD);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
 		// Use the FileHandle ID to get the URL
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
 				.withAssociation(FileHandleAssociateType.FileEntity, id)
@@ -633,7 +632,7 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(versionNumber, "versionNumber");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_PREVIEW_DOWNLOAD);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
 		// Look up the preview for this file.
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Use the FileHandle ID to get the URL
@@ -650,7 +649,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_HANDLE_VIEW);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null);
 		List<String> idsList = new LinkedList<String>();
 		idsList.add(fileHandleId);
 		return fileHandleManager.getAllFileHandles(idsList, true);
@@ -663,7 +662,7 @@ public class EntityServiceImpl implements EntityService {
 		if(versionNumber == null) throw new IllegalArgumentException("versionNumber cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, versionNumber, FileHandleReason.FOR_HANDLE_VIEW);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, versionNumber);
 		List<String> idsList = new LinkedList<String>();
 		idsList.add(fileHandleId);
 		return fileHandleManager.getAllFileHandles(idsList, true);

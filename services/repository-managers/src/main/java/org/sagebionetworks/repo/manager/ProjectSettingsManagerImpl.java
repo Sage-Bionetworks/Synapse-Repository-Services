@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
-import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -49,8 +48,6 @@ import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.net.InternetDomainName;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
@@ -267,8 +264,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser);
 		} else if (setting instanceof ExternalSyncSetting) {
 			validateExternalSyncSetting((ExternalSyncSetting) setting);
-		} else if (setting instanceof RequesterPaysSetting) {
-			ValidateArgument.required(((RequesterPaysSetting) setting).getRequesterPays(), "RequesterPaysSetting.requesterPays");
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}

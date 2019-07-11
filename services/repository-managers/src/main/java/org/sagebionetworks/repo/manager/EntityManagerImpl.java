@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
@@ -566,10 +565,10 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws UnauthorizedException, NotFoundException {
 		// The manager handles this call.
-		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber, reason);
+		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
 	}
 
 	@Override
