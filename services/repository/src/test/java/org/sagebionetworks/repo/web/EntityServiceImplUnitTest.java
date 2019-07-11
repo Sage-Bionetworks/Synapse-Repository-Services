@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
@@ -93,7 +94,7 @@ public class EntityServiceImplUnitTest {
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_FILE_DOWNLOAD))
 				.thenReturn(fileHandleId);
 		String url = "http://foo.bar";
-		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId)).thenReturn(url);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForCurrentVersion(PRINCIPAL_ID, entityId));
 	}
 
@@ -105,7 +106,7 @@ public class EntityServiceImplUnitTest {
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, version,
 				FileHandleReason.FOR_FILE_DOWNLOAD)).thenReturn(fileHandleId);
 		String url = "http://foo.bar";
-		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId)).thenReturn(url);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForVersion(PRINCIPAL_ID, entityId, version));
 	}
 

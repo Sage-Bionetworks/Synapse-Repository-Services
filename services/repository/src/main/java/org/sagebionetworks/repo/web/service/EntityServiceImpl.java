@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -580,8 +582,13 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null, FileHandleReason.FOR_FILE_DOWNLOAD);
+		
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.FileEntity, id)
+				.withBypassAuthCheck(true);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 	
 	@Override
@@ -593,8 +600,13 @@ public class EntityServiceImpl implements EntityService {
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_PREVIEW_DOWNLOAD);
 		// Look up the preview for this file.
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(previewId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, previewId)
+				.withAssociation(FileHandleAssociateType.FileEntity, entityId)
+				.withBypassAuthCheck(true);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override
@@ -606,13 +618,16 @@ public class EntityServiceImpl implements EntityService {
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_FILE_DOWNLOAD);
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.FileEntity, id)
+				.withBypassAuthCheck(true);
+				
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 
 	@Override
-	public String getFilePreviewRedirectURLForVersion(Long userId, String id,
-			Long versionNumber) throws DatastoreException, NotFoundException {
+	public String getFilePreviewRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
 		ValidateArgument.required(id, "Entity Id");
 		ValidateArgument.required(userId, "UserId");
 		ValidateArgument.required(versionNumber, "versionNumber");
@@ -622,7 +637,11 @@ public class EntityServiceImpl implements EntityService {
 		// Look up the preview for this file.
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(previewId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, previewId)
+				.withAssociation(FileHandleAssociateType.FileEntity, id)
+				.withBypassAuthCheck(true);
+				
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 	
 	@Override

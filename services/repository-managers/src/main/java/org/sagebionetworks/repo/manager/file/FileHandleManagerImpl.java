@@ -375,7 +375,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @param handle
 	 * @return
 	 */
-	public String getURLForFileHandle(FileHandle handle) {
+	String getURLForFileHandle(FileHandle handle) {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -1109,8 +1109,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
-			BatchFileRequest request) {
+	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
@@ -1180,7 +1179,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 						if(request.getIncludeFileHandles()){
 							fr.setFileHandle(handle);
 						}
-						if(request.getIncludePreSignedURLs()){
+						if(request.getIncludePreSignedURLs()) {
 							String url = getURLForFileHandle(handle);
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());

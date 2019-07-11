@@ -126,6 +126,14 @@ public interface FileHandleManager {
 
 	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId, FileHandleAssociateType fileAssociateType, String fileAssociateId);
 
+	/**
+	 * Get a batch of FileHandles and URL
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request);
+
 
 	/**
 	 * Get all file handles on the list.
@@ -381,15 +389,6 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle fileHandle);
-
-	/**
-	 * Get a batch of FileHandles and URL
-	 * @param userInfo
-	 * @param request
-	 * @return
-	 */
-	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
-			BatchFileRequest request);
 
 	/**
 	 * Make copy of a batch of FileHandles
