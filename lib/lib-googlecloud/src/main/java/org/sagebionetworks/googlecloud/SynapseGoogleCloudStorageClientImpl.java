@@ -1,14 +1,12 @@
-package org.sagebionetworks.gcp;
+package org.sagebionetworks.googlecloud;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
