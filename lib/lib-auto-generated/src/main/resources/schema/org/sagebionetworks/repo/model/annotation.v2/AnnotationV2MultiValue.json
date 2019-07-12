@@ -1,0 +1,16 @@
+{
+    "description":"Contains a set of unique value.",
+    "implements": [
+        {
+            "$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationV2Value"
+        }
+    ],
+    "properties": {
+        "value": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+        }
+    }
+}

@@ -1,0 +1,23 @@
+{
+	"description": "Annotations are additional key-value pair metadata that are associated with an Entity.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "ID of the Entity to which this annotation belongs"
+		},
+		"etag":{
+			"type": "string",
+			"description":  "Etag of the Entity to which this annotation belongs. To update an AnnotationV2, this field must match the current etag on the Entity."
+		},
+		"annotations": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationV2Value"
+			},
+			"description": "Additional metadata associated with the Entity"
+		}
+	}
+}

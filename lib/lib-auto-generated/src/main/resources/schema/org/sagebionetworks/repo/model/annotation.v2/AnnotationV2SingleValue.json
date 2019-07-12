@@ -1,0 +1,13 @@
+{
+    "description":"Contains a single value.",
+    "implements": [
+        {
+            "$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationV2Value"
+        }
+    ],
+    "properties": {
+        "value": {
+            "type": "string"
+        }
+    }
+}
