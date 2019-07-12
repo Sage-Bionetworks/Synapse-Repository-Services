@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -350,7 +349,7 @@ public interface EntityManager {
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws UnauthorizedException, NotFoundException;
 
 	/**

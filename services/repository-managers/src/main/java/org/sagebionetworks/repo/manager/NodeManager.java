@@ -30,10 +30,6 @@ public interface NodeManager {
 	@WriteTransaction
 	void TEMPORARYcleanUpAnnotations(Long id) throws IOException;
 
-	public enum FileHandleReason {
-		FOR_PREVIEW_DOWNLOAD, FOR_FILE_DOWNLOAD, FOR_HANDLE_VIEW
-	}
-
 	/**
 	 * Use: {@link #createNode(Node, UserInfo)}
 	 */
@@ -303,13 +299,11 @@ public interface NodeManager {
 	 * @param userInfo
 	 * @param id
 	 * @param versionNumber if null, use current version
-	 * @param reason the reason the caller requests this filehanlde, used for authorization and capability checks
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
-			throws NotFoundException, UnauthorizedException;
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get a reference for the current version of the given node ids

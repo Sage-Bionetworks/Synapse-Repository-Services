@@ -89,6 +89,20 @@ public interface FileHandleManager {
 	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException;
 	
 	/**
+	 * Get the redirect URL for the file handle provided in the given request. If no associate object is provided in the request
+	 * only the user that created the file handle or the admin are allowed to get the URL.
+	 * <p>
+	 * If an associate object is present the user authorization is checked against the associate object.
+	 * <p>
+	 * To avoid performing the authorization check the url request should be explicitly set to bypass the authorization check 
+	 * (See {@link FileHandleUrlRequest#withBypassAuthCheck(boolean)}.
+	 * 
+	 * @param urlRequest The request context to get the pre-signed URL
+	 * @return A pre-signed URL for the handle specified in the given request that can be used to download the content
+	 */
+	String getRedirectURLForFileHandle(FileHandleUrlRequest urlRequest) throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
 	 * Get the redirect URL for a given FileHandle ID.  The UserInfo is not needed as Authorization should have already been
 	 * checked before attempting this call.
 	 * @param handleId
@@ -98,6 +112,28 @@ public interface FileHandleManager {
 	 * @throws MalformedURLException 
 	 */
 	String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Only the creator of a FileHandle can call this method.
+	 * 
+	 * @param userInfo
+	 * @param fileHandleId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
+
+	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId, FileHandleAssociateType fileAssociateType, String fileAssociateId);
+
+	/**
+	 * Get a batch of FileHandles and URL
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request);
+
 
 	/**
 	 * Get all file handles on the list.
@@ -229,17 +265,6 @@ public interface FileHandleManager {
 	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
 
 	/**
-	 * Only the creator of a FileHandle can call this method.
-	 * 
-	 * @param userInfo
-	 * @param fileHandleId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
-
-	/**
 	 * Get the list of upload destinations for this parent
 	 * 
 	 * @param userInfo
@@ -357,9 +382,6 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType);
 
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId,
-			FileHandleAssociateType fileAssociateType, String fileAssociateId);
-
 	/**
 	 * Create an external ProxyFileHandle.
 	 * @param userInfo
@@ -367,15 +389,6 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle fileHandle);
-
-	/**
-	 * Get a batch of FileHandles and URL
-	 * @param userInfo
-	 * @param request
-	 * @return
-	 */
-	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
-			BatchFileRequest request);
 
 	/**
 	 * Make copy of a batch of FileHandles

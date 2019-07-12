@@ -82,9 +82,7 @@ public class ProjectSettingsController {
 	/**
 	 * Create a <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a> for a project. The setting may be any of the
 	 * implementations for <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>
-	 * (e.g. <a href="${org.sagebionetworks.repo.model.project.ExternalSyncSetting}">ExternalSyncSetting</a>,
-	 * <a href="${org.sagebionetworks.repo.model.project.RequesterPaysSetting}">RequesterPaysSetting</a>,
-	 * <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>).
+	 * (e.g. <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>).
 	 * @param projectSetting The <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a> object to create.
 	 * @return The created <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>.
 	 * @throws NotFoundException

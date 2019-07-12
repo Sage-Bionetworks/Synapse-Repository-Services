@@ -133,8 +133,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
 	
-	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30
-																		// secs
+	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30 secs
 
 	public static final int MAX_REQUESTS_PER_CALL = 100;
 
@@ -316,6 +315,17 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 
 	}
+	
+	@Override
+	public String getRedirectURLForFileHandle(FileHandleUrlRequest urlRequest) {
+		if (urlRequest.bypassAuthCheck()) {
+			return getRedirectURLForFileHandle(urlRequest.getFileHandleId());
+		}
+		if (urlRequest.hasAssociation()) {
+			return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId(), urlRequest.getAssociationType(), urlRequest.getAssociationId());
+		}
+		return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId());
+	}
 
 	@Override
 	public String getRedirectURLForFileHandle(String handleId)
@@ -324,12 +334,48 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileHandle handle = fileHandleDao.get(handleId);
 		return getURLForFileHandle(handle);
 	}
+	
+	@Override
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
+			String fileHandleId) throws DatastoreException, NotFoundException {
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User cannot be null");
+		}
+		if (fileHandleId == null) {
+			throw new IllegalArgumentException("FileHandleId cannot be null");
+		}
+		FileHandle handle = fileHandleDao.get(fileHandleId);
+		// Only the user that created the FileHandle can get the URL directly.
+		if (!authorizationManager.isUserCreatorOrAdmin(userInfo,
+				handle.getCreatedBy())) {
+			throw new UnauthorizedException(
+					"Only the user that created the FileHandle can get the URL of the file.");
+		}
+		return getURLForFileHandle(handle);
+	}
+	
+	@Override
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
+			String fileHandleId, FileHandleAssociateType fileAssociateType,
+			String fileAssociateId) {
+		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
+		fileHandleAssociation.setFileHandleId(fileHandleId);
+		fileHandleAssociation.setAssociateObjectType(fileAssociateType);
+		fileHandleAssociation.setAssociateObjectId(fileAssociateId);
+		List<FileHandleAssociation> associations = Collections.singletonList(fileHandleAssociation);
+		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, associations);
+		if (authResults.size()!=1) throw new IllegalStateException("Expected one result but found "+authResults.size());
+		AuthorizationStatus authStatus = authResults.get(0).getStatus();
+		authStatus.checkAuthorizationOrElseThrow();
+		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
+		return getURLForFileHandle(fileHandle);
+	}
 
 	/**
 	 * @param handle
 	 * @return
 	 */
-	public String getURLForFileHandle(FileHandle handle) {
+	String getURLForFileHandle(FileHandle handle) {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -692,25 +738,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 					"Only the user that started the daemon may access the daemon status");
 		}
 		return status;
-	}
-
-	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
-			String fileHandleId) throws DatastoreException, NotFoundException {
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User cannot be null");
-		}
-		if (fileHandleId == null) {
-			throw new IllegalArgumentException("FileHandleId cannot be null");
-		}
-		FileHandle handle = fileHandleDao.get(fileHandleId);
-		// Only the user that created the FileHandle can get the URL directly.
-		if (!authorizationManager.isUserCreatorOrAdmin(userInfo,
-				handle.getCreatedBy())) {
-			throw new UnauthorizedException(
-					"Only the user that created the FileHandle can get the URL of the file.");
-		}
-		return getURLForFileHandle(handle);
 	}
 
 	@Override
@@ -1082,25 +1109,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
-			String fileHandleId, FileHandleAssociateType fileAssociateType,
-			String fileAssociateId) {
-		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
-		fileHandleAssociation.setFileHandleId(fileHandleId);
-		fileHandleAssociation.setAssociateObjectType(fileAssociateType);
-		fileHandleAssociation.setAssociateObjectId(fileAssociateId);
-		List<FileHandleAssociation> associations = Collections.singletonList(fileHandleAssociation);
-		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, associations);
-		if (authResults.size()!=1) throw new IllegalStateException("Expected one result but found "+authResults.size());
-		AuthorizationStatus authStatus = authResults.get(0).getStatus();
-		authStatus.checkAuthorizationOrElseThrow();
-		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
-		return getURLForFileHandle(fileHandle);
-	}
-
-	@Override
-	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
-			BatchFileRequest request) {
+	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
@@ -1170,7 +1179,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 						if(request.getIncludeFileHandles()){
 							fr.setFileHandle(handle);
 						}
-						if(request.getIncludePreSignedURLs()){
+						if(request.getIncludePreSignedURLs()) {
 							String url = getURLForFileHandle(handle);
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
