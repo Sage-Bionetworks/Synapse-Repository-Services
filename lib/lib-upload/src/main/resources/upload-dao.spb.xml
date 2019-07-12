@@ -12,6 +12,7 @@
 	<aop:aspectj-autoproxy proxy-target-class="true"/>
 
 	<import resource="stack-configuration.spb.xml" />
+	<import resource="lib-googlecloud.spb.xml"/>
 
 	<bean id="amazonS3Client" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonS3Client" scope="singleton" />

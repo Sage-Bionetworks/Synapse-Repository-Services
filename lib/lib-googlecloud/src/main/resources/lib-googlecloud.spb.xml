@@ -8,6 +8,7 @@
     <context:annotation-config />
 
     <bean name="googleCloudStorageClient" class="org.sagebionetworks.googlecloud.SynapseGoogleCloudClientFactory"
-          factory-method="createGoogleCloudStorageClient" scope="singleton"/>
+          factory-method="createGoogleCloudStorageClient" scope="singleton">
+    </bean>
 
 </beans>
