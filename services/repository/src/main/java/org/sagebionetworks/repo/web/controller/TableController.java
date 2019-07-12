@@ -136,13 +136,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td></td>
  * </tr>
  * <tr>
+ * <td>Maximum number of enumeration values for a single column</td>
+ * <td>100</td>
+ * <td></td>
+ * </tr>
+ * <tr>
  * <td>Maximum number of columns per table/view</td>
  * <td>152</td>
  * <td></td>
  * </tr>
  * <tr>
- * <td>The maximum possible width of a
- * table/view</td>
+ * <td>The maximum possible width of a table/view</td>
  * <td>64 KB</td>
  * <td>Each
  * <a href="${org.sagebionetworks.repo.model.table.ColumnType}" >ColumnType</a>
@@ -156,8 +160,34 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </tr>
  * <td>Maximum table size</td>
  * <td>~146 GB</td>
- * <td>All row changes applied to a table are automatically batched into changes sets with a maximum size of 5242880 bytes (5 MB).  Currently, there is a limit
- * of 30,000 change sets per table.  Therefore, the theoretical maximum size of table is 5242880 bytes * 30,000 = ~ 146 GB.</td>
+ * <td>All row changes applied to a table are automatically batched into changes
+ * sets with a maximum size of 5242880 bytes (5 MB). Currently, there is a limit
+ * of 30,000 change sets per table. Therefore, the theoretical maximum size of
+ * table is 5242880 bytes * 30,000 = ~ 146 GB.</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum number of projects/folder per view scope</td>
+ * <td>10 K</td>
+ * <td>Recursive sub-folders count towards this limit. For example, if a project
+ * contains more than 10 K sub-folders then it cannot be included in a view's
+ * scope.</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum number of rows per view</td>
+ * <td>100 M</td>
+ * <td>A single folder cannot contain more then 10 K files/folders. Since a
+ * view's scope is limited to 10 K project/folders, the maximum number of rows
+ * per view is 10 K * 10 K = 100 M.</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum file size of a CSV that can be appended to a table</td>
+ * <td>1 GB</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>The maximum size of a single query result</td>
+ * <td>512000 bytes</td>
+ * <td></td>
  * </tr>
  * </table>
  * 
@@ -267,7 +297,19 @@ public class TableController {
 	 * >TableEntity</a>, get its list of <a
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}"
 	 * >ColumnModels</a> that are currently assigned to the table.
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>6 calls per minute</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 * @param id
 	 *            The ID of the TableEntity to get the ColumnModels for.
@@ -386,7 +428,23 @@ public class TableController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum size of a PartialRow change </td>
+	 * <td>2 MB</td>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum size of a CSV that can be appended to a table</td>
+	 * <td>1 GB</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 * @param id
 	 *            The ID of the TableEntity to update.
@@ -618,7 +676,19 @@ public class TableController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 * @param id
 	 *            The ID of the TableEntity to append rows to.
@@ -886,6 +956,7 @@ public class TableController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -925,6 +996,7 @@ public class TableController {
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1113,13 +1185,27 @@ public class TableController {
 	}
 
 	/**
-	 * Asynchronously start a csv upload. Use the returned job id and <a
-	 * href="${GET.entity.id.table.upload.csv.async.get.asyncToken}">GET
+	 * <p>
+	 * Asynchronously start a csv upload. Use the returned job id and
+	 * <a href="${GET.entity.id.table.upload.csv.async.get.asyncToken}">GET
 	 * /entity/{id}/table/upload/csv/async/get</a> to get the results of the query
+	 * </p>
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum size of a CSV that can be appended to a table</td>
+	 * <td>1 GB</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
-	 *            The ID of the TableEntity.
+	 * @param id            The ID of the TableEntity.
 	 * @param uploadRequest
 	 * @return
 	 * @throws DatastoreException

@@ -828,7 +828,20 @@ public class UploadController {
 	 * has DOWNLOAD permission on a FileHandle, we will make a copy of the FileHandle,
 	 * replace the fileName and contentType of the file if they are specified in
 	 * the request, and return the new FileHandle.
-	 * 
+	 * </p>
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum number of FilesHandles that can be copied in a single request</td>
+	 * <td>100</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 * @param request
 	 * @throws HttpStatus.BAD_REQUEST for request with duplicated FileHandleId.
