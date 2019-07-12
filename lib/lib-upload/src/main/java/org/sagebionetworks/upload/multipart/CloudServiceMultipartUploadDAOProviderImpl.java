@@ -1,11 +1,15 @@
 package org.sagebionetworks.upload.multipart;
 
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class CloudServiceMultipartUploadDAOProviderImpl implements CloudServiceMultipartUploadDAOProvider {
 
-	private static S3MultipartUploadDAOImpl s3MultipartUploadDAO = new S3MultipartUploadDAOImpl();
-	private static GoogleCloudStorageMultipartUploadDAOImpl googleCloudStorageMultipartUploadDAO = new GoogleCloudStorageMultipartUploadDAOImpl();
+	@Autowired
+	private S3MultipartUploadDAOImpl s3MultipartUploadDAO;
+
+	@Autowired
+	private GoogleCloudStorageMultipartUploadDAOImpl googleCloudStorageMultipartUploadDAO;
 
 	@Override
 	public CloudServiceMultipartUploadDAO getCloudServiceMultipartUploadDao(UploadType uploadType) {
