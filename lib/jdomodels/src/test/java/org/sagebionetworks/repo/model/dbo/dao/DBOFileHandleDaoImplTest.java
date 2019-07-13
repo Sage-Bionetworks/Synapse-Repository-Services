@@ -10,6 +10,7 @@ import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -170,6 +171,75 @@ public class DBOFileHandleDaoImplTest {
 		expected = Sets.newHashSet(meta3.getId());
 		createdByIds = fileHandleDao.getFileHandleIdsCreatedByUser(creatorUserGroupId2L, allFileHandleId);
 		assertEquals(expected, createdByIds);
+		
+	}
+	
+	@Test
+	public void testGetFileHandlePreviewIds() {
+		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		
+		fileHandleToCreate.add(meta1);
+		fileHandleToCreate.add(meta2);
+		fileHandleToCreate.add(preview);
+		
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		meta1 = (S3FileHandle) fileHandleDao.get(meta1.getId());
+		meta2 = (S3FileHandle) fileHandleDao.get(meta2.getId());
+		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
+		
+		fileHandleDao.setPreviewId(meta2.getId(), preview.getId());
+
+		toDelete.add(meta1.getId());
+		toDelete.add(meta2.getId());
+		
+		List<String> allFileHandleId = Arrays.asList(meta1.getId(),	meta2.getId());
+		
+		// Match to user one.
+		Set<String> expected = Sets.newHashSet(preview.getId());
+		
+		Set<String> previewIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleId);
+		
+		assertEquals(expected, previewIds);
+		
+	}
+	
+	@Test
+	public void testGetFileHandlePreviewIdsWithEmptyInput() {
+		Set<String> previewIds = fileHandleDao.getFileHandlePreviewIds(Collections.emptyList());
+		assertEquals(Collections.emptySet(), previewIds);
+	}
+	
+	@Test
+	public void testGetFileHandlePreviewIdsWithNoPreview() {
+		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		
+		fileHandleToCreate.add(meta1);
+		fileHandleToCreate.add(meta2);
+		
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		meta1 = (S3FileHandle) fileHandleDao.get(meta1.getId());
+		meta2 = (S3FileHandle) fileHandleDao.get(meta2.getId());
+		
+		toDelete.add(meta1.getId());
+		toDelete.add(meta2.getId());
+		
+		List<String> allFileHandleId = Arrays.asList(meta1.getId(),	meta2.getId());
+		
+		// Match to user one.
+		Set<String> expected = Collections.emptySet();
+		
+		Set<String> previewIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleId);
+		
+		assertEquals(expected, previewIds);
 		
 	}
 
