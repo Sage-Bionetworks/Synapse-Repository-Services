@@ -516,7 +516,19 @@ public class EvaluationController {
 	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> to see all 
 	 * data marked as "private" in the SubmissionStatus.	 * 
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param subId - the ID of the requested SubmissionStatus.
 	 * @return
 	 * @throws DatastoreException
@@ -552,7 +564,20 @@ public class EvaluationController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE_SUBMISSION</a> on the specified Evaluation.
 	 * </p>
-	 * 
+	 * </p>
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param subId - the ID of the SubmissionStatus being updated.
 	 * @param userId
 	 * @return
@@ -1021,6 +1046,7 @@ public class EvaluationController {
 	}
 	
 	/**
+	 * 
 	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries have the following form:
 	 * 
 	 * <p/>
@@ -1077,7 +1103,20 @@ public class EvaluationController {
 	 * 
 	 * <p/>
 	 * The query is to be URL encoded in the submitted request.
-	 * 
+	 * </p>
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p> 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 
 	 * @throws  

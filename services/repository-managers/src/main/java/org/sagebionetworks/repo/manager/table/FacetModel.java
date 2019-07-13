@@ -26,7 +26,6 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class FacetModel {
-	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
 	
 	private List<FacetRequestColumnModel> validatedFacets;
 	private boolean hasFilters;

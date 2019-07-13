@@ -186,6 +186,25 @@ public class TeamController {
 		return result;
 	}
 	
+	/**
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
+	 * @param id
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -198,7 +217,19 @@ public class TeamController {
 	
 	/**
 	 * Retrieve the metadata for a specified Team.
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param id the ID of the Team of interest
 	 * @return
 	 * @throws NotFoundException

@@ -1,13 +1,9 @@
 package org.sagebionetworks.table.cluster.utils;
 
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.TABLES_TOO_LARGE_FOR_FOUR_BYTE_UTF8;
-
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class ColumnConstants {
 

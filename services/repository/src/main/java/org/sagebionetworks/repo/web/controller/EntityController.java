@@ -202,7 +202,19 @@ public class EntityController {
 	 * >ACCESS_TYPE.CREATE</a> on the parent Entity. Any authenticated caller
 	 * can create a new Project (with parentId=null).
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum number of children for a single parent entity</td>
+	 * <td>10 K</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 *            - The user that is doing the create.
 	 * @param header
@@ -306,7 +318,19 @@ public class EntityController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> on the Entity.
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum number of children for a single parent entity</td>
+	 * <td>10 K</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param id
 	 *            The ID of the entity to update. This ID must match the ID of
 	 *            the passed Entity in the request body.
