@@ -516,7 +516,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(AddPartState.ADD_SUCCESS, response.getAddPartState());
 		
 		ArgumentCaptor<AddPartRequest> capture = ArgumentCaptor.forClass(AddPartRequest.class);
-		verify(mockS3multipartUploadDAO).addPart(capture.capture());
+		verify(mockS3multipartUploadDAO).validateAndAddPart(capture.capture());
 		assertEquals(composite.getBucket(), capture.getValue().getBucket());
 		assertEquals(composite.getKey(), capture.getValue().getKey());
 		assertEquals(partKey, capture.getValue().getPartKey());
@@ -543,7 +543,7 @@ public class MultipartManagerV2ImplTest {
 		
 		//setup an error on add.
 		Exception error = new RuntimeException("Something went wrong");
-		doThrow(error).when(mockS3multipartUploadDAO).addPart(any(AddPartRequest.class));
+		doThrow(error).when(mockS3multipartUploadDAO).validateAndAddPart(any(AddPartRequest.class));
 		
 		// setup the case where the status already exists
 		when(mockMultiparUploadDAO.getUploadStatus(uploadId)).thenReturn(composite);
@@ -560,7 +560,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(error.getMessage(), response.getErrorMessage());
 		
 		ArgumentCaptor<AddPartRequest> capture = ArgumentCaptor.forClass(AddPartRequest.class);
-		verify(mockS3multipartUploadDAO).addPart(capture.capture());
+		verify(mockS3multipartUploadDAO).validateAndAddPart(capture.capture());
 		assertEquals(composite.getBucket(), capture.getValue().getBucket());
 		assertEquals(composite.getKey(), capture.getValue().getKey());
 		assertEquals(partKey, capture.getValue().getPartKey());

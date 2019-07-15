@@ -1,8 +1,8 @@
 package org.sagebionetworks.upload.multipart;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.upload.PartRange;
-import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -42,10 +41,11 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		return googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
 	}
 
+	@WriteTransaction
 	@Override
-	public void addPart(AddPartRequest request) {
+	public void validateAndAddPart(AddPartRequest request) {
 		validatePartMd5(request);
-		addPartWithoutValidatingMd5(request.getUploadId(), request.getBucket(), request.getKey(), request.getPartNumber(), request.getPartNumber(), request.getTotalNumberOfParts());
+		addPart(request.getUploadId(), request.getBucket(), request.getKey(), request.getPartNumber(), request.getPartNumber(), request.getTotalNumberOfParts());
 	}
 
 	void validatePartMd5(AddPartRequest request) {
@@ -59,44 +59,49 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		// The part was uploaded successfully
 	}
 
-	// Parts that are stitched by Synapse and not uploaded by the client don't need to be validated
-	// (and cannot be validated, since we don't know the md5 before stitching)
-	@WriteTransaction
-	void addPartWithoutValidatingMd5(String uploadId, String bucket, String key, Long lowerBound, Long upperBound, Long totalNumberOfParts) {
+	void addPart(String uploadId, String bucket, String key, Long lowerBound, Long upperBound, Long totalNumberOfParts) {
 		multipartUploadComposerDAO.addPartToUpload(uploadId, lowerBound, upperBound);
-		if (lowerBound != 1 || !upperBound.equals(totalNumberOfParts)) { // If this is false, we have the entire file and no longer need to merge parts.
-			attemptToMergePart(Long.valueOf(uploadId), bucket, key, lowerBound, upperBound, totalNumberOfParts);
-		}
-	}
+		// If lowerBound is 1 and upperBound == totalNumber, then we have the entire file. Otherwise, try to stitch
+		if (lowerBound != 1 || !upperBound.equals(totalNumberOfParts)) {
+			PartRange expectedStitchPartRange =
+					MultipartUploadUtils.getRangeOfPotentialStitchTargets(lowerBound, upperBound, totalNumberOfParts);
 
-	@MandatoryWriteTransaction
-	void attemptToMergePart(Long uploadId, String bucket, String key, Long lowerBound, Long upperBound, Long totalNumberOfParts) {
-		PartRange newStitchedPartRange = MultipartUploadUtils.getRangeOfPotentialStitchTargets(lowerBound, upperBound, totalNumberOfParts);
-		List<DBOMultipartUploadComposerPartState> uploadedPartRanges =
-				multipartUploadComposerDAO.getAddedPartRanges(uploadId, newStitchedPartRange.getLowerBound(), newStitchedPartRange.getUpperBound());
+			// Get the parts that have already been uploaded
+			List<DBOMultipartUploadComposerPartState> uploadedParts = multipartUploadComposerDAO
+					.getAddedPartRanges(Long.valueOf(uploadId),
+							expectedStitchPartRange.getLowerBound(),
+							expectedStitchPartRange.getUpperBound());
 
-		// We must make sure that the sum of each part size is equivalent to the size of a new merged part
-		long sizeOfNewPart = newStitchedPartRange.getUpperBound() - newStitchedPartRange.getLowerBound() + 1;
-		long sumOfUploadedPartSizesInRange = uploadedPartRanges.stream().mapToLong(part -> part.getPartRangeUpperBound() - part.getPartRangeLowerBound() + 1).sum();
-
-		// We must also make sure that we get exactly the number of parts that we expect
-		if (sizeOfNewPart == sumOfUploadedPartSizesInRange && newStitchedPartRange.getNumberOfParts() == uploadedPartRanges.size()) {
-			List<String> partKeys = uploadedPartRanges.stream()
-					.map(part -> MultipartUploadUtils.createPartKeyFromRange(key, part.getPartRangeLowerBound(), part.getPartRangeUpperBound()))
-					.collect(Collectors.toList());
-
-			googleCloudStorageClient.composeObjects(bucket,
-					MultipartUploadUtils.createPartKeyFromRange(key, newStitchedPartRange.getLowerBound(), newStitchedPartRange.getUpperBound()),
-					partKeys);
-
-			// Delete the old parts
-			for (String part : partKeys) {
-				googleCloudStorageClient.deleteObject(bucket, part);
+			// We must make sure that the sum of each part size is equivalent to the size of a new merged part
+			long sumOfUploadedPartSizesInRange = 0;
+			for (DBOMultipartUploadComposerPartState part : uploadedParts) {
+				sumOfUploadedPartSizesInRange += part.getSizeOfPart();
 			}
-			multipartUploadComposerDAO.deletePartsInRange(uploadId.toString(), newStitchedPartRange.getLowerBound(), newStitchedPartRange.getUpperBound());
 
-			// Add the new composed part (and attempt to merge it)
-			addPartWithoutValidatingMd5(uploadId.toString(), bucket, key, newStitchedPartRange.getLowerBound(), newStitchedPartRange.getUpperBound(), totalNumberOfParts);
+			if (expectedStitchPartRange.getSize() == sumOfUploadedPartSizesInRange // Make sure that amount of data in the new part is equivalent to the amount of data we have
+					&& expectedStitchPartRange.getNumberOfParts() == uploadedParts.size()){	// We must also make sure that we get exactly the number of parts that we expect
+
+				// We can now stitch the parts
+				// Get the key names for the old parts
+				List<String> partKeys = new ArrayList<>();
+				for (DBOMultipartUploadComposerPartState part : uploadedParts) {
+					partKeys.add(MultipartUploadUtils.createPartKeyFromRange(key, part.getPartRangeLowerBound(), part.getPartRangeUpperBound()));
+				}
+
+				// Create a new part
+				googleCloudStorageClient.composeObjects(bucket,
+						MultipartUploadUtils.createPartKeyFromRange(key, expectedStitchPartRange.getLowerBound(), expectedStitchPartRange.getUpperBound()),
+						partKeys);
+
+				// Delete the old parts from Google Cloud and the database.
+				for (String part : partKeys) {
+					googleCloudStorageClient.deleteObject(bucket, part);
+				}
+				multipartUploadComposerDAO.deletePartsInRange(uploadId, expectedStitchPartRange.getLowerBound(), expectedStitchPartRange.getUpperBound());
+
+				// Recursively add the new composed part (and attempt to merge it)
+				addPart(uploadId, bucket, key, expectedStitchPartRange.getLowerBound(), expectedStitchPartRange.getUpperBound(), totalNumberOfParts);
+			}
 		}
 	}
 

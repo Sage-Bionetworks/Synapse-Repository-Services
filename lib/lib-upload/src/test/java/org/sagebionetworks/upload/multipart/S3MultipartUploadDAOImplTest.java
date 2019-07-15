@@ -179,7 +179,7 @@ public class S3MultipartUploadDAOImplTest {
 		long totalNumberOfParts = 1001;
 		AddPartRequest request  = new AddPartRequest(uploadId, uploadToken, bucket, key, partKey, partMD5Hex, partNumber, totalNumberOfParts);
 		// call under test.
-		dao.addPart(request);
+		dao.validateAndAddPart(request);
 		
 		ArgumentCaptor<CopyPartRequest> capture = ArgumentCaptor.forClass(CopyPartRequest.class);
 		verify(mockS3Client).copyPart(capture.capture());
@@ -208,7 +208,7 @@ public class S3MultipartUploadDAOImplTest {
 		AddPartRequest request  = new AddPartRequest(uploadId, uplaodToken, bucket, key, partKey, partMD5Hex, partNumber, totalNumberOfParts);
 		// call under test.
 		try {
-			dao.addPart(request);
+			dao.validateAndAddPart(request);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("The provided MD5 does not match"));

@@ -96,7 +96,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	 * .sagebionetworks.upload.multipart.AddPartRequest)
 	 */
 	@Override
-	public void addPart(AddPartRequest request) {
+	public void validateAndAddPart(AddPartRequest request) {
 		CopyPartRequest cpr = new CopyPartRequest();
 		cpr.setSourceBucketName(request.getBucket());
 		cpr.setSourceKey(request.getPartKey());

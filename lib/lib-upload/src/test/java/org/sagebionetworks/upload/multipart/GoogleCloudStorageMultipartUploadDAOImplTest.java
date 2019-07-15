@@ -51,7 +51,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	private MultipartUploadComposerDAO mockMultipartUploadComposerDAO;
 
 	@InjectMocks
-	private GoogleCloudStorageMultipartUploadDAOImpl gCloudMultipartUploadDAO;
+	private GoogleCloudStorageMultipartUploadDAOImpl googleMpuDAO;
 
 	@Mock
 	Blob mockBlob;
@@ -66,7 +66,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	@Test
 	public void initiateMultipartUpload() {
 		// Will always be an empty string.
-		assertTrue(gCloudMultipartUploadDAO
+		assertTrue(googleMpuDAO
 				.initiateMultipartUpload(BUCKET_NAME, KEY_NAME, new MultipartUploadRequest())
 				.isEmpty());
 	}
@@ -76,7 +76,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
-		assertNotNull(gCloudMultipartUploadDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, null)); // contentType is not used
+		assertNotNull(googleMpuDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, null)); // contentType is not used
 		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 
@@ -97,7 +97,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 				.thenReturn(createDboList(Long.valueOf(UPLOAD_ID), existingDboLowerBound, existingDboUpperBound, existingDboPartSize));
 
 		// Call under test
-		gCloudMultipartUploadDAO.addPart(addPartRequest);
+		googleMpuDAO.validateAndAddPart(addPartRequest);
 
 		verify(mockStorageClient).getObject(BUCKET_NAME, KEY_NAME + "/" + PART_NUMBER);
 		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, (long) PART_NUMBER, (long) PART_NUMBER);
@@ -115,7 +115,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockBlob.getMd5()).thenReturn(md5AsBase64);
 
 		// Call under test
-		gCloudMultipartUploadDAO.validatePartMd5(addPartRequest);
+		googleMpuDAO.validatePartMd5(addPartRequest);
 
 		verify(mockStorageClient).getObject(BUCKET_NAME, KEY_NAME + "/" + PART_NUMBER);
 	}
@@ -127,7 +127,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockStorageClient.getObject(BUCKET_NAME, KEY_NAME + "/" + PART_NUMBER)).thenReturn(null);
 
 		// Call under test
-		assertThrows(IllegalArgumentException.class, () -> gCloudMultipartUploadDAO.validatePartMd5(addPartRequest));
+		assertThrows(IllegalArgumentException.class, () -> googleMpuDAO.validatePartMd5(addPartRequest));
 	}
 
 	@Test
@@ -138,7 +138,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockBlob.getMd5()).thenReturn("not a matching md5");
 
 		// Call under test
-		assertThrows(IllegalArgumentException.class, () -> gCloudMultipartUploadDAO.validatePartMd5(addPartRequest));
+		assertThrows(IllegalArgumentException.class, () -> googleMpuDAO.validatePartMd5(addPartRequest));
 	}
 
 	@Test
@@ -152,7 +152,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 				.thenReturn(createDboList(Long.valueOf(UPLOAD_ID), existingDboLowerBound, existingDboUpperBound, existingDboPartSize));
 
 		// Call under test
-		gCloudMultipartUploadDAO.addPartWithoutValidatingMd5(UPLOAD_ID, BUCKET_NAME, KEY_NAME, (long) PART_NUMBER, (long) PART_NUMBER, 100L);
+		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, (long) PART_NUMBER, (long) PART_NUMBER, 100L);
 
 		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, (long) PART_NUMBER, (long) PART_NUMBER);
 		verify(mockMultipartUploadComposerDAO).getAddedPartRanges(anyLong(), anyLong(), anyLong());
@@ -173,10 +173,10 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 				.thenReturn(createDboList(Long.valueOf(UPLOAD_ID), existingDboLowerBound, existingDboUpperBound, existingDboPartSize));
 
 		// Call under test
-		gCloudMultipartUploadDAO.attemptToMergePart(
-				Long.valueOf(UPLOAD_ID), BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
+		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
 
 		verifyZeroInteractions(mockStorageClient);
+		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, lowerBoundOfPart, upperBoundOfPart);
 		verify(mockMultipartUploadComposerDAO).getAddedPartRanges(anyLong(), anyLong(), anyLong());
 		verifyNoMoreInteractions(mockMultipartUploadComposerDAO);
 	}
@@ -195,8 +195,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 						existingDboUpperBound, existingDboPartSize));
 
 		// Call under test
-		gCloudMultipartUploadDAO.attemptToMergePart(
-				Long.valueOf(UPLOAD_ID), BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
+		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
 
 		verify(mockStorageClient).composeObjects(eq(BUCKET_NAME), anyString(), anyList());
 		verify(mockStorageClient, times(numberOfPartsToMerge)).deleteObject(eq(BUCKET_NAME), anyString());
@@ -217,8 +216,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 				.thenReturn(createDboList(Long.valueOf(UPLOAD_ID), existingDboLowerBound, existingDboUpperBound, existingDboPartSize));
 
 		// Call under test
-		gCloudMultipartUploadDAO.attemptToMergePart(
-				Long.valueOf(UPLOAD_ID), BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
+		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
 
 		verify(mockStorageClient).composeObjects(eq(BUCKET_NAME), anyString(), anyList());
 		verify(mockStorageClient, times(numberOfPartsToMerge)).deleteObject(eq(BUCKET_NAME), anyString());
@@ -239,14 +237,56 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 				.thenReturn(createDboList(Long.valueOf(UPLOAD_ID), existingDboLowerBound, existingDboUpperBound, existingDboPartSize));
 
 		// Call under test
-		gCloudMultipartUploadDAO.attemptToMergePart(
-				Long.valueOf(UPLOAD_ID), BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
+		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
 
 		verify(mockStorageClient).composeObjects(eq(BUCKET_NAME), anyString(), anyList());
 		verify(mockStorageClient, times(numberOfPartsToMerge)).deleteObject(eq(BUCKET_NAME), anyString());
 		verify(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
 		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
 	}
+
+	@Test
+	public void attemptMergeWithStitchTargetsSingletonLastPartEdgeCase() {
+		long lowerBoundOfPart = 33L;
+		long upperBoundOfPart = 33L;
+		long numberOfPartsInEntireUpload = 33L;
+		long existingDboLowerBound = 1L;
+		long existingDboUpperBound = 33L;
+		long existingDboPartSize = 32L;
+		int numberOfPartsToMerge = 2;
+		when(mockMultipartUploadComposerDAO.getAddedPartRanges(anyLong(), anyLong(), anyLong()))
+				.thenReturn(createDboList(Long.valueOf(UPLOAD_ID), existingDboLowerBound, existingDboUpperBound, existingDboPartSize));
+
+		// Call under test
+		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
+
+		verify(mockStorageClient).composeObjects(eq(BUCKET_NAME), anyString(), anyList());
+		verify(mockStorageClient, times(numberOfPartsToMerge)).deleteObject(eq(BUCKET_NAME), anyString());
+		verify(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
+		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
+	}
+
+	@Test
+	public void attemptMergeWithStitchTargetsRangeLastPartEdgeCase() {
+		long lowerBoundOfPart = 1025L;
+		long upperBoundOfPart = 1026L;
+		long numberOfPartsInEntireUpload = 1026L;
+		long existingDboLowerBound = 1L;
+		long existingDboUpperBound = 1026L;
+		long existingDboPartSize = 1024L;
+		int numberOfPartsToMerge = 2;
+		when(mockMultipartUploadComposerDAO.getAddedPartRanges(anyLong(), anyLong(), anyLong()))
+				.thenReturn(createDboList(Long.valueOf(UPLOAD_ID), existingDboLowerBound, existingDboUpperBound, existingDboPartSize));
+
+		// Call under test
+		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
+
+		verify(mockStorageClient).composeObjects(eq(BUCKET_NAME), anyString(), anyList());
+		verify(mockStorageClient, times(numberOfPartsToMerge)).deleteObject(eq(BUCKET_NAME), anyString());
+		verify(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
+		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
+	}
+
 
 	private List<DBOMultipartUploadComposerPartState> createDboList(long uploadId,
 																	long lowerBound,
@@ -283,7 +323,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 
 		// Call under test
 		assertThrows(IllegalArgumentException.class,  () ->
-				gCloudMultipartUploadDAO.completeMultipartUpload(completeMultipartRequest));
+				googleMpuDAO.completeMultipartUpload(completeMultipartRequest));
 
 		verify(mockMultipartUploadComposerDAO).getAddedParts(Long.valueOf(UPLOAD_ID));
 		verifyNoMoreInteractions(mockMultipartUploadComposerDAO);
@@ -314,7 +354,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		when(mockBlob.getSize()).thenReturn(1234L);
 
 		// Call under test
-		assertEquals(1234L, gCloudMultipartUploadDAO.completeMultipartUpload(completeMultipartRequest));
+		assertEquals(1234L, googleMpuDAO.completeMultipartUpload(completeMultipartRequest));
 
 		verify(mockMultipartUploadComposerDAO).getAddedParts(Long.valueOf(UPLOAD_ID));
 		verify(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, -1, Long.MAX_VALUE);

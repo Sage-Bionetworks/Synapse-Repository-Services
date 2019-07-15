@@ -53,6 +53,10 @@ public class DBOMultipartUploadComposerPartState implements MigratableDatabaseOb
 		return partRangeUpperBound;
 	}
 
+	public Long getSizeOfPart() {
+		return partRangeUpperBound - partRangeLowerBound + 1;
+	}
+
 	public void setPartRangeUpperBound(Long upperBound) {
 		this.partRangeUpperBound = upperBound;
 	}

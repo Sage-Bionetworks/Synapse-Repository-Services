@@ -332,7 +332,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		response.setUploadId(uploadId);
 		try {
 			cloudServiceMultipartUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3)
-					.addPart(new AddPartRequest(uploadId,
+					.validateAndAddPart(new AddPartRequest(uploadId,
 					composite.getUploadToken(), composite.getBucket(), composite
 					.getKey(), partKey, partMD5Hex, partNumber, composite.getNumberOfParts()));
 			// added the part successfully.

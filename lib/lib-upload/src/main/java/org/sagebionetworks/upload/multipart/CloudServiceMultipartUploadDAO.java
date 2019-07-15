@@ -34,7 +34,7 @@ public interface CloudServiceMultipartUploadDAO {
 	 * Add a part to a multi-part upload. This call may delete the temporary part file, depending on implementation.
 	 * @param request
 	 */
-	public void addPart(AddPartRequest request);
+	public void validateAndAddPart(AddPartRequest request);
 
 	/**
 	 * Complete a multi-part upload.
