@@ -284,7 +284,7 @@ public class BackupFileStreamImplTest {
 		BackupFileStreamImpl.getTypeFromFileName(name);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test (expected=NotFoundException.class)
 	public void testGetTypeFromFileNameWrongNotType() {
 		// Type name does not match
 		String name = MigrationType.ACL.name()+"1"+".xml";
