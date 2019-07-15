@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
-import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -222,7 +221,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
 			MapSqlParameterSource parameters = new MapSqlParameterSource()
 					.addValue("ids", fileHandleIdsBatch);
-			namedJdbcTemplate.query(SQL_SELECT_FILE_PREVIEWS, parameters, (ResultSet rs) -> {
+			namedJdbcTemplate.query(SQL_SELECT_FILE_PREVIEWS, parameters, rs -> {
 				String fileHandleId = rs.getString(COL_FILES_PREVIEW_ID);
 				results.add(fileHandleId);
 			});
