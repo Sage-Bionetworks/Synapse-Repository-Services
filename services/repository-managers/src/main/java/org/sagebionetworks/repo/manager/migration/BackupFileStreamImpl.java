@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,18 +18,23 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.thoughtworks.xstream.io.StreamException;
 
 public class BackupFileStreamImpl implements BackupFileStream {
+	
+	static private Log log = LogFactory.getLog(BackupFileStreamImpl.class);
 
 	private static final String UTF_8 = "UTF-8";
 	private static final String INPUT_CONTAINED_NO_DATA = "input contained no data";
@@ -111,7 +117,13 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		if (index < 0) {
 			throw new IllegalArgumentException("Unexpected file name: " + name);
 		}
-		return MigrationType.valueOf(name.substring(0, index));
+		String migrationTypeName = name.substring(0, index);
+		try {
+			return MigrationType.valueOf(migrationTypeName);
+		} catch(IllegalArgumentException e) {
+			throw new NotFoundException("Unknown type: "+migrationTypeName,  e);
+		}
+
 	}
 
 	/**
@@ -258,7 +270,14 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 */
 	<D extends DatabaseObject<D>, B> List<MigratableDatabaseObject<?, ?>> readFileFromStream(InputStream input,
 			BackupAliasType backupAliasType, String fileName) throws EmptyFileException {
-		MigrationType type = getTypeFromFileName(fileName);
+		MigrationType type;
+		try {
+			type = getTypeFromFileName(fileName);
+		} catch (NotFoundException e) {
+			// Migration types that have been removed should be ignored. (See PLFM-5682)
+			log.warn("Migration type cannot be found so it will be ignored: "+e.getMessage());
+			throw new EmptyFileException();
+		}
 		// Lookup the object for the type.
 		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
 		MigratableTableTranslation<D, B> translator = mdo.getTranslator();

@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.util.StringInputStream;
@@ -240,6 +241,22 @@ public class BackupFileStreamImplTest {
 		// call under test
 		MigrationType result = BackupFileStreamImpl.getTypeFromFileName(name);
 		assertEquals(type, result);
+	}
+	
+	/**
+	 * Support for types that have been removed.  See: PLFM-5682.
+	 */
+	@Test
+	public void testGetTypeFromFileNameRemovedType() {
+		String typeName = "RemovedType";
+		String fileName = typeName+".12.xml";
+		// call under test
+		try {
+			BackupFileStreamImpl.getTypeFromFileName(fileName);
+			fail();
+		} catch (NotFoundException e) {
+			assertTrue(e.getMessage().contains(typeName));
+		}
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -473,6 +490,14 @@ public class BackupFileStreamImplTest {
 		StringInputStream input = new StringInputStream("");
 		int index = 0;
 		String fileName = BackupFileStreamImpl.createFileName(MigrationType.CREDENTIAL, index);
+		// Call under test
+		backupFileStream.readFileFromStream(input, backupAliasType, fileName);
+	}
+	
+	@Test(expected = EmptyFileException.class)
+	public void testReadFileFromStreamMigrationTypeDoesNotExist() throws Exception {
+		StringInputStream input = new StringInputStream("");
+		String fileName = "RemovedType.4.xml";
 		// Call under test
 		backupFileStream.readFileFromStream(input, backupAliasType, fileName);
 	}
