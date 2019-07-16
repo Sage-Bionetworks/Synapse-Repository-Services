@@ -1,6 +1,8 @@
 package org.sagebionetworks.upload.multipart;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.Test;
@@ -23,32 +25,32 @@ class MultipartUploadUtilsTest {
 	}
 
 	@Test
-	public void testComputeCurrentPartSizeSingletonEdgeCase() {
-		assertEquals(1L, MultipartUploadUtils.computeStitchTargetSize(1, 1));
+	public void testComputeCurrentPartSizeSingletonFirstPart() {
+		assertEquals(1L, MultipartUploadUtils.computeStitchTargetSize(1, 1, 100));
 	}
 
 	@Test
-	public void testComputeCurrentPartSizeSingletonCase() {
-		assertEquals(1L, MultipartUploadUtils.computeStitchTargetSize(5, 5));
+	public void testComputeCurrentPartSizeSingletonLastPart() {
+		assertEquals(1L, MultipartUploadUtils.computeStitchTargetSize(5, 5, 5));
 	}
 
 	@Test
 	public void testComputeCurrentPartSizeIncompletePartCase() {
 		assumeTrue(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE > 2);
-		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE, MultipartUploadUtils.computeStitchTargetSize(4, 7));
+		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE, MultipartUploadUtils.computeStitchTargetSize(4, 7, 7));
 	}
 
 	@Test
 	public void testComputeCurrentPartSizeCompletePartCase() {
 		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE,
-				MultipartUploadUtils.computeStitchTargetSize(1, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE));
+				MultipartUploadUtils.computeStitchTargetSize(1, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE));
 	}
 
 	@Test
 	public void testComputeCurrentPartSize_NextSizeUp() {
 		// The part size should square when above the max
 		assertEquals(MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE * MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE,
-				MultipartUploadUtils.computeStitchTargetSize(1, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE + 1));
+				MultipartUploadUtils.computeStitchTargetSize(1, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE + 1, MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE * MultipartUploadUtils.MAX_PARTS_IN_ONE_COMPOSE));
 	}
 
 	@Test
@@ -139,6 +141,19 @@ class MultipartUploadUtilsTest {
 	}
 
 	@Test
+	public void testGetRangesForAdditionalSinglePart() {
+		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(33, 33, 33);
+
+		// Parts will be [1, 32], [33, 33]
+		PartRange expected = new PartRange();
+		expected.setLowerBound(1);
+		expected.setUpperBound(33);
+		expected.setNumberOfParts(2);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
 	public void testGetRangesForPartSinglePartWithMaxPartSize() {
 		PartRange actual = MultipartUploadUtils.getRangeOfPotentialStitchTargets(4, 4, 13);
 
@@ -214,6 +229,26 @@ class MultipartUploadUtilsTest {
 		expected.setNumberOfParts(32);
 
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void testIsPowerOf32() {
+		assertFalse(MultipartUploadUtils.isPowerOf32(0));
+		assertTrue(MultipartUploadUtils.isPowerOf32(1));
+		assertFalse(MultipartUploadUtils.isPowerOf32(2));
+		assertFalse(MultipartUploadUtils.isPowerOf32(4));
+		assertFalse(MultipartUploadUtils.isPowerOf32(16));
+		assertFalse(MultipartUploadUtils.isPowerOf32(31));
+		assertTrue(MultipartUploadUtils.isPowerOf32(32));
+		assertFalse(MultipartUploadUtils.isPowerOf32(33));
+		assertFalse(MultipartUploadUtils.isPowerOf32(64));
+		assertTrue(MultipartUploadUtils.isPowerOf32(1024));
+		assertTrue(MultipartUploadUtils.isPowerOf32(32768));
+		assertTrue(MultipartUploadUtils.isPowerOf32(1048576));
+		assertTrue(MultipartUploadUtils.isPowerOf32(1048576 * 32));
+		assertTrue(MultipartUploadUtils.isPowerOf32(1048576 * 32 * 32));
+		assertTrue(MultipartUploadUtils.isPowerOf32(1048576L * 32L * 32L * 32L));
+		assertFalse(MultipartUploadUtils.isPowerOf32(1048576L * 32L * 32L * 32L + 1));
 	}
 
 

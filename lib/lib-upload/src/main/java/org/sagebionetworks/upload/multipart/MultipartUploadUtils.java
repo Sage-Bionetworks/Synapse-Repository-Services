@@ -4,6 +4,7 @@ import java.math.RoundingMode;
 
 import org.sagebionetworks.repo.model.upload.PartRange;
 
+import com.google.common.math.IntMath;
 import com.google.common.math.LongMath;
 
 public class MultipartUploadUtils {
@@ -50,7 +51,7 @@ public class MultipartUploadUtils {
 	public static PartRange getRangeOfPotentialStitchTargets(long lowerBound, long upperBound, long maxPartNumber) {
 		PartRange rangeOfStitchTargets = new PartRange();
 
-		long stitchTargetSize = computeStitchTargetSize(lowerBound, upperBound);
+		long stitchTargetSize = computeStitchTargetSize(lowerBound, upperBound, maxPartNumber);
 		long nextLevelSize = stitchTargetSize * MAX_PARTS_IN_ONE_COMPOSE;
 
 		rangeOfStitchTargets.setLowerBound(
@@ -83,9 +84,25 @@ public class MultipartUploadUtils {
 	 * @return The size of the other parts that the given part should be stitched to. This size is necessarily
 	 * greater than or equal to the size of the given part.
 	 */
-	protected static long computeStitchTargetSize(long lowerBound, long upperBound) {
+	protected static long computeStitchTargetSize(long lowerBound, long upperBound, long totalNumberOfParts) {
 		long partSize = upperBound - lowerBound + 1;
-		return  (long) Math.pow(MAX_PARTS_IN_ONE_COMPOSE, Math.ceil(log(partSize, MAX_PARTS_IN_ONE_COMPOSE)));
+		if (upperBound == totalNumberOfParts && isPowerOf32(lowerBound - 1)) {
+			// Handles edge case
+			// Consider a 33-part upload with compose size of 32
+			// The 33rd part has size 1 but has no stitch targets of size == 1
+			// The part should be combined with [1 - 32], giving a stitch target size of 32.
+			return (long) Math.pow(MAX_PARTS_IN_ONE_COMPOSE, Math.floor(log(lowerBound, MAX_PARTS_IN_ONE_COMPOSE)));
+		} else {
+			// In all other cases, we just round up to the nearest power of 32.
+			return (long) Math.pow(MAX_PARTS_IN_ONE_COMPOSE, Math.ceil(log(partSize, MAX_PARTS_IN_ONE_COMPOSE)));
+		}
+	}
+
+	protected static boolean isPowerOf32(long x) {
+		// Adapted from https://kuaiyumath.wordpress.com/2015/12/28/check-if-an-integer-is-power-of-4-using-bit-operations/
+		long mask = 0x1084210842108421L; // 0b1000010000...100001 - this captures bits that represent 32^0, 32^1 ... 32^12 (long overflow past that point)
+		return ((x & (x - 1)) == 0) && // isPowerOf2 and
+				(x & mask) > 0; // contains a bit that represents 32^n
 	}
 
 	/**

@@ -1,7 +1,9 @@
 package org.sagebionetworks;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -1154,6 +1156,21 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 */
 	public int getCurrentHmacSigningKeyVersion() {
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.hmac.signing.key.current.version"));
+	}
+
+	@Override
+	public boolean getGoogleCloudEnabled() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.google.cloud.enabled"));
+	}
+
+	@Override
+	public String getDecodedGoogleCloudServiceAccountCredentials() {
+		// The credentials should be passed in with base64 encoding
+		return new String(
+				Base64.getDecoder().decode(
+						configuration.getDecryptedProperty("org.sagebionetworks.google.cloud.key")
+								.getBytes(StandardCharsets.UTF_8)),
+				StandardCharsets.UTF_8);
 	}
 
 	@Override

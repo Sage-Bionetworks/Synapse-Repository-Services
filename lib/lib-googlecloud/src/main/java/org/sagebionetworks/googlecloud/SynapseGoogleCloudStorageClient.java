@@ -1,4 +1,4 @@
-package org.sagebionetworks.gcp;
+package org.sagebionetworks.googlecloud;
 
 
 import java.io.IOException;
@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 

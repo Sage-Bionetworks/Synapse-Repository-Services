@@ -27,6 +27,7 @@
 		<module>lib-search</module>
 		<module>lib-worker</module>
 		<module>lib-doi</module>
+		<module>lib-googlecloud</module>
 		<module>lib-javadoc</module>
 		<module>lib-audit</module>
 		<module>lib-table-cluster</module>

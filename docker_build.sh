@@ -14,6 +14,11 @@
 # artifactory_password - password to deploy artifacts
 # org_sagebionetworks_repository_database_connection_url - endpoint to mysql database for repo data
 # org_sagebionetworks_table_cluster_endpoint_0 - endpoint to mysql database for user tables data
+# org.sagebionetworks.doi.datacite.enabled - when set to true, enable DOI minting/editing features
+# org.sagebionetworks.doi.datacite.username - the username used to connect to DataCite for minting DOIs
+# org.sagebionetworks.doi.datacite.password - the password used to connect to DataCite for minting DOIs
+# org.sagebionetworks.google.cloud.enabled - when set to true, enable Google Cloud features
+# org.sagebionetworks.google.cloud.key - the private key used to log into the Google Cloud service account
 
 # if anything fails, stop
 set -e
@@ -94,6 +99,8 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.doi.datacite.enabled=${org_sagebionetworks_datacite_enabled} \
 -Dorg.sagebionetworks.doi.datacite.username=${org_sagebionetworks_datacite_username} \
 -Dorg.sagebionetworks.doi.datacite.password=${org_sagebionetworks_datacite_password} \
+-Dorg.sagebionetworks.google.cloud.enabled=${org_sagebionetworks_google_cloud_enabled} \
+-Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
 -Duser.home=/root"
 
 clean_up_container ${build_container_name}

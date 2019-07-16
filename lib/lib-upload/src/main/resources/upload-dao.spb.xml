@@ -8,11 +8,11 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
-	<aop:aspectj-autoproxy />
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy proxy-target-class="true"/>
 
 	<import resource="stack-configuration.spb.xml" />
-
+	<import resource="lib-googlecloud.spb.xml"/>
 
 	<bean id="amazonS3Client" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonS3Client" scope="singleton" />
@@ -21,8 +21,7 @@
 		scope="singleton" init-method="initialize">
 		<property name="bucketName" ref="stackConfiguration.discussionBucketName" />
 	</bean>
-	
-	<bean id="s3multipartUploadDAO" class="org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl"
-		scope="singleton"/>
-
+	<bean id="s3MultipartUploadDAO" class="org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl"/>
+	<bean id="googleCloudStorageMultipartUploadDAO" class="org.sagebionetworks.upload.multipart.GoogleCloudStorageMultipartUploadDAOImpl"/>
+	<bean id="cloudServiceMultipartUploadDAOProvider" class="org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProviderImpl"/>
 </beans>

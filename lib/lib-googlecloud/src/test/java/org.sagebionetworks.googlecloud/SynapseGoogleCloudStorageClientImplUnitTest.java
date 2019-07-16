@@ -1,4 +1,4 @@
-package org.sagebionetworks;
+package org.sagebionetworks.googlecloud;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,7 +28,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.gcp.SynapseGoogleCloudStorageClientImpl;
 
 import com.google.cloud.RestorableState;
 import com.google.cloud.WriteChannel;
@@ -38,7 +37,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import com.google.cloud.storage.StorageOptions;
 
 @ExtendWith(MockitoExtension.class)
 public class SynapseGoogleCloudStorageClientImplUnitTest {

@@ -42,8 +42,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
-import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -51,7 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 	@Autowired
-	S3MultipartUploadDAO s3multipartUploadDAO;
+	CloudServiceMultipartUploadDAOProvider cloudServiceMultipartUploadDAOProvider;
 
 	@Autowired
 	MultipartUploadDAO multipartUploadDAO;
@@ -134,7 +134,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// create a new key for this file.
 		String key = MultipartUtils.createNewKey(user.getId().toString(),
 				request.getFileName(), locationSettings);
-		String uploadToken = s3multipartUploadDAO.initiateMultipartUpload(
+		String uploadToken = cloudServiceMultipartUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3).initiateMultipartUpload(
 				bucket, key, request);
 		String requestJson = createRequestJSON(request);
 		// How many parts will be needed to upload this file?
@@ -249,7 +249,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			int partNumber = partNumberL.intValue();
 			validatePartNumber(partNumber, numberOfParts);
 			String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
-			URL url = s3multipartUploadDAO.createPreSignedPutUrl(
+			URL url = cloudServiceMultipartUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3)
+					.createPreSignedPutUrl(
 					status.getBucket(), partKey, request.getContentType());
 			PartPresignedUrl part = new PartPresignedUrl();
 			part.setPartNumber((long) partNumber);
@@ -330,15 +331,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		response.setPartNumber(new Long(partNumber));
 		response.setUploadId(uploadId);
 		try {
-			s3multipartUploadDAO.addPart(new AddPartRequest(uploadId,
+			cloudServiceMultipartUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3)
+					.validateAndAddPart(new AddPartRequest(uploadId,
 					composite.getUploadToken(), composite.getBucket(), composite
 					.getKey(), partKey, partMD5Hex, partNumber, composite.getNumberOfParts()));
 			// added the part successfully.
 			multipartUploadDAO
 					.addPartToUpload(uploadId, partNumber, partMD5Hex);
 			response.setAddPartState(AddPartState.ADD_SUCCESS);
-			// after a part is added we can delete the part file
-			s3multipartUploadDAO.deleteObject(composite.getBucket(), partKey);
 		} catch (Exception e) {
 			response.setErrorMessage(e.getMessage());
 			response.setAddPartState(AddPartState.ADD_FAILED);
@@ -376,7 +376,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		request.setKey(composite.getKey());
 		request.setUploadToken(composite.getUploadToken());
 		// This will create the object in S3
-		long fileContentSize = s3multipartUploadDAO
+		long fileContentSize = cloudServiceMultipartUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3)
 				.completeMultipartUpload(request);
 
 		// Get the original request

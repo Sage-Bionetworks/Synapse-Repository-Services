@@ -56,9 +56,10 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
 import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
-import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl;
 
 import com.google.common.collect.Lists;
 
@@ -71,7 +72,9 @@ public class MultipartManagerV2ImplTest {
 	@Mock
 	ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
-	S3MultipartUploadDAO mockS3multipartUploadDAO;
+	S3MultipartUploadDAOImpl mockS3multipartUploadDAO;
+	@Mock
+	CloudServiceMultipartUploadDAOProvider mockUploadDAOProvider;
 	@Mock
 	FileHandleDao mockFileHandleDao;
 	@Mock
@@ -169,7 +172,8 @@ public class MultipartManagerV2ImplTest {
 				composite.setUploadToken("anUploadToken");
 				return composite;
 			}}).when(mockMultiparUploadDAO).createUploadStatus(any(CreateMultipartRequest.class));
-		
+
+		when(mockUploadDAOProvider.getCloudServiceMultipartUploadDao(UploadType.S3)).thenReturn(mockS3multipartUploadDAO);
 		when(mockS3multipartUploadDAO.initiateMultipartUpload(anyString(), anyString(), any(MultipartUploadRequest.class))).thenReturn(uploadToken);
 		
 		// Simulate the number of parts
@@ -512,7 +516,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(AddPartState.ADD_SUCCESS, response.getAddPartState());
 		
 		ArgumentCaptor<AddPartRequest> capture = ArgumentCaptor.forClass(AddPartRequest.class);
-		verify(mockS3multipartUploadDAO).addPart(capture.capture());
+		verify(mockS3multipartUploadDAO).validateAndAddPart(capture.capture());
 		assertEquals(composite.getBucket(), capture.getValue().getBucket());
 		assertEquals(composite.getKey(), capture.getValue().getKey());
 		assertEquals(partKey, capture.getValue().getPartKey());
@@ -521,9 +525,6 @@ public class MultipartManagerV2ImplTest {
 		
 		// the part state should be saved
 		verify(mockMultiparUploadDAO).addPartToUpload(uploadId, partNumber, partMD5Hex);
-		
-		// the part should get deleted
-		verify(mockS3multipartUploadDAO).deleteObject(composite.getBucket(), partKey);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -542,7 +543,7 @@ public class MultipartManagerV2ImplTest {
 		
 		//setup an error on add.
 		Exception error = new RuntimeException("Something went wrong");
-		doThrow(error).when(mockS3multipartUploadDAO).addPart(any(AddPartRequest.class));
+		doThrow(error).when(mockS3multipartUploadDAO).validateAndAddPart(any(AddPartRequest.class));
 		
 		// setup the case where the status already exists
 		when(mockMultiparUploadDAO.getUploadStatus(uploadId)).thenReturn(composite);
@@ -559,7 +560,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(error.getMessage(), response.getErrorMessage());
 		
 		ArgumentCaptor<AddPartRequest> capture = ArgumentCaptor.forClass(AddPartRequest.class);
-		verify(mockS3multipartUploadDAO).addPart(capture.capture());
+		verify(mockS3multipartUploadDAO).validateAndAddPart(capture.capture());
 		assertEquals(composite.getBucket(), capture.getValue().getBucket());
 		assertEquals(composite.getKey(), capture.getValue().getKey());
 		assertEquals(partKey, capture.getValue().getPartKey());

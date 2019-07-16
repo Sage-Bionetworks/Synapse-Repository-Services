@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -169,15 +170,16 @@ public class S3MultipartUploadDAOImplTest {
 	public void testAddPart(){
 		CopyPartResult result = new CopyPartResult();
 		when(mockS3Client.copyPart(any(CopyPartRequest.class))).thenReturn(result);
-		
+
+		String uploadId = "3553";
 		String uploadToken = "uploadToken";
 		String partKey = key+"/101";
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		int partNumber = 101;
-		long totalNumberOfParts = 1001L;
+		long totalNumberOfParts = 1001;
 		AddPartRequest request  = new AddPartRequest(uploadId, uploadToken, bucket, key, partKey, partMD5Hex, partNumber, totalNumberOfParts);
 		// call under test.
-		dao.addPart(request);
+		dao.validateAndAddPart(request);
 		
 		ArgumentCaptor<CopyPartRequest> capture = ArgumentCaptor.forClass(CopyPartRequest.class);
 		verify(mockS3Client).copyPart(capture.capture());
@@ -188,6 +190,7 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals(uploadToken, capture.getValue().getUploadId());
 		assertEquals(partNumber, capture.getValue().getPartNumber());
 		assertEquals(Lists.newArrayList(partMD5Hex), capture.getValue().getMatchingETagConstraints());
+		verify(mockS3Client).deleteObject(bucket, partKey);
 	}
 	
 	@Test
@@ -195,20 +198,22 @@ public class S3MultipartUploadDAOImplTest {
 		// returning a null indicates an abort.
 		CopyPartResult result = null;
 		when(mockS3Client.copyPart(any(CopyPartRequest.class))).thenReturn(result);
-		
-		String uploadToken = "uploadToken";
+
+		String uploadId = "3553";
+		String uplaodToken = "uploadToken";
 		String partKey = key+"/101";
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		int partNumber = 101;
-		long totalNumberOfParts = 1001L;
-		AddPartRequest request  = new AddPartRequest(uploadId, uploadToken, bucket, key, partKey, partMD5Hex, partNumber, totalNumberOfParts);
+		long totalNumberOfParts = 1001;
+		AddPartRequest request  = new AddPartRequest(uploadId, uplaodToken, bucket, key, partKey, partMD5Hex, partNumber, totalNumberOfParts);
 		// call under test.
 		try {
-			dao.addPart(request);
+			dao.validateAndAddPart(request);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("The provided MD5 does not match"));
 		}
+		verify(mockS3Client, never()).deleteObject(any(), any());
 	}
 	
 	
