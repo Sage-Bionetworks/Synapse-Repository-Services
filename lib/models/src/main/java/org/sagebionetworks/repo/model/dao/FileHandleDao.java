@@ -104,7 +104,14 @@ public interface FileHandleDao {
 	 */
 	public Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;;
 	
-
+	/**
+	 * Given a list of {@link FileHandle} ids, gets the sub-set of ids that are referenced as previews for any {@link FileHandle}.
+	 * 
+	 * @param fileHandleIds A list of ids of {@link FileHandle}
+	 * @return The subset of {@link FileHandle} ids from the given list that are referenced as previews for any {@link FileHandle}
+	 */
+	public Set<String> getFileHandlePreviewIds(List<String> fileHandleIds);
+	
 	/**
 	 * Get the preview associated with a given file handle.
 	 * 
