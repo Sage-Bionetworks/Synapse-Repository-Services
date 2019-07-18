@@ -30,15 +30,18 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 		// If this was not in place, then once a stack was down, there would be no way
 		// to bring it up again using the web-services.
 		String prefix = request.getRequestURI();
-		if(prefix != null && prefix.indexOf(UrlHelpers.ADMIN) > -1){
+		if(prefix != null && prefix.contains(UrlHelpers.ADMIN)){
 			return true;
 		}
 		// We want all migration to go through not matter what.
-		if(prefix != null && prefix.indexOf(UrlHelpers.MIGRATION) > -1){
+		if(prefix != null && prefix.contains(UrlHelpers.MIGRATION)){
 			return true;
 		}
 		// We want all health check to go through not matter what.
-		if(prefix != null && prefix.indexOf(UrlHelpers.VERSION) > -1){
+		if(prefix != null && prefix.contains(UrlHelpers.VERSION)){
+			return true;
+		}
+		if(prefix != null && prefix.contains(UrlHelpers.STACK_STATUS)) {
 			return true;
 		}
 		
