@@ -114,19 +114,6 @@ public interface FileHandleManager {
 	String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Only the creator of a FileHandle can call this method.
-	 * 
-	 * @param userInfo
-	 * @param fileHandleId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
-
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId, FileHandleAssociateType fileAssociateType, String fileAssociateId);
-
-	/**
 	 * Get a batch of FileHandles and URL
 	 * @param userInfo
 	 * @param request

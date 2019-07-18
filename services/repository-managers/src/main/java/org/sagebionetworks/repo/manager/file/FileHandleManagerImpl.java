@@ -335,8 +335,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return getURLForFileHandle(handle);
 	}
 	
-	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
+	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId) throws DatastoreException, NotFoundException {
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User cannot be null");
@@ -354,8 +353,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return getURLForFileHandle(handle);
 	}
 	
-	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
+	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId, FileHandleAssociateType fileAssociateType,
 			String fileAssociateId) {
 		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
