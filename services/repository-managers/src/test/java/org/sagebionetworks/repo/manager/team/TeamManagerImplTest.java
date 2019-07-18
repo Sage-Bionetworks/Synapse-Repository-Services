@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -75,6 +76,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -791,10 +793,23 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testGetIconURL() throws Exception {
-		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
+		String iconFileHandleId = "101";
+		
+		Team team = createTeam(null, "name", "description", null, iconFileHandleId, null, null, null, null);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
-		teamManagerImpl.getIconURL(TEAM_ID);
-		verify(mockFileHandleManager).getRedirectURLForFileHandle("101");
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, iconFileHandleId)
+				.withAssociation(FileHandleAssociateType.TeamAttachment, TEAM_ID);
+		
+		String expectedUrl = "https://testurl.org";
+		
+		when(mockFileHandleManager.getRedirectURLForFileHandle(eq(urlRequest))).thenReturn(expectedUrl);
+		
+		String url = teamManagerImpl.getIconURL(userInfo, TEAM_ID);
+		
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+		
+		assertEquals(expectedUrl, url);
 	}
 	
 	@Test

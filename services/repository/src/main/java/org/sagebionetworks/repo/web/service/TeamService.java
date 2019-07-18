@@ -78,12 +78,13 @@ public interface TeamService {
 	
 	/**
 	 * 
+	 * @param userId
 	 * @param teamId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public String getIconURL(String teamId) throws DatastoreException, NotFoundException;
+	public String getIconURL(Long userId, String teamId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
