@@ -327,8 +327,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId());
 	}
 
-	@Override
-	public String getRedirectURLForFileHandle(String handleId)
+	String getRedirectURLForFileHandle(String handleId)
 			throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
