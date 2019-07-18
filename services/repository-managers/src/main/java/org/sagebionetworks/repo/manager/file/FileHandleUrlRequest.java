@@ -1,29 +1,31 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.util.Objects;
+
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FileHandleUrlRequest {
-	
+
 	private UserInfo userInfo;
 	private boolean bypassAuthCheck = false;
 	private FileHandleAssociateType associationType;
 	private String associationId;
 	private String fileHandleId;
-	
+
 	public FileHandleUrlRequest(UserInfo userInfo, String fileHandleId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(fileHandleId, "fileHandleId");
 		this.userInfo = userInfo;
 		this.fileHandleId = fileHandleId;
 	}
-	
+
 	public FileHandleUrlRequest withBypassAuthCheck(boolean bypassAuthCheck) {
 		this.bypassAuthCheck = bypassAuthCheck;
 		return this;
 	}
-	
+
 	public FileHandleUrlRequest withAssociation(FileHandleAssociateType associationType, String associationId) {
 		ValidateArgument.required(associationType, "associationType");
 		ValidateArgument.required(associationId, "associationId");
@@ -31,7 +33,7 @@ public class FileHandleUrlRequest {
 		this.associationId = associationId;
 		return this;
 	}
-	
+
 	public UserInfo getUserInfo() {
 		return userInfo;
 	}
@@ -39,7 +41,7 @@ public class FileHandleUrlRequest {
 	public boolean bypassAuthCheck() {
 		return bypassAuthCheck;
 	}
-	
+
 	public boolean hasAssociation() {
 		return associationType != null && associationId != null;
 	}
@@ -55,8 +57,27 @@ public class FileHandleUrlRequest {
 	public String getFileHandleId() {
 		return fileHandleId;
 	}
-	
-	
-	
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(associationId, associationType, bypassAuthCheck, fileHandleId, userInfo);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		FileHandleUrlRequest other = (FileHandleUrlRequest) obj;
+		return Objects.equals(associationId, other.associationId) && associationType == other.associationType
+				&& bypassAuthCheck == other.bypassAuthCheck && Objects.equals(fileHandleId, other.fileHandleId)
+				&& Objects.equals(userInfo, other.userInfo);
+	}
 
 }

@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -71,6 +72,7 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -280,7 +282,7 @@ public class SubmissionManagerTest {
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
     	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
-		when(mockFileHandleManager.getRedirectURLForFileHandle(eq(HANDLE_ID_1))).thenReturn(TEST_URL);
+    	
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
@@ -600,10 +602,18 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetRedirectURLForFileHandle()
 			throws DatastoreException, NotFoundException {
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(ownerInfo, HANDLE_ID_1)
+				.withAssociation(FileHandleAssociateType.SubmissionAttachment, SUB_ID);
+		
+		when(mockFileHandleManager.getRedirectURLForFileHandle(eq(urlRequest))).thenReturn(TEST_URL);
+		
 		String url = submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB_ID, HANDLE_ID_1);
-		assertEquals(TEST_URL, url);
+		
 		verify(mockSubmissionFileHandleDAO).getAllBySubmission(eq(SUB_ID));
-		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(HANDLE_ID_1));
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+
+		assertEquals(TEST_URL, url);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
