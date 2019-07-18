@@ -80,6 +80,7 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
@@ -137,6 +138,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String SQL_UPDATE_ANNOTATIONS = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ANNOS_BLOB
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
+
+	private static final String SQL_UPDATE_USER_ANNOTATIONS = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ANNOS_BLOB
+			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
+
+
 	private static final String SQL_TOUCH_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_MODIFIED_BY
 			+ " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND "
 			+ COL_REVISION_NUMBER + " = ?";
@@ -818,6 +824,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		} 
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateUserAnnotations(String nodeId, AnnotationsV2 annotationsV2){
+
 	}
 	
 	@Override
