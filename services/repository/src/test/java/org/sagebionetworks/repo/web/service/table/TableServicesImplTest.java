@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -20,14 +22,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -36,7 +39,6 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
@@ -149,7 +151,7 @@ public class TableServicesImplTest {
 	@Test
 	public void testGetFileHandleId() throws NotFoundException, IOException{
 		// Call under test
-		String result = tableService.getFileHandleId(userId, tableId, rowRef, columnId);
+		String result = tableService.getFileHandleId(userInfo, tableId, rowRef, columnId);
 		assertEquals(fileHandleId, result);
 	}
 	
@@ -157,7 +159,7 @@ public class TableServicesImplTest {
 	public void testGetFileHandleIdNonFileColumn() throws NotFoundException, IOException{
 		fileColumn.setColumnType(ColumnType.INTEGER);
 		// Call under test
-		tableService.getFileHandleId(userId, tableId, rowRef, columnId);
+		tableService.getFileHandleId(userInfo, tableId, rowRef, columnId);
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -166,7 +168,7 @@ public class TableServicesImplTest {
 		Row row = null;
 		when(mockTableEntityManager.getCellValue(userInfo, tableId, rowRef, fileColumn)).thenReturn(row);
 		// Call under test
-		tableService.getFileHandleId(userId, tableId, rowRef, columnId);
+		tableService.getFileHandleId(userInfo, tableId, rowRef, columnId);
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -176,7 +178,7 @@ public class TableServicesImplTest {
 		row.setValues(null);
 		when(mockTableEntityManager.getCellValue(userInfo, tableId, rowRef, fileColumn)).thenReturn(row);
 		// Call under test
-		tableService.getFileHandleId(userId, tableId, rowRef, columnId);
+		tableService.getFileHandleId(userInfo, tableId, rowRef, columnId);
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -186,7 +188,7 @@ public class TableServicesImplTest {
 		row.setValues(new LinkedList<String>());
 		when(mockTableEntityManager.getCellValue(userInfo, tableId, rowRef, fileColumn)).thenReturn(row);
 		// Call under test
-		tableService.getFileHandleId(userId, tableId, rowRef, columnId);
+		tableService.getFileHandleId(userInfo, tableId, rowRef, columnId);
 	}
 	
 	@Test
@@ -215,6 +217,50 @@ public class TableServicesImplTest {
 		// Call under test
 		SqlTransformResponse response = tableService.transformSqlRequest(request);
 		assertNotNull(response);
+	}
+	
+	@Test
+	public void testGetFileRedirectURL() throws IOException {
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId)
+				.withBypassAuthCheck(true);
+		
+		String expectedUrl = "https://testurl.org";
+		
+		when(mockFileHandleManager.getRedirectURLForFileHandle(eq(urlRequest))).thenReturn(expectedUrl);
+		
+		String url = tableService.getFileRedirectURL(userId, tableId, rowRef, columnId);
+		
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+		
+		assertEquals(expectedUrl, url);
+			
+	}
+	
+	@Test
+	public void testGetFilePreviewRedirectURL() throws IOException {
+		
+		String fileHandlePreviewId = "456";
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId)
+				.withBypassAuthCheck(true);
+		
+		
+		String expectedUrl = "https://testurl.org";
+		
+		when(mockFileHandleManager.getPreviewFileHandleId(eq(fileHandleId))).thenReturn(fileHandlePreviewId);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(eq(urlRequest))).thenReturn(expectedUrl);
+		
+		String url = tableService.getFilePreviewRedirectURL(userId, tableId, rowRef, columnId);
+		
+		verify(mockFileHandleManager).getPreviewFileHandleId(eq(fileHandleId));
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+		
+		assertEquals(expectedUrl, url);
+		
+		
 	}
 	
 }
