@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -34,7 +36,7 @@ public interface NodeDAO {
 	 * use: {@link #createNewNode(Node)}
 	 */
 	@Deprecated 
-	public String createNew(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
+	public String createNew(Node node);
 	
 	/**
 	 * Create a new node.
@@ -44,7 +46,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public Node createNewNode(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
+	public Node createNewNode(Node node);
 	
 	/**
 	 * Create a bootstrap node.
@@ -62,7 +64,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException;
+	public Long createNewVersion(Node newVersion);
 	
 	/**
 	 * Fetch a node using its id.
@@ -71,7 +73,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public Node getNode(String id) throws NotFoundException, DatastoreException;
+	public Node getNode(String id);
 	
 	/**
 	 * Get the node for a given version number.
@@ -81,7 +83,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public Node getNodeForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+	public Node getNodeForVersion(String id, Long versionNumber);
 	
 	/**
 	 * Delete a node using its id.
@@ -107,7 +109,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public void deleteVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+	public void deleteVersion(String id, Long versionNumber);
 	
 	/**
 	 * Get the Annotations for a node. 
@@ -116,7 +118,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException;
+	public NamedAnnotations getAnnotations(String id);
 	
 	/**
 	 * Get the annotations for a given version number
@@ -126,8 +128,59 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-	
+	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber);
+
+	/**
+	 * Update user annotations.
+	 * @param id
+	 * @param annotationsV2
+	 */
+	void updateUserAnnotations(String id, AnnotationsV2 annotationsV2);
+
+	/**
+	 * Get user annotations associated with the current version of the entity
+	 * @param id
+	 * @return
+	 * @throws NotFoundException
+	 */
+	AnnotationsV2 getUserAnnotations(String id);
+
+	/**
+	 * Get user annotations for a specific version of the entity
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException
+	 */
+	AnnotationsV2 getUserAnnotationsForVersion(String id, Long versionNumber);
+
+	/**
+	 * Update Entity properties that could not be stored as a Node
+	 * @param id
+	 * @param entity
+	 * @param <T>
+	 */
+	<T extends Entity> void updateEntityProperties(String id, T entity);
+
+	/**
+	 * Get Entity properties that could not be stored as a Node
+	 * @param id
+	 * @param <T>
+	 */
+	<T extends Entity> T getEntityProperties(String id, Class<T> entityClass);
+
+	/**
+	 * Get Entity properties for a specific version that could not be stored as a Node
+	 * @param id
+	 * @param versionNumber
+	 * @param entityClass
+	 * @param <T>
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	<T extends Entity> T getEntityPropertiesForVersion(String id, Long versionNumber, Class<T> entityClass);
+
 	/**
 	 * Get all of the version numbers for this node.
 	 * @param id
@@ -135,7 +188,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException;
+	public List<Long> getVersionNumbers(String id);
 	
 	/**
 	 * Look at the current eTag without locking or changing anything.
@@ -144,7 +197,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException;
+	public String peekCurrentEtag(String id);
 
 	/**
 	 * Make changes to an existing node.
@@ -152,7 +205,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException;
+	public void updateNode(Node updatedNode);
 	
 	/**
 	 * Update a nodes annotations.
@@ -161,7 +214,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException;
+	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos);
 	
 	/**
 	 * Does a given node exist?
@@ -225,7 +278,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public EntityType getNodeTypeById(String nodeId) throws NotFoundException, DatastoreException;
+	public EntityType getNodeTypeById(String nodeId);
 
 	/**
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
@@ -275,7 +328,7 @@ public interface NodeDAO {
 	 * @throws NumberFormatException 
 	 * @throws DatastoreException 
 	 */
-	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException;
+	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException;
 	
 	/**
 	 * Get the current revision number for a node.
@@ -284,14 +337,14 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException;
+	public Long getCurrentRevisionNumber(String nodeId);
 	
 	/**
 	 * Get the activity id for the current version of the node. 
 	 * @param nodeId
 	 * @return
 	 */
-	public String getActivityId(String nodeId) throws NotFoundException, DatastoreException;
+	public String getActivityId(String nodeId);
 	
 	/**
 	 * Get the activity id for a specific version of the node.
@@ -299,13 +352,13 @@ public interface NodeDAO {
 	 * @param revNumber
 	 * @return
 	 */
-	public String getActivityId(String nodeId, Long revNumber) throws NotFoundException, DatastoreException;
+	public String getActivityId(String nodeId, Long revNumber);
 	
 	/**
 	 * Get the Synapse ID of the creator of a node.
 	 * @throws DatastoreException 
 	 */
-	public Long getCreatedBy(String nodeId) throws NotFoundException, DatastoreException;
+	public Long getCreatedBy(String nodeId);
 	
 	/**
 	 * returns true iff the given node is root
@@ -315,8 +368,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public boolean isNodeRoot(String nodeId) throws NotFoundException,
-	DatastoreException;
+	public boolean isNodeRoot(String nodeId);
 
 	/**
 	 * returns true iff the parent of the given node is root
@@ -326,7 +378,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-    public boolean isNodesParentRoot(String nodeId) throws NotFoundException, DatastoreException;
+    public boolean isNodesParentRoot(String nodeId);
 
     /**
      * Does this given node have any children?
@@ -336,7 +388,7 @@ public interface NodeDAO {
 	public boolean doesNodeHaveChildren(String nodeId);
 
 	public List<VersionInfo> getVersionsOfEntity(String entityId, long offset,
-			long limit) throws NotFoundException, DatastoreException;
+			long limit);
 
 	/**
 	 * Get the FileHandle Id for a given version number.

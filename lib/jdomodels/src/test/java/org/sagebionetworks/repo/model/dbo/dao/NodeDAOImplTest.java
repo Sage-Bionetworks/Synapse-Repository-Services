@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -15,6 +17,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -66,11 +69,16 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -3683,5 +3691,118 @@ public class NodeDAOImplTest {
 		assertNotNull(copy);
 		assertTrue(copy.isEmpty());
 		assertEquals(annos, copy);
+	}
+
+	@Test
+	public void testUserAnnotationsRoundTrip(){
+		Node node = nodeDao.createNewNode(privateCreateNew("testUpdateUserAnnotations"));
+		toDelete.add(node.getId());
+
+
+		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		annotationsV2.setAnnotations(Collections.singletonMap(
+				"myKey",
+				AnnotationsV2Utils.createNewValue(AnnotationsV2ValueType.STRING, "myValue1", "myValue2"
+				)));
+		nodeDao.updateUserAnnotations(node.getId(), annotationsV2);
+
+		AnnotationsV2 retrievedAnnotations = nodeDao.getUserAnnotations(node.getId());
+
+		//verify id and etag information were added
+		assertEquals(node.getId(), retrievedAnnotations.getId());
+		assertNotNull(retrievedAnnotations.getEtag());
+
+		//verify that the annotations map are equivalent but not same object
+		assertNotSame(annotationsV2.getAnnotations(), retrievedAnnotations.getAnnotations());
+		assertEquals(annotationsV2.getAnnotations(), retrievedAnnotations.getAnnotations());
+	}
+
+	@Test
+	public void testGetUserAnnotationsForVersion(){
+		Node node = nodeDao.createNewNode(privateCreateNew("testGetUserAnnotationsForVersion"));
+		String nodeId = node.getId();
+		toDelete.add(nodeId);
+
+		//set up annotations for first version
+		AnnotationsV2 oldNodeVersionAnnotations = new AnnotationsV2();
+		oldNodeVersionAnnotations.setAnnotations(Collections.singletonMap(
+				"myKey",
+				AnnotationsV2Utils.createNewValue(AnnotationsV2ValueType.STRING, "version1Value", "version1Value2"
+				)));
+		nodeDao.updateUserAnnotations(nodeId, oldNodeVersionAnnotations);
+		Long oldVersion = node.getVersionNumber();
+
+
+		//create a new version of the node and give it annotations
+		node.setVersionComment("Comment "+2);
+		node.setVersionLabel("2");
+		Long newVersion = nodeDao.createNewVersion(node);
+
+		assertNotEquals(oldVersion, newVersion);
+
+		AnnotationsV2 newNodeVersionAnnotations = new AnnotationsV2();
+		newNodeVersionAnnotations.setAnnotations(Collections.singletonMap(
+				"myKey",
+				AnnotationsV2Utils.createNewValue(AnnotationsV2ValueType.STRING, "version2Value", "version2Value2"
+				)));
+		nodeDao.updateUserAnnotations(nodeId, newNodeVersionAnnotations);
+
+
+		AnnotationsV2 retrievedOldVersion = nodeDao.getUserAnnotationsForVersion(nodeId, oldVersion);
+		AnnotationsV2 retrievedNewVersion = nodeDao.getUserAnnotationsForVersion(nodeId, newVersion);
+
+		//verify old and new versions do not have same content
+		assertNotEquals(retrievedOldVersion.getAnnotations(),retrievedNewVersion.getAnnotations());
+
+		//verify that the annotations map are equivalent but not same object
+		assertNotSame(oldNodeVersionAnnotations.getAnnotations(), retrievedOldVersion.getAnnotations());
+		assertEquals(oldNodeVersionAnnotations.getAnnotations(), retrievedOldVersion.getAnnotations());
+
+		//verify that the annotations map are equivalent but not same object
+		assertNotSame(newNodeVersionAnnotations.getAnnotations(), retrievedNewVersion.getAnnotations());
+		assertEquals(newNodeVersionAnnotations.getAnnotations(), retrievedNewVersion.getAnnotations());
+	}
+
+	@Test
+	public void testEntityPropertiesRoundTrip(){
+		DockerRepository dockerRepository = new DockerRepository();
+		dockerRepository.setRepositoryName("repo name");
+
+		String nodeId = nodeDao.createNewNode(privateCreateNew("testEntityPropertiesRoundTrip")).getId();
+
+		nodeDao.updateEntityProperties(nodeId, dockerRepository);
+		DockerRepository retrieved = nodeDao.getEntityProperties(nodeId, DockerRepository.class);
+
+		assertEquals(dockerRepository.getRepositoryName(), retrieved.getRepositoryName());
+	}
+
+	@Test
+	public void testEntityPropertiesForVersion(){
+		DockerRepository oldDockerRepository = new DockerRepository();
+		oldDockerRepository.setRepositoryName("repo name");
+
+		Node node = nodeDao.createNewNode(privateCreateNew("testEntityPropertiesRoundTrip"));
+		String nodeId = node.getId();
+		Long oldNodeVersion = node.getVersionNumber();
+
+		nodeDao.updateEntityProperties(nodeId, oldDockerRepository);
+
+		Node newNode = nodeDao.getNode(nodeId);
+		newNode.setVersionComment("Comment "+2);
+		newNode.setVersionLabel("2");
+		Long newNodeVersion = nodeDao.createNewVersion(newNode);
+		DockerRepository newDockerRepository = new DockerRepository();
+		newDockerRepository.setRepositoryName("newer name");
+		nodeDao.updateEntityProperties(nodeId, newDockerRepository);
+
+
+		DockerRepository retrievedOldVersion = nodeDao.getEntityPropertiesForVersion(nodeId, oldNodeVersion, DockerRepository.class);
+		DockerRepository retrievedNewVersion = nodeDao.getEntityPropertiesForVersion(nodeId, newNodeVersion, DockerRepository.class);
+
+		assertNotEquals(retrievedOldVersion.getRepositoryName(), retrievedNewVersion.getRepositoryName());
+
+		assertEquals(oldDockerRepository.getRepositoryName(), retrievedOldVersion.getRepositoryName());
+		assertEquals(newDockerRepository.getRepositoryName(), retrievedNewVersion.getRepositoryName());
+
 	}
 }
