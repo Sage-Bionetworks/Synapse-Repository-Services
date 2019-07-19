@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
@@ -262,19 +261,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
 			validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser);
-		} else if (setting instanceof ExternalSyncSetting) {
-			validateExternalSyncSetting((ExternalSyncSetting) setting);
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
-		}
-	}
-
-	private void validateExternalSyncSetting(ExternalSyncSetting setting) {
-		ValidateArgument.required(setting.getAutoSync(), "ExternalSyncSetting.autoSync");
-		ValidateArgument.required(setting.getLocationId(), "ExternalSyncSetting.locationId");
-		// check for empty node
-		if (!(nodeDAO.getChildCount(setting.getProjectId()) > 1L)) {
-			throw new IllegalArgumentException("You cannot apply autosync to a folder or project that has any children in it");
 		}
 	}
 
