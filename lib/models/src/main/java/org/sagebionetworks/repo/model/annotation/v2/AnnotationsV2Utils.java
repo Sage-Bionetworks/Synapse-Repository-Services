@@ -9,7 +9,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
-public class 	AnnotationsV2Utils {
+public class AnnotationsV2Utils {
 
 	/**
 	 * Puts the (key,value,type) mapping into the annotation. Will replace existing (value,type) if the key already exists
