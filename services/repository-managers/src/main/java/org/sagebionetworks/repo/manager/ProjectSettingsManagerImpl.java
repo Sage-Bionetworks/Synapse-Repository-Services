@@ -267,7 +267,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	private void validateUploadDestinationListSetting(UploadDestinationListSetting setting, UserInfo currentUser) {
-		ValidateArgument.requirement(CollectionUtils.isEmpty(setting.getDestinations()), "setting.getDestinations() cannot have a value.");
 		ValidateArgument.required(setting.getLocations(), "settings.locations");
 		ValidateArgument.requirement(setting.getLocations().size() >= 1, "settings.locations must at least have one entry");
 		for (Long uploadId : setting.getLocations()) {

@@ -6,13 +6,6 @@
 		}
 	],
 	"properties": {
-		"destinations": {
-			"type": "array",
-			"description": "the list of upload destination settings. The first one in the list is the default",
-			"items": {
-				"$ref": "org.sagebionetworks.repo.model.project.UploadDestinationSetting"
-			}
-		},
 		"locations": {
 			"type": "array",
 			"description": "the list of upload destination locations. The first one in the list is the default",
