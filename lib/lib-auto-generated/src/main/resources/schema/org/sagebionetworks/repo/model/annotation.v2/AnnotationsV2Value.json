@@ -3,14 +3,16 @@
 	"properties": {
 		"type":{
 			"description": "Type of value",
-			"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationV2ValueType"
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType",
+			"required": true
 		},
 		"value": {
 			"description": "List of values as strings. Clients should use the \"type\" field to determine how to interpret the strings. Single values Annotations are represented as a list of size 1, and multiple values size > 1. Empty list or null is not allowed",
 			"type": "array",
 			"items": {
 				"type":"string"
-			}
+			},
+			"required": true
 		}
 	}
 }

@@ -15,8 +15,9 @@
 				"type": "string"
 			},
 			"value": {
-				"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationV2Value"
+				"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value"
 			},
+			"required": true,
 			"description": "Additional metadata associated with the Entity"
 		}
 	}
