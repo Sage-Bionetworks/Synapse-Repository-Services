@@ -284,7 +284,6 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertNotNull(versionInfo);
 	}
 
-
 	@Test
 	public void testGetVersionDown() throws Exception {
 		// Set the status to be read only
@@ -293,5 +292,26 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		SynapseVersionInfo versionInfo = servletTestHelper.getVersionInfo();
 		assertNotNull(versionInfo);
+	}
+
+	@Test
+	public void testGetStatusReadOnly() throws Exception {
+		// Set the status to be read only
+		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
+		// Make sure the status is what we expect
+		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
+		StackStatus stackStatus = servletTestHelper.getStackStatus();
+		assertNotNull(stackStatus);
+	}
+
+
+	@Test
+	public void testGetStatusDown() throws Exception {
+		// Set the status to be read only
+		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
+		// Make sure the status is what we expect
+		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
+		StackStatus stackStatus = servletTestHelper.getStackStatus();
+		assertNotNull(stackStatus);
 	}
 }

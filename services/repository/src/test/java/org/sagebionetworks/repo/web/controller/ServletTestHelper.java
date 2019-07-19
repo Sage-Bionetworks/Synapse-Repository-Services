@@ -690,6 +690,10 @@ public class ServletTestHelper {
 				response.getContentAsString(), BooleanResult.class);
 	}
 
+	public StackStatus getStackStatus() throws Exception {
+		return getStackStatus(dispatchServlet);
+	}
+
 	/**
 	 * Get the status of a backup/restore daemon
 	 */
