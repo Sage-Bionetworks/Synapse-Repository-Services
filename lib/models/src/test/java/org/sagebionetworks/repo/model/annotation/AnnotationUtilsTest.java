@@ -9,7 +9,7 @@ import java.util.List;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.InvalidModelException;
 
-public class AnnotationsV2UtilsTest {
+public class AnnotationUtilsTest {
 
 	@Test
 	public void testValidateAnnotations() {

@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.Annotations;
 
-//TODO: TEST
 public class AnnotationsV2Translator {
 
 	public static Annotations toAnnotationsV1(AnnotationsV2 annotationsV2){
@@ -22,6 +21,11 @@ public class AnnotationsV2Translator {
 			String annotationKey = valueEntry.getKey();
 			AnnotationsV2Value annotationsV2Value = valueEntry.getValue();
 			AnnotationV1AndV2TypeMapping typeMapping = AnnotationV1AndV2TypeMapping.forValueType(annotationsV2Value.getType());
+
+			//skip empty
+			if(annotationsV2Value.getValue().isEmpty()){
+				continue;
+			}
 
 			List<Object> convertedValues = annotationsV2Value.getValue().stream()
 					.map(typeMapping.convertToAnnotationV1Function())

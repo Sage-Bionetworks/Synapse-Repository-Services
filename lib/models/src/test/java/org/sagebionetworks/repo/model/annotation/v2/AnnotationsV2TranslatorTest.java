@@ -1,13 +1,19 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.entity.query.Value;
+import org.sagebionetworks.util.ValidateArgument;
 
 class AnnotationsV2TranslatorTest {
 
@@ -66,10 +72,55 @@ class AnnotationsV2TranslatorTest {
 	}
 
 	@Test
+	public void testToAnnotationsV1_skipEmptyListValues(){
+		//replace stringKey1 's value with an empty list
+		AnnotationsV2Value emptyValue = new AnnotationsV2Value();
+		emptyValue.setType(AnnotationsV2ValueType.STRING);
+		emptyValue.setValue(Collections.emptyList());
+		annotationsV2.getAnnotations().put(stringKey1, emptyValue);
+
+		//method under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+
+		//expected value should not have stringkey1 value;
+		annotationsV1.getStringAnnotations().remove(stringKey1);
+		assertEquals(annotationsV1, translated);
+	}
+
+	@Test
+	public void testToAnnotationsV1_doubleNaN(){
+		//replace stringKey1 's value with an empty list
+		String nanKey = "nanKey";
+		annotationsV2 = new AnnotationsV2();
+		AnnotationsV2Utils.putAnnotations(annotationsV2, nanKey, Arrays.asList("NaN","nan", "NAN", "nAn"), AnnotationsV2ValueType.DOUBLE);
+
+		//method under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+
+		//expected value should not have stringkey1 value;
+		annotationsV1 = new Annotations();
+		annotationsV1.addAnnotation(nanKey, Arrays.asList(Double.NaN, Double.NaN, Double.NaN, Double.NaN));
+
+		assertEquals(annotationsV1, translated);
+	}
+
+	@Test
 	public void testToAnnotationsV2(){
 		//method under test
 		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
+		assertEquals(annotationsV2, translated);
+	}
+
+	@Test
+	public void testToAnnotationsV2_skipEmptyListValues(){
+		//set list for stringkey1 to empty
+		annotationsV1.getStringAnnotations().put(stringKey1, Collections.emptyList());
+		//method under test
+		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+
+		//should stringkey1 not have been translated to annotations key1
+		annotationsV2.getAnnotations().remove(stringKey1);
 		assertEquals(annotationsV2, translated);
 	}
 

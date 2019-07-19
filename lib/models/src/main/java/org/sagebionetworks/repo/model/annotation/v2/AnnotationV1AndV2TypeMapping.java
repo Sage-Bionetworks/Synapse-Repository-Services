@@ -3,11 +3,19 @@ package org.sagebionetworks.repo.model.annotation.v2;
 import java.util.Date;
 import java.util.function.Function;
 
+//TODO: test mapping functions
 enum AnnotationV1AndV2TypeMapping {
 
 	STRING(String.class, AnnotationsV2ValueType.STRING, Function.identity(), Function.identity()),
-	DOUBLE(Double.class, AnnotationsV2ValueType.DOUBLE, Object::toString, Double::parseDouble),
-	LONG(Long.class, AnnotationsV2ValueType.LONG, Object::toString, Long::parseLong),
+	DOUBLE(Double.class, AnnotationsV2ValueType.DOUBLE,
+			Object::toString,
+			(String string) ->{
+				if(string.toLowerCase().equals("nan")){
+					string = "NaN";
+				}
+				return Double.valueOf(string);
+			} ),
+	LONG(Long.class, AnnotationsV2ValueType.LONG, Object::toString, Long::valueOf),
 	DATE(Date.class, AnnotationsV2ValueType.DATE,
 			(Date date) -> Long.toString(date.getTime()),
 			(String timestampMillis) -> new Date(Long.parseLong(timestampMillis)));
