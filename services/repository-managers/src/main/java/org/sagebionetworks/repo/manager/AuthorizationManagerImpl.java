@@ -418,12 +418,19 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		
 		List<FileHandleAuthorizationStatus> results = new ArrayList<FileHandleAuthorizationStatus>(fileHandleIds.size());
 		
-		// Validate that all the file handles are actually associated with the given object.
+		Set<String> allAssociatedFileHandleIds = new HashSet<>();
+		
+		// Gather the ids of all the file handles that are associated with the given object.
 		Set<String> associatedFileHandleIds = fileHandleAssociationSwitch.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType);
-		// Gather the preview ids of the associatedFileHandleIds
-		Set<String> associatedFileHandlePreviewId = fileHandleDao.getFileHandlePreviewIds(associatedFileHandleIds.stream().collect(Collectors.toList()));
-		// Adds the preview to the original set
-		associatedFileHandleIds.addAll(associatedFileHandlePreviewId);
+		// Filter out the file handles directly associated
+		List<String> remainingFileHandleIds = fileHandleIds.stream().filter(id -> !associatedFileHandleIds.contains(id)).collect(Collectors.toList());
+		// Gather the ids of the previews that are associated with the object
+		Set<String> associatedFileHandlePreviewIds = fileHandleAssociationSwitch.getFileHandlePreviewIdsAssociatedWithObject(remainingFileHandleIds, associatedObjectId, associationType);
+		
+		// Validates both the directly associated file handle ids and the preview ids
+		allAssociatedFileHandleIds.addAll(associatedFileHandleIds);
+		allAssociatedFileHandleIds.addAll(associatedFileHandlePreviewIds);
+		
 		// Which file handles did the user create.
 		Set<String> fileHandlesCreatedByUser = fileHandleDao.getFileHandleIdsCreatedByUser(user.getId(), fileHandleIds);
 		for (String fileHandleId : fileHandleIds) {
@@ -440,7 +447,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				 * the download permission on the associated object and the
 				 * fileHandle is actually associated with the object.
 				 */
-				if (associatedFileHandleIds.contains(fileHandleId)) {
+				if (allAssociatedFileHandleIds.contains(fileHandleId)) {
 					results.add(new FileHandleAuthorizationStatus(fileHandleId,
 							canUserDownloadAssociatedObject));
 				} else {

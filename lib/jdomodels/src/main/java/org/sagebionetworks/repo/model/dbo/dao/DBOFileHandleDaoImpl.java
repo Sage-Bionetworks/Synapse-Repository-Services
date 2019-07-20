@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,7 +57,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String IDS_PARAM = ":ids";
 
 	private static final String SQL_SELECT_FILES_CREATED_BY_USER = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( " + IDS_PARAM + " ) AND "+COL_FILES_CREATED_BY+" = :createdById";
-	private static final String SQL_SELECT_FILE_PREVIEWS = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( " + IDS_PARAM + " ) AND "+COL_FILES_PREVIEW_ID+" IS NOT NULL";
+	private static final String SQL_SELECT_FILE_PREVIEWS = "SELECT "+COL_FILES_ID+", "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_PREVIEW_ID+" IN ( " + IDS_PARAM + " )";
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
@@ -216,14 +217,15 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
-	public Set<String> getFileHandlePreviewIds(List<String> fileHandleIds) {
-		final Set<String> results = new HashSet<String>();
-		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
+	public Map<String, String> getFileHandleIdsWithPreviewIds(List<String> fileHandlePreviewIds) {
+		final Map<String, String> results = new HashMap<String, String>();
+		for (List<String> fileHandlePreviewIdsBatch : Lists.partition(fileHandlePreviewIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
 			MapSqlParameterSource parameters = new MapSqlParameterSource()
-					.addValue("ids", fileHandleIdsBatch);
+					.addValue("ids", fileHandlePreviewIdsBatch);
 			namedJdbcTemplate.query(SQL_SELECT_FILE_PREVIEWS, parameters, rs -> {
-				String fileHandleId = rs.getString(COL_FILES_PREVIEW_ID);
-				results.add(fileHandleId);
+				String fileHandleId = rs.getString(COL_FILES_ID);
+				String fileHandlePreviewId = rs.getString(COL_FILES_PREVIEW_ID);
+				results.put(fileHandleId, fileHandlePreviewId);
 			});
 		}
 		return results;

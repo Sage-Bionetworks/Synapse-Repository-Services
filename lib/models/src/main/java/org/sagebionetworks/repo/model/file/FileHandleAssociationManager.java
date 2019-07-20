@@ -28,6 +28,18 @@ public interface FileHandleAssociationManager {
 			FileHandleAssociateType associationType);
 	
 	/**
+	 * Given a set of FileHandleIds and an association, get the sub-set of FileHandleIds that are previews of
+	 * file handles associated with the requested object.
+	 * 
+	 * @param fileHandleIds List of FileHandleIds to test.
+	 * @param objectId The associated object id.
+	 * @param associationType The type of association
+	 * @return
+	 */
+	public Set<String> getFileHandlePreviewIdsAssociatedWithObject(List<String> fileHandleIds, String objectId,
+			FileHandleAssociateType associationType);
+	
+	/**
 	 * What ObjectType matches the FileHandleAssociationType?
 	 * @param associationType
 	 * @return

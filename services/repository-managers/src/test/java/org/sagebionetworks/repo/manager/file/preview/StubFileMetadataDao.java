@@ -115,9 +115,9 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
-	public Set<String> getFileHandlePreviewIds(List<String> fileHandleIds) {
+	public Map<String, String> getFileHandleIdsWithPreviewIds(List<String> fileHandlePreviewIds) {
 		// TODO Auto-generated method stub
 		return null;
 	}
