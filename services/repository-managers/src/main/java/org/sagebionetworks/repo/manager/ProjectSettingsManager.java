@@ -31,8 +31,6 @@ public interface ProjectSettingsManager {
 	<T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String parentId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	<T extends ProjectSetting> List<T> getNodeSettingsByType(ProjectSettingsType settingsType, Class<T> expectedType);
-
 	<T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo, T StorageLocationSetting) throws DatastoreException,
 			NotFoundException, IOException;
 

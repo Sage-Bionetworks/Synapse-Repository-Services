@@ -6,13 +6,10 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -20,7 +17,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -43,7 +39,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.S3Object;
@@ -55,8 +50,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	private static final String EXTERNAL_S3_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external S3 upload destination";
 
-	static private Logger log = LogManager.getLogger(ProjectSettingsManagerImpl.class);
-
 	@Autowired
 	private ProjectSettingsDAO projectSettingsDao;
 
@@ -65,9 +58,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
-
-	@Autowired
-	private NodeDAO nodeDAO;
 
 	@Autowired
 	private NodeManager nodeManager;
@@ -114,24 +104,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
 		return (T) projectSetting;
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T extends ProjectSetting> List<T> getNodeSettingsByType(ProjectSettingsType projectSettingsType, Class<T> expectedType) {
-		List<ProjectSetting> projectSettings = projectSettingsDao.getByType(projectSettingsType);
-		Iterator<ProjectSetting> iter = projectSettings.iterator();
-		while (iter.hasNext()) {
-			ProjectSetting projectSetting = iter.next();
-			if (!expectedType.isInstance(projectSetting)) {
-				// report error if wrong type, but don't throw error. This is called by worker who just wants to handle
-				// all correct cases
-				log.error("The project setting for type " + projectSettingsType + " and node " + projectSetting.getProjectId()
-						+ " is not of the expected type " + expectedType.getName() + " but instead is " + projectSetting.getClass().getName());
-				iter.remove();
-			}
-		}
-		return (List<T>) projectSettings;
 	}
 
 	@Override
