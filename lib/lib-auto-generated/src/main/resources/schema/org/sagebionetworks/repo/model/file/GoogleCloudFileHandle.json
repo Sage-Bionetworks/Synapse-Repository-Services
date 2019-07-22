@@ -1,0 +1,8 @@
+{
+  "description": "A GoogleCloudFileHandle represents a file stored in Google Cloud Storage.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface"
+    }
+  ]
+}

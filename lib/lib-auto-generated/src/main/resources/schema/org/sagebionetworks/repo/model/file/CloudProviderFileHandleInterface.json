@@ -1,0 +1,27 @@
+{
+	"description": "Defines the common fields of FileHandles that are uploaded to cloud providers such as AWS S3 and Google Cloud Storage.",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
+		}
+	],
+	"properties": {
+		"bucketName": {
+			"type": "string",
+			"description": "The name of the bucket where this file resides"
+		},
+		"key": {
+			"type": "string",
+			"description": "The path or resource name for this object"
+		},
+		"previewId": {
+			"description": "If this file has a preview, then this will be the file ID of the preview.",
+			"type": "string"
+		},
+		"isPreview": {
+			"type": "boolean",
+			"description": "Whether or not this is a preview of another file"
+		}
+	}
+}
