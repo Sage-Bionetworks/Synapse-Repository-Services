@@ -46,7 +46,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	 * @author John
 	 *
 	 */
-	public static enum MetadataType {
+	public enum MetadataType {
 		S3,
 		GOOGLE_CLOUD,
 		EXTERNAL,
@@ -68,7 +68,8 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		new FieldColumn("key", COL_FILES_KEY),
 		new FieldColumn("name", COL_FILES_NAME),
 		new FieldColumn("storageLocationId", COL_FILES_STORAGE_LOCATION_ID),
-		new FieldColumn("endpoint", COL_FILES_ENDPOINT)
+		new FieldColumn("endpoint", COL_FILES_ENDPOINT),
+		new FieldColumn("isPreview", COL_FILES_IS_PREVIEW)
 	};
 
 	private Long id;

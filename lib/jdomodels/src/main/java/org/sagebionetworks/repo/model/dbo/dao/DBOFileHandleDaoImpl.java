@@ -117,7 +117,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
 		}catch (DataIntegrityViolationException e){
 			// This occurs when we try to delete a handle that is in use.
-			new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id);
+			throw new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id);
 		}
 	}
 
