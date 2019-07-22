@@ -83,6 +83,21 @@ public class ProjectSettingsController {
 	 * Create a <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a> for a project. The setting may be any of the
 	 * implementations for <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>
 	 * (e.g. <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>).
+	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>Max number of storage locations per project</td>
+	 * <td>10</td>
+	 * </tr>
+	 * </table>
+	 * </p>
+	 * 
 	 * @param projectSetting The <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a> object to create.
 	 * @return The created <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>.
 	 * @throws NotFoundException
@@ -101,6 +116,21 @@ public class ProjectSettingsController {
 
 	/**
 	 * Update an existing <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>.
+	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>Max number of storage locations per project</td>
+	 * <td>10</td>
+	 * </tr>
+	 * </table>
+	 * </p>
+	 *
 	 * @param projectSetting The <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a> to update.
 	 * @throws DatastoreException
 	 * @throws InvalidModelException

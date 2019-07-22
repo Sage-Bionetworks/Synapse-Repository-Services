@@ -47,6 +47,8 @@ import com.google.common.net.InternetDomainName;
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	public static final int MIN_SECRET_KEY_CHARS = 36;
+	
+	public static final int MAX_LOCATIONS_PER_PROJECT = 10;
 
 	private static final String EXTERNAL_S3_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external S3 upload destination";
 
@@ -241,6 +243,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	private void validateUploadDestinationListSetting(UploadDestinationListSetting setting, UserInfo currentUser) {
 		ValidateArgument.required(setting.getLocations(), "settings.locations");
 		ValidateArgument.requirement(setting.getLocations().size() >= 1, "settings.locations must at least have one entry");
+		ValidateArgument.requirement(setting.getLocations().size() <= MAX_LOCATIONS_PER_PROJECT, "The maximum number of settings.locations is limited to " + MAX_LOCATIONS_PER_PROJECT);
+		
 		for (Long uploadId : setting.getLocations()) {
 			try {
 				StorageLocationSetting storageLocationSetting = storageLocationDAO.get(uploadId);

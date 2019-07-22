@@ -144,4 +144,15 @@ public class ProjectSettingsImplTest {
 
 		projectSettingsManager.validateProjectSetting(setting, currentUser);
 	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateProjectSettingLocationLimitExceeded() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayListWithCapacity(ProjectSettingsManagerImpl.MAX_LOCATIONS_PER_PROJECT + 1));
+		
+		UserInfo currentUser = new UserInfo(false, 11L);
+		projectSettingsManager.validateProjectSetting(setting, currentUser);
+	}
 }
