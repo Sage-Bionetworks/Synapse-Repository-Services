@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
@@ -117,16 +119,17 @@ public class FileMetadataUtilsTest {
 		DBOFileHandle dbo = new DBOFileHandle();
 		dbo.setBucketName("bucket");
 		dbo.setContentMD5("md5");
-		dbo.setContentSize(123l);
+		dbo.setContentSize(123L);
 		dbo.setContentType("contentType");
-		dbo.setCreatedOn(new Timestamp(1l));
-		dbo.setCreatedBy(9999l);
+		dbo.setCreatedOn(new Timestamp(1L));
+		dbo.setCreatedBy(9999L);
 		dbo.setEtag("etag");
-		dbo.setId(456l);
+		dbo.setId(456L);
 		dbo.setKey("key");
 		dbo.setMetadataType(MetadataType.S3);
 		dbo.setName("name");
-		dbo.setPreviewId(4444l);
+		dbo.setPreviewId(4444L);
+		dbo.setIsPreview(false);
 
 		// to Backup
 		FileHandleBackup backup = FileMetadataUtils.createBackupFromDBO(dbo);
@@ -138,30 +141,29 @@ public class FileMetadataUtilsTest {
 	}
 
 	@Test
-	public void testBackupMigrationLogic(){
-		// TODO:
-		DBOFileHandle dbo = new DBOFileHandle();
-		dbo.setBucketName("bucket");
-		dbo.setContentMD5("md5");
-		dbo.setContentSize(123l);
-		dbo.setContentType("contentType");
-		dbo.setCreatedOn(new Timestamp(1l));
-		dbo.setCreatedBy(9999l);
-		dbo.setEtag("etag");
-		dbo.setId(456l);
-		dbo.setKey("key");
-		dbo.setMetadataType(MetadataType.S3);
-		dbo.setName("name");
-		dbo.setPreviewId(4444l);
+	public void testBackupFromPreviewLogic(){
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setBucketName("bucket");
+		backup.setContentMD5("md5");
+		backup.setContentSize(123L);
+		backup.setContentType("contentType");
+		backup.setCreatedOn(new Timestamp(1L).getTime());
+		backup.setCreatedBy(9999L);
+		backup.setEtag("etag");
+		backup.setId(456L);
+		backup.setKey("key");
+		backup.setMetadataType("PREVIEW");
+		backup.setName("name");
+		backup.setPreviewId(4444L);
+		backup.setIsPreview(null);
 
-		// to Backup
-		FileHandleBackup backup = FileMetadataUtils.createBackupFromDBO(dbo);
-		assertNotNull(backup);
 		// Clone from the backup
 		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
 		assertNotNull(clone);
-		assertEquals(dbo, clone);
+		assertEquals(MetadataType.S3, clone.getMetadataTypeEnum());
+		assertTrue(clone.getIsPreview());
 	}
+
 
 	@Test
 	public void testProxyFileHandleRoundTrip(){

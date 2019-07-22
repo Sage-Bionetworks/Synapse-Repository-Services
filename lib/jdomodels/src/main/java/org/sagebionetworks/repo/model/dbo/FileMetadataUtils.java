@@ -37,13 +37,16 @@ public class FileMetadataUtils {
 
 		if (fileHandle instanceof ExternalFileHandle) {
 			dbo.setMetadataType(MetadataType.EXTERNAL);
+			dbo.setIsPreview(false);
 			updateDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
 		} else if (fileHandle instanceof S3FileHandle) {
 			dbo.setMetadataType(MetadataType.S3);
 		} else if (fileHandle instanceof ProxyFileHandle) {
 			dbo.setMetadataType(MetadataType.PROXY);
+			dbo.setIsPreview(false);
 		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
 			dbo.setMetadataType(MetadataType.EXTERNAL_OBJ_STORE);
+			dbo.setIsPreview(false);
 		}else {
 			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
 		}
