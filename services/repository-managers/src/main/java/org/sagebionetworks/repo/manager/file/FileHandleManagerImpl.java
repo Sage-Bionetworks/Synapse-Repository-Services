@@ -911,12 +911,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileUtils.writeString(fileContents, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
 		ContentType contentType = ContentType.create(mimeType, DEFAULT_FILE_CHARSET);
-		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, null, contentType, GZIP_CONTENT_ENCODING);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, null, contentType, GZIP_CONTENT_ENCODING, false);
 	}
 	
 	@Override
 	public S3FileHandle createFileFromByteArray(String createdBy,
-				Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException {
+				Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding, Boolean isPreview) throws UnsupportedEncodingException, IOException {
 		// Create the compress string
 		ByteArrayInputStream in = new ByteArrayInputStream(fileContents);
 		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(fileContents);
@@ -944,6 +944,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setCreatedOn(modifiedOn);
 		handle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle.setEtag(UUID.randomUUID().toString());
+		handle.setIsPreview(isPreview);
 		return (S3FileHandle) fileHandleDao.createFile(handle);
 	}
 	

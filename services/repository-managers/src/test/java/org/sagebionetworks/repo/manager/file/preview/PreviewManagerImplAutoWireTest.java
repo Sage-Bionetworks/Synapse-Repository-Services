@@ -75,7 +75,7 @@ public class PreviewManagerImplAutoWireTest {
 		// Now upload the file.
 		ContentType contentType = ContentType.create(ImagePreviewGenerator.IMAGE_PNG);
 		S3FileHandle fileMetadata = fileUploadManager.createFileFromByteArray(adminUserInfo.getId().toString(), new Date(), fileContent,
-				filename, contentType, null);
+				filename, contentType, null, false);
 		toDelete.add(fileMetadata);
 		return fileMetadata;
 	}

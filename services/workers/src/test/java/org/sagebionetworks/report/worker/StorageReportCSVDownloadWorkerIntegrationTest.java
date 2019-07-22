@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,17 +84,17 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		// Content size of 0 bytes
 		fileHandle1 = fileHandleManager.createFileFromByteArray(adminUserInfo
 						.getId().toString(), new Date(), "".getBytes(StandardCharsets.UTF_8), "foo1.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
 
 		// Content size of 4 bytes
 		fileHandle2 = fileHandleManager.createFileFromByteArray(adminUserInfo
 						.getId().toString(), new Date(), "abcd".getBytes(StandardCharsets.UTF_8), "foo2.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
 
 		// Content size of 8 bytes
 		fileHandle3 = fileHandleManager.createFileFromByteArray(adminUserInfo
 						.getId().toString(), new Date(), "abcdefgh".getBytes(StandardCharsets.UTF_8), "foo3.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
 
 		// Files in project 1, content size total should be 0 + 4 = 4
 		file1 = new FileEntity();

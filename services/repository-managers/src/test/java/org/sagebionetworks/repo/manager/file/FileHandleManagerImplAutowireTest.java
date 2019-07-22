@@ -18,8 +18,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.lang3.NotImplementedException;
-import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +68,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -499,11 +496,11 @@ public class FileHandleManagerImplAutowireTest {
 		Date now = new Date();
 		S3FileHandle markdownHandle = fileUploadManager.createFileFromByteArray(userInfo
 				.getId().toString(), now, "markdown contents".getBytes(StandardCharsets.UTF_8), "markdown.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
 		toDelete.add(markdownHandle);
 		S3FileHandle attachmentFileHandle = fileUploadManager.createFileFromByteArray(userInfo
 				.getId().toString(), now, "attachment data".getBytes(StandardCharsets.UTF_8), "attachment.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
 		toDelete.add(attachmentFileHandle);
 
 		// add a wiki to the project

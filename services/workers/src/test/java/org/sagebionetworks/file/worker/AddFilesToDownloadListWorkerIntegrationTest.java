@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +35,8 @@ import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -86,7 +87,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		
 		fileHandle = fileUploadManager.createFileFromByteArray(adminUserInfo
 				.getId().toString(), new Date(), "contents".getBytes(StandardCharsets.UTF_8), "foo.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
 		
 		file = new FileEntity();
 		file.setName("foo.txt");

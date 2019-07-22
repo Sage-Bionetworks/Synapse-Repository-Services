@@ -88,7 +88,7 @@ public class PreviewIntegrationTest {
 		// Now upload the file.
 		ContentType contentType = ContentType.create(mimeType, "UTF-8");
 		return fileUploadManager.createFileFromByteArray(
-				adminUserInfo.getId().toString(), new Date(), baos.toByteArray(), null, contentType, null);
+				adminUserInfo.getId().toString(), new Date(), baos.toByteArray(), null, contentType, null, false);
 	}
 	
 	@After
