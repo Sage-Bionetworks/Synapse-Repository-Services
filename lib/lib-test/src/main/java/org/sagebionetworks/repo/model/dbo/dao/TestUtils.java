@@ -52,6 +52,7 @@ public class TestUtils {
 		meta.setFileName("foobar.txt");
 		meta.setId(fileHandleId);
 		meta.setEtag(UUID.randomUUID().toString());
+		meta.setIsPreview(false);
 		return meta;
 	}
 
@@ -95,19 +96,21 @@ public class TestUtils {
 	 * @return
 	 */
 	public static ExternalFileHandle createExternalFileHandle(String createdById) {
-		return createExternalFileHandle(createdById, "content type");
+		return createExternalFileHandle(createdById, null);
 	}
 
 	/**
 	 * Helper to create a PreviewFileHandle
 	 * @return
 	 */
-	public static ExternalFileHandle createExternalFileHandle(String createdById, String contentType) {
+	public static ExternalFileHandle createExternalFileHandle(String createdById, String fileHandleId) {
 		ExternalFileHandle meta = new ExternalFileHandle();
+		meta.setId(fileHandleId);
 		meta.setExternalURL("http://www.example.com/");
-		meta.setContentType(contentType);
+		meta.setContentType("content type");
 		meta.setCreatedBy(createdById);
 		meta.setFileName("External");
+		meta.setEtag(UUID.randomUUID().toString());
 		return meta;
 	}
 

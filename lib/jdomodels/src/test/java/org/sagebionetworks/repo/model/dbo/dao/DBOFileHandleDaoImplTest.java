@@ -256,12 +256,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testExternalFileCRUD() throws DatastoreException, NotFoundException{
-		ExternalFileHandle meta = new ExternalFileHandle();
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setExternalURL("http://google.com");
-		meta.setFileName("fileName");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
+		ExternalFileHandle meta = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save it
 		meta = (ExternalFileHandle) fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -374,16 +369,7 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testS3FileWithPreview() throws DatastoreException, NotFoundException{
 		// Create the metadata
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("fileName");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save it
 		meta = (S3FileHandle) fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -440,7 +426,7 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test (expected=NotFoundException.class)
-	public void testSetPrevieWherePreviewDoesNotExist() throws DatastoreException, NotFoundException{
+	public void testSetPreviewWherePreviewDoesNotExist() throws DatastoreException, NotFoundException{
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
@@ -714,16 +700,9 @@ public class DBOFileHandleDaoImplTest {
 		Timestamp now = new Timestamp(System.currentTimeMillis()/1000*1000);
 		ArrayList<FileHandle> batch = new ArrayList<FileHandle>();
 		S3FileHandle s3 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		s3.setId(""+idGenerator.generateNewId(IdType.FILE_IDS));
-		s3.setEtag(UUID.randomUUID().toString());
 		s3.setCreatedOn(now);
 		batch.add(s3);
-		ExternalFileHandle external = new ExternalFileHandle();
-		external.setCreatedBy(creatorUserGroupId);
-		external.setExternalURL("http://google.com");
-		external.setFileName("fileName");
-		external.setId(""+idGenerator.generateNewId(IdType.FILE_IDS));
-		external.setEtag(UUID.randomUUID().toString());
+		ExternalFileHandle external = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		external.setCreatedOn(now);
 		batch.add(external);
 		fileHandleDao.createBatch(batch);
