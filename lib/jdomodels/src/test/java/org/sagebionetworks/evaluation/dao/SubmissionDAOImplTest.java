@@ -54,7 +54,7 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -174,7 +174,7 @@ public class SubmissionDAOImplTest {
     	userId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
     	
     	// create a file handle
-		PreviewFileHandle meta = new PreviewFileHandle();
+		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentType("content type");

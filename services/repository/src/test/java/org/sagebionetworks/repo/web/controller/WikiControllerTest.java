@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -70,7 +69,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private Evaluation evaluation;
 	private List<WikiPageKey> toDelete;
 	private S3FileHandle handleOne;
-	private PreviewFileHandle handleTwo;
+	private S3FileHandle handleTwo;
 	
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
@@ -92,7 +91,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		handleTwo = new PreviewFileHandle();
+		handleTwo = new S3FileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
 		handleTwo.setCreatedOn(new Date());
 		handleTwo.setBucketName(S3_BUCKET_NAME);
@@ -101,6 +100,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setFileName("bar.txt");
 		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setEtag(UUID.randomUUID().toString());
+		handleOne.setIsPreview(true);
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);
@@ -108,7 +108,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
-		handleTwo = (PreviewFileHandle) fileHandleDao.get(handleTwo.getId());
+		handleTwo = (S3FileHandle) fileHandleDao.get(handleTwo.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 	}

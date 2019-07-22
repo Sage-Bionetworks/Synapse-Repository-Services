@@ -23,9 +23,8 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -54,7 +53,7 @@ public class PreviewManagerImplAutoWireTest {
 
 	// Only used to satisfy FKs
 	private UserInfo adminUserInfo;
-	private List<S3FileHandleInterface> toDelete = new LinkedList<S3FileHandleInterface>();
+	private List<CloudProviderFileHandleInterface> toDelete = new LinkedList<>();
 
 	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
 	private static final String CSV_TEXT_FILE = "images/test.csv";
@@ -85,7 +84,7 @@ public class PreviewManagerImplAutoWireTest {
 	public void after() {
 		if (toDelete != null && s3Client != null) {
 			// Delete any files created
-			for (S3FileHandleInterface meta : toDelete) {
+			for (CloudProviderFileHandleInterface meta : toDelete) {
 				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 				// We also need to delete the data from the database
@@ -100,7 +99,7 @@ public class PreviewManagerImplAutoWireTest {
 
 		// Test that we can generate a preview for this image
 		fileMetadata.setContentType(ImagePreviewGenerator.IMAGE_PNG);
-		PreviewFileHandle pfm = previewManager.generatePreview(fileMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(fileMetadata);
 		assertNotNull(pfm);
 		assertNotNull(pfm.getId());
 		assertNotNull(pfm.getContentType());
@@ -124,7 +123,7 @@ public class PreviewManagerImplAutoWireTest {
 		// Test that we can generate a preview as csv
 		fileMetadata.setContentType("text/csv");
 		fileMetadata.setFileName("anyname");
-		PreviewFileHandle pfm = previewManager.generatePreview(fileMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(fileMetadata);
 		assertEquals("text/csv", pfm.getContentType());
 		toDelete.add(pfm);
 		S3FileHandle fromDB = (S3FileHandle) fileMetadataDao.get(fileMetadata.getId());

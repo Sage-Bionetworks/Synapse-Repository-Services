@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -52,7 +51,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	
 	Project entity;
 	S3FileHandle handleOne;
-	PreviewFileHandle preview;
+	S3FileHandle preview;
 	long startFileCount;
 	long startMinId;
 	
@@ -75,7 +74,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		preview = new PreviewFileHandle();
+		preview = new S3FileHandle();
 		preview.setCreatedBy(adminUserIdString);
 		preview.setCreatedOn(new Date());
 		preview.setBucketName("bucket");
@@ -84,6 +83,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		preview.setFileName("bar.txt");
 		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setEtag(UUID.randomUUID().toString());
+		preview.setIsPreview(true);
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);
@@ -91,7 +91,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
-		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
+		preview = (S3FileHandle) fileHandleDao.get(preview.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), preview.getId());
 	}

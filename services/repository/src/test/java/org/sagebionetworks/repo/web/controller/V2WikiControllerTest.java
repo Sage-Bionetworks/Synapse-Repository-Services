@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -64,7 +63,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private S3FileHandle fileOneHandle;
 	private S3FileHandle markdownOneHandle;
 	private S3FileHandle markdownTwoHandle;
-	private PreviewFileHandle fileOnePreviewHandle;
+	private S3FileHandle fileOnePreviewHandle;
 	
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
@@ -88,7 +87,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOneHandle.setEtag(UUID.randomUUID().toString());
 	
 		// Create a preview
-		fileOnePreviewHandle = new PreviewFileHandle();
+		fileOnePreviewHandle = new S3FileHandle();
 		fileOnePreviewHandle.setCreatedBy(adminUserIdString);
 		fileOnePreviewHandle.setCreatedOn(new Date());
 		fileOnePreviewHandle.setBucketName(S3_BUCKET_NAME);
@@ -97,6 +96,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOnePreviewHandle.setFileName("bar.txt");
 		fileOnePreviewHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileOnePreviewHandle.setEtag(UUID.randomUUID().toString());
+		fileOnePreviewHandle.setIsPreview(true);
 		
 		markdownOneHandle = new S3FileHandle();
 		markdownOneHandle.setCreatedBy(adminUserIdString);
@@ -126,7 +126,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		fileOneHandle = (S3FileHandle) fileHandleDao.get(fileOneHandle.getId());
-		fileOnePreviewHandle = (PreviewFileHandle) fileHandleDao.get(fileOnePreviewHandle.getId());
+		fileOnePreviewHandle = (S3FileHandle) fileHandleDao.get(fileOnePreviewHandle.getId());
 		markdownOneHandle = (S3FileHandle) fileHandleDao.get(markdownOneHandle.getId());
 		markdownTwoHandle = (S3FileHandle) fileHandleDao.get(markdownTwoHandle.getId());
 		fileHandleDao.setPreviewId(fileOneHandle.getId(), fileOnePreviewHandle.getId());

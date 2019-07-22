@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -62,7 +62,7 @@ public class SubmissionFileHandleDBOTest {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
     	
     	// create a file handle
-		PreviewFileHandle meta = new PreviewFileHandle();
+		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentType("content type");

@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
@@ -76,7 +77,6 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
@@ -382,7 +382,7 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testDeleteWithPreview() throws DatastoreException, NotFoundException{
 		// Test deleting a file with a preview
-		PreviewFileHandle preview = new PreviewFileHandle();
+		S3FileHandle preview = new S3FileHandle();
 		preview.setId("456");
 		preview.setCreatedBy(validResults.getCreatedBy());
 		preview.setBucketName("previewBucket");

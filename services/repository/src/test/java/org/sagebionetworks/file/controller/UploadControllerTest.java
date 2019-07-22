@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
@@ -37,7 +36,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 	private String adminUserIdString;
 
 	private S3FileHandle handleOne;
-	private PreviewFileHandle handleTwo;
+	private S3FileHandle handleTwo;
 	private List<String> toDelete;
 	
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
@@ -62,7 +61,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		handleTwo = new PreviewFileHandle();
+		handleTwo = new S3FileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
 		handleTwo.setCreatedOn(new Date());
 		handleTwo.setBucketName(S3_BUCKET_NAME);
@@ -71,6 +70,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setFileName("bar.txt");
 		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setEtag(UUID.randomUUID().toString());
+		handleTwo.setIsPreview(true);
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);
@@ -79,7 +79,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
 		toDelete.add(handleOne.getId());
-		handleTwo = (PreviewFileHandle) fileHandleDao.get(handleTwo.getId());
+		handleTwo = (S3FileHandle) fileHandleDao.get(handleTwo.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 		toDelete.add(handleTwo.getId());

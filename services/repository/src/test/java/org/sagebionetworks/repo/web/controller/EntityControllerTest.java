@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -64,9 +63,9 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	private List<String> toDelete;
 	private S3FileHandle handleOne;
-	private PreviewFileHandle previewOne;
+	private S3FileHandle previewOne;
 	private S3FileHandle handleTwo;
-	private PreviewFileHandle previewTwo;
+	private S3FileHandle previewTwo;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -82,7 +81,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
 		
-		toDelete = new ArrayList<String>();
+		toDelete = new ArrayList<>();
 		// Create a file handle
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminUserIdString);
@@ -95,7 +94,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		previewOne = new PreviewFileHandle();
+		previewOne = new S3FileHandle();
 		previewOne.setCreatedBy(adminUserIdString);
 		previewOne.setCreatedOn(new Date());
 		previewOne.setBucketName(S3_BUCKET_NAME);
@@ -104,6 +103,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewOne.setFileName("bar.txt");
 		previewOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewOne.setEtag(UUID.randomUUID().toString());
+		previewOne.setIsPreview(true);
 		
 		// Create a file handle
 		handleTwo = new S3FileHandle();
@@ -116,7 +116,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		previewTwo = new PreviewFileHandle();
+		previewTwo = new S3FileHandle();
 		previewTwo.setCreatedBy(adminUserIdString);
 		previewTwo.setCreatedOn(new Date());
 		previewTwo.setBucketName(S3_BUCKET_NAME);
@@ -125,8 +125,9 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewTwo.setFileName("bar2.txt");
 		previewTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewTwo.setEtag(UUID.randomUUID().toString());
+		previewTwo.setIsPreview(true);
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		List<FileHandle> fileHandleToCreate = new LinkedList<>();
 		fileHandleToCreate.add(handleOne);
 		fileHandleToCreate.add(handleTwo);
 		fileHandleToCreate.add(previewOne);
@@ -134,9 +135,9 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
-		previewOne = (PreviewFileHandle) fileHandleDao.get(previewOne.getId());
+		previewOne = (S3FileHandle) fileHandleDao.get(previewOne.getId());
 		handleTwo = (S3FileHandle) fileHandleDao.get(handleTwo.getId());
-		previewTwo = (PreviewFileHandle) fileHandleDao.get(previewTwo.getId());
+		previewTwo = (S3FileHandle) fileHandleDao.get(previewTwo.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), previewOne.getId());
 

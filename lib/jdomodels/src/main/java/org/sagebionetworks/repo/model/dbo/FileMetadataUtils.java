@@ -8,14 +8,13 @@ import java.util.List;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -27,7 +26,6 @@ public class FileMetadataUtils {
 
 	/**
 	 * Convert abstract DTO to the DBO.
-	 * @param dto
 	 * @return
 	 * @throws MalformedURLException
 	 */
@@ -42,8 +40,6 @@ public class FileMetadataUtils {
 			updateDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
 		} else if (fileHandle instanceof S3FileHandle) {
 			dbo.setMetadataType(MetadataType.S3);
-		} else if (fileHandle instanceof PreviewFileHandle) {
-			dbo.setMetadataType(MetadataType.PREVIEW);
 		} else if (fileHandle instanceof ProxyFileHandle) {
 			dbo.setMetadataType(MetadataType.PROXY);
 		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
@@ -53,11 +49,8 @@ public class FileMetadataUtils {
 		}
 
 		updateDBOFromDTO(dbo, fileHandle);
-		if (fileHandle instanceof HasPreviewId) {
-			updateDBOFromDTO(dbo, (HasPreviewId) fileHandle);
-		}
-		if (fileHandle instanceof S3FileHandleInterface) {
-			updateDBOFromDTO(dbo, (S3FileHandleInterface) fileHandle);
+		if (fileHandle instanceof CloudProviderFileHandleInterface) {
+			updateDBOFromDTO(dbo, (CloudProviderFileHandleInterface) fileHandle);
 		}
 		if(fileHandle instanceof ProxyFileHandle){
 			updateDBOFromDTO(dbo, (ProxyFileHandle) fileHandle);
@@ -89,19 +82,17 @@ public class FileMetadataUtils {
 		dbo.setContentMD5(fileHandle.getContentMd5());
 	}
 
-	private static void updateDBOFromDTO(DBOFileHandle dbo, HasPreviewId fileHandle) {
-		if (fileHandle.getPreviewId() != null) {
-			dbo.setPreviewId(Long.parseLong(fileHandle.getPreviewId()));
-		}
-	}
-
 	private static void updateDBOFromDTO(DBOFileHandle dbo, ExternalFileHandle fileHandle) {
 		// Validate the URL
 		ValidateArgument.validUrl(fileHandle.getExternalURL());
 		dbo.setKey(fileHandle.getExternalURL());
 	}
 
-	private static void updateDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface fileHandle) {
+	private static void updateDBOFromDTO(DBOFileHandle dbo, CloudProviderFileHandleInterface fileHandle) {
+		if (fileHandle.getPreviewId() != null) {
+			dbo.setPreviewId(Long.parseLong(fileHandle.getPreviewId()));
+		}
+		dbo.setIsPreview(fileHandle.getIsPreview());
 		dbo.setBucketName(fileHandle.getBucketName());
 		dbo.setKey(fileHandle.getKey());
 		dbo.setContentSize(fileHandle.getContentSize());
@@ -134,12 +125,10 @@ public class FileMetadataUtils {
 			fileHandle = new ExternalFileHandle();
 			break;
 		case S3:
-			// S3 file
 			fileHandle = new S3FileHandle();
 			break;
-		case PREVIEW:
-			// preview
-			fileHandle = new PreviewFileHandle();
+		case GOOGLE_CLOUD:
+			fileHandle = new GoogleCloudFileHandle();
 			break;
 		case PROXY:
 			// proxy
@@ -154,14 +143,11 @@ public class FileMetadataUtils {
 
 		// now fill in the information
 		updateDTOFromDBO(fileHandle, dbo);
-		if (fileHandle instanceof HasPreviewId) {
-			updateDTOFromDBO((HasPreviewId) fileHandle, dbo);
+		if (fileHandle instanceof CloudProviderFileHandleInterface) {
+			updateDTOFromDBO((CloudProviderFileHandleInterface) fileHandle, dbo);
 		}
 		if (fileHandle instanceof ExternalFileHandle) {
 			updateDTOFromDBO((ExternalFileHandle) fileHandle, dbo);
-		}
-		if (fileHandle instanceof S3FileHandleInterface) {
-			updateDTOFromDBO((S3FileHandleInterface) fileHandle, dbo);
 		}
 		if (fileHandle instanceof ProxyFileHandle) {
 			updateDTOFromDBO((ProxyFileHandle) fileHandle, dbo);
@@ -188,18 +174,15 @@ public class FileMetadataUtils {
 		fileHandle.setFileName(dbo.getName());
 	}
 
-	private static void updateDTOFromDBO(HasPreviewId fileHandle, DBOFileHandle dbo) {
-		if (dbo.getPreviewId() != null) {
-			fileHandle.setPreviewId(dbo.getPreviewId().toString());
-		}
-
-	}
-
 	private static void updateDTOFromDBO(ExternalFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setExternalURL(dbo.getKey());
 	}
 
-	private static void updateDTOFromDBO(S3FileHandleInterface fileHandle, DBOFileHandle dbo) {
+	private static void updateDTOFromDBO(CloudProviderFileHandleInterface fileHandle, DBOFileHandle dbo) {
+		if (dbo.getPreviewId() != null) {
+			fileHandle.setPreviewId(dbo.getPreviewId().toString());
+		}
+		fileHandle.setIsPreview(dbo.getIsPreview());
 		fileHandle.setBucketName(dbo.getBucketName());
 		fileHandle.setKey(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
@@ -218,7 +201,6 @@ public class FileMetadataUtils {
 
 	/**
 	 * Create a backup copy of a DBO object
-	 * @param dbo
 	 * @return
 	 */
 	public static FileHandleBackup createBackupFromDBO(DBOFileHandle in){
@@ -265,12 +247,15 @@ public class FileMetadataUtils {
 		if (in.getEndpoint() != null){
 			out.setEndpoint(in.getEndpoint());
 		}
+		if (in.getIsPreview() != null){
+			out.setIsPreview(in.getIsPreview());
+		}
+
 		return out;
 	}
 
 	/**
 	 * Create a DTO from a backup object.
-	 * @param backup
 	 * @return
 	 */
 	public static DBOFileHandle createDBOFromBackup(FileHandleBackup in){
@@ -302,8 +287,12 @@ public class FileMetadataUtils {
 		if(in.getKey() != null){
 			out.setKey(in.getKey());
 		}
-		if(in.getMetadataType() != null){
-			out.setMetadataType(MetadataType.valueOf(in.getMetadataType()));
+		if(in.getMetadataType() != null) {
+			if (in.getMetadataType().equals("PREVIEW")) {
+				out.setMetadataType(MetadataType.S3);
+			} else {
+				out.setMetadataType(MetadataType.valueOf(in.getMetadataType()));
+			}
 		}
 		if(in.getName() != null){
 			out.setName(in.getName());
@@ -317,12 +306,19 @@ public class FileMetadataUtils {
 		if (in.getEndpoint() != null) {
 			out.setEndpoint(in.getEndpoint());
 		}
+		if (in.getIsPreview() != null) {
+			out.setIsPreview(in.getIsPreview());
+		} else if (in.getMetadataType().equals("PREVIEW")) {
+			out.setIsPreview(true);
+		} else {
+			out.setIsPreview(false);
+		}
 		return out;
 	}
 
 	public static List<DBOFileHandle> createDBOsFromDTOs(List<FileHandle> dtos) {
 		ValidateArgument.required(dtos, "dtos");
-		List<DBOFileHandle> dbos = new ArrayList<DBOFileHandle>(dtos.size());
+		List<DBOFileHandle> dbos = new ArrayList<>(dtos.size());
 		for (FileHandle dto : dtos){
 			dbos.add(createDBOFromDTO(dto));
 		}

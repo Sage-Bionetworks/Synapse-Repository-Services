@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
@@ -141,7 +140,7 @@ public class IT049FileHandleTest {
 			handle = (S3FileHandle) synapse.getRawFileHandle(handle.getId());
 		}
 		// Get the preview file handle.
-		PreviewFileHandle preview = (PreviewFileHandle) synapse.getRawFileHandle(handle.getPreviewId());
+		S3FileHandle preview = (S3FileHandle) synapse.getRawFileHandle(handle.getPreviewId());
 		assertNotNull(preview);
 		System.out.println(preview);
 		toDelete.add(preview);
@@ -155,7 +154,7 @@ public class IT049FileHandleTest {
 			assertTrue("Timed out waiting for a preview image to be created.", (System.currentTimeMillis()-start) < MAX_WAIT_MS);
 			handle = (S3FileHandle) synapse.getRawFileHandle(handle.getId());
 		}
-		preview = (PreviewFileHandle) synapse.getRawFileHandle(handle.getPreviewId());
+		preview = (S3FileHandle) synapse.getRawFileHandle(handle.getPreviewId());
 		assertNotNull(preview);
 		toDelete.add(preview);
 		

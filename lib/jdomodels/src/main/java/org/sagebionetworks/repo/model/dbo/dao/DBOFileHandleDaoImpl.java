@@ -24,9 +24,9 @@ import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -256,8 +256,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 				FileHandle handle = get(handleId);
 				handles.add(handle);
 				// If this handle has a preview then we fetch that as well.
-				if(includePreviews && handle instanceof HasPreviewId){
-					String previewId = ((HasPreviewId)handle).getPreviewId();
+				if(includePreviews && handle instanceof CloudProviderFileHandleInterface){
+					String previewId = ((CloudProviderFileHandleInterface)handle).getPreviewId();
 					if(previewId != null){
 						FileHandle preview = get(previewId);
 						handles.add(preview);

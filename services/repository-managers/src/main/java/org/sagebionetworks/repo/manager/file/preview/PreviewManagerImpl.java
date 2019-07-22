@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,8 +16,8 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
@@ -76,7 +75,6 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param fileMetadataDao
 	 * @param s3Client
 	 * @param tempFileProvider
-	 * @param resourceTracker
 	 * @param generatorList
 	 * @param maxPreviewMemory
 	 */
@@ -114,7 +112,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	}
 
 	@Override
-	public PreviewFileHandle generatePreview(final S3FileHandle metadata) throws Exception {
+	public CloudProviderFileHandleInterface generatePreview(final S3FileHandle metadata) throws Exception {
 		if(metadata == null) throw new IllegalArgumentException("metadata cannot be null");
 		if(metadata.getContentType() == null) throw new IllegalArgumentException("metadata.getContentType() cannot be null");
 		if(metadata.getContentSize() == null) throw new IllegalArgumentException("metadata.getContentSize() cannot be null");
@@ -148,12 +146,10 @@ public class PreviewManagerImpl implements  PreviewManager {
 		try{
 			// Attempt to allocate the memory needed for this process.  This will fail-fast
 			// it there is not enough memory available.
-			return resourceTracker.allocateAndUseResources(new Callable<PreviewFileHandle>(){
-				@Override
-				public PreviewFileHandle call() {
-					// This is where we do all of the work.
-					return generatePreview(generator, metadata);
-				}}, memoryNeededBytes);
+			return resourceTracker.allocateAndUseResources(() -> {
+				// This is where we do all of the work.
+				return generatePreview(generator, metadata);
+			}, memoryNeededBytes);
 			// 
 		}catch(TemporarilyUnavailableException temp){
 			log.info("There is not enough memory to at this time to create a preview for this file. It will be placed back on the queue and retried at a later time.  S3FileMetadata: "+metadata);
@@ -171,7 +167,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param metadata
 	 * @throws IOException 
 	 */
-	private PreviewFileHandle generatePreview(PreviewGenerator generator, S3FileHandle metadata){
+	private S3FileHandle generatePreview(PreviewGenerator generator, S3FileHandle metadata){
 		File tempUpload = null;
 		S3ObjectInputStream in = null;
 		OutputStream out = null;
@@ -185,7 +181,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			PreviewOutputMetadata previewMetadata = generator.generatePreview(in, out);
 			// Close the file
 			out.close();
-			PreviewFileHandle pfm = new PreviewFileHandle();
+			S3FileHandle pfm = new S3FileHandle();
 			pfm.setBucketName(metadata.getBucketName());
 			pfm.setContentType(previewMetadata.getContentType());
 			pfm.setCreatedBy(metadata.getCreatedBy());
@@ -198,7 +194,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			pfm.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 			pfm.setEtag(UUID.randomUUID().toString());
 			// Save the metadata
-			pfm = (PreviewFileHandle) fileMetadataDao.createFile(pfm);
+			pfm = (S3FileHandle) fileMetadataDao.createFile(pfm);
 			// Assign the preview id to the original file.
 			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
 			// done
@@ -221,10 +217,6 @@ public class PreviewManagerImpl implements  PreviewManager {
 
 	}
 
-	/**
-	 * Find
-	 * @param metadta
-	 */
 	private PreviewGenerator findPreviewGenerator(String contentType, String extension) {
 		contentType = contentType.toLowerCase();
 		for(PreviewGenerator gen: generatorList){

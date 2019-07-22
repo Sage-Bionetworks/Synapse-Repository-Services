@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ENDPOINT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_NAME;
@@ -47,8 +48,8 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	 */
 	public static enum MetadataType {
 		S3,
+		GOOGLE_CLOUD,
 		EXTERNAL,
-		PREVIEW,
 		PROXY,
 		EXTERNAL_OBJ_STORE
 	}
@@ -84,6 +85,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	private String name;
 	private Long storageLocationId;
 	private String endpoint;
+	private Boolean isPreview;
 
 	@Override
 	public TableMapping<DBOFileHandle> getTableMapping() {
@@ -117,7 +119,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 					results.setStorageLocationId(null);
 				}
 				results.setEndpoint(rs.getString(COL_FILES_ENDPOINT));
-
+				results.setIsPreview(rs.getBoolean(COL_FILES_IS_PREVIEW));
 				return results;
 			}
 			
@@ -304,6 +306,14 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		this.endpoint = endpoint;
 	}
 
+	public Boolean getIsPreview() {
+		return this.isPreview;
+	}
+
+	public void setIsPreview(Boolean isPreview) {
+		this.isPreview = isPreview;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -322,6 +332,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		result = prime * result + ((previewId == null) ? 0 : previewId.hashCode());
 		result = prime * result + ((storageLocationId == null) ? 0 : storageLocationId.hashCode());
 		result = prime * result + ((endpoint == null) ? 0 : endpoint.hashCode());
+		result = prime * result + ((isPreview == null) ? 0 : isPreview.hashCode());
 		return result;
 	}
 
@@ -401,6 +412,11 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				return false;
 		} else if (!endpoint.equals(other.endpoint))
 			return false;
+		if (isPreview == null) {
+			if (other.isPreview != null)
+				return false;
+		} else if (!isPreview.equals(other.isPreview))
+			return false;
 		return true;
 	}
 
@@ -409,7 +425,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		return "DBOFileHandle [id=" + id + ", etag=" + etag + ", previewId=" + previewId + ", createdBy=" + createdBy + ", createdOn="
 				+ createdOn + ", metadataType=" + metadataType + ", contentType=" + contentType + ", contentSize=" + contentSize
 				+ ", contentMD5=" + contentMD5 + ", bucketName=" + bucketName + ", key=" + key + ", name=" + name + ", storageLocationId="
-				+ storageLocationId+ ", endpoint=" + endpoint  + "]";
+				+ storageLocationId+ ", endpoint=" + endpoint  + ", isPreview=" + isPreview + "]";
 	}
 
 }

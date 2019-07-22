@@ -6,12 +6,10 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.EOFException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.util.Date;
@@ -19,14 +17,11 @@ import java.util.List;
 
 import javax.imageio.IIOException;
 
-import com.amazonaws.services.s3.internal.AmazonS3ExceptionBuilder;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
@@ -35,7 +30,6 @@ import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupport
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -43,8 +37,9 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.services.s3.internal.AmazonS3ExceptionBuilder;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.sqs.model.Message;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,7 +79,8 @@ public class PreviewWorkerTest {
 	@Test
 	public void testPreviewMessage() throws Exception{
 		// We do not create previews for previews.
-		PreviewFileHandle pfm = new PreviewFileHandle();
+		S3FileHandle pfm = new S3FileHandle();
+		pfm.setIsPreview(true);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(pfm);
 		// Fire!
 		worker.run(mockProgressCallback, change);

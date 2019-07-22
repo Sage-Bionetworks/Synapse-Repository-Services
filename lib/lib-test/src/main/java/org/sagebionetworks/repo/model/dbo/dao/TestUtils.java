@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 import com.amazonaws.util.BinaryUtils;
@@ -60,7 +59,7 @@ public class TestUtils {
 	 * Helper to create a PreviewFileHandle
 	 * @return
 	 */
-	public static PreviewFileHandle createPreviewFileHandle(String createdById, String fileHandleId) {
+	public static S3FileHandle createPreviewFileHandle(String createdById, String fileHandleId) {
 		return createPreviewFileHandle(createdById, 123, fileHandleId);
 	}
 
@@ -68,7 +67,7 @@ public class TestUtils {
 	 * Helper to create a PreviewFileHandle
 	 * @return
 	 */
-	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String fileHandleId) {
+	public static S3FileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String fileHandleId) {
 		return createPreviewFileHandle(createdById, sizeInBytes, "content type", fileHandleId);
 	}
 
@@ -76,8 +75,8 @@ public class TestUtils {
 	 * Helper to create a PreviewFileHandle
 	 * @return
 	 */
-	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String contentType, String fileHandleId) {
-		PreviewFileHandle meta = new PreviewFileHandle();
+	public static S3FileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String contentType, String fileHandleId) {
+		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentType(contentType);
@@ -87,6 +86,7 @@ public class TestUtils {
 		meta.setFileName("preview.jpg");
 		meta.setEtag(UUID.randomUUID().toString());
 		meta.setId(fileHandleId);
+		meta.setIsPreview(true);
 		return meta;
 	}
 

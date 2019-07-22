@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -115,7 +114,7 @@ public class FileHandleSnapshotRecordWriterTest {
 
 	@Test
 	public void testBuildFileHandleSnapshotWithPreviewFileHandle() {
-		PreviewFileHandle previewFH = new PreviewFileHandle();
+		S3FileHandle previewFH = new S3FileHandle();
 		previewFH.setBucketName("bucket");
 		previewFH.setConcreteType(S3FileHandle.class.getName());
 		previewFH.setContentMd5("md5");
@@ -126,6 +125,7 @@ public class FileHandleSnapshotRecordWriterTest {
 		previewFH.setId("555");
 		previewFH.setKey("key");
 		previewFH.setStorageLocationId(900L);
+		previewFH.setIsPreview(true);
 		FileHandleSnapshot snapshot = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(previewFH);
 		assertEquals(previewFH.getBucketName(), snapshot.getBucket());
 		assertEquals(previewFH.getConcreteType(), snapshot.getConcreteType());

@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +76,7 @@ public class SubmissionFileHandleDAOImplTest {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
     	
     	// create a file handle
-		PreviewFileHandle meta1 = new PreviewFileHandle();
+		S3FileHandle meta1 = new S3FileHandle();
 		meta1.setBucketName("bucketName");
 		meta1.setKey("key");
 		meta1.setContentType("content type");
@@ -86,7 +86,7 @@ public class SubmissionFileHandleDAOImplTest {
 		meta1.setFileName("preview.jpg");
 		meta1.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta1.setEtag(UUID.randomUUID().toString());
-		PreviewFileHandle meta2 = new PreviewFileHandle();
+		S3FileHandle meta2 = new S3FileHandle();
 		meta2.setBucketName("bucketName");
 		meta2.setKey("key");
 		meta2.setContentType("content type");
@@ -96,7 +96,7 @@ public class SubmissionFileHandleDAOImplTest {
 		meta2.setFileName("preview.jpg");
 		meta2.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta2.setEtag(UUID.randomUUID().toString());
-		PreviewFileHandle meta3 = new PreviewFileHandle();
+		S3FileHandle meta3 = new S3FileHandle();
 		meta3.setBucketName("bucketName");
 		meta3.setKey("key");
 		meta3.setContentType("content type");

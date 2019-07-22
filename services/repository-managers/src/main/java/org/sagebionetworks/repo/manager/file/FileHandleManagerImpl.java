@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
@@ -78,10 +79,8 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -289,8 +288,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 					.checkAuthorizationOrElseThrow();
 			// If this file has a preview then we want to delete the preview as
 			// well.
-			if (handle instanceof HasPreviewId) {
-				HasPreviewId hasPreview = (HasPreviewId) handle;
+			if (handle instanceof CloudProviderFileHandleInterface) {
+				CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) handle;
 				if (hasPreview.getPreviewId() != null
 						&& !handle.getId().equals(hasPreview.getPreviewId())) {
 					// Delete the preview.
@@ -298,8 +297,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				}
 			}
 			// Is this an S3 file?
-			if (handle instanceof S3FileHandleInterface) {
-				S3FileHandleInterface s3Handle = (S3FileHandleInterface) handle;
+			if (handle instanceof S3FileHandle) {
+				S3FileHandle s3Handle = (S3FileHandle) handle;
 				// at this point, we need to note that multiple S3FileHandles can point to the same bucket/key. We need
 				// to check if this is the last S3FileHandle to point to this S3 object
 				if (fileHandleDao.getS3objectReferenceCount(s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
@@ -387,8 +386,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			}
 			ProxyStorageLocationSettings proxyStorage = (ProxyStorageLocationSettings) storage;
 			return ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle, proxyStorage, new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
-		} else if (handle instanceof S3FileHandleInterface) {
-			S3FileHandleInterface s3File = (S3FileHandleInterface) handle;
+		} else if (handle instanceof S3FileHandle) {
+			S3FileHandle s3File = (S3FileHandle) handle;
 			// Create a pre-signed url
 			GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(s3File.getBucketName(), s3File.getKey(), HttpMethod.GET);
 			request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
@@ -1156,8 +1155,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				HashSet<String> previewFileHandleIdsToFetch = new HashSet<String>();
 				for (String fileHandleId : fileHandles.keySet()) {
 					FileHandle fh = fileHandles.get(fileHandleId);
-					if (fh instanceof HasPreviewId) {
-						HasPreviewId hasPreview = (HasPreviewId) fh;
+					if (fh instanceof CloudProviderFileHandleInterface) {
+						CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) fh;
 						if (hasPreview.getPreviewId() != null) {
 							previewFileHandleIdsToFetch.add(hasPreview.getPreviewId());
 						}
@@ -1187,8 +1186,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							downloadRecords.add(record);
 						}
 						if (request.getIncludePreviewPreSignedURLs()) {
-							if (handle instanceof HasPreviewId) {
-								HasPreviewId hasPreview = (HasPreviewId) handle;
+							if (handle instanceof CloudProviderFileHandleInterface) {
+								CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) handle;
 								String previewId = hasPreview.getPreviewId();
 								if (previewFileHandles.containsKey(previewId)) {
 									String previewURL = getURLForFileHandle(previewFileHandles.get(previewId));
