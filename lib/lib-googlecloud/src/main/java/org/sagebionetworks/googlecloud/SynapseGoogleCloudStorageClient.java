@@ -67,4 +67,12 @@ public interface SynapseGoogleCloudStorageClient {
 	 * @param newKey the new name of the object
 	 */
 	void rename(String bucket, String oldKey, String newKey);
+
+	/**
+	 * Gets the list of Blobs in a bucket with a particular prefix.
+	 * @param bucket the bucket containing objects to return
+	 * @param keyPrefix the prefix that objects should match
+	 * @return
+	 */
+	List<Blob> getObjects(String bucket, String keyPrefix);
 }
