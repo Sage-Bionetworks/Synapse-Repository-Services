@@ -100,7 +100,10 @@ public class FileMetadataUtilsTest {
 
 		System.out.println(meta);
 		// Convert to dbo
-		assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.createDBOFromDTO(meta));
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
 	}
 
 	@Test
