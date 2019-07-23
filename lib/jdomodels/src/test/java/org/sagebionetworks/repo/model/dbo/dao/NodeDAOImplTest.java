@@ -2980,7 +2980,6 @@ public class NodeDAOImplTest {
 		fileHandle.setContentSize(TEST_FILE_SIZE);
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
-		fileHandle.setIsPreview(false);
 		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;

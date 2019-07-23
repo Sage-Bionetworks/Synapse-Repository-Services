@@ -78,13 +78,13 @@ public class MultipartManagerImplAutowireTest {
 			S3FileHandle handle = multipartManager.multipartUploadLocalFile(
 					new LocalFileUploadRequest().withFileName(null).withUserId(adminUserInfo.getId().toString())
 							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
-						@Override
-						public void progressChanged(ProgressEvent progressEvent) {
-							System.out.println(
-									"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+								@Override
+								public void progressChanged(ProgressEvent progressEvent) {
+									System.out.println(
+											"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
 
-						}
-					}));
+								}
+							}));
 			assertNotNull(handle);
 			fileHandlesToDelete.add(handle.getId());
 			assertEquals(md5, handle.getContentMd5());
@@ -115,13 +115,13 @@ public class MultipartManagerImplAutowireTest {
 			S3FileHandle handle = multipartManager.multipartUploadLocalFile(
 					new LocalFileUploadRequest().withFileName(fileName).withUserId(adminUserInfo.getId().toString())
 							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
-						@Override
-						public void progressChanged(ProgressEvent progressEvent) {
-							System.out.println(
-									"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+								@Override
+								public void progressChanged(ProgressEvent progressEvent) {
+									System.out.println(
+											"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
 
-						}
-					}));
+								}
+							}));
 			assertNotNull(handle);
 			fileHandlesToDelete.add(handle.getId());
 			assertEquals(md5, handle.getContentMd5());
