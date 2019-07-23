@@ -1,8 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,9 +21,12 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -38,7 +46,7 @@ public class DBORevisionTest {
 	private List<Long> toDelete = null;
 	
 	private DBONode node;
-	
+
 	@After
 	public void after() throws DatastoreException {
 		if(dboBasicDao != null && toDelete != null){
@@ -102,4 +110,31 @@ public class DBORevisionTest {
 		assertEquals(clone, updatedClone);
 	}
 
+	@Test
+	public void testNamedAnnotationRemovalTranslator() throws IOException {
+		//create a new DBORevision just to get the translator. Since getTranslator is not static, this ensures that
+		// the translator is modifying passed in params instead of the fields of the DBORevision object that created it
+		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
+
+		DBORevision revision = new DBORevision();
+
+		NamedAnnotations namedAnnotations = new NamedAnnotations();
+		namedAnnotations.getPrimaryAnnotations().addAnnotation("primaryKey", "primaryValue");
+		namedAnnotations.getAdditionalAnnotations().addAnnotation("additionalKey", "additionalValue");
+
+		revision.setAnnotations(AnnotationUtils.compressAnnotations(namedAnnotations));
+
+		DBORevision modified = translator.createDatabaseObjectFromBackup(revision);
+
+		//should be same reference as translator only modified fields
+		assertSame(revision, modified);
+		assertNull(modified.getAnnotations());
+
+		assertNotNull(modified.getEntityPropertyAnnotations());
+		assertNotNull(modified.getUserAnnotationsV1());
+		byte[] expectedEntityPropertyAnnotationBytes = AnnotationUtils.compressAnnotationsV1(namedAnnotations.getPrimaryAnnotations());
+		byte[] expectedUserAnnotationV1Bytes = AnnotationUtils.compressAnnotationsV1(namedAnnotations.getAdditionalAnnotations());
+		assertArrayEquals(expectedEntityPropertyAnnotationBytes, modified.getEntityPropertyAnnotations());
+		assertArrayEquals(expectedUserAnnotationV1Bytes, modified.getUserAnnotationsV1());
+	}
 }

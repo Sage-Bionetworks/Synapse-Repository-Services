@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
@@ -12,19 +13,23 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOTATIONS_V1_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -36,6 +41,24 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORevision> {
 	public static final int MAX_COMMENT_LENGTH = 256;
 
+	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new BasicMigratableTableTranslation<DBORevision>() {
+		@Override
+		public DBORevision createDatabaseObjectFromBackup(DBORevision backup){
+			if (backup.getAnnotations() != null){
+				try {
+					NamedAnnotations namedAnnotations = AnnotationUtils.decompressedAnnotations(backup.getAnnotations());
+
+					backup.setEntityPropertyAnnotations(AnnotationUtils.compressAnnotationsV1(namedAnnotations.getPrimaryAnnotations()));
+					backup.setUserAnnotationsV1(AnnotationUtils.compressAnnotationsV1(namedAnnotations.getAdditionalAnnotations()));
+
+					backup.setAnnotations(null);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			return backup;
+		}
+	};
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		// This is a sub-table of node, so it gets backed up with nodes using the node ids
@@ -51,7 +74,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("columnModelIds", COL_REVISION_COLUMN_MODEL_IDS),
 		new FieldColumn("scopeIds", COL_REVISION_SCOPE_IDS),
 		new FieldColumn("annotations", COL_REVISION_ANNOS_BLOB),
-		new FieldColumn("reference", COL_REVISION_REF_BLOB),
+		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),
+		new FieldColumn("userAnnotationsV1", COL_REVISION_USER_ANNOTATIONS_V1_BLOB),
+		new FieldColumn("reference", COL_REVISION_REF_BLOB)
 		};
 
 	@Override
@@ -96,6 +121,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private byte[] columnModelIds;
 	private byte[] scopeIds;
 	private byte[] annotations;
+	private byte[] entityPropertyAnnotations;
+	private byte[] userAnnotationsV1;
 	private byte[] reference;
 	// used for migration only
 
@@ -173,14 +200,30 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	public void setFileHandleId(Long fileHandleId) {
 		this.fileHandleId = fileHandleId;
 	}
-	
+
+	public byte[] getEntityPropertyAnnotations() {
+		return entityPropertyAnnotations;
+	}
+
+	public void setEntityPropertyAnnotations(byte[] entityPropertyAnnotations) {
+		this.entityPropertyAnnotations = entityPropertyAnnotations;
+	}
+
+	public byte[] getUserAnnotationsV1() {
+		return userAnnotationsV1;
+	}
+
+	public void setUserAnnotationsV1(byte[] userAnnotationsV1) {
+		this.userAnnotationsV1 = userAnnotationsV1;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.NODE_REVISION;
 	}
 	@Override
 	public MigratableTableTranslation<DBORevision, DBORevision> getTranslator() {
-		return new BasicMigratableTableTranslation<DBORevision>();
+		return TRANSLATOR;
 	}
 	
 	@Override
@@ -204,6 +247,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result
 				+ ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result + Arrays.hashCode(annotations);
+		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
+		result = prime * result + Arrays.hashCode(userAnnotationsV1);
 		result = prime * result + Arrays.hashCode(columnModelIds);
 		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
 		result = prime * result
@@ -235,6 +280,10 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		} else if (!activityId.equals(other.activityId))
 			return false;
 		if (!Arrays.equals(annotations, other.annotations))
+			return false;
+		if (!Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations))
+			return false;
+		if (!Arrays.equals(userAnnotationsV1, other.userAnnotationsV1))
 			return false;
 		if (!Arrays.equals(columnModelIds, other.columnModelIds))
 			return false;
@@ -288,7 +337,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				+ fileHandleId + ", columnModelIds="
 				+ Arrays.toString(columnModelIds) + ", scopeIds="
 				+ Arrays.toString(scopeIds) + ", annotations="
-				+ Arrays.toString(annotations) + ", reference="
+				+ Arrays.toString(annotations) + ", entityPropertyAnnotations="
+				+ Arrays.toString(entityPropertyAnnotations) + ", userAnnotationsV1="
+				+ Arrays.toString(userAnnotationsV1) + ", reference="
 				+ Arrays.toString(reference) + "]";
 	}
 	

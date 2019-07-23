@@ -742,6 +742,25 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return annos;
 		}
 	}
+
+	private static final RowMapper<Annotations> ANNOTATIONS_ROW_MAPPER = (ResultSet rs, int rowNum) ->{
+		Annotations annos = null;
+		byte[] bytes = rs.getBytes(COL_REVISION_ANNOS_BLOB);
+		if(bytes != null){
+			try {
+				annos = AnnotationUtils.decompressedAnnotationsV1(bytes);
+			} catch (IOException e) {
+				throw new DatastoreException(e);
+			}
+		}else{
+			// If there is no annotations blob then create a new one.
+			annos = new Annotations();
+		}
+		// Pull out the rest of the data.
+		annos.setEtag(rs.getString(COL_NODE_ETAG));
+		annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+		return annos;
+	};
 	
 	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
