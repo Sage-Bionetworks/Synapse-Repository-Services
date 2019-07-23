@@ -31,7 +31,7 @@ public class VerificationFileHandleAssociationProviderTest {
 	public void testGetFileHandleIdsAssociatedWithObject() {
 		when(mockVerificationDao.listFileHandleIds(VERIFICATION_ID)).
 		thenReturn(Collections.singletonList(FH_ID));
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(FH_ID.toString(), "333"), VERIFICATION_ID.toString());
 		assertEquals(Collections.singleton(FH_ID.toString()), associated);
 	}

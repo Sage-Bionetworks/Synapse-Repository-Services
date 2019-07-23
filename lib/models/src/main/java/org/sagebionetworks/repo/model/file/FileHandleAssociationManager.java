@@ -14,33 +14,20 @@ import org.sagebionetworks.repo.model.ObjectType;
 public interface FileHandleAssociationManager {
 
 	/**
-	 * Given a set of FileHandleIds and an associatedObjectId, get the sub-set of
-	 * FileHandleIds that are actually associated with the requested object.
-	 * 
-	 * @param fileHandleIds
-	 *            List of FileHandleIds to test.
-	 * @param objectId
-	 *            The associated object id.
-	 * @return
-	 */
-	public Set<String> getFileHandleIdsAssociatedWithObject(
-			List<String> fileHandleIds, String objectId,
-			FileHandleAssociateType associationType);
-	
-	/**
-	 * Given a set of FileHandleIds and an association, get the sub-set of FileHandleIds that are previews of
-	 * file handles associated with the requested object.
+	 * Given a set of file handle ids and an associated object, get the sub-set of
+	 * ids that are associated with the requested object including file handles ids that reference 
+	 * a preview and that are linked to the object.
 	 * 
 	 * @param fileHandleIds List of FileHandleIds to test.
 	 * @param objectId The associated object id.
-	 * @param associationType The type of association
+	 * @param associationType The associated object type
 	 * @return
 	 */
-	public Set<String> getFileHandlePreviewIdsAssociatedWithObject(List<String> fileHandleIds, String objectId,
-			FileHandleAssociateType associationType);
+	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId, FileHandleAssociateType associationType);
 	
 	/**
 	 * What ObjectType matches the FileHandleAssociationType?
+	 * 
 	 * @param associationType
 	 * @return
 	 */
