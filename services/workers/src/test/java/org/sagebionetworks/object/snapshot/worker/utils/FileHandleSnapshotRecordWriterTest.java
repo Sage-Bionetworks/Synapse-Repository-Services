@@ -2,6 +2,7 @@ package org.sagebionetworks.object.snapshot.worker.utils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -88,6 +89,7 @@ public class FileHandleSnapshotRecordWriterTest {
 
 	@Test
 	public void testBuildFileHandleSnapshotWithS3FileHandle() {
+		fail("Add isPreview to the snapshot");
 		S3FileHandle s3FH = new S3FileHandle();
 		s3FH.setBucketName("bucket");
 		s3FH.setConcreteType(S3FileHandle.class.getName());
