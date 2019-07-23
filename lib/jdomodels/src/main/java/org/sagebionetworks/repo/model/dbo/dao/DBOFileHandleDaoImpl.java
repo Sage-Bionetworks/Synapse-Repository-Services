@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BU
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -65,6 +66,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_SELECT_BATCH = "SELECT * FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
+	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 
 	/**
 	 * Used to detect if a file object already exists.
@@ -117,7 +119,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
 		}catch (DataIntegrityViolationException e){
 			// This occurs when we try to delete a handle that is in use.
-			throw new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id);
+			throw new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id, e);
 		}
 	}
 
@@ -140,10 +142,14 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			throw new NotFoundException("The previewId: "+previewId+" does not exist");
 		}
 		try{
-			// Change the etag
+			// Set the isPreview field for the preview file handle
 			String newEtag = UUID.randomUUID().toString();
+			jdbcTemplate.update(UPDATE_MARK_FILE_AS_PREVIEW, true, newEtag, previewId);
+
+			// Set the preview ID and change the etag for the original file;
+			newEtag = UUID.randomUUID().toString();
 			jdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
-			
+
 			// Send the update message
 			transactionalMessenger.sendMessageAfterCommit(fileId, ObjectType.FILE, newEtag, ChangeType.UPDATE);
 			

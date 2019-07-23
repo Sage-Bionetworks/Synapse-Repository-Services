@@ -394,7 +394,6 @@ public class DBOFileHandleDaoImplTest {
 		preview.setFileName("fileName");
 		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setEtag(UUID.randomUUID().toString());
-		preview.setIsPreview(true);
 		// Save it
 		preview = (S3FileHandle) fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -404,11 +403,13 @@ public class DBOFileHandleDaoImplTest {
 		// Now set the preview for this file
 		fileHandleDao.setPreviewId(fileId, previewId);
 		FileHandle clone = fileHandleDao.get(fileId);
+		S3FileHandle previewClone = (S3FileHandle) fileHandleDao.get(fileId);
 		assertNotNull(clone);
 		assertTrue(clone instanceof S3FileHandle);
 		S3FileHandle s3Clone = (S3FileHandle) clone;
 		// The preview ID should be set
 		assertEquals(previewId, s3Clone.getPreviewId());
+		assertTrue(previewClone.getIsPreview());
 		// Lookup the preview id
 		String previewIdLookup = fileHandleDao.getPreviewFileHandleId(fileId);
 		assertEquals(previewId, previewIdLookup);
@@ -427,14 +428,9 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test (expected=NotFoundException.class)
 	public void testSetPreviewWherePreviewDoesNotExist() throws DatastoreException, NotFoundException{
-		ExternalFileHandle meta = new ExternalFileHandle();
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setExternalURL("http://google.com");
-		meta.setFileName("fileName");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save it
-		meta = (ExternalFileHandle) fileHandleDao.createFile(meta);
+		meta = (S3FileHandle) fileHandleDao.createFile(meta);
 		assertNotNull(meta);
 		String fileId = meta.getId();
 		assertNotNull(fileId);
