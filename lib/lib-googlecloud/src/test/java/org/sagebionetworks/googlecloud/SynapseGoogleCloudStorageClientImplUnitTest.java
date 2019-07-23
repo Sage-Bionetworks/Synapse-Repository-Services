@@ -18,6 +18,7 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +30,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.api.gax.paging.Page;
 import com.google.cloud.RestorableState;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
@@ -46,6 +48,9 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 
 	@Mock
 	private Blob mockBlob;
+
+	@Mock
+	private Blob mockBlob2;
 
 	@Captor
 	private ArgumentCaptor<Storage.ComposeRequest> composeRequestCaptor;
@@ -135,9 +140,27 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	@Test
 	public void testRename() {
 		String newKey = "a new name";
+
+		// Call under test
 		client.rename(BUCKET_NAME, OBJECT_KEY, newKey);
+
 		verify(mockStorage).copy(any(Storage.CopyRequest.class));
 		verify(mockStorage).delete(OBJECT_BLOB_ID);
+	}
+
+	@Test
+	public void testGetObjects() {
+		List<Blob> expected = Arrays.asList(mockBlob, mockBlob2);
+		TestStubPage<Blob> page = new TestStubPage<>(Collections.singletonList(mockBlob));
+		page.setNextPage(Collections.singletonList(mockBlob2));
+
+		when(mockStorage.list(eq(BUCKET_NAME), any(Storage.BlobListOption.class), any(Storage.BlobListOption.class))).thenReturn(page);
+
+		// Call under test
+		List<Blob> actual = client.getObjects(BUCKET_NAME, OBJECT_KEY);
+
+		verify(mockStorage).list(eq(BUCKET_NAME), any(Storage.BlobListOption.class), any(Storage.BlobListOption.class));
+		assertEquals(expected, actual);
 	}
 
 	/**
@@ -169,6 +192,49 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 
 		@Override
 		public void close() {
+		}
+	}
+
+	private static class TestStubPage<T> implements Page<T> {
+		private List<T> items;
+		private List<T> nextPageItems;
+		boolean hasNextPage;
+
+		TestStubPage(List<T> items) {
+			this.items = items;
+			hasNextPage = false;
+		}
+
+		void setNextPage(List<T> items) {
+			nextPageItems = items;
+			hasNextPage = true;
+		}
+
+		@Override
+		public boolean hasNextPage() {
+			return hasNextPage;
+		}
+
+		@Override
+		public String getNextPageToken() {
+			// Not needed
+			return null;
+		}
+
+		@Override
+		public Page<T> getNextPage() {
+			return new TestStubPage<>(nextPageItems);
+		}
+
+		@Override
+		public Iterable<T> iterateAll() {
+			return items;
+		}
+
+		@Override
+		public Iterable<T> getValues() {
+			// Not needed
+			return null;
 		}
 	}
 }

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.api.client.http.HttpStatusCodes;
+import com.google.api.gax.paging.Page;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -15,6 +16,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 
 public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudStorageClient {
@@ -83,5 +85,16 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 						.setTarget(BlobId.of(bucket,newKey))
 						.build());
 		storage.delete(BlobId.of(bucket,oldKey));
+	}
+
+	@Override
+	public List<Blob> getObjects(String bucket, String keyPrefix) {
+		Page<Blob> blobsPage = storage.list(bucket, Storage.BlobListOption.currentDirectory(), Storage.BlobListOption.prefix(keyPrefix));
+		List<Blob> blobs = Lists.newLinkedList(blobsPage.iterateAll());
+		while (blobsPage.hasNextPage()) {
+			blobsPage = blobsPage.getNextPage();
+			blobs.addAll(Lists.newLinkedList(blobsPage.iterateAll()));
+		}
+		return blobs;
 	}
 }
