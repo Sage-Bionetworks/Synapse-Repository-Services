@@ -127,7 +127,7 @@ public interface FileHandleDao {
 	 * @param key
 	 * @return
 	 */
-	public long getS3objectReferenceCount(String bucketName, String key);
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key);
 
 	long getCount() throws DatastoreException;
 

@@ -76,7 +76,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public long getS3objectReferenceCount(String bucketName, String key) {
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
