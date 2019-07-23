@@ -198,7 +198,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			// Assign the preview id to the original file.
 			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
 			// done
-			return pfm;
+			return (S3FileHandle) fileMetadataDao.get(pfm.getId());
 		} catch (IOException e) {
 			throw new RuntimeException("Error generating preview for file handle " + metadata.toString(), e);
 		}finally{
