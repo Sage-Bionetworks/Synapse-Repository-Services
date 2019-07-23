@@ -5,10 +5,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +16,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -51,26 +50,12 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		adminUserIdString = adminUserId.toString();
 		
 		// Create a file handle
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminUserIdString);
-		handleOne.setCreatedOn(new Date());
+		handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setBucketName(S3_BUCKET_NAME);
-		handleOne.setKey("mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
+
 		// Create a preview
-		handleTwo = new S3FileHandle();
-		handleTwo.setCreatedBy(adminUserIdString);
-		handleTwo.setCreatedOn(new Date());
+		handleTwo = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setBucketName(S3_BUCKET_NAME);
-		handleTwo.setKey("previewFileKey");
-		handleTwo.setEtag("etag");
-		handleTwo.setFileName("bar.txt");
-		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleTwo.setEtag(UUID.randomUUID().toString());
-		handleTwo.setIsPreview(true);
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);

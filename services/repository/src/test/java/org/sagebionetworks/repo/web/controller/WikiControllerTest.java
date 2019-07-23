@@ -7,10 +7,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URL;
-import java.util.Date;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +29,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -70,7 +70,9 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private List<WikiPageKey> toDelete;
 	private S3FileHandle handleOne;
 	private S3FileHandle handleTwo;
-	
+	private String handleOneKey = "mainFileKey";
+	private String handleTwoKey = "previewFileKey";
+
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
 	@Before
@@ -81,30 +83,16 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminUserIdString);
-		handleOne.setCreatedOn(new Date());
+		handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setBucketName(S3_BUCKET_NAME);
-		handleOne.setKey("mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
-		// Create a preview
-		handleTwo = new S3FileHandle();
-		handleTwo.setCreatedBy(adminUserIdString);
-		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName(S3_BUCKET_NAME);
-		handleTwo.setKey("previewFileKey");
-		handleTwo.setEtag("etag");
-		handleTwo.setFileName("bar.txt");
-		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleTwo.setEtag(UUID.randomUUID().toString());
-		handleOne.setIsPreview(true);
+		handleOne.setKey(handleOneKey);
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(handleOne);
-		fileHandleToCreate.add(handleTwo);
+		// Create a preview
+		handleTwo = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		handleTwo.setBucketName(S3_BUCKET_NAME);
+		handleTwo.setKey(handleTwoKey);
+
+		List<FileHandle> fileHandleToCreate = Arrays.asList(handleOne, handleTwo);
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
@@ -253,24 +241,24 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		// Get the presigned URL for the first file
 		URL presigned  = entityServletHelper.getWikiAttachmentFileURL(adminUserId, childKey, handleOne.getFileName(), null);
 		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
+		assertTrue(presigned.toString().indexOf(handleOneKey) > 0);
 		System.out.println(presigned);
 		// Get the preview presigned URL.
 		presigned  = entityServletHelper.getWikiAttachmentPreviewFileURL(adminUserId, childKey, handleOne.getFileName(), null);
 		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
+		assertTrue(presigned.toString().indexOf(handleTwoKey) > 0);
 		System.out.println(presigned);
 		
 		// Make sure we can get the URLs without a redirect
 		Boolean redirect = Boolean.FALSE;
 		presigned  = entityServletHelper.getWikiAttachmentFileURL(adminUserId, childKey, handleOne.getFileName(), redirect);
 		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
+		assertTrue(presigned.toString().indexOf(handleOneKey) > 0);
 		System.out.println(presigned);
 		// again without the redirct
 		presigned  = entityServletHelper.getWikiAttachmentPreviewFileURL(adminUserId, childKey, handleOne.getFileName(), redirect);
 		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
+		assertTrue(presigned.toString().indexOf(handleTwoKey) > 0);
 		System.out.println(presigned);
 		
 		// Now delete the wiki

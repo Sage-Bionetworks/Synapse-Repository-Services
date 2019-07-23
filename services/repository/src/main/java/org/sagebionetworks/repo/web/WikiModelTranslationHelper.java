@@ -111,6 +111,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		handle.setContentMd5(token.getContentMD5());
 		handle.setContentSize(new Long(compressedBytest.length));
 		handle.setFileName(wiki.getId() + "_markdown.txt");
+		handle.setIsPreview(false);
 		// Creator of the wiki page may not have been set to the user yet
 		// so do not use wiki's createdBy
 		handle.setCreatedBy(userInfo.getId().toString());

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -104,6 +105,7 @@ public class PreviewManagerImplAutoWireTest {
 		assertNotNull(pfm.getId());
 		assertNotNull(pfm.getContentType());
 		assertNotNull(pfm.getContentSize());
+		assertTrue(pfm.getIsPreview());
 		toDelete.add(pfm);
 		System.out.println(pfm);
 		// Now make sure this id was assigned to the file
@@ -125,6 +127,7 @@ public class PreviewManagerImplAutoWireTest {
 		fileMetadata.setFileName("anyname");
 		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(fileMetadata);
 		assertEquals("text/csv", pfm.getContentType());
+		assertTrue(pfm.getIsPreview());
 		toDelete.add(pfm);
 		S3FileHandle fromDB = (S3FileHandle) fileMetadataDao.get(fileMetadata.getId());
 		assertEquals("The preview was not assigned to the file", pfm.getId(), fromDB.getPreviewId());
@@ -134,6 +137,7 @@ public class PreviewManagerImplAutoWireTest {
 		fileMetadata.setFileName("anyname");
 		pfm = previewManager.generatePreview(fileMetadata);
 		assertEquals("text/plain", pfm.getContentType());
+		assertTrue(pfm.getIsPreview());
 		toDelete.add(pfm);
 		fromDB = (S3FileHandle) fileMetadataDao.get(fileMetadata.getId());
 		assertEquals("The preview was not assigned to the file", pfm.getId(), fromDB.getPreviewId());
