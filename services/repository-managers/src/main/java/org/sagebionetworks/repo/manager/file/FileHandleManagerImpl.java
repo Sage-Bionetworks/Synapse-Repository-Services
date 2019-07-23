@@ -33,6 +33,7 @@ import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -52,6 +53,7 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -79,6 +81,7 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
@@ -158,6 +161,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	SynapseS3Client s3Client;
+
+	@Autowired
+	SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Autowired
 	UploadDaemonStatusDao uploadDaemonStatusDao;
@@ -301,9 +307,17 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				S3FileHandle s3Handle = (S3FileHandle) handle;
 				// at this point, we need to note that multiple S3FileHandles can point to the same bucket/key. We need
 				// to check if this is the last S3FileHandle to point to this S3 object
-				if (fileHandleDao.getS3objectReferenceCount(s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
+				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
 					// Delete the file from S3
 					s3Client.deleteObject(s3Handle.getBucketName(), s3Handle.getKey());
+				}
+			}
+			if (handle instanceof GoogleCloudFileHandle) {
+				GoogleCloudFileHandle googleCloudFileHandle = (GoogleCloudFileHandle) handle;
+				// Make sure no other file handles point to the underlying file before deleting it
+				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.GOOGLE_CLOUD.toString(), googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey()) <= 1) {
+					// Delete the file from Google Cloud
+					googleCloudStorageClient.deleteObject(googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey());
 				}
 			}
 			// Delete the handle from the DB
@@ -387,31 +401,39 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ProxyStorageLocationSettings proxyStorage = (ProxyStorageLocationSettings) storage;
 			return ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle, proxyStorage, new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
 		} else if (handle instanceof S3FileHandle) {
-			S3FileHandle s3File = (S3FileHandle) handle;
-			// Create a pre-signed url
-			GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(s3File.getBucketName(), s3File.getKey(), HttpMethod.GET);
-			request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
-
-			ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
-
-			String contentType = handle.getContentType();
-			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
-				responseHeaderOverrides.setContentType(contentType);
-			}
-			String fileName = handle.getFileName();
-			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-				responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
-			}
-
-			request.setResponseHeaders(responseHeaderOverrides);
-			return s3Client.generatePresignedUrl(request).toExternalForm();
+			return getUrlForS3FileHandle((S3FileHandle) handle);
+		} else if (handle instanceof GoogleCloudFileHandle) {
+			return getUrlForGoogleCloudFileHandle((GoogleCloudFileHandle) handle);
 		} else if (handle instanceof ExternalObjectStoreFileHandle){
 			ExternalObjectStoreFileHandle fileHandle = (ExternalObjectStoreFileHandle) handle;
 			return StringUtils.join(new String[]{fileHandle.getEndpointUrl(), fileHandle.getBucket(), fileHandle.getFileKey()} , '/');
 		} else {
-			throw new IllegalArgumentException("Unknown FileHandle class: "
-					+ handle.getClass().getName());
+			throw new IllegalArgumentException("Unknown FileHandle class: " + handle.getClass().getName());
 		}
+	}
+
+	private String getUrlForS3FileHandle(S3FileHandle handle) {
+		// Create a pre-signed url
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(handle.getBucketName(), handle.getKey(), HttpMethod.GET);
+		request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
+
+		ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
+
+		String contentType = handle.getContentType();
+		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+			responseHeaderOverrides.setContentType(contentType);
+		}
+		String fileName = handle.getFileName();
+		if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
+			responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
+		}
+
+		request.setResponseHeaders(responseHeaderOverrides);
+		return s3Client.generatePresignedUrl(request).toExternalForm();
+	}
+
+	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
+		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
 	}
 
 	@Override
