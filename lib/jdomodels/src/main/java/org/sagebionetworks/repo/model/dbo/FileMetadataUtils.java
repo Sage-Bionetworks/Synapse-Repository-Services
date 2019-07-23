@@ -35,6 +35,9 @@ public class FileMetadataUtils {
 
 		DBOFileHandle dbo = new DBOFileHandle();
 
+		/** Previews can only be set by calling {@link org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl#setPreviewId} */
+		dbo.setIsPreview(false);
+
 		if (fileHandle instanceof ExternalFileHandle) {
 			dbo.setMetadataType(MetadataType.EXTERNAL);
 			updateDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
@@ -92,8 +95,6 @@ public class FileMetadataUtils {
 		if (fileHandle.getPreviewId() != null) {
 			dbo.setPreviewId(Long.parseLong(fileHandle.getPreviewId()));
 		}
-		/** Previews can only be set by calling {@link org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl#setPreviewId} */
-		dbo.setIsPreview(false);
 		dbo.setBucketName(fileHandle.getBucketName());
 		dbo.setKey(fileHandle.getKey());
 		dbo.setContentSize(fileHandle.getContentSize());

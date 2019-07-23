@@ -403,7 +403,7 @@ public class DBOFileHandleDaoImplTest {
 		// Now set the preview for this file
 		fileHandleDao.setPreviewId(fileId, previewId);
 		FileHandle clone = fileHandleDao.get(fileId);
-		S3FileHandle previewClone = (S3FileHandle) fileHandleDao.get(fileId);
+		S3FileHandle previewClone = (S3FileHandle) fileHandleDao.get(previewId);
 		assertNotNull(clone);
 		assertTrue(clone instanceof S3FileHandle);
 		S3FileHandle s3Clone = (S3FileHandle) clone;
@@ -556,9 +556,10 @@ public class DBOFileHandleDaoImplTest {
 		toDelete.add(preview.getId());
 		// Assign it as a preview
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
-		// The etag should have changed
+		// The etags should have changed
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		
+		preview = (S3FileHandle) fileHandleDao.get(preview.getId());
+
 		// Now get all file handles without previews
 		List<String> toFetch = new ArrayList<String>();
 		toFetch.add(noPreviewHandle.getId());

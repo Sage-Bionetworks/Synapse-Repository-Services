@@ -1,18 +1,18 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 public class FileMetadataUtilsTest {
 	
 	@Test
-	public void testExternalFileMetadataRoundTrip() throws MalformedURLException{
+	public void testExternalFileMetadataRoundTrip() {
 		// External
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy("456");
@@ -46,7 +46,7 @@ public class FileMetadataUtilsTest {
 	}
 	
 	@Test
-	public void testExternalFileMetadataRoundTripSizeNull() throws MalformedURLException{
+	public void testExternalFileMetadataRoundTripSizeNull() {
 		// External
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy("456");
@@ -66,7 +66,7 @@ public class FileMetadataUtilsTest {
 		assertEquals(meta, clone);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testExternalFileMalformedURL() {
 		// External
 		ExternalFileHandle meta = new ExternalFileHandle();
@@ -78,14 +78,11 @@ public class FileMetadataUtilsTest {
 		meta.setEtag("etag");
 		System.out.println(meta);
 		// Convert to dbo
-		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
-		assertNotNull(dbo);
-		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
-		assertEquals(meta, clone);
+		assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.createDBOFromDTO(meta));
 	}
 	
 	@Test
-	public void testS3FileMetadataRoundTrip() throws MalformedURLException{
+	public void testS3FileMetadataRoundTrip() {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
@@ -98,6 +95,7 @@ public class FileMetadataUtilsTest {
 		meta.setPreviewId("9999");
 		meta.setEtag("etag");
 		meta.setFileName("foo.txt");
+		meta.setIsPreview(false);
 		
 		System.out.println(meta);
 		// Convert to dbo
@@ -105,6 +103,38 @@ public class FileMetadataUtilsTest {
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(meta, clone);
+	}
+
+	@Test
+	public void isPreviewIsAlwaysSetToFalse() {
+		S3FileHandle meta = new S3FileHandle();
+		meta.setCreatedBy("456");
+		meta.setCreatedOn(new Date());
+		meta.setId("987");
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentMd5("md5");
+		meta.setContentSize(123l);
+		meta.setContentType("contentType");
+		meta.setPreviewId("9999");
+		meta.setEtag("etag");
+		meta.setFileName("foo.txt");
+
+		// Set to null
+		meta.setIsPreview(null);
+		System.out.println(meta);
+		// Call under test
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		assertFalse(dbo.getIsPreview());
+
+		// Set to false
+		meta.setIsPreview(false);
+		System.out.println(meta);
+		// Call under test
+		dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		assertFalse(dbo.getIsPreview());
 	}
 
 	@Test
@@ -205,9 +235,9 @@ public class FileMetadataUtilsTest {
 		assertEquals(externalObjFH, clone);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateDBOsFromDTOsWithNullList(){
-		FileMetadataUtils.createDBOsFromDTOs(null);
+		assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.createDBOsFromDTOs(null));
 	}
 
 	@Test
@@ -234,6 +264,7 @@ public class FileMetadataUtilsTest {
 		s3.setPreviewId("9999");
 		s3.setEtag("etag");
 		s3.setFileName("foo.txt");
+		s3.setIsPreview(false);
 
 		ProxyFileHandle proxy = new ProxyFileHandle();
 		proxy.setFilePath("/foo/bar/cat.txt");
