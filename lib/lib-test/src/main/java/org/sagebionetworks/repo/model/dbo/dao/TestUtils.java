@@ -52,7 +52,6 @@ public class TestUtils {
 		meta.setFileName("foobar.txt");
 		meta.setId(fileHandleId);
 		meta.setEtag(UUID.randomUUID().toString());
-		meta.setIsPreview(false);
 		return meta;
 	}
 

@@ -11,7 +11,6 @@ public class LocalFileUploadRequest {
 	File fileToUpload;
 	String contentType;
 	String fileName;
-	Boolean isPreview;
 	ProgressListener listener;
 	
 	public Long getStorageLocationId() {
@@ -28,9 +27,6 @@ public class LocalFileUploadRequest {
 	}
 	public String getFileName() {
 		return fileName;
-	}
-	public Boolean getIsPreview() {
-		return isPreview;
 	}
 	public ProgressListener getListener() {
 		return listener;
@@ -53,10 +49,6 @@ public class LocalFileUploadRequest {
 	}
 	public LocalFileUploadRequest withFileName(String fileName) {
 		this.fileName = fileName;
-		return this;
-	}
-	public LocalFileUploadRequest withIsPreview(Boolean isPreview) {
-		this.isPreview = isPreview;
 		return this;
 	}
 	public LocalFileUploadRequest withListener(ProgressListener listener) {

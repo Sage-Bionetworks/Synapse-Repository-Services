@@ -188,7 +188,6 @@ public class PreviewManagerImpl implements  PreviewManager {
 			pfm.setFileName("preview" + previewMetadata.getExtension());
 			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
 			pfm.setContentSize(tempUpload.length());
-			pfm.setIsPreview(true);
 			// Upload this to S3
 			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
 			s3Client.putObject(new PutObjectRequest(pfm.getBucketName(), pfm.getKey(), tempUpload).withMetadata(previewS3Meta));

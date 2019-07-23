@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -24,6 +23,9 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressListener;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -74,14 +76,15 @@ public class MultipartManagerImplAutowireTest {
 			String contentType = "text/plain";
 			// Now upload the file to S3
 			S3FileHandle handle = multipartManager.multipartUploadLocalFile(
-					new LocalFileUploadRequest()
-							.withFileName(null)
-							.withUserId(adminUserInfo.getId().toString())
-							.withFileToUpload(temp)
-							.withContentType(contentType)
-							.withIsPreview(false)
-							.withListener(progressEvent -> System.out.println(
-									"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred())));
+					new LocalFileUploadRequest().withFileName(null).withUserId(adminUserInfo.getId().toString())
+							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
+						@Override
+						public void progressChanged(ProgressEvent progressEvent) {
+							System.out.println(
+									"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+
+						}
+					}));
 			assertNotNull(handle);
 			fileHandlesToDelete.add(handle.getId());
 			assertEquals(md5, handle.getContentMd5());
@@ -93,7 +96,6 @@ public class MultipartManagerImplAutowireTest {
 			assertNotNull(handle.getKey());
 			assertTrue(handle.getKey().contains(temp.getName()));
 			assertNotNull(handle.getContentSize());
-			assertFalse(handle.getIsPreview());
 		} finally {
 			temp.delete();
 		}
@@ -111,14 +113,15 @@ public class MultipartManagerImplAutowireTest {
 			String fileName = "aRealFileName";
 			// Now upload the file to S3
 			S3FileHandle handle = multipartManager.multipartUploadLocalFile(
-					new LocalFileUploadRequest()
-							.withFileName(fileName)
-							.withUserId(adminUserInfo.getId().toString())
-							.withFileToUpload(temp)
-							.withContentType(contentType)
-							.withIsPreview(false)
-							.withListener(progressEvent -> System.out.println(
-									"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred())));
+					new LocalFileUploadRequest().withFileName(fileName).withUserId(adminUserInfo.getId().toString())
+							.withFileToUpload(temp).withContentType(contentType).withListener(new ProgressListener() {
+						@Override
+						public void progressChanged(ProgressEvent progressEvent) {
+							System.out.println(
+									"FileUpload bytesTransfered: : " + progressEvent.getBytesTransferred());
+
+						}
+					}));
 			assertNotNull(handle);
 			fileHandlesToDelete.add(handle.getId());
 			assertEquals(md5, handle.getContentMd5());
@@ -130,7 +133,6 @@ public class MultipartManagerImplAutowireTest {
 			assertNotNull(handle.getKey());
 			assertTrue(handle.getKey().contains(fileName));
 			assertNotNull(handle.getContentSize());
-			assertFalse(handle.getIsPreview());
 		} finally {
 			temp.delete();
 		}

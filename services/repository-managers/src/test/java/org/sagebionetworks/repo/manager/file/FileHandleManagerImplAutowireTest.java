@@ -496,11 +496,11 @@ public class FileHandleManagerImplAutowireTest {
 		Date now = new Date();
 		S3FileHandle markdownHandle = fileUploadManager.createFileFromByteArray(userInfo
 				.getId().toString(), now, "markdown contents".getBytes(StandardCharsets.UTF_8), "markdown.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		toDelete.add(markdownHandle);
 		S3FileHandle attachmentFileHandle = fileUploadManager.createFileFromByteArray(userInfo
 				.getId().toString(), now, "attachment data".getBytes(StandardCharsets.UTF_8), "attachment.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		toDelete.add(attachmentFileHandle);
 
 		// add a wiki to the project

@@ -87,7 +87,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		
 		fileHandle = fileUploadManager.createFileFromByteArray(adminUserInfo
 				.getId().toString(), new Date(), "contents".getBytes(StandardCharsets.UTF_8), "foo.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		
 		file = new FileEntity();
 		file.setName("foo.txt");

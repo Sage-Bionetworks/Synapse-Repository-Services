@@ -101,11 +101,11 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		// upload two files.
 		fileHandleOne = fileUploadManager.createFileFromByteArray(adminUserInfo
 				.getId().toString(), now, fileOneContents.getBytes(StandardCharsets.UTF_8), "foo.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		fileHandlesToDelete.add(fileHandleOne.getId());
 		fileHandleTwo = fileUploadManager.createFileFromByteArray(adminUserInfo
 				.getId().toString(), now, fileTwoContents.getBytes(StandardCharsets.UTF_8), "bar.txt",
-				ContentTypeUtil.TEXT_PLAIN_UTF8, null, false);
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		fileHandlesToDelete.add(fileHandleTwo.getId());
 		
 	}
