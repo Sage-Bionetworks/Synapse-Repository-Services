@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class FileHandleAssociationManagerImpl implements FileHandleAssociationManager {
@@ -30,46 +31,42 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId,
 			FileHandleAssociateType associateType) {
 
+		ValidateArgument.required(fileHandleIds, "fileHandleIds");
+		ValidateArgument.required(associateType, "associateType");
+		ValidateArgument.required(objectId, "objectId");
+
+		if (fileHandleIds.isEmpty()) {
+			return Collections.emptySet();
+		}
+		
+		Set<String> allFileHandleIds = new HashSet<>(fileHandleIds);
+
+		// Gather all the file handle ids that are previews (each entry is <FileHandlePreviewId, FileHandleId>)
+		Map<String, String> fileHandlePreviewIds = fileHandleDao.getFileHandlePreviewIds(fileHandleIds);
+
+		// Expand the initial set with the file handles ids that reference any preview
+		allFileHandleIds.addAll(fileHandlePreviewIds.values());
+
 		FileHandleAssociationProvider provider = getProvider(associateType);
-		
-		Set<String> allFileHandleIds = new HashSet<>();
-		
+
 		// Get the directly associated file handle ids
-		Set<String> associatedFileHandleIds = provider.getFileHandleIdsDirectlyAssociatedWithObject(fileHandleIds, objectId);
-		
-		List<String> remainingFileHandleIds = fileHandleIds.stream().filter((id) -> !associatedFileHandleIds.contains(id)).collect(Collectors.toList());
-		
-		Set<String> associatedFileHandlePreviewIds = getFileHandlePreviewIdsAssociatedWithObject(remainingFileHandleIds, objectId, provider);
-		
-		allFileHandleIds.addAll(associatedFileHandleIds);
-		allFileHandleIds.addAll(associatedFileHandlePreviewIds);
-		
-		return allFileHandleIds;
+		Set<String> associatedFileHandleIds = provider.getFileHandleIdsDirectlyAssociatedWithObject(new ArrayList<>(allFileHandleIds), objectId);
+
+		// Builds the result filtering the ids that are not associated
+		Set<String> result = fileHandleIds.stream().filter(id -> {
+			// Retain the given id or the id of the file handle mapped with the preview if it exist
+			String mappedId = fileHandlePreviewIds.getOrDefault(id, id);
+			return associatedFileHandleIds.contains(mappedId);
+		}).collect(Collectors.toSet());
+
+		return result;
 	}
 
 	@Override
 	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType associateType) {
+		ValidateArgument.required(associateType, "associateType");
 		FileHandleAssociationProvider provider = getProvider(associateType);
 		return provider.getAuthorizationObjectTypeForAssociatedObjectType();
-	}
-
-	private Set<String> getFileHandlePreviewIdsAssociatedWithObject(final List<String> fileHandleIds, String objectId, FileHandleAssociationProvider provider) {
-		if (fileHandleIds.isEmpty()) {
-			return Collections.emptySet();
-		}
-		// Gather the subset of file handles that are previews (Entry is <fileHandleId, fileHandlePreviewId>)
-		final Map<String, String> fileHandlePreviewIds = fileHandleDao.getFileHandleIdsWithPreviewIds(fileHandleIds);
-		// Get all the file handles that are actually associated with the object
-		final Set<String> associatedFileHandleIds = provider.getFileHandleIdsDirectlyAssociatedWithObject(new ArrayList<>(fileHandlePreviewIds.keySet()), objectId);
-
-		Set<String> results = new HashSet<>(associatedFileHandleIds.size());
-
-		// Retain only the preview ids that are actually associated to the object
-		associatedFileHandleIds.forEach(fileHandleId -> {
-			results.add(fileHandlePreviewIds.get(fileHandleId));
-		});
-
-		return results;
 	}
 
 	/**

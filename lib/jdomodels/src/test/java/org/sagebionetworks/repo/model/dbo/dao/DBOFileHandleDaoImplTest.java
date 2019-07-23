@@ -200,16 +200,16 @@ public class DBOFileHandleDaoImplTest {
 		
 		List<String> allFileHandleIds = Arrays.asList(meta1.getId(), meta2.getId(), preview.getId());
 		
-		Map<String, String> fileHandleIds = fileHandleDao.getFileHandleIdsWithPreviewIds(allFileHandleIds);
+		Map<String, String> fileHandleIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleIds);
 		
 		assertEquals(1, fileHandleIds.size());
-		assertEquals(Maps.immutableEntry(meta2.getId(), preview.getId()), fileHandleIds.entrySet().iterator().next());
+		assertEquals(Maps.immutableEntry(preview.getId(), meta2.getId()), fileHandleIds.entrySet().iterator().next());
 		
 	}
 	
 	@Test
 	public void testGetFileHandleIdsWithPreviewIdsWithEmptyInput() {
-		Map<String, String> previewIds = fileHandleDao.getFileHandleIdsWithPreviewIds(Collections.emptyList());
+		Map<String, String> previewIds = fileHandleDao.getFileHandlePreviewIds(Collections.emptyList());
 		assertEquals(Collections.emptyMap(), previewIds);
 	}
 	
@@ -233,7 +233,7 @@ public class DBOFileHandleDaoImplTest {
 		
 		List<String> allFileHandleId = Arrays.asList(meta1.getId(),	meta2.getId());
 		
-		Map<String, String> previewIds = fileHandleDao.getFileHandleIdsWithPreviewIds(allFileHandleId);
+		Map<String, String> previewIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleId);
 		
 		assertEquals(Collections.emptyMap(), previewIds);
 		

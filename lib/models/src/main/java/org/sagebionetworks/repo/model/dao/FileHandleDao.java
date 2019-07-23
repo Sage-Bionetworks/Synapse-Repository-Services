@@ -108,9 +108,9 @@ public interface FileHandleDao {
 	 * Given a list of {@link FileHandle} ids, gets the sub-set of ids that are previews mapped to the originating file handle id.
 	 * 
 	 * @param fileHandlePreviewIds A list of ids of {@link FileHandle}
-	 * @return A map where each entry is a <fileHandleId, fileHandlePreviewId> which is subset of the input fileHandlePreviewIds.
+	 * @return A map where each entry is a (fileHandlePreviewId, fileHandleId) entry which is subset of the input fileHandlePreviewIds.
 	 */
-	public Map<String, String> getFileHandleIdsWithPreviewIds(List<String> fileHandlePreviewIds);
+	public Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds);
 	
 	/**
 	 * Get the preview associated with a given file handle.

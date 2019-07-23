@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,15 +68,14 @@ public class FileHandleAssociationManagerImplTest {
 		// The first is a file handle, the second is its preview
 		List<String> fileHandleIds = Arrays.asList("1", "2");
 		
-		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString()))
-			.thenReturn(ImmutableSet.of("1"));
+		when(mockFileHandleDao.getFileHandlePreviewIds(fileHandleIds)).thenReturn(ImmutableMap.of("2", "1"));
 		
-		when(mockFileHandleDao.getFileHandleIdsWithPreviewIds(Arrays.asList("2"))).thenReturn(ImmutableMap.of("1", "2"));
+		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString())).thenReturn(ImmutableSet.of("1"));
 		
 		Set<String> result = fileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, "123", FileHandleAssociateType.TableEntity);
 		
-		verify(mockProvider, times(2)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
-		verify(mockFileHandleDao, times(1)).getFileHandleIdsWithPreviewIds(Arrays.asList("2"));
+		verify(mockFileHandleDao, times(1)).getFileHandlePreviewIds(fileHandleIds);
+		verify(mockProvider, times(1)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
 		
 		assertEquals(ImmutableSet.copyOf(fileHandleIds), result);
 	}
@@ -87,46 +85,46 @@ public class FileHandleAssociationManagerImplTest {
 		// These are all previews, the second is not associated with the object
 		List<String> fileHandleIds = Arrays.asList("1", "3");
 		
-		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(eq(fileHandleIds), anyString())).thenReturn(Collections.emptySet());
-		when(mockFileHandleDao.getFileHandleIdsWithPreviewIds(fileHandleIds)).thenReturn(ImmutableMap.of("2", "1", "4", "3"));
-		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(eq(Arrays.asList("2", "4")), anyString())).thenReturn(ImmutableSet.of("2"));
+		when(mockFileHandleDao.getFileHandlePreviewIds(fileHandleIds)).thenReturn(ImmutableMap.of("1", "2", "3", "4"));
+		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString())).thenReturn(ImmutableSet.of("2"));
 		
 		Set<String> result = fileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, "123", FileHandleAssociateType.TableEntity);
 		
-		verify(mockProvider, times(2)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
-		verify(mockFileHandleDao, times(1)).getFileHandleIdsWithPreviewIds(fileHandleIds);
+		verify(mockFileHandleDao, times(1)).getFileHandlePreviewIds(fileHandleIds);
+		verify(mockProvider, times(1)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
 		
 		assertEquals(ImmutableSet.of("1"), result);
 	}
 	
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObjectWithOnlyPreviews() {
-		// These are all previews
+		// These are all previews associated with the object
 		List<String> fileHandleIds = Arrays.asList("1", "3");
 		
-		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(eq(fileHandleIds), anyString())).thenReturn(Collections.emptySet());
-		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(eq(Arrays.asList("2", "4")), anyString())).thenReturn(ImmutableSet.of("2", "4"));
-		when(mockFileHandleDao.getFileHandleIdsWithPreviewIds(fileHandleIds)).thenReturn(ImmutableMap.of("2", "1", "4", "3"));
+		when(mockFileHandleDao.getFileHandlePreviewIds(fileHandleIds)).thenReturn(ImmutableMap.of("1", "2", "3", "4"));
+
+		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString())).thenReturn(ImmutableSet.of("2", "4"));
 		
 		Set<String> result = fileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, "123", FileHandleAssociateType.TableEntity);
 		
-		verify(mockProvider, times(2)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
-		verify(mockFileHandleDao, times(1)).getFileHandleIdsWithPreviewIds(fileHandleIds);
+		verify(mockFileHandleDao, times(1)).getFileHandlePreviewIds(fileHandleIds);
+		verify(mockProvider, times(1)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
 		
 		assertEquals(ImmutableSet.copyOf(fileHandleIds), result);
 	}
 	
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObjectWithNoPreview() {
-		// These are hanldes, no preview
+		// These are handles, no preview
 		List<String> fileHandleIds = Arrays.asList("1", "2");
 		
-		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(eq(fileHandleIds), anyString())).thenReturn(ImmutableSet.of("1", "2"));
+		when(mockFileHandleDao.getFileHandlePreviewIds(fileHandleIds)).thenReturn(Collections.emptyMap());
+		when(mockProvider.getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString())).thenReturn(ImmutableSet.of("1", "2"));
 		
 		Set<String> result = fileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, "123", FileHandleAssociateType.TableEntity);
 		
+		verify(mockFileHandleDao, times(1)).getFileHandlePreviewIds(anyList());
 		verify(mockProvider, times(1)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
-		verify(mockFileHandleDao, times(0)).getFileHandleIdsWithPreviewIds(anyList());
 		
 		assertEquals(ImmutableSet.copyOf(fileHandleIds), result);
 	}
