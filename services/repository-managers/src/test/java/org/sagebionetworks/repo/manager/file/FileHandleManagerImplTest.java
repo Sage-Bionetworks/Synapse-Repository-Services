@@ -410,9 +410,11 @@ public class FileHandleManagerImplTest {
 		ExternalFileHandle external = new ExternalFileHandle();
 		external.setId("123");
 		external.setExternalURL("http://google.com");
+		external.setCreatedBy(mockUser.getId().toString());
 		when(mockFileHandleDao.get(external.getId())).thenReturn(external);
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, external.getCreatedBy())).thenReturn(true);
 		// fire!
-		String redirect = manager.getRedirectURLForFileHandle(external.getId());
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, external.getId());
 		assertNotNull(redirect);
 		assertEquals(external.getExternalURL(), redirect.toString());
 	}
@@ -423,12 +425,14 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setId("123");
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
 		String expectedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedURL));
 		// fire!
-		String redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertNotNull(redirect);
 		assertEquals(expectedURL, redirect.toString());
 	}
@@ -522,28 +526,6 @@ public class FileHandleManagerImplTest {
 		ExternalFileHandle efh = createFileHandle();
 		efh.setExternalURL("local");
 		manager.createExternalFileHandle(mockUser, efh);
-	}
-	
-	@Test
-	public void testGetURLRequestBypassingAuthCheck() throws Exception {
-		S3FileHandle s3FileHandle = new S3FileHandle();
-		s3FileHandle.setId("123");
-		s3FileHandle.setCreatedBy("456");
-		s3FileHandle.setBucketName("bucket");
-		s3FileHandle.setKey("key");
-		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		
-		String expectedURL = "https://amamzon.com";
-		
-		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
-
-		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId()).withBypassAuthCheck(true);
-		
-		String redirectURL = manager.getRedirectURLForFileHandle(request);
-		
-		verify(mockAuthorizationManager, never()).isUserCreatorOrAdmin(any(UserInfo.class), any(String.class));
-		assertEquals(expectedURL, redirectURL);
 	}
 	
 	@Test

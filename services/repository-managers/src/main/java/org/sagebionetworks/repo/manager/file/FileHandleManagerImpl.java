@@ -318,20 +318,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Override
 	public String getRedirectURLForFileHandle(FileHandleUrlRequest urlRequest) {
-		if (urlRequest.bypassAuthCheck()) {
-			return getRedirectURLForFileHandle(urlRequest.getFileHandleId());
-		}
 		if (urlRequest.hasAssociation()) {
 			return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId(), urlRequest.getAssociationType(), urlRequest.getAssociationId());
 		}
 		return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId());
-	}
-
-	String getRedirectURLForFileHandle(String handleId)
-			throws DatastoreException, NotFoundException {
-		// First lookup the file handle
-		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle);
 	}
 	
 	String getRedirectURLForFileHandle(UserInfo userInfo,

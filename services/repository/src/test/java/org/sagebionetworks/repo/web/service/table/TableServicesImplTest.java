@@ -223,8 +223,7 @@ public class TableServicesImplTest {
 	public void testGetFileRedirectURL() throws IOException {
 		
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
-				.withAssociation(FileHandleAssociateType.TableEntity, tableId)
-				.withBypassAuthCheck(true);
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId);
 		
 		String expectedUrl = "https://testurl.org";
 		
@@ -244,9 +243,7 @@ public class TableServicesImplTest {
 		String fileHandlePreviewId = "456";
 		
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
-				.withAssociation(FileHandleAssociateType.TableEntity, tableId)
-				.withBypassAuthCheck(true);
-		
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId);
 		
 		String expectedUrl = "https://testurl.org";
 		

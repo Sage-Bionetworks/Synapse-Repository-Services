@@ -9,7 +9,6 @@ import org.sagebionetworks.util.ValidateArgument;
 public class FileHandleUrlRequest {
 
 	private UserInfo userInfo;
-	private boolean bypassAuthCheck = false;
 	private FileHandleAssociateType associationType;
 	private String associationId;
 	private String fileHandleId;
@@ -19,11 +18,6 @@ public class FileHandleUrlRequest {
 		ValidateArgument.required(fileHandleId, "fileHandleId");
 		this.userInfo = userInfo;
 		this.fileHandleId = fileHandleId;
-	}
-
-	public FileHandleUrlRequest withBypassAuthCheck(boolean bypassAuthCheck) {
-		this.bypassAuthCheck = bypassAuthCheck;
-		return this;
 	}
 
 	public FileHandleUrlRequest withAssociation(FileHandleAssociateType associationType, String associationId) {
@@ -36,10 +30,6 @@ public class FileHandleUrlRequest {
 
 	public UserInfo getUserInfo() {
 		return userInfo;
-	}
-
-	public boolean bypassAuthCheck() {
-		return bypassAuthCheck;
 	}
 
 	public boolean hasAssociation() {
@@ -60,7 +50,7 @@ public class FileHandleUrlRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(associationId, associationType, bypassAuthCheck, fileHandleId, userInfo);
+		return Objects.hash(associationId, associationType, fileHandleId, userInfo);
 	}
 
 	@Override
@@ -76,7 +66,7 @@ public class FileHandleUrlRequest {
 		}
 		FileHandleUrlRequest other = (FileHandleUrlRequest) obj;
 		return Objects.equals(associationId, other.associationId) && associationType == other.associationType
-				&& bypassAuthCheck == other.bypassAuthCheck && Objects.equals(fileHandleId, other.fileHandleId)
+				&& Objects.equals(fileHandleId, other.fileHandleId)
 				&& Objects.equals(userInfo, other.userInfo);
 	}
 

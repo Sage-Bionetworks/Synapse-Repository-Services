@@ -177,9 +177,7 @@ public class TableServicesImpl implements TableServices {
 		String fileHandleId = getFileHandleId(userInfo, tableId, rowRef, columnId);
 		
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
-				.withAssociation(FileHandleAssociateType.TableEntity, tableId)
-				// Is the check performed in the AuthorizationManager for ENTITY correct?
-				.withBypassAuthCheck(true);
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
@@ -198,9 +196,7 @@ public class TableServicesImpl implements TableServices {
 		String previewFileHandleId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, previewFileHandleId)
-				.withAssociation(FileHandleAssociateType.TableEntity, tableId)
-				// Is the check performed in the AuthorizationManager for ENTITY correct?
-				.withBypassAuthCheck(true);
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
