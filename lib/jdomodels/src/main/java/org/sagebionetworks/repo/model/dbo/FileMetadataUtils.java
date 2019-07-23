@@ -43,6 +43,8 @@ public class FileMetadataUtils {
 			updateDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
 		} else if (fileHandle instanceof S3FileHandle) {
 			dbo.setMetadataType(MetadataType.S3);
+		} else if (fileHandle instanceof GoogleCloudFileHandle) {
+			dbo.setMetadataType(MetadataType.GOOGLE_CLOUD);
 		} else if (fileHandle instanceof ProxyFileHandle) {
 			dbo.setMetadataType(MetadataType.PROXY);
 		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
@@ -140,7 +142,7 @@ public class FileMetadataUtils {
 			fileHandle = new ExternalObjectStoreFileHandle();
 			break;
 		default:
-			throw new IllegalArgumentException("Must be EXTERNAL, S3, PREVIEW, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
+			throw new IllegalArgumentException("Must be EXTERNAL, S3, GOOGLE_CLOUD, PREVIEW, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
 		}
 
 		// now fill in the information

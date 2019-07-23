@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -620,17 +621,17 @@ public class DBOFileHandleDaoImplTest {
 	public void testCountReferences() throws Exception {
 		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle1.setKey(UUID.randomUUID().toString());
-		assertEquals(0, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(0, fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), handle1.getBucketName(), handle1.getKey()));
 		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
-		assertEquals(1, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(1, fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), handle1.getBucketName(), handle1.getKey()));
 		S3FileHandle handle2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle2.setKey(handle1.getKey());
 		handle2 = (S3FileHandle) fileHandleDao.createFile(handle2);
-		assertEquals(2, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(2, fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), handle1.getBucketName(), handle1.getKey()));
 		fileHandleDao.delete(handle2.getId());
-		assertEquals(1, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(1, fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), handle1.getBucketName(), handle1.getKey()));
 		fileHandleDao.delete(handle1.getId());
-		assertEquals(0, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(0, fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), handle1.getBucketName(), handle1.getKey()));
 	}
 
 	@Test
