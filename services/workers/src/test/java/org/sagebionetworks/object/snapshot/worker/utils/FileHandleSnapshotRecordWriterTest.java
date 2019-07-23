@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -107,6 +108,32 @@ public class FileHandleSnapshotRecordWriterTest {
 		assertEquals(s3FH.getId(), snapshot.getId());
 		assertEquals(s3FH.getKey(), snapshot.getKey());
 		assertEquals(s3FH.getStorageLocationId(), snapshot.getStorageLocationId());
+	}
+
+	@Test
+	public void testBuildFileHandleSnapshotWithGoogleCloudFileHandle() {
+		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
+		googleCloudFileHandle.setBucketName("bucket");
+		googleCloudFileHandle.setConcreteType(S3FileHandle.class.getName());
+		googleCloudFileHandle.setContentMd5("md5");
+		googleCloudFileHandle.setContentSize(1L);
+		googleCloudFileHandle.setCreatedBy("998");
+		googleCloudFileHandle.setCreatedOn(new Date());
+		googleCloudFileHandle.setFileName("fileName");
+		googleCloudFileHandle.setId("555");
+		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setStorageLocationId(900L);
+		FileHandleSnapshot snapshot = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(googleCloudFileHandle);
+		assertEquals(googleCloudFileHandle.getBucketName(), snapshot.getBucket());
+		assertEquals(googleCloudFileHandle.getConcreteType(), snapshot.getConcreteType());
+		assertEquals(googleCloudFileHandle.getContentMd5(), snapshot.getContentMd5());
+		assertEquals(googleCloudFileHandle.getContentSize(), snapshot.getContentSize());
+		assertEquals(googleCloudFileHandle.getCreatedBy(), snapshot.getCreatedBy());
+		assertEquals(googleCloudFileHandle.getCreatedOn(), snapshot.getCreatedOn());
+		assertEquals(googleCloudFileHandle.getFileName(), snapshot.getFileName());
+		assertEquals(googleCloudFileHandle.getId(), snapshot.getId());
+		assertEquals(googleCloudFileHandle.getKey(), snapshot.getKey());
+		assertEquals(googleCloudFileHandle.getStorageLocationId(), snapshot.getStorageLocationId());
 	}
 
 	@Test
