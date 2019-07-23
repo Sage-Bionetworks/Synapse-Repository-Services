@@ -39,7 +39,7 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 		
 		List<String> remainingFileHandleIds = fileHandleIds.stream().filter((id) -> !associatedFileHandleIds.contains(id)).collect(Collectors.toList());
 		
-		Set<String> associatedFileHandlePreviewIds = getFileHandlePreviewIdsAssociatedWithObject(remainingFileHandleIds, objectId, associateType);
+		Set<String> associatedFileHandlePreviewIds = getFileHandlePreviewIdsAssociatedWithObject(remainingFileHandleIds, objectId, provider);
 		
 		allFileHandleIds.addAll(associatedFileHandleIds);
 		allFileHandleIds.addAll(associatedFileHandlePreviewIds);
@@ -53,15 +53,14 @@ public class FileHandleAssociationManagerImpl implements FileHandleAssociationMa
 		return provider.getAuthorizationObjectTypeForAssociatedObjectType();
 	}
 
-	private Set<String> getFileHandlePreviewIdsAssociatedWithObject(final List<String> fileHandleIds, String objectId,
-			FileHandleAssociateType associationType) {
+	private Set<String> getFileHandlePreviewIdsAssociatedWithObject(final List<String> fileHandleIds, String objectId, FileHandleAssociationProvider provider) {
 		if (fileHandleIds.isEmpty()) {
 			return Collections.emptySet();
 		}
 		// Gather the subset of file handles that are previews (Entry is <fileHandleId, fileHandlePreviewId>)
 		final Map<String, String> fileHandlePreviewIds = fileHandleDao.getFileHandleIdsWithPreviewIds(fileHandleIds);
 		// Get all the file handles that are actually associated with the object
-		final Set<String> associatedFileHandleIds = getFileHandleIdsAssociatedWithObject(new ArrayList<>(fileHandlePreviewIds.keySet()), objectId, associationType);
+		final Set<String> associatedFileHandleIds = provider.getFileHandleIdsDirectlyAssociatedWithObject(new ArrayList<>(fileHandlePreviewIds.keySet()), objectId);
 
 		Set<String> results = new HashSet<>(associatedFileHandleIds.size());
 
