@@ -4,7 +4,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -32,7 +31,7 @@ public class TransferUtils {
 	 * @param request
 	 * @return
 	 */
-	public static ObjectMetadata prepareObjectMetadata(S3FileHandleInterface request) {
+	public static ObjectMetadata prepareObjectMetadata(S3FileHandle request) {
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(request.getContentType());
 		objMeta.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(request.getFileName()));

@@ -466,7 +466,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		fileHandle.setContentMd5(request.getContentMD5Hex());
 		fileHandle.setStorageLocationId(request.getStorageLocationId());
 		fileHandle.setContentSize(fileSize);
-		// By default a preview should be created.	
+		// By default a preview should be created.
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		if(request.getGeneratePreview() != null && !request.getGeneratePreview()){
 			fileHandle.setPreviewId(fileHandle.getId());

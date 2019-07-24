@@ -242,7 +242,7 @@ public class MultipartManagerImpl implements MultipartManager {
 			handle.setCreatedOn(new Date(System.currentTimeMillis()));
 			handle.setEtag(UUID.randomUUID().toString());
 			handle.setFileName(fileName);
-			
+
 			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, request.getFileToUpload());
 			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
 			por.setMetadata(meta);

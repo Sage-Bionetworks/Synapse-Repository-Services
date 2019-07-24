@@ -27,7 +27,7 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
@@ -115,7 +115,7 @@ public class PreviewManagerImplTest {
 	@Test
 	public void testContentTypeEmpty() throws Exception {
 		testMetadata.setContentType("");
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertNull(pfm);
 	}
 
@@ -129,7 +129,7 @@ public class PreviewManagerImplTest {
 	public void testUnsupportedType() throws Exception{
 		// Set to an unsupported content type;
 		testMetadata.setContentType("fake/type");
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
 	
@@ -138,7 +138,7 @@ public class PreviewManagerImplTest {
 		// set the file size to be one byte too large.
 		long size = maxPreviewSize + 1;
 		testMetadata.setContentSize(size);
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertNull(pfm);
 	}
 
@@ -147,7 +147,7 @@ public class PreviewManagerImplTest {
 		// set the file size to be one byte too large.
 		long size = maxPreviewSize;
 		testMetadata.setContentSize(size);
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertNotNull(pfm);
 	}
 
@@ -156,7 +156,7 @@ public class PreviewManagerImplTest {
 		// Simulate a TemporarilyUnavailable exception.
 		previewManager.resourceTracker = Mockito.mock(ResourceTracker.class);
 		when(previewManager.resourceTracker.allocateAndUseResources(any(Callable.class), any(Long.class))).thenThrow(new TemporarilyUnavailableException());
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
 
@@ -165,7 +165,7 @@ public class PreviewManagerImplTest {
 		// Simulate a ExceedsMaximumResources exception.
 		previewManager.resourceTracker = Mockito.mock(ResourceTracker.class);
 		when(previewManager.resourceTracker.allocateAndUseResources(any(Callable.class), any(Long.class))).thenThrow(new ExceedsMaximumResources());
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
 	
@@ -189,7 +189,7 @@ public class PreviewManagerImplTest {
 		// Simulate an S3 exception.  The temp files must be deleted.
 		when(mockS3Client.putObject(any(PutObjectRequest.class))).thenThrow(new RuntimeException("Something went wrong!"));
 		try{
-			PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+			CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 			fail("RuntimeException should have been thrown");
 		}catch(RuntimeException e){
 			// expected
@@ -200,7 +200,7 @@ public class PreviewManagerImplTest {
 	
 	@Test
 	public void testExpectedPreview() throws Exception{
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertNotNull(pfm);
 		assertNotNull(pfm.getId());
 		assertEquals(previewContentType.getContentType(), pfm.getContentType());
@@ -209,7 +209,7 @@ public class PreviewManagerImplTest {
 		assertEquals("preview"+previewContentType.getExtension(), pfm.getFileName());
 		assertEquals(resultPreviewSize, pfm.getContentSize());
 		// Make sure the preview is in the dao
-		PreviewFileHandle fromDao = (PreviewFileHandle) stubFileMetadataDao.get(pfm.getId());
+		CloudProviderFileHandleInterface fromDao = (CloudProviderFileHandleInterface) stubFileMetadataDao.get(pfm.getId());
 		assertEquals(pfm, fromDao);
 	}
 }

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.fileupload.FileUploadException;
@@ -219,7 +218,6 @@ public class UploadController {
 	 * @param handleId
 	 *            The ID of the FileHandle to fetch.
 	 * @param userId
-	 * @param request
 	 * @return
 	 * @throws FileUploadException
 	 * @throws IOException
@@ -232,8 +230,7 @@ public class UploadController {
 	@RequestMapping(value = "/fileHandle/{handleId}", method = RequestMethod.GET)
 	public @ResponseBody FileHandle getFileHandle(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request) throws FileUploadException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
@@ -251,7 +248,6 @@ public class UploadController {
 	 * 
 	 * @param handleId
 	 * @param userId
-	 * @param request
 	 * @throws FileUploadException
 	 * @throws IOException
 	 * @throws DatastoreException
@@ -263,8 +259,7 @@ public class UploadController {
 	@RequestMapping(value = "/fileHandle/{handleId}", method = RequestMethod.DELETE)
 	public @ResponseBody void deleteFileHandle(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request) throws FileUploadException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
@@ -273,14 +268,11 @@ public class UploadController {
 
 	/**
 	 * Delete the preview associated with the given FileHandle. This will cause
-	 * Synapse to automatically generate a new <a
-	 * href="${org.sagebionetworks.repo.model.file.PreviewFileHandle}"
-	 * >PreviewFileHandle</a>.
+	 * Synapse to automatically generate a new preview.
 	 * 
 	 * @param handleId
 	 *            The ID of the FileHandle whose preview should be cleared.
 	 * @param userId
-	 * @param request
 	 * @throws FileUploadException
 	 * @throws IOException
 	 * @throws DatastoreException
@@ -292,8 +284,7 @@ public class UploadController {
 	@RequestMapping(value = "/fileHandle/{handleId}/filepreview", method = RequestMethod.DELETE)
 	public @ResponseBody void clearPreview(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request) throws FileUploadException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
 		// clear the preview
@@ -1026,7 +1017,6 @@ public class UploadController {
 	 * is a paginated call.
 	 * 
 	 * @param userId
-	 * @param orderId
 	 * @return A single page of download order summaries.
 	 * @throws Throwable
 	 */

@@ -9,9 +9,9 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -66,7 +66,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	@Override
 	public String getPreviewFileHandleId(String handleId)
 			throws NotFoundException {
- 		return ((HasPreviewId)map.get(handleId)).getPreviewId();
+ 		return ((CloudProviderFileHandleInterface)map.get(handleId)).getPreviewId();
 	}
 
 	@Override

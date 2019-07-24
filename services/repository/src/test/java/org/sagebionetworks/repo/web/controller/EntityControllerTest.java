@@ -9,10 +9,8 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import javax.servlet.ServletException;
 
@@ -38,9 +36,9 @@ import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -64,9 +62,9 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	private List<String> toDelete;
 	private S3FileHandle handleOne;
-	private PreviewFileHandle previewOne;
+	private S3FileHandle previewOne;
 	private S3FileHandle handleTwo;
-	private PreviewFileHandle previewTwo;
+	private S3FileHandle previewTwo;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -82,61 +80,32 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
 		
-		toDelete = new ArrayList<String>();
+		toDelete = new ArrayList<>();
 		// Create a file handle
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminUserIdString);
-		handleOne.setCreatedOn(new Date());
+		handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setBucketName(S3_BUCKET_NAME);
 		handleOne.setKey("EntityControllerTest.mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setContentMd5("handleOneContentMd5");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		previewOne = new PreviewFileHandle();
-		previewOne.setCreatedBy(adminUserIdString);
-		previewOne.setCreatedOn(new Date());
+		previewOne = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewOne.setBucketName(S3_BUCKET_NAME);
 		previewOne.setKey("EntityControllerTest.previewFileKey");
-		previewOne.setEtag("etag");
-		previewOne.setFileName("bar.txt");
-		previewOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		previewOne.setEtag(UUID.randomUUID().toString());
-		
+
 		// Create a file handle
-		handleTwo = new S3FileHandle();
-		handleTwo.setCreatedBy(adminUserIdString);
-		handleTwo.setCreatedOn(new Date());
+		handleTwo = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setBucketName(S3_BUCKET_NAME);
 		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
-		handleTwo.setEtag("etag");
-		handleTwo.setFileName("foo2.bar");
-		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleTwo.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		previewTwo = new PreviewFileHandle();
-		previewTwo.setCreatedBy(adminUserIdString);
-		previewTwo.setCreatedOn(new Date());
+		previewTwo = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewTwo.setBucketName(S3_BUCKET_NAME);
 		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
-		previewTwo.setEtag("etag");
-		previewTwo.setFileName("bar2.txt");
-		previewTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		previewTwo.setEtag(UUID.randomUUID().toString());
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(handleOne);
-		fileHandleToCreate.add(handleTwo);
-		fileHandleToCreate.add(previewOne);
-		fileHandleToCreate.add(previewTwo);
+		List<FileHandle> fileHandleToCreate = Arrays.asList(handleOne, handleTwo, previewOne, previewTwo);
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
-		previewOne = (PreviewFileHandle) fileHandleDao.get(previewOne.getId());
+		previewOne = (S3FileHandle) fileHandleDao.get(previewOne.getId());
 		handleTwo = (S3FileHandle) fileHandleDao.get(handleTwo.getId());
-		previewTwo = (PreviewFileHandle) fileHandleDao.get(previewTwo.getId());
+		previewTwo = (S3FileHandle) fileHandleDao.get(previewTwo.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), previewOne.getId());
 
