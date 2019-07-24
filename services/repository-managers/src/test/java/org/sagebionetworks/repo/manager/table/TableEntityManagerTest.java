@@ -80,6 +80,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -1592,13 +1593,13 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
-	public void testCreateNewVersionAndBindToTransaction() {
+	public void testCreateSnapshotBindToTransaction() {
 		long newVersionNumber = 333L;
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
 		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		long resultVersionNumber = manager.createNewVersionAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
+		long resultVersionNumber = manager.createSnapshotBindToTransaction(user, tableId, snapshotRequest, transactionId);
 		assertEquals(newVersionNumber, resultVersionNumber);
 		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
 		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
@@ -1607,40 +1608,75 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testCreateNewVersionAndBindToTransactionNullInfo() {
+	public void testCreateSnapshotBindToTransactionNullInfo() {
 		snapshotRequest = null;
 		long newVersionNumber = 333L;
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
 		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		manager.createNewVersionAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
+		manager.createSnapshotBindToTransaction(user, tableId, snapshotRequest, transactionId);
 	}
 	
-	
 	@Test
-	public void testBindCurrentEntityVersionToLatestTransaction() {
-		long lastVersionNumber = 444;
-		when(mockNodeManager.getCurrentRevisionNumbers(tableId)).thenReturn(lastVersionNumber);
+	public void testCreateTableSnapshot() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
 		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
 		// call under test
-		manager.bindCurrentEntityVersionToLatestTransaction(tableId);
-		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
-		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, lastVersionNumber);
-		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
+		SnapshotResponse response = manager.createTableSnapshot(user, tableId, snapshotRequest);
+		assertNotNull(response);
+		assertEquals(snapshotVersion, response.getSnapshotVersionNumber());
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testBindCurrentEntityVersionToLatestTransactionNoTransaction() {
-		long lastVersionNumber = 444;
-		when(mockNodeManager.getCurrentRevisionNumbers(tableId)).thenReturn(lastVersionNumber);
-		// case where a table has no transactions.
+	public void testCreateTableSnapshotNoTransaction() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		// fails if there are not transaction on the table.
 		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.empty());
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
 		// call under test
-		manager.bindCurrentEntityVersionToLatestTransaction(tableId);
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTableSnapshotNullUser() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		user = null;
+		// call under test
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTableSnapshotNullTableId() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		tableId = null;
+		// call under test
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTableSnapshotNullRequest() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		snapshotRequest = null;
+		// call under test
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
+	}
+	
+	
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.
 	 * @param tableId

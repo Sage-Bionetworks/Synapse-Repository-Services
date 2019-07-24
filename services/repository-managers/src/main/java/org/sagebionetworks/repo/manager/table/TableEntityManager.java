@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -275,13 +276,6 @@ public interface TableEntityManager {
 	List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset);
 
 	/**
-	 * Bind the current entity version to the latest table transaction.
-	 * 
-	 * @param id
-	 */
-	public void bindCurrentEntityVersionToLatestTransaction(String id);
-
-	/**
 	 * Create a new version of the given table an bind the new version to the
 	 * provided transaction id.
 	 * 
@@ -290,7 +284,7 @@ public interface TableEntityManager {
 	 * @param transactionId
 	 * @return The version number of the newly created version.
 	 */
-	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
+	public long createSnapshotBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId);
 	
 	/**
@@ -304,4 +298,13 @@ public interface TableEntityManager {
 	 * 
 	 */
 	Optional<Long> getTransactionForVersion(String tableId, long version);
+
+	/**
+	 * Create a snapshot of of the given table.
+	 * @param userInfo
+	 * @param tableId
+	 * @param request
+	 * @return
+	 */
+	public SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableId, SnapshotRequest request);
 }

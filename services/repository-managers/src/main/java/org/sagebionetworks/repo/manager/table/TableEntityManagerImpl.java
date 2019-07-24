@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -906,25 +907,13 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void bindCurrentEntityVersionToLatestTransaction(String tableId) {
-		ValidateArgument.required(tableId, "TableId");
-		long currentVersionNumber = nodeManager.getCurrentRevisionNumbers(tableId);
-		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableId);
-		if(!lastTransactionNumber.isPresent()) {
-			throw new IllegalArgumentException("No transactions found for table: "+tableId);
-		}
-		linkVersionToTransaction(tableId, currentVersionNumber, lastTransactionNumber.get());
-	}
-
-	@WriteTransaction
-	@Override
-	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
+	public long createSnapshotBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId) {
 		ValidateArgument.required(snapshotRequest, "SnapshotRequest");
 		// create a new version
-		long newVersionNumber = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotRequest);
-		linkVersionToTransaction(tableId, newVersionNumber, transactionId);
-		return newVersionNumber;
+		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotRequest);
+		linkVersionToTransaction(tableId, snapshotVersion, transactionId);
+		return snapshotVersion;
 	}
 	
 	/**
@@ -953,6 +942,28 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public Optional<Long> getTransactionForVersion(String tableId, long version) {
 		return tableTransactionDao.getTransactionForVersion(tableId, version);
+	}
+
+
+	@WriteTransaction
+	@Override
+	public SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableIdString, SnapshotRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(tableIdString, "TableId");
+		ValidateArgument.required(request, "request");
+		Long tableId = KeyFactory.stringToKey(tableIdString);
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).build();
+		// Validate the user has permission to edit the table
+		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
+		
+		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableIdString);
+		if(!lastTransactionNumber.isPresent()) {
+			throw new IllegalArgumentException("No transactions found for table: "+tableId);
+		}
+		long snapshotVersion = createSnapshotBindToTransaction(userInfo, tableIdString, request, lastTransactionNumber.get());
+		SnapshotResponse response = new SnapshotResponse();
+		response.setSnapshotVersionNumber(snapshotVersion);
+		return response;
 	}
 
 }

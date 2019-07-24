@@ -19,6 +19,9 @@ public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<En
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, EntityView entityView, boolean wasNewVersionCreated) {
+		if(wasNewVersionCreated) {
+			throw new IllegalArgumentException("A view version can only be created by creating a view snapshot.");
+		}
 		ViewScope scope = createViewScope(entityView);
 		fileViewManager.setViewSchemaAndScope(userInfo, entityView.getColumnIds(), scope, entityView.getId());
 	}

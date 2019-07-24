@@ -59,6 +59,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -795,6 +797,34 @@ public class IT100TableControllerTest {
 		TableSchemaChangeResponse response = (TableSchemaChangeResponse) results.get(0);
 		assertEquals(Lists.newArrayList(cm), response.getSchema());
 	}
+	
+	@Test
+	public void testCreateTableSnapshot() throws SynapseException {
+		ColumnModel cm = new ColumnModel();
+		cm.setName("aString");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(100L);
+		cm = synapse.createColumnModel(cm);
+		
+		// create a table
+		TableEntity table = createTable(null, synapse);
+		
+		SnapshotRequest request = new SnapshotRequest();
+		request.setSnapshotLabel("snapshot label");
+		request.setSnapshotComment("snapshot comment");
+		// call under test
+		SnapshotResponse response = synapse.createTableSnapshot(table.getId(), request);
+		assertNotNull(response);
+		assertNotNull(response.getSnapshotVersionNumber());
+		
+		Entity version = synapse.getEntityByIdForVersion(table.getId(), response.getSnapshotVersionNumber());
+		assertNotNull(version);
+		assertTrue(version instanceof TableEntity);
+		TableEntity tableVersion = (TableEntity) version;
+		assertEquals(request.getSnapshotLabel(), tableVersion.getVersionLabel());
+		assertEquals(request.getSnapshotComment(), tableVersion.getVersionComment());
+	}
+	
 	
 	@Test (timeout=60000)
 	public void testGetPossibleColumnModelsForViewScope() throws Exception {

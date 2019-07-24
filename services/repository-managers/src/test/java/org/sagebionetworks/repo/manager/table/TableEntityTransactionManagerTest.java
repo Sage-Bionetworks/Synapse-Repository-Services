@@ -261,11 +261,11 @@ public class TableEntityTransactionManagerTest {
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
 		assertNotNull(response);
-		assertNull(response.getNewVersionNumber());
+		assertNull(response.getSnapshotVersionNumber());
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
+		verify(tableEntityManager, never()).createSnapshotBindToTransaction(any(UserInfo.class), anyString(),
 				any(SnapshotRequest.class), anyLong());
 	}
 	
@@ -279,11 +279,11 @@ public class TableEntityTransactionManagerTest {
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
 		assertNotNull(response);
-		assertNull(response.getNewVersionNumber());
+		assertNull(response.getSnapshotVersionNumber());
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
+		verify(tableEntityManager, never()).createSnapshotBindToTransaction(any(UserInfo.class), anyString(),
 				any(SnapshotRequest.class), anyLong());
 	}
 	
@@ -297,10 +297,10 @@ public class TableEntityTransactionManagerTest {
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
 		assertNotNull(response);
-		assertEquals(new Long(0), response.getNewVersionNumber());
+		assertEquals(new Long(0), response.getSnapshotVersionNumber());
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager).createNewVersionAndBindToTransaction(userInfo, tableId, versionInfo, transactionId);
+		verify(tableEntityManager).createSnapshotBindToTransaction(userInfo, tableId, versionInfo, transactionId);
 	}
 }

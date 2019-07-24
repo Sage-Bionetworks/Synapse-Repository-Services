@@ -30,10 +30,10 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, TableEntity entity, boolean wasNewVersionCreated) {
-		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
 		if(wasNewVersionCreated) {
-			tableEntityManager.bindCurrentEntityVersionToLatestTransaction(entity.getId());
+			throw new IllegalArgumentException("A table version can only be created by creating a table snapshot.");
 		}
+		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
 	}
 
 	@Override

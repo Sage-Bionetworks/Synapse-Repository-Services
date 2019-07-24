@@ -214,8 +214,8 @@ public class TableTransactionWorkerIntegrationTest {
 		// start the transaction
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
-		assertNotNull(response.getNewVersionNumber());
-		long firstVersion = response.getNewVersionNumber();
+		assertNotNull(response.getSnapshotVersionNumber());
+		long firstVersion = response.getSnapshotVersionNumber();
 		
 		// add two more rows and create another version.
 		PartialRow rowThree = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "3");
@@ -227,8 +227,8 @@ public class TableTransactionWorkerIntegrationTest {
 		// start the transaction
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
-		assertNotNull(response.getNewVersionNumber());
-		long secondVersion = response.getNewVersionNumber();
+		assertNotNull(response.getSnapshotVersionNumber());
+		long secondVersion = response.getSnapshotVersionNumber();
 		
 		// Add two more rows without creating a version.
 		PartialRow rowFive = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "5");
@@ -238,7 +238,7 @@ public class TableTransactionWorkerIntegrationTest {
 		// start the transaction
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
-		assertNull(response.getNewVersionNumber());
+		assertNull(response.getSnapshotVersionNumber());
 		// query first version
 		String sql = "select * from " + tableId + "." + firstVersion;
 		QueryBundleRequest queryRequest = createQueryRequest(sql, tableId);

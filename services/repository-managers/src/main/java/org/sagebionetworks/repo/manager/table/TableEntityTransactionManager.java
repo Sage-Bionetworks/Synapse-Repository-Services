@@ -189,9 +189,9 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		}
 		if (request.getSnapshotRequest() != null
 				&& Boolean.TRUE.equals(request.getSnapshotRequest().getCreateNewSnapshot())) {
-			Long newVersionNumber = tableEntityManager.createNewVersionAndBindToTransaction(userInfo, request.getEntityId(),
+			Long snapshotVersion = tableEntityManager.createSnapshotBindToTransaction(userInfo, request.getEntityId(),
 					request.getSnapshotRequest(), transactionId);
-			response.setNewVersionNumber(newVersionNumber);
+			response.setSnapshotVersionNumber(snapshotVersion);
 		}
 		return response;
 	}

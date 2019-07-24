@@ -304,7 +304,7 @@ public class EntityServiceImplAutowiredTestNew  {
 		assertFalse(optional.isPresent());
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testTableUpdateNewVersion() {
 		List<String> columnIds = Lists.newArrayList(column.getId());
 		TableEntity table = new TableEntity();
@@ -313,17 +313,11 @@ public class EntityServiceImplAutowiredTestNew  {
 		table.setColumnIds(columnIds);
 		
 		table = entityService.createEntity(adminUserId, table, null);
-		long firstVersion = table.getVersionNumber();
 		String activityId = null;
 		boolean newVersion = true;
 		table.setVersionLabel(null);
-		// Create a new version of the entity
-		table = entityService.updateEntity(adminUserId, table, newVersion, activityId);
-		assertTrue(firstVersion+1 == table.getVersionNumber());
-		// the new version should be bound to the last transaction.
-		Optional<Long> optional = tableEntityManager.getTransactionForVersion(table.getId(), table.getVersionNumber());
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
+		// Call under test
+		entityService.updateEntity(adminUserId, table, newVersion, activityId);
 	}
 	
 	@Test
