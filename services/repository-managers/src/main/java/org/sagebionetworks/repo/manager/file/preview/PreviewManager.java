@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -29,7 +28,7 @@ public interface PreviewManager {
 	 * @throws Exception 
 	 * @throws ServiceUnavailableException 
 	 */
-	public CloudProviderFileHandleInterface generatePreview(S3FileHandle metadata) throws TemporarilyUnavailableException, ExceedsMaximumResources, Exception;
+	public CloudProviderFileHandleInterface generatePreview(CloudProviderFileHandleInterface metadata) throws TemporarilyUnavailableException, ExceedsMaximumResources, Exception;
 	
 	/**
 	 * Get the maximum memory (bytes) that can be used for generating previews.

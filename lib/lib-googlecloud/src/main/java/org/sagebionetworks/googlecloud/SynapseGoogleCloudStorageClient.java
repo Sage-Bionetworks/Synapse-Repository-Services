@@ -1,6 +1,8 @@
 package org.sagebionetworks.googlecloud;
 
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -8,6 +10,7 @@ import java.util.List;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
 
 /**
  * Abstracts away Google Cloud API to expose just the methods needed by Synapse.
@@ -38,9 +41,21 @@ public interface SynapseGoogleCloudStorageClient {
 	 * @param key the path/filename of the object to upload
 	 * @param inputStream an InputStream containing the contents to upload
 	 * @return the uploaded object
-	 * @throws IOException if the file cannot be opened
+	 * @throws IOException if the stream cannot be read
 	 */
 	Blob putObject(String bucket, String key, InputStream inputStream) throws IOException;
+
+
+	/**
+	 * Upload an object to a Google Cloud Storage bucket
+	 * @param bucket the name of the bucket to upload to
+	 * @param key the path/filename of the object to upload
+	 * @param file a File containing the contents to upload
+	 * @return the uploaded object
+	 * @throws FileNotFoundException if the file cannot be opened
+	 */
+	Blob putObject(String bucket, String key, File file) throws FileNotFoundException, StorageException;
+
 
 	/**
 	 * Deletes the object in Google Cloud Storage

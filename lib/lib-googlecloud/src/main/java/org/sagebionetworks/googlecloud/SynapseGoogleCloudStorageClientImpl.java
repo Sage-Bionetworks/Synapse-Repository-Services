@@ -1,5 +1,8 @@
 package org.sagebionetworks.googlecloud;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -37,6 +40,12 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 	@Override
 	public Blob putObject(String bucket, String key, InputStream inputStream) throws StorageException {
 		putObject(BlobInfo.newBuilder(BlobId.of(bucket, key)).build(), inputStream);
+		return this.getObject(bucket, key);
+	}
+
+	@Override
+	public Blob putObject(String bucket, String key, File file) throws FileNotFoundException, StorageException {
+		putObject(BlobInfo.newBuilder(BlobId.of(bucket, key)).build(), new FileInputStream(file));
 		return this.getObject(bucket, key);
 	}
 
