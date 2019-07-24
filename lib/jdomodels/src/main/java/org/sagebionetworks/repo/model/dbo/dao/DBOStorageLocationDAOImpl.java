@@ -57,22 +57,24 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	public static final Long DEFAULT_STORAGE_LOCATION_ID = 1L;
 
+	private static final int STORAGE_LOCATIONS_LIST_LIMIT = 100;
+
 	private static final String STORAGE_LOCATION_IDS_PARAM = "udl_ids";
 
-	private static final String SELECT_STORAGE_LOCATIONS = "SELECT " + COL_STORAGE_LOCATION_ID + ", "
+	private static final String SELECT_STORAGE_LOCATIONS_BY_IDS = "SELECT " + COL_STORAGE_LOCATION_ID + ", "
 			+ COL_STORAGE_LOCATION_DESCRIPTION + ", " + COL_STORAGE_LOCATION_UPLOAD_TYPE + " FROM "
 			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_ID + " IN (:" + STORAGE_LOCATION_IDS_PARAM
 			+ ")";
 
 	private static final String SELECT_STORAGE_LOCATIONS_BY_OWNER = "SELECT * FROM " + TABLE_STORAGE_LOCATION
-			+ " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ?";
+			+ " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON
+			+ " DESC LIMIT " + STORAGE_LOCATIONS_LIST_LIMIT;
 
 	private static final String SELECT_ID_BY_CREATOR_AND_HASH = "SELECT " + COL_STORAGE_LOCATION_ID + " FROM "
 			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? AND "
 			+ COL_STORAGE_LOCATION_DATA_HASH + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON + " DESC";
 
-	private static final RowMapper<DBOStorageLocation> StorageLocationRowMapper = new DBOStorageLocation()
-			.getTableMapping();
+	private static final RowMapper<DBOStorageLocation> ROW_MAPPER = new DBOStorageLocation().getTableMapping();
 
 	public static UploadDestination getDefaultUploadDestination() {
 		S3UploadDestination defaultUploadDestination = new S3UploadDestination();
@@ -174,15 +176,14 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	@Override
 	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException {
-		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER,
-				StorageLocationRowMapper, id);
+		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, ROW_MAPPER, id);
 		return Lists.newArrayList(Lists.transform(dboStorageLocations, CONVERT_DBO_TO_STORAGE_LOCATION));
 	}
 
 	@Override
 	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations)
 			throws DatastoreException, NotFoundException {
-		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS,
+		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_IDS,
 				Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, locations),
 				new RowMapper<UploadDestinationLocation>() {
 					@Override

@@ -14,5 +14,9 @@ public interface StorageLocationDAO {
 
 	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations) throws DatastoreException, NotFoundException;
 
+	/**
+	 * @deprecated This should not be used anymore, will return only the last 100 locations
+	 */
+	@Deprecated
 	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException;
 }

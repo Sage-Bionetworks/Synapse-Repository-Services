@@ -192,7 +192,11 @@ public class ProjectSettingsController {
 	}
 
 	/**
+	 * This endpoint is deprecated, to retrieve the storage locations of a project use the <a href="${org.sagebionetworks.repo.model.project.ProjectSetting}">ProjectSetting</a>.
+	 * The list returned by this call is limited to the last 100 storage locations.
+	 * </p>
 	 * Get a list of <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a>s that the current user owns.
+	 * 
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -201,6 +205,7 @@ public class ProjectSettingsController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION }, method = RequestMethod.GET)
+	@Deprecated
 	public @ResponseBody
 	ListWrapper<StorageLocationSetting> getStorageLocationSettings(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		return ListWrapper.wrap(serviceProvider.getProjectSettingsService().getMyStorageLocations(userId), StorageLocationSetting.class);
