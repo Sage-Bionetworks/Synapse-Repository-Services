@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -371,15 +372,19 @@ public interface NodeManager {
 	
 	
 	/**
-	 * Create a new version of the provided node.
+	 * Request to create a new snapshot of a table or view. The provided comment,
+	 * label, and activity ID will be applied to the current version thereby
+	 * creating a snapshot and locking the current version. After the snapshot is
+	 * created a new version will be started with an 'in-progress' label.
+	 * 
 	 * @param userId
 	 * @param nodeId
-	 * @param comment Optional. Version comment.
-	 * @param label Optional. Version label.
+	 * @param comment  Optional. Version comment.
+	 * @param label    Optional. Version label.
 	 * @param activity Optional. Associate an activity with the new version.
-	 * @return
+	 * @return The version number that represents the snapshot/
 	 */
-	public long createNewVersion(UserInfo userInfo, String nodeId, String comment, String label, String activityId);
+	public long createSnapshotAndVersion(UserInfo userInfo, String nodeId, SnapshotRequest request);
 
 	/**
 	 * Get the current revision number for the given Entity Id.

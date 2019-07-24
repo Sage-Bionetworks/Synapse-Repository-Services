@@ -79,6 +79,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -91,7 +92,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -178,7 +178,7 @@ public class TableEntityManagerTest {
 	
 	Long transactionId;
 	
-	VersionRequest versionRequest;
+	SnapshotRequest snapshotRequest;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -336,11 +336,11 @@ public class TableEntityManagerTest {
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
 		
 		
-		versionRequest = new VersionRequest();
-		versionRequest.setCreateNewTableVersion(true);
-		versionRequest.setNewVersionActivityId("987");
-		versionRequest.setNewVersionComment("a new comment");
-		versionRequest.setNewVersionLabel("a new lablel");
+		snapshotRequest = new SnapshotRequest();
+		snapshotRequest.setCreateNewSnapshot(true);
+		snapshotRequest.setSnapshotActivityId("987");
+		snapshotRequest.setSnapshotComment("a new comment");
+		snapshotRequest.setSnapshotLabel("a new label");
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -1595,13 +1595,12 @@ public class TableEntityManagerTest {
 	public void testCreateNewVersionAndBindToTransaction() {
 		long newVersionNumber = 333L;
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
-		when(mockNodeManager.createNewVersion(any(UserInfo.class), anyString(), anyString(), anyString(), anyString()))
+		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		long resultVersionNumber = manager.createNewVersionAndBindToTransaction(user, tableId, versionRequest, transactionId);
+		long resultVersionNumber = manager.createNewVersionAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
 		assertEquals(newVersionNumber, resultVersionNumber);
-		verify(mockNodeManager).createNewVersion(user, tableId, versionRequest.getNewVersionComment(),
-				versionRequest.getNewVersionLabel(), versionRequest.getNewVersionActivityId());
+		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
 		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
 		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, newVersionNumber);
 		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
@@ -1609,13 +1608,13 @@ public class TableEntityManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateNewVersionAndBindToTransactionNullInfo() {
-		versionRequest = null;
+		snapshotRequest = null;
 		long newVersionNumber = 333L;
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
-		when(mockNodeManager.createNewVersion(any(UserInfo.class), anyString(), anyString(), anyString(), anyString()))
+		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		manager.createNewVersionAndBindToTransaction(user, tableId, versionRequest, transactionId);
+		manager.createNewVersionAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
 	}
 	
 	

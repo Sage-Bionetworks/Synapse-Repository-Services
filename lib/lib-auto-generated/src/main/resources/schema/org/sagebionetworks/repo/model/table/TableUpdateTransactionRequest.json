@@ -16,9 +16,9 @@
 				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
 			}
 		},
-		"versionRequest": {
-			"description": "An optional parameter used to create a new version of table that includes all of the changes from this request.",
-			"$ref": "org.sagebionetworks.repo.model.table.VersionRequest"
+		"snapshotRequest": {
+			"description": "An optional parameter used to create a snapshot of the table's state that includes all table changes upto, and includsing changes from the containing transaction.  If the transaction fails for any reason, a snapshot will not be created.",
+			"$ref": "org.sagebionetworks.repo.model.table.SnapshotRequest"
 		}
 	}
 }

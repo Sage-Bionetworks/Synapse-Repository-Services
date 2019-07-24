@@ -33,13 +33,13 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
@@ -256,7 +256,7 @@ public class TableEntityTransactionManagerTest {
 	@Test
 	public void testDoIntransactionUpdateTableNullVersionInfo()
 			throws RecoverableMessageException, TableUnavailableException {
-		request.setVersionRequest(null);
+		request.setSnapshotRequest(null);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
@@ -266,15 +266,15 @@ public class TableEntityTransactionManagerTest {
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
 		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
-				any(VersionRequest.class), anyLong());
+				any(SnapshotRequest.class), anyLong());
 	}
 	
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersionFalse()
 			throws RecoverableMessageException, TableUnavailableException {
-		VersionRequest versionInfo = new VersionRequest();
-		versionInfo.setCreateNewTableVersion(false);
-		request.setVersionRequest(versionInfo);
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		snapshotRequest.setCreateNewSnapshot(false);
+		request.setSnapshotRequest(snapshotRequest);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
@@ -284,15 +284,15 @@ public class TableEntityTransactionManagerTest {
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
 		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
-				any(VersionRequest.class), anyLong());
+				any(SnapshotRequest.class), anyLong());
 	}
 	
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersiontrue()
 			throws RecoverableMessageException, TableUnavailableException {
-		VersionRequest versionInfo = new VersionRequest();
-		versionInfo.setCreateNewTableVersion(true);
-		request.setVersionRequest(versionInfo);
+		SnapshotRequest versionInfo = new SnapshotRequest();
+		versionInfo.setCreateNewSnapshot(true);
+		request.setSnapshotRequest(versionInfo);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);

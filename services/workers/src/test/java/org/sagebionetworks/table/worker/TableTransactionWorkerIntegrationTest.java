@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -46,7 +47,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -210,7 +210,7 @@ public class TableTransactionWorkerIntegrationTest {
 		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
 		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
 		// start a new version
-		transaction.setVersionRequest(createVersionRequest());
+		transaction.setSnapshotRequest(createVersionRequest());
 		// start the transaction
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
@@ -223,7 +223,7 @@ public class TableTransactionWorkerIntegrationTest {
 		rowSet = createRowSet(tableId, rowThree, rowFour);
 		transaction = createAddDataRequest(tableId, rowSet);
 		// start a new version
-		transaction.setVersionRequest(createVersionRequest());
+		transaction.setSnapshotRequest(createVersionRequest());
 		// start the transaction
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
@@ -304,9 +304,9 @@ public class TableTransactionWorkerIntegrationTest {
 	 * Helper to create a new version request.
 	 * @return
 	 */
-	public static VersionRequest createVersionRequest() {
-		VersionRequest version = new VersionRequest();
-		version.setCreateNewTableVersion(true);
+	public static SnapshotRequest createVersionRequest() {
+		SnapshotRequest version = new SnapshotRequest();
+		version.setCreateNewSnapshot(true);
 		return version;
 	}
 	

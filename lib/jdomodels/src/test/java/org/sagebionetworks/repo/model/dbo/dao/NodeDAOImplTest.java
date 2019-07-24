@@ -9,8 +9,6 @@ import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.util.ArrayList;
@@ -68,7 +66,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -85,13 +82,13 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -3636,6 +3633,128 @@ public class NodeDAOImplTest {
 		assertTrue(afterTouch.getModifiedOn().getTime() > start.getModifiedOn().getTime());
 		assertEquals(user2Id, afterTouch.getModifiedByPrincipalId());
 		assertEquals(user1Id, start.getCreatedByPrincipalId());
+	}
+	
+	@Test
+	public void testSnapshotVersion() throws InterruptedException {
+		Long user1Id = Long.parseLong(user1);
+		Long user2Id = Long.parseLong(user2);
+		Node node = NodeTestUtils.createNew("one",  user1Id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// sleep so modified on is larger than the start.
+		Thread.sleep(10);
+		
+		SnapshotRequest request1 = new SnapshotRequest();
+		request1.setCreateNewSnapshot(true);
+		request1.setSnapshotComment("a comment string");
+		request1.setSnapshotLabel("some label");
+		request1.setSnapshotActivityId(testActivity.getId());
+		
+		// call under test
+		Long snapshotVersion1 = nodeDao.snapshotVersion(user1Id, node.getId(), request1);
+		assertEquals(node.getVersionNumber(), snapshotVersion1);
+		Node current = nodeDao.getNodeForVersion(node.getId(), snapshotVersion1);
+		assertEquals(user1Id, current.getModifiedByPrincipalId());
+		assertTrue(current.getModifiedOn().getTime() > node.getModifiedOn().getTime());
+		assertEquals(request1.getSnapshotComment(), current.getVersionComment());
+		assertEquals(request1.getSnapshotLabel(), current.getVersionLabel());
+		assertEquals(request1.getSnapshotActivityId(), current.getActivityId());
+		
+		// Create a new version then a new snapshot
+		current.setVersionComment("in-progress");
+		current.setVersionLabel("in-progress");
+		current.setActivityId(null);
+		Long newVersion = nodeDao.createNewVersion(current);
+		
+		// Create a second snapshot for the current version.s
+		SnapshotRequest request2 = new SnapshotRequest();
+		request2.setCreateNewSnapshot(true);
+		request2.setSnapshotComment("different comment");
+		request2.setSnapshotLabel("different label");
+		request2.setSnapshotActivityId(testActivity2.getId());
+		
+		// call under test
+		Long snapshotVersion2 = nodeDao.snapshotVersion(user2Id, node.getId(), request2);
+		assertEquals(newVersion, snapshotVersion2);
+		Node snapshot2 = nodeDao.getNodeForVersion(node.getId(), snapshotVersion2);
+		assertEquals(user2Id, snapshot2.getModifiedByPrincipalId());
+		assertEquals(request2.getSnapshotComment(), snapshot2.getVersionComment());
+		assertEquals(request2.getSnapshotLabel(), snapshot2.getVersionLabel());
+		assertEquals(request2.getSnapshotActivityId(), snapshot2.getActivityId());
+		
+		// the first snapshot should not be changed.
+		Node snapshot1 = nodeDao.getNodeForVersion(node.getId(), snapshotVersion1);
+		assertEquals(user1Id, snapshot1.getModifiedByPrincipalId());
+		assertEquals(request1.getSnapshotComment(), snapshot1.getVersionComment());
+		assertEquals(request1.getSnapshotLabel(), snapshot1.getVersionLabel());
+		assertEquals(request1.getSnapshotActivityId(), snapshot1.getActivityId());
+	}
+	
+	@Test
+	public void testSnapshotVersionNullValues() {
+		Long user1Id = Long.parseLong(user1);
+		Node node = NodeTestUtils.createNew("one",  user1Id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		
+		SnapshotRequest request = new SnapshotRequest();
+		request.setCreateNewSnapshot(true);
+		request.setSnapshotComment(null);
+		request.setSnapshotLabel(null);
+		request.setSnapshotActivityId(null);
+		
+		// call under test
+		Long snapshotVersion = nodeDao.snapshotVersion(user1Id, node.getId(), request);
+		assertEquals(node.getVersionNumber(), snapshotVersion);
+		Node current = nodeDao.getNodeForVersion(node.getId(), snapshotVersion);
+		assertEquals(null, current.getVersionComment());
+		assertEquals(snapshotVersion.toString(), current.getVersionLabel());
+		assertEquals(null, current.getActivityId());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSnapshotVersionNullId() {
+		Long user1Id = Long.parseLong(user1);
+		String nodeId = null;
+		SnapshotRequest request = new SnapshotRequest();
+		request.setCreateNewSnapshot(true);
+		request.setSnapshotComment(null);
+		request.setSnapshotLabel(null);
+		request.setSnapshotActivityId(null);
+		
+		// call under test
+		nodeDao.snapshotVersion(user1Id, nodeId, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSnapshotVersionNullRequest() {
+		Long user1Id = Long.parseLong(user1);
+		Node node = NodeTestUtils.createNew("one",  user1Id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		
+		SnapshotRequest request = null;
+		
+		// call under test
+		Long snapshotVersion = nodeDao.snapshotVersion(user1Id, node.getId(), request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSnapshotVersionNullUserId() {
+		Long user1Id = null;
+		Node node = NodeTestUtils.createNew("one",  user1Id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		
+		SnapshotRequest request = new SnapshotRequest();
+		request.setCreateNewSnapshot(true);
+		request.setSnapshotComment(null);
+		request.setSnapshotLabel(null);
+		request.setSnapshotActivityId(null);
+		
+		// call under test
+		Long snapshotVersion = nodeDao.snapshotVersion(user1Id, node.getId(), request);
 	}
 	
 	@Test

@@ -18,11 +18,11 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -290,7 +290,7 @@ public interface TableEntityManager {
 	 * @param transactionId
 	 * @return The version number of the newly created version.
 	 */
-	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
+	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId);
 	
 	/**

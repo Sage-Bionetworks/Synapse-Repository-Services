@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -53,7 +54,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -918,12 +918,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
+	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId) {
-		ValidateArgument.required(versionRequest, "newVersionInfo");
+		ValidateArgument.required(snapshotRequest, "SnapshotRequest");
 		// create a new version
-		long newVersionNumber = nodeManager.createNewVersion(userInfo, tableId, versionRequest.getNewVersionComment(),
-				versionRequest.getNewVersionLabel(), versionRequest.getNewVersionActivityId());
+		long newVersionNumber = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotRequest);
 		linkVersionToTransaction(tableId, newVersionNumber, transactionId);
 		return newVersionNumber;
 	}
