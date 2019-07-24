@@ -230,6 +230,7 @@ public class SqlConstants {
 	public static final String COL_FILES_NAME						= "NAME";
 	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String COL_FILES_ENDPOINT					= "ENDPOINT";
+	public static final String COL_FILES_IS_PREVIEW					= "IS_PREVIEW";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
 	
 	// multipart upload state

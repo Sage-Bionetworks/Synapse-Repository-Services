@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -68,7 +67,7 @@ public class FileHandleAssociationManagerImplAutowireTest {
 		entitiesToDelete = new LinkedList<>();
 		
 		S3FileHandle fileHandle = TestUtils.createS3FileHandle(adminUserInfo.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		PreviewFileHandle fileHandlePreview = TestUtils.createPreviewFileHandle(adminUserInfo.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle fileHandlePreview = TestUtils.createPreviewFileHandle(adminUserInfo.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		
@@ -78,7 +77,7 @@ public class FileHandleAssociationManagerImplAutowireTest {
 		fileHandleDao.createBatch(fileHandleToCreate);
 		
 		fileHandle = (S3FileHandle) fileHandleDao.get(fileHandle.getId());
-		fileHandlePreview = (PreviewFileHandle) fileHandleDao.get(fileHandlePreview.getId());
+		fileHandlePreview = (S3FileHandle) fileHandleDao.get(fileHandlePreview.getId());
 		
 		fileHandleDao.setPreviewId(fileHandle.getId(), fileHandlePreview.getId());
 

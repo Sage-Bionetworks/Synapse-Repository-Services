@@ -73,7 +73,7 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -164,11 +164,11 @@ public class SubmissionManagerTest {
     	// FileHandles
 		List<FileHandle> handles = new ArrayList<FileHandle>();
 		List<String> handleIds = new ArrayList<String>();
-		fileHandle1 = new PreviewFileHandle();
+		fileHandle1 = new S3FileHandle();
 		fileHandle1.setId(HANDLE_ID_1);
 		handles.add(fileHandle1);
 		handleIds.add(HANDLE_ID_1);
-		fileHandle2 = new PreviewFileHandle();
+		fileHandle2 = new S3FileHandle();
 		fileHandle2.setId(HANDLE_ID_2);
 		handles.add(fileHandle2);
 		handleIds.add(HANDLE_ID_2);

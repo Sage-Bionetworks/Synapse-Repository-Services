@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,6 +18,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummary;
@@ -73,15 +73,10 @@ public class BulkDownloadDAOImplTest {
 
 		fileHandles = new LinkedList<>();
 		for (int i = 0; i < 4; i++) {
-			S3FileHandle fileHandle = new S3FileHandle();
+			S3FileHandle fileHandle = TestUtils.createS3FileHandle(userOneId, idGenerator.generateNewId((IdType.FILE_IDS)).toString());
 			fileHandle.setBucketName("someBucket");
-			fileHandle.setContentMd5("MD5");
-			fileHandle.setCreatedBy("" + userOneIdLong);
-			fileHandle.setCreatedOn(new Date(System.currentTimeMillis()));
-			fileHandle.setKey("key-" + i);
+			fileHandle.setKey("key-"+i);
 			fileHandle.setFileName("name-" + i);
-			fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-			fileHandle.setEtag(UUID.randomUUID().toString());
 			fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 			fileHandles.add(fileHandle);
 		}

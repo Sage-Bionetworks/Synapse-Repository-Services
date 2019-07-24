@@ -2,14 +2,12 @@ package org.sagebionetworks.file.worker;
 
 import java.time.Instant;
 import java.time.Period;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
+
 import javax.imageio.IIOException;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
@@ -19,11 +17,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupportedException;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
-import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -31,6 +26,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.google.common.collect.Sets;
 
 /**
  * This worker process file create messages. When a file is created without a
@@ -68,8 +66,10 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 				// This is a file message so look up the file
 				FileHandle metadata = previewManager
 						.getFileMetadata(changeMessage.getObjectId());
-				if (metadata instanceof PreviewFileHandle) {
-					// We do not make previews of previews
+				if (!(metadata instanceof CloudProviderFileHandleInterface)) {
+					log.warn("Currently do not support previews for " + metadata.getClass().getName());
+				} else if (((CloudProviderFileHandleInterface) metadata).getIsPreview()) {
+						// We do not make previews of previews
 				} else if (metadata instanceof S3FileHandle) {
 					S3FileHandle s3fileMeta = (S3FileHandle) metadata;
 					// Only generate a preview if we do not already have one.
@@ -77,14 +77,6 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 						// Generate a preview.
 						previewManager.generatePreview(s3fileMeta);
 					}
-				} else if (metadata instanceof ExternalFileHandle) {
-					// we need to add support for this
-					log.warn("Currently do not support previews for ExternalFileHandles");
-				} else if (metadata instanceof ProxyFileHandle) {
-					// we need to add support for this
-					log.warn("Currently do not support previews for ProxyFileHandles");
-				} else if (metadata instanceof ExternalObjectStoreFileHandle) {
-					//we have no permission to access the file contents so we can't generate a preview
 				} else {
 					// We will never be able to process such a message.
 					throw new IllegalArgumentException("Unknown file type: "

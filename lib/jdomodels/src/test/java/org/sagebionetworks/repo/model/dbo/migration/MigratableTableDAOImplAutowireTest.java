@@ -26,11 +26,9 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
-import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
-import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
@@ -232,9 +230,9 @@ public class MigratableTableDAOImplAutowireTest {
 		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
 		filesToDelete.add(handle1.getId());
 		// Add a preview
-		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		CloudProviderFileHandleInterface previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewHandle1.setFileName("preview1");
-		previewHandle1 = (PreviewFileHandle) fileHandleDao.createFile(previewHandle1);
+		previewHandle1 = (CloudProviderFileHandleInterface) fileHandleDao.createFile(previewHandle1);
 		filesToDelete.add(previewHandle1.getId());
 		
 		// Checksum file only
