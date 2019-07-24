@@ -166,6 +166,14 @@ public class ProjectSettingsController {
 	 * can be associated with a project for users to upload their data to a user-owned location. The request object should
 	 * be an implementation class of <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a>,
 	 * such as <a href="${org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting}">ExternalS3StorageLocationSetting</a>.
+	 * </p>
+	 * The creation of a storage location is idempotent for the user: if the same user requests the creation of a storage location that already
+	 * exists with the same properties the previous storage location will be returned.
+	 * </p>
+	 * A storage location can be linked to a project adding its id in the locations property of an 
+	 * <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a> and saving the setting to the
+	 * project.
+	 * 
 	 * @param storageLocationSetting The setting to create.
 	 * @return
 	 * @throws NotFoundException
