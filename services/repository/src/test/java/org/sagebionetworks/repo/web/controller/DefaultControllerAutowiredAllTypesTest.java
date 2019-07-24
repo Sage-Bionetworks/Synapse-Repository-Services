@@ -69,8 +69,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * This is a an integration test for the default controller.
  * 
- * @author jmhill
- * 
  */
 
 public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerTestBase {
@@ -549,6 +547,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -577,6 +579,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -617,6 +623,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		for(Entity entity: created){
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
+				// Cannot directly create version of tables or views
+				if(entity instanceof TableEntity || entity instanceof EntityView) {
+					continue;
+				}
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
 				// Create multiple versions for each.
 				for(int i=0; i<numberVersion; i++){
@@ -665,6 +675,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -719,6 +733,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
