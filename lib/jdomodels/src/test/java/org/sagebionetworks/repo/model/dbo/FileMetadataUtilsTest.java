@@ -196,7 +196,7 @@ public class FileMetadataUtilsTest {
 	}
 
 	@Test
-	public void testBackupFromPreviewLogic(){
+	public void testBackupFromPreview(){
 		FileHandleBackup backup = new FileHandleBackup();
 		backup.setBucketName("bucket");
 		backup.setContentMD5("md5");
@@ -217,6 +217,30 @@ public class FileMetadataUtilsTest {
 		assertNotNull(clone);
 		assertEquals(MetadataType.S3, clone.getMetadataTypeEnum());
 		assertTrue(clone.getIsPreview());
+	}
+
+	@Test
+	public void testBackupFromNullIsPreviewOnNonPreview(){
+		FileHandleBackup backup = new FileHandleBackup();
+		backup.setBucketName("bucket");
+		backup.setContentMD5("md5");
+		backup.setContentSize(123L);
+		backup.setContentType("contentType");
+		backup.setCreatedOn(new Timestamp(1L).getTime());
+		backup.setCreatedBy(9999L);
+		backup.setEtag("etag");
+		backup.setId(456L);
+		backup.setKey("key");
+		backup.setMetadataType("EXTERNAL");
+		backup.setName("name");
+		backup.setPreviewId(4444L);
+		backup.setIsPreview(null);
+
+		// Clone from the backup
+		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
+		assertNotNull(clone);
+		assertEquals(MetadataType.EXTERNAL, clone.getMetadataTypeEnum());
+		assertFalse(clone.getIsPreview());
 	}
 
 
