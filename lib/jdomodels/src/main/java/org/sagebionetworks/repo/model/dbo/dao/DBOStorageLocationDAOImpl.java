@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_UPLOAD_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAGE_LOCATION;
 
 import java.sql.ResultSet;
@@ -15,7 +15,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -195,14 +194,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 						return location;
 					}
 				});
-	}
-
-	// temporary for migration
-	@Override
-	public List<StorageLocationSetting> getAllStorageLocationSettings() {
-		List<DBOStorageLocation> result = jdbcTemplate.query("select * from " + TABLE_STORAGE_LOCATION,
-				new DBOStorageLocation().getTableMapping());
-		return Transform.toList(result, CONVERT_DBO_TO_STORAGE_LOCATION);
 	}
 
 	private Long findByCreatorAndHash(Long creatorId, String hash) throws DatastoreException {
