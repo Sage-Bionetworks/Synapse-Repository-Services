@@ -42,7 +42,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.io.IOException;
-import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -73,7 +72,6 @@ import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -326,7 +324,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N." + COL_NODE_NAME
 			+ ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
 			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
-			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_ANNOS_BLOB + ", F." + COL_FILES_CONTENT_SIZE +
+			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_USER_ANNOTATIONS_V1_BLOB
+			+ ", F." + COL_FILES_CONTENT_SIZE +
 			", F." + COL_FILES_BUCKET_NAME
 			+ " FROM " + JOIN_NODE_REVISION_FILES+" WHERE N."
 			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ") ORDER BY N."+COL_NODE_ID+" ASC";
@@ -812,7 +811,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public void updateUserAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException {
+	public void updateUserAnnotationsV1(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException {
 		updateAnnotations(nodeId, updatedAnnos, COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
 	}
 
@@ -1636,11 +1635,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if (rs.wasNull()) {
 					dto.setIsInSynapseStorage(null);
 				}
-				Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
-				if(blob != null){
-					byte[] bytes = blob.getBytes(1, (int) blob.length());
+				byte[] bytes = rs.getBytes(COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
+				if(bytes != null){
 					try {
-						NamedAnnotations annos = AnnotationUtils.decompressedAnnotations(bytes);
+						Annotations annos = AnnotationUtils.decompressedAnnotationsV1(bytes);
 						dto.setAnnotations(AnnotationUtils.translate(entityId, annos, maxAnnotationSize));
 					} catch (IOException e) {
 						throw new DatastoreException(e);

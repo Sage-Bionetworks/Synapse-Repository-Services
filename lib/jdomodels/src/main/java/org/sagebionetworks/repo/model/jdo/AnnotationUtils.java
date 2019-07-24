@@ -115,11 +115,11 @@ public class AnnotationUtils {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<AnnotationDTO> translate(Long entityId, NamedAnnotations annos, int maxAnnotationChars) {
+	public static List<AnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
 		LinkedHashMap<String, AnnotationDTO> map = new LinkedHashMap<>();
 		if(annos != null){
 			// add additional
-			addAnnotations(entityId, maxAnnotationChars, map, annos.getAdditionalAnnotations());
+			addAnnotations(entityId, maxAnnotationChars, map, annos);
 		}
 		// build the results from the map
 		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();

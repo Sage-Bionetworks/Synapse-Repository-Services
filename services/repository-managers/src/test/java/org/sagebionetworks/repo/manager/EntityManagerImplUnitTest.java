@@ -32,6 +32,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -138,9 +139,9 @@ public class EntityManagerImplUnitTest {
 	public void testUpdateEntityActivityId() throws Exception {
 		String id = "123";
 		Node node = mock(Node.class);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		Entity entity = new Project();
 		entity.setId(id);
 		
@@ -175,9 +176,9 @@ public class EntityManagerImplUnitTest {
 	public void testDeleteActivityId() throws Exception {
 		String id = "123";
 		Node node = mock(Node.class);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		Entity entity = new Project();
 		entity.setId(id);
 		
@@ -213,9 +214,9 @@ public class EntityManagerImplUnitTest {
 		String id = "123";
 		Node node = new Node();
 		node.setFileHandleId("101");
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		FileEntity entity = new FileEntity();
 		entity.setId(id);
 		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202

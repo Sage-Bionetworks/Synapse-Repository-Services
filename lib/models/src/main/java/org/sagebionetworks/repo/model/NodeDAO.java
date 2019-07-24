@@ -118,7 +118,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 */
 	@WriteTransaction
-	void updateUserAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
+	void updateUserAnnotationsV1(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Update annotations for the node's additional entity properties

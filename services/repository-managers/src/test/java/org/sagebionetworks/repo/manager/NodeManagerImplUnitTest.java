@@ -132,7 +132,7 @@ public class NodeManagerImplUnitTest {
 		annos.setEtag("etag");
 		annos.addAnnotation("key", "value");
 		
-		when(mockNodeDao.getAnnotations(any(String.class))).thenReturn(new NamedAnnotations());
+		when(mockNodeDao.getEntityPropertyAnnotations(any(String.class))).thenReturn(new Annotations());
 		
 		when(mockNodeDao.isNodeAvailable(any(String.class))).thenReturn(true);
 	}
@@ -447,15 +447,26 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations annos = named.getAdditionalAnnotations();
+		Annotations annos = new Annotations();
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
-		when(mockNodeDao.getAnnotations(id)).thenReturn(named);
+		when(mockNodeDao.getUserAnnotationsV1(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		NamedAnnotations namedCopy = nodeManager.getAnnotations(userInfo, id);
-		Annotations copy = namedCopy.getAdditionalAnnotations();
+		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);
+		assertEquals(copy, annos);
+	}
+
+	@Test
+	public void testGetEntityPropertyAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
+		String id = "101";
+		Annotations annos = new Annotations();
+		annos.addAnnotation("stringKey", "a");
+		annos.addAnnotation("longKey", Long.MAX_VALUE);
+		when(mockNodeDao.getEntityPropertyAnnotations(id)).thenReturn(annos);
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		Annotations copy = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
 	
@@ -711,12 +722,11 @@ public class NodeManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNodeNoEtag() throws Exception {
 		String id = "101";
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations annots = named.getAdditionalAnnotations();
-		annots.addAnnotation("k", "a");
-		named.setEtag("etag");
+		Annotations userAnnotations = new Annotations();
+		userAnnotations.addAnnotation("k", "a");
+		userAnnotations.setEtag("etag");
 
-		nodeManager.update(mockUserInfo, mockNode, named, false);
+		nodeManager.update(mockUserInfo, mockNode, null, userAnnotations, false);
 	}
 
 	@Test
@@ -976,7 +986,7 @@ public class NodeManagerImplUnitTest {
 		updated.setEtag(startEtag);
 		updated.setId(nodeId);
 		// call under test
-		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 		verify(mockNodeDao).lockNode(nodeId);
 		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
 	}
@@ -988,7 +998,7 @@ public class NodeManagerImplUnitTest {
 		updated.setId(nodeId);
 		try {
 			// call under test
-			nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+			nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 			fail();
 		} catch (ConflictingUpdateException e) {
 			// expected

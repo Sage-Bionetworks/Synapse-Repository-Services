@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager;
   
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +50,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 /**
  * The Sage business logic for node management.
@@ -404,7 +401,7 @@ public class NodeManagerImpl implements NodeManager {
 		// Also update the Annotations if provided
 		if(userAnnotations != null){
 			userAnnotations.setEtag(nextETag);
-			nodeDao.updateUserAnnotations(updatedNode.getId(), userAnnotations);
+			nodeDao.updateUserAnnotationsV1(updatedNode.getId(), userAnnotations);
 		}
 
 		// Also update the entity property Annotations if provided
@@ -479,7 +476,7 @@ public class NodeManagerImpl implements NodeManager {
 		nodeDao.touch(userInfo.getId(), nodeId);
 
 
-		nodeDao.updateUserAnnotations(nodeId, updated);
+		nodeDao.updateUserAnnotationsV1(nodeId, updated);
 		return getUserAnnotations(userInfo, nodeId);
 	}
 	

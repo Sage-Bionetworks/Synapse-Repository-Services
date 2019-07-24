@@ -6,10 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -22,10 +22,8 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -44,8 +42,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.google.common.collect.Lists;
 
 /**
  *
@@ -96,7 +92,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity, entityPropertyAnnotations);
 		// We are ready to create this node
-		node = nodeManager.createNewNode(node, annos, userInfo);
+		node = nodeManager.createNewNode(node, entityPropertyAnnotations, userInfo);
 		// Return the id of the newly created entity
 		return node.getId();
 	}
@@ -263,11 +259,7 @@ public class EntityManagerImpl implements EntityManager {
 		if (entityId == null)
 			throw new IllegalArgumentException("Entity ID cannot be null");
 		// This is a simple pass through
-		NamedAnnotations annos = nodeManager.getAnnotations(userInfo, entityId);
-		// When the user is asking for the annotations, then they want the
-		// additional
-		// annotations and not the primary annotations.
-		return annos.getAdditionalAnnotations();
+		return nodeManager.getUserAnnotations(userInfo, entityId);
 	}
 
 	@Override
@@ -275,12 +267,7 @@ public class EntityManagerImpl implements EntityManager {
 			Long versionNumber) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		// Get all of the annotations.
-		NamedAnnotations annos = nodeManager.getAnnotationsForVersion(userInfo,
-				id, versionNumber);
-		// When the user is asking for the annotations, then they want the
-		// additional
-		// annotations and not the primary annotations.
-		return annos.getAdditionalAnnotations();
+		return nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber);
 	}
 
 	@WriteTransaction
@@ -296,8 +283,7 @@ public class EntityManagerImpl implements EntityManager {
 		Annotations updatedClone = new Annotations();
 		cloneAnnotations(updated, updatedClone);
 		// the following *changes* the passed annotations (specifically the etag) so we just pass a clone
-		nodeManager.updateUserAnnotations(userInfo, entityId, updatedClone,
-				AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(userInfo, entityId, updatedClone);
 	}
 	
 	public static void cloneAnnotations(Annotations src, Annotations dst) {
