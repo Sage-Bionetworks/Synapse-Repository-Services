@@ -6,13 +6,10 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -20,7 +17,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -33,7 +29,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
@@ -44,7 +39,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.S3Object;
@@ -53,10 +47,10 @@ import com.google.common.net.InternetDomainName;
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	public static final int MIN_SECRET_KEY_CHARS = 36;
+	
+	public static final int MAX_LOCATIONS_PER_PROJECT = 10;
 
 	private static final String EXTERNAL_S3_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external S3 upload destination";
-
-	static private Logger log = LogManager.getLogger(ProjectSettingsManagerImpl.class);
 
 	@Autowired
 	private ProjectSettingsDAO projectSettingsDao;
@@ -66,9 +60,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
-
-	@Autowired
-	private NodeDAO nodeDAO;
 
 	@Autowired
 	private NodeManager nodeManager;
@@ -115,24 +106,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
 		return (T) projectSetting;
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T extends ProjectSetting> List<T> getNodeSettingsByType(ProjectSettingsType projectSettingsType, Class<T> expectedType) {
-		List<ProjectSetting> projectSettings = projectSettingsDao.getByType(projectSettingsType);
-		Iterator<ProjectSetting> iter = projectSettings.iterator();
-		while (iter.hasNext()) {
-			ProjectSetting projectSetting = iter.next();
-			if (!expectedType.isInstance(projectSetting)) {
-				// report error if wrong type, but don't throw error. This is called by worker who just wants to handle
-				// all correct cases
-				log.error("The project setting for type " + projectSettingsType + " and node " + projectSetting.getProjectId()
-						+ " is not of the expected type " + expectedType.getName() + " but instead is " + projectSetting.getClass().getName());
-				iter.remove();
-			}
-		}
-		return (List<T>) projectSettings;
 	}
 
 	@Override
@@ -262,26 +235,16 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
 			validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser);
-		} else if (setting instanceof ExternalSyncSetting) {
-			validateExternalSyncSetting((ExternalSyncSetting) setting);
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}
 	}
 
-	private void validateExternalSyncSetting(ExternalSyncSetting setting) {
-		ValidateArgument.required(setting.getAutoSync(), "ExternalSyncSetting.autoSync");
-		ValidateArgument.required(setting.getLocationId(), "ExternalSyncSetting.locationId");
-		// check for empty node
-		if (!(nodeDAO.getChildCount(setting.getProjectId()) > 1L)) {
-			throw new IllegalArgumentException("You cannot apply autosync to a folder or project that has any children in it");
-		}
-	}
-
 	private void validateUploadDestinationListSetting(UploadDestinationListSetting setting, UserInfo currentUser) {
-		ValidateArgument.requirement(CollectionUtils.isEmpty(setting.getDestinations()), "setting.getDestinations() cannot have a value.");
 		ValidateArgument.required(setting.getLocations(), "settings.locations");
 		ValidateArgument.requirement(setting.getLocations().size() >= 1, "settings.locations must at least have one entry");
+		ValidateArgument.requirement(setting.getLocations().size() <= MAX_LOCATIONS_PER_PROJECT, "The maximum number of settings.locations is limited to " + MAX_LOCATIONS_PER_PROJECT);
+		
 		for (Long uploadId : setting.getLocations()) {
 			try {
 				StorageLocationSetting storageLocationSetting = storageLocationDAO.get(uploadId);

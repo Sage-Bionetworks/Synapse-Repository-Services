@@ -15,10 +15,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
@@ -71,17 +69,6 @@ public class ProjectSettingsImplTest {
 		verify(mockStorageLocationDAO).get(2L);
 	}
 
-	@Test
-	public void testValidWithEmptyDestination() throws Exception {
-		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setProjectId("projectId");
-		setting.setSettingsType(ProjectSettingsType.upload);
-		setting.setLocations(Lists.newArrayList(1L));
-		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList());
-
-		projectSettingsManager.validateProjectSetting(setting, null);
-	}
-
 	@Test(expected = IllegalArgumentException.class)
 	public void testNoProjectId() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
@@ -99,17 +86,7 @@ public class ProjectSettingsImplTest {
 
 		projectSettingsManager.validateProjectSetting(setting, null);
 	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testHasNonEmptyDestination() {
-		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setProjectId("projectId");
-		setting.setSettingsType(ProjectSettingsType.upload);
-		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-
-		projectSettingsManager.validateProjectSetting(setting, null);
-	}
-
+	
 	@Test(expected = IllegalArgumentException.class)
 	public void testEmptyLocations() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
@@ -165,6 +142,17 @@ public class ProjectSettingsImplTest {
 		UserProfile profile = new UserProfile();
 		when(mockUserProfileManager.getUserProfile("12")).thenReturn(profile);
 
+		projectSettingsManager.validateProjectSetting(setting, currentUser);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateProjectSettingLocationLimitExceeded() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayListWithCapacity(ProjectSettingsManagerImpl.MAX_LOCATIONS_PER_PROJECT + 1));
+		
+		UserInfo currentUser = new UserInfo(false, 11L);
 		projectSettingsManager.validateProjectSetting(setting, currentUser);
 	}
 }

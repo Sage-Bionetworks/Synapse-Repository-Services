@@ -74,6 +74,7 @@ public class SqlConstants {
 	public static final String COL_STORAGE_LOCATION_DATA			= "DATA";
 	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
+	public static final String COL_STORAGE_LOCATION_DATA_HASH		= "DATA_HASH";
 
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";

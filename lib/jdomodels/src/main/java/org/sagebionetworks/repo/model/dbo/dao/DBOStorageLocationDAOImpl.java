@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_UPLOAD_TYPE;
@@ -13,7 +15,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -56,15 +57,24 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	public static final Long DEFAULT_STORAGE_LOCATION_ID = 1L;
 
+	private static final int STORAGE_LOCATIONS_LIST_LIMIT = 100;
+
 	private static final String STORAGE_LOCATION_IDS_PARAM = "udl_ids";
 
-	private static final String SELECT_STORAGE_LOCATIONS = "SELECT " + COL_STORAGE_LOCATION_ID + ", " + COL_STORAGE_LOCATION_DESCRIPTION
-			+ ", " + COL_STORAGE_LOCATION_UPLOAD_TYPE + " FROM " + TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_ID + " IN (:"
-			+ STORAGE_LOCATION_IDS_PARAM + ")";
-	private static final String SELECT_STORAGE_LOCATIONS_BY_OWNER = "SELECT * FROM " + TABLE_STORAGE_LOCATION + " WHERE "
-			+ COL_STORAGE_LOCATION_CREATED_BY + " = ?";
+	private static final String SELECT_STORAGE_LOCATIONS_BY_IDS = "SELECT " + COL_STORAGE_LOCATION_ID + ", "
+			+ COL_STORAGE_LOCATION_DESCRIPTION + ", " + COL_STORAGE_LOCATION_UPLOAD_TYPE + " FROM "
+			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_ID + " IN (:" + STORAGE_LOCATION_IDS_PARAM
+			+ ")";
 
-	private static final RowMapper<DBOStorageLocation> StorageLocationRowMapper = (new DBOStorageLocation()).getTableMapping();
+	private static final String SELECT_STORAGE_LOCATIONS_BY_OWNER = "SELECT * FROM " + TABLE_STORAGE_LOCATION
+			+ " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON
+			+ " DESC LIMIT " + STORAGE_LOCATIONS_LIST_LIMIT;
+
+	private static final String SELECT_ID_BY_CREATOR_AND_HASH = "SELECT " + COL_STORAGE_LOCATION_ID + " FROM "
+			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? AND "
+			+ COL_STORAGE_LOCATION_DATA_HASH + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON + " DESC";
+
+	private static final RowMapper<DBOStorageLocation> ROW_MAPPER = new DBOStorageLocation().getTableMapping();
 
 	public static UploadDestination getDefaultUploadDestination() {
 		S3UploadDestination defaultUploadDestination = new S3UploadDestination();
@@ -82,32 +92,28 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		return storageLocationSetting;
 	}
 
-	private static final Function<DBOStorageLocation, StorageLocationSetting> CONVERT_DBO_TO_STORAGE_LOCATION = new Function<DBOStorageLocation, StorageLocationSetting>() {
-		@Override
-		public StorageLocationSetting apply(DBOStorageLocation dbo) {
-			StorageLocationSetting setting = dbo.getData();
-			setting.setStorageLocationId(dbo.getId());
-			setting.setDescription(dbo.getDescription());
-			setting.setUploadType(dbo.getUploadType());
-			setting.setEtag(dbo.getEtag());
-			setting.setCreatedBy(dbo.getCreatedBy());
-			setting.setCreatedOn(dbo.getCreatedOn());
-			return setting;
-		}
+	private static final Function<DBOStorageLocation, StorageLocationSetting> CONVERT_DBO_TO_STORAGE_LOCATION = dbo -> {
+		StorageLocationSetting setting = dbo.getData();
+		setting.setStorageLocationId(dbo.getId());
+		setting.setDescription(dbo.getDescription());
+		setting.setUploadType(dbo.getUploadType());
+		setting.setEtag(dbo.getEtag());
+		setting.setCreatedBy(dbo.getCreatedBy());
+		setting.setCreatedOn(dbo.getCreatedOn());
+		return setting;
 	};
-	private static final Function<StorageLocationSetting, DBOStorageLocation> CONVERT_STORAGE_LOCATION_TO_DBO = new Function<StorageLocationSetting, DBOStorageLocation>() {
-		@Override
-		public DBOStorageLocation apply(StorageLocationSetting setting) {
-			DBOStorageLocation dbo = new DBOStorageLocation();
-			dbo.setId(setting.getStorageLocationId());
-			dbo.setDescription(setting.getDescription());
-			dbo.setUploadType(setting.getUploadType());
-			dbo.setEtag(setting.getEtag());
-			dbo.setData(setting);
-			dbo.setCreatedBy(setting.getCreatedBy());
-			dbo.setCreatedOn(setting.getCreatedOn());
-			return dbo;
-		}
+
+	private static final Function<StorageLocationSetting, DBOStorageLocation> CONVERT_STORAGE_LOCATION_TO_DBO = setting -> {
+		DBOStorageLocation dbo = new DBOStorageLocation();
+		dbo.setId(setting.getStorageLocationId());
+		dbo.setDescription(setting.getDescription());
+		dbo.setUploadType(setting.getUploadType());
+		dbo.setEtag(setting.getEtag());
+		dbo.setData(setting);
+		dbo.setDataHash(StorageLocationUtils.computeHash(setting));
+		dbo.setCreatedBy(setting.getCreatedBy());
+		dbo.setCreatedOn(setting.getCreatedOn());
+		return dbo;
 	};
 
 	@Override
@@ -123,7 +129,8 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 						.getDefaultStorageLocationSetting();
 				defaultStorageLocationSetting.setCreatedOn(new Date());
 				defaultStorageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-				defaultStorageLocationSetting.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+				defaultStorageLocationSetting
+						.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
 				create(defaultStorageLocationSetting);
 			} catch (DuplicateKeyException e2) {
 				// someone else got there first
@@ -139,6 +146,13 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	@Override
 	public Long create(StorageLocationSetting dto) {
 		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
+
+		Long existingId = findByCreatorAndHash(dbo.getCreatedBy(), dbo.getDataHash());
+
+		if (existingId != null) {
+			return existingId;
+		}
+
 		if (dbo.getId() == null) {
 			dbo.setId(idGenerator.generateNewId(IdType.STORAGE_LOCATION_ID));
 		}
@@ -155,20 +169,22 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 			return getDefaultStorageLocationSetting();
 		}
 
-		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(
-				storageLocationId));
+		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
+				new SinglePrimaryKeySqlParameterSource(storageLocationId));
 		return CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
 	}
 
 	@Override
 	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException {
-		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, StorageLocationRowMapper, id);
+		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, ROW_MAPPER, id);
 		return Lists.newArrayList(Lists.transform(dboStorageLocations, CONVERT_DBO_TO_STORAGE_LOCATION));
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations) throws DatastoreException, NotFoundException {
-		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS, Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, locations),
+	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations)
+			throws DatastoreException, NotFoundException {
+		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_IDS,
+				Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, locations),
 				new RowMapper<UploadDestinationLocation>() {
 					@Override
 					public UploadDestinationLocation mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -181,11 +197,8 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 				});
 	}
 
-	// temporary for migration
-	@Override
-	public List<StorageLocationSetting> getAllStorageLocationSettings() {
-		List<DBOStorageLocation> result = jdbcTemplate.query("select * from " + TABLE_STORAGE_LOCATION,
-				new DBOStorageLocation().getTableMapping());
-		return Transform.toList(result, CONVERT_DBO_TO_STORAGE_LOCATION);
+	private Long findByCreatorAndHash(Long creatorId, String hash) throws DatastoreException {
+		List<Long> results = jdbcTemplate.queryForList(SELECT_ID_BY_CREATOR_AND_HASH, Long.class, creatorId, hash);
+		return results.isEmpty() ? null : results.iterator().next();
 	}
 }

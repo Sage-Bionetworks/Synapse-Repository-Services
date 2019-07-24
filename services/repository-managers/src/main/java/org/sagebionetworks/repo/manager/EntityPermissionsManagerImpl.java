@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.collections.Transform;
@@ -42,8 +41,6 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -451,13 +448,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	
 	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentOrNodeId)
 			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return AuthorizationStatus.authorized();
-		if (!agreesToTermsOfUse(userInfo)) return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
-		
-		ExternalSyncSetting projectSettingForNode = projectSettingsManager.getProjectSettingForNode(userInfo, parentOrNodeId,
-				ProjectSettingsType.external_sync, ExternalSyncSetting.class);
-		if (projectSettingForNode != null && BooleanUtils.isTrue(projectSettingForNode.getAutoSync())) {
-			return AuthorizationStatus.accessDenied("This is an autosync folder. No content can be placed in this container.");
+		if (userInfo.isAdmin()) {
+			return AuthorizationStatus.authorized();
+		}
+		if (!agreesToTermsOfUse(userInfo)) {
+			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		}
 		return AuthorizationStatus.authorized();
 	}
