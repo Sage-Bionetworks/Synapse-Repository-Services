@@ -20,6 +20,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
@@ -28,6 +29,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOTATIONS_V1_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
@@ -56,6 +58,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
@@ -93,7 +97,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
@@ -116,9 +119,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 /**
  * This is a basic implementation of the NodeDAO.
  * 
@@ -135,7 +135,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String UPDATE_NODE = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_NAME + " = ?, "
 			+ COL_NODE_PARENT_ID + " = ?, " + COL_NODE_ALIAS + " = ? WHERE " + COL_NODE_ID + " = ?";
 	
-	private static final String SQL_UPDATE_ANNOTATIONS = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ANNOS_BLOB
+	private static final String SQL_UPDATE_ANNOTATIONS_FORMAT = "UPDATE " + TABLE_REVISION + " SET %s"
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	private static final String SQL_TOUCH_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_MODIFIED_BY
 			+ " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND "
@@ -300,7 +300,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						+ " ORDER BY "+COL_NODE_ID+" ASC LIMIT :"+BIND_LIMIT;
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
-	private static final String SELECT_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R."+COL_REVISION_ANNOS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER;
+	private static final String SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R.";
+
+	private static final String SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX = " FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + "=";
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -675,73 +677,63 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException {
-		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
+	public Annotations getUserAnnotationsV1(final String id) throws NotFoundException, DatastoreException {
+		ValidateArgument.requiredNotEmpty(id, "id");
+		return getAnnotations(id, null, COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
+	}
+
+	@Override
+	public Annotations getUserAnnotationsV1ForVersion(final String id, Long versionNumber) throws NotFoundException, DatastoreException {
+		ValidateArgument.requiredNotEmpty(id, "id");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		return getAnnotations(id, versionNumber, COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
+	}
+
+	@Override
+	public Annotations getEntityPropertyAnnotations(final String id) throws NotFoundException, DatastoreException {
+		ValidateArgument.requiredNotEmpty(id, "id");
+		return getAnnotations(id, null, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
+	}
+
+	@Override
+	public Annotations getEntityPropertyAnnotationsForVersion(final String id, Long versionNumber) throws NotFoundException, DatastoreException {
+		ValidateArgument.requiredNotEmpty(id, "id");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		return getAnnotations(id, versionNumber, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
+	}
+	private Annotations getAnnotations(final String id, Long version, final String columnName){
+		final Long idLong = KeyFactory.stringToKey(id);
+
+		StringBuilder sql = new StringBuilder(SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX);
+		sql.append(columnName);
+		sql.append(SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX);
+		Object[] args;
+		if(version == null){
+			sql.append("N." + COL_CURRENT_REV);
+			args = new Object[]{idLong};
+		}else {
+			sql.append("?");
+			args = new Object[]{idLong, version};
+		}
 		// Select just the references, not the entire node.
 		try{
-			return jdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = N." + COL_CURRENT_REV, new AnnotationRowMapper(),
-					KeyFactory.stringToKey(id));
+			Annotations annos =  jdbcTemplate.queryForObject(sql.toString(), ANNOTATIONS_ROW_MAPPER, args);
+			// Remove the eTags when version is specified (See PLFM-1420)
+			if(annos != null && version != null){
+					annos.setEtag(NodeConstants.ZERO_E_TAG);
+			}
+			return annos;
 		}catch (EmptyResultDataAccessException e){
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
 		}
 	}
 
-	@Override
-	public NamedAnnotations getAnnotationsForVersion(final String id, Long versionNumber) throws NotFoundException, DatastoreException {
-		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
-		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
-		// Select just the references, not the entire node.
-		try{
-			NamedAnnotations namedAnnos = jdbcTemplate.queryForObject(
-					SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",
-					new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
-			// Remove the eTags (See PLFM-1420)
-			if (namedAnnos != null) {
-				namedAnnos.setEtag(NodeConstants.ZERO_E_TAG);
-			}
-			Annotations primaryAnnos = namedAnnos.getPrimaryAnnotations();
-			if (primaryAnnos != null) {
-				primaryAnnos.setEtag(NodeConstants.ZERO_E_TAG);
-			}
-			Annotations additionalAnnos = namedAnnos.getAdditionalAnnotations();
-			if (additionalAnnos != null) {
-				additionalAnnos.setEtag(NodeConstants.ZERO_E_TAG);
-			}
-			return namedAnnos;
-		}catch (EmptyResultDataAccessException e){
-			// Occurs if there are no results
-			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
-		}
-	}
-	
 	/**
-	 * A RowMapper that extracts NamedAnnotations from a result set.
+	 * A RowMapper that extracts Annotation from a result set.
 	 * The result set must COL_REVISION_ANNOS_BLOB, COL_NODE_ETAG, COL_NODE_CREATED_ON, COL_NODE_ID, COL_NODE_CREATED_BY
 	 *
 	 */
-	private class AnnotationRowMapper implements RowMapper<NamedAnnotations>{
-		@Override
-		public NamedAnnotations mapRow(ResultSet rs, int rowNum)	throws SQLException {
-			NamedAnnotations annos = null;
-			Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
-			if(blob != null){
-				byte[] bytes = blob.getBytes(1, (int) blob.length());
-				try {
-					annos = AnnotationUtils.decompressedAnnotations(bytes);
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
-			}else{
-				// If there is no annotations blob then create a new one.
-				annos = new NamedAnnotations();
-			}
-			// Pull out the rest of the data.
-			annos.setEtag(rs.getString(COL_NODE_ETAG));
-			annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-			return annos;
-		}
-	}
 
 	private static final RowMapper<Annotations> ANNOTATIONS_ROW_MAPPER = (ResultSet rs, int rowNum) ->{
 		Annotations annos = null;
@@ -820,7 +812,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
+	public void updateUserAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException {
+		updateAnnotations(nodeId, updatedAnnos, COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException {
+		updateAnnotations(nodeId, updatedAnnos, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
+	}
+
+	@WriteTransaction
+	void updateAnnotations(String nodeId, Annotations updatedAnnos, String annotationColumnName) throws NotFoundException, DatastoreException {
 
 		if(updatedAnnos == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
 		if(updatedAnnos.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
@@ -832,13 +835,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// now update the annotations from the passed values.
 		try {
 			// Compress the annotations.
-			byte[] newAnnos = AnnotationUtils.compressAnnotations(updatedAnnos);
-			this.jdbcTemplate.update(SQL_UPDATE_ANNOTATIONS, newAnnos, nodeIdLong, currentRevision);
+			byte[] newAnnos = AnnotationUtils.compressAnnotationsV1(updatedAnnos);
+			this.jdbcTemplate.update(String.format(SQL_UPDATE_ANNOTATIONS_FORMAT, annotationColumnName), newAnnos, nodeIdLong, currentRevision);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
-		} 
+		}
 	}
-	
+
 	@Override
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException {
 		List<Long> list = new ArrayList<Long>();
@@ -1876,56 +1879,4 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return newEtag;
 	}
 
-	//////////////////////////////////
-	// temporary annotation fix code
-	//////////////////////////////////
-
-	private static final String SQL_GET_ANNOTATIONS = "SELECT " + COL_REVISION_OWNER_NODE + "," + COL_REVISION_NUMBER + "," + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_REVISION  + " WHERE " + COL_REVISION_OWNER_NODE + "=?";
-
-	private static final String SQL_GET_ALL_NODE_IDS_IN_RANGE = "SELECT " + COL_NODE_ID +
-			" FROM " + TABLE_NODE +
-			" WHERE " + COL_NODE_ID + " >= ? AND " + COL_NODE_ID + " < ?" +
-			" ORDER BY " + COL_NODE_ID + " ASC";
-	private static final RowMapper<Object[]> ANNOBLOB_ID_REVISION_ROWMAPPER = (ResultSet rs, int rowNum)->
-		new Object[]{
-				rs.getBytes(COL_REVISION_ANNOS_BLOB),
-				rs.getLong(COL_REVISION_OWNER_NODE),
-				rs.getLong(COL_REVISION_NUMBER)
-		};
-
-
-
-	/**
-	 *
-	 * @param idsAndRevisions
-	 * @return list of object arrays in format: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
-	 */
-	@Override
-	@MandatoryWriteTransaction
-	public List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId){
-		return jdbcTemplate.query(SQL_GET_ANNOTATIONS, ANNOBLOB_ID_REVISION_ROWMAPPER, nodeId);
-	}
-
-
-	/**
-	 *
-	 * @param args object array of: {COL_REVISION_ANNOS_BLOB, COL_REVISION_OWNER_NODE, COL_REVISION_NUMBER}
-	 */
-	@Override
-	@MandatoryWriteTransaction
-	public void TEMPORARYBatchUpdateAnnotations(List<Object[]> args){
-		jdbcTemplate.batchUpdate(SQL_UPDATE_ANNOTATIONS, args);
-	}
-
-	@Override
-	public List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes){
-		return jdbcTemplate.queryForList(SQL_GET_ALL_NODE_IDS_IN_RANGE, Long.class, nodeIdStart, nodeIdStart + numNodes);
-	}
-
-	@Override
-	@MandatoryWriteTransaction
-	public void TEMPORARYChangeEtagOnly(Long id){
-		String newEtag = "deadbeef-dead-beef-dead-beefdeadbeef";
-		this.jdbcTemplate.update(SQL_TOUCH_ETAG, newEtag, id);
-	}
 }

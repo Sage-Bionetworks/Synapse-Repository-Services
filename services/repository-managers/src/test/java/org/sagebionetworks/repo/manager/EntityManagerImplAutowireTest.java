@@ -182,7 +182,6 @@ public class EntityManagerImplAutowireTest {
 		// Get another copy
 		EntityWithAnnotations<Folder> ewa = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
 		assertNotNull(ewa);
-		assertNotNull(ewa.getAnnotations());
 		assertNotNull(ewa.getEntity());
 		Folder fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(fetched);
@@ -193,7 +192,6 @@ public class EntityManagerImplAutowireTest {
 		// Now get the Annotations
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
-		assertEquals(ewa.getAnnotations(), annos);
 		annos.addAnnotation("someNewTestAnnotation", "someStringValue");
 		// Update
 		entityManager.updateAnnotations(adminUserInfo,id, annos);

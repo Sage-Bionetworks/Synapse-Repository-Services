@@ -284,7 +284,7 @@ public class NodeManagerImplAutoWiredTest {
 		// sleep to ensure modifiedOn changes.
 		Thread.sleep(10);
 		// Now update the node
-		Annotations updated = nodeManager.updateAnnotations(adminUserInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
+		Annotations updated = nodeManager.updateUserAnnotations(adminUserInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(updated);
 		assertNotNull(updated.getEtag());
 		assertFalse(updated.getEtag().equals(eTagBeforeUpdate));
@@ -320,11 +320,11 @@ public class NodeManagerImplAutoWiredTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringKey", "should take");
 		String startingEtag = annos.getEtag();
-		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 		// Try it again without changing the eTag
 		annos.setEtag(startingEtag);
 		annos.addAnnotation("stringKey", "should not take");
-		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 	}
 	
 	@Test
@@ -345,7 +345,7 @@ public class NodeManagerImplAutoWiredTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		String firstVersionValue = "Value on the first version.";
 		annos.addAnnotation("stringKey", firstVersionValue);
-		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 		
 		// In a typical new version scenario we will update a the node and annotations at the same
 		// times as creating a new version.

@@ -976,7 +976,7 @@ public class NodeManagerImplUnitTest {
 		updated.setEtag(startEtag);
 		updated.setId(nodeId);
 		// call under test
-		nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
 		verify(mockNodeDao).lockNode(nodeId);
 		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
 	}
@@ -988,7 +988,7 @@ public class NodeManagerImplUnitTest {
 		updated.setId(nodeId);
 		try {
 			// call under test
-			nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+			nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
 			fail();
 		} catch (ConflictingUpdateException e) {
 			// expected

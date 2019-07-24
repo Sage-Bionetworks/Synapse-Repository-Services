@@ -397,7 +397,7 @@ public class NodeManagerAuthorizationTest {
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.updateAnnotations(mockUserInfo, id, mockAnnotations, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(mockUserInfo, id, mockAnnotations, AnnotationNameSpace.ADDITIONAL);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

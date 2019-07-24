@@ -132,30 +132,7 @@ public class EntityManagerImplUnitTest {
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
 		entityManager.validateReadAccess(mockUser, entityId);
 	}
-	
-	@Test
-	public void testGetEntitySecondaryFields() throws Exception {
-		String id = "123";
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getPrimaryAnnotations().addAnnotation("fileNameOverride", "bar.txt");
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);		
-		FileEntity entity = entityManager.getEntitySecondaryFields(mockUser, id, FileEntity.class);
-		assertEquals("0", entity.getCreatedBy());
-		assertEquals("0", entity.getModifiedBy());
-		assertEquals("bar.txt", entity.getFileNameOverride());
-	}
 
-	@Test
-	public void testGetEntitySecondaryFieldsForVersion() throws Exception {
-		String id = "123";
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getPrimaryAnnotations().addAnnotation("fileNameOverride", "bar.txt");
-		when(mockNodeManager.getAnnotationsForVersion(mockUser, id, 1L)).thenReturn(annos);		
-		FileEntity entity = entityManager.getEntitySecondaryFieldsForVersion(mockUser, id, 1L, FileEntity.class);
-		assertEquals("0", entity.getCreatedBy());
-		assertEquals("0", entity.getModifiedBy());
-		assertEquals("bar.txt", entity.getFileNameOverride());
-	}
 
 	@Test
 	public void testUpdateEntityActivityId() throws Exception {

@@ -503,7 +503,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
-		verify(mockNodeManager).updateAnnotations(userInfo, "syn111", namedAnnotations.getAdditionalAnnotations(), AnnotationNameSpace.ADDITIONAL);
+		verify(mockNodeManager).updateUserAnnotations(userInfo, "syn111", namedAnnotations.getAdditionalAnnotations(), AnnotationNameSpace.ADDITIONAL);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -526,7 +526,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
 	}
 	
 	@Test
@@ -535,7 +535,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
 	}
 	
 	@Test
@@ -545,7 +545,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
 	}
 	
 	@Test
