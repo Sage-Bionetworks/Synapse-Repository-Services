@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -33,7 +34,9 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -72,7 +75,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	private static final String SELECT_ID_BY_CREATOR_AND_HASH = "SELECT " + COL_STORAGE_LOCATION_ID + " FROM "
 			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? AND "
-			+ COL_STORAGE_LOCATION_DATA_HASH + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON + " DESC";
+			+ COL_STORAGE_LOCATION_DATA_HASH + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON + " DESC LIMIT 1";
 
 	private static final RowMapper<DBOStorageLocation> ROW_MAPPER = new DBOStorageLocation().getTableMapping();
 
@@ -147,10 +150,10 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	public Long create(StorageLocationSetting dto) {
 		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
 
-		Long existingId = findByCreatorAndHash(dbo.getCreatedBy(), dbo.getDataHash());
+		Optional<Long> existingLocationId =  findByCreatorAndHash(dbo.getCreatedBy(), dbo.getDataHash());
 
-		if (existingId != null) {
-			return existingId;
+		if (existingLocationId.isPresent()) {
+			return existingLocationId.get();
 		}
 
 		if (dbo.getId() == null) {
@@ -176,7 +179,8 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	@Override
 	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException {
-		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, ROW_MAPPER, id);
+		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, ROW_MAPPER,
+				id);
 		return Lists.newArrayList(Lists.transform(dboStorageLocations, CONVERT_DBO_TO_STORAGE_LOCATION));
 	}
 
@@ -197,8 +201,12 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 				});
 	}
 
-	private Long findByCreatorAndHash(Long creatorId, String hash) throws DatastoreException {
-		List<Long> results = jdbcTemplate.queryForList(SELECT_ID_BY_CREATOR_AND_HASH, Long.class, creatorId, hash);
-		return results.isEmpty() ? null : results.iterator().next();
+	private Optional<Long> findByCreatorAndHash(Long creatorId, String hash) throws DatastoreException {
+		try {
+			Long id = jdbcTemplate.queryForObject(SELECT_ID_BY_CREATOR_AND_HASH, Long.class, creatorId, hash);
+			return Optional.of(id);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 }

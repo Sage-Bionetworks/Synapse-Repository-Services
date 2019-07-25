@@ -478,7 +478,7 @@ public class UploadController {
 	}
 
 	/**
-	 * Get the upload destinations for a file with this parent entity. This will
+	 * Get the upload destinations available for a file with this parent entity. This will
 	 * return a list of at least one destination. The first destination in the
 	 * list is always the default destination
 	 * 
@@ -501,7 +501,7 @@ public class UploadController {
 	}
 
 	/**
-	 * Get the upload destination locations for this parent entity. This will
+	 * Get the upload destination locations available for this parent entity. This will
 	 * return a list of at least one destination location. The first destination
 	 * in the list is always the default destination
 	 * 
@@ -525,7 +525,7 @@ public class UploadController {
 	}
 
 	/**
-	 * Get the upload destinations for this storage location id. This will
+	 * Get the upload destination associated with the given storage location id. This will
 	 * always return an upload destination
 	 * 
 	 * @param userId
