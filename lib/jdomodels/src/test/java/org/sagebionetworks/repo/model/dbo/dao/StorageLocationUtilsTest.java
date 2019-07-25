@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import java.util.Date;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -14,6 +15,16 @@ import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 public class StorageLocationUtilsTest {
+	
+	@Test
+	public void testStorageLocationDBODTOConversion() {
+		StorageLocationSetting dto = fillCommon(new S3StorageLocationSetting());
+		
+		DBOStorageLocation dbo = StorageLocationUtils.convertDTOtoDBO(dto);
+		StorageLocationSetting dtoConverted = StorageLocationUtils.convertDBOtoDTO(dbo);
+		
+		assertEquals(dto, dtoConverted);
+	}
 
 	@Test
 	public void testS3StorageLocationSettingSameHash() {

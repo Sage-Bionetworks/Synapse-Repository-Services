@@ -34,14 +34,12 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 public class DBOStorageLocationDAOImpl implements StorageLocationDAO, InitializingBean {
@@ -95,30 +93,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		return storageLocationSetting;
 	}
 
-	private static final Function<DBOStorageLocation, StorageLocationSetting> CONVERT_DBO_TO_STORAGE_LOCATION = dbo -> {
-		StorageLocationSetting setting = dbo.getData();
-		setting.setStorageLocationId(dbo.getId());
-		setting.setDescription(dbo.getDescription());
-		setting.setUploadType(dbo.getUploadType());
-		setting.setEtag(dbo.getEtag());
-		setting.setCreatedBy(dbo.getCreatedBy());
-		setting.setCreatedOn(dbo.getCreatedOn());
-		return setting;
-	};
-
-	private static final Function<StorageLocationSetting, DBOStorageLocation> CONVERT_STORAGE_LOCATION_TO_DBO = setting -> {
-		DBOStorageLocation dbo = new DBOStorageLocation();
-		dbo.setId(setting.getStorageLocationId());
-		dbo.setDescription(setting.getDescription());
-		dbo.setUploadType(setting.getUploadType());
-		dbo.setEtag(setting.getEtag());
-		dbo.setData(setting);
-		dbo.setDataHash(StorageLocationUtils.computeHash(setting));
-		dbo.setCreatedBy(setting.getCreatedBy());
-		dbo.setCreatedOn(setting.getCreatedOn());
-		return dbo;
-	};
-
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		SinglePrimaryKeySqlParameterSource params = new SinglePrimaryKeySqlParameterSource(
@@ -148,7 +122,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	@WriteTransaction
 	@Override
 	public Long create(StorageLocationSetting dto) {
-		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
+		DBOStorageLocation dbo = StorageLocationUtils.convertDTOtoDBO(dto);
 
 		Optional<Long> existingLocationId =  findByCreatorAndHash(dbo.getCreatedBy(), dbo.getDataHash());
 
@@ -174,14 +148,15 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
 				new SinglePrimaryKeySqlParameterSource(storageLocationId));
-		return CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
+		
+		return StorageLocationUtils.convertDBOtoDTO(dbo);
 	}
 
 	@Override
 	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException {
 		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, ROW_MAPPER,
 				id);
-		return Lists.newArrayList(Lists.transform(dboStorageLocations, CONVERT_DBO_TO_STORAGE_LOCATION));
+		return Lists.newArrayList(Lists.transform(dboStorageLocations, StorageLocationUtils::convertDBOtoDTO));
 	}
 
 	@Override
