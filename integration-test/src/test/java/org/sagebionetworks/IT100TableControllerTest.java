@@ -810,6 +810,7 @@ public class IT100TableControllerTest {
 		TableEntity table = createTable(null, synapse);
 		
 		SnapshotRequest request = new SnapshotRequest();
+		request.setCreateNewSnapshot(true);
 		request.setSnapshotLabel("snapshot label");
 		request.setSnapshotComment("snapshot comment");
 		// call under test
