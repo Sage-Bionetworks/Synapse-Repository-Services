@@ -139,6 +139,12 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		dbo = basicDao.createNew(dbo);
 		return dbo.getId();
 	}
+	
+	@WriteTransaction
+	@Override
+	public void delete(Long id) {
+		basicDao.deleteObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(id));
+	}
 
 	@Override
 	public StorageLocationSetting get(Long storageLocationId) throws DatastoreException, NotFoundException {
