@@ -807,7 +807,7 @@ public class IT100TableControllerTest {
 		cm = synapse.createColumnModel(cm);
 		
 		// create a table
-		TableEntity table = createTable(null, synapse);
+		TableEntity table = createTable(Lists.newArrayList(cm.getId()), synapse);
 		
 		SnapshotRequest request = new SnapshotRequest();
 		request.setCreateNewSnapshot(true);
