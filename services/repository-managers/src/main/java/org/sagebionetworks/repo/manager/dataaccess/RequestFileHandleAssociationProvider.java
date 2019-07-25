@@ -16,7 +16,7 @@ public class RequestFileHandleAssociationProvider implements FileHandleAssociati
 	RequestDAO requestDao;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> associatedIds = new HashSet<String>();
 		RequestInterface request = requestDao.get(objectId);
 		if (request.getAttachments()!= null && !request.getAttachments().isEmpty()) {

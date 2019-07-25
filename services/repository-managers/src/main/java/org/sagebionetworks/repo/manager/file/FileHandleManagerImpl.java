@@ -317,25 +317,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Override
 	public String getRedirectURLForFileHandle(FileHandleUrlRequest urlRequest) {
-		if (urlRequest.bypassAuthCheck()) {
-			return getRedirectURLForFileHandle(urlRequest.getFileHandleId());
-		}
 		if (urlRequest.hasAssociation()) {
 			return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId(), urlRequest.getAssociationType(), urlRequest.getAssociationId());
 		}
 		return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId());
 	}
-
-	@Override
-	public String getRedirectURLForFileHandle(String handleId)
-			throws DatastoreException, NotFoundException {
-		// First lookup the file handle
-		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle);
-	}
 	
-	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
+	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId) throws DatastoreException, NotFoundException {
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User cannot be null");
@@ -353,8 +341,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return getURLForFileHandle(handle);
 	}
 	
-	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
+	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId, FileHandleAssociateType fileAssociateType,
 			String fileAssociateId) {
 		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();

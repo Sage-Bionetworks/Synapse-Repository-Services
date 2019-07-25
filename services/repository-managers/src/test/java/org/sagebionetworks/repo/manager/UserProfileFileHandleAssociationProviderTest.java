@@ -41,7 +41,7 @@ public class UserProfileFileHandleAssociationProviderTest {
 				.thenReturn(fileHandleId);
 		when(mockFileHandleManager.getPreviewFileHandleId(fileHandleId))
 				.thenReturn(previewFileHandleId);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(previewFileHandleId, "4"), userId);
 		assertEquals(Collections.singleton(previewFileHandleId), associated);
 	}

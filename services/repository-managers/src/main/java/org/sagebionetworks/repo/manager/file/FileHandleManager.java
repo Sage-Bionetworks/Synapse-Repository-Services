@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -102,30 +100,7 @@ public interface FileHandleManager {
 	 */
 	String getRedirectURLForFileHandle(FileHandleUrlRequest urlRequest) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
-	/**
-	 * Get the redirect URL for a given FileHandle ID.  The UserInfo is not needed as Authorization should have already been
-	 * checked before attempting this call.
-	 * @param handleId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws MalformedURLException 
-	 */
-	String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
 	
-	/**
-	 * Only the creator of a FileHandle can call this method.
-	 * 
-	 * @param userInfo
-	 * @param fileHandleId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
-
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId, FileHandleAssociateType fileAssociateType, String fileAssociateId);
-
 	/**
 	 * Get a batch of FileHandles and URL
 	 * @param userInfo

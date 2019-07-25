@@ -196,7 +196,7 @@ public class UserProfileManagerImplTest {
 	public void testGetPicturePresignedUrlNotFound() throws Exception {
 		String userIdString = "" + userId;
 		// get the presigned url for this handle
-		assertNotNull(userProfileManager.getUserProfileImageUrl(userIdString));
+		assertNotNull(userProfileManager.getUserProfileImageUrl(userInfo, userIdString));
 	}
 
 	@Test

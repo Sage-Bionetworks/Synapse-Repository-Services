@@ -40,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Maps;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
@@ -174,7 +175,7 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test
-	public void testGetFileHandlePreviewIds() {
+	public void testGetFileHandleIdsWithPreviewIds() {
 		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		S3FileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
@@ -196,25 +197,23 @@ public class DBOFileHandleDaoImplTest {
 		toDelete.add(meta1.getId());
 		toDelete.add(meta2.getId());
 		
-		List<String> allFileHandleId = Arrays.asList(meta1.getId(),	meta2.getId());
+		List<String> allFileHandleIds = Arrays.asList(meta1.getId(), meta2.getId(), preview.getId());
 		
-		// Match to user one.
-		Set<String> expected = Sets.newHashSet(preview.getId());
+		Map<String, String> fileHandleIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleIds);
 		
-		Set<String> previewIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleId);
-		
-		assertEquals(expected, previewIds);
+		assertEquals(1, fileHandleIds.size());
+		assertEquals(Maps.immutableEntry(preview.getId(), meta2.getId()), fileHandleIds.entrySet().iterator().next());
 		
 	}
 	
 	@Test
-	public void testGetFileHandlePreviewIdsWithEmptyInput() {
-		Set<String> previewIds = fileHandleDao.getFileHandlePreviewIds(Collections.emptyList());
-		assertEquals(Collections.emptySet(), previewIds);
+	public void testGetFileHandleIdsWithPreviewIdsWithEmptyInput() {
+		Map<String, String> previewIds = fileHandleDao.getFileHandlePreviewIds(Collections.emptyList());
+		assertEquals(Collections.emptyMap(), previewIds);
 	}
 	
 	@Test
-	public void testGetFileHandlePreviewIdsWithNoPreview() {
+	public void testGetFileHandleIdsWithPreviewIdsWithNoPreview() {
 		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		
@@ -233,12 +232,9 @@ public class DBOFileHandleDaoImplTest {
 		
 		List<String> allFileHandleId = Arrays.asList(meta1.getId(),	meta2.getId());
 		
-		// Match to user one.
-		Set<String> expected = Collections.emptySet();
+		Map<String, String> previewIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleId);
 		
-		Set<String> previewIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleId);
-		
-		assertEquals(expected, previewIds);
+		assertEquals(Collections.emptyMap(), previewIds);
 		
 	}
 

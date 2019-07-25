@@ -14,7 +14,7 @@ public class FileEntityFileHandleAssociationProvider implements FileHandleAssoci
 	private NodeManager nodeManager;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		return nodeManager.getFileHandleIdsAssociatedWithFileEntity(fileHandleIds, objectId);
 	}
 

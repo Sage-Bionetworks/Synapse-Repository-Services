@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -63,6 +64,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
@@ -651,11 +653,19 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public String getIconURL(String teamId) throws NotFoundException {
+	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException {
 		Team team = teamDAO.get(teamId);
-		String handleId = team.getIcon();
-		if (handleId==null) throw new NotFoundException("Team "+teamId+" has no icon file handle.");
-		return fileHandleManager.getRedirectURLForFileHandle(handleId);
+		
+		String fileHandleId = team.getIcon();
+		
+		if (fileHandleId == null) {
+			throw new NotFoundException("Team " + teamId + " has no icon file handle.");
+		}
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -189,9 +188,10 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#getIconURL(java.lang.String)
 	 */
 	@Override
-	public String getIconURL(String teamId) throws DatastoreException,
+	public String getIconURL(Long userId, String teamId) throws DatastoreException,
 			NotFoundException {
-		return teamManager.getIconURL(teamId);
+		UserInfo userInfo = userManager.getUserInfo(userId);		
+		return teamManager.getIconURL(userInfo, teamId);
 	}
 
 	/* (non-Javadoc)

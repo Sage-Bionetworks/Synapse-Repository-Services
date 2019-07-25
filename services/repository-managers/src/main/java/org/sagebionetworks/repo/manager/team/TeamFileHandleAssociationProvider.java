@@ -17,7 +17,7 @@ public class TeamFileHandleAssociationProvider implements FileHandleAssociationP
 	private TeamDAO teamDAO;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> associatedIds = new HashSet<String>();
 		try {
 			Team team = teamDAO.get(objectId);

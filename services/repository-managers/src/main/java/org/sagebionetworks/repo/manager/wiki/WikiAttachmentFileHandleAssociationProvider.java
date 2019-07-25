@@ -14,7 +14,7 @@ public class WikiAttachmentFileHandleAssociationProvider implements FileHandleAs
 	V2WikiPageDao wikiPageDaoV2;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		return wikiPageDaoV2.getFileHandleIdsAssociatedWithWikiAttachments(fileHandleIds, objectId);
 	}
 
