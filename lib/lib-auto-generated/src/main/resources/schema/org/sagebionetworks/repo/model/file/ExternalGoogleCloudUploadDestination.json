@@ -1,0 +1,18 @@
+{
+	"description": "The upload destination contains information to start an upload to different types of destinations.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+		}
+	],
+	"properties": {
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use"
+		},
+		"baseKey": {
+			"type": "string",
+			"description": "the optional base key to use"
+		}
+	}
+}

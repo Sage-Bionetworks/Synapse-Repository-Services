@@ -2,12 +2,14 @@ package org.sagebionetworks.googlecloud;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.api.gax.paging.Page;
+import com.google.cloud.ReadChannel;
 import com.google.cloud.RestorableState;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
@@ -51,6 +54,9 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 
 	@Mock
 	private Blob mockBlob2;
+
+	@Mock
+	private ReadChannel mockReadChannel;
 
 	@Captor
 	private ArgumentCaptor<Storage.ComposeRequest> composeRequestCaptor;
@@ -161,6 +167,16 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 
 		verify(mockStorage).list(eq(BUCKET_NAME), any(Storage.BlobListOption.class), any(Storage.BlobListOption.class));
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void getObjectContent() {
+		when(mockStorage.get(OBJECT_BLOB_ID)).thenReturn(mockBlob);
+		when(mockBlob.reader(any())).thenReturn(mockReadChannel);
+		// Call under test
+		BufferedReader bufferedReader = client.getObjectContent(BUCKET_NAME, OBJECT_KEY);
+
+		assertNotNull(bufferedReader);
 	}
 
 	/**

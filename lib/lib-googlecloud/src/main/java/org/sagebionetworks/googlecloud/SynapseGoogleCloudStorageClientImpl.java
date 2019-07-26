@@ -1,10 +1,12 @@
 package org.sagebionetworks.googlecloud;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.util.List;
@@ -105,5 +107,19 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 			blobs.addAll(Lists.newLinkedList(blobsPage.iterateAll()));
 		}
 		return blobs;
+	}
+
+	@Override
+	public Boolean bucketExists(String bucket) {
+		return storage.get(bucket, Storage.BucketGetOption.fields()) != null;
+	}
+
+	@Override
+	public BufferedReader getObjectContent(String bucket, String key) {
+		return new BufferedReader(
+				new InputStreamReader(
+						Channels.newInputStream(this.getObject(bucket, key).reader())
+				)
+		);
 	}
 }
