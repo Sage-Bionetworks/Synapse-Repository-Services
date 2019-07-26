@@ -13,9 +13,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -31,9 +28,6 @@ public class DBOStorageLocationDAOImplTest {
 	@Autowired
 	StorageLocationDAO storageLocationDAO;
 
-	@Autowired
-	private DBOBasicDao basicDao;
-
 	List<Long> toDelete;
 
 	@Before
@@ -43,9 +37,7 @@ public class DBOStorageLocationDAOImplTest {
 
 	@After
 	public void after() {
-		toDelete.forEach(id -> {
-			basicDao.deleteObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(id));
-		});
+		toDelete.forEach(storageLocationDAO::delete);
 	}
 
 	@Test

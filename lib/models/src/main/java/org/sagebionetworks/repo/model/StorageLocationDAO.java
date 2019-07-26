@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface StorageLocationDAO {
 
 	public Long create(StorageLocationSetting setting);
+	
+	public void delete(Long id);
 
 	public StorageLocationSetting get(Long id) throws DatastoreException, NotFoundException;
 
