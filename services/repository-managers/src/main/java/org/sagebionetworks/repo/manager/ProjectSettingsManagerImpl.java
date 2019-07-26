@@ -368,6 +368,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			}
 		}
 
+		if (googleCloudStorageClient.getObject(bucket, key) == null) {
+			throw new IllegalArgumentException("Did not find Google Cloud object at key " + key + " from bucket " + bucket + ". If the object is in a folder, please make sure you specify a trailing '/' in the base key. " + getExplanation(userProfile, bucket, key));
+		}
+
+
 		inspectUsername(googleCloudStorageClient.getObjectContent(bucket, key), userProfile, bucket, key);
 	}
 
