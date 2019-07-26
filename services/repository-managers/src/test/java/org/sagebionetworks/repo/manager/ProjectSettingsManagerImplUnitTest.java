@@ -4,6 +4,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetti
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.StorageException;
 
 @ExtendWith(MockitoExtension.class)
@@ -125,6 +127,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void testCreateExternalGoogleCloudStorageLocationSetting() throws Exception {
 		when(synapseGoogleCloudStorageClient.bucketExists(bucketName)).thenReturn(true);
+		when(synapseGoogleCloudStorageClient.getObject(bucketName, "owner.txt")).thenReturn(mock(Blob.class));
 		when(synapseGoogleCloudStorageClient.getObjectContent(bucketName, "owner.txt")).thenReturn(mockBufferedReader);
 		when(mockBufferedReader.readLine()).thenReturn("user-name");
 		when(storageLocationDAO.create(externalGoogleCloudStorageLocationSetting)).thenReturn(999L);
