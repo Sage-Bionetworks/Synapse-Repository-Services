@@ -1867,6 +1867,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public long snapshotVersion(Long userId, String nodeIdString, SnapshotRequest request) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(nodeIdString, "nodeId");
+		if(request == null) {
+			request = new SnapshotRequest();
+		}
 		ValidateArgument.required(request, "SnapshotRequest");
 		long nodeId = KeyFactory.stringToKey(nodeIdString);
 		long modifiedOn = System.currentTimeMillis();

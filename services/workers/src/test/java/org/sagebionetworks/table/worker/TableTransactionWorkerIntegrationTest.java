@@ -210,7 +210,7 @@ public class TableTransactionWorkerIntegrationTest {
 		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
 		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
 		// start a new version
-		transaction.setSnapshotRequest(createVersionRequest());
+		transaction.setCreateSnapshot(true);
 		// start the transaction
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
@@ -223,7 +223,7 @@ public class TableTransactionWorkerIntegrationTest {
 		rowSet = createRowSet(tableId, rowThree, rowFour);
 		transaction = createAddDataRequest(tableId, rowSet);
 		// start a new version
-		transaction.setSnapshotRequest(createVersionRequest());
+		transaction.setCreateSnapshot(true);
 		// start the transaction
 		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
@@ -306,7 +306,6 @@ public class TableTransactionWorkerIntegrationTest {
 	 */
 	public static SnapshotRequest createVersionRequest() {
 		SnapshotRequest version = new SnapshotRequest();
-		version.setCreateNewSnapshot(true);
 		return version;
 	}
 	

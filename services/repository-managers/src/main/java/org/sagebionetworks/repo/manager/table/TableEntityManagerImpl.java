@@ -907,9 +907,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public long createSnapshotBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
+	public long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId) {
-		ValidateArgument.required(snapshotRequest, "SnapshotRequest");
 		// create a new version
 		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotRequest);
 		linkVersionToTransaction(tableId, snapshotVersion, transactionId);
@@ -955,12 +954,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).build();
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
-		
+		// Table must have at least one transaction, such as setting the table's schema.
 		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableIdString);
 		if(!lastTransactionNumber.isPresent()) {
-			throw new IllegalArgumentException("No transactions found for table: "+tableId);
+			throw new IllegalArgumentException("This table: "+tableId+" does not have a schema so a snapshot cannot be created.");
 		}
-		long snapshotVersion = createSnapshotBindToTransaction(userInfo, tableIdString, request, lastTransactionNumber.get());
+		long snapshotVersion = createSnapshotAndBindToTransaction(userInfo, tableIdString, request, lastTransactionNumber.get());
 		SnapshotResponse response = new SnapshotResponse();
 		response.setSnapshotVersionNumber(snapshotVersion);
 		return response;

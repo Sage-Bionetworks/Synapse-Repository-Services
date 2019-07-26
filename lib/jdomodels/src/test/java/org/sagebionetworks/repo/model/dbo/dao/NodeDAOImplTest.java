@@ -3646,7 +3646,6 @@ public class NodeDAOImplTest {
 		Thread.sleep(10);
 		
 		SnapshotRequest request1 = new SnapshotRequest();
-		request1.setCreateNewSnapshot(true);
 		request1.setSnapshotComment("a comment string");
 		request1.setSnapshotLabel("some label");
 		request1.setSnapshotActivityId(testActivity.getId());
@@ -3669,7 +3668,6 @@ public class NodeDAOImplTest {
 		
 		// Create a second snapshot for the current version.s
 		SnapshotRequest request2 = new SnapshotRequest();
-		request2.setCreateNewSnapshot(true);
 		request2.setSnapshotComment("different comment");
 		request2.setSnapshotLabel("different label");
 		request2.setSnapshotActivityId(testActivity2.getId());
@@ -3699,7 +3697,6 @@ public class NodeDAOImplTest {
 		toDelete.add(node.getId());
 		
 		SnapshotRequest request = new SnapshotRequest();
-		request.setCreateNewSnapshot(true);
 		request.setSnapshotComment(null);
 		request.setSnapshotLabel(null);
 		request.setSnapshotActivityId(null);
@@ -3718,7 +3715,6 @@ public class NodeDAOImplTest {
 		Long user1Id = Long.parseLong(user1);
 		String nodeId = null;
 		SnapshotRequest request = new SnapshotRequest();
-		request.setCreateNewSnapshot(true);
 		request.setSnapshotComment(null);
 		request.setSnapshotLabel(null);
 		request.setSnapshotActivityId(null);
@@ -3727,7 +3723,7 @@ public class NodeDAOImplTest {
 		nodeDao.snapshotVersion(user1Id, nodeId, request);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testSnapshotVersionNullRequest() {
 		Long user1Id = Long.parseLong(user1);
 		Node node = NodeTestUtils.createNew("one",  user1Id);
@@ -3738,6 +3734,11 @@ public class NodeDAOImplTest {
 		
 		// call under test
 		Long snapshotVersion = nodeDao.snapshotVersion(user1Id, node.getId(), request);
+		assertEquals(node.getVersionNumber(), snapshotVersion);
+		Node current = nodeDao.getNodeForVersion(node.getId(), snapshotVersion);
+		assertEquals(null, current.getVersionComment());
+		assertEquals(snapshotVersion.toString(), current.getVersionLabel());
+		assertEquals(null, current.getActivityId());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -3748,7 +3749,6 @@ public class NodeDAOImplTest {
 		toDelete.add(node.getId());
 		
 		SnapshotRequest request = new SnapshotRequest();
-		request.setCreateNewSnapshot(true);
 		request.setSnapshotComment(null);
 		request.setSnapshotLabel(null);
 		request.setSnapshotActivityId(null);

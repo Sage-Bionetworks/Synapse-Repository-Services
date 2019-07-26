@@ -1323,13 +1323,12 @@ public class TableController {
 	 * @param id
 	 * @param request
 	 * @return
-	 * @throws ParseException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_SNAPSHOT, method = RequestMethod.POST)
 	public @ResponseBody SnapshotResponse createSnapshot(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody SnapshotRequest request) throws ParseException {
+			@RequestBody SnapshotRequest request) {
 		return serviceProvider.getTableServices().createTableSnapshot(userId, id, request);
 	}
 }

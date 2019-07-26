@@ -16,8 +16,12 @@
 				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
 			}
 		},
-		"snapshotRequest": {
-			"description": "An optional parameter used to create a snapshot of the table's state that includes all table changes upto, and includsing changes from the containing transaction.  If the transaction fails for any reason, a snapshot will not be created.",
+		"createSnapshot": {
+			"description": "When set to 'true', a snapshot of the table will be created after the change from this transaction request are applied to the table.",
+			"type": "boolean"
+		},
+		"snapshotOptions": {
+			"description": "When 'createSnapshot' is set to true, these options will be used to create the new snapshot.",
 			"$ref": "org.sagebionetworks.repo.model.table.SnapshotRequest"
 		}
 	}

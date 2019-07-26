@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -62,8 +63,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
  *
  */
 public class NodeManagerImpl implements NodeManager {
-
-	public static final String IN_PROGRESS = "in-progress";
 
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
@@ -83,8 +82,6 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Autowired 
 	private ActivityManager activityManager;
-	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
@@ -767,7 +764,9 @@ public class NodeManagerImpl implements NodeManager {
 	public long createSnapshotAndVersion(UserInfo userInfo, String nodeId, SnapshotRequest request) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(nodeId, "id");
-		ValidateArgument.required(request, "SnapshotRequest");
+		if(request == null) {
+			request = new SnapshotRequest();
+		}
 		// User must have the update permission.
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		// Must be authorized to use a provided activity.
@@ -782,8 +781,8 @@ public class NodeManagerImpl implements NodeManager {
 		long snapshotVersion = nodeDao.snapshotVersion(userInfo.getId(), nodeId, request);
 		// Create a new version that is in-progress
 		Node nextVersion = nodeDao.getNode(nodeId);
-		nextVersion.setVersionComment(IN_PROGRESS);
-		nextVersion.setVersionLabel(IN_PROGRESS);
+		nextVersion.setVersionComment(TableConstants.IN_PROGRESS);
+		nextVersion.setVersionLabel(TableConstants.IN_PROGRESS);
 		nextVersion.setActivityId(null);
 		nodeDao.createNewVersion(nextVersion);
 		nodeDao.touch(userInfo.getId(), nodeId);

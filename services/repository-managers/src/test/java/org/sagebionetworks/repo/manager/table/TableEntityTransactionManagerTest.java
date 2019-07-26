@@ -254,9 +254,9 @@ public class TableEntityTransactionManagerTest {
 	}
 	
 	@Test
-	public void testDoIntransactionUpdateTableNullVersionInfo()
+	public void testDoIntransactionUpdateTableNullSnapshotOptions()
 			throws RecoverableMessageException, TableUnavailableException {
-		request.setSnapshotRequest(null);
+		request.setSnapshotOptions(null);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
@@ -265,7 +265,7 @@ public class TableEntityTransactionManagerTest {
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager, never()).createSnapshotBindToTransaction(any(UserInfo.class), anyString(),
+		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
 				any(SnapshotRequest.class), anyLong());
 	}
 	
@@ -273,8 +273,8 @@ public class TableEntityTransactionManagerTest {
 	public void testDoIntransactionUpdateTableWithNewVersionFalse()
 			throws RecoverableMessageException, TableUnavailableException {
 		SnapshotRequest snapshotRequest = new SnapshotRequest();
-		snapshotRequest.setCreateNewSnapshot(false);
-		request.setSnapshotRequest(snapshotRequest);
+		request.setCreateSnapshot(false);
+		request.setSnapshotOptions(snapshotRequest);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
@@ -283,16 +283,16 @@ public class TableEntityTransactionManagerTest {
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager, never()).createSnapshotBindToTransaction(any(UserInfo.class), anyString(),
+		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
 				any(SnapshotRequest.class), anyLong());
 	}
 	
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersiontrue()
 			throws RecoverableMessageException, TableUnavailableException {
-		SnapshotRequest versionInfo = new SnapshotRequest();
-		versionInfo.setCreateNewSnapshot(true);
-		request.setSnapshotRequest(versionInfo);
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		request.setCreateSnapshot(true);
+		request.setSnapshotOptions(snapshotRequest);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
@@ -301,6 +301,6 @@ public class TableEntityTransactionManagerTest {
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager).createSnapshotBindToTransaction(userInfo, tableId, versionInfo, transactionId);
+		verify(tableEntityManager).createSnapshotAndBindToTransaction(userInfo, tableId, snapshotRequest, transactionId);
 	}
 }

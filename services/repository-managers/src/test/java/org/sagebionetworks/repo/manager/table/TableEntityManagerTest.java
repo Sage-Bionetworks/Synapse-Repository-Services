@@ -338,7 +338,6 @@ public class TableEntityManagerTest {
 		
 		
 		snapshotRequest = new SnapshotRequest();
-		snapshotRequest.setCreateNewSnapshot(true);
 		snapshotRequest.setSnapshotActivityId("987");
 		snapshotRequest.setSnapshotComment("a new comment");
 		snapshotRequest.setSnapshotLabel("a new label");
@@ -1599,7 +1598,7 @@ public class TableEntityManagerTest {
 		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		long resultVersionNumber = manager.createSnapshotBindToTransaction(user, tableId, snapshotRequest, transactionId);
+		long resultVersionNumber = manager.createSnapshotAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
 		assertEquals(newVersionNumber, resultVersionNumber);
 		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
 		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
@@ -1607,7 +1606,7 @@ public class TableEntityManagerTest {
 		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateSnapshotBindToTransactionNullInfo() {
 		snapshotRequest = null;
 		long newVersionNumber = 333L;
@@ -1615,7 +1614,9 @@ public class TableEntityManagerTest {
 		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		manager.createSnapshotBindToTransaction(user, tableId, snapshotRequest, transactionId);
+		manager.createSnapshotAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
+		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
+		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
 	}
 	
 	@Test

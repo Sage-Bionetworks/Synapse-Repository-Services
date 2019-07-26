@@ -4,10 +4,12 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
-public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<TableEntity>, TypeSpecificCreateProvider<TableEntity>, TypeSpecificUpdateProvider<TableEntity>, TypeSpecificMetadataProvider<TableEntity> {
+public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<TableEntity>, TypeSpecificCreateProvider<TableEntity>, TypeSpecificUpdateProvider<TableEntity>, TypeSpecificMetadataProvider<TableEntity>, EntityValidator<TableEntity> {
 	
 	@Autowired
 	TableEntityManager tableEntityManager;		
@@ -52,5 +54,16 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 		List<String> tableSchema = tableEntityManager.getTableSchema(IdAndVersion.newBuilder()
 				.setId(KeyFactory.stringToKey(entity.getId())).build());
 		entity.setColumnIds(tableSchema);
+	}
+
+	@Override
+	public void validateEntity(TableEntity entity, EntityEvent event)
+			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		if(entity.getVersionLabel() == null) {
+			entity.setVersionLabel(TableConstants.IN_PROGRESS);
+		}
+		if(entity.getVersionComment() == null) {
+			entity.setVersionComment(TableConstants.IN_PROGRESS);
+		}
 	}
 }

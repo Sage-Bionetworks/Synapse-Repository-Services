@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Lists;
@@ -1054,8 +1055,8 @@ public class NodeManagerImplUnitTest {
 		verify(mockNodeDao).snapshotVersion(mockUserInfo.getId(), nodeId, request);
 		Node expectedNewNode = new Node();
 		expectedNewNode.setId(nodeId);
-		expectedNewNode.setVersionComment(NodeManagerImpl.IN_PROGRESS);
-		expectedNewNode.setVersionLabel(NodeManagerImpl.IN_PROGRESS);
+		expectedNewNode.setVersionComment(TableConstants.IN_PROGRESS);
+		expectedNewNode.setVersionLabel(TableConstants.IN_PROGRESS);
 		expectedNewNode.setActivityId(null);
 		verify(mockNodeDao).createNewVersion(expectedNewNode);
 		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
@@ -1079,12 +1080,15 @@ public class NodeManagerImplUnitTest {
 		nodeManager.createSnapshotAndVersion(mockUserInfo, nullNodeId, request);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateSnapshotAndVersionNullRequest() {
 		SnapshotRequest request = null;
 		String nullNodeId = "syn123";
-		
 		// call under test
-		nodeManager.createSnapshotAndVersion(mockUserInfo, nullNodeId, request);
+		nodeManager.createSnapshotAndVersion(mockUserInfo, nodeId, request);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager, never()).canAccessActivity(any(UserInfo.class), anyString());
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).snapshotVersion(mockUserInfo.getId(), nodeId, new SnapshotRequest());
 	}
 }

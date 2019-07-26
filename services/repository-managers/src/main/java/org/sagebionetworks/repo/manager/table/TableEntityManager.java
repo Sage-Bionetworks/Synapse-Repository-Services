@@ -284,7 +284,7 @@ public interface TableEntityManager {
 	 * @param transactionId
 	 * @return The version number of the newly created version.
 	 */
-	public long createSnapshotBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
+	public long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId);
 	
 	/**
