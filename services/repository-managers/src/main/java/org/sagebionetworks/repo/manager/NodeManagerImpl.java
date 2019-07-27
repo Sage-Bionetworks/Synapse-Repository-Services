@@ -48,6 +48,8 @@ import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -80,8 +82,6 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Autowired 
 	private ActivityManager activityManager;
-	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
@@ -761,26 +761,32 @@ public class NodeManagerImpl implements NodeManager {
 
 	@WriteTransaction
 	@Override
-	public long createNewVersion(UserInfo userInfo, String nodeId, String comment, String label, String activityId) {
+	public long createSnapshotAndVersion(UserInfo userInfo, String nodeId, SnapshotRequest request) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(nodeId, "id");
+		if(request == null) {
+			request = new SnapshotRequest();
+		}
 		// User must have the update permission.
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		// Must be authorized to use a provided activity.
-		canConnectToActivity(activityId, userInfo);
+		canConnectToActivity(request.getSnapshotActivityId(), userInfo);
 		/*
 		 * Note: An Etag check is not required here because all of the existing data is
 		 * copied to the newly created version without modification. This means
 		 * concurrent modifications are not possible with this method.
 		 */
 		nodeDao.lockNode(nodeId);
-		Node currentNode = nodeDao.getNode(nodeId);
-		currentNode.setVersionComment(comment);
-		currentNode.setVersionLabel(label);
-		currentNode.setActivityId(activityId);
-		long newVersion = nodeDao.createNewVersion(currentNode);
+		// Snapshot the current version.
+		long snapshotVersion = nodeDao.snapshotVersion(userInfo.getId(), nodeId, request);
+		// Create a new version that is in-progress
+		Node nextVersion = nodeDao.getNode(nodeId);
+		nextVersion.setVersionComment(TableConstants.IN_PROGRESS);
+		nextVersion.setVersionLabel(TableConstants.IN_PROGRESS);
+		nextVersion.setActivityId(null);
+		nodeDao.createNewVersion(nextVersion);
 		nodeDao.touch(userInfo.getId(), nodeId);
-		return newVersion;
+		return snapshotVersion;
 	}
 
 	@Override

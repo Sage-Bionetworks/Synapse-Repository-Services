@@ -13,8 +13,8 @@
 				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateResponse"
 			}
 		},
-		"newVersionNumber": {
-			"description": "The new version number of a table.  Returned only, if a new version was requested.",
+		"snapshotVersionNumber": {
+			"description": "The version number of the snapshot.  Returned only, if a new snapshot was requested.",
 			"type": "integer"
 		}
 	}

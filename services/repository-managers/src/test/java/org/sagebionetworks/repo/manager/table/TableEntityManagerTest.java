@@ -79,6 +79,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -91,7 +93,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -178,7 +179,7 @@ public class TableEntityManagerTest {
 	
 	Long transactionId;
 	
-	VersionRequest versionRequest;
+	SnapshotRequest snapshotRequest;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -336,11 +337,10 @@ public class TableEntityManagerTest {
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
 		
 		
-		versionRequest = new VersionRequest();
-		versionRequest.setCreateNewTableVersion(true);
-		versionRequest.setNewVersionActivityId("987");
-		versionRequest.setNewVersionComment("a new comment");
-		versionRequest.setNewVersionLabel("a new lablel");
+		snapshotRequest = new SnapshotRequest();
+		snapshotRequest.setSnapshotActivityId("987");
+		snapshotRequest.setSnapshotComment("a new comment");
+		snapshotRequest.setSnapshotLabel("a new label");
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -1592,56 +1592,92 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
-	public void testCreateNewVersionAndBindToTransaction() {
+	public void testCreateSnapshotBindToTransaction() {
 		long newVersionNumber = 333L;
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
-		when(mockNodeManager.createNewVersion(any(UserInfo.class), anyString(), anyString(), anyString(), anyString()))
+		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		long resultVersionNumber = manager.createNewVersionAndBindToTransaction(user, tableId, versionRequest, transactionId);
+		long resultVersionNumber = manager.createSnapshotAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
 		assertEquals(newVersionNumber, resultVersionNumber);
-		verify(mockNodeManager).createNewVersion(user, tableId, versionRequest.getNewVersionComment(),
-				versionRequest.getNewVersionLabel(), versionRequest.getNewVersionActivityId());
+		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
 		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
 		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, newVersionNumber);
 		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateNewVersionAndBindToTransactionNullInfo() {
-		versionRequest = null;
+	@Test
+	public void testCreateSnapshotBindToTransactionNullInfo() {
+		snapshotRequest = null;
 		long newVersionNumber = 333L;
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
-		when(mockNodeManager.createNewVersion(any(UserInfo.class), anyString(), anyString(), anyString(), anyString()))
+		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
 				.thenReturn(newVersionNumber);
 		// call under test
-		manager.createNewVersionAndBindToTransaction(user, tableId, versionRequest, transactionId);
+		manager.createSnapshotAndBindToTransaction(user, tableId, snapshotRequest, transactionId);
+		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
+		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
 	}
 	
-	
 	@Test
-	public void testBindCurrentEntityVersionToLatestTransaction() {
-		long lastVersionNumber = 444;
-		when(mockNodeManager.getCurrentRevisionNumbers(tableId)).thenReturn(lastVersionNumber);
+	public void testCreateTableSnapshot() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
 		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
 		// call under test
-		manager.bindCurrentEntityVersionToLatestTransaction(tableId);
-		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
-		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, lastVersionNumber);
-		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
+		SnapshotResponse response = manager.createTableSnapshot(user, tableId, snapshotRequest);
+		assertNotNull(response);
+		assertEquals(snapshotVersion, response.getSnapshotVersionNumber());
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testBindCurrentEntityVersionToLatestTransactionNoTransaction() {
-		long lastVersionNumber = 444;
-		when(mockNodeManager.getCurrentRevisionNumbers(tableId)).thenReturn(lastVersionNumber);
-		// case where a table has no transactions.
+	public void testCreateTableSnapshotNoTransaction() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		// fails if there are not transaction on the table.
 		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.empty());
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
 		// call under test
-		manager.bindCurrentEntityVersionToLatestTransaction(tableId);
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTableSnapshotNullUser() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		user = null;
+		// call under test
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTableSnapshotNullTableId() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		tableId = null;
+		// call under test
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTableSnapshotNullRequest() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		snapshotRequest = null;
+		// call under test
+		manager.createTableSnapshot(user, tableId, snapshotRequest);
+	}
+	
+	
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.
 	 * @param tableId

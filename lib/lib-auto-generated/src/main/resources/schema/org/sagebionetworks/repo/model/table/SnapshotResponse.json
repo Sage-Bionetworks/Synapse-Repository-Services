@@ -1,0 +1,9 @@
+{
+	"description": "Response to creating a snapshot of a table of view.",
+	"properties": {
+		"snapshotVersionNumber": {
+			"description": "The version number of the resulting snapshot.",
+			"type": "integer"
+		}
+	}
+}

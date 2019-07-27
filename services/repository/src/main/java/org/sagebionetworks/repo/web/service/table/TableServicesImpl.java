@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -261,6 +263,13 @@ public class TableServicesImpl implements TableServices {
 		SqlTransformResponse response = new SqlTransformResponse();
 		response.setTransformedSql(transformedSql);
 		return response;
+	}
+
+	@Override
+	public SnapshotResponse createTableSnapshot(Long userId, String tableId, SnapshotRequest request) {
+		Validate.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return tableEntityManager.createTableSnapshot(userInfo, tableId, request);
 	}
 	
 }

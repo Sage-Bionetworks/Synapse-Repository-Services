@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -284,9 +285,38 @@ public class EntityServiceImplAutowiredTestNew  {
 		
 		table = entityService.createEntity(adminUserId, table, null);
 		assertEquals(columnIds, table.getColumnIds());
+		// default label and comment should be added.
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionLabel());
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionComment());
 		
 		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
 		assertEquals(columnIds, table.getColumnIds());
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionLabel());
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionComment());
+	}
+	
+	@Test
+	public void testTableEntityCreateWithLableAndComment(){
+		List<String> columnIds = Lists.newArrayList(column.getId());
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setColumnIds(columnIds);
+		String label = "a label";
+		String comment = "a comment";
+		table.setVersionLabel(label);
+		table.setVersionComment(comment);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		assertEquals(columnIds, table.getColumnIds());
+		// default label and comment should be added.
+		assertEquals(label, table.getVersionLabel());
+		assertEquals(comment, table.getVersionComment());
+		
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		assertEquals(columnIds, table.getColumnIds());
+		assertEquals(label, table.getVersionLabel());
+		assertEquals(comment, table.getVersionComment());
 	}
 	
 	@Test
@@ -304,7 +334,7 @@ public class EntityServiceImplAutowiredTestNew  {
 		assertFalse(optional.isPresent());
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testTableUpdateNewVersion() {
 		List<String> columnIds = Lists.newArrayList(column.getId());
 		TableEntity table = new TableEntity();
@@ -313,17 +343,11 @@ public class EntityServiceImplAutowiredTestNew  {
 		table.setColumnIds(columnIds);
 		
 		table = entityService.createEntity(adminUserId, table, null);
-		long firstVersion = table.getVersionNumber();
 		String activityId = null;
 		boolean newVersion = true;
 		table.setVersionLabel(null);
-		// Create a new version of the entity
-		table = entityService.updateEntity(adminUserId, table, newVersion, activityId);
-		assertTrue(firstVersion+1 == table.getVersionNumber());
-		// the new version should be bound to the last transaction.
-		Optional<Long> optional = tableEntityManager.getTransactionForVersion(table.getId(), table.getVersionNumber());
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
+		// Call under test
+		entityService.updateEntity(adminUserId, table, newVersion, activityId);
 	}
 	
 	@Test

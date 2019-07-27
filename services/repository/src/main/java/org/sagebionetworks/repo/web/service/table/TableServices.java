@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -166,4 +168,13 @@ public interface TableServices {
 	 * @throws ParseException 
 	 */
 	public SqlTransformResponse transformSqlRequest(SqlTransformRequest request) throws ParseException;
+
+	/**
+	 * Create a snapshot of the given table.
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	public SnapshotResponse createTableSnapshot(Long userId, String tableId, SnapshotRequest request);
 }
