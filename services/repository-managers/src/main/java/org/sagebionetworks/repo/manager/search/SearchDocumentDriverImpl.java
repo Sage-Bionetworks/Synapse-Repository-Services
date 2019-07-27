@@ -220,28 +220,18 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	/**
 	 * Returns a Map from the keys of the NamedAnnotations to the first value (as a String) for that key.
-	 * @param annotations
-	 * @return
-	 */
-	Map<String, String> getFirsAnnotationValues(Annotations annotations){
-		Map<String, String> firstAnnotationValues = new HashMap<>();
-		addFirstAnnotationValuesToMap(annotations, firstAnnotationValues);
-		return firstAnnotationValues;
-	}
-
-	/**
-	 * For each key in the Annotations's key set, add the first matching value as a String to the map.
 	 * @param anno Annotation source from which the keys and values are retrieved.
-	 * @param annoValuesMap map to which the Annotation values will be added.
-	 *                      Annotation keys will be converted to lower case before they are added to this map
+	 *             Annotation keys will be converted to lower case before they are added to this map
 	 */
-	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
+	Map<String, String> getFirsAnnotationValues(Annotations anno){
+		Map<String, String> firstAnnotationValues = new HashMap<>();
 		for(String key: anno.keySet()){
 			Object value = anno.getSingleValue(key);
 			if( value != null && !(value instanceof byte[])) {
-				annoValuesMap.putIfAbsent(key.toLowerCase(), value.toString());
+				firstAnnotationValues.putIfAbsent(key.toLowerCase(), value.toString());
 			}
 		}
+		return firstAnnotationValues;
 	}
 
 	/**

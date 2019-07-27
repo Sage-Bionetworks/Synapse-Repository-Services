@@ -156,22 +156,6 @@ public class SearchDocumentDriverImplTest {
 	}
 
 	@Test
-	public void getFirsAnnotationValues(){
-		Annotations mockPrimaryAnnotations = mockAnnotations;
-		Annotations mockAdditionaAnnotations = mock(Annotations.class);
-		when(mockNamedAnnotations.getPrimaryAnnotations()).thenReturn(mockPrimaryAnnotations);
-		when(mockNamedAnnotations.getAdditionalAnnotations()).thenReturn(mockAdditionaAnnotations);
-		doNothing().when(spySearchDocumentDriver).addFirstAnnotationValuesToMap(any(Annotations.class), anyMapOf(String.class, String.class));
-
-		Map<String, String> result = spySearchDocumentDriver.getFirsAnnotationValues(mockNamedAnnotations);
-
-		assertNotNull(result);
-		verify(mockNamedAnnotations, times(1)).getAdditionalAnnotations();
-		verify(mockNamedAnnotations, never()).getPrimaryAnnotations();
-		verify(spySearchDocumentDriver, times(1)).addFirstAnnotationValuesToMap(mockAdditionaAnnotations, result);
-	}
-
-	@Test
 	public void getSearchIndexFieldValue__returnFirstAnnoValues(){
 		annoValuesMap.put(existingAnnotationKey, annoValue1);
 
