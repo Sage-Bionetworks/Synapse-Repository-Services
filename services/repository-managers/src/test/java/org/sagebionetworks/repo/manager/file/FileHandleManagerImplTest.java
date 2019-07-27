@@ -487,7 +487,7 @@ public class FileHandleManagerImplTest {
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
 				thenReturn(new URL(expectedURL));
 		// fire!
-		String redirect = manager.getRedirectURLForFileHandle(googleCloudFileHandle.getId());
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, googleCloudFileHandle.getId());
 		assertNotNull(redirect);
 		assertEquals(expectedURL, redirect);
 	}
