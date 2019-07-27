@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -34,7 +33,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public void setPreviewId(String fileId, String previewId)
 			throws DatastoreException, NotFoundException {
 		// Get the file form the mad
-		S3FileHandle metadata = (S3FileHandle) map.get(fileId);
+		CloudProviderFileHandleInterface metadata = (CloudProviderFileHandleInterface) map.get(fileId);
 		if(metadata == null) throw new NotFoundException();
 		metadata.setPreviewId(previewId);
 	}
@@ -76,7 +75,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public long getS3objectReferenceCount(String bucketName, String key) {
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key) {
 		// TODO Auto-generated method stub
 		return 0;
 	}

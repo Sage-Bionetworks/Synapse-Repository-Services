@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 import com.amazonaws.util.BinaryUtils;
@@ -43,6 +44,44 @@ public class TestUtils {
 	 */
 	public static S3FileHandle createS3FileHandle(String createdById, int sizeInBytes, String contentType, String fileHandleId) {
 		S3FileHandle meta = new S3FileHandle();
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType(contentType);
+		meta.setContentSize((long)sizeInBytes);
+		meta.setContentMd5("md5");
+		meta.setCreatedBy(createdById);
+		meta.setFileName("foobar.txt");
+		meta.setId(fileHandleId);
+		meta.setEtag(UUID.randomUUID().toString());
+		meta.setIsPreview(false);
+		return meta;
+	}
+
+	/**
+	 * Helper to create a S3FileHandle
+	 *
+	 * @return
+	 */
+	public static GoogleCloudFileHandle createGoogleCloudFileHandle(String createdById, String fileHandleId) {
+		return createGoogleCloudFileHandle(createdById, 123, fileHandleId);
+	}
+
+	/**
+	 * Helper to create a S3FileHandle
+	 *
+	 * @return
+	 */
+	public static GoogleCloudFileHandle createGoogleCloudFileHandle(String createdById, int sizeInBytes, String fileHandleId) {
+		return createGoogleCloudFileHandle(createdById, sizeInBytes, "content type", fileHandleId);
+	}
+
+	/**
+	 * Helper to create a S3FileHandle
+	 *
+	 * @return
+	 */
+	public static GoogleCloudFileHandle createGoogleCloudFileHandle(String createdById, int sizeInBytes, String contentType, String fileHandleId) {
+		GoogleCloudFileHandle meta = new GoogleCloudFileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentType(contentType);

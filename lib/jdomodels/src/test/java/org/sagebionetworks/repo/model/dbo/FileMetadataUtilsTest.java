@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
@@ -80,7 +81,7 @@ public class FileMetadataUtilsTest {
 		// Convert to dbo
 		assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.createDBOFromDTO(meta));
 	}
-	
+
 	@Test
 	public void testS3FileMetadataRoundTrip() {
 		S3FileHandle meta = new S3FileHandle();
@@ -96,7 +97,31 @@ public class FileMetadataUtilsTest {
 		meta.setEtag("etag");
 		meta.setFileName("foo.txt");
 		meta.setIsPreview(false);
-		
+
+		System.out.println(meta);
+		// Convert to dbo
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
+	}
+
+	@Test
+	public void testGoogleCloudFileMetadataRoundTrip() {
+		GoogleCloudFileHandle meta = new GoogleCloudFileHandle();
+		meta.setCreatedBy("456");
+		meta.setCreatedOn(new Date());
+		meta.setId("987");
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentMd5("md5");
+		meta.setContentSize(123l);
+		meta.setContentType("contentType");
+		meta.setPreviewId("9999");
+		meta.setEtag("etag");
+		meta.setFileName("foo.txt");
+		meta.setIsPreview(false);
+
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);

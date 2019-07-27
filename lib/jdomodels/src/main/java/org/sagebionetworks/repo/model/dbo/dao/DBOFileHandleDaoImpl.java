@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ET
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
@@ -54,7 +55,7 @@ import com.google.common.collect.Multimap;
  *
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
-	
+
 	private static final String IDS_PARAM = ":ids";
 
 	private static final String SQL_SELECT_FILES_CREATED_BY_USER = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( " + IDS_PARAM + " ) AND "+COL_FILES_CREATED_BY+" = :createdById";
@@ -74,8 +75,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	 */
 	private static final String SQL_DOES_EXIST = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 
-	private static final String SQL_COUNT_REFERENCES = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME
-			+ " = ? AND `" + COL_FILES_KEY + "` = ?";
+	private static final String SQL_COUNT_REFERENCES = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE "
+			+ COL_FILES_METADATA_TYPE + " = ? AND "
+			+ COL_FILES_BUCKET_NAME + " = ? AND `"
+			+ COL_FILES_KEY + "` = ?";
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -221,7 +224,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 		return results;
 	}
-	
+
 	@Override
 	public Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds) {
 		if (fileHandlePreviewIds.isEmpty()) {
@@ -298,9 +301,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 
 	@Override
-	public long getS3objectReferenceCount(String bucketName, String key) {
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key) {
 		try {
-			return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, bucketName, key);
+			return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, metadataType, bucketName, key);
 		} catch (NullPointerException e) {
 			return 0L;
 		}

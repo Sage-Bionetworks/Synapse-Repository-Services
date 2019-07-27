@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.Channels;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,12 +14,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
@@ -31,6 +35,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.google.cloud.storage.Blob;
+
 /**
  * The preview manager tracks memory allocation and bridges preview generators with
  * Actual file data.
@@ -47,7 +53,10 @@ public class PreviewManagerImpl implements  PreviewManager {
 	
 	@Autowired
 	SynapseS3Client s3Client;
-	
+
+	@Autowired
+	SynapseGoogleCloudStorageClient googleCloudStorageClient;
+
 	@Autowired
 	FileProvider tempFileProvider;
 
@@ -79,11 +88,12 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param maxPreviewMemory
 	 */
 	public PreviewManagerImpl(FileHandleDao fileMetadataDao,
-			SynapseS3Client s3Client, FileProvider tempFileProvider,
+			SynapseS3Client s3Client, SynapseGoogleCloudStorageClient googleCloudStorageClient, FileProvider tempFileProvider,
 			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;
 		this.s3Client = s3Client;
+		this.googleCloudStorageClient = googleCloudStorageClient;
 		this.tempFileProvider = tempFileProvider;
 		this.generatorList = generatorList;
 		this.maxPreviewMemory = maxPreviewMemory;
@@ -112,7 +122,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	}
 
 	@Override
-	public CloudProviderFileHandleInterface generatePreview(final S3FileHandle metadata) throws Exception {
+	public CloudProviderFileHandleInterface generatePreview(final CloudProviderFileHandleInterface metadata) throws Exception {
 		if(metadata == null) throw new IllegalArgumentException("metadata cannot be null");
 		if(metadata.getContentType() == null) throw new IllegalArgumentException("metadata.getContentType() cannot be null");
 		if(metadata.getContentSize() == null) throw new IllegalArgumentException("metadata.getContentSize() cannot be null");
@@ -167,7 +177,17 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param metadata
 	 * @throws IOException 
 	 */
-	private S3FileHandle generatePreview(PreviewGenerator generator, S3FileHandle metadata){
+	private CloudProviderFileHandleInterface generatePreview(PreviewGenerator generator, CloudProviderFileHandleInterface metadata) {
+		if (metadata instanceof S3FileHandle) {
+			return generatePreviewForS3(generator, (S3FileHandle) metadata);
+		} else if (metadata instanceof GoogleCloudFileHandle) {
+			return generatePreviewForGoogleCloud(generator, (GoogleCloudFileHandle) metadata);
+		} else {
+			throw new IllegalArgumentException("Cannot generate a preview for class: " + metadata.getClass().getName());
+		}
+	}
+
+	private S3FileHandle generatePreviewForS3(PreviewGenerator generator, S3FileHandle metadata) {
 		File tempUpload = null;
 		S3ObjectInputStream in = null;
 		OutputStream out = null;
@@ -188,6 +208,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 			pfm.setFileName("preview" + previewMetadata.getExtension());
 			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
 			pfm.setContentSize(tempUpload.length());
+			pfm.setStorageLocationId(metadata.getStorageLocationId());
+
 			// Upload this to S3
 			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
 			s3Client.putObject(new PutObjectRequest(pfm.getBucketName(), pfm.getKey(), tempUpload).withMetadata(previewS3Meta));
@@ -214,7 +236,53 @@ public class PreviewManagerImpl implements  PreviewManager {
 				tempUpload.delete();
 			}
 		}
+	}
 
+	private GoogleCloudFileHandle generatePreviewForGoogleCloud(PreviewGenerator generator, GoogleCloudFileHandle metadata) {
+		File tempUpload = null;
+		InputStream in = null;
+		OutputStream out = null;
+
+		try {
+			// The upload file will hold the newly created preview file.
+			tempUpload = tempFileProvider.createTempFile("PreviewManagerImpl_upload", ".tmp");
+			Blob googleCloudObject = googleCloudStorageClient.getObject(metadata.getBucketName(), metadata.getKey());
+			in = Channels.newInputStream(googleCloudObject.reader());
+			out = tempFileProvider.createFileOutputStream(tempUpload);
+			// Let the preview generator do all of the work.
+			PreviewOutputMetadata previewMetadata = generator.generatePreview(in, out);
+			// Close the file
+			out.close();
+			CloudProviderFileHandleInterface pfm = new GoogleCloudFileHandle();
+			pfm.setBucketName(metadata.getBucketName());
+			pfm.setContentType(previewMetadata.getContentType());
+			pfm.setCreatedBy(metadata.getCreatedBy());
+			pfm.setFileName("preview" + previewMetadata.getExtension());
+			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
+			pfm.setContentSize(tempUpload.length());
+			pfm.setStorageLocationId(metadata.getStorageLocationId());
+
+			// Upload this to S3
+			googleCloudStorageClient.putObject(pfm.getBucketName(), pfm.getKey(), tempUpload);
+
+			pfm.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+			pfm.setEtag(UUID.randomUUID().toString());
+			// Save the metadata
+			pfm = (CloudProviderFileHandleInterface) fileMetadataDao.createFile(pfm);
+			// Assign the preview id to the original file.
+			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
+			// done
+			return (GoogleCloudFileHandle) fileMetadataDao.get(pfm.getId());
+		} catch (IOException e) {
+			throw new RuntimeException("Error generating preview for file handle " + metadata.toString(), e);
+		}finally{
+			// unconditionally close the streams if they exist
+			IOUtils.closeQuietly(in, out);
+			// unconditionally delete the temp files if they exist
+			if(tempUpload != null){
+				tempUpload.delete();
+			}
+		}
 	}
 
 	private PreviewGenerator findPreviewGenerator(String contentType, String extension) {

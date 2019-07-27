@@ -3,10 +3,11 @@ package org.sagebionetworks.repo.manager;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -18,10 +19,10 @@ import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
 import com.google.common.collect.Lists;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ProjectSettingsImplTest {
 
 	@Mock
@@ -43,18 +44,16 @@ public class ProjectSettingsImplTest {
 	private SynapseS3Client mockS3client;
 
 	@Mock
+	private SynapseS3Client mockSynapseGoogleCloudStorageClient;
+
+	@Mock
 	private UserProfileManager mockUserProfileManager;
 
 	@Mock
 	private UserManager mockUserManager;
 
-	private ProjectSettingsManagerImpl projectSettingsManager = new ProjectSettingsManagerImpl();
-
-	@Before
-	public void setup() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		ReflectionStaticTestUtils.mockAutowire(this, projectSettingsManager);
-	}
+	@InjectMocks
+	private ProjectSettingsManagerImpl projectSettingsManager;
 
 	@Test
 	public void testValid() throws Exception {

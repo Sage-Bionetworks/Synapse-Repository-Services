@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -68,19 +67,17 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 						.getFileMetadata(changeMessage.getObjectId());
 				if (!(metadata instanceof CloudProviderFileHandleInterface)) {
 					log.warn("Currently do not support previews for " + metadata.getClass().getName());
-				} else if (((CloudProviderFileHandleInterface) metadata).getIsPreview()) {
-						// We do not make previews of previews
-				} else if (metadata instanceof S3FileHandle) {
-					S3FileHandle s3fileMeta = (S3FileHandle) metadata;
-					// Only generate a preview if we do not already have one.
-					if (s3fileMeta.getPreviewId() == null) {
-						// Generate a preview.
-						previewManager.generatePreview(s3fileMeta);
-					}
 				} else {
-					// We will never be able to process such a message.
-					throw new IllegalArgumentException("Unknown file type: "
-							+ metadata.getClass().getName());
+					CloudProviderFileHandleInterface cloudFHMetadata = (CloudProviderFileHandleInterface) metadata;
+					if (cloudFHMetadata.getIsPreview()) {
+						// We do not make previews of previews
+						return;
+					}
+					// Only generate a preview if we do not already have one.
+					if (cloudFHMetadata.getPreviewId() == null) {
+						// Generate a preview.
+						previewManager.generatePreview(cloudFHMetadata);
+					}
 				}
 			}
 		} catch (PreviewGenerationNotSupportedException e){

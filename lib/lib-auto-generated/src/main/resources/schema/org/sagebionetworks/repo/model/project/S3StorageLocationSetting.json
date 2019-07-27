@@ -1,5 +1,5 @@
 {
-	"description": "The S3 upload destination setting contains information to generate an S3 upload destination.",
+	"description": "This class refers only to the default Synapse storage location(s) that exist on Amazon S3. To create a storage location that refers to a private S3 bucket, see <a href=\"${org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting}\">ExternalS3StorageLocationSetting</a>.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
