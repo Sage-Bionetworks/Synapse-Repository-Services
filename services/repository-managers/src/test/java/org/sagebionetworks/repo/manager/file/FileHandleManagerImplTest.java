@@ -482,7 +482,9 @@ public class FileHandleManagerImplTest {
 		googleCloudFileHandle.setId("123");
 		googleCloudFileHandle.setBucketName("bucket");
 		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setCreatedBy(mockUser.getId().toString());
 		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, googleCloudFileHandle.getCreatedBy())).thenReturn(true);
 		String expectedURL = "https://google.com";
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
 				thenReturn(new URL(expectedURL));
