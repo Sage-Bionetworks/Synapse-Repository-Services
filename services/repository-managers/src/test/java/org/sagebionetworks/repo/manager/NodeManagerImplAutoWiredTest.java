@@ -17,7 +17,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -172,12 +170,12 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testCreateWithAnnotations() throws Exception {
+	public void testCreateWithEntityPropertyAnnotations() throws Exception {
 		// We do not want an admin for this test
 		
 		// Create a node
 		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithAnnotations");
+		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithEntityPropertyAnnotations");
 		// We are using an agreement because the user should have permission to create it but not update it
 		newNode.setNodeType(EntityType.project);
 		Annotations annos = new Annotations();
@@ -260,10 +258,10 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testUpdateAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException, InterruptedException{
+	public void testUpdateUserAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException, InterruptedException{
 		// Create a node
 		Node startNode = new Node();
-		startNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
+		startNode.setName("NodeManagerImplAutoWiredTest.updateUserAnnotations");
 		startNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(startNode, userInfo);
@@ -302,9 +300,9 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
-	public void testAnnotationsUpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+	public void testUpdateUserAnnotations_UpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
+		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateUserAnnotations_UpdateConflict");
 		newNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);

@@ -700,11 +700,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(versionNumber, "versionNumber");
 		return getAnnotations(id, versionNumber, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
 	}
-	private Annotations getAnnotations(final String id, Long version, final String columnName){
+	private Annotations getAnnotations(final String id, Long version, final String annotationsColumnName){
 		final Long idLong = KeyFactory.stringToKey(id);
 
 		StringBuilder sql = new StringBuilder(SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX);
-		sql.append(columnName);
+		sql.append(annotationsColumnName);
 		sql.append(SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX);
 		Object[] args;
 		if(version == null){
@@ -716,7 +716,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		// Select just the references, not the entire node.
 		try{
-			Annotations annos =  jdbcTemplate.queryForObject(sql.toString(), ANNOTATIONS_ROW_MAPPER, args);
+			Annotations annos =  jdbcTemplate.queryForObject(sql.toString(), new AnnotationsRowMapper(annotationsColumnName), args);
 			// Remove the eTags when version is specified (See PLFM-1420)
 			if(annos != null && version != null){
 					annos.setEtag(NodeConstants.ZERO_E_TAG);
@@ -734,24 +734,34 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 *
 	 */
 
-	private static final RowMapper<Annotations> ANNOTATIONS_ROW_MAPPER = (ResultSet rs, int rowNum) ->{
-		Annotations annos = null;
-		byte[] bytes = rs.getBytes(COL_REVISION_ANNOS_BLOB);
-		if(bytes != null){
-			try {
-				annos = AnnotationUtils.decompressedAnnotationsV1(bytes);
-			} catch (IOException e) {
-				throw new DatastoreException(e);
-			}
-		}else{
-			// If there is no annotations blob then create a new one.
-			annos = new Annotations();
+	private static class AnnotationsRowMapper implements RowMapper<Annotations> {
+
+		private String annotationColumnName;
+
+		private AnnotationsRowMapper(String annotationColumnName){
+			this.annotationColumnName = annotationColumnName;
 		}
-		// Pull out the rest of the data.
-		annos.setEtag(rs.getString(COL_NODE_ETAG));
-		annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-		return annos;
-	};
+
+		@Override
+		public Annotations mapRow(ResultSet rs, int rowNum) throws SQLException {
+			Annotations annos = null;
+			byte[] bytes = rs.getBytes(annotationColumnName);
+			if(bytes != null){
+				try {
+					annos = AnnotationUtils.decompressedAnnotationsV1(bytes);
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
+			}else{
+				// If there is no annotations blob then create a new one.
+				annos = new Annotations();
+			}
+			// Pull out the rest of the data.
+			annos.setEtag(rs.getString(COL_NODE_ETAG));
+			annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+			return annos;
+		}
+	}
 	
 	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {

@@ -18,14 +18,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -52,9 +50,9 @@ public class NodeManagerAuthorizationTest {
 	@Mock
 	private Node mockNode;
 	@Mock
-	private Annotations mockAnnotations;
+	private Annotations mockUserAnnotations;
 	@Mock
-	private NamedAnnotations mockNamed;
+	private Annotations mockEntityPropertyAnnotations;
 	@Mock
 	private UserGroup mockUserGroup;
 	@Mock
@@ -75,9 +73,8 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("BobTheNode");
 		when(mockNode.getETag()).thenReturn(startEtag);
-		when(mockAnnotations.getEtag()).thenReturn(startEtag);
+		when(mockUserAnnotations.getEtag()).thenReturn(startEtag);
 		when(mockNode.getParentId()).thenReturn("syn456");
-		when(mockNamed.getEtag()).thenReturn("12");
 
 		// UserGroup
 		when(mockUserGroup.getId()).thenReturn("123");
@@ -152,8 +149,8 @@ public class NodeManagerAuthorizationTest {
 			nodeManager.update(mockUserInfo, mockNode);
 			fail("Should have failed");
 		}catch(UnauthorizedException e){
-			assertTrue("The exception message should contain the file handle id: "+e.getMessage(),e.getMessage().indexOf(fileHandleId) >= 0);
-			assertTrue("The exception message should contain the user's id: "+e.getMessage(),e.getMessage().indexOf(mockUserInfo.getId().toString()) >= 0);
+			assertTrue("The exception message should contain the file handle id: "+e.getMessage(), e.getMessage().contains(fileHandleId));
+			assertTrue("The exception message should contain the user's id: "+e.getMessage(), e.getMessage().contains(mockUserInfo.getId().toString()));
 		}
 	}
 	
@@ -297,7 +294,7 @@ public class NodeManagerAuthorizationTest {
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.getNodeForVersionNumber(mockUserInfo, id, new Long(1));
+		nodeManager.getNodeForVersionNumber(mockUserInfo, id, 1L);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -315,7 +312,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getId()).thenReturn(id);
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.update(mockUserInfo, mockNode, mockNamed, true);
+		nodeManager.update(mockUserInfo, mockNode, mockEntityPropertyAnnotations, mockUserAnnotations, true);
 	}
 	
 	@Test
@@ -332,12 +329,12 @@ public class NodeManagerAuthorizationTest {
 		when(oldMockNode.getParentId()).thenReturn(parentId);
 		when(mockNodeDao.getNode(id)).thenReturn(oldMockNode);
 		// OK!
-		nodeManager.update(mockUserInfo, mockNode, null, true);
+		nodeManager.update(mockUserInfo, mockNode, null, null, true);
 		// can't move due to access restrictions
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationStatus.accessDenied(""));
 		try {
 			// Should fail
-			nodeManager.update(mockUserInfo, mockNode, null, true);
+			nodeManager.update(mockUserInfo, mockNode, null, null, true);
 			fail("Excpected unauthorized exception");
 		} catch (UnauthorizedException e) {
 			// as expected
@@ -363,12 +360,12 @@ public class NodeManagerAuthorizationTest {
 		when(mockNodeDao.getNode(id)).thenReturn(oldMockNode);
 		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationStatus.authorized());
 		// OK!
-		nodeManager.update(mockUserInfo, mockNode, null, true);
+		nodeManager.update(mockUserInfo, mockNode, null, null,true);
 		// can't change alias due to access restrictions
 		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationStatus.accessDenied(""));
 		try {
 			// Should fail
-			nodeManager.update(mockUserInfo, mockNode, null, true);
+			nodeManager.update(mockUserInfo, mockNode, null, null, true);
 			fail("Expected unauthorized exception");
 		} catch (UnauthorizedException e) {
 			// as expected
@@ -377,27 +374,43 @@ public class NodeManagerAuthorizationTest {
 	}
 
 	@Test (expected=UnauthorizedException.class)
-	public void testUnauthorizedGetAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+	public void testUnauthorizedGetUserAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.getAnnotations(mockUserInfo, id);
+		nodeManager.getUserAnnotations(mockUserInfo, id);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testUnauthorizedetGetAnnotationsForVersion() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+	public void testUnauthorizedetGetUserAnnotationsForVersion() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.getAnnotationsForVersion(mockUserInfo, id, new Long(2));
+		nodeManager.getUserAnnotationsForVersion(mockUserInfo, id, 2L);
 	}
-	
+
+	@Test (expected=UnauthorizedException.class)
+	public void testUnauthorizedGetEntityPropertyAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+		String id = "22";
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
+		// Should fail
+		nodeManager.getEntityPropertyAnnotations(mockUserInfo, id);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testUnauthorizedetGetEntityPropertyAnnotationsForVersion() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+		String id = "22";
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
+		// Should fail
+		nodeManager.getEntityPropertyForVersion(mockUserInfo, id, 2L);
+	}
+
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetUpdateAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.updateUserAnnotations(mockUserInfo, id, mockAnnotations, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(mockUserInfo, id, mockUserAnnotations);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -413,7 +426,7 @@ public class NodeManagerAuthorizationTest {
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.deleteVersion(mockUserInfo, id, new Long(12));
+		nodeManager.deleteVersion(mockUserInfo, id, 12L);
 	}
 	
 

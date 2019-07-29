@@ -526,6 +526,10 @@ public class NodeManagerImpl implements NodeManager {
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First create the node
 		newNode = createNode(newNode, userInfo);
+		// The eTag really has no meaning yet because nobody has access to this id until we return.
+		entityPropertyAnnotations.setEtag(newNode.getETag());
+		entityPropertyAnnotations.setId(newNode.getId());
+		validateAnnotations(entityPropertyAnnotations);
 		// Since we just created this node we do not need to lock.
 		nodeDao.updateEntityPropertyAnnotations(newNode.getId(), entityPropertyAnnotations);
 		return newNode;
