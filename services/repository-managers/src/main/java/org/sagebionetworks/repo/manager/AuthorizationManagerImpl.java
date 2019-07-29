@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
@@ -414,16 +413,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		ObjectType assocatedObjectType = fileHandleAssociationSwitch.getAuthorizationObjectTypeForAssociatedObjectType(associationType);
 		// Is the user authorized to download the associated object?
-		AuthorizationStatus canUserDownloadAssociatedObject = canAccess(user, associatedObjectId, assocatedObjectType, ACCESS_TYPE.DOWNLOAD);
-		
+		AuthorizationStatus canUserDownloadAssociatedObject = canAccess(user,
+				associatedObjectId, assocatedObjectType, ACCESS_TYPE.DOWNLOAD);
 		List<FileHandleAuthorizationStatus> results = new ArrayList<FileHandleAuthorizationStatus>(fileHandleIds.size());
-		
-		// Validate that all the file handles are actually associated with the given object.
-		Set<String> associatedFileHandleIds = fileHandleAssociationSwitch.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType);
-		// Gather the preview ids of the associatedFileHandleIds
-		Set<String> associatedFileHandlePreviewId = fileHandleDao.getFileHandlePreviewIds(associatedFileHandleIds.stream().collect(Collectors.toList()));
-		// Adds the preview to the original set
-		associatedFileHandleIds.addAll(associatedFileHandlePreviewId);
+		// Validate all all filehandles are actually associated with the given
+		// object.
+		Set<String> associatedFileHandleIds = fileHandleAssociationSwitch.getFileHandleIdsAssociatedWithObject(fileHandleIds,
+						associatedObjectId, associationType);
 		// Which file handles did the user create.
 		Set<String> fileHandlesCreatedByUser = fileHandleDao.getFileHandleIdsCreatedByUser(user.getId(), fileHandleIds);
 		for (String fileHandleId : fileHandleIds) {

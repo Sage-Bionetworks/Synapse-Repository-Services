@@ -26,9 +26,7 @@ import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -65,7 +63,7 @@ public class PreviewIntegrationTest {
 	private SemaphoreManager semphoreManager;
 	
 	private UserInfo adminUserInfo;
-	private List<S3FileHandleInterface> toDelete = new LinkedList<S3FileHandleInterface>();
+	private List<S3FileHandle> toDelete = new LinkedList<>();
 	
 	@BeforeAll
 	public void beforeAll() throws Exception {
@@ -97,7 +95,7 @@ public class PreviewIntegrationTest {
 	public void after(){
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
-			for(S3FileHandleInterface meta: toDelete){
+			for(S3FileHandle meta: toDelete){
 				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 				// We also need to delete the data from the database
@@ -121,7 +119,7 @@ public class PreviewIntegrationTest {
 			fileHandle = (S3FileHandle) fileMetadataDao.get(fileHandle.getId());
 		}
 		// Get the preview
-		PreviewFileHandle pfm = (PreviewFileHandle) fileMetadataDao.get(fileHandle.getPreviewId());
+		S3FileHandle pfm = (S3FileHandle) fileMetadataDao.get(fileHandle.getPreviewId());
 		assertNotNull(pfm);
 		// Make sure the preview is deleted as well
 		toDelete.add(pfm);

@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
@@ -120,7 +119,7 @@ public class MigrationManagerImplAutowireTest {
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
 	private S3FileHandle withPreview;
-	private PreviewFileHandle preview;
+	private S3FileHandle preview;
 	private long startCount;
 	private String tableId;
 	private String[] projectIds = new String[3];
@@ -156,7 +155,7 @@ public class MigrationManagerImplAutowireTest {
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
-		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
+		preview = (S3FileHandle) fileHandleDao.get(preview.getId());
 		assertNotNull(preview);
 		toDelete.add(preview.getId());
 

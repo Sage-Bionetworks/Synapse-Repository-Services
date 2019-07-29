@@ -16,7 +16,7 @@ public class SubmissionFileHandleAssociationProvider implements FileHandleAssoci
 	SubmissionDAO submissionDao;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> associatedIds = new HashSet<String>();
 		Submission submission = submissionDao.getSubmission(objectId);
 		if (submission.getAttachments()!= null && !submission.getAttachments().isEmpty()) {

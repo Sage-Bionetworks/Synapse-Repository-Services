@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -556,4 +557,13 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String touch(Long userId, String nodeId, ChangeType changeType);
+	
+	/**
+	 * Create a snapshot of the current version, by applying the comment, label, and activity to the 
+	 * current version.
+	 * @param nodeId
+	 * @param request
+	 * @return The version number of the the snapshot (will always be the current version number).
+	 */
+	public long snapshotVersion(Long userId, String nodeId, SnapshotRequest request);
 }

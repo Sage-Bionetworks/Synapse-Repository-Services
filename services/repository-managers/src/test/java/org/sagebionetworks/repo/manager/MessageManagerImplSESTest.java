@@ -139,10 +139,6 @@ public class MessageManagerImplSESTest {
 		when(mockMessageDAO.getMessage(MESSAGE_ID_HTML)).thenReturn(mockHtmlMessageToUser);
 		
 		// Mocks downloadEmailContent(...)
-		String urlPT = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.txt").toExternalForm();
-		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_PLAIN_TEXT)).thenReturn(urlPT);
-		String urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html").toExternalForm();
-		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_HTML)).thenReturn(urlHTML);
 		when(mockFileHandleManager.downloadFileToString(anyString())).thenReturn("my dog has fleas");
 
 		// Proceed past this check

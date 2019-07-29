@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 
 /**
  * Version two of the multipart manager.
@@ -36,7 +36,7 @@ public interface MultipartManagerV2 {
 	 * 
 	 * @param user
 	 * @param uploadId
-	 * @param partNumbers
+	 * @param partNumber
 	 * @param partMD5Hex
 	 * @return
 	 */
@@ -64,7 +64,7 @@ public interface MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	public S3FileHandle createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request);
+	public CloudProviderFileHandleInterface createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request);
 
 	/**
 	 * Truncate all data

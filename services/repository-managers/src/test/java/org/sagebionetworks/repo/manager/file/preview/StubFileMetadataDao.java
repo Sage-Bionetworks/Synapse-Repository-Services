@@ -9,10 +9,9 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -34,7 +33,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public void setPreviewId(String fileId, String previewId)
 			throws DatastoreException, NotFoundException {
 		// Get the file form the mad
-		S3FileHandle metadata = (S3FileHandle) map.get(fileId);
+		CloudProviderFileHandleInterface metadata = (CloudProviderFileHandleInterface) map.get(fileId);
 		if(metadata == null) throw new NotFoundException();
 		metadata.setPreviewId(previewId);
 	}
@@ -66,7 +65,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	@Override
 	public String getPreviewFileHandleId(String handleId)
 			throws NotFoundException {
- 		return ((HasPreviewId)map.get(handleId)).getPreviewId();
+ 		return ((CloudProviderFileHandleInterface)map.get(handleId)).getPreviewId();
 	}
 
 	@Override
@@ -76,7 +75,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public long getS3objectReferenceCount(String bucketName, String key) {
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
@@ -115,9 +114,9 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
-	public Set<String> getFileHandlePreviewIds(List<String> fileHandleIds) {
+	public Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds) {
 		// TODO Auto-generated method stub
 		return null;
 	}

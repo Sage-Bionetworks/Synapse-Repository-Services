@@ -284,8 +284,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImage(java.lang.String)
 	 */
 	@Override
-	public String getUserProfileImage(String profileId) throws NotFoundException {
-		return userProfileManager.getUserProfileImageUrl(profileId);
+	public String getUserProfileImage(Long userId, String profileId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getUserProfileImageUrl(userInfo, profileId);
 	}
 
 	/*
@@ -293,8 +294,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImagePreview(java.lang.String)
 	 */
 	@Override
-	public String getUserProfileImagePreview(String profileId) throws NotFoundException {
-		return userProfileManager.getUserProfileImagePreviewUrl(profileId);
+	public String getUserProfileImagePreview(Long userId, String profileId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getUserProfileImagePreviewUrl(userInfo, profileId);
 	}
 	
 	@Override

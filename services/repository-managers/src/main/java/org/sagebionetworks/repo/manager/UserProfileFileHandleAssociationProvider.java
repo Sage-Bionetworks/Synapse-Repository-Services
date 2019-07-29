@@ -19,7 +19,7 @@ public class UserProfileFileHandleAssociationProvider implements FileHandleAssoc
 	private FileHandleManager fileHandleManager;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> result = new HashSet<String>();
 		try {
 			String handleId = userProfileDAO.getPictureFileHandleId(objectId);

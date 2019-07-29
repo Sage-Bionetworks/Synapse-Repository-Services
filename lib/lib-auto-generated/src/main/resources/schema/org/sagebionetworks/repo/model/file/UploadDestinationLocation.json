@@ -1,5 +1,5 @@
 {
-	"description": "An upload destination location",
+	"description": "An upload destination location contains the id of the StorageLocation where a file can be uploaded.",
 	"properties": {
 		"storageLocationId": {
 			"type": "integer",

@@ -3,10 +3,11 @@ package org.sagebionetworks.repo.manager;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -15,15 +16,13 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
 import com.google.common.collect.Lists;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ProjectSettingsImplTest {
 
 	@Mock
@@ -45,18 +44,16 @@ public class ProjectSettingsImplTest {
 	private SynapseS3Client mockS3client;
 
 	@Mock
+	private SynapseS3Client mockSynapseGoogleCloudStorageClient;
+
+	@Mock
 	private UserProfileManager mockUserProfileManager;
 
 	@Mock
 	private UserManager mockUserManager;
 
-	private ProjectSettingsManagerImpl projectSettingsManager = new ProjectSettingsManagerImpl();
-
-	@Before
-	public void setup() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		ReflectionStaticTestUtils.mockAutowire(this, projectSettingsManager);
-	}
+	@InjectMocks
+	private ProjectSettingsManagerImpl projectSettingsManager;
 
 	@Test
 	public void testValid() throws Exception {
@@ -69,17 +66,6 @@ public class ProjectSettingsImplTest {
 
 		verify(mockStorageLocationDAO).get(1L);
 		verify(mockStorageLocationDAO).get(2L);
-	}
-
-	@Test
-	public void testValidWithEmptyDestination() throws Exception {
-		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setProjectId("projectId");
-		setting.setSettingsType(ProjectSettingsType.upload);
-		setting.setLocations(Lists.newArrayList(1L));
-		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList());
-
-		projectSettingsManager.validateProjectSetting(setting, null);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -99,17 +85,7 @@ public class ProjectSettingsImplTest {
 
 		projectSettingsManager.validateProjectSetting(setting, null);
 	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testHasNonEmptyDestination() {
-		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setProjectId("projectId");
-		setting.setSettingsType(ProjectSettingsType.upload);
-		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-
-		projectSettingsManager.validateProjectSetting(setting, null);
-	}
-
+	
 	@Test(expected = IllegalArgumentException.class)
 	public void testEmptyLocations() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
@@ -165,6 +141,17 @@ public class ProjectSettingsImplTest {
 		UserProfile profile = new UserProfile();
 		when(mockUserProfileManager.getUserProfile("12")).thenReturn(profile);
 
+		projectSettingsManager.validateProjectSetting(setting, currentUser);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateProjectSettingLocationLimitExceeded() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayListWithCapacity(ProjectSettingsManagerImpl.MAX_LOCATIONS_PER_PROJECT + 1));
+		
+		UserInfo currentUser = new UserInfo(false, 11L);
 		projectSettingsManager.validateProjectSetting(setting, currentUser);
 	}
 }

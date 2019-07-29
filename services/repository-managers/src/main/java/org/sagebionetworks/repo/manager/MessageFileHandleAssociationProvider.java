@@ -16,7 +16,7 @@ public class MessageFileHandleAssociationProvider implements FileHandleAssociati
 	private MessageDAO messageDAO;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		MessageToUser message = messageDAO.getMessage(objectId);
 		Set<String> associatedIds = new HashSet<String>();
 		if (fileHandleIds.contains(message.getFileHandleId())) {

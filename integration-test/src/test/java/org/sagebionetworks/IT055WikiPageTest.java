@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -175,8 +174,9 @@ public class IT055WikiPageTest {
 		assertTrue(one instanceof S3FileHandle);
 		S3FileHandle handle = (S3FileHandle) one;
 		FileHandle two = results.getList().get(1);
-		assertTrue(two instanceof PreviewFileHandle);
-		PreviewFileHandle preview = (PreviewFileHandle) two;
+		assertTrue(two instanceof S3FileHandle);
+		S3FileHandle preview = (S3FileHandle) two;
+		assertTrue(preview.getIsPreview());
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
 		
 		// also test the methods that get wiki attachments themselves	

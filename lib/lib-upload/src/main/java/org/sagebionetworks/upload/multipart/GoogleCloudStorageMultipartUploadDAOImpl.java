@@ -93,10 +93,6 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 						MultipartUploadUtils.createPartKeyFromRange(key, expectedStitchPartRange.getLowerBound(), expectedStitchPartRange.getUpperBound()),
 						partKeys);
 
-				// Delete the old parts from Google Cloud and the database.
-				for (String part : partKeys) {
-					googleCloudStorageClient.deleteObject(bucket, part);
-				}
 				multipartUploadComposerDAO.deletePartsInRange(uploadId, expectedStitchPartRange.getLowerBound(), expectedStitchPartRange.getUpperBound());
 
 				// Recursively add the new composed part (and attempt to merge it)
@@ -116,6 +112,13 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		}
 		multipartUploadComposerDAO.deletePartsInRange(request.getUploadId().toString(), -1, Long.MAX_VALUE);
 		googleCloudStorageClient.rename(request.getBucket(), MultipartUploadUtils.createPartKeyFromRange(request.getKey(), 1, request.getNumberOfParts().intValue()), request.getKey());
+
+		// Get all files that start with the key to delete all of the temporary part files.
+		for (Blob blob : googleCloudStorageClient.getObjects(request.getBucket(), request.getKey())) {
+			if (!blob.getName().equals(request.getKey())) { // If not an exact match (i.e. these will have part number junk at the end of the name)
+				blob.delete();
+			}
+		}
 		return googleCloudStorageClient.getObject(request.getBucket(), request.getKey()).getSize();
 	}
 

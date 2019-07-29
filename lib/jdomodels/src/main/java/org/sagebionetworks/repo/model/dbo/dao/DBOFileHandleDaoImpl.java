@@ -4,11 +4,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BU
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,9 +27,9 @@ import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -52,11 +55,11 @@ import com.google.common.collect.Multimap;
  *
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
-	
+
 	private static final String IDS_PARAM = ":ids";
 
 	private static final String SQL_SELECT_FILES_CREATED_BY_USER = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( " + IDS_PARAM + " ) AND "+COL_FILES_CREATED_BY+" = :createdById";
-	private static final String SQL_SELECT_FILE_PREVIEWS = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( " + IDS_PARAM + " ) AND "+COL_FILES_PREVIEW_ID+" IS NOT NULL";
+	private static final String SQL_SELECT_FILE_PREVIEWS = "SELECT "+COL_FILES_PREVIEW_ID+", "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_PREVIEW_ID+" IN ( " + IDS_PARAM + " )";
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
@@ -65,14 +68,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_SELECT_BATCH = "SELECT * FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
+	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 
 	/**
 	 * Used to detect if a file object already exists.
 	 */
 	private static final String SQL_DOES_EXIST = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 
-	private static final String SQL_COUNT_REFERENCES = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME
-			+ " = ? AND `" + COL_FILES_KEY + "` = ?";
+	private static final String SQL_COUNT_REFERENCES = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE "
+			+ COL_FILES_METADATA_TYPE + " = ? AND "
+			+ COL_FILES_BUCKET_NAME + " = ? AND `"
+			+ COL_FILES_KEY + "` = ?";
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -117,7 +123,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
 		}catch (DataIntegrityViolationException e){
 			// This occurs when we try to delete a handle that is in use.
-			new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id);
+			throw new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id, e);
 		}
 	}
 
@@ -140,10 +146,14 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			throw new NotFoundException("The previewId: "+previewId+" does not exist");
 		}
 		try{
-			// Change the etag
+			// Set the isPreview field for the preview file handle
 			String newEtag = UUID.randomUUID().toString();
+			jdbcTemplate.update(UPDATE_MARK_FILE_AS_PREVIEW, true, newEtag, previewId);
+
+			// Set the preview ID and change the etag for the original file;
+			newEtag = UUID.randomUUID().toString();
 			jdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
-			
+
 			// Send the update message
 			transactionalMessenger.sendMessageAfterCommit(fileId, ObjectType.FILE, newEtag, ChangeType.UPDATE);
 			
@@ -214,16 +224,20 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 		return results;
 	}
-	
+
 	@Override
-	public Set<String> getFileHandlePreviewIds(List<String> fileHandleIds) {
-		final Set<String> results = new HashSet<String>();
-		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
+	public Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds) {
+		if (fileHandlePreviewIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		final Map<String, String> results = new HashMap<String, String>();
+		for (List<String> fileHandlePreviewIdsBatch : Lists.partition(fileHandlePreviewIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
 			MapSqlParameterSource parameters = new MapSqlParameterSource()
-					.addValue("ids", fileHandleIdsBatch);
+					.addValue("ids", fileHandlePreviewIdsBatch);
 			namedJdbcTemplate.query(SQL_SELECT_FILE_PREVIEWS, parameters, rs -> {
-				String fileHandleId = rs.getString(COL_FILES_PREVIEW_ID);
-				results.add(fileHandleId);
+				String fileHandlePreviewId = rs.getString(COL_FILES_PREVIEW_ID);
+				String fileHandleId = rs.getString(COL_FILES_ID);
+				results.put(fileHandlePreviewId, fileHandleId);
 			});
 		}
 		return results;
@@ -256,8 +270,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 				FileHandle handle = get(handleId);
 				handles.add(handle);
 				// If this handle has a preview then we fetch that as well.
-				if(includePreviews && handle instanceof HasPreviewId){
-					String previewId = ((HasPreviewId)handle).getPreviewId();
+				if(includePreviews && handle instanceof CloudProviderFileHandleInterface){
+					String previewId = ((CloudProviderFileHandleInterface)handle).getPreviewId();
 					if(previewId != null){
 						FileHandle preview = get(previewId);
 						handles.add(preview);
@@ -287,9 +301,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 
 	@Override
-	public long getS3objectReferenceCount(String bucketName, String key) {
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key) {
 		try {
-			return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, bucketName, key);
+			return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, metadataType, bucketName, key);
 		} catch (NullPointerException e) {
 			return 0L;
 		}

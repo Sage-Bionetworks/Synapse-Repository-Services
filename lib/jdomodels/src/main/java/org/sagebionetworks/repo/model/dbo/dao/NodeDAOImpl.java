@@ -101,6 +101,7 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -124,6 +125,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  *
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
+
+	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
+			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
+			+ COL_REVISION_MODIFIED_BY + " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE
+			+ " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
 	private static final String UPDATE_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ACTIVITY_ID
 			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_FILE_HANDLE_ID
@@ -1885,6 +1891,24 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(nodeIdString)
 				.withObjectType(ObjectType.ENTITY).withChangeType(changeType).withUserId(userId));
 		return newEtag;
+	}
+	
+	@WriteTransaction
+	@Override
+	public long snapshotVersion(Long userId, String nodeIdString, SnapshotRequest request) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(nodeIdString, "nodeId");
+		if(request == null) {
+			request = new SnapshotRequest();
+		}
+		ValidateArgument.required(request, "SnapshotRequest");
+		long nodeId = KeyFactory.stringToKey(nodeIdString);
+		long modifiedOn = System.currentTimeMillis();
+		Long revisionNumber = this.getCurrentRevisionNumber(nodeIdString);
+		String label = request.getSnapshotLabel() != null ? request.getSnapshotLabel() : revisionNumber.toString();
+		this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
+				request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
+		return revisionNumber;
 	}
 
 }

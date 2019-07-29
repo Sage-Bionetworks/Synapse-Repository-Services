@@ -42,7 +42,7 @@ public class RequestFileHandleAssociationProviderTest {
 		when(mockRequest.getIrbFileHandleId()).thenReturn(irb);
 		when(mockRequest.getAttachments()).thenReturn(Arrays.asList(other));
 		when(mockRequestDao.get(requestId)).thenReturn(mockRequest);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(duc, other, "5"), requestId);
 		assertTrue(associated.contains(duc));
 		assertFalse(associated.contains(irb));
@@ -58,7 +58,7 @@ public class RequestFileHandleAssociationProviderTest {
 		when(mockRequest.getDucFileHandleId()).thenReturn(duc);
 		when(mockRequest.getIrbFileHandleId()).thenReturn(irb);
 		when(mockRequestDao.get(requestId)).thenReturn(mockRequest);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(duc, "5"), requestId);
 		assertTrue(associated.contains(duc));
 		assertFalse(associated.contains(irb));

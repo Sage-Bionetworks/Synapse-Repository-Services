@@ -102,5 +102,12 @@ public class EntityViewMetadataProviderTest {
 		assertEquals(scopeIds, scope.getScope());
 		assertEquals(mask, scope.getViewTypeMask());
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateViewWithNewVersion() {
+		boolean wasNewVersionCreated = true;
+		// call under test
+		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
+	}
 
 }

@@ -102,15 +102,15 @@ public interface FileHandleDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;;
+	public Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;
 	
 	/**
-	 * Given a list of {@link FileHandle} ids, gets the sub-set of ids that are referenced as previews for any {@link FileHandle}.
+	 * Given a list of {@link FileHandle} ids, gets the sub-set of ids that are previews mapped to the originating file handle id.
 	 * 
-	 * @param fileHandleIds A list of ids of {@link FileHandle}
-	 * @return The subset of {@link FileHandle} ids from the given list that are referenced as previews for any {@link FileHandle}
+	 * @param fileHandlePreviewIds A list of ids of {@link FileHandle}
+	 * @return A map where each entry is a (fileHandlePreviewId, fileHandleId) entry which is subset of the input fileHandlePreviewIds.
 	 */
-	public Set<String> getFileHandlePreviewIds(List<String> fileHandleIds);
+	public Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds);
 	
 	/**
 	 * Get the preview associated with a given file handle.
@@ -127,7 +127,7 @@ public interface FileHandleDao {
 	 * @param key
 	 * @return
 	 */
-	public long getS3objectReferenceCount(String bucketName, String key);
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key);
 
 	long getCount() throws DatastoreException;
 

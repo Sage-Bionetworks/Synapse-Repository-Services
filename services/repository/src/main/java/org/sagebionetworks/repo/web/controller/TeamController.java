@@ -255,10 +255,11 @@ public class TeamController {
 	public
 	void fileRedirectURLForTeamIcon(
 			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
-		String redirectUrl = serviceProvider.getTeamService().getIconURL(id);
+		String redirectUrl = serviceProvider.getTeamService().getIconURL(userId, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	

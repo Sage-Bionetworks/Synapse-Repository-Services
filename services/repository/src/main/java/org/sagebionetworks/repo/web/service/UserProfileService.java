@@ -192,19 +192,22 @@ public interface UserProfileService {
 	/**
 	 * Get the pre-signed URL for a user's profile image.
 	 * 
+	 * @param userId The id of the user performing the request
 	 * @param profileId
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public String getUserProfileImage(String profileId) throws NotFoundException;
+	public String getUserProfileImage(Long userId, String profileId) throws NotFoundException;
 
 	/**
 	 * Get a pre-signed URL for a user's profile image preview.
+	 * 
+	 * @param userId The id of the user performing the request
 	 * @param profileId
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public String getUserProfileImagePreview(String profileId) throws NotFoundException;
+	public String getUserProfileImagePreview(Long userId, String profileId) throws NotFoundException;
 	
 	/**
 	 * Update notification settings in user profile.

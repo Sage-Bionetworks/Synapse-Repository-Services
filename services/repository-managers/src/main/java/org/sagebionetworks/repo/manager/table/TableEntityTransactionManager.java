@@ -187,11 +187,11 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 			TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change, transactionId);
 			results.add(changeResponse);
 		}
-		if (request.getVersionRequest() != null
-				&& Boolean.TRUE.equals(request.getVersionRequest().getCreateNewTableVersion())) {
-			Long newVersionNumber = tableEntityManager.createNewVersionAndBindToTransaction(userInfo, request.getEntityId(),
-					request.getVersionRequest(), transactionId);
-			response.setNewVersionNumber(newVersionNumber);
+		if (request.getCreateSnapshot() != null
+				&& Boolean.TRUE.equals(request.getCreateSnapshot())) {
+			Long snapshotVersion = tableEntityManager.createSnapshotAndBindToTransaction(userInfo, request.getEntityId(),
+					request.getSnapshotOptions(), transactionId);
+			response.setSnapshotVersionNumber(snapshotVersion);
 		}
 		return response;
 	}

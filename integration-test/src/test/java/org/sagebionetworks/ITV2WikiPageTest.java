@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -450,8 +449,9 @@ public class ITV2WikiPageTest {
 		assertTrue(one instanceof S3FileHandle);
 		S3FileHandle handle = (S3FileHandle) one;
 		FileHandle two = results.getList().get(1);
-		assertTrue(two instanceof PreviewFileHandle);
-		PreviewFileHandle preview = (PreviewFileHandle) two;
+		assertTrue(two instanceof S3FileHandle);
+		assertTrue(((S3FileHandle) two).getIsPreview());
+		S3FileHandle preview = (S3FileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
 		
 		URL url = synapse.getV2WikiAttachmentTemporaryUrl(key, handle.getFileName());
