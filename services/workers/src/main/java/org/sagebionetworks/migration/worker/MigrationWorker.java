@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
@@ -23,8 +24,11 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.MergeStorageLocationsRequest;
+import org.sagebionetworks.repo.model.migration.MergeStorageLocationsResponse;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +47,8 @@ public class MigrationWorker implements MessageDrivenRunner {
 	private UserManager userManager;
 	@Autowired
 	private MigrationManager migrationManager;
+	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
 
 
 	@Override
@@ -90,9 +96,13 @@ public class MigrationWorker implements MessageDrivenRunner {
 			return migrationManager.restoreRequest(user, (RestoreTypeRequest)req);
 		} else if (req instanceof CalculateOptimalRangeRequest) {
 			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
-		}  else if (req instanceof BatchChecksumRequest) {
+		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
-		}else {
+		} else if (req instanceof MergeStorageLocationsRequest) {
+			@TemporaryCode(author = "marco.marasca@sagebase.org")
+			MergeStorageLocationsResponse response = projectSettingsManager.mergeDuplicateStorageLocations(user);
+			return response;
+		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}
 	}

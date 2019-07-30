@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -17,17 +21,26 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.migration.MergeStorageLocationsResponse;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -55,13 +68,13 @@ public class ProjectSettingsImplAutowiredTest {
 
 	@Autowired
 	private UserManager userManager;
-
+	
 	@Autowired
-	private UserProfileManager userProfileManager;
+	private StorageLocationDAO storageLocationDao;
 
 	@Autowired
 	private SynapseS3Client s3Client;
-
+	
 	private ExternalStorageLocationSetting externalLocationSetting;
 
 	private ExternalS3StorageLocationSetting externalS3LocationSetting;
@@ -70,6 +83,7 @@ public class ProjectSettingsImplAutowiredTest {
 	private String projectId;
 	private String childId;
 	private String childChildId;
+	private List<Long> storageLocationsDelete;
 
 	@Before
 	public void setUp() throws Exception {
@@ -93,6 +107,8 @@ public class ProjectSettingsImplAutowiredTest {
 		childChild.setName("childchild");
 		childChild.setParentId(childId);
 		childChildId = entityManager.createEntity(userInfo, childChild, null);
+		
+		storageLocationsDelete = new ArrayList<>();
 
 		externalLocationSetting = new ExternalStorageLocationSetting();
 		externalLocationSetting.setUploadType(UploadType.SFTP);
@@ -103,7 +119,7 @@ public class ProjectSettingsImplAutowiredTest {
 		externalS3LocationSetting.setUploadType(UploadType.S3);
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey("key" + UUID.randomUUID());
-
+		
 		s3Client.createBucket(externalS3LocationSetting.getBucket());
 
 		ObjectMetadata metadata = new ObjectMetadata();
@@ -112,6 +128,9 @@ public class ProjectSettingsImplAutowiredTest {
 				new StringInputStream(username), metadata);
 
 		externalS3LocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+
+		storageLocationsDelete.add(externalLocationSetting.getStorageLocationId());
+		storageLocationsDelete.add(externalS3LocationSetting.getStorageLocationId());
 	}
 
 	@After
@@ -121,6 +140,10 @@ public class ProjectSettingsImplAutowiredTest {
 		entityManager.deleteEntity(adminUserInfo, childId);
 		entityManager.deleteEntity(adminUserInfo, projectId);
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getId().toString()));
+		
+		for (Long storageLocationId : storageLocationsDelete) {
+			storageLocationDao.delete(storageLocationId);
+		}
 	}
 
 	@Test
@@ -229,6 +252,7 @@ public class ProjectSettingsImplAutowiredTest {
 		Assert.assertEquals(externalObjectStorageLocationSetting.getEndpointUrl(), result.getEndpointUrl());
 		Assert.assertEquals(externalObjectStorageLocationSetting.getBucket(), result.getBucket());
 		assertNotNull(result.getStorageLocationId());
+		storageLocationsDelete.add(result.getStorageLocationId());
 	}
 
 	@Test
@@ -246,6 +270,7 @@ public class ProjectSettingsImplAutowiredTest {
 		Assert.assertEquals(endpoint, result.getEndpointUrl());
 		Assert.assertEquals(bucket, result.getBucket());
 		assertNotNull(result.getStorageLocationId());
+		storageLocationsDelete.add(result.getStorageLocationId());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -273,6 +298,79 @@ public class ProjectSettingsImplAutowiredTest {
 		externalObjectStorageSetting.setEndpointUrl("not a url");
 		//call under test
 		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+	}
+	
+	@Test
+	public void testMergeDuplicateStorageLocations() throws Exception {
+		
+		List<Long> storageLocationsIds = createStorageLocationsWithSameHash(2);
+		Long firstCreatedId = storageLocationsIds.get(0);
+		Long latestCreatedId = storageLocationsIds.get(1);
+		
+		List<Long> projectLocations = new ArrayList<>();
+		
+		projectLocations.add(externalLocationSetting.getStorageLocationId());
+		
+		// Just add one duplicate storage location
+		projectLocations.add(firstCreatedId);
+		
+		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
+		
+		toCreate.setProjectId(projectId);
+		toCreate.setSettingsType(ProjectSettingsType.upload);
+		toCreate.setLocations(projectLocations);
+		
+		ProjectSetting settings = projectSettingsManager.createProjectSetting(userInfo, toCreate);
+		
+		// Call under test
+		MergeStorageLocationsResponse response = projectSettingsManager.mergeDuplicateStorageLocations(new UserInfo(true));
+		
+		assertEquals(Long.valueOf(1), response.getDuplicateLocationsCount());
+		assertEquals(Long.valueOf(1), response.getUpdatedProjectsCount());
+		
+		ProjectSetting setting = projectSettingsManager.getProjectSetting(userInfo, settings.getId());
+		
+		assertTrue(setting instanceof UploadDestinationListSetting);
+		
+		List<Long> updatedLocations = ((UploadDestinationListSetting)setting).getLocations();
+		
+		assertEquals(Arrays.asList(externalLocationSetting.getStorageLocationId(), latestCreatedId), updatedLocations);
+		
+	}
+	
+	@Autowired
+	private DBOBasicDao basicDao;
+
+	@Autowired
+	private IdGenerator idGenerator;
+
+	private List<Long> createStorageLocationsWithSameHash(int n) throws Exception {
+
+		List<Long> createdIds = new ArrayList<>();
+
+		String hash = UUID.randomUUID().toString();
+
+		for (int i = 0; i < n; i++) {
+			ExternalStorageLocationSetting locationSetting = TestUtils.createExternalStorageLocation(userInfo.getId(), "Description");
+			Long id = createStorageLocationsWithHash(locationSetting, hash);
+			createdIds.add(id);
+		}
+
+		return createdIds;
+	}
+
+	private Long createStorageLocationsWithHash(StorageLocationSetting setting, String hash) throws Exception {
+		DBOStorageLocation dbo = StorageLocationUtils.convertDTOtoDBO(setting);
+		dbo.setDataHash(hash);
+		if (dbo.getId() == null) {
+			dbo.setId(idGenerator.generateNewId(IdType.STORAGE_LOCATION_ID));
+		}
+		if (dbo.getEtag() == null) {
+			dbo.setEtag(UUID.randomUUID().toString());
+		}
+		Long id = basicDao.createNew(dbo).getId();
+		storageLocationsDelete.add(id);
+		return id;
 	}
 
 }

@@ -5,12 +5,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -36,11 +39,13 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
@@ -55,8 +60,11 @@ public class DBOFileHandleDaoImplTest {
 	private IdGenerator idGenerator;
 	@Autowired
 	private DBOChangeDAO changeDAO;
+	@Autowired
+	private StorageLocationDAO storageLocationDao;
 	
 	private List<String> toDelete;
+	private List<Long> storageLocationsToDelete;
 	private String creatorUserGroupId;
 	private String creatorUserGroupId2;
 	private Long creatorUserGroupIdL;
@@ -65,6 +73,7 @@ public class DBOFileHandleDaoImplTest {
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
+		storageLocationsToDelete = new LinkedList<>();
 		creatorUserGroupIdL = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		creatorUserGroupId = creatorUserGroupIdL.toString();
 		assertNotNull(creatorUserGroupId);
@@ -79,6 +88,9 @@ public class DBOFileHandleDaoImplTest {
 			for(String id: toDelete){
 				fileHandleDao.delete(id);
 			}
+		}
+		for (Long storageLocationId : storageLocationsToDelete) {
+			storageLocationDao.delete(storageLocationId);
 		}
 	}
 	
@@ -711,5 +723,51 @@ public class DBOFileHandleDaoImplTest {
 			assertEquals(ChangeType.CREATE, message.getChangeType());
 			assertEquals(ObjectType.FILE, message.getObjectType());
 		}
+	}
+	
+	@Test
+	public void testUpdateStorageLocationBatch() {
+		StorageLocationSetting oldStorageLocation1 = TestUtils.createExternalStorageLocation(creatorUserGroupIdL, "Old Storage Location");
+		StorageLocationSetting oldStorageLocation2 = TestUtils.createExternalStorageLocation(creatorUserGroupIdL, "Old Storage Location");
+		
+		StorageLocationSetting newStorageLocation = TestUtils.createExternalStorageLocation(creatorUserGroupIdL, "New Storage Location");
+		
+		Long oldStorageLocation1Id = storageLocationDao.create(oldStorageLocation1);
+		Long oldStorageLocation2Id = storageLocationDao.create(oldStorageLocation2);
+		Long newStorageLocationId = storageLocationDao.create(newStorageLocation);
+		
+		storageLocationsToDelete.addAll(Arrays.asList(oldStorageLocation1Id, oldStorageLocation2Id, newStorageLocationId));
+		
+		FileHandle fileHandle1 = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		FileHandle fileHandle2 = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		fileHandle1.setCreatedOn(new Timestamp(System.currentTimeMillis()/1000*1000));
+		fileHandle1.setStorageLocationId(oldStorageLocation1Id);
+		
+		fileHandle2.setCreatedOn(new Timestamp(System.currentTimeMillis()/1000*1000));
+		fileHandle2.setStorageLocationId(oldStorageLocation2Id);
+		
+		fileHandle1 = fileHandleDao.get(fileHandle1.getId());
+		fileHandle2 = fileHandleDao.get(fileHandle2.getId());
+		
+		String fileHandle1Etag = fileHandle1.getEtag();
+		String fileHandle2Etag = fileHandle2.getEtag();
+		
+		toDelete.addAll(Arrays.asList(fileHandle1.getId(), fileHandle2.getId()));
+		
+		fileHandleDao.createBatch(Arrays.asList(fileHandle1, fileHandle2));
+		
+		// Call under test
+		fileHandleDao.updateStorageLocationBatch(ImmutableSet.of(oldStorageLocation1Id, oldStorageLocation2Id), newStorageLocationId);
+		
+		fileHandle1 = fileHandleDao.get(fileHandle1.getId());
+		fileHandle2 = fileHandleDao.get(fileHandle2.getId());
+		
+		assertEquals(newStorageLocationId, fileHandle1.getStorageLocationId());
+		assertEquals(newStorageLocationId, fileHandle2.getStorageLocationId());
+		
+		assertNotEquals(fileHandle1Etag, fileHandle1.getEtag());
+		assertNotEquals(fileHandle2Etag, fileHandle2.getEtag());
+		
 	}
 }
