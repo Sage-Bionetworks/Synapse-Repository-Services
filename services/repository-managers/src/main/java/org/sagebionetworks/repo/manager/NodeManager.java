@@ -1,17 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -27,9 +24,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
-
-	@WriteTransaction
-	void TEMPORARYcleanUpAnnotations(Long id) throws IOException;
 
 	/**
 	 * Use: {@link #createNode(Node, UserInfo)}
@@ -61,7 +55,7 @@ public interface NodeManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Node createNewNode(Node newNode, NamedAnnotations annos, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
+	public Node createNewNode(Node newNode, Annotations annos, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Delete a node using its id.
@@ -143,33 +137,11 @@ public interface NodeManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations annos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public Node update(UserInfo userInfo, Node updatedNode,  Annotations entityPropertyAnnotations, Annotations userAnnotations, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
-	 * Get the annotations for a node
-	 * @param username
-	 * @param nodeId
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public NamedAnnotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
-	 * Get the annotations for a given version number.
+	 * Update the user annotations of a node.
 	 * @param userInfo
-	 * @param nodeId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public NamedAnnotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
-	 * Update the annotations of a node.
-	 * @param username
 	 * @param nodeId
 	 * @return
 	 * @throws ConflictingUpdateException 
@@ -178,7 +150,17 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 * @throws InvalidModelException 
 	 */
-	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, AnnotationNameSpace namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public Annotations updateUserAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+
+	Annotations getUserAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	Annotations getUserAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+			DatastoreException, UnauthorizedException;
+
+	Annotations getEntityPropertyAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	Annotations getEntityPropertyForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+			DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get the node type of an entity

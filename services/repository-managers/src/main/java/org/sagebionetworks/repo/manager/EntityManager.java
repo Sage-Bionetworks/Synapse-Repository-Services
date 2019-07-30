@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -152,7 +151,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public <T extends Entity> T getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Delete an existing dataset.
@@ -372,37 +371,6 @@ public interface EntityManager {
 	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
-	 * Return just the secondary properties of an entity, omitting primary ones.  
-	 * This avoids making the database call to retrieve a Node when only its Revision is needed.
-	 * 
-	 * @param user
-	 * @param entityId
-	 * @param type
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	<T extends Entity> T getEntitySecondaryFields(UserInfo user, String entityId, Class<T> type)
-			throws DatastoreException, UnauthorizedException, NotFoundException;
-	
-	/**
-	 * Return just the secondary properties of an entity, omitting primary ones.  
-	 * This avoids making the database call to retrieve a Node when only its Revision is needed.
-	 * 
-	 * @param user
-	 * @param entityId
-	 * @param versionNumber
-	 * @param type
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	<T extends Entity> T getEntitySecondaryFieldsForVersion(UserInfo user, String entityId, Long versionNumber, Class<T> type)
-			throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
 	 * Lookup an Entity ID using an alias.
 	 * @param alias
 	 * @return
@@ -435,6 +403,4 @@ public interface EntityManager {
 	 * @return
 	 */
 	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
-
-	Long TEMPORARYcleanupAnnotations(UserInfo userInfo, long startId, long numNodes);
 }

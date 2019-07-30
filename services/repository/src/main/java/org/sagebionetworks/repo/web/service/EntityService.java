@@ -657,6 +657,4 @@ public interface EntityService {
 	 * @return
 	 */
 	public DataTypeResponse changeEntityDataType(Long userId, String id, DataType dataType);
-
-	Long TEMPORARYcleanupAnnotations(Long userId, long startId, long numNodes);
 }

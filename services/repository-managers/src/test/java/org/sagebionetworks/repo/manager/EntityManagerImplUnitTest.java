@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -41,7 +44,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -54,9 +56,6 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class EntityManagerImplUnitTest {
@@ -132,38 +131,15 @@ public class EntityManagerImplUnitTest {
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
 		entityManager.validateReadAccess(mockUser, entityId);
 	}
-	
-	@Test
-	public void testGetEntitySecondaryFields() throws Exception {
-		String id = "123";
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getPrimaryAnnotations().addAnnotation("fileNameOverride", "bar.txt");
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);		
-		FileEntity entity = entityManager.getEntitySecondaryFields(mockUser, id, FileEntity.class);
-		assertEquals("0", entity.getCreatedBy());
-		assertEquals("0", entity.getModifiedBy());
-		assertEquals("bar.txt", entity.getFileNameOverride());
-	}
 
-	@Test
-	public void testGetEntitySecondaryFieldsForVersion() throws Exception {
-		String id = "123";
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getPrimaryAnnotations().addAnnotation("fileNameOverride", "bar.txt");
-		when(mockNodeManager.getAnnotationsForVersion(mockUser, id, 1L)).thenReturn(annos);		
-		FileEntity entity = entityManager.getEntitySecondaryFieldsForVersion(mockUser, id, 1L, FileEntity.class);
-		assertEquals("0", entity.getCreatedBy());
-		assertEquals("0", entity.getModifiedBy());
-		assertEquals("bar.txt", entity.getFileNameOverride());
-	}
 
 	@Test
 	public void testUpdateEntityActivityId() throws Exception {
 		String id = "123";
 		Node node = mock(Node.class);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		Entity entity = new Project();
 		entity.setId(id);
 		
@@ -198,9 +174,9 @@ public class EntityManagerImplUnitTest {
 	public void testDeleteActivityId() throws Exception {
 		String id = "123";
 		Node node = mock(Node.class);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		Entity entity = new Project();
 		entity.setId(id);
 		
@@ -236,9 +212,9 @@ public class EntityManagerImplUnitTest {
 		String id = "123";
 		Node node = new Node();
 		node.setFileHandleId("101");
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
-		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		FileEntity entity = new FileEntity();
 		entity.setId(id);
 		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202

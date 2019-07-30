@@ -323,13 +323,11 @@ public class AnnotationUtilsTest {
 	public void testTranslate(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
-		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
-		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
-		annos.getAdditionalAnnotations().addAnnotation("aDate", new Date(444L));
-		//  add a primary annotation, this should not be a part of the final result (PLFM-4601)
-		annos.getPrimaryAnnotations().addAnnotation("aPrimary", "primaryValue");
+		Annotations annos = new Annotations();
+		annos.addAnnotation("aString", "someString");
+		annos.addAnnotation("aLong", 123L);
+		annos.addAnnotation("aDouble", 1.22);
+		annos.addAnnotation("aDate", new Date(444L));
 
 		List<AnnotationDTO> expected = Lists.newArrayList(
 				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
@@ -351,8 +349,8 @@ public class AnnotationUtilsTest {
 	public void testTranslateEmptyList(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());
+		Annotations annos = new Annotations();
+		annos.getStringAnnotations().put("emptyList", new LinkedList<String>());
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
@@ -365,8 +363,8 @@ public class AnnotationUtilsTest {
 	public void testTranslateNullList(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getAdditionalAnnotations().getStringAnnotations().put("nullList", null);
+		Annotations annos = new Annotations();
+		annos.getStringAnnotations().put("nullList", null);
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
@@ -376,31 +374,11 @@ public class AnnotationUtilsTest {
 	public void testTranslateNullValueInList(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		NamedAnnotations annos = new NamedAnnotations();
-		annos.getAdditionalAnnotations().getStringAnnotations().put("listWithNullValue", Lists.newArrayList((String)null));
+		Annotations annos = new Annotations();
+		annos.getStringAnnotations().put("listWithNullValue", Lists.newArrayList((String)null));
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
-	}
-
-	/**
-	 * Test for PLFM-4371.
-	 * Duplicate keys in both the Addition and Primary annotations.
-	 */
-	@Test
-	public void testTranslateWithDuplicateKeysPrimaryAdditional(){
-		long entityId = 123;
-		int maxAnnotationChars = 100;
-		NamedAnnotations annos = new NamedAnnotations();
-		String key = "duplicateKey";
-		annos.getAdditionalAnnotations().addAnnotation(key, "valueOne");
-		annos.getPrimaryAnnotations().addAnnotation(key, "valueTwo");
-		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
-		assertNotNull(results);
-		// primary annotation should not be included in conversion (PLFM-4601) so the additional annotation is the expected value
-		Assertions.assertEquals(1, results.size());
-		AnnotationDTO dto = results.get(0);
-		Assertions.assertEquals("valueOne", dto.getValue());
 	}
 
 	/**
@@ -412,10 +390,10 @@ public class AnnotationUtilsTest {
 	public void testTranslateWithDuplicateKeysAdditional(){
 		long entityId = 123;
 		int maxAnnotationChars = 100;
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		String key = "duplicateKey";
-		annos.getAdditionalAnnotations().addAnnotation(key, "valueOne");
-		annos.getAdditionalAnnotations().addAnnotation(key, 123.1);
+		annos.addAnnotation(key, "valueOne");
+		annos.addAnnotation(key, 123.1);
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		// only the double annotation should remain.

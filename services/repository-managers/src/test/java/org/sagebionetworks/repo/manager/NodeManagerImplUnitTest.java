@@ -20,6 +20,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,14 +33,12 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -52,9 +52,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * This is the unit test version of this class.
@@ -134,7 +131,7 @@ public class NodeManagerImplUnitTest {
 		annos.setEtag("etag");
 		annos.addAnnotation("key", "value");
 		
-		when(mockNodeDao.getAnnotations(any(String.class))).thenReturn(new NamedAnnotations());
+		when(mockNodeDao.getEntityPropertyAnnotations(any(String.class))).thenReturn(new Annotations());
 		
 		when(mockNodeDao.isNodeAvailable(any(String.class))).thenReturn(true);
 	}
@@ -449,15 +446,26 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations annos = named.getAdditionalAnnotations();
+		Annotations annos = new Annotations();
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
-		when(mockNodeDao.getAnnotations(id)).thenReturn(named);
+		when(mockNodeDao.getUserAnnotationsV1(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		NamedAnnotations namedCopy = nodeManager.getAnnotations(userInfo, id);
-		Annotations copy = namedCopy.getAdditionalAnnotations();
+		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);
+		assertEquals(copy, annos);
+	}
+
+	@Test
+	public void testGetEntityPropertyAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
+		String id = "101";
+		Annotations annos = new Annotations();
+		annos.addAnnotation("stringKey", "a");
+		annos.addAnnotation("longKey", Long.MAX_VALUE);
+		when(mockNodeDao.getEntityPropertyAnnotations(id)).thenReturn(annos);
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		Annotations copy = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
 	
@@ -713,12 +721,11 @@ public class NodeManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNodeNoEtag() throws Exception {
 		String id = "101";
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations annots = named.getAdditionalAnnotations();
-		annots.addAnnotation("k", "a");
-		named.setEtag("etag");
+		Annotations userAnnotations = new Annotations();
+		userAnnotations.addAnnotation("k", "a");
+		userAnnotations.setEtag("etag");
 
-		nodeManager.update(mockUserInfo, mockNode, named, false);
+		nodeManager.update(mockUserInfo, mockNode, null, userAnnotations, false);
 	}
 
 	@Test
@@ -978,7 +985,7 @@ public class NodeManagerImplUnitTest {
 		updated.setEtag(startEtag);
 		updated.setId(nodeId);
 		// call under test
-		nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 		verify(mockNodeDao).lockNode(nodeId);
 		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
 	}
@@ -990,7 +997,7 @@ public class NodeManagerImplUnitTest {
 		updated.setId(nodeId);
 		try {
 			// call under test
-			nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+			nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 			fail();
 		} catch (ConflictingUpdateException e) {
 			// expected

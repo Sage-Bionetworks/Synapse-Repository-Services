@@ -276,13 +276,4 @@ public class AdministrationController {
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAdministrationService().createIdGeneratorExport(userId);
 	}
-
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/admin/annotationCleanup/{idStart}", method = RequestMethod.POST)
-	public @ResponseBody
-	Long fixAnnotations(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-						@PathVariable("idStart") Long nodeIdStart,
-						@RequestParam(value = "numNodes",required=false, defaultValue="10000") Long numNodes){
-		return serviceProvider.getEntityService().TEMPORARYcleanupAnnotations(userId, nodeIdStart, numNodes);
-	}
 }

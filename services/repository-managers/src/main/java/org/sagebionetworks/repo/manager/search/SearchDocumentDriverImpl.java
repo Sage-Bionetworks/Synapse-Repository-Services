@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,7 +23,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -101,7 +99,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		AccessControlList benefactorACL = aclDAO.get(benefactorId,
 				ObjectType.ENTITY);
 		Long revId = node.getVersionNumber();
-		NamedAnnotations annos = nodeDao.getAnnotationsForVersion(node.getId(),
+		Annotations annos = nodeDao.getUserAnnotationsV1ForVersion(node.getId(),
 				revId);
 		// Get the wikipage text
 		String wikiPagesText = getAllWikiPageText(node.getId());
@@ -125,7 +123,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 
 	@Override
-	public Document formulateSearchDocument(Node node, NamedAnnotations annos,
+	public Document formulateSearchDocument(Node node, Annotations annos,
 											AccessControlList acl, String wikiPagesText)
 			throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
@@ -208,7 +206,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return document;
 	}
 
-	void addAnnotationsToSearchDocument(DocumentFields fields, NamedAnnotations annotations){
+	void addAnnotationsToSearchDocument(DocumentFields fields, Annotations annotations){
 		// process a map of annotation keys to values
 		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
 
@@ -222,28 +220,18 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	/**
 	 * Returns a Map from the keys of the NamedAnnotations to the first value (as a String) for that key.
-	 * @param annotations
-	 * @return
-	 */
-	Map<String, String> getFirsAnnotationValues(NamedAnnotations annotations){
-		Map<String, String> firstAnnotationValues = new HashMap<>();
-		addFirstAnnotationValuesToMap(annotations.getAdditionalAnnotations(), firstAnnotationValues);
-		return firstAnnotationValues;
-	}
-
-	/**
-	 * For each key in the Annotations's key set, add the first matching value as a String to the map.
 	 * @param anno Annotation source from which the keys and values are retrieved.
-	 * @param annoValuesMap map to which the Annotation values will be added.
-	 *                      Annotation keys will be converted to lower case before they are added to this map
+	 *             Annotation keys will be converted to lower case before they are added to this map
 	 */
-	void addFirstAnnotationValuesToMap(Annotations anno, Map<String, String> annoValuesMap){
+	Map<String, String> getFirsAnnotationValues(Annotations anno){
+		Map<String, String> firstAnnotationValues = new HashMap<>();
 		for(String key: anno.keySet()){
 			Object value = anno.getSingleValue(key);
 			if( value != null && !(value instanceof byte[])) {
-				annoValuesMap.putIfAbsent(key.toLowerCase(), value.toString());
+				firstAnnotationValues.putIfAbsent(key.toLowerCase(), value.toString());
 			}
 		}
+		return firstAnnotationValues;
 	}
 
 	/**

@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -181,20 +180,17 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		EntityWithAnnotations<Folder> ewa = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
-		assertNotNull(ewa);
-		assertNotNull(ewa.getAnnotations());
-		assertNotNull(ewa.getEntity());
+		Folder entity = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
+		assertNotNull(entity);
 		Folder fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(fetched);
-		assertEquals(ewa.getEntity(), fetched);
+		assertEquals(entity, fetched);
 		System.out.println("Original: "+ds.toString());
 		System.out.println("Fetched: "+fetched.toString());
 		assertEquals(ds.getName(), fetched.getName());
 		// Now get the Annotations
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
-		assertEquals(ewa.getAnnotations(), annos);
 		annos.addAnnotation("someNewTestAnnotation", "someStringValue");
 		// Update
 		entityManager.updateAnnotations(adminUserInfo,id, annos);
