@@ -747,15 +747,15 @@ public class DBOFileHandleDaoImplTest {
 		fileHandle2.setCreatedOn(new Timestamp(System.currentTimeMillis()/1000*1000));
 		fileHandle2.setStorageLocationId(oldStorageLocation2Id);
 		
+		fileHandleDao.createBatch(Arrays.asList(fileHandle1, fileHandle2));
+		
 		fileHandle1 = fileHandleDao.get(fileHandle1.getId());
 		fileHandle2 = fileHandleDao.get(fileHandle2.getId());
 		
-		String fileHandle1Etag = fileHandle1.getEtag();
-		String fileHandle2Etag = fileHandle2.getEtag();
-		
 		toDelete.addAll(Arrays.asList(fileHandle1.getId(), fileHandle2.getId()));
 		
-		fileHandleDao.createBatch(Arrays.asList(fileHandle1, fileHandle2));
+		String fileHandle1Etag = fileHandle1.getEtag();
+		String fileHandle2Etag = fileHandle2.getEtag();
 		
 		// Call under test
 		fileHandleDao.updateStorageLocationBatch(ImmutableSet.of(oldStorageLocation1Id, oldStorageLocation2Id), newStorageLocationId);
