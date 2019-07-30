@@ -101,7 +101,6 @@
 		<ref bean="idGeneratorCleanuSynchTrigger" />
 		<ref bean="memoryLoggerTrigger" />
 		<ref bean="semaphoreGarbageCollectionTrigger" />
-		<ref bean="temporaryAnnotationFixWorkerTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"
