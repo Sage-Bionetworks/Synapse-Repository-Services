@@ -959,7 +959,7 @@ public class NodeDAOImplTest {
 		assertEquals(annos, copy);
 		// clear an and update
 		assertNotNull(copy.getStringAnnotations().remove("stringOne"));
-		nodeDao.updateUserAnnotationsV1(id, annos);
+		nodeDao.updateUserAnnotationsV1(id, copy);
 		Annotations copy2 = nodeDao.getUserAnnotationsV1(id);
 		assertNotNull(copy2);
 		assertEquals(copy, copy2);
@@ -2763,6 +2763,8 @@ public class NodeDAOImplTest {
 		//Ensure that entity property annotations are not included in the entity replication (PLFM-4601)
 
 		Annotations entityPropertyAnnotations = new Annotations();
+		entityPropertyAnnotations.setId(file.getId());
+		entityPropertyAnnotations.setEtag(file.getETag());
 		entityPropertyAnnotations.addAnnotation("primaryString", "primaryTest");
 		nodeDao.updateEntityPropertyAnnotations(file.getId(), entityPropertyAnnotations);
 

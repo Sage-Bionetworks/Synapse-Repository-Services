@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
@@ -12,6 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOTATIONS_V1_BLOB;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -51,24 +53,14 @@ public class DBORevisionMapper implements RowMapper<DBORevision> {
 			rev.setFileHandleId(null);
 		}
 
-		java.sql.Blob blob = rs.getBlob(COL_REVISION_REF_BLOB);
-		if(blob != null){
-			rev.setReference(blob.getBytes(1, (int) blob.length()));
-		}
-		blob = rs.getBlob(COL_REVISION_COLUMN_MODEL_IDS);
-		if(blob != null){
-			rev.setColumnModelIds(blob.getBytes(1, (int) blob.length()));
-		}
-		blob = rs.getBlob(COL_REVISION_SCOPE_IDS);
-		if(blob != null){
-			rev.setScopeIds(blob.getBytes(1, (int) blob.length()));
-		}
+		rev.setReference(rs.getBytes(COL_REVISION_REF_BLOB));
+		rev.setColumnModelIds(rs.getBytes(COL_REVISION_COLUMN_MODEL_IDS));
+		rev.setScopeIds(rs.getBytes(COL_REVISION_SCOPE_IDS));
 		
 		if(includeAnnotations){
-			blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
-			if(blob != null){
-				rev.setAnnotations(blob.getBytes(1, (int) blob.length()));
-			}
+			rev.setAnnotations(rs.getBytes(COL_REVISION_ANNOS_BLOB));
+			rev.setUserAnnotationsV1(rs.getBytes(COL_REVISION_USER_ANNOTATIONS_V1_BLOB));
+			rev.setEntityPropertyAnnotations(rs.getBytes(COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB));
 		}
 		return rev;
 	}
