@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,6 +15,9 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 import com.amazonaws.util.BinaryUtils;
 
@@ -224,6 +228,16 @@ public class TestUtils {
 		annos.setObjectId("" + i);
 		annos.setScopeId("" + 2*i);
 		return annos;
+	}
+	
+	public static ExternalStorageLocationSetting createExternalStorageLocation(Long createdBy, String description) {
+		ExternalStorageLocationSetting setting = new ExternalStorageLocationSetting();
+		setting.setDescription(description);
+		setting.setUploadType(UploadType.SFTP);
+		setting.setCreatedBy(createdBy);
+		setting.setUrl("sftp://someurl.com");
+		setting.setCreatedOn(new Date());
+		return setting;
 	}
 	
 	

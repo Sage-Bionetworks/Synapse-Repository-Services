@@ -1,0 +1,16 @@
+{
+	"description": "FInal response for storage locations merge job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
+        }
+    ],
+	"properties": {
+         "duplicateLocationsCount":{
+        	"type":"integer"
+         },
+         "updatedProjectsCount":{
+        	"type":"integer"
+         }
+	}
+}

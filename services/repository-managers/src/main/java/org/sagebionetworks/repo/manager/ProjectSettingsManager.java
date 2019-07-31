@@ -7,10 +7,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.migration.MergeStorageLocationsResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 
 
 public interface ProjectSettingsManager {
@@ -44,4 +46,8 @@ public interface ProjectSettingsManager {
 
 	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) throws DatastoreException,
 			NotFoundException;
+	
+	@TemporaryCode(author = "marco.marasca@sagebase.org")
+	MergeStorageLocationsResponse mergeDuplicateStorageLocations(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
+	
 }

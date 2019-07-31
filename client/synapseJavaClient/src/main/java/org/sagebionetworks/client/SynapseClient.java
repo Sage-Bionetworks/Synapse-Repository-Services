@@ -1946,6 +1946,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public <T extends StorageLocationSetting> List<T> getMyStorageLocationSettings() throws SynapseException;
 
 	/**

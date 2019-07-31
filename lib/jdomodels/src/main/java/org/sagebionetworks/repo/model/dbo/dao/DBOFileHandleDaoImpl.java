@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,6 +70,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
+	private static final String UPDATE_STORAGE_LOCATION_ID_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STORAGE_LOCATION_ID + " = :id, " 
+			+ COL_FILES_ETAG + " = UUID() WHERE " + COL_FILES_STORAGE_LOCATION_ID + " IN ( " + IDS_PARAM + " )";
 
 	/**
 	 * Used to detect if a file object already exists.
@@ -341,6 +344,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public void truncateTable() {
 		jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
+	}
+	
+	@WriteTransaction
+	@Override
+	public void updateStorageLocationBatch(Set<Long> currentStorageLocationIds, Long targetStorageLocationId) {
+		for (List<Long> locationIdsBatch : Iterables.partition(currentStorageLocationIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
+			MapSqlParameterSource parameters = new MapSqlParameterSource()
+					.addValue("id", targetStorageLocationId)
+					.addValue("ids", locationIdsBatch);
+			namedJdbcTemplate.update(UPDATE_STORAGE_LOCATION_ID_BATCH, parameters);
+		}
 	}
 
 }

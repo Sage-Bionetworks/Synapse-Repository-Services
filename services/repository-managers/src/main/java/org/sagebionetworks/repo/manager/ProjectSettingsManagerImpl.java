@@ -5,8 +5,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -25,9 +30,11 @@ import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.migration.MergeStorageLocationsResponse;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -76,6 +83,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private UserProfileManager userProfileManager;
+	
+	@Autowired
+	private FileHandleDao fileHandleDao;
 
 	@Override
 	public ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
@@ -241,6 +251,90 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			return null;
 		}
 		return storageLocationDAO.get(storageLocationId);
+	}
+	
+	@Override
+	public MergeStorageLocationsResponse mergeDuplicateStorageLocations(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
+		ValidateArgument.required(userInfo, "userInfo");
+		
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only administrators can invoke this service");
+		}
+		
+		// Maps a duplicate storage location id to the id of the storage location we keep
+		Map<Long, Long> duplicatesMap = new HashMap<>();
+		
+		for (Long id : storageLocationDAO.findAllWithDuplicates()) {
+			
+			Set<Long> duplicates = storageLocationDAO.findDuplicates(id);
+	
+			// Updates all the file handles
+			if (!duplicates.isEmpty()) {
+				fileHandleDao.updateStorageLocationBatch(duplicates, id);
+			}
+			
+			duplicates.forEach(duplicateId  -> duplicatesMap.put(duplicateId, id));
+		}
+		
+		Long updatedProjectsCount = 0l;
+
+		if (!duplicatesMap.isEmpty()) {
+			// Updates the projects referencing the duplicate ids
+			updatedProjectsCount = removeDuplicateStorageLocationsFromProjects(duplicatesMap);
+			
+			// Finally drop the unused storage location settings
+			storageLocationDAO.deleteBatch(duplicatesMap.keySet());
+		}
+		
+		MergeStorageLocationsResponse response = new MergeStorageLocationsResponse();
+		
+		response.setDuplicateLocationsCount((long) duplicatesMap.size());
+		response.setUpdatedProjectsCount(updatedProjectsCount);
+
+		return response;
+	}
+	
+	Long removeDuplicateStorageLocationsFromProjects(Map<Long, Long> duplicatesMap) {
+		Long updatedProjectsCount = 0l;
+		
+		Iterator<ProjectSetting> projectSettings = projectSettingsDao.getByType(ProjectSettingsType.upload);
+		
+		while (projectSettings.hasNext()) {
+			ProjectSetting projectSetting = projectSettings.next();
+			
+			if (!(projectSetting instanceof UploadDestinationListSetting)) {
+				continue;
+			}
+			
+			UploadDestinationListSetting projectLocationSetting = (UploadDestinationListSetting) projectSetting;
+			
+			List<Long> currentLocations = projectLocationSetting.getLocations();
+			List<Long> updatedLocations = new ArrayList<>(projectLocationSetting.getLocations().size());
+			
+			boolean updated = false;
+			
+			for (Long projectLocation : currentLocations) {
+				Long keptLocation = duplicatesMap.get(projectLocation);
+				if (keptLocation == null) {
+					updatedLocations.add(projectLocation);
+				} else {
+					// Makes sure that we are not adding a duplicate
+					if (!currentLocations.contains(keptLocation)) {
+						updatedLocations.add(keptLocation);
+					}
+					updated = true;
+				}
+			}
+			
+			if (updated) {
+				projectLocationSetting.setLocations(updatedLocations);
+				projectSettingsDao.update(projectLocationSetting);
+				updatedProjectsCount++;
+			}
+			
+		}
+		
+		return updatedProjectsCount;
 	}
 
 	// package private for testing only

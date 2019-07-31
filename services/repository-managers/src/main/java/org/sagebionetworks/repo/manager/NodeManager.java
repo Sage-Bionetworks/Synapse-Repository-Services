@@ -373,6 +373,6 @@ public interface NodeManager {
 	 * @param entityId
 	 * @return
 	 */
-	long getCurrentRevisionNumbers(String entityId);
+	long getCurrentRevisionNumber(String entityId);
 
 }

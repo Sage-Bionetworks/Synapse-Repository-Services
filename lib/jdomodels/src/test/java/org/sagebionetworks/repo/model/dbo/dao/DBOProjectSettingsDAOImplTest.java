@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.After;
@@ -185,7 +186,15 @@ public class DBOProjectSettingsDAOImplTest {
 
 	@Test
 	public void testGetByType() {
-		int uploadBefore = projectSettingsDao.getByType(ProjectSettingsType.upload).size();
+		
+		
+		Iterator<ProjectSetting> iterator = projectSettingsDao.getByType(ProjectSettingsType.upload);
+		
+		int uploadBefore = 0;
+		while (iterator.hasNext()) {
+			iterator.next();
+			uploadBefore++;
+		}
 
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
@@ -193,7 +202,16 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setLocations(Lists.<Long> newArrayList());
 		projectSettingsDao.create(setting);
 
-		assertEquals(uploadBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.upload).size());
+		iterator = projectSettingsDao.getByType(ProjectSettingsType.upload);
+		
+		int uploadAfter = 0;
+		
+		while (iterator.hasNext()) {
+			iterator.next();
+			uploadAfter++;
+		}
+		
+		assertEquals(uploadBefore + 1, uploadAfter);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
