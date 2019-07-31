@@ -265,10 +265,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		Map<Long, Long> duplicatesMap = new HashMap<>();
 		
 		for (Long id : storageLocationDAO.findAllWithDuplicates()) {
-			// Already processed within another set
-			if (duplicatesMap.containsKey(id)) {
-				continue;
-			}
 			
 			Set<Long> duplicates = storageLocationDAO.findDuplicates(id);
 	

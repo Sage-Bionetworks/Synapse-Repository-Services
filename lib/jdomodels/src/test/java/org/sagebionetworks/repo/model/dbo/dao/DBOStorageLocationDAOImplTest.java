@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -84,31 +86,37 @@ public class DBOStorageLocationDAOImplTest {
 	@Test
 	public void testFindAllWithDuplicates() throws Exception {
 		List<Long> ids = createStorageLocationsWithSameHash(2);
-		Long maxId = ids.stream().max(Long::compare).get();
-
+		Long firstCreatedId = ids.get(0);
+		Long lastCreatedId = ids.get(1);
+		
 		// Call under test
 		List<Long> withDuplicates = storageLocationDAO.findAllWithDuplicates();
 
-		assertTrue(withDuplicates.contains(maxId),
-				"Expected id " + maxId + " in duplicates, not found: " + withDuplicates.toString());
+		assertFalse("Unexpected id " + firstCreatedId, withDuplicates.contains(firstCreatedId));
+		assertTrue("Expected id " + lastCreatedId + ", not found: " + withDuplicates.toString(), withDuplicates.contains(lastCreatedId));
 	}
 
 	@Test
 	public void testFindDuplicates() throws Exception {
 		List<Long> ids = createStorageLocationsWithSameHash(2);
-		Long maxId = ids.stream().max(Long::compare).get();
+		
+		Long firstCreatedId = ids.get(0);
+		Long lastCreatedId = ids.get(1);
 
 		// Call under test
-		Set<Long> duplicates = storageLocationDAO.findDuplicates(maxId);
+		Set<Long> duplicates = storageLocationDAO.findDuplicates(lastCreatedId);
 
-		assertEquals(ids.stream().filter(id -> id != maxId).collect(Collectors.toSet()), duplicates);
+		assertEquals(1, duplicates.size());
+		assertTrue("Expected id " + firstCreatedId + ", not found: " + duplicates.toString(), duplicates.contains(firstCreatedId));
 
 	}
 
 	@Autowired
+	@TemporaryCode(author = "marco.marasca@sagebase.org")
 	private DBOBasicDao basicDao;
 
 	@Autowired
+	@TemporaryCode(author = "marco.marasca@sagebase.org")
 	private IdGenerator idGenerator;
 
 	private List<Long> createStorageLocationsWithSameHash(int n) throws Exception {

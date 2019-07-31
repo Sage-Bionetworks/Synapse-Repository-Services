@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -740,6 +739,7 @@ public class DBOFileHandleDaoImplTest {
 		
 		FileHandle fileHandle1 = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		FileHandle fileHandle2 = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		FileHandle fileHandle3 = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		
 		fileHandle1.setCreatedOn(new Timestamp(System.currentTimeMillis()/1000*1000));
 		fileHandle1.setStorageLocationId(oldStorageLocation1Id);
@@ -747,27 +747,37 @@ public class DBOFileHandleDaoImplTest {
 		fileHandle2.setCreatedOn(new Timestamp(System.currentTimeMillis()/1000*1000));
 		fileHandle2.setStorageLocationId(oldStorageLocation2Id);
 		
-		fileHandleDao.createBatch(Arrays.asList(fileHandle1, fileHandle2));
+		// File handle with the new storage location id
+		fileHandle3.setCreatedOn(new Timestamp(System.currentTimeMillis()/1000*1000));
+		fileHandle3.setStorageLocationId(newStorageLocationId);
+		
+		fileHandleDao.createBatch(Arrays.asList(fileHandle1, fileHandle2, fileHandle3));
 		
 		fileHandle1 = fileHandleDao.get(fileHandle1.getId());
 		fileHandle2 = fileHandleDao.get(fileHandle2.getId());
+		fileHandle3 = fileHandleDao.get(fileHandle3.getId());
 		
-		toDelete.addAll(Arrays.asList(fileHandle1.getId(), fileHandle2.getId()));
+		toDelete.addAll(Arrays.asList(fileHandle1.getId(), fileHandle2.getId(), fileHandle3.getId()));
 		
 		String fileHandle1Etag = fileHandle1.getEtag();
 		String fileHandle2Etag = fileHandle2.getEtag();
+		String fileHandle3Etag = fileHandle3.getEtag();
 		
 		// Call under test
 		fileHandleDao.updateStorageLocationBatch(ImmutableSet.of(oldStorageLocation1Id, oldStorageLocation2Id), newStorageLocationId);
 		
 		fileHandle1 = fileHandleDao.get(fileHandle1.getId());
 		fileHandle2 = fileHandleDao.get(fileHandle2.getId());
+		fileHandle3 = fileHandleDao.get(fileHandle3.getId());
 		
 		assertEquals(newStorageLocationId, fileHandle1.getStorageLocationId());
 		assertEquals(newStorageLocationId, fileHandle2.getStorageLocationId());
+		assertEquals(newStorageLocationId, fileHandle3.getStorageLocationId());
 		
 		assertNotEquals(fileHandle1Etag, fileHandle1.getEtag());
 		assertNotEquals(fileHandle2Etag, fileHandle2.getEtag());
+		// This should have not changed
+		assertEquals(fileHandle3Etag, fileHandle3.getEtag());
 		
 	}
 }
