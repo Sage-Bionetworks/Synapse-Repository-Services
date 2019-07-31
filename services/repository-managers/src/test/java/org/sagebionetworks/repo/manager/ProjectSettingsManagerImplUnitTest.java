@@ -4,7 +4,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -42,6 +41,7 @@ import org.sagebionetworks.repo.model.migration.MergeStorageLocationsResponse;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 
 import com.amazonaws.services.s3.model.S3Object;
@@ -230,7 +230,10 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		when(mockStorageLocationDAO.findAllWithDuplicates()).thenReturn(Arrays.asList(masterLocationId));
 		when(mockStorageLocationDAO.findDuplicates(masterLocationId)).thenReturn(duplicateLocationIds);
-		when(mockProjectSettingDao.getByType(any())).thenReturn(Collections.emptyList());
+		
+		List<ProjectSetting> projectSettings = Collections.emptyList();
+		
+		when(mockProjectSettingDao.getByType(any())).thenReturn(projectSettings.iterator());
 
 		// Call under test
 		MergeStorageLocationsResponse response = projectSettingsManagerImpl.mergeDuplicateStorageLocations(adminUser);
@@ -263,7 +266,10 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		when(mockStorageLocationDAO.findAllWithDuplicates()).thenReturn(Arrays.asList(masterLocationId));
 		when(mockStorageLocationDAO.findDuplicates(masterLocationId)).thenReturn(duplicateLocationIds);
-		when(mockProjectSettingDao.getByType(any())).thenReturn(Arrays.asList(projectSetting));
+		
+		List<ProjectSetting> projectSettings = Collections.singletonList(projectSetting);
+		
+		when(mockProjectSettingDao.getByType(any())).thenReturn(projectSettings.iterator());
 
 		// Call under test
 		MergeStorageLocationsResponse response = projectSettingsManagerImpl.mergeDuplicateStorageLocations(adminUser);
@@ -299,7 +305,10 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		when(mockStorageLocationDAO.findAllWithDuplicates()).thenReturn(Arrays.asList(masterLocationId));
 		when(mockStorageLocationDAO.findDuplicates(masterLocationId)).thenReturn(duplicateLocationIds);
-		when(mockProjectSettingDao.getByType(any())).thenReturn(Arrays.asList(projectSetting));
+		
+		List<ProjectSetting> projectSettings = Collections.singletonList(projectSetting);
+		
+		when(mockProjectSettingDao.getByType(any())).thenReturn(projectSettings.iterator());
 		when(mockProjectSettingDao.update(any())).thenReturn(projectSettingUpdated);
 
 		// Call under test
@@ -324,8 +333,10 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setLocations(Arrays.asList(masterLocationId));
+		
+		List<ProjectSetting> projectSettings = Collections.singletonList(projectSetting);
 
-		when(mockProjectSettingDao.getByType(any())).thenReturn(Arrays.asList(projectSetting));
+		when(mockProjectSettingDao.getByType(any())).thenReturn(projectSettings.iterator());
 
 		// Call under test
 		projectSettingsManagerImpl.removeDuplicateStorageLocationsFromProjects(duplicatesMap);
@@ -348,8 +359,10 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		UploadDestinationListSetting projectSettingUpdated = new UploadDestinationListSetting();
 		projectSettingUpdated.setLocations(Arrays.asList(masterLocationId));
+		
+		List<ProjectSetting> projectSettings = Collections.singletonList(projectSetting);
 
-		when(mockProjectSettingDao.getByType(any())).thenReturn(Arrays.asList(projectSetting));
+		when(mockProjectSettingDao.getByType(any())).thenReturn(projectSettings.iterator());
 		when(mockProjectSettingDao.update(any())).thenReturn(projectSettingUpdated);
 
 		// Call under test
@@ -374,7 +387,9 @@ public class ProjectSettingsManagerImplUnitTest {
 		UploadDestinationListSetting projectSettingUpdated = new UploadDestinationListSetting();
 		projectSettingUpdated.setLocations(Arrays.asList(masterLocationId));
 
-		when(mockProjectSettingDao.getByType(any())).thenReturn(Arrays.asList(projectSetting));
+		List<ProjectSetting> projectSettings = Collections.singletonList(projectSetting);
+		
+		when(mockProjectSettingDao.getByType(any())).thenReturn(projectSettings.iterator());
 		when(mockProjectSettingDao.update(any())).thenReturn(projectSettingUpdated);
 
 		// Call under test

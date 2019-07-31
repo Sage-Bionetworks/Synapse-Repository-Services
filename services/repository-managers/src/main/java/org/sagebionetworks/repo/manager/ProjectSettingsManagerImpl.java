@@ -8,6 +8,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -300,9 +301,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	Long removeDuplicateStorageLocationsFromProjects(Map<Long, Long> duplicatesMap) {
 		Long updatedProjectsCount = 0l;
 		
-		List<ProjectSetting> projectSettings = projectSettingsDao.getByType(ProjectSettingsType.upload);
+		Iterator<ProjectSetting> projectSettings = projectSettingsDao.getByType(ProjectSettingsType.upload);
 		
-		for (ProjectSetting projectSetting : projectSettings) {
+		while (projectSettings.hasNext()) {
+			ProjectSetting projectSetting = projectSettings.next();
+			
 			if (!(projectSetting instanceof UploadDestinationListSetting)) {
 				continue;
 			}

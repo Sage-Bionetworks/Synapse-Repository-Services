@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -339,9 +340,11 @@ public class ProjectSettingsImplAutowiredTest {
 	}
 	
 	@Autowired
+	@TemporaryCode(author = "marco.marasca@sagebase.org")
 	private DBOBasicDao basicDao;
 
 	@Autowired
+	@TemporaryCode(author = "marco.marasca@sagebase.org")
 	private IdGenerator idGenerator;
 
 	private List<Long> createStorageLocationsWithSameHash(int n) throws Exception {
