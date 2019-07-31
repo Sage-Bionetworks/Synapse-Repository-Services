@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -795,8 +796,26 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	public List<String> getTableSchema(IdAndVersion idAndVersion) {
-		return columModelManager.getColumnIdForTable(idAndVersion);
+	public List<String> getTableSchema(final IdAndVersion inputIdAndVersion) {
+		IdAndVersionBuilder lookupBuilder = IdAndVersion.newBuilder();
+		lookupBuilder.setId(inputIdAndVersion.getId());
+		if(inputIdAndVersion.getVersion().isPresent()) {
+			/*
+			 * The current version of any table is always 'in progress' and does not have a
+			 * schema bound to it. This means the schema for the current version always
+			 * matches the latest schema for the table. Therefore, when a caller explicitly
+			 * requests the schema of the current version the version number, the requested
+			 * version number is ignored, and the current schema is returned.
+			 */
+			long currentVersion = nodeManager.getCurrentRevisionNumbers(inputIdAndVersion.getId().toString());
+			if(!inputIdAndVersion.getVersion().get().equals(currentVersion)) {
+				// Only use the input version number when it is not the current version.
+				lookupBuilder.setVersion(inputIdAndVersion.getVersion().get());
+			}
+			
+		}
+		// lookup the schema for the appropriate version.
+		return columModelManager.getColumnIdForTable(lookupBuilder.build());
 	}
 
 	
