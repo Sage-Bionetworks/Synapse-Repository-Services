@@ -790,7 +790,7 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public long getCurrentRevisionNumbers(String entityId) {
+	public long getCurrentRevisionNumber(String entityId) {
 		return nodeDao.getCurrentRevisionNumber(entityId);
 	}
 
