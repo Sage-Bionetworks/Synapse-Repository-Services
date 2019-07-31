@@ -27,7 +27,7 @@ public class MarkdownDaoImplIntegrationTest {
 	public void testEntityId() throws Exception {
 		String rawMarkdown = "syn12345";
 		String outputType = "html";
-		String result = "<p><a href=\"https://www.synapse.org/#!Synapse:syn12345\" target=\"_blank\">syn12345</a></p>\n";
+		String result = "<p><a href=\"https://www.synapse.org/#!Synapse:syn12345\" target=\"_blank\" ref=\"noopener noreferrer\">syn12345</a></p>\n";
 		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
 	}
 }
