@@ -1474,7 +1474,7 @@ public class TableEntityManagerTest {
 		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
 		assertEquals(newColumnIds, retrievedSchema);
 		// should only lookup the current version when a a version number is requested.
-		verify(mockNodeManager, never()).getCurrentRevisionNumbers(anyString());
+		verify(mockNodeManager, never()).getCurrentRevisionNumber(anyString());
 	}
 	
 	@Test
@@ -1482,10 +1482,10 @@ public class TableEntityManagerTest {
 		idAndVersion  = IdAndVersion.parse("syn123.1");
 		when(mockColumModelManager.getColumnIdForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
 		// requested version matches the current version.
-		when(mockNodeManager.getCurrentRevisionNumbers("123")).thenReturn(1L);
+		when(mockNodeManager.getCurrentRevisionNumber("123")).thenReturn(1L);
 		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
 		assertEquals(newColumnIds, retrievedSchema);
-		verify(mockNodeManager).getCurrentRevisionNumbers(anyString());
+		verify(mockNodeManager).getCurrentRevisionNumber(anyString());
 		// version number should not be included for the current version
 		verify(mockColumModelManager).getColumnIdForTable(IdAndVersion.parse("syn123"));
 	}
@@ -1495,10 +1495,10 @@ public class TableEntityManagerTest {
 		idAndVersion  = IdAndVersion.parse("syn123.1");
 		when(mockColumModelManager.getColumnIdForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
 		// current version is greater than the requested.
-		when(mockNodeManager.getCurrentRevisionNumbers("123")).thenReturn(2L);
+		when(mockNodeManager.getCurrentRevisionNumber("123")).thenReturn(2L);
 		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
 		assertEquals(newColumnIds, retrievedSchema);
-		verify(mockNodeManager).getCurrentRevisionNumbers(anyString());
+		verify(mockNodeManager).getCurrentRevisionNumber(anyString());
 		// the requested version number should be when it does match the current
 		verify(mockColumModelManager).getColumnIdForTable(IdAndVersion.parse("syn123.1"));
 	}
