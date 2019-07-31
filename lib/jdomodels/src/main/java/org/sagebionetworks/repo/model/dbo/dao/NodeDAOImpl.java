@@ -17,7 +17,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
@@ -99,7 +98,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
+import org.sagebionetworks.repo.model.query.QueryTools;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -1469,7 +1468,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		builder.append(" ").append(sortDirection.name());
 		builder.append(" ");
-		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
+		String pagingSql = QueryTools.buildPaging(offset, limit, parameters);
 		builder.append(pagingSql);
 		return builder.toString();
 	}
