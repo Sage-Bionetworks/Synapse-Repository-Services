@@ -804,8 +804,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			 * The current version of any table is always 'in progress' and does not have a
 			 * schema bound to it. This means the schema for the current version always
 			 * matches the latest schema for the table. Therefore, when a caller explicitly
-			 * requests the schema of the current version, the version number requested is
-			 * ignored, and the current schema is returned.
+			 * requests the schema of the current version, the latest schema is returned.
 			 */
 			long currentVersion = nodeManager.getCurrentRevisionNumber(inputIdAndVersion.getId().toString());
 			long inputVersion = inputIdAndVersion.getVersion().get();
