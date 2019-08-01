@@ -128,7 +128,7 @@ public interface FileHandleDao {
 	 * @param key
 	 * @return
 	 */
-	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key);
+	public long getNumberOfReferencesToFile(FileHandleMetadataType metadataType, String bucketName, String key);
 
 	long getCount() throws DatastoreException;
 

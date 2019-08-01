@@ -51,9 +51,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -309,7 +309,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				S3FileHandle s3Handle = (S3FileHandle) handle;
 				// at this point, we need to note that multiple S3FileHandles can point to the same bucket/key. We need
 				// to check if this is the last S3FileHandle to point to this S3 object
-				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
+				if (fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
 					// Delete the file from S3
 					s3Client.deleteObject(s3Handle.getBucketName(), s3Handle.getKey());
 				}
@@ -317,7 +317,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			if (handle instanceof GoogleCloudFileHandle) {
 				GoogleCloudFileHandle googleCloudFileHandle = (GoogleCloudFileHandle) handle;
 				// Make sure no other file handles point to the underlying file before deleting it
-				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.GOOGLE_CLOUD.toString(), googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey()) <= 1) {
+				if (fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.GOOGLE_CLOUD, googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey()) <= 1) {
 					// Delete the file from Google Cloud
 					googleCloudStorageClient.deleteObject(googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey());
 				}
