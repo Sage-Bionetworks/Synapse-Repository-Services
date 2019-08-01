@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.controller;
+package org.sagebionetworks.auth;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 The OpenID Connect (OIDC) services implement OAuth 2.0 with the OpenID identity extensions.
  *
  */
-@ControllerInfo(displayName="OpenID Connect Services", path="auth/v1")
 @Controller
+@ControllerInfo(displayName="OpenID Connect Services", path="auth/v1")
 @RequestMapping(UrlHelpers.AUTH_PATH)
 public class OpenIDConnectController {
 	@Autowired

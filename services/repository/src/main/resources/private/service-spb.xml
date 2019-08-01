@@ -113,8 +113,6 @@
 	<!-- The Subscription Service -->
 	<bean id="dockerService" class="org.sagebionetworks.repo.web.service.DockerServiceImpl" />
 
-	<bean id="openIDConnectService" class="org.sagebionetworks.repo.web.service.OpenIDConnectServiceImpl" />
-
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 
 	<!-- Provides validation for all types -->

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.auth.services;
 
 import java.util.Arrays;
 
