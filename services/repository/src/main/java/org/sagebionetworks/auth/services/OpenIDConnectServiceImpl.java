@@ -56,12 +56,12 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setUserinfo_endpoint(ISSUER+UrlHelpers.OAUTH_2_USER_INFO);
 		result.setJwks_uri(ISSUER+UrlHelpers.OAUTH_2_JWKS);
 		result.setRegistration_endpoint(ISSUER+UrlHelpers.OAUTH_2_CLIENT);
-		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
-		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
-		result.setGrant_types_supported(Arrays.asList(OAuthGrantType.values()));
-		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
-		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
-		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
+//		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
+//		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
+//		result.setGrant_types_supported(Arrays.asList(OAuthGrantType.values()));
+//		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
+//		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
+//		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
 		return result;
