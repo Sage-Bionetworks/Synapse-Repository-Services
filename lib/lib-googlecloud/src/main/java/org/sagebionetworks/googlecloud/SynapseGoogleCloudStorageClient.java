@@ -90,7 +90,7 @@ public interface SynapseGoogleCloudStorageClient {
 	 * @param keyPrefix the prefix that objects should match
 	 * @return
 	 */
-	List<Blob> getObjects(String bucket, String keyPrefix);
+	Iterable<Blob> getObjects(String bucket, String keyPrefix);
 
 	/**
 	 * Checks to see if a Google Cloud Storage bucket exists or not
