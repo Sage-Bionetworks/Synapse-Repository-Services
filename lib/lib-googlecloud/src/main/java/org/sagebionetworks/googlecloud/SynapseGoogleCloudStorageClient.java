@@ -1,7 +1,6 @@
 package org.sagebionetworks.googlecloud;
 
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -100,10 +99,10 @@ public interface SynapseGoogleCloudStorageClient {
 	Boolean bucketExists(String bucket);
 
 	/**
-	 * Get a BufferedReader that contains the data of the object
+	 * Get an InputStream that contains the data of the object
 	 * @param bucket the bucket containing the object
 	 * @param key the name of the object
 	 * @return
 	 */
-	BufferedReader getObjectContent(String bucket, String key);
+	InputStream getObjectContent(String bucket, String key);
 }

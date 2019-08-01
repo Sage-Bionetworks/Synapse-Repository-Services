@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,8 +56,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public static final int MIN_SECRET_KEY_CHARS = 36;
 
 	public static final int MAX_LOCATIONS_PER_PROJECT = 10;
-
-	private static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
 
 	@Autowired
 	private ProjectSettingsDAO projectSettingsDao;
@@ -371,7 +371,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 					+ getExplanation(userProfile, bucket, key));
 		}
 
-		inspectUsername(googleCloudStorageClient.getObjectContent(bucket, key), userProfile, bucket, key);
+		BufferedReader content = new BufferedReader(new InputStreamReader(googleCloudStorageClient.getObjectContent(bucket, key), StandardCharsets.UTF_8));
+		inspectUsername(content, ownerAliases, bucket, key);
 	}
 
 	private void inspectUsername(BufferedReader reader, UserProfile userProfile, String bucket, String key)

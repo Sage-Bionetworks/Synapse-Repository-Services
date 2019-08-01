@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -174,9 +173,9 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 		when(mockStorage.get(OBJECT_BLOB_ID)).thenReturn(mockBlob);
 		when(mockBlob.reader(any())).thenReturn(mockReadChannel);
 		// Call under test
-		BufferedReader bufferedReader = client.getObjectContent(BUCKET_NAME, OBJECT_KEY);
+		InputStream content = client.getObjectContent(BUCKET_NAME, OBJECT_KEY);
 
-		assertNotNull(bufferedReader);
+		assertNotNull(content);
 	}
 
 	/**

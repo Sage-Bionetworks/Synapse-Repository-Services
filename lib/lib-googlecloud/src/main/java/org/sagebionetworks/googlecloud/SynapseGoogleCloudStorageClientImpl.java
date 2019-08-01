@@ -1,12 +1,10 @@
 package org.sagebionetworks.googlecloud;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.util.List;
@@ -115,11 +113,7 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 	}
 
 	@Override
-	public BufferedReader getObjectContent(String bucket, String key) {
-		return new BufferedReader(
-				new InputStreamReader(
-						Channels.newInputStream(this.getObject(bucket, key).reader())
-				)
-		);
+	public InputStream getObjectContent(String bucket, String key) {
+		return Channels.newInputStream(this.getObject(bucket, key).reader());
 	}
 }

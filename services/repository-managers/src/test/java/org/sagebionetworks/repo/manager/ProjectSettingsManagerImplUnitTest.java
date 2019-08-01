@@ -59,9 +59,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	private StorageLocationDAO mockStorageLocationDAO;
 
 	@Mock
-	private BufferedReader mockBufferedReader;
-
-	@Mock
 	private FileHandleDao mockFileHandleDao;
 
 	@Mock
@@ -132,10 +129,10 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void testCreateExternalGoogleCloudStorageLocationSetting() throws Exception {
+		when(userProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
 		when(synapseGoogleCloudStorageClient.bucketExists(bucketName)).thenReturn(true);
 		when(synapseGoogleCloudStorageClient.getObject(bucketName, "owner.txt")).thenReturn(mock(Blob.class));
-		when(synapseGoogleCloudStorageClient.getObjectContent(bucketName, "owner.txt")).thenReturn(mockBufferedReader);
-		when(mockBufferedReader.readLine()).thenReturn("user-name");
+		when(synapseGoogleCloudStorageClient.getObjectContent(bucketName, "owner.txt")).thenReturn(IOUtils.toInputStream(USER_NAME, StandardCharsets.UTF_8));
 		when(mockStorageLocationDAO.create(externalGoogleCloudStorageLocationSetting)).thenReturn(999L);
 
 		// method under test
