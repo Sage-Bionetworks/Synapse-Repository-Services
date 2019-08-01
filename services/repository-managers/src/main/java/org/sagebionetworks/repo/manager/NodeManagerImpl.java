@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
   
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -305,15 +306,7 @@ public class NodeManagerImpl implements NodeManager {
 
 	@WriteTransaction
 	@Override
-	public Node update(UserInfo userInfo, Node updated)
-			throws ConflictingUpdateException, NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		return update(userInfo, updated, null, null, false);
-	}
-
-	@WriteTransaction
-	@Override
-	public Node update(UserInfo userInfo, Node updatedNode, Annotations entityPropertyAnnotations, Annotations userAnnotations, boolean newVersion)
+	public Node update(UserInfo userInfo, Node updatedNode, Annotations entityPropertyAnnotations, boolean newVersion)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 
 		UserInfo.validateUserInfo(userInfo);
@@ -341,24 +334,17 @@ public class NodeManagerImpl implements NodeManager {
 				authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).checkAuthorizationOrElseThrow();
 			}
 		}
-		updateNode(userInfo, updatedNode, entityPropertyAnnotations, userAnnotations, newVersion, ChangeType.UPDATE, oldNode);
+		updateNode(userInfo, updatedNode, entityPropertyAnnotations, newVersion, ChangeType.UPDATE, oldNode);
 
 		return get(userInfo, updatedNode.getId());
 	}
 
-	private void updateNode(UserInfo userInfo, Node updatedNode, Annotations entityPropertyAnnotations, Annotations userAnnotations, boolean newVersion,
-			ChangeType changeType, Node oldNode) throws ConflictingUpdateException, NotFoundException, DatastoreException,
+	private void updateNode(UserInfo userInfo, Node updatedNode, Annotations entityPropertyAnnotations, boolean newVersion,
+							ChangeType changeType, Node oldNode) throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
 		NodeManagerImpl.validateNode(updatedNode);
-
-		// Make sure the eTags match
-		if (userAnnotations != null) {
-			ValidateArgument.required(updatedNode.getETag(), "eTag");
-			if (!updatedNode.getETag().equals(userAnnotations.getEtag())) {
-				throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
-			}
-		}
+		ValidateArgument.required(updatedNode.getETag(), "eTag");
 
 		canConnectToActivity(updatedNode.getActivityId(), userInfo);
 		
@@ -398,15 +384,8 @@ public class NodeManagerImpl implements NodeManager {
 		// Now make the actual update.
 		nodeDao.updateNode(updatedNode);
 
-		// Also update the Annotations if provided
-		if(userAnnotations != null){
-			userAnnotations.setEtag(nextETag);
-			nodeDao.updateUserAnnotations(updatedNode.getId(), userAnnotations);
-		}
-
 		// Also update the entity property Annotations if provided
 		if(entityPropertyAnnotations != null){
-			entityPropertyAnnotations.setEtag(nextETag);
 			nodeDao.updateEntityPropertyAnnotations(updatedNode.getId(), entityPropertyAnnotations);
 		}
 
@@ -628,7 +607,7 @@ public class NodeManagerImpl implements NodeManager {
 			DatastoreException {
 		Node toUpdate = get(userInfo, nodeId);		
 		toUpdate.setActivityId(activityId);
-		update(userInfo, toUpdate);
+		update(userInfo, toUpdate, null, false);
 	}
 
 	@WriteTransaction
@@ -637,7 +616,7 @@ public class NodeManagerImpl implements NodeManager {
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Node toUpdate = get(userInfo, nodeId);
 		toUpdate.setActivityId(NodeDAO.DELETE_ACTIVITY_VALUE);
-		update(userInfo, toUpdate);
+		update(userInfo, toUpdate, null , false);
 	}	
 	
 	/*

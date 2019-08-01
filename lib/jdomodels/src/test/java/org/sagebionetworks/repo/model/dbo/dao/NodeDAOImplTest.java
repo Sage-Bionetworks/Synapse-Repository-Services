@@ -3763,7 +3763,7 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testAnnotations_EmptyAnnotationsRoundTrip(){
+	public void testUserAnnotations_EmptyAnnotationsRoundTrip(){
 		Node node = nodeDao.createNewNode(privateCreateNew("testEmptyNamedAnnotations"));
 		String id = node.getId();
 		toDelete.add(id);

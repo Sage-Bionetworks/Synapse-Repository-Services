@@ -305,7 +305,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R.";
 
-	private static final String SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX = " FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + "=";
+	private static final String SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX = " FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = :"+COL_NODE_ID +" AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + "=";
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -711,17 +711,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		StringBuilder sql = new StringBuilder(SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX);
 		sql.append(annotationsColumnName);
 		sql.append(SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX);
-		Object[] args;
+
+		Map<String, Object> parameters = new HashMap<>();
+		parameters.put(COL_NODE_ID, idLong);
 		if(version == null){
 			sql.append("N." + COL_CURRENT_REV);
-			args = new Object[]{idLong};
 		}else {
-			sql.append("?");
-			args = new Object[]{idLong, version};
+			sql.append(":version");
+			parameters.put("version", version);
 		}
 		// Select just the references, not the entire node.
 		try{
-			Annotations annos =  jdbcTemplate.queryForObject(sql.toString(), new AnnotationsRowMapper(annotationsColumnName), args);
+			Annotations annos =  namedParameterJdbcTemplate.queryForObject(sql.toString(), parameters, new AnnotationsRowMapper(annotationsColumnName));
 			// Remove the eTags when version is specified (See PLFM-1420)
 			if(annos != null && version != null){
 					annos.setEtag(NodeConstants.ZERO_E_TAG);
@@ -836,11 +837,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		updateAnnotations(nodeId, updatedAnnos, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
 	}
 
-	private void updateAnnotations(String nodeId, Annotations updatedAnnos, String annotationColumnName) throws NotFoundException, DatastoreException {
+	void updateAnnotations(String nodeId, Annotations updatedAnnos, String annotationColumnName) throws NotFoundException, DatastoreException {
 
-		if(updatedAnnos == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
-		if(updatedAnnos.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
-		if(updatedAnnos.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
+		ValidateArgument.required(nodeId, "nodeId");
+		ValidateArgument.required(updatedAnnos, "updatedAnnos");
+
 
 		final Long nodeIdLong = KeyFactory.stringToKey(nodeId);
 		final Long currentRevision = getCurrentRevisionNumber(nodeId);

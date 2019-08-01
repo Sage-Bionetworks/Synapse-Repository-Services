@@ -98,9 +98,10 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public <T extends Entity> T getEntityWithAnnotations(
+	public <T extends Entity> T getEntity(
 			UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		ValidateArgument.required(entityId, "entityId");
 		// Get the annotations for this entity
 		Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(userInfo, entityId);
 		// Fetch the current node from the server
@@ -150,7 +151,8 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	private <T extends Entity> T getEntityVersionWithAnnotations(
+	@Override
+	public  <T extends Entity> T getEntityForVersion(
 			UserInfo userInfo, String entityId, Long versionNumber,
 			Class<? extends T> entityClass) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -185,26 +187,6 @@ public class EntityManagerImpl implements EntityManager {
 		newEntity.setCreatedBy(node.getCreatedByPrincipalId().toString());
 		newEntity.setModifiedBy(node.getModifiedByPrincipalId().toString());
 		return newEntity;
-	}
-
-	@Override
-	public <T extends Entity> T getEntity(UserInfo userInfo, String entityId,
-			Class<? extends T> entityClass) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
-		if (entityId == null)
-			throw new IllegalArgumentException("Entity ID cannot be null");
-		// To fully populate an entity we must also load its annotations.
-		// Therefore, we get both but only return the entity for this call.
-		return getEntityWithAnnotations(userInfo, entityId, entityClass);
-	}
-
-	@Override
-	public <T extends Entity> T getEntityForVersion(UserInfo userInfo,
-			String entityId, Long versionNumber, Class<? extends T> entityClass)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		// To fully populate an entity we must also load its annotations.
-		// Therefore, we get both but only return the entity for this call.
-		return getEntityVersionWithAnnotations(userInfo, entityId, versionNumber, entityClass);
 	}
 
 	@Override
@@ -334,7 +316,7 @@ public class EntityManagerImpl implements EntityManager {
 		
 		updateNodeAndAnnotationsFromEntity(updated, node, entityPropertyAnnotations);
 		// Now update both at the same time
-		nodeManager.update(userInfo, node, entityPropertyAnnotations, null, newVersionFinal);
+		nodeManager.update(userInfo, node, entityPropertyAnnotations, newVersionFinal);
 		return newVersionFinal;
 	}
 
@@ -354,42 +336,6 @@ public class EntityManagerImpl implements EntityManager {
 		NodeTranslationUtils.updateNodeFromObject(entity, node);
 		// Set the Annotations Etag
 		annos.setEtag(entity.getEtag());
-	}
-
-	@WriteTransaction
-	@Override
-	public <T extends Entity> List<String> aggregateEntityUpdate(
-			UserInfo userInfo, String parentId, Collection<T> update)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, ConflictingUpdateException,
-			InvalidModelException {
-		if (update == null)
-			throw new IllegalArgumentException("AggregateUpdate cannot be null");
-		// We are going to lock on the parent so the first step is to get the
-		// parent
-		Node parentNode = nodeManager.get(userInfo, parentId);
-		// We start by updating the parent, this will lock the parent for this
-		// transaction
-		// If we do not lock on the parent then we could get DEADLOCK while
-		// attempting to lock the children.
-		nodeManager.update(userInfo, parentNode);
-		Iterator<T> it = update.iterator();
-		List<String> ids = new ArrayList<String>();
-		while (it.hasNext()) {
-			T child = it.next();
-			// Each child must have this parent's id
-			child.setParentId(parentId);
-			// Update each child.
-			String id = null;
-			if (child.getId() == null) {
-				id = this.createEntity(userInfo, child, null);
-			} else {
-				id = child.getId();
-				updateEntity(userInfo, child, false, null);
-			}
-			ids.add(id);
-		}
-		return ids;
 	}
 
 	@Override

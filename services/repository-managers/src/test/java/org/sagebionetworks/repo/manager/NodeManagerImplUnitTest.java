@@ -308,11 +308,11 @@ public class NodeManagerImplUnitTest {
 		when(mockNodeDao.getNode("101")).thenReturn(oldNode);
 		
 		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
-		nodeManager.update(userInfo, newNode);
+		nodeManager.update(userInfo, newNode, null, false);
 
 		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
 		try {
-			nodeManager.update(userInfo, newNode);
+			nodeManager.update(userInfo, newNode, null, false);
 			fail("expected UnauthorizedException");
 		} catch (UnauthorizedException e) {
 			// as expected
@@ -398,7 +398,7 @@ public class NodeManagerImplUnitTest {
 		// not found
 		try {
 			when(mockActivityManager.doesActivityExist(activityId)).thenReturn(false);		
-			nodeManager.update(mockUserInfo, node);
+			nodeManager.update(mockUserInfo, node, null, false);
 			fail("node should not have been updated");
 		} catch (NotFoundException e) {
 			// good.
@@ -406,7 +406,7 @@ public class NodeManagerImplUnitTest {
 		
 		// found
 		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);
-		nodeManager.update(mockUserInfo, node);		
+		nodeManager.update(mockUserInfo, node, null, false);
 		verify(mockNodeDao).updateNode(node);		
 	}
 	
@@ -431,7 +431,7 @@ public class NodeManagerImplUnitTest {
 		// fail authZ
 		try {
 			when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(AuthorizationStatus.accessDenied(""));
-			nodeManager.update(mockUserInfo, node);
+			nodeManager.update(mockUserInfo, node, null, false);
 			fail("node should not have been updated");
 		} catch (UnauthorizedException e) {
 			// good.
@@ -439,7 +439,7 @@ public class NodeManagerImplUnitTest {
 		
 		// pass authZ
 		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(AuthorizationStatus.authorized());
-		nodeManager.update(mockUserInfo, node);		
+		nodeManager.update(mockUserInfo, node, null, false);
 		verify(mockNodeDao).updateNode(node);		
 	}
 	
@@ -571,7 +571,7 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testUpdate() {
 		// call under test
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		verify(mockNodeDao).lockNode(nodeId);
 		verify(mockNodeDao).touch(mockUserInfo.getId(), mockNode.getId());
 	}
@@ -581,7 +581,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getETag()).thenReturn("wrongEtag");
 		// call under test
 		try {
-			nodeManager.update(mockUserInfo, mockNode);
+			nodeManager.update(mockUserInfo, mockNode, null, false);
 			fail();
 		} catch (ConflictingUpdateException e) {
 			// expected
@@ -606,7 +606,7 @@ public class NodeManagerImplUnitTest {
 		
 		// unauthorized
 		try {
-			nodeManager.update(mockUserInfo, mockNode);
+			nodeManager.update(mockUserInfo, mockNode, null, false);
 			fail("Should not have allowed update");
 		} catch (UnauthorizedException e) {
 			// expected
@@ -621,7 +621,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getETag()).thenReturn(startEtag);
 		
 		// authorized	
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		verify(mockNodeDao).updateNode(mockNode);
 		
 		// governance restriction on move
@@ -630,7 +630,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getParentId()).thenReturn(authorizedParentId);
 		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(authorizedParentId))).thenReturn(AuthorizationStatus.accessDenied(""));
 		try {
-			nodeManager.update(mockUserInfo, mockNode);
+			nodeManager.update(mockUserInfo, mockNode, null, false);
 			fail("Should not have allowed update");
 		} catch (UnauthorizedException e) {
 			// expected
@@ -648,7 +648,7 @@ public class NodeManagerImplUnitTest {
 		when(oldNode.getParentId()).thenReturn(currentParentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
 		// call under test
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// count check should occur
 		verify(mockNodeDao).getChildCount(newParentId);
 	}
@@ -664,7 +664,7 @@ public class NodeManagerImplUnitTest {
 		when(oldNode.getParentId()).thenReturn(currentParentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
 		// call under test
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// count check should occur
 		verify(transactionalMessenger).sendMessageAfterCommit(nodeId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
 	}
@@ -680,7 +680,7 @@ public class NodeManagerImplUnitTest {
 		when(oldNode.getParentId()).thenReturn(currentParentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
 		// call under test
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// message should not be sent for a file.
 		verify(transactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
 	}
@@ -696,7 +696,7 @@ public class NodeManagerImplUnitTest {
 		when(oldNode.getParentId()).thenReturn(currentParentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
 		// call under test
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// message should not be sent since this is not a parent change.
 		verify(transactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
 	}
@@ -712,7 +712,7 @@ public class NodeManagerImplUnitTest {
 		when(oldNode.getParentId()).thenReturn(currentParentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
 		// call under test
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// not a parent change so count should not be checked.
 		verify(mockNodeDao, never()).getChildCount(newParentId);
 	}
@@ -721,11 +721,11 @@ public class NodeManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNodeNoEtag() throws Exception {
 		String id = "101";
-		Annotations userAnnotations = new Annotations();
-		userAnnotations.addAnnotation("k", "a");
-		userAnnotations.setEtag("etag");
+		Annotations entityPropertyAnnotations = new Annotations();
+		entityPropertyAnnotations.addAnnotation("k", "a");
+		entityPropertyAnnotations.setEtag("etag");
 
-		nodeManager.update(mockUserInfo, mockNode, null, userAnnotations, false);
+		nodeManager.update(mockUserInfo, mockNode, entityPropertyAnnotations, false);
 	}
 
 	@Test
