@@ -13,7 +13,9 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -108,26 +110,27 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public void deleteVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-	
+
 	/**
-	 * Get the Annotations for a node. 
-	 * @param id
-	 * @return the current annotations
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Get the annotations for a given version number
-	 * @param id
-	 * @param versionNumber 
-	 * @return the version-specific annotations
+	 * Update user generated annotations that are associated with this node
+	 * @param nodeId
+	 * @param updatedAnnos
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-	
+	@WriteTransaction
+	void updateUserAnnotationsV1(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Update annotations for the node's additional entity properties
+	 * @param nodeId
+	 * @param updatedAnnos
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@WriteTransaction
+	void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
+
 	/**
 	 * Get all of the version numbers for this node.
 	 * @param id
@@ -136,7 +139,30 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException;
-	
+
+	/**
+	 * Get User annotations
+	 * @param id
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	Annotations getUserAnnotationsV1(String id) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Get User Annotations for a specific version
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	Annotations getUserAnnotationsV1ForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+
+	Annotations getEntityPropertyAnnotations(String id) throws NotFoundException, DatastoreException;
+
+	Annotations getEntityPropertyAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+
 	/**
 	 * Look at the current eTag without locking or changing anything.
 	 * @param id
@@ -153,15 +179,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException;
-	
-	/**
-	 * Update a nodes annotations.
-	 * @param nodeId 
-	 * @param updatedAnnos 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Does a given node exist?
@@ -540,16 +557,13 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String touch(Long userId, String nodeId, ChangeType changeType);
-
-
-	@MandatoryWriteTransaction
-	List<Object[]> TEMPORARYGetAllAnnotations(Long nodeId);
-
-	@MandatoryWriteTransaction
-	void TEMPORARYBatchUpdateAnnotations(List<Object[]> args);
-
-	List<Long> TEMPORARYGetAllNodeIDsInRange(long nodeIdStart, long numNodes);
-
-	@MandatoryWriteTransaction
-	void TEMPORARYChangeEtagOnly(Long id);
+	
+	/**
+	 * Create a snapshot of the current version, by applying the comment, label, and activity to the 
+	 * current version.
+	 * @param nodeId
+	 * @param request
+	 * @return The version number of the the snapshot (will always be the current version number).
+	 */
+	public long snapshotVersion(Long userId, String nodeId, SnapshotRequest request);
 }

@@ -326,5 +326,10 @@ public class TableConstants {
 					+" WHERE "
 					+REPLICATION_SYNC_EXP_COL_EXPIRES+" > :"+EXPIRES_PARAM
 					+" AND "+REPLICATION_SYNC_EXP_COL_ID+" IN (:"+ID_PARAMETER_NAME+")";
+	
+	/**
+	 * Marker for a table's label indicating the version is 'in progress'.
+	 */
+	public static final String IN_PROGRESS = "in progress";
 
 }

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.file.MultipartManagerV2;
 import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -146,13 +147,16 @@ public class FileUploadServiceImpl implements FileUploadService {
 	@Override
 	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.getRedirectURLForFileHandle(userInfo, fileHandleId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId);
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override
 	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId, FileHandleAssociateType fileAssociateType, String fileAssociateId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.getRedirectURLForFileHandle(userInfo, fileHandleId, fileAssociateType, fileAssociateId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(fileAssociateType, fileAssociateId);
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override

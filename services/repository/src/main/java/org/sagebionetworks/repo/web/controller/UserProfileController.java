@@ -326,12 +326,13 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE, method = RequestMethod.GET)
 	public @ResponseBody
 	void imageRedirectURLForUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		String redirectUrl = serviceProvider.getUserProfileService().getUserProfileImage(profileId);
+		String redirectUrl = serviceProvider.getUserProfileService().getUserProfileImage(userId, profileId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
@@ -356,12 +357,13 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void imagePreviewRedirectURLForUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		String redirectUrl = serviceProvider.getUserProfileService().getUserProfileImagePreview(profileId);
+		String redirectUrl = serviceProvider.getUserProfileService().getUserProfileImagePreview(userId, profileId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	

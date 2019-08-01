@@ -17,12 +17,12 @@ import java.util.UUID;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileHandleCopyUtilsTest {
@@ -177,7 +177,7 @@ public class FileHandleCopyUtilsTest {
 		assertEquals(newOwner, newFileHandle.getCreatedBy());
 		assertEquals(newFileName, newFileHandle.getFileName());
 		assertEquals(oldContentType, newFileHandle.getContentType());
-		assertNull(((HasPreviewId)newFileHandle).getPreviewId());
+		assertNull(((CloudProviderFileHandleInterface)newFileHandle).getPreviewId());
 	}
 
 	@Test (expected=IllegalArgumentException.class)

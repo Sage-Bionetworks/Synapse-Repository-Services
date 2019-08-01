@@ -37,7 +37,7 @@ public class AccessRequirementFileHandleAssociationProviderTest {
 	public void testGetFileHandleIdsAssociatedWithObjectForNonACTAccessRequirement() {
 		String accessRequirementId = "1";
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList("2"), accessRequirementId);
 		assertTrue(associated.isEmpty());
 	}
@@ -48,7 +48,7 @@ public class AccessRequirementFileHandleAssociationProviderTest {
 		String ducTemplateFileHandleId = "2";
 		when(mockAccessRequirement.getDucTemplateFileHandleId()).thenReturn(ducTemplateFileHandleId);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(ducTemplateFileHandleId, "3"), accessRequirementId);
 		assertEquals(Collections.singleton(ducTemplateFileHandleId), associated);
 	}

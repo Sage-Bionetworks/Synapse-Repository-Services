@@ -33,6 +33,7 @@ import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -52,6 +53,7 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -59,11 +61,13 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
+import org.sagebionetworks.repo.model.file.ExternalGoogleCloudUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
@@ -78,10 +82,9 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -89,6 +92,7 @@ import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -159,6 +163,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	SynapseS3Client s3Client;
+
+	@Autowired
+	SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Autowired
 	UploadDaemonStatusDao uploadDaemonStatusDao;
@@ -289,8 +296,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 					.checkAuthorizationOrElseThrow();
 			// If this file has a preview then we want to delete the preview as
 			// well.
-			if (handle instanceof HasPreviewId) {
-				HasPreviewId hasPreview = (HasPreviewId) handle;
+			if (handle instanceof CloudProviderFileHandleInterface) {
+				CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) handle;
 				if (hasPreview.getPreviewId() != null
 						&& !handle.getId().equals(hasPreview.getPreviewId())) {
 					// Delete the preview.
@@ -298,13 +305,21 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				}
 			}
 			// Is this an S3 file?
-			if (handle instanceof S3FileHandleInterface) {
-				S3FileHandleInterface s3Handle = (S3FileHandleInterface) handle;
+			if (handle instanceof S3FileHandle) {
+				S3FileHandle s3Handle = (S3FileHandle) handle;
 				// at this point, we need to note that multiple S3FileHandles can point to the same bucket/key. We need
 				// to check if this is the last S3FileHandle to point to this S3 object
-				if (fileHandleDao.getS3objectReferenceCount(s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
+				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
 					// Delete the file from S3
 					s3Client.deleteObject(s3Handle.getBucketName(), s3Handle.getKey());
+				}
+			}
+			if (handle instanceof GoogleCloudFileHandle) {
+				GoogleCloudFileHandle googleCloudFileHandle = (GoogleCloudFileHandle) handle;
+				// Make sure no other file handles point to the underlying file before deleting it
+				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.GOOGLE_CLOUD.toString(), googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey()) <= 1) {
+					// Delete the file from Google Cloud
+					googleCloudStorageClient.deleteObject(googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey());
 				}
 			}
 			// Delete the handle from the DB
@@ -318,25 +333,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Override
 	public String getRedirectURLForFileHandle(FileHandleUrlRequest urlRequest) {
-		if (urlRequest.bypassAuthCheck()) {
-			return getRedirectURLForFileHandle(urlRequest.getFileHandleId());
-		}
 		if (urlRequest.hasAssociation()) {
 			return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId(), urlRequest.getAssociationType(), urlRequest.getAssociationId());
 		}
 		return getRedirectURLForFileHandle(urlRequest.getUserInfo(), urlRequest.getFileHandleId());
 	}
-
-	@Override
-	public String getRedirectURLForFileHandle(String handleId)
-			throws DatastoreException, NotFoundException {
-		// First lookup the file handle
-		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle);
-	}
 	
-	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
+	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId) throws DatastoreException, NotFoundException {
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User cannot be null");
@@ -354,8 +357,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return getURLForFileHandle(handle);
 	}
 	
-	@Override
-	public String getRedirectURLForFileHandle(UserInfo userInfo,
+	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId, FileHandleAssociateType fileAssociateType,
 			String fileAssociateId) {
 		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
@@ -387,32 +389,40 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			}
 			ProxyStorageLocationSettings proxyStorage = (ProxyStorageLocationSettings) storage;
 			return ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle, proxyStorage, new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
-		} else if (handle instanceof S3FileHandleInterface) {
-			S3FileHandleInterface s3File = (S3FileHandleInterface) handle;
-			// Create a pre-signed url
-			GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(s3File.getBucketName(), s3File.getKey(), HttpMethod.GET);
-			request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
-
-			ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
-
-			String contentType = handle.getContentType();
-			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
-				responseHeaderOverrides.setContentType(contentType);
-			}
-			String fileName = handle.getFileName();
-			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-				responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
-			}
-
-			request.setResponseHeaders(responseHeaderOverrides);
-			return s3Client.generatePresignedUrl(request).toExternalForm();
+		} else if (handle instanceof S3FileHandle) {
+			return getUrlForS3FileHandle((S3FileHandle) handle);
+		} else if (handle instanceof GoogleCloudFileHandle) {
+			return getUrlForGoogleCloudFileHandle((GoogleCloudFileHandle) handle);
 		} else if (handle instanceof ExternalObjectStoreFileHandle){
 			ExternalObjectStoreFileHandle fileHandle = (ExternalObjectStoreFileHandle) handle;
 			return StringUtils.join(new String[]{fileHandle.getEndpointUrl(), fileHandle.getBucket(), fileHandle.getFileKey()} , '/');
 		} else {
-			throw new IllegalArgumentException("Unknown FileHandle class: "
-					+ handle.getClass().getName());
+			throw new IllegalArgumentException("Unknown FileHandle class: " + handle.getClass().getName());
 		}
+	}
+
+	private String getUrlForS3FileHandle(S3FileHandle handle) {
+		// Create a pre-signed url
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(handle.getBucketName(), handle.getKey(), HttpMethod.GET);
+		request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
+
+		ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
+
+		String contentType = handle.getContentType();
+		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+			responseHeaderOverrides.setContentType(contentType);
+		}
+		String fileName = handle.getFileName();
+		if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
+			responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
+		}
+
+		request.setResponseHeaders(responseHeaderOverrides);
+		return s3Client.generatePresignedUrl(request).toExternalForm();
+	}
+
+	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
+		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
 	}
 
 	@Override
@@ -792,6 +802,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			externalS3UploadDestination.setBucket(externalS3StorageLocationSetting.getBucket());
 			externalS3UploadDestination.setBaseKey(externalS3StorageLocationSetting.getBaseKey());
 			uploadDestination = externalS3UploadDestination;
+		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
+			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
+			ExternalGoogleCloudUploadDestination externalGoogleCloudUploadDestination = new ExternalGoogleCloudUploadDestination();
+			externalGoogleCloudUploadDestination.setBucket(externalGoogleCloudStorageLocationSetting.getBucket());
+			externalGoogleCloudUploadDestination.setBaseKey(externalGoogleCloudStorageLocationSetting.getBaseKey());
+			uploadDestination = externalGoogleCloudUploadDestination;
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			String filename = UUID.randomUUID().toString();
 			List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
@@ -1156,8 +1172,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				HashSet<String> previewFileHandleIdsToFetch = new HashSet<String>();
 				for (String fileHandleId : fileHandles.keySet()) {
 					FileHandle fh = fileHandles.get(fileHandleId);
-					if (fh instanceof HasPreviewId) {
-						HasPreviewId hasPreview = (HasPreviewId) fh;
+					if (fh instanceof CloudProviderFileHandleInterface) {
+						CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) fh;
 						if (hasPreview.getPreviewId() != null) {
 							previewFileHandleIdsToFetch.add(hasPreview.getPreviewId());
 						}
@@ -1187,8 +1203,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							downloadRecords.add(record);
 						}
 						if (request.getIncludePreviewPreSignedURLs()) {
-							if (handle instanceof HasPreviewId) {
-								HasPreviewId hasPreview = (HasPreviewId) handle;
+							if (handle instanceof CloudProviderFileHandleInterface) {
+								CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) handle;
 								String previewId = hasPreview.getPreviewId();
 								if (previewFileHandles.containsKey(previewId)) {
 									String previewURL = getURLForFileHandle(previewFileHandles.get(previewId));

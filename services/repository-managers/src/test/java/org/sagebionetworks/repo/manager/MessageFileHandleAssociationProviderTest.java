@@ -37,7 +37,7 @@ public class MessageFileHandleAssociationProviderTest {
 		String fileHandleId = "2";
 		when(mockMessageDAO.getMessage(messageId)).thenReturn(mockMessage);
 		when(mockMessage.getFileHandleId()).thenReturn(fileHandleId);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(fileHandleId, "4"), messageId);
 		assertEquals(Collections.singleton(fileHandleId), associated);
 	}

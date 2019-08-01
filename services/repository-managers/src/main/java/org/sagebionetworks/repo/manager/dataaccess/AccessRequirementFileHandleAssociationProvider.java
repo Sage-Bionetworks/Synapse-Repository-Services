@@ -16,7 +16,7 @@ public class AccessRequirementFileHandleAssociationProvider implements FileHandl
 	AccessRequirementDAO accessRequirementDao;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> associatedIds = new HashSet<String>();
 		AccessRequirement accessRequirement = accessRequirementDao.get(objectId);
 		if (accessRequirement instanceof ManagedACTAccessRequirement) {

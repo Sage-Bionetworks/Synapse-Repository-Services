@@ -584,8 +584,7 @@ public class EntityServiceImpl implements EntityService {
 		
 		// Use the FileHandle ID to get the URL
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
-				.withAssociation(FileHandleAssociateType.FileEntity, id)
-				.withBypassAuthCheck(true);
+				.withAssociation(FileHandleAssociateType.FileEntity, id);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
@@ -602,8 +601,7 @@ public class EntityServiceImpl implements EntityService {
 
 		// Use the FileHandle ID to get the URL
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, previewId)
-				.withAssociation(FileHandleAssociateType.FileEntity, entityId)
-				.withBypassAuthCheck(true);
+				.withAssociation(FileHandleAssociateType.FileEntity, entityId);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
@@ -618,8 +616,7 @@ public class EntityServiceImpl implements EntityService {
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
 		// Use the FileHandle ID to get the URL
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
-				.withAssociation(FileHandleAssociateType.FileEntity, id)
-				.withBypassAuthCheck(true);
+				.withAssociation(FileHandleAssociateType.FileEntity, id);
 				
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
@@ -637,8 +634,7 @@ public class EntityServiceImpl implements EntityService {
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Use the FileHandle ID to get the URL
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, previewId)
-				.withAssociation(FileHandleAssociateType.FileEntity, id)
-				.withBypassAuthCheck(true);
+				.withAssociation(FileHandleAssociateType.FileEntity, id);
 				
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
@@ -696,11 +692,5 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.changeEntityDataType(userInfo, id, dataType);
-	}
-
-	@Override
-	public Long TEMPORARYcleanupAnnotations(Long userId, long startId, long numNodes){
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.TEMPORARYcleanupAnnotations(userInfo, startId, numNodes);
 	}
 }

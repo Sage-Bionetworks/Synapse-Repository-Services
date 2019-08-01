@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.After;
@@ -24,7 +25,6 @@ import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -186,23 +186,32 @@ public class DBOProjectSettingsDAOImplTest {
 
 	@Test
 	public void testGetByType() {
-		int uploadBefore = projectSettingsDao.getByType(ProjectSettingsType.upload).size();
-		int extSyncBefore = projectSettingsDao.getByType(ProjectSettingsType.external_sync).size();
+		
+		
+		Iterator<ProjectSetting> iterator = projectSettingsDao.getByType(ProjectSettingsType.upload);
+		
+		int uploadBefore = 0;
+		while (iterator.hasNext()) {
+			iterator.next();
+			uploadBefore++;
+		}
 
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(ProjectSettingsType.upload);
 		setting.setLocations(Lists.<Long> newArrayList());
 		projectSettingsDao.create(setting);
-		ExternalSyncSetting externalSyncSetting = new ExternalSyncSetting();
-		externalSyncSetting.setProjectId(projectId);
-		externalSyncSetting.setSettingsType(ProjectSettingsType.external_sync);
-		externalSyncSetting.setAutoSync(false);
-		externalSyncSetting.setLocationId(1L);
-		projectSettingsDao.create(externalSyncSetting);
 
-		assertEquals(uploadBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.upload).size());
-		assertEquals(extSyncBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.external_sync).size());
+		iterator = projectSettingsDao.getByType(ProjectSettingsType.upload);
+		
+		int uploadAfter = 0;
+		
+		while (iterator.hasNext()) {
+			iterator.next();
+			uploadAfter++;
+		}
+		
+		assertEquals(uploadBefore + 1, uploadAfter);
 	}
 
 	@Test (expected=IllegalArgumentException.class)

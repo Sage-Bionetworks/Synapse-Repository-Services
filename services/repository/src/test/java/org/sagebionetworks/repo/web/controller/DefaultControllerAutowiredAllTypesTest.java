@@ -9,12 +9,10 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.servlet.ServletException;
 
@@ -55,6 +53,7 @@ import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -68,8 +67,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * This is a an integration test for the default controller.
- * 
- * @author jmhill
  * 
  */
 
@@ -134,15 +131,8 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			}
 		}
 		assertNotNull(testTeam);
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(testUser.getId().toString());
-		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
+		handleOne = TestUtils.createS3FileHandle(testUser.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setKey("EntityControllerTest.mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
 		handleOne = (S3FileHandle) fileMetadataDao.createFile(handleOne);
 		// create a column model
 		columnModelOne = new ColumnModel();
@@ -549,6 +539,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -577,6 +571,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -617,6 +615,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		for(Entity entity: created){
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
+				// Cannot directly create version of tables or views
+				if(entity instanceof TableEntity || entity instanceof EntityView) {
+					continue;
+				}
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
 				// Create multiple versions for each.
 				for(int i=0; i<numberVersion; i++){
@@ -665,6 +667,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -719,6 +725,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertTrue(created.size() >= EntityType.values().length);
 		// Now update each
 		for(Entity entity: created){
+			// Cannot directly create version of tables or views
+			if(entity instanceof TableEntity || entity instanceof EntityView) {
+				continue;
+			}
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				VersionableEntity versionableEntity = (VersionableEntity) entity;

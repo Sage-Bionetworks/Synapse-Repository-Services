@@ -35,6 +35,8 @@ public class SqlConstants {
 	public static final String COL_REVISION_LABEL			= "LABEL";
 	public static final String COL_REVISION_COMMENT			= "COMMENT";
 	public static final String COL_REVISION_ANNOS_BLOB		= "ANNOTATIONS";
+	public static final String COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB = "ENTITY_PROPERTY_ANNOTATIONS";
+	public static final String COL_REVISION_USER_ANNOTATIONS_V1_BLOB = "USER_ANNOTATIONS_V1";
 	public static final String COL_REVISION_REF_BLOB		= "REFERENCE";
 	public static final String COL_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
@@ -74,6 +76,7 @@ public class SqlConstants {
 	public static final String COL_STORAGE_LOCATION_DATA			= "DATA";
 	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
+	public static final String COL_STORAGE_LOCATION_DATA_HASH		= "DATA_HASH";
 
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
@@ -230,6 +233,7 @@ public class SqlConstants {
 	public static final String COL_FILES_NAME						= "NAME";
 	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String COL_FILES_ENDPOINT					= "ENDPOINT";
+	public static final String COL_FILES_IS_PREVIEW					= "IS_PREVIEW";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
 	
 	// multipart upload state

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +25,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
@@ -41,6 +43,7 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -568,5 +571,55 @@ public class UserProfileManagerImplUnitTest {
 					caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 			assertNotNull(results);
 		}
+	}
+	
+	@Test
+	public void testGetUserProfileImageUrl() {
+		
+		String userId = userToGetFor.getId().toString();
+		String fileHandleId = "123";
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.UserProfileAttachment, userId);
+		
+		String expectedUrl = "https://testurl.org";
+		
+		when(mockProfileDAO.getPictureFileHandleId(userId)).thenReturn(fileHandleId);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(urlRequest)).thenReturn(expectedUrl);
+		
+		String url = userProfileManager.getUserProfileImageUrl(userInfo, userId);
+		
+		verify(mockProfileDAO).getPictureFileHandleId(eq(userId));
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+		
+		assertEquals(expectedUrl, url);
+			
+	}
+	
+	@Test
+	public void testGetUserProfileImagePreviewUrl() {
+		
+		String userId = userToGetFor.getId().toString();
+		String fileHandleId = "123";
+		String fileHandlePreviewId = "456";
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
+				.withAssociation(FileHandleAssociateType.UserProfileAttachment, userId);
+		
+		String expectedUrl = "https://testurl.org";
+		
+		when(mockProfileDAO.getPictureFileHandleId(userId)).thenReturn(fileHandleId);
+		when(mockFileHandleManager.getPreviewFileHandleId(fileHandleId)).thenReturn(fileHandlePreviewId);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(urlRequest)).thenReturn(expectedUrl);
+		
+		String url = userProfileManager.getUserProfileImagePreviewUrl(userInfo, userId);
+		
+		verify(mockProfileDAO).getPictureFileHandleId(eq(userId));
+		verify(mockFileHandleManager).getPreviewFileHandleId(eq(fileHandleId));
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
+		
+		assertEquals(expectedUrl, url);
+		
+		
 	}
 }

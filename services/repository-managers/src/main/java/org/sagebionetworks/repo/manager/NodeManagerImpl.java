@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager;
   
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +17,6 @@ import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -28,7 +25,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -48,13 +44,14 @@ import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 /**
  * The Sage business logic for node management.
@@ -80,8 +77,6 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Autowired 
 	private ActivityManager activityManager;
-	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
@@ -313,12 +308,12 @@ public class NodeManagerImpl implements NodeManager {
 	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
-		return update(userInfo, updated, null, false);
+		return update(userInfo, updated, null, null, false);
 	}
 
 	@WriteTransaction
 	@Override
-	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion)
+	public Node update(UserInfo userInfo, Node updatedNode, Annotations entityPropertyAnnotations, Annotations userAnnotations, boolean newVersion)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 
 		UserInfo.validateUserInfo(userInfo);
@@ -346,21 +341,21 @@ public class NodeManagerImpl implements NodeManager {
 				authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).checkAuthorizationOrElseThrow();
 			}
 		}
-		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, ChangeType.UPDATE, oldNode);
+		updateNode(userInfo, updatedNode, entityPropertyAnnotations, userAnnotations, newVersion, ChangeType.UPDATE, oldNode);
 
 		return get(userInfo, updatedNode.getId());
 	}
 
-	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion,
+	private void updateNode(UserInfo userInfo, Node updatedNode, Annotations entityPropertyAnnotations, Annotations userAnnotations, boolean newVersion,
 			ChangeType changeType, Node oldNode) throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
 		NodeManagerImpl.validateNode(updatedNode);
 
 		// Make sure the eTags match
-		if (updatedAnnos != null) {
+		if (userAnnotations != null) {
 			ValidateArgument.required(updatedNode.getETag(), "eTag");
-			if (!updatedNode.getETag().equals(updatedAnnos.getEtag())) {
+			if (!updatedNode.getETag().equals(userAnnotations.getEtag())) {
 				throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
 			}
 		}
@@ -404,10 +399,15 @@ public class NodeManagerImpl implements NodeManager {
 		nodeDao.updateNode(updatedNode);
 
 		// Also update the Annotations if provided
-		if(updatedAnnos != null){
-			updatedAnnos.setEtag(nextETag);
-			validateAnnotations(updatedAnnos);
-			nodeDao.updateAnnotations(updatedNode.getId(), updatedAnnos);
+		if(userAnnotations != null){
+			userAnnotations.setEtag(nextETag);
+			nodeDao.updateUserAnnotationsV1(updatedNode.getId(), userAnnotations);
+		}
+
+		// Also update the entity property Annotations if provided
+		if(entityPropertyAnnotations != null){
+			entityPropertyAnnotations.setEtag(nextETag);
+			nodeDao.updateEntityPropertyAnnotations(updatedNode.getId(), entityPropertyAnnotations);
 		}
 
 		if (log.isDebugEnabled()) {
@@ -429,29 +429,40 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public NamedAnnotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Annotations getUserAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		NamedAnnotations annos = nodeDao.getAnnotations(nodeId);
-		if(log.isDebugEnabled()){
-			log.debug("username "+userName+" fetched Annotations for node: "+nodeId);
-		}
-		return annos;
+		return nodeDao.getUserAnnotationsV1(nodeId);
 	}
 
 	@Override
-	public NamedAnnotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+	public Annotations getUserAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return nodeDao.getAnnotationsForVersion(nodeId, versionNumber);
+		return nodeDao.getUserAnnotationsV1ForVersion(nodeId, versionNumber);
+	}
+
+	@Override
+	public Annotations getEntityPropertyAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		UserInfo.validateUserInfo(userInfo);
+		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return nodeDao.getEntityPropertyAnnotations(nodeId);
+	}
+
+	@Override
+	public Annotations getEntityPropertyForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return nodeDao.getEntityPropertyAnnotationsForVersion(nodeId, versionNumber);
 	}
 
 	@WriteTransaction
 	@Override
-	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, AnnotationNameSpace namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public Annotations updateUserAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
@@ -464,21 +475,9 @@ public class NodeManagerImpl implements NodeManager {
 		// update etag, modifedOn, and modifiedBy
 		nodeDao.touch(userInfo.getId(), nodeId);
 
-		NamedAnnotations namedAnnos = nodeDao.getAnnotations(nodeId);
-		// Replace a single namespace
-		namedAnnos.put(namespace, updated);
-		nodeDao.updateAnnotations(nodeId, namedAnnos);
-		namedAnnos = getAnnotations(userInfo, nodeId);
-		return namedAnnos.getAnnotationsForName(namespace);
-	}
-	
-	public void validateAnnotations(NamedAnnotations updatedAnnos) throws DatastoreException, InvalidModelException {
-		if(updatedAnnos == null) throw new IllegalArgumentException("NamedAnnotations cannot be null");
-		// Validate all of the annotations
-		Iterator<AnnotationNameSpace> it = updatedAnnos.nameIterator();
-		while(it.hasNext()){
-			validateAnnotations(updatedAnnos.getAnnotationsForName(it.next()));
-		}
+
+		nodeDao.updateUserAnnotationsV1(nodeId, updated);
+		return getUserAnnotations(userInfo, nodeId);
 	}
 	
 	/**
@@ -523,16 +522,16 @@ public class NodeManagerImpl implements NodeManager {
 
 	@WriteTransaction
 	@Override
-	public Node createNewNode(Node newNode, NamedAnnotations newAnnotations, UserInfo userInfo) throws DatastoreException,
+	public Node createNewNode(Node newNode, Annotations entityPropertyAnnotations, UserInfo userInfo) throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First create the node
 		newNode = createNode(newNode, userInfo);
 		// The eTag really has no meaning yet because nobody has access to this id until we return.
-		newAnnotations.setEtag(newNode.getETag());
-		newAnnotations.setId(newNode.getId());
-		validateAnnotations(newAnnotations);
+		entityPropertyAnnotations.setEtag(newNode.getETag());
+		entityPropertyAnnotations.setId(newNode.getId());
+		validateAnnotations(entityPropertyAnnotations);
 		// Since we just created this node we do not need to lock.
-		nodeDao.updateAnnotations(newNode.getId(), newAnnotations);
+		nodeDao.updateEntityPropertyAnnotations(newNode.getId(), entityPropertyAnnotations);
 		return newNode;
 	}
 
@@ -723,34 +722,6 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 
-	@Override
-	@WriteTransaction
-	public void TEMPORARYcleanUpAnnotations(Long id) throws IOException {
-		try {
-			//lock on etag
-			nodeDao.lockNode(KeyFactory.keyToString(id));
-
-			//batch process all annotations contained of each version/revision of this node
-			List<Object[]> listOf_blob_Id_Version = nodeDao.TEMPORARYGetAllAnnotations(id);
-			for (Object[] blob_Id_Version : listOf_blob_Id_Version) {
-				NamedAnnotations namedAnnotations = AnnotationUtils.decompressedAnnotations((byte[]) blob_Id_Version[0]);
-
-				deleteConcreteTypeAnnotation(namedAnnotations.getPrimaryAnnotations());
-				deleteConcreteTypeAnnotation(namedAnnotations.getAdditionalAnnotations());
-
-				blob_Id_Version[0] = AnnotationUtils.compressAnnotations(namedAnnotations);
-			}
-
-			nodeDao.TEMPORARYBatchUpdateAnnotations(listOf_blob_Id_Version);
-
-			//update etag
-			nodeDao.TEMPORARYChangeEtagOnly(id);
-		} catch (EmptyResultDataAccessException e){
-			//node was deleted. no work to be done.
-			log.error("Node " + id + " was deleted. Cannot cleanup annotations");
-		}
-	}
-
 	private static void deleteConcreteTypeAnnotation(Annotations annotation){
 		Map<String, List<String>> stringAnnotations = annotation.getStringAnnotations();
 		List<String> annoValue = stringAnnotations.get(ObjectSchema.CONCRETE_TYPE);
@@ -761,30 +732,36 @@ public class NodeManagerImpl implements NodeManager {
 
 	@WriteTransaction
 	@Override
-	public long createNewVersion(UserInfo userInfo, String nodeId, String comment, String label, String activityId) {
+	public long createSnapshotAndVersion(UserInfo userInfo, String nodeId, SnapshotRequest request) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(nodeId, "id");
+		if(request == null) {
+			request = new SnapshotRequest();
+		}
 		// User must have the update permission.
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		// Must be authorized to use a provided activity.
-		canConnectToActivity(activityId, userInfo);
+		canConnectToActivity(request.getSnapshotActivityId(), userInfo);
 		/*
 		 * Note: An Etag check is not required here because all of the existing data is
 		 * copied to the newly created version without modification. This means
 		 * concurrent modifications are not possible with this method.
 		 */
 		nodeDao.lockNode(nodeId);
-		Node currentNode = nodeDao.getNode(nodeId);
-		currentNode.setVersionComment(comment);
-		currentNode.setVersionLabel(label);
-		currentNode.setActivityId(activityId);
-		long newVersion = nodeDao.createNewVersion(currentNode);
+		// Snapshot the current version.
+		long snapshotVersion = nodeDao.snapshotVersion(userInfo.getId(), nodeId, request);
+		// Create a new version that is in-progress
+		Node nextVersion = nodeDao.getNode(nodeId);
+		nextVersion.setVersionComment(TableConstants.IN_PROGRESS);
+		nextVersion.setVersionLabel(TableConstants.IN_PROGRESS);
+		nextVersion.setActivityId(null);
+		nodeDao.createNewVersion(nextVersion);
 		nodeDao.touch(userInfo.getId(), nodeId);
-		return newVersion;
+		return snapshotVersion;
 	}
 
 	@Override
-	public long getCurrentRevisionNumbers(String entityId) {
+	public long getCurrentRevisionNumber(String entityId) {
 		return nodeDao.getCurrentRevisionNumber(entityId);
 	}
 

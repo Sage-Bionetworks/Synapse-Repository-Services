@@ -196,6 +196,8 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -1944,6 +1946,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public <T extends StorageLocationSetting> List<T> getMyStorageLocationSettings() throws SynapseException;
 
 	/**
@@ -3098,4 +3101,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException;
+	
+	/**
+	 * Request to create a new snapshot of a table or view. The provided comment,
+	 * label, and activity ID will be applied to the current version thereby
+	 * creating a snapshot and locking the current version. After the snapshot is
+	 * created a new version will be started with an 'in-progress' label.
+	 * @param tableId
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public SnapshotResponse createTableSnapshot(String tableId, SnapshotRequest request) throws SynapseException;
 }

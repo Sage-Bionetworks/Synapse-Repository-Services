@@ -1,8 +1,0 @@
-{
-	"description": "JSON schema for PreviewFileHandle",
-	"implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.file.S3FileHandleInterface"
-		}
-	]
-}

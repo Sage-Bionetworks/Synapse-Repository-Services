@@ -4,10 +4,12 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
-public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<TableEntity>, TypeSpecificCreateProvider<TableEntity>, TypeSpecificUpdateProvider<TableEntity>, TypeSpecificMetadataProvider<TableEntity> {
+public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<TableEntity>, TypeSpecificCreateProvider<TableEntity>, TypeSpecificUpdateProvider<TableEntity>, TypeSpecificMetadataProvider<TableEntity>, EntityValidator<TableEntity> {
 	
 	@Autowired
 	TableEntityManager tableEntityManager;		
@@ -30,10 +32,10 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, TableEntity entity, boolean wasNewVersionCreated) {
-		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
 		if(wasNewVersionCreated) {
-			tableEntityManager.bindCurrentEntityVersionToLatestTransaction(entity.getId());
+			throw new IllegalArgumentException("A table version can only be created by creating a table snapshot.");
 		}
+		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
 	}
 
 	@Override
@@ -45,12 +47,19 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 	public void addTypeSpecificMetadata(TableEntity entity,
 										UserInfo user, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		/*
-		 * Note: We are always returning the current schema regardless of the version
-		 * of the table because all tables created before July 2019 only have a current schema.
-		 */
 		List<String> tableSchema = tableEntityManager.getTableSchema(IdAndVersion.newBuilder()
-				.setId(KeyFactory.stringToKey(entity.getId())).build());
+				.setId(KeyFactory.stringToKey(entity.getId())).setVersion(entity.getVersionNumber()).build());
 		entity.setColumnIds(tableSchema);
+	}
+
+	@Override
+	public void validateEntity(TableEntity entity, EntityEvent event)
+			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		if(entity.getVersionLabel() == null) {
+			entity.setVersionLabel(TableConstants.IN_PROGRESS);
+		}
+		if(entity.getVersionComment() == null) {
+			entity.setVersionComment(TableConstants.IN_PROGRESS);
+		}
 	}
 }

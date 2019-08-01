@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -197,7 +199,11 @@ public class MessageManagerImpl implements MessageManager {
 		// If the user can get the message metadata (permission checking by the manager)
 		// then the user can download the file
 		MessageToUser dto = getMessage(userInfo, messageId);
-		return fileHandleManager.getRedirectURLForFileHandle(dto.getFileHandleId());
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, dto.getFileHandleId())
+				.withAssociation(FileHandleAssociateType.MessageAttachment, messageId);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override

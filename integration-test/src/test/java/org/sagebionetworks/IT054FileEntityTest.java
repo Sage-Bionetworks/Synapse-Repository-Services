@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -140,7 +139,7 @@ public class IT054FileEntityTest {
 	@Test
 	public void testFileEntityRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		// Before we start the test wait for the preview to be created
-		PreviewFileHandle previewFileHandle = waitForPreviewToBeCreated(fileHandle);
+		S3FileHandle previewFileHandle = waitForPreviewToBeCreated(fileHandle);
 		// Get the file handles
 		FileHandleResults fhr = synapse.getEntityFileHandlesForCurrentVersion(file.getId());
 		assertNotNull(fhr);
@@ -374,7 +373,7 @@ public class IT054FileEntityTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	private PreviewFileHandle waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
+	private S3FileHandle waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
 			SynapseException {
 		long start = System.currentTimeMillis();
 		while(fileHandle.getPreviewId() == null){
@@ -384,7 +383,7 @@ public class IT054FileEntityTest {
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
 		// Fetch the preview file handle
-		PreviewFileHandle previewFileHandle = (PreviewFileHandle) synapse.getRawFileHandle(fileHandle.getPreviewId());
+		S3FileHandle previewFileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getPreviewId());
 		fileHandlesToDelete.add(previewFileHandle.getId());
 		return previewFileHandle;
 	}

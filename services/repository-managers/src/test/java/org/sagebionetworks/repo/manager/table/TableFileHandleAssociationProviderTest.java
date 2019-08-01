@@ -39,7 +39,7 @@ public class TableFileHandleAssociationProviderTest {
 		Set<String> results = Sets.newHashSet("2");
 		when(tableEntityManager.getFileHandleIdsAssociatedWithTable(tableId, fileHandleIds)).thenReturn(results);
 		//call under test
-		Set<String> out = provider.getFileHandleIdsAssociatedWithObject(fileHandleIds, tableId);
+		Set<String> out = provider.getFileHandleIdsDirectlyAssociatedWithObject(fileHandleIds, tableId);
 		assertEquals(results, out);
 	}
 

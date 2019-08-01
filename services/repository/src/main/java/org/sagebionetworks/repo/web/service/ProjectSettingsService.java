@@ -25,6 +25,7 @@ public interface ProjectSettingsService {
 	StorageLocationSetting createStorageLocationSetting(Long userId, StorageLocationSetting storageLocationSetting)
 			throws DatastoreException, NotFoundException, IOException;
 
+	@Deprecated
 	List<StorageLocationSetting> getMyStorageLocations(Long userId) throws DatastoreException, NotFoundException;
 
 	StorageLocationSetting getMyStorageLocation(Long userId, Long storageLocationId) throws DatastoreException, NotFoundException;

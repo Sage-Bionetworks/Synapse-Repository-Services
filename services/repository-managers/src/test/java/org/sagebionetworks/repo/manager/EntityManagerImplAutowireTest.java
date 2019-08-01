@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -42,6 +41,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -180,20 +180,17 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		EntityWithAnnotations<Folder> ewa = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
-		assertNotNull(ewa);
-		assertNotNull(ewa.getAnnotations());
-		assertNotNull(ewa.getEntity());
+		Folder entity = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
+		assertNotNull(entity);
 		Folder fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(fetched);
-		assertEquals(ewa.getEntity(), fetched);
+		assertEquals(entity, fetched);
 		System.out.println("Original: "+ds.toString());
 		System.out.println("Fetched: "+fetched.toString());
 		assertEquals(ds.getName(), fetched.getName());
 		// Now get the Annotations
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
-		assertEquals(ewa.getAnnotations(), annos);
 		annos.addAnnotation("someNewTestAnnotation", "someStringValue");
 		// Update
 		entityManager.updateAnnotations(adminUserInfo,id, annos);
@@ -378,5 +375,43 @@ public class EntityManagerImplAutowireTest {
 		project = entityManager.getEntity(userInfo, pid, Project.class);
 		// the name should match the newly issued ID.
 		assertEquals(pid, project.getName());
+	}
+	
+	/**
+	 * Test for PLFM-5702
+	 */
+	@Test
+	public void testUpdateEntityNewVersionTable() {
+		// update a table with newVersion=true;
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		String id = entityManager.createEntity(userInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, id, TableEntity.class);
+		toDelete.add(id);
+		boolean newVersion = true;
+		String activityId = null;
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, table, newVersion, activityId);
+		// should not create a new version.
+		assertFalse(wasNewVersionCreated);
+	}
+	
+	/**
+	 * Test for PLFM-5702
+	 */
+	@Test
+	public void testUpdateEntityNewVersionEntityView() {
+		// update a table with newVersion=true;
+		EntityView view = new EntityView();
+		view.setName("Table");
+		String id = entityManager.createEntity(userInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, id, EntityView.class);
+		toDelete.add(id);
+		boolean newVersion = true;
+		String activityId = null;
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, view, newVersion, activityId);
+		// should not create a new version.
+		assertFalse(wasNewVersionCreated);
 	}
 }

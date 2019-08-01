@@ -34,7 +34,7 @@ public class SubmissionFileHandleAssociationProviderTest {
 		String submissionId = "1";
 		List<String> associatedIds = Arrays.asList("2", "3");
 		when(mockSubmissionFileHandleDAO.getAllBySubmission(submissionId)).thenReturn(associatedIds);
-		Set<String> result = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> result = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList("2", "4"), submissionId);
 		assertEquals(Collections.singleton("2"), result);
 	}

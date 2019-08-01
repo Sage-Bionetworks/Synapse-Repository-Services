@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -43,6 +44,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -53,7 +56,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -794,8 +796,26 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	public List<String> getTableSchema(IdAndVersion idAndVersion) {
-		return columModelManager.getColumnIdForTable(idAndVersion);
+	public List<String> getTableSchema(final IdAndVersion inputIdAndVersion) {
+		IdAndVersionBuilder lookupBuilder = IdAndVersion.newBuilder();
+		lookupBuilder.setId(inputIdAndVersion.getId());
+		if(inputIdAndVersion.getVersion().isPresent()) {
+			/*
+			 * The current version of any table is always 'in progress' and does not have a
+			 * schema bound to it. This means the schema for the current version always
+			 * matches the latest schema for the table. Therefore, when a caller explicitly
+			 * requests the schema of the current version, the latest schema is returned.
+			 */
+			long currentVersion = nodeManager.getCurrentRevisionNumber(inputIdAndVersion.getId().toString());
+			long inputVersion = inputIdAndVersion.getVersion().get();
+			if(inputVersion != currentVersion) {
+				// Only use the input version number when it is not the current version.
+				lookupBuilder.setVersion(inputVersion);
+			}
+			
+		}
+		// lookup the schema for the appropriate version.
+		return columModelManager.getColumnIdForTable(lookupBuilder.build());
 	}
 
 	
@@ -906,26 +926,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void bindCurrentEntityVersionToLatestTransaction(String tableId) {
-		ValidateArgument.required(tableId, "TableId");
-		long currentVersionNumber = nodeManager.getCurrentRevisionNumbers(tableId);
-		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableId);
-		if(!lastTransactionNumber.isPresent()) {
-			throw new IllegalArgumentException("No transactions found for table: "+tableId);
-		}
-		linkVersionToTransaction(tableId, currentVersionNumber, lastTransactionNumber.get());
-	}
-
-	@WriteTransaction
-	@Override
-	public long createNewVersionAndBindToTransaction(UserInfo userInfo, String tableId, VersionRequest versionRequest,
+	public long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId) {
-		ValidateArgument.required(versionRequest, "newVersionInfo");
 		// create a new version
-		long newVersionNumber = nodeManager.createNewVersion(userInfo, tableId, versionRequest.getNewVersionComment(),
-				versionRequest.getNewVersionLabel(), versionRequest.getNewVersionActivityId());
-		linkVersionToTransaction(tableId, newVersionNumber, transactionId);
-		return newVersionNumber;
+		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotRequest);
+		linkVersionToTransaction(tableId, snapshotVersion, transactionId);
+		return snapshotVersion;
 	}
 	
 	/**
@@ -954,6 +960,28 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public Optional<Long> getTransactionForVersion(String tableId, long version) {
 		return tableTransactionDao.getTransactionForVersion(tableId, version);
+	}
+
+
+	@WriteTransaction
+	@Override
+	public SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableIdString, SnapshotRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(tableIdString, "TableId");
+		ValidateArgument.required(request, "request");
+		Long tableId = KeyFactory.stringToKey(tableIdString);
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).build();
+		// Validate the user has permission to edit the table
+		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
+		// Table must have at least one transaction, such as setting the table's schema.
+		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableIdString);
+		if(!lastTransactionNumber.isPresent()) {
+			throw new IllegalArgumentException("This table: "+tableId+" does not have a schema so a snapshot cannot be created.");
+		}
+		long snapshotVersion = createSnapshotAndBindToTransaction(userInfo, tableIdString, request, lastTransactionNumber.get());
+		SnapshotResponse response = new SnapshotResponse();
+		response.setSnapshotVersionNumber(snapshotVersion);
+		return response;
 	}
 
 }

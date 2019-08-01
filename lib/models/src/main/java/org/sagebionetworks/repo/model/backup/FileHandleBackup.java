@@ -23,6 +23,7 @@ public class FileHandleBackup {
 	private String name;
 	private Long storageLocationId;
 	private String endpoint;
+	private Boolean isPreview;
 	public Long getId() {
 		return id;
 	}
@@ -109,6 +110,13 @@ public class FileHandleBackup {
 	public void setEndpoint(String endpoint) {
 		this.endpoint = endpoint;
 	}
+
+	public Boolean getIsPreview() {
+		return isPreview;
+	}
+	public void setIsPreview(Boolean isPreview) {
+		this.isPreview = isPreview;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -127,6 +135,7 @@ public class FileHandleBackup {
 		result = prime * result + ((previewId == null) ? 0 : previewId.hashCode());
 		result = prime * result + ((storageLocationId == null) ? 0 : storageLocationId.hashCode());
 		result = prime * result + ((endpoint == null) ? 0 : endpoint.hashCode());
+		result = prime * result + ((isPreview == null) ? 0 : isPreview.hashCode());
 		return result;
 	}
 	@Override
@@ -208,6 +217,11 @@ public class FileHandleBackup {
 				return false;
 		} else if (!endpoint.equals(other.endpoint))
 			return false;
+		if (isPreview == null) {
+			if (other.isPreview != null)
+				return false;
+		} else if (!isPreview.equals(other.isPreview))
+			return false;
 		return true;
 	}
 	@Override
@@ -215,6 +229,6 @@ public class FileHandleBackup {
 		return "FileHandleBackup [id=" + id + ", etag=" + etag + ", previewId=" + previewId + ", createdBy=" + createdBy + ", createdOn="
 				+ createdOn + ", metadataType=" + metadataType + ", contentType=" + contentType + ", contentSize=" + contentSize
 				+ ", contentMD5=" + contentMD5 + ", bucketName=" + bucketName + ", key=" + key + ", name=" + name + ", storageLocationId="
-				+ storageLocationId + ", endpoint=" + endpoint + "]";
+				+ storageLocationId + ", endpoint=" + endpoint + ", isPreview= " + isPreview + "]";
 	}
 }

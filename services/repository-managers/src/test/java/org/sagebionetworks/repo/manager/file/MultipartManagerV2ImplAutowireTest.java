@@ -2,21 +2,21 @@ package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -30,23 +30,28 @@ import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.Md5Utils;
 import com.amazonaws.util.StringInputStream;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MultipartManagerV2ImplAutowireTest {
+
+	@Autowired
+	StackConfiguration stackConfiguration;
 
 	@Autowired
 	MultipartManagerV2 multipartManagerV2;
@@ -56,6 +61,12 @@ public class MultipartManagerV2ImplAutowireTest {
 
 	@Autowired
 	public UserManager userManager;
+
+	@Autowired
+	public ProjectSettingsManager projectSettingsManager;
+
+	@Value("${dev-googlecloud-bucket}")
+	private String googleCloudBucket;
 
 	static SimpleHttpClient simpleHttpClient;
 
@@ -67,15 +78,17 @@ public class MultipartManagerV2ImplAutowireTest {
 	byte[] fileDataBytes;
 	String fileMD5Hex;
 
+	ExternalGoogleCloudStorageLocationSetting googleCloudStorageLocationSetting;
+
 	@BeforeClass
 	public static void beforeClass() {
 		simpleHttpClient = new SimpleHttpClientImpl();
 	}
 
 	@Before
-	public void before() throws Exception {		
+	public void before() throws Exception {
 		// used to put data to a pre-signed url.
-		fileHandlesToDelete = new LinkedList<String>();
+		fileHandlesToDelete = new LinkedList<>();
 		adminUserInfo = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
 						.getPrincipalId());
@@ -92,6 +105,13 @@ public class MultipartManagerV2ImplAutowireTest {
 		byte[] md5 = Md5Utils.computeMD5Hash(fileDataBytes);
 		fileMD5Hex = BinaryUtils.toHex(md5);
 		request.setContentMD5Hex(fileMD5Hex);
+
+		if (stackConfiguration.getGoogleCloudEnabled()) {
+			googleCloudStorageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
+			googleCloudStorageLocationSetting.setBucket(googleCloudBucket);
+			googleCloudStorageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
+			googleCloudStorageLocationSetting = projectSettingsManager.createStorageLocationSetting(adminUserInfo, googleCloudStorageLocationSetting);
+		}
 	}
 
 	@After
@@ -104,6 +124,10 @@ public class MultipartManagerV2ImplAutowireTest {
 				}
 			}
 		}
+		/*
+		 TODO: Delete Google Cloud storage location (if enabled)
+		 (Storage locations cannot currently be deleted as of this commit)
+		 */
 		multipartManagerV2.truncateAll();
 	}
 
@@ -114,7 +138,6 @@ public class MultipartManagerV2ImplAutowireTest {
 		String contentType = null;
 		// step two get pre-signed URLs for the parts
 		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
-		validateUrl(preSignedUrl);
 		// step three put the part to the URL
 		putStringToURL(preSignedUrl, fileDataString, contentType);
 		// step four add the part to the upload
@@ -128,17 +151,29 @@ public class MultipartManagerV2ImplAutowireTest {
 		assertNotNull(finalStatus.getResultFileHandleId());
 		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
 	}
-	
-	/**
-	 * Validation added for SYNPY-409 & PLFM-4183
-	 */
-	void validateUrl(String preSignedUrl) throws MalformedURLException {
-		URL url = new URL(preSignedUrl);
-		Map<String, String> map = Splitter.on('&').trimResults().withKeyValueSeparator("=").split(url.getQuery());
-		String expiresString = map.get("Expires");
-		assertNotNull("Expected the hacked 'Expires' parameter to be added to the URL for PLFM-4183", expiresString);
-		long expires = Long.parseLong(expiresString);
-		assertTrue("The hacked 'Expires' parameter should not be expired", (System.currentTimeMillis()/1000) < expires);
+
+	@Test
+	public void testMultipartUploadGoogleCloud() throws Exception {
+		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
+		request.setStorageLocationId(googleCloudStorageLocationSetting.getStorageLocationId());
+		// step one start the upload.
+		MultipartUploadStatus status = startUpload();
+		String contentType = "application/octet-stream";
+		// step two get pre-signed URLs for the parts
+		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
+		// step three put the part to the URL
+		putStringToURL(preSignedUrl, fileDataString, contentType);
+		// step four add the part to the upload
+		addPart(status.getUploadId());
+		// Step five complete the upload
+		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
+		// validate the results
+		assertNotNull(finalStatus);
+		assertEquals("1", finalStatus.getPartsState());
+		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
+		assertNotNull(finalStatus.getResultFileHandleId());
+		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
+
 	}
 
 	@Test

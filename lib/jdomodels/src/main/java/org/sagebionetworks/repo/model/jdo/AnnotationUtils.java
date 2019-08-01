@@ -57,6 +57,28 @@ public class AnnotationUtils {
 		return (NamedAnnotations) o;
 	}
 
+	/**
+	 * Convert the passed annotations to a compressed (zip) byte array
+	 * @param dto
+	 * @return compressed annotations
+	 * @throws IOException
+	 */
+	public static byte[] compressAnnotationsV1(Annotations dto) throws IOException{
+		return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto == null || dto.isEmpty() ? null : dto);
+	}
+
+	/**
+	 * Read the compressed (zip) byte array into the Annotations.
+	 * @param zippedBytes
+	 * @return the resurrected Annotations
+	 * @throws IOException
+	 */
+	public static Annotations decompressedAnnotationsV1(byte[] zippedBytes) throws IOException{
+		Object o = JDOSecondaryPropertyUtils.decompressObject(X_STREAM, zippedBytes);
+		if (o==null) return new Annotations();
+		return (Annotations) o;
+	}
+
 
 	/**
 	 * Get a single string value from a list of objects.
@@ -93,11 +115,11 @@ public class AnnotationUtils {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<AnnotationDTO> translate(Long entityId, NamedAnnotations annos, int maxAnnotationChars) {
+	public static List<AnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
 		LinkedHashMap<String, AnnotationDTO> map = new LinkedHashMap<>();
 		if(annos != null){
 			// add additional
-			addAnnotations(entityId, maxAnnotationChars, map, annos.getAdditionalAnnotations());
+			addAnnotations(entityId, maxAnnotationChars, map, annos);
 		}
 		// build the results from the map
 		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();

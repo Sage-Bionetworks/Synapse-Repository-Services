@@ -33,13 +33,13 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.VersionRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
@@ -254,53 +254,53 @@ public class TableEntityTransactionManagerTest {
 	}
 	
 	@Test
-	public void testDoIntransactionUpdateTableNullVersionInfo()
+	public void testDoIntransactionUpdateTableNullSnapshotOptions()
 			throws RecoverableMessageException, TableUnavailableException {
-		request.setVersionRequest(null);
+		request.setSnapshotOptions(null);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
 		assertNotNull(response);
-		assertNull(response.getNewVersionNumber());
+		assertNull(response.getSnapshotVersionNumber());
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
-				any(VersionRequest.class), anyLong());
+		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
+				any(SnapshotRequest.class), anyLong());
 	}
 	
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersionFalse()
 			throws RecoverableMessageException, TableUnavailableException {
-		VersionRequest versionInfo = new VersionRequest();
-		versionInfo.setCreateNewTableVersion(false);
-		request.setVersionRequest(versionInfo);
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		request.setCreateSnapshot(false);
+		request.setSnapshotOptions(snapshotRequest);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
 		assertNotNull(response);
-		assertNull(response.getNewVersionNumber());
+		assertNull(response.getSnapshotVersionNumber());
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager, never()).createNewVersionAndBindToTransaction(any(UserInfo.class), anyString(),
-				any(VersionRequest.class), anyLong());
+		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
+				any(SnapshotRequest.class), anyLong());
 	}
 	
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersiontrue()
 			throws RecoverableMessageException, TableUnavailableException {
-		VersionRequest versionInfo = new VersionRequest();
-		versionInfo.setCreateNewTableVersion(true);
-		request.setVersionRequest(versionInfo);
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		request.setCreateSnapshot(true);
+		request.setSnapshotOptions(snapshotRequest);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
 		assertNotNull(response);
-		assertEquals(new Long(0), response.getNewVersionNumber());
+		assertEquals(new Long(0), response.getSnapshotVersionNumber());
 		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
 		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
 				eq(transactionId));
-		verify(tableEntityManager).createNewVersionAndBindToTransaction(userInfo, tableId, versionInfo, transactionId);
+		verify(tableEntityManager).createSnapshotAndBindToTransaction(userInfo, tableId, snapshotRequest, transactionId);
 	}
 }

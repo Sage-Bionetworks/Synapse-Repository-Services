@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 
 import com.google.common.collect.Multimap;
 
@@ -102,15 +103,15 @@ public interface FileHandleDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;;
+	public Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;
 	
 	/**
-	 * Given a list of {@link FileHandle} ids, gets the sub-set of ids that are referenced as previews for any {@link FileHandle}.
+	 * Given a list of {@link FileHandle} ids, gets the sub-set of ids that are previews mapped to the originating file handle id.
 	 * 
-	 * @param fileHandleIds A list of ids of {@link FileHandle}
-	 * @return The subset of {@link FileHandle} ids from the given list that are referenced as previews for any {@link FileHandle}
+	 * @param fileHandlePreviewIds A list of ids of {@link FileHandle}
+	 * @return A map where each entry is a (fileHandlePreviewId, fileHandleId) entry which is subset of the input fileHandlePreviewIds.
 	 */
-	public Set<String> getFileHandlePreviewIds(List<String> fileHandleIds);
+	public Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds);
 	
 	/**
 	 * Get the preview associated with a given file handle.
@@ -127,7 +128,7 @@ public interface FileHandleDao {
 	 * @param key
 	 * @return
 	 */
-	public long getS3objectReferenceCount(String bucketName, String key);
+	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key);
 
 	long getCount() throws DatastoreException;
 
@@ -144,4 +145,14 @@ public interface FileHandleDao {
 	 * Deleted all file data
 	 */
 	public void truncateTable();
+	
+	/**
+	 * Updates the storage location id of all the file handles that currently points to any of the given list of storage location ids 
+	 * to the given target storage location id.
+	 * 
+	 * @param currentStorageLocationIds
+	 * @param targetStorageLocationId
+	 */
+	@TemporaryCode(author = "marco.marasca@sagebase.org")
+	public void updateStorageLocationBatch(Set<Long> currentStorageLocationIds, Long targetStorageLocationId);
 }

@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -114,13 +113,7 @@ public class DBOVerificationDAOImplTest {
 	}
 	
 	private FileHandle createFileHandle(String createdBy) throws Exception {
-		S3FileHandle fh = new S3FileHandle();
-		fh.setFileName("foo");
-		fh.setCreatedBy(createdBy);
-		fh.setBucketName(UUID.randomUUID().toString());
-		fh.setKey(UUID.randomUUID().toString());
-		fh.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		fh.setEtag(UUID.randomUUID().toString());
+		S3FileHandle fh = TestUtils.createS3FileHandle(createdBy, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fh = (S3FileHandle) fileHandleDao.createFile(fh);
 		fhsToDelete.add(fh.getId());
 		return fh;

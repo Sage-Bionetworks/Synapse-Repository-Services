@@ -20,6 +20,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,14 +33,12 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -49,10 +49,9 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * This is the unit test version of this class.
@@ -132,7 +131,7 @@ public class NodeManagerImplUnitTest {
 		annos.setEtag("etag");
 		annos.addAnnotation("key", "value");
 		
-		when(mockNodeDao.getAnnotations(any(String.class))).thenReturn(new NamedAnnotations());
+		when(mockNodeDao.getEntityPropertyAnnotations(any(String.class))).thenReturn(new Annotations());
 		
 		when(mockNodeDao.isNodeAvailable(any(String.class))).thenReturn(true);
 	}
@@ -447,15 +446,26 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations annos = named.getAdditionalAnnotations();
+		Annotations annos = new Annotations();
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
-		when(mockNodeDao.getAnnotations(id)).thenReturn(named);
+		when(mockNodeDao.getUserAnnotationsV1(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		NamedAnnotations namedCopy = nodeManager.getAnnotations(userInfo, id);
-		Annotations copy = namedCopy.getAdditionalAnnotations();
+		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);
+		assertEquals(copy, annos);
+	}
+
+	@Test
+	public void testGetEntityPropertyAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
+		String id = "101";
+		Annotations annos = new Annotations();
+		annos.addAnnotation("stringKey", "a");
+		annos.addAnnotation("longKey", Long.MAX_VALUE);
+		when(mockNodeDao.getEntityPropertyAnnotations(id)).thenReturn(annos);
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		Annotations copy = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
 	
@@ -711,12 +721,11 @@ public class NodeManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNodeNoEtag() throws Exception {
 		String id = "101";
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations annots = named.getAdditionalAnnotations();
-		annots.addAnnotation("k", "a");
-		named.setEtag("etag");
+		Annotations userAnnotations = new Annotations();
+		userAnnotations.addAnnotation("k", "a");
+		userAnnotations.setEtag("etag");
 
-		nodeManager.update(mockUserInfo, mockNode, named, false);
+		nodeManager.update(mockUserInfo, mockNode, null, userAnnotations, false);
 	}
 
 	@Test
@@ -976,7 +985,7 @@ public class NodeManagerImplUnitTest {
 		updated.setEtag(startEtag);
 		updated.setId(nodeId);
 		// call under test
-		nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 		verify(mockNodeDao).lockNode(nodeId);
 		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
 	}
@@ -988,7 +997,7 @@ public class NodeManagerImplUnitTest {
 		updated.setId(nodeId);
 		try {
 			// call under test
-			nodeManager.updateAnnotations(mockUserInfo, nodeId, updated, AnnotationNameSpace.ADDITIONAL);
+			nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 			fail();
 		} catch (ConflictingUpdateException e) {
 			// expected
@@ -999,21 +1008,19 @@ public class NodeManagerImplUnitTest {
 	}
 	
 	@Test(expected = UnauthorizedException.class)
-	public void testCreateNewVersionUnauthorizedEntityUpdate() {
-		String comment = null;
-		String label = null;
-		String activityId = null;
+	public void testCreateSnapshotAndVersionUnauthorizedEntityUpdate() {
+		SnapshotRequest request = new SnapshotRequest();
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 		// call under test
-		nodeManager.createNewVersion(mockUserInfo, nodeId, comment, label, activityId);
+		nodeManager.createSnapshotAndVersion(mockUserInfo, nodeId, request);
 	}
 	
 	@Test(expected = UnauthorizedException.class)
-	public void testCreateNewVersionUnauthorizedActivityId() {
-		String comment = null;
-		String label = null;
+	public void testCreateSnapshotAndVersionUnauthorizedActivityId() {
+		SnapshotRequest request = new SnapshotRequest();
 		String activityId = "987";
+		request.setSnapshotActivityId(activityId);
 		// can update the entity
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
 				.thenReturn(AuthorizationStatus.authorized());
@@ -1021,14 +1028,16 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 		// call under test
-		nodeManager.createNewVersion(mockUserInfo, nodeId, comment, label, activityId);
+		nodeManager.createSnapshotAndVersion(mockUserInfo, nodeId, request);
 	}
 	
 	@Test
-	public void testCreateNewVersion() {
-		String comment = "new comment";
-		String label = "new label";
+	public void testCreateSnapshotAndVersion() {
+		SnapshotRequest request = new SnapshotRequest();
+		request.setSnapshotComment("new comment");
+		request.setSnapshotLabel("new label");
 		String activityId = "987";
+		request.setSnapshotActivityId(activityId);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(AuthorizationStatus.authorized());
@@ -1041,41 +1050,52 @@ public class NodeManagerImplUnitTest {
 		when(mockNodeDao.getNode(nodeId)).thenReturn(currentNode);
 		long newVersion = 444L;
 		when(mockNodeDao.createNewVersion(any(Node.class))).thenReturn(newVersion);
+		long snapshotVersion = 443;
+		when(mockNodeDao.snapshotVersion(any(Long.class), any(String.class), any(SnapshotRequest.class))).thenReturn(snapshotVersion);
 		
 		// call under test
-		long resultVersion = nodeManager.createNewVersion(mockUserInfo, nodeId, comment, label, activityId);
-		assertEquals(newVersion, resultVersion);
+		long resultVersion = nodeManager.createSnapshotAndVersion(mockUserInfo, nodeId, request);
+		assertEquals(snapshotVersion, resultVersion);
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccessActivity(mockUserInfo, activityId);
 		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).snapshotVersion(mockUserInfo.getId(), nodeId, request);
 		Node expectedNewNode = new Node();
 		expectedNewNode.setId(nodeId);
-		expectedNewNode.setVersionComment(comment);
-		expectedNewNode.setVersionLabel(label);
-		expectedNewNode.setActivityId(activityId);
+		expectedNewNode.setVersionComment(TableConstants.IN_PROGRESS);
+		expectedNewNode.setVersionLabel(TableConstants.IN_PROGRESS);
+		expectedNewNode.setActivityId(null);
 		verify(mockNodeDao).createNewVersion(expectedNewNode);
 		verify(mockNodeDao).touch(mockUserInfo.getId(), nodeId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testCreateNewVersionNullUser() {
-		String comment = "new comment";
-		String label = "new label";
-		String activityId = "987";
+	public void testCreateSnapshotAndVersionNullUser() {
+		SnapshotRequest request = new SnapshotRequest();
 		UserInfo userInfo = null;
 		
 		// call under test
-		nodeManager.createNewVersion(userInfo, nodeId, comment, label, activityId);
+		nodeManager.createSnapshotAndVersion(userInfo, nodeId, request);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testCreateNewVersionNullNodeId() {
-		String comment = "new comment";
-		String label = "new label";
-		String activityId = "987";
+	public void testCreateSnapshotAndVersionNullNodeId() {
+		SnapshotRequest request = new SnapshotRequest();
 		String nullNodeId = null;
 		
 		// call under test
-		nodeManager.createNewVersion(mockUserInfo, nullNodeId, comment, label, activityId);
+		nodeManager.createSnapshotAndVersion(mockUserInfo, nullNodeId, request);
+	}
+	
+	@Test
+	public void testCreateSnapshotAndVersionNullRequest() {
+		SnapshotRequest request = null;
+		String nullNodeId = "syn123";
+		// call under test
+		nodeManager.createSnapshotAndVersion(mockUserInfo, nodeId, request);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager, never()).canAccessActivity(any(UserInfo.class), anyString());
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockNodeDao).snapshotVersion(mockUserInfo.getId(), nodeId, new SnapshotRequest());
 	}
 }

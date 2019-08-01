@@ -230,11 +230,13 @@ public interface TeamManager {
 	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * return the URL for the icon of the given Team
+	 * Return the pre-signed URL for the icon of the given Team
+	 * 
+	 * @param userInfo The info about the user that is requesting the pre-signed URL
 	 * @param teamId
 	 * @return
 	 */
-	public String getIconURL(String teamId) throws NotFoundException;
+	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException;
 
 	/**
 	 * Create the notification content

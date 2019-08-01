@@ -39,7 +39,7 @@ public class TeamFileHandleAssociationProviderTest {
 	public void testGetFileHandleIdsAssociatedWithObject() {
 		when(mockTeamDAO.get(teamId)).thenReturn(mockTeam);
 		when(mockTeam.getIcon()).thenReturn(fileHandleId);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(fileHandleId, "4"), teamId);
 		assertEquals(Collections.singleton(fileHandleId), associated);
 	}
@@ -52,7 +52,7 @@ public class TeamFileHandleAssociationProviderTest {
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject_teamNotFoundException(){
 		when(mockTeamDAO.get(teamId)).thenThrow(NotFoundException.class);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(fileHandleId, "4"), teamId);
 		assertEquals(Collections.emptySet(), associated);
 	}

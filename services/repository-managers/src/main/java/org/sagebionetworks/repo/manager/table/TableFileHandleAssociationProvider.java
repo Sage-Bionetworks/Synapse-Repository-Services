@@ -19,7 +19,7 @@ public class TableFileHandleAssociationProvider implements FileHandleAssociation
 	 * @see org.sagebionetworks.repo.model.file.FileHandleAssociationProvider#getFileHandleIdsAssociatedWithObject(java.util.List, java.lang.String)
 	 */
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(
 			List<String> fileHandleIds, String objectId) {
 		return tableEntityManager.getFileHandleIdsAssociatedWithTable(objectId, fileHandleIds);
 	}

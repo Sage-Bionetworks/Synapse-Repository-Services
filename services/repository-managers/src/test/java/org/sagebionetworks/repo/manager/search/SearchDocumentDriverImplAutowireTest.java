@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -185,10 +184,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations primaryAnnos = named.getPrimaryAnnotations();
-		primaryAnnos.addAnnotation("organ", "This should not be indexed");
-		Annotations additionalAnnos = named.getAdditionalAnnotations();
+		Annotations additionalAnnos = new Annotations();
 		additionalAnnos
 				.addAnnotation("stringKey",
 						"a multi-word annotation gets underscores so we can exact-match find it");
@@ -228,7 +224,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		fakeEntityPath.writeToJSONObject(adapter);		
 		String fakeEntityPathJSONString = adapter.toJSONString();
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, wikiPageText);
+				additionalAnnos, acl, wikiPageText);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals(node.getId(), document.getId());
 

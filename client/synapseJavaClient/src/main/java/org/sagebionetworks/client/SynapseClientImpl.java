@@ -237,6 +237,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -5221,6 +5223,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public DownloadStorageReportResponse generateStorageReportAsyncGet(String asyncJobToken) throws SynapseException {
 		String url = STORAGE_REPORT + ASYNC_GET + asyncJobToken;
 		return getJSONEntity(getRepoEndpoint(), url, DownloadStorageReportResponse.class);
+	}
+
+	@Override
+	public SnapshotResponse createTableSnapshot(String tableId, SnapshotRequest request) throws SynapseException {
+		ValidateArgument.required(tableId, "tableId");
+		String url = "/entity/"+tableId+"/table/snapshot";
+		return postJSONEntity(getRepoEndpoint(), url, request, SnapshotResponse.class);
 	}
 
 }

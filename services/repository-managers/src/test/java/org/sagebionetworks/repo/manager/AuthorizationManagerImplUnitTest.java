@@ -821,34 +821,6 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanDownloadFileIncludingPreviews() {
-		List<String> fileHandleIds = Arrays.asList("1", "2");
-		String associatedObjectId = "456";
-		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
-		// the user is authorized to download the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationStatus.authorized());
-		// user is not the creator of either file.
-		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(Collections.emptySet());
-		// The first handle is associated with the object.
-		when(mockFileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType))
-			.thenReturn(Sets.newHashSet("1"));		
-		// The second handle is a preview
-		when(mockFileHandleDao.getFileHandlePreviewIds(any())).thenReturn((Sets.newHashSet("2")));
-		// call under test.
-		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
-		
-		assertNotNull(results);
-		
-		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
-				new FileHandleAuthorizationStatus("1", AuthorizationStatus.authorized()),
-				new FileHandleAuthorizationStatus("2", AuthorizationStatus.authorized())
-		);
-		
-		assertEquals(expected, results);
-	}
-	
-	
-	@Test
 	public void testCanDownloadFileUnAuthorized(){
 		List<String> fileHandleIds = Arrays.asList("1","2");
 		String associatedObjectId = "456";

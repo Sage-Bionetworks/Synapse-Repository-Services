@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
@@ -40,8 +41,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.service.EntityService;
+import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -284,9 +289,38 @@ public class EntityServiceImplAutowiredTestNew  {
 		
 		table = entityService.createEntity(adminUserId, table, null);
 		assertEquals(columnIds, table.getColumnIds());
+		// default label and comment should be added.
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionLabel());
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionComment());
 		
 		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
 		assertEquals(columnIds, table.getColumnIds());
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionLabel());
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionComment());
+	}
+	
+	@Test
+	public void testTableEntityCreateWithLableAndComment(){
+		List<String> columnIds = Lists.newArrayList(column.getId());
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setColumnIds(columnIds);
+		String label = "a label";
+		String comment = "a comment";
+		table.setVersionLabel(label);
+		table.setVersionComment(comment);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		assertEquals(columnIds, table.getColumnIds());
+		// default label and comment should be added.
+		assertEquals(label, table.getVersionLabel());
+		assertEquals(comment, table.getVersionComment());
+		
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		assertEquals(columnIds, table.getColumnIds());
+		assertEquals(label, table.getVersionLabel());
+		assertEquals(comment, table.getVersionComment());
 	}
 	
 	@Test
@@ -304,7 +338,7 @@ public class EntityServiceImplAutowiredTestNew  {
 		assertFalse(optional.isPresent());
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testTableUpdateNewVersion() {
 		List<String> columnIds = Lists.newArrayList(column.getId());
 		TableEntity table = new TableEntity();
@@ -313,17 +347,11 @@ public class EntityServiceImplAutowiredTestNew  {
 		table.setColumnIds(columnIds);
 		
 		table = entityService.createEntity(adminUserId, table, null);
-		long firstVersion = table.getVersionNumber();
 		String activityId = null;
 		boolean newVersion = true;
 		table.setVersionLabel(null);
-		// Create a new version of the entity
-		table = entityService.updateEntity(adminUserId, table, newVersion, activityId);
-		assertTrue(firstVersion+1 == table.getVersionNumber());
-		// the new version should be bound to the last transaction.
-		Optional<Long> optional = tableEntityManager.getTransactionForVersion(table.getId(), table.getVersionNumber());
-		assertNotNull(optional);
-		assertTrue(optional.isPresent());
+		// Call under test
+		entityService.updateEntity(adminUserId, table, newVersion, activityId);
 	}
 	
 	@Test
@@ -345,5 +373,66 @@ public class EntityServiceImplAutowiredTestNew  {
 		Optional<Long> optional =tableEntityManager.getTransactionForVersion(table.getId(), table.getVersionNumber());
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());
+	}
+	
+	/**
+	 * Test for PLFM-5685
+	 */
+	@Test
+	public void testGetEntityVersionTableSchema() {
+		
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one = columnModelManager.createColumnModel(adminUserInfo, one);
+		
+		ColumnModel two = new ColumnModel();
+		two.setColumnType(ColumnType.INTEGER);
+		two.setName("two");
+		two = columnModelManager.createColumnModel(adminUserInfo, two);
+		
+		List<String> firstSchema = Lists.newArrayList(one.getId());
+		List<String> secondSchema = Lists.newArrayList(one.getId(), two.getId());
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("PLFM-5685");
+		table.setColumnIds(firstSchema);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		
+		// call under test
+		table = entityService.getEntityForVersion(adminUserId, table.getId(), 1L, TableEntity.class);
+		assertEquals(firstSchema, table.getColumnIds());
+		
+		// create a snapshot to to create a new version.
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		SnapshotResponse snapshotResponse = tableEntityManager.createTableSnapshot(adminUserInfo, table.getId(), snapshotRequest);
+		snapshotResponse.getSnapshotVersionNumber();
+		
+		// call under test
+		table = entityService.getEntityForVersion(adminUserId, table.getId(), 1L, TableEntity.class);
+		assertEquals(firstSchema, table.getColumnIds());
+		// call under test
+		table = entityService.getEntityForVersion(adminUserId, table.getId(), 2L, TableEntity.class);
+		assertEquals(firstSchema, table.getColumnIds());
+		// call under test
+		table = entityService.getEntity(adminUserInfo, table.getId(), TableEntity.class, EventType.GET);
+		assertEquals(firstSchema, table.getColumnIds());
+		
+		// change the schema of version two.
+		boolean newVersion = false;
+		String activityId = null;
+		table.setColumnIds(secondSchema);
+		table = entityService.updateEntity(adminUserId, table, newVersion, activityId);
+		
+		// call under test
+		table = entityService.getEntityForVersion(adminUserId, table.getId(), 1L, TableEntity.class);
+		assertEquals(firstSchema, table.getColumnIds());
+		// call under test
+		table = entityService.getEntityForVersion(adminUserId, table.getId(), 2L, TableEntity.class);
+		assertEquals(secondSchema, table.getColumnIds());
+		// call under test
+		table = entityService.getEntity(adminUserInfo, table.getId(), TableEntity.class, EventType.GET);
+		assertEquals(secondSchema, table.getColumnIds());
 	}
 }
