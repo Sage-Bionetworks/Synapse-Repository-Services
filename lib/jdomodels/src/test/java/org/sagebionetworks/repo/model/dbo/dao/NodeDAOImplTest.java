@@ -899,7 +899,7 @@ public class NodeDAOImplTest {
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now get the annotations for this node.
-		Annotations annos = nodeDao.getUserAnnotationsV1(id);
+		Annotations annos = nodeDao.getUserAnnotations(id);
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		assertEquals(id, annos.getId());
@@ -916,9 +916,9 @@ public class NodeDAOImplTest {
 		String newETagString = UUID.randomUUID().toString();
 		annos.setEtag(newETagString);
 		// Update them
-		nodeDao.updateUserAnnotationsV1(id, annos);
+		nodeDao.updateUserAnnotations(id, annos);
 		// Now get a copy and ensure it equals what we sent
-		Annotations copy = nodeDao.getUserAnnotationsV1(id);
+		Annotations copy = nodeDao.getUserAnnotations(id);
 		assertNotNull(copy);
 		assertEquals("one", copy.getSingleValue("stringOne"));
 		assertEquals(new Double(23.5), copy.getSingleValue("doubleKey"));
@@ -939,7 +939,7 @@ public class NodeDAOImplTest {
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now get the annotations for this node.
-		Annotations annos= nodeDao.getUserAnnotationsV1(id);
+		Annotations annos= nodeDao.getUserAnnotations(id);
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		assertNotNull(annos.getBlobAnnotations());
@@ -952,15 +952,15 @@ public class NodeDAOImplTest {
 		annos.addAnnotation("doubleKey", new Double(23.5));
 		annos.addAnnotation("longKey", new Long(1234));
 		// Update them
-		nodeDao.updateUserAnnotationsV1(id, annos);
+		nodeDao.updateUserAnnotations(id, annos);
 		// Now get a copy and ensure it equals what we sent
-		Annotations copy = nodeDao.getUserAnnotationsV1(id);
+		Annotations copy = nodeDao.getUserAnnotations(id);
 		assertNotNull(copy);
 		assertEquals(annos, copy);
 		// clear an and update
 		assertNotNull(copy.getStringAnnotations().remove("stringOne"));
-		nodeDao.updateUserAnnotationsV1(id, copy);
-		Annotations copy2 = nodeDao.getUserAnnotationsV1(id);
+		nodeDao.updateUserAnnotations(id, copy);
+		Annotations copy2 = nodeDao.getUserAnnotations(id);
 		assertNotNull(copy2);
 		assertEquals(copy, copy2);
 		// Make sure the node has a new eTag
@@ -1065,7 +1065,7 @@ public class NodeDAOImplTest {
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
-		Annotations annos = nodeDao.getUserAnnotationsV1(id);
+		Annotations annos = nodeDao.getUserAnnotations(id);
 		assertNotNull(annos);
 		annos.addAnnotation("string", "value");
 		annos.addAnnotation("date", new Date(1));
@@ -1073,7 +1073,7 @@ public class NodeDAOImplTest {
 		annos.addAnnotation("long", 56l);
 		annos.addAnnotation("blob", "Some blob value".getBytes("UTF-8"));
 		// Update the annotations
-		nodeDao.updateUserAnnotationsV1(id, annos);
+		nodeDao.updateUserAnnotations(id, annos);
 		// Now create a new version
 		Node copy = nodeDao.getNode(id);
 		copy.setVersionComment(null);
@@ -1082,14 +1082,14 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(2), revNumber);
 		// At this point the new and old version should have the
 		// same annotations.
-		Annotations v1Annos = nodeDao.getUserAnnotationsV1ForVersion(id, 1L);
+		Annotations v1Annos = nodeDao.getUserAnnotationsForVersion(id, 1L);
 		assertNotNull(v1Annos);
 		assertEquals(NodeConstants.ZERO_E_TAG, v1Annos.getEtag());
-		Annotations v2Annos = nodeDao.getUserAnnotationsV1ForVersion(id, 2L);
+		Annotations v2Annos = nodeDao.getUserAnnotationsForVersion(id, 2L);
 		assertNotNull(v2Annos);
 		assertEquals(NodeConstants.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(v1Annos, v2Annos);
-		Annotations currentAnnos = nodeDao.getUserAnnotationsV1(id);
+		Annotations currentAnnos = nodeDao.getUserAnnotations(id);
 		assertNotNull(currentAnnos);
 		assertNotNull(currentAnnos.getEtag());
 		// They should be equal except for the e-tag
@@ -1100,22 +1100,22 @@ public class NodeDAOImplTest {
 		// Now update the current annotations
 		currentAnnos.getDoubleAnnotations().clear();
 		currentAnnos.addAnnotation("double", 8989898.2);
-		nodeDao.updateUserAnnotationsV1(id, currentAnnos);
+		nodeDao.updateUserAnnotations(id, currentAnnos);
 		
 		// Now the old and new should no longer match.
-		v1Annos = nodeDao.getUserAnnotationsV1ForVersion(id, 1L);
+		v1Annos = nodeDao.getUserAnnotationsForVersion(id, 1L);
 		assertNotNull(v1Annos);
 		assertEquals(2.3, v1Annos.getSingleValue("double"));
 		assertEquals(NodeConstants.ZERO_E_TAG, v1Annos.getEtag());
 
-		v2Annos = nodeDao.getUserAnnotationsV1ForVersion(id, 2L);
+		v2Annos = nodeDao.getUserAnnotationsForVersion(id, 2L);
 		assertNotNull(v2Annos);
 		assertEquals(NodeConstants.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(8989898.2, v2Annos.getSingleValue("double"));
 		// The two version should now be out of synch with each other.
 		assertFalse(v1Annos.equals(v2Annos));
 		// The current annos should still match the v2
-		currentAnnos = nodeDao.getUserAnnotationsV1(id);
+		currentAnnos = nodeDao.getUserAnnotations(id);
 		assertNotNull(currentAnnos);
 		assertNotNull(currentAnnos.getEtag());
 		// They should be equal except for the e-tag
@@ -1127,7 +1127,7 @@ public class NodeDAOImplTest {
 		// Node delete the current revision and confirm that the annotations are rolled back
 		node = nodeDao.getNode(id);
 		nodeDao.deleteVersion(id, node.getVersionNumber());
-		Annotations rolledBackAnnos = nodeDao.getUserAnnotationsV1(id);
+		Annotations rolledBackAnnos = nodeDao.getUserAnnotations(id);
 		assertEquals(2.3, rolledBackAnnos.getSingleValue("double"));
 	}
 	
@@ -1838,7 +1838,7 @@ public class NodeDAOImplTest {
 		toDelete.add(projectId);
 		assertNotNull(projectId);
 		// Now get the annotations of the entity
-		Annotations annos = nodeDao.getUserAnnotationsV1(projectId);
+		Annotations annos = nodeDao.getUserAnnotations(projectId);
 		assertNotNull(annos);
 		// Create a very large string
 		byte[] largeArray = new byte[10000];
@@ -1848,9 +1848,9 @@ public class NodeDAOImplTest {
 		String key = "veryLargeString";
 		annos.addAnnotation(key, largeString);
 		// This update will fail before PLFM-791 is fixed.
-		nodeDao.updateUserAnnotationsV1(projectId, annos);
+		nodeDao.updateUserAnnotations(projectId, annos);
 		// Get the values back
-		annos = nodeDao.getUserAnnotationsV1(projectId);
+		annos = nodeDao.getUserAnnotations(projectId);
 		assertNotNull(annos);
 		// Make sure we can still get the string
 		assertEquals(largeString, annos.getSingleValue(key));
@@ -2759,7 +2759,7 @@ public class NodeDAOImplTest {
 		userAnnos.addAnnotation("aString", "someString");
 		userAnnos.addAnnotation("aLong", 123L);
 		userAnnos.addAnnotation("aDouble", 1.22);
-		nodeDao.updateUserAnnotationsV1(file.getId(), userAnnos);
+		nodeDao.updateUserAnnotations(file.getId(), userAnnos);
 		//Ensure that entity property annotations are not included in the entity replication (PLFM-4601)
 
 		Annotations entityPropertyAnnotations = new Annotations();
@@ -2832,7 +2832,7 @@ public class NodeDAOImplTest {
 		// added for PLFM-4224
 		annos.getLongAnnotations().put("nullList", null);
 		annos.getDoubleAnnotations().put("listWithNullValue", Lists.newArrayList((Double)null));
-		nodeDao.updateUserAnnotationsV1(file.getId(), annos);
+		nodeDao.updateUserAnnotations(file.getId(), annos);
 		
 		int maxAnnotationChars = 10;
 		
@@ -3769,11 +3769,11 @@ public class NodeDAOImplTest {
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now get the annotations for this node.
-		Annotations annos = nodeDao.getUserAnnotationsV1(id);
+		Annotations annos = nodeDao.getUserAnnotations(id);
 		assertNotNull(annos);
 		assertTrue(annos.isEmpty());
 		// Write the annotation to database
-		nodeDao.updateUserAnnotationsV1(id, annos);
+		nodeDao.updateUserAnnotations(id, annos);
 
 		//check no BLOB no data has been stored in the actual JDOREVISIONS table
 		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
@@ -3783,7 +3783,7 @@ public class NodeDAOImplTest {
 		assertNull(nodeRevision.getAnnotations());
 
 		// Now retrieve it and we should stil get back an empty NamedAnnotation
-		Annotations copy = nodeDao.getUserAnnotationsV1(id);
+		Annotations copy = nodeDao.getUserAnnotations(id);
 		assertNotNull(copy);
 		assertTrue(copy.isEmpty());
 		assertEquals(annos, copy);

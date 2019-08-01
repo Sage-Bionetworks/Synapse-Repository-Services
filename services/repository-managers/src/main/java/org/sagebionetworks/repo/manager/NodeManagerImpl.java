@@ -401,7 +401,7 @@ public class NodeManagerImpl implements NodeManager {
 		// Also update the Annotations if provided
 		if(userAnnotations != null){
 			userAnnotations.setEtag(nextETag);
-			nodeDao.updateUserAnnotationsV1(updatedNode.getId(), userAnnotations);
+			nodeDao.updateUserAnnotations(updatedNode.getId(), userAnnotations);
 		}
 
 		// Also update the entity property Annotations if provided
@@ -433,7 +433,7 @@ public class NodeManagerImpl implements NodeManager {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return nodeDao.getUserAnnotationsV1(nodeId);
+		return nodeDao.getUserAnnotations(nodeId);
 	}
 
 	@Override
@@ -441,7 +441,7 @@ public class NodeManagerImpl implements NodeManager {
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return nodeDao.getUserAnnotationsV1ForVersion(nodeId, versionNumber);
+		return nodeDao.getUserAnnotationsForVersion(nodeId, versionNumber);
 	}
 
 	@Override
@@ -476,7 +476,7 @@ public class NodeManagerImpl implements NodeManager {
 		nodeDao.touch(userInfo.getId(), nodeId);
 
 
-		nodeDao.updateUserAnnotationsV1(nodeId, updated);
+		nodeDao.updateUserAnnotations(nodeId, updated);
 		return getUserAnnotations(userInfo, nodeId);
 	}
 	

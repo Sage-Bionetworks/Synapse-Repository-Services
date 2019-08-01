@@ -449,7 +449,7 @@ public class NodeManagerImplUnitTest {
 		Annotations annos = new Annotations();
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
-		when(mockNodeDao.getUserAnnotationsV1(id)).thenReturn(annos);
+		when(mockNodeDao.getUserAnnotations(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);

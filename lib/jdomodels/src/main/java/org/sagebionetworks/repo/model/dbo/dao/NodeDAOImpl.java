@@ -681,13 +681,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public Annotations getUserAnnotationsV1(final String id) throws NotFoundException, DatastoreException {
+	public Annotations getUserAnnotations(final String id) throws NotFoundException, DatastoreException {
 		ValidateArgument.requiredNotEmpty(id, "id");
 		return getAnnotations(id, null, COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
 	}
 
 	@Override
-	public Annotations getUserAnnotationsV1ForVersion(final String id, Long versionNumber) throws NotFoundException, DatastoreException {
+	public Annotations getUserAnnotationsForVersion(final String id, Long versionNumber) throws NotFoundException, DatastoreException {
 		ValidateArgument.requiredNotEmpty(id, "id");
 		ValidateArgument.required(versionNumber, "versionNumber");
 		return getAnnotations(id, versionNumber, COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
@@ -826,7 +826,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public void updateUserAnnotationsV1(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException {
+	public void updateUserAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException {
 		updateAnnotations(nodeId, updatedAnnos, COL_REVISION_USER_ANNOTATIONS_V1_BLOB);
 	}
 
@@ -836,8 +836,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		updateAnnotations(nodeId, updatedAnnos, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
 	}
 
-	@WriteTransaction
-	void updateAnnotations(String nodeId, Annotations updatedAnnos, String annotationColumnName) throws NotFoundException, DatastoreException {
+	private void updateAnnotations(String nodeId, Annotations updatedAnnos, String annotationColumnName) throws NotFoundException, DatastoreException {
 
 		if(updatedAnnos == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
 		if(updatedAnnos.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
