@@ -163,7 +163,11 @@ public class OpenIDConnectController {
 	// TODO exchange a refresh token for a new refresh token / access token pair
 	
 	
-	// TODO OIDC Configuration document
+	/**
+	 * 
+	 * @return
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
 	public @ResponseBody
