@@ -1287,7 +1287,7 @@ public class TableController {
 	public @ResponseBody
 	ColumnModelPage getPossibleColumnModelsForView(
 			@RequestBody ViewScope viewScope,
-			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		ValidateArgument.required(viewScope, "viewScope");
 		return serviceProvider.getTableServices()
 				.getPossibleColumnModelsForScopeIds(viewScope,

@@ -76,6 +76,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private DockerService dockerService;
 	@Autowired
 	private DataAccessService dataAccessService;
+	@Autowired
+	private OpenIDConnectService openIDConnectService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -197,5 +199,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public DataAccessService getDataAccessService() {
 		return dataAccessService;
+	}
+	@Override
+	public OpenIDConnectService getOpenIDConnectService() {
+		return openIDConnectService;
 	}
 }

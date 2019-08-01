@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- slighlty misplaced here, as it is under the controller package, but services use it -->
+	<!-- slightly misplaced here, as it is under the controller package, but services use it -->
 	<bean id="objectTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
 
@@ -112,6 +112,8 @@
 
 	<!-- The Subscription Service -->
 	<bean id="dockerService" class="org.sagebionetworks.repo.web.service.DockerServiceImpl" />
+
+	<bean id="openIDConnectService" class="org.sagebionetworks.repo.web.service.OpenIDConnectServiceImpl" />
 
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 

@@ -192,6 +192,4 @@ public class AuthorizationConstants {
 	 */
 	public static final String DOCKER_SCOPE_PARAM = "scope";
 	
-	
-	
 }

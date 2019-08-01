@@ -1,0 +1,86 @@
+{
+    "description": "OpenID Provider Configuration.  https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig  Fields are defined here: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata",
+ 	"properties": {
+		"issuer":{
+			"type": "string",
+			"description":"The issuer of OIDC tokens and claims."
+		},
+		"authorization_endpoint": {
+			"type": "string",
+			"description": "URL of the Synapse OAuth 2.0 Authorization Endpoint"
+		},
+		"token_endpoint": {
+			"type": "string",
+			"description": "URL of the Synapse OAuth 2.0 Token Endpoint"
+		},
+		"userinfo_endpoint": {
+			"type": "string",
+			"description": "URL of the Synapse UserInfo Endpoint"
+		},
+		"jwks_uri": {
+			"type": "string",
+			"description": "URL of the Synapse JSON Web Key Set [JWK] document."
+		},
+		"registration_endpoint": {
+			"type": "string",
+			"description": "URL of the Synapse Dynamic Client Registration Endpoint"
+		},
+		"scopes_supported": {
+			"type": "array",
+			"description": "List of the OAuth 2.0 scope values that Synapse supports.",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
+			}
+		},
+		"response_types_supported": {
+			"type": "array",
+			"description": "List of the OAuth 2.0 response types that Synapse supports.",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthResponseType"
+			}
+		},
+		"grant_types_supported": {
+			"type": "array",
+			"description": "List of the OAuth 2.0 grant types that Synapse supports.",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthGrantType"
+			}
+		},
+		"subject_types_supported": {
+			"type": "array",
+			"description": "List of the subject identified types that Synapse supports.",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType"
+			}
+		},
+		"id_token_signing_alg_values_supported": {
+			"type": "array",
+			"description": "List of the JWS signing algorithms (alg values) supported by Synapse for the ID Token to encode the Claims in a JWT",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
+			}
+		},
+		"userinfo_signing_alg_values_supported": {
+			"type": "array",
+			"description": "List of the JWS signing algorithms (alg values) supported by the UserInfo Endpoint to encode the Claims in a JWT",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
+			}
+		},
+		"claims_supported": {
+			"type": "array",
+			"description": "List of the Claim Names of the Claims that the Synapse MAY be able to supply values for.",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+			}
+		},
+		"service_documentation": {
+			"type": "string",
+			"description": "URL of a page containing human-readable information that developers might want or need to know when using Synapse."
+		},
+		"claims_parameter_supported": {
+			"type": "boolean",
+			"description": "Boolean value specifying whether Synapse supports use of the claims parameter, with true indicating support."
+		}
+	}
+}

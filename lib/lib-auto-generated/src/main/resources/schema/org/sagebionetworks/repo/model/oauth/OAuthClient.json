@@ -1,0 +1,21 @@
+{
+    "description": "OAuth 2.0 Client metadata, https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata",
+ 	"properties": {
+		"client_name":{
+			"type": "string",
+			"description":"The provided name for the OAuth 2.0 client"
+		},
+		"redirect_uris": {
+			"type": "string",
+			"description": "The URL that Synapse is expected to redirect to after authorizing the request."
+		},
+		"clientId": {
+			"type": "string",
+			"description": "The unique ID for the OAuth client, created by Synapse"
+		},
+		"clientSecret": {
+			"type": "string",
+			"description": "The shared secret used to exchange an access code for an access token.  Returned only during initial client creation."
+		}
+	}
+}

@@ -71,6 +71,8 @@ public interface ServiceProvider {
 	
 	public DockerService getDockerService();
 
-	DataAccessService getDataAccessService();
+	public DataAccessService getDataAccessService();
+	
+	public OpenIDConnectService getOpenIDConnectService();
 	
 }

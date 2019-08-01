@@ -1001,6 +1001,17 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return configuration.getDecryptedProperty("org.sagebionetworks.docker.authorization.certificate");
 	}
 
+	/**
+	 * Credentials for signing OIDC JSON Web Tokens
+	 */
+	public String getOIDCSignaturePrivateKey() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.oidc.signature.private.key");
+	}
+
+	public String getOIDCSignatureCertificate() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.oidc.signature.certificate");
+	}
+
 	public List<String> getDockerRegistryHosts() {
 		String s = configuration.getProperty("org.sagebionetworks.docker.registry.hostnames");
 		s = s.replaceAll("\\s+", "");

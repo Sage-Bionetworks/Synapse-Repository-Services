@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "description": "The OIDC claims supported by Synapse",
+  "enum": [
+    {
+      "name": "teams",
+      "description": "TODO"
+    }
+  ]
+}

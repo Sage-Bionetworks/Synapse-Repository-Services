@@ -227,7 +227,7 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS, method = RequestMethod.GET)
 	public @ResponseBody OpenSubmissionPage getOpenSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getDataAccessService().getOpenSubmissions(userId, nextPageToken);
 	}
 }

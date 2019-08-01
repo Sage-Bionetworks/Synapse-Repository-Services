@@ -660,6 +660,13 @@ public interface StackConfiguration {
 
 	public String getDockerAuthorizationCertificate();
 
+	/**
+	 * Credentials for signing OIDC JSON Web Tokens
+	 */
+	public String getOIDCSignaturePrivateKey();
+
+	public String getOIDCSignatureCertificate();
+	
 	public List<String> getDockerRegistryHosts();
 
 	public List<String> getDockerReservedRegistryHosts();
