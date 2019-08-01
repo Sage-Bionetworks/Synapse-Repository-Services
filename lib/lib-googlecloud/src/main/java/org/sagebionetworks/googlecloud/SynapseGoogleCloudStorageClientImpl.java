@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.google.api.client.http.HttpStatusCodes;
@@ -67,10 +69,11 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 	}
 
 	@Override
-	public URL createSignedUrl(String bucket, String key, long expirationInMilliseconds, HttpMethod requestMethod) throws StorageException {
+	public URL createSignedUrl(String bucket, String key, long expirationInMilliseconds, HttpMethod requestMethod, Map<String, String> overrideHeaders) throws StorageException {
+		if (overrideHeaders == null) overrideHeaders = Collections.emptyMap();
 		return storage.signUrl(BlobInfo.newBuilder(BlobId.of(bucket, key)).build(),
 				expirationInMilliseconds, TimeUnit.MILLISECONDS, Storage.SignUrlOption.withV4Signature(),
-				Storage.SignUrlOption.httpMethod(requestMethod));
+				Storage.SignUrlOption.httpMethod(requestMethod), Storage.SignUrlOption.withExtHeaders(overrideHeaders));
 	}
 
 	@Override

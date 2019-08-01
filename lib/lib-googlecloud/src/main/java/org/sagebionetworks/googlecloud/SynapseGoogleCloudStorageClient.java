@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
@@ -33,7 +34,7 @@ public interface SynapseGoogleCloudStorageClient {
 	 * @param requestMethod the HTTP method that the user of the URL can invoke
 	 * @return a URL providing timed access to the resource for the particular method specified
 	 */
-	URL createSignedUrl(String bucket, String key, long expirationInMinutes, HttpMethod requestMethod);
+	URL createSignedUrl(String bucket, String key, long expirationInMinutes, HttpMethod requestMethod, Map<String, String> overrideHeaders);
 
 	/**
 	 * Upload an object to a Google Cloud Storage bucket

@@ -2,10 +2,13 @@ package org.sagebionetworks.upload.multipart;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.http.HttpHeaders;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
@@ -38,7 +41,12 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 
 	@Override
 	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType) {
-		return googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
+		Map<String, String> overrideHeaders = null;
+		if (contentType != null) {
+			overrideHeaders = new HashMap<>();
+			overrideHeaders.put(HttpHeaders.CONTENT_TYPE, contentType);
+		}
+		return googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT, overrideHeaders);
 	}
 
 	@WriteTransaction

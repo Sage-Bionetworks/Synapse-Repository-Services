@@ -19,8 +19,9 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -111,10 +112,12 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	public void createSignedUrl() {
 		long expirationTime = 50L;
 		HttpMethod method = HttpMethod.GET;
-		client.createSignedUrl(BUCKET_NAME, OBJECT_KEY, expirationTime, method);
+		Map<String, String> overrideHeaders = new HashMap<>();
+		client.createSignedUrl(BUCKET_NAME, OBJECT_KEY, expirationTime, method, overrideHeaders);
 
 		verify(mockStorage).signUrl(eq(OBJECT_BLOB_INFO), eq(expirationTime),
 				eq(TimeUnit.MILLISECONDS),
+				any(Storage.SignUrlOption.class),
 				any(Storage.SignUrlOption.class),
 				any(Storage.SignUrlOption.class));
 	}
