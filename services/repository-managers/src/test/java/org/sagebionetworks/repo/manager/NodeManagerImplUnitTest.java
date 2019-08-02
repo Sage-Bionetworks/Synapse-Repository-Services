@@ -724,7 +724,7 @@ public class NodeManagerImplUnitTest {
 		Annotations entityPropertyAnnotations = new Annotations();
 		entityPropertyAnnotations.addAnnotation("k", "a");
 		entityPropertyAnnotations.setEtag("etag");
-
+		when(mockNode.getETag()).thenReturn(null);
 		nodeManager.update(mockUserInfo, mockNode, entityPropertyAnnotations, false);
 	}
 
