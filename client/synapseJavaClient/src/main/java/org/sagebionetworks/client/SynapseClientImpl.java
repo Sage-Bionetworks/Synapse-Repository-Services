@@ -145,8 +145,6 @@ import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
-import org.sagebionetworks.repo.model.entity.query.EntityQuery;
-import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
@@ -1515,20 +1513,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getPaginatedResults(getRepoEndpoint(), url, list, EntityHeader.class);
 	}
 
-	/**
-	 * Perform a query
-	 * 
-	 * @param query
-	 *            the query to perform
-	 * @return the query result
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public JSONObject query(String query) throws SynapseException {
-		return querySynapse(query);
-	}
-
 	@Override
 	public URL getFileHandleTemporaryUrl(String fileHandleId)
 			throws IOException, SynapseException {
@@ -2513,26 +2497,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				throw new SynapseClientException(e2.getMessage(), e2);
 			}
 		}
-	}
-
-	/**
-	 * Perform a query
-	 * 
-	 * @param query
-	 *            the query to perform
-	 * @return the query result
-	 */
-	private JSONObject querySynapse(String query) throws SynapseException {
-
-		ValidateArgument.required(query, "query");
-		String queryUri = null;
-		try {
-			queryUri = QUERY_URI + URLEncoder.encode(query, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			new SynapseClientException(e);
-		}
-
-		return getJson(getRepoEndpoint(), queryUri);
 	}
 
 	/**
@@ -4323,12 +4287,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 
-	@Deprecated
-	@Override
-	public EntityQueryResults entityQuery(EntityQuery query) throws SynapseException {
-		return postJSONEntity(getRepoEndpoint(), QUERY, query, EntityQueryResults.class);
-	}
-	
 	@Override
 	public Challenge createChallenge(Challenge challenge) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), CHALLENGE, challenge, Challenge.class);

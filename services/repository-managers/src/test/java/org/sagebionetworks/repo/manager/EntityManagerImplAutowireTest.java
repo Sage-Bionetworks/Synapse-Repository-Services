@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -180,7 +179,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		Folder entity = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
+		Folder entity = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(entity);
 		Folder fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(fetched);
@@ -206,46 +205,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
 	}
-	
-	@Test
-	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		Folder ds = createDataset();
-		String parentId = entityManager.createEntity(adminUserInfo, ds, null);
-		assertNotNull(parentId);
-		toDelete.add(parentId);
-		List<Folder> layerList = new ArrayList<Folder>();
-		int layers = 3;
-		for(int i=0; i<layers; i++){
-			Folder layer = createLayerForTest(i);
-			layerList.add(layer);
-		}
-		List<String> childrenIds = entityManager.aggregateEntityUpdate(adminUserInfo, parentId, layerList);
-		assertNotNull(childrenIds);
-		assertEquals(layers, childrenIds.size());
-		
-		List<Folder> children = new LinkedList<Folder>();
-		for(String childId: childrenIds){
-			children.add(entityManager.getEntity(adminUserInfo, childId, Folder.class));
-		}
-		assertEquals(layers, children.size());
-		Folder toUpdate = children.get(0);
-		String udpatedId = toUpdate.getId();
-		assertNotNull(udpatedId);
-		toUpdate.setName("updatedName");
-		// Do it again
-		entityManager.aggregateEntityUpdate(adminUserInfo, parentId, children);
-		children = new LinkedList<Folder>();
-		for(String childId: childrenIds){
-			children.add(entityManager.getEntity(adminUserInfo, childId, Folder.class));
-		}
-		assertNotNull(children);
-		assertEquals(layers, children.size());
-		// find the one with the updated name
-		Folder updatedLayer = entityManager.getEntity(adminUserInfo, udpatedId, Folder.class);
-		assertNotNull(updatedLayer);
-		assertEquals("updatedName", updatedLayer.getName());
-	}
-	
+
 	@Test
 	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		Folder study = new Folder();
@@ -254,7 +214,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(id);
 		toDelete.add(id);
 		try{
-			entityManager.getEntityWithAnnotations(adminUserInfo, id, Project.class);
+			entityManager.getEntity(adminUserInfo, id, Project.class);
 			fail("The requested entity type does not match the actaul entity type so this should fail.");
 		}catch(IllegalArgumentException e){
 			// This is expected.
@@ -264,14 +224,6 @@ public class EntityManagerImplAutowireTest {
 			assertTrue(e.getMessage().indexOf(Project.class.getName()) > 0);
 		}
 		
-	}
-
-	private Folder createLayerForTest(int i){
-		Folder layer = new Folder();
-		layer.setName("layerName"+i);
-		layer.setDescription("layerDesc"+i);
-		layer.setCreatedOn(new Date(1001));
-		return layer;
 	}
 
 	@Test

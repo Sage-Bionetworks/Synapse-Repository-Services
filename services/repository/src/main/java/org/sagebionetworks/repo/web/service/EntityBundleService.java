@@ -20,8 +20,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface EntityBundleService {
 
 	/**
-	 * Get an entity and related data with a single GET. Note that childCount is
-	 * calculated in the QueryController.
+	 * Get an entity and related data with a single GET.
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param entityId - The ID of the entity to fetch.
@@ -39,8 +38,7 @@ public interface EntityBundleService {
 
 
 	/**
-	 * Get an entity and related data with a single GET. Note that childCount is
-	 * calculated in the QueryController.
+	 * Get an entity and related data with a single GET.
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param entityId - The ID of the entity to fetch.

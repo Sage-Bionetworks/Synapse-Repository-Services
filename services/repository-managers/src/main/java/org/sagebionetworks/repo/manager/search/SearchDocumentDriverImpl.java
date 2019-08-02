@@ -99,7 +99,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		AccessControlList benefactorACL = aclDAO.get(benefactorId,
 				ObjectType.ENTITY);
 		Long revId = node.getVersionNumber();
-		Annotations annos = nodeDao.getUserAnnotationsV1ForVersion(node.getId(),
+		Annotations annos = nodeDao.getUserAnnotationsForVersion(node.getId(),
 				revId);
 		// Get the wikipage text
 		String wikiPagesText = getAllWikiPageText(node.getId());

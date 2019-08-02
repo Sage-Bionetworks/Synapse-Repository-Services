@@ -14,8 +14,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
-import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -118,8 +116,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	@WriteTransaction
-	void updateUserAnnotationsV1(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
+	void updateUserAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Update annotations for the node's additional entity properties
@@ -128,7 +125,6 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	@WriteTransaction
 	void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
 
 	/**
@@ -147,7 +143,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	Annotations getUserAnnotationsV1(String id) throws NotFoundException, DatastoreException;
+	Annotations getUserAnnotations(String id) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get User Annotations for a specific version
@@ -157,7 +153,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	Annotations getUserAnnotationsV1ForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+	Annotations getUserAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
 
 	Annotations getEntityPropertyAnnotations(String id) throws NotFoundException, DatastoreException;
 

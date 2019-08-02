@@ -139,19 +139,6 @@ public interface EntityManager {
 	 */
 	public List<EntityHeader> getEntityHeader(UserInfo userInfo, List<Reference> references) throws NotFoundException, DatastoreException, UnauthorizedException;
 
-	
-	/**
-	 * Get the entity and annotations together.
-	 * @param <T>
-	 * @param userInfo
-	 * @param entityId
-	 * @param entityClass
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> T getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Delete an existing dataset.
@@ -227,20 +214,7 @@ public interface EntityManager {
 	 * @throws InvalidModelException 
 	 */
 	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
-	
-	/**
-	 * Update multiple children of a single parent within the same transaction.
-	 * @param <T>
-	 * @param userInfo
-	 * @param update
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 * @throws ConflictingUpdateException 
-	 * @throws InvalidModelException 
-	 */
-	public <T extends Entity> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
-	
+
 	/**
 	 * Get a specific version of an entity.
 	 * @param <T>

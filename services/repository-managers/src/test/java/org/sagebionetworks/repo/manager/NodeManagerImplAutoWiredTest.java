@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -224,7 +225,7 @@ public class NodeManagerImplAutoWiredTest {
 		// ensure modified on changes
 		Thread.sleep(10);
 		// update as a different user.
-		Node updated = nodeManager.update(adminUserInfo, fetched);
+		Node updated = nodeManager.update(adminUserInfo, fetched, null, false);
 		assertNotNull(updated);
 		// Make sure the result has a new eTag
 		assertFalse(startingETag.equals(updated.getETag()));
@@ -251,10 +252,10 @@ public class NodeManagerImplAutoWiredTest {
 		Node node = nodeManager.get(adminUserInfo, id);
 		// Now update
 		node.setName("newName");
-		nodeManager.update(adminUserInfo, node);
+		nodeManager.update(adminUserInfo, node, null, false);
 		// Now update again without a new eTag
 		node.setName("Not going to take");
-		nodeManager.update(adminUserInfo, node);
+		nodeManager.update(adminUserInfo, node, null, false);
 	}
 	
 	@Test
@@ -352,7 +353,7 @@ public class NodeManagerImplAutoWiredTest {
 		String eTagBeforeUpdate = updatedNode.getETag();
 		// Now try the update
 		try{
-			nodeManager.update(userInfo, updatedNode, null, annosToUpdate, true);
+			nodeManager.update(userInfo, updatedNode, null, true);
 			fail("Creating a new version without creating a new versoin label should have caused an IllegalArgumentException");
 		}catch(IllegalArgumentException e){
 			// expected
@@ -372,7 +373,9 @@ public class NodeManagerImplAutoWiredTest {
 		String valueOnSecondVersion = "Value on the second version.";
 		annosToUpdate.addAnnotation("stringKey", valueOnSecondVersion);
 		// call under test
-		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode, null,  annosToUpdate, true);
+		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode, null, true);
+		annosToUpdate.setEtag(afterUpdate.getETag());
+		nodeManager.updateUserAnnotations(adminUserInfo, updatedNode.getId(), annosToUpdate);
 		assertNotNull(afterUpdate);
 		assertNotNull(afterUpdate.getETag());
 		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
@@ -384,8 +387,13 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(currentAnnos);
 		// The version number should have incremented
 		assertEquals(new Long(2), currentNode.getVersionNumber());
+		//etags not equal since user annotations were updated after the node
+		assertNotEquals(annosToUpdate.getEtag(), currentAnnos.getEtag());
+		//clear etags to compare contents
+		annosToUpdate.setEtag(null);
+		currentAnnos.setEtag(null);
 		assertEquals(annosToUpdate, currentAnnos);
-		
+
 		// Now get the first version of the node and annotations
 		Node nodeZero = nodeManager.getNodeForVersionNumber(userInfo, id, new Long(1));
 		assertNotNull(nodeZero);
@@ -428,7 +436,7 @@ public class NodeManagerImplAutoWiredTest {
 		Thread.sleep(10);
 		boolean newVersion = true;
 		// create new version
-		updated = nodeManager.update(adminUserInfo, updated, null, annos, newVersion);
+		updated = nodeManager.update(adminUserInfo, updated, null, newVersion);
 		assertNotNull(updated);
 		assertEquals(node.getCreatedByPrincipalId(), updated.getCreatedByPrincipalId());
 		assertEquals(node.getCreatedOn(), updated.getCreatedOn());
@@ -463,7 +471,7 @@ public class NodeManagerImplAutoWiredTest {
 			assertNotNull(node);
 			node.setVersionComment("Comment:"+i);
 			node.setVersionLabel("0.0."+i+1);
-			nodeManager.update(userInfo, node, null, null, true);
+			nodeManager.update(userInfo, node, null, true);
 		}
 		// Get the eTag before the delete
 		Node beforeDelete = nodeManager.get(userInfo, id);
@@ -518,7 +526,7 @@ public class NodeManagerImplAutoWiredTest {
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
-		Node updatedChild = nodeManager.update(adminUserInfo, fetchedChild);
+		Node updatedChild = nodeManager.update(adminUserInfo, fetchedChild, null, false);
 		assertNotNull(updatedChild);
 		assertEquals(childId, updatedChild.getId());
 		assertEquals(newProjectId, updatedChild.getParentId());
@@ -571,7 +579,7 @@ public class NodeManagerImplAutoWiredTest {
 		String childStartEtag = child.getETag();
 		// Now change the parent
 		folder.setName("MyNewName");
-		folder = nodeManager.update(adminUserInfo, folder);
+		folder = nodeManager.update(adminUserInfo, folder, null, false);
 		// Validate that the child etag did not change
 		child = nodeManager.get(adminUserInfo, childId);
 		assertNotNull(child);
