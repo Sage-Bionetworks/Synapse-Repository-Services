@@ -198,5 +198,13 @@ public class AuthorizationConstants {
 	 * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 	 */
 	public static final String OAUTH2_SCOPE = "scope";
+
+	public static final String OAUTH2_CLAIMS = "claims";
 	
+	// 
+	public static final String OAUTH2_RESPONSE_TYPE = "response_type";
+	public static final String OAUTH2_CLIENT_ID = "client_id";
+	public static final String OAUTH2_REDIRECT_URI = "redirect_uri";
+	public static final String OAUTH2_STATE = "state";
+
 }

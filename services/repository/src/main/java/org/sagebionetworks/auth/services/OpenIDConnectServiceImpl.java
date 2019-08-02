@@ -1,15 +1,8 @@
 package org.sagebionetworks.auth.services;
 
-import java.util.Arrays;
-
-import org.sagebionetworks.repo.model.oauth.*;
+import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
-import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
-import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
-import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
@@ -53,7 +46,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setIssuer(ISSUER);
 		result.setAuthorization_endpoint("https://www.login.synapse.org/authorize"); // TODO this must be the URL of the login app'
 		result.setToken_endpoint(ISSUER+UrlHelpers.OAUTH_2_TOKEN);
-		//result.setRecovcation_endpoint(); // TODO
+//		result.setRevocation_endpoint(); // TODO
 		result.setUserinfo_endpoint(ISSUER+UrlHelpers.OAUTH_2_USER_INFO);
 		result.setJwks_uri(ISSUER+UrlHelpers.OAUTH_2_JWKS);
 		result.setRegistration_endpoint(ISSUER+UrlHelpers.OAUTH_2_CLIENT);
@@ -69,6 +62,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		return result;
 	}
 
+	// TODO: when evaluating the claims object, how do we differentiate between a null value and a missing key?  They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	@Override
 	public OAuthAuthorizationResponse authorizeClient() {
 		// TODO Auto-generated method stub
