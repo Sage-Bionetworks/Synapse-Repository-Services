@@ -124,9 +124,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations)
+	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> storageLocationIds)
 			throws DatastoreException, NotFoundException {
-		return storageLocationDAO.getUploadDestinationLocations(locations);
+		return storageLocationDAO.getUploadDestinationLocations(storageLocationIds);
 	}
 
 	@Override
@@ -230,7 +230,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 					throw new IllegalArgumentException("proxyUrl protocol must be be HTTPS");
 				}
 			} catch (MalformedURLException e) {
-				throw new IllegalArgumentException("porxyUrl is malformed: " + e.getMessage());
+				throw new IllegalArgumentException("proxyUrl is malformed: " + e.getMessage());
 			}
 		}
 
