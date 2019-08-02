@@ -120,10 +120,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		// get the first available project setting of the correct type
 		ProjectSetting projectSetting = projectSettingsDao.get(nodePathIds, type);
-		if (projectSetting == null) {
-			throw new NotFoundException("Project setting could not be found for entity: " + nodeId);
-		}
-		if (!expectedType.isInstance(projectSetting)) {
+		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
 			throw new DatastoreException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
 		return (T) projectSetting;

@@ -200,17 +200,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
-	public void getProjectSettingForNodeNullSetting() {
-		EntityHeader projectHeader = new EntityHeader();
-		projectHeader.setId(PROJECT_ID);
-		when(mockNodeManager.getNodePathAsAdmin(NODE_ID)).thenReturn(Collections.singletonList(projectHeader));
-		when(mockProjectSettingDao.get(eq(Collections.singletonList(Long.valueOf(PROJECT_ID))), eq(ProjectSettingsType.upload))).thenReturn(null);
-
-		// Call under test
-		assertThrows(NotFoundException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class));
-	}
-
-	@Test
 	public void getProjectSettingForNodeWrongInstanceType() {
 		EntityHeader projectHeader = new EntityHeader();
 		projectHeader.setId(PROJECT_ID);
