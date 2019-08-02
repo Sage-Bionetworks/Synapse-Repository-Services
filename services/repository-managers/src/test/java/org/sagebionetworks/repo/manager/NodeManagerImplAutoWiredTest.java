@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -373,6 +374,8 @@ public class NodeManagerImplAutoWiredTest {
 		annosToUpdate.addAnnotation("stringKey", valueOnSecondVersion);
 		// call under test
 		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode, null, true);
+		annosToUpdate.setEtag(afterUpdate.getETag());
+		nodeManager.updateUserAnnotations(adminUserInfo, updatedNode.getId(), annosToUpdate);
 		assertNotNull(afterUpdate);
 		assertNotNull(afterUpdate.getETag());
 		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
@@ -384,8 +387,13 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(currentAnnos);
 		// The version number should have incremented
 		assertEquals(new Long(2), currentNode.getVersionNumber());
+		//etags not equal since user annotations were updated after the node
+		assertNotEquals(annosToUpdate.getEtag(), currentAnnos.getEtag());
+		//clear etags to compare contents
+		annosToUpdate.setEtag(null);
+		currentAnnos.setEtag(null);
 		assertEquals(annosToUpdate, currentAnnos);
-		
+
 		// Now get the first version of the node and annotations
 		Node nodeZero = nodeManager.getNodeForVersionNumber(userInfo, id, new Long(1));
 		assertNotNull(nodeZero);
