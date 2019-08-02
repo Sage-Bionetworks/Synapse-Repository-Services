@@ -1,0 +1,9 @@
+{
+    "description": "OAuth 2.0 Authorization Response",
+ 	"properties": {
+		"access_code":{
+			"type": "string",
+			"description":"TODO"
+		}
+	}
+}

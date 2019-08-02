@@ -192,4 +192,11 @@ public class AuthorizationConstants {
 	 */
 	public static final String DOCKER_SCOPE_PARAM = "scope";
 	
+	
+	/**
+	 * Request parameters for the Synapse OAuth server, defined by
+	 * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	 */
+	public static final String OAUTH2_SCOPE = "scope";
+	
 }

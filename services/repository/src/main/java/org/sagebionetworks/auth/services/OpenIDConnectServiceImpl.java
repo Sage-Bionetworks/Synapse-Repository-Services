@@ -2,7 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import java.util.Arrays;
 
-import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.*;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -67,6 +67,12 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
 		return result;
+	}
+
+	@Override
+	public OAuthAuthorizationResponse authorizeClient() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

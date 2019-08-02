@@ -1,13 +1,10 @@
 {
 	"description": "https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter",
-	"properties": {
-		"type": "map",
-		"key":{
-			"type": "string"
-		},
-	   	"value":{
-			"type": "object"
-			"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-		}
+	"type": "map",
+	"key":{
+		"type": "string"
+	},
+   	"value":{
+		"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
 	}
 }

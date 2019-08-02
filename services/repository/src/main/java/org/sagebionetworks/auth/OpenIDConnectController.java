@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
@@ -29,7 +30,7 @@ The OpenID Connect (OIDC) services implement OAuth 2.0 with the OpenID identity 
 @RequestMapping(UrlHelpers.AUTH_PATH)
 public class OpenIDConnectController {
 	@Autowired
-	ServiceProvider serviceProvider;
+	private ServiceProvider serviceProvider;
 
 	/**
 	 * Create an OAuth 2.0 client.
@@ -129,6 +130,7 @@ public class OpenIDConnectController {
 	
 	// get access code for a given client, scopes, response type(s), and extra claim(s)
 	// https://openid.net/specs/openid-connect-core-1_0.html#Consent
+	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 	// /oauth2/consent
 	//
 	// param's include responseType, clientId, redirect URI, scope, extra claims
@@ -136,16 +138,14 @@ public class OpenIDConnectController {
 	// ?? should code response be a subset of Oauth response, e.g. if we want to implement some other kind of response?
 	// when evaluating the claims object, how do we differentiate between a null value and a missing key?  They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	
-//	@ResponseStatus(HttpStatus.CREATED)
-//	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
-//	public @ResponseBody
-//	OAuthAuthorizationResponse authorizeClient(
-//			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-//			@RequestBody OIDCAuthorizationRequest oidcAuthorizationRequest
-//			) throws NotFoundException {
-//		serviceProvider.getOpenIDConnectService().
-//		authorizeClient(userId, oidcAuthorizationRequest);
-//	}
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
+	public @ResponseBody
+	OAuthAuthorizationResponse authorizeClient(
+			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE) String scope
+			) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().authorizeClient();
+	}
 	
 	
 	

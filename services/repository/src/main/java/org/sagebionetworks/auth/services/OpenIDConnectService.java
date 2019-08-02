@@ -1,6 +1,6 @@
 package org.sagebionetworks.auth.services;
 
-import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.*;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 
@@ -51,4 +51,6 @@ public interface OpenIDConnectService {
 	 * @return the OIDC Discovery Document
 	 */
 	public OIDConnectConfiguration getOIDCConfiguration();
+	
+	public OAuthAuthorizationResponse authorizeClient();
 }
