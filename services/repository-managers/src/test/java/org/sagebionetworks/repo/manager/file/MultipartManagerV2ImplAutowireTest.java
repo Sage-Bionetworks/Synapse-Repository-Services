@@ -124,10 +124,9 @@ public class MultipartManagerV2ImplAutowireTest {
 				}
 			}
 		}
-		/*
-		 TODO: Delete Google Cloud storage location (if enabled)
-		 (Storage locations cannot currently be deleted as of this commit)
-		 */
+		if (stackConfiguration.getGoogleCloudEnabled()) {
+			projectSettingsManager.deleteProjectSetting(adminUserInfo, googleCloudStorageLocationSetting.getStorageLocationId().toString());
+		}
 		multipartManagerV2.truncateAll();
 	}
 
