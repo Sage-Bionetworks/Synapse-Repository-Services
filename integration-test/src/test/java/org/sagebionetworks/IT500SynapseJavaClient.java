@@ -71,10 +71,6 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
-import org.sagebionetworks.repo.model.entity.query.EntityQuery;
-import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
-import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -918,27 +914,5 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testLookupEntity() throws SynapseException {
 		assertEquals(dataset.getId(), synapseOne.lookupChild(project.getId(), dataset.getName()));
-	}
-	
-	
-	/*
-	 * Test deprecated services
-	 * These test can be removed when the services are removed
-	 */
-	
-	@Test
-	public void testDeprecatedStructuredQuery() throws Exception {
-		// setup a query to find the project by ID.
-		EntityQuery query = new EntityQuery();
-		query.setFilterByType(EntityType.project);
-		query.setConditions(new ArrayList<>(1));
-		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
-		assertThrows(SynapseDeprecatedServiceException.class, () -> synapseOne.entityQuery(query));
-	}
-	
-
-	@Test
-	public void testJavaClientDeprecatedQueryService() throws Exception {
-		assertThrows(SynapseDeprecatedServiceException.class, () -> synapseOne.query("select * from folder limit 10"));
 	}
 }
