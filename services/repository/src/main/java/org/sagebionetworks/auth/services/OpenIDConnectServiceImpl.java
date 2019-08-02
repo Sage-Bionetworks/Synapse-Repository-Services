@@ -53,9 +53,11 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setIssuer(ISSUER);
 		result.setAuthorization_endpoint("https://www.login.synapse.org/authorize"); // TODO this must be the URL of the login app'
 		result.setToken_endpoint(ISSUER+UrlHelpers.OAUTH_2_TOKEN);
+		//result.setRecovcation_endpoint(); // TODO
 		result.setUserinfo_endpoint(ISSUER+UrlHelpers.OAUTH_2_USER_INFO);
 		result.setJwks_uri(ISSUER+UrlHelpers.OAUTH_2_JWKS);
 		result.setRegistration_endpoint(ISSUER+UrlHelpers.OAUTH_2_CLIENT);
+// restore the following after fixing the java docs problem
 //		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
 //		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
 //		result.setGrant_types_supported(Arrays.asList(OAuthGrantType.values()));

@@ -13,6 +13,10 @@
 			"type": "string",
 			"description": "URL of the Synapse OAuth 2.0 Token Endpoint"
 		},
+		"revocation_endpoint": {
+			"type": "string",
+			"description": "URL of the Synapse OAuth 2.0 Revocation Endpoint"
+		},
 		"userinfo_endpoint": {
 			"type": "string",
 			"description": "URL of the Synapse UserInfo Endpoint"

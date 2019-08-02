@@ -1,10 +1,60 @@
 {
   "type": "string",
-  "description": "The OIDC claims supported by Synapse",
+  "description": "The OIDC claims supported by Synapse some of which are standardized, https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims",
   "enum": [
+    {
+      "name": "iss",
+      "description": "TODO"
+    },
+    {
+      "name": "sub",
+      "description": "TODO"
+    },
+    {
+      "name": "aud",
+      "description": "TODO"
+    },
+    {
+      "name": "iat",
+      "description": "TODO"
+    },
+    {
+      "name": "nbf",
+      "description": "TODO"
+    },
+    {
+      "name": "exp",
+      "description": "TODO"
+    },
+    {
+      "name": "auth_time",
+      "description": "TODO"
+    },
+    {
+      "name": "email",
+      "description": "TODO"
+    },
+    {
+      "name": "email_verified",
+      "description": "TODO"
+    },
+    {
+      "name": "given_name",
+      "description": "TODO"
+    },
+    {
+      "name": "family_name",
+      "description": "TODO"
+    },
+    {
+      "name": "company",
+      "description": "TODO"
+    },
     {
       "name": "teams",
       "description": "TODO"
-    }
+    },
+    
   ]
 }
+

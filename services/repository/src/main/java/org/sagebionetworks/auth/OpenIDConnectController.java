@@ -134,6 +134,7 @@ public class OpenIDConnectController {
 	// param's include responseType, clientId, redirect URI, scope, extra claims
 	// returned value has access code
 	// ?? should code response be a subset of Oauth response, e.g. if we want to implement some other kind of response?
+	// when evaluating the claims object, how do we differentiate between a null value and a missing key?  They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	
 //	@ResponseStatus(HttpStatus.CREATED)
 //	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
