@@ -145,6 +145,8 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		String expectedContents = "\"projectId\",\"projectName\",\"sizeInBytes\"\n" +
 				"\"" + project2Id + "\",\"" + project2.getName() + "\",\"8\"\n" +
 				"\"" + project1Id + "\",\"" + project1.getName() + "\",\"4\"\n";
+		System.out.println(expectedContents);
+		System.out.println(csvContents);
 		assertEquals(expectedContents, csvContents);
 	}
 
