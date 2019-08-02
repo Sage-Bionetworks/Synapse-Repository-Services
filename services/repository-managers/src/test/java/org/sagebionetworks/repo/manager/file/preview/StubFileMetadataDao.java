@@ -142,12 +142,5 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		
 	}
-	
-	@Override
-	public void updateStorageLocationBatch(Set<Long> currentStorageLocationIds, Long targetStorageLocationId) {
-		// TODO Auto-generated method stub
-		
-	}
-
 
 }

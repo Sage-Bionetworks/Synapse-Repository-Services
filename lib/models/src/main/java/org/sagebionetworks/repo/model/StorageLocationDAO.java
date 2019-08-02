@@ -44,11 +44,4 @@ public interface StorageLocationDAO {
 	@TemporaryCode(author = "marco.marasca@sagebase.org")
 	public Set<Long> findDuplicates(Long id) throws DatastoreException, NotFoundException;
 	
-	/**
-	 * Deletes the storage locations with the given ids
-	 * @param ids
-	 * @throws DatastoreException
-	 */
-	@TemporaryCode(author = "marco.marasca@sagebase.org")
-	public void deleteBatch(Set<Long> ids) throws DatastoreException;
 }
