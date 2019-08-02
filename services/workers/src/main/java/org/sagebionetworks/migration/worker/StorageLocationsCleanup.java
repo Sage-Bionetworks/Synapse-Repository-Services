@@ -103,15 +103,12 @@ public class StorageLocationsCleanup {
 		log.info("Updating data hash for {} storage locations from master location {}...", duplicates.size(),
 				masterLocationId);
 
-		String dataHash = jdbcTemplate.queryForObject("SELECT DATA_HASH FROM STORAGE_LOCATION WHERE ID = ?",
-				String.class, masterLocationId);
-
 		List<Pair<Long, String>> hashBatch = new ArrayList<>();
 
 		int index = 1;
 
 		for (Long duplicateId : duplicates) {
-			hashBatch.add(ImmutablePair.of(duplicateId, dataHash + "_d_" + index));
+			hashBatch.add(ImmutablePair.of(duplicateId, "dof_" + masterLocationId + "_" + index));
 			if (hashBatch.size() >= BATCH_UPDATE_SIZE) {
 				updateLocationHashBatch(hashBatch);
 				hashBatch.clear();

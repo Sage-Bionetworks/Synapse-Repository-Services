@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +22,9 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -28,22 +32,15 @@ import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.migration.CleanupStorageLocationsRequest;
 import org.sagebionetworks.repo.model.migration.CleanupStorageLocationsResponse;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.TemporaryCode;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ProjectSettingsDAO;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -73,6 +70,7 @@ public class StorageLocationsCleanupTest {
 	@Autowired
 	private StorageLocationDAO storageLocationDao;
 	
+	
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -99,8 +97,17 @@ public class StorageLocationsCleanupTest {
 	private Long masterStorageLocationId;
 	private List<Long> duplicateStorageLocationsIds;
 	
+	private List<String> toDeleteFiles;
+	private List<String> toDeleteProjects;
+	private List<Long> toDeleteLocations;
+	
 	@Before
 	public void setup() throws Exception {
+		
+		toDeleteFiles = new ArrayList<>();
+		toDeleteProjects = new ArrayList<>();
+		toDeleteLocations = new ArrayList<>();
+		
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -110,16 +117,21 @@ public class StorageLocationsCleanupTest {
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		
+				
 		Project project = new Project();
 		project.setName("project" + RandomStringUtils.randomAlphanumeric(10));
 		userProjectId = entityManager.createEntity(userInfo, project, null);
+		
+		toDeleteProjects.add(userProjectId);
 		
 		userStorageLocation = TestUtils.createExternalStorageLocation(userInfo.getId(), "Some user storage location");
 		adminStorageLocation = TestUtils.createExternalStorageLocation(userInfo.getId(), "Some admin storage location");
 		
 		userStorageLocation = projectSettingManager.createStorageLocationSetting(userInfo, userStorageLocation);
 		adminStorageLocation = projectSettingManager.createStorageLocationSetting(adminUserInfo, adminStorageLocation);
+		
+		toDeleteLocations.add(userStorageLocation.getStorageLocationId());
+		toDeleteLocations.add(adminStorageLocation.getStorageLocationId());
 		
 		userProjectSetting = new UploadDestinationListSetting();
 		userProjectSetting.setProjectId(userProjectId);
@@ -136,6 +148,9 @@ public class StorageLocationsCleanupTest {
 		adminFileHandle.setStorageLocationId(adminStorageLocation.getStorageLocationId());
 		adminFileHandle  = fileHandleDao.createFile(adminFileHandle);
 		
+		toDeleteFiles.add(userFileHandle.getId());
+		toDeleteFiles.add(adminFileHandle.getId());
+		
 		List<Long> storageLocations = createStorageLocationsWithSameHash(adminUserInfo.getId(), 3);
 		
 		masterStorageLocationId = storageLocations.get(2);
@@ -145,6 +160,8 @@ public class StorageLocationsCleanupTest {
 		adminProject.setName("project" + RandomStringUtils.randomAlphanumeric(10));
 		adminProjectId = entityManager.createEntity(adminUserInfo, adminProject, null);
 		
+		toDeleteProjects.add(adminProjectId);
+		
 		adminProjectSetting = new UploadDestinationListSetting();
 		adminProjectSetting.setProjectId(adminProjectId);
 		adminProjectSetting.setSettingsType(ProjectSettingsType.upload);
@@ -152,6 +169,19 @@ public class StorageLocationsCleanupTest {
 		
 		adminProjectSetting = (UploadDestinationListSetting) projectSettingManager.createProjectSetting(adminUserInfo, adminProjectSetting);
 		
+	}
+	
+	@After
+	public void after() {
+		for (String file : toDeleteFiles) {
+			fileHandleDao.delete(file);
+		}
+		for (String project : toDeleteProjects) {
+			entityManager.deleteEntity(adminUserInfo, project);
+		}
+		for (Long location : toDeleteLocations) {
+			storageLocationDao.delete(location);
+		}
 	}
 	
 	@Test
@@ -178,11 +208,11 @@ public class StorageLocationsCleanupTest {
 		
 		DBOStorageLocation masterStorageLocation = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(masterStorageLocationId));
 		
-		assertFalse(masterStorageLocation.getDataHash().contains("_d_"));
+		assertFalse(masterStorageLocation.getDataHash().contains("dof_"));
 		
 		for (Long duplicateLocation : duplicateStorageLocationsIds) {
 			DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(duplicateLocation));
-			assertTrue(dbo.getDataHash().contains(masterStorageLocation.getDataHash() + "_d_"));
+			assertTrue(dbo.getDataHash().startsWith("dof_" + masterStorageLocationId));
 		}
 		
 		
@@ -216,6 +246,9 @@ public class StorageLocationsCleanupTest {
 			dbo.setEtag(UUID.randomUUID().toString());
 		}
 		Long id = basicDao.createNew(dbo).getId();
+		
+		toDeleteLocations.add(id);
+		
 		return id;
 	}
 
