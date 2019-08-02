@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+import java.time.Instant;
 import java.util.Date;
 
 import org.junit.jupiter.api.Test;
@@ -66,7 +67,7 @@ public class StorageLocationUtilsTest {
 		S3StorageLocationSetting setting = fillCommon(new S3StorageLocationSetting());
 		setting.setCreatedOn(new Date());
 		StorageLocationSetting copy = fillCommon(new S3StorageLocationSetting());
-		copy.setCreatedOn(new Date());
+		copy.setCreatedOn(Date.from(new Date().toInstant().plusSeconds(10)));
 
 		String settingHash = StorageLocationUtils.computeHash(setting);
 		String copyHash = StorageLocationUtils.computeHash(copy);

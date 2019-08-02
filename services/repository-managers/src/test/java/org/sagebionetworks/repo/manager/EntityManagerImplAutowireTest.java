@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -326,5 +327,43 @@ public class EntityManagerImplAutowireTest {
 		project = entityManager.getEntity(userInfo, pid, Project.class);
 		// the name should match the newly issued ID.
 		assertEquals(pid, project.getName());
+	}
+	
+	/**
+	 * Test for PLFM-5702
+	 */
+	@Test
+	public void testUpdateEntityNewVersionTable() {
+		// update a table with newVersion=true;
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		String id = entityManager.createEntity(userInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, id, TableEntity.class);
+		toDelete.add(id);
+		boolean newVersion = true;
+		String activityId = null;
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, table, newVersion, activityId);
+		// should not create a new version.
+		assertFalse(wasNewVersionCreated);
+	}
+	
+	/**
+	 * Test for PLFM-5702
+	 */
+	@Test
+	public void testUpdateEntityNewVersionEntityView() {
+		// update a table with newVersion=true;
+		EntityView view = new EntityView();
+		view.setName("Table");
+		String id = entityManager.createEntity(userInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, id, EntityView.class);
+		toDelete.add(id);
+		boolean newVersion = true;
+		String activityId = null;
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, view, newVersion, activityId);
+		// should not create a new version.
+		assertFalse(wasNewVersionCreated);
 	}
 }

@@ -38,6 +38,8 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -305,6 +307,18 @@ public class EntityManagerImpl implements EntityManager {
 				updatedFile.setVersionLabel(null);
 				updatedFile.setVersionComment(null);
 			}
+		}
+
+		if(updated instanceof TableEntity || updated instanceof EntityView) {
+			/*
+			 * Fix for PLFM-5702. Creating a new version is fundamentally different than
+			 * creating a table/view snapshot. We cannot block callers from creating new
+			 * versions of tables/views because the Python/R client syn.store() method
+			 * automatically sets 'newVersion'=true. Therefore, to prevent users from
+			 * breaking their tables/views by explicitly creating new entity versions, we
+			 * unconditionally ignore this parameter for table/views.
+			 */
+			newVersion = false;
 		}
 
 		final boolean newVersionFinal = newVersion;
