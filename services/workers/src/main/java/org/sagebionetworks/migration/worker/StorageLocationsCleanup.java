@@ -111,7 +111,7 @@ public class StorageLocationsCleanup {
 		int index = 1;
 
 		for (Long duplicateId : duplicates) {
-			hashBatch.add(ImmutablePair.of(duplicateId, dataHash + "_duplicate_of_" + masterLocationId + "_" + index));
+			hashBatch.add(ImmutablePair.of(duplicateId, dataHash + "_d_" + index));
 			if (hashBatch.size() >= BATCH_UPDATE_SIZE) {
 				updateLocationHashBatch(hashBatch);
 				hashBatch.clear();
