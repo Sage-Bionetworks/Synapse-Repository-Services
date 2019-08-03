@@ -345,16 +345,5 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	public void truncateTable() {
 		jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
 	}
-	
-	@WriteTransaction
-	@Override
-	public void updateStorageLocationBatch(Set<Long> currentStorageLocationIds, Long targetStorageLocationId) {
-		for (List<Long> locationIdsBatch : Iterables.partition(currentStorageLocationIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
-			MapSqlParameterSource parameters = new MapSqlParameterSource()
-					.addValue("id", targetStorageLocationId)
-					.addValue("ids", locationIdsBatch);
-			namedJdbcTemplate.update(UPDATE_STORAGE_LOCATION_ID_BATCH, parameters);
-		}
-	}
 
 }

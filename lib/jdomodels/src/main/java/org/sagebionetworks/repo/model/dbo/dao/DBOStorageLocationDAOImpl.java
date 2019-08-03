@@ -40,7 +40,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBOStorageLocationDAOImpl implements StorageLocationDAO, InitializingBean {
@@ -205,16 +204,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 				new SinglePrimaryKeySqlParameterSource(id));
 		return jdbcTemplate.queryForList(SELECT_DUPLICATES_BY_CREATOR_AND_HASH, Long.class, dbo.getCreatedBy(),
 				dbo.getDataHash(), id).stream().collect(Collectors.toSet());
-	}
-
-	@WriteTransaction
-	@Override
-	public void deleteBatch(Set<Long> ids) throws DatastoreException {
-
-		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters.addValue(STORAGE_LOCATION_IDS_PARAM, ids);
-
-		namedParameterJdbcTemplate.update(DELETE_BATCH, parameters);
 	}
 
 	private Optional<Long> findByCreatorAndHash(Long creatorId, String hash) throws DatastoreException {

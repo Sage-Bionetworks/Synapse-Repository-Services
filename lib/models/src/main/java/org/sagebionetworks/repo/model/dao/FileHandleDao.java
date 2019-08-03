@@ -146,13 +146,4 @@ public interface FileHandleDao {
 	 */
 	public void truncateTable();
 	
-	/**
-	 * Updates the storage location id of all the file handles that currently points to any of the given list of storage location ids 
-	 * to the given target storage location id.
-	 * 
-	 * @param currentStorageLocationIds
-	 * @param targetStorageLocationId
-	 */
-	@TemporaryCode(author = "marco.marasca@sagebase.org")
-	public void updateStorageLocationBatch(Set<Long> currentStorageLocationIds, Long targetStorageLocationId);
 }

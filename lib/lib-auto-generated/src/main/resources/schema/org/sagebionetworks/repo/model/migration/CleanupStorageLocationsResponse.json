@@ -6,10 +6,16 @@
         }
     ],
 	"properties": {
-         "duplicateLocationsCount":{
+         "droppedLocationsCount":{
         	"type":"integer"
          },
-         "updatedProjectsCount":{
+         "updatedFilesCount": {
+         	"type":"integer"
+         },
+         "deletedProjectSettingsCount": {
+         	"type":"integer"
+         },
+         "duplicateLocationsCount": {
         	"type":"integer"
          }
 	}
