@@ -386,6 +386,7 @@ public class NodeManagerImpl implements NodeManager {
 
 		// Also update the entity property Annotations if provided
 		if(entityPropertyAnnotations != null){
+			entityPropertyAnnotations.setEtag(nextETag);
 			nodeDao.updateEntityPropertyAnnotations(updatedNode.getId(), entityPropertyAnnotations);
 		}
 
