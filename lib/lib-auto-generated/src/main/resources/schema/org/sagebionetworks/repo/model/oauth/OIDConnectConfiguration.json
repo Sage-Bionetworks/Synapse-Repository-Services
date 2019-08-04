@@ -33,49 +33,56 @@
 			"type": "array",
 			"description": "List of the OAuth 2.0 scope values that Synapse supports.",
 			"items":{
-				"type": "string"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
 			}
 		},
 		"response_types_supported": {
 			"type": "array",
 			"description": "List of the OAuth 2.0 response types that Synapse supports.",
 			"items":{
-				"type": "string"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthResponseType"
 			}
 		},
 		"grant_types_supported": {
 			"type": "array",
 			"description": "List of the OAuth 2.0 grant types that Synapse supports.",
 			"items":{
-				"type": "string"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthGrantType"
 			}
 		},
 		"subject_types_supported": {
 			"type": "array",
 			"description": "List of the subject identified types that Synapse supports.",
 			"items":{
-				"type": "string"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType"
 			}
 		},
 		"id_token_signing_alg_values_supported": {
 			"type": "array",
 			"description": "List of the JWS signing algorithms (alg values) supported by Synapse for the ID Token to encode the Claims in a JWT",
 			"items":{
-				"type": "string"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
 			}
 		},
 		"userinfo_signing_alg_values_supported": {
 			"type": "array",
 			"description": "List of the JWS signing algorithms (alg values) supported by the UserInfo Endpoint to encode the Claims in a JWT",
 			"items":{
-				"type": "string"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
 			}
 		},
 		"claims_supported": {
 			"type": "array",
 			"description": "List of the Claim Names of the Claims that the Synapse MAY be able to supply values for.",
 			"items":{
-				"type": "string"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 			}
 		},
 		"service_documentation": {
@@ -85,6 +92,30 @@
 		"claims_parameter_supported": {
 			"type": "boolean",
 			"description": "Boolean value specifying whether Synapse supports use of the claims parameter, with true indicating support."
+		},
+		"OAuthScope": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
+		},
+		"OAuthResponseType": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthResponseType"
+		},
+		"OAuthGrantType": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthGrantType"
+		},
+		"OIDCSubjectIdentifierType": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType"
+		},
+		"OIDCSigningAlgorithm": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
+		},
+		"OIDCClaimName": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 		}
 	}
 }

@@ -1,8 +1,16 @@
 package org.sagebionetworks.auth.services;
 
+import java.util.Arrays;
+
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
+import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
+import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
@@ -50,13 +58,12 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setUserinfo_endpoint(ISSUER+UrlHelpers.OAUTH_2_USER_INFO);
 		result.setJwks_uri(ISSUER+UrlHelpers.OAUTH_2_JWKS);
 		result.setRegistration_endpoint(ISSUER+UrlHelpers.OAUTH_2_CLIENT);
-// restore the following after fixing the java docs problem
-//		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
-//		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
-//		result.setGrant_types_supported(Arrays.asList(OAuthGrantType.values()));
-//		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
-//		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
-//		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
+		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
+		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
+		result.setGrant_types_supported(Arrays.asList(OAuthGrantType.values()));
+		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
+		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
+		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
 		return result;
