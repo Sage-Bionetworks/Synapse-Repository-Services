@@ -104,9 +104,9 @@ public class OIDCTokenUtilTest {
 	    // since the last End-User authentication.
 	    assertEquals(auth_time.getTime()/1000L, claimsSet.getLongClaim("auth_time").longValue());
 	    
+	    // Elsewhere we take the token and JWK printed below and verify they can be used to check
+	    // the signature using standard Python libraries.
 	    System.out.println("Token: "+oidcToken);
-	    System.out.println("JWT Payload (claims): "+signedJWT.getPayload());
-	    System.out.println("JWT Header: "+signedJWT.getHeader());
 	    System.out.println("JWK: "+OIDCTokenUtil.extractJSONWebKeySet());
 	}
 

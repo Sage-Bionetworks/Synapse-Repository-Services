@@ -1004,8 +1004,8 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * Credentials for signing OIDC JSON Web Tokens
 	 */
-	public List<String> getOIDCSignaturePrivateKeys() {
-		String s = configuration.getDecryptedProperty("org.sagebionetworks.oidc.signature.private.keys");
+	public List<String> getOIDCSignatureRSAPrivateKeys() {
+		String s = configuration.getDecryptedProperty("org.sagebionetworks.oidc.signature.rsa.private.keys");
 		s = s.replaceAll("\\s+", "");
 		return Arrays.asList(s.split(","));
 	}

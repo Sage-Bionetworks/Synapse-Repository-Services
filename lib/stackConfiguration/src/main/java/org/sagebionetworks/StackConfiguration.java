@@ -663,7 +663,7 @@ public interface StackConfiguration {
 	/**
 	 * Credentials for signing OIDC JSON Web Tokens
 	 */
-	public List<String> getOIDCSignaturePrivateKeys();
+	public List<String> getOIDCSignatureRSAPrivateKeys();
 	
 	public List<String> getDockerRegistryHosts();
 

@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import java.security.KeyPair;
-import java.security.PublicKey;
-import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -12,7 +10,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -32,20 +29,16 @@ public class OIDCTokenUtil {
 	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1"; // TODO  Is this redundant with a string provided elsewhere? Should it be passed in?
 
 	// the time window during which the client will consider the returned claims to be valid
-	private static final long OIDC_CLAIMS_EXPIRATION_TIME_SECONDS = 60L; // a minute
+	private static final long OIDC_CLAIMS_EXPIRATION_TIME_SECONDS = 60000000L; // a minute
 
 	private static final List<KeyPair> OIDC_SIGNATURE_KEY_PAIRS;
 
 	static {
-		Security.removeProvider("SunEC");
-		Security.removeProvider("EC");
-		Security.addProvider(new BouncyCastleProvider());
-
 		StackConfiguration stackConfig = StackConfigurationSingleton.singleton();
 
 		OIDC_SIGNATURE_KEY_PAIRS = new ArrayList<KeyPair>();
-		for (String s: stackConfig.getOIDCSignaturePrivateKeys()) {
-			KeyPair keyPair = JWTUtil.getRSAKeyPairFromPEM(s, "RSA");
+		for (String s: stackConfig.getOIDCSignatureRSAPrivateKeys()) {
+			KeyPair keyPair = JWTUtil.getRSAKeyPairFromPEM(s);
 			OIDC_SIGNATURE_KEY_PAIRS.add(keyPair);
 		}
 	}
@@ -79,9 +72,9 @@ public class OIDCTokenUtil {
 		KeyPair keyPair = OIDC_SIGNATURE_KEY_PAIRS.get(0);
 		String kid = JWTUtil.computeKeyId(keyPair.getPublic());
 		String s = Jwts.builder().setClaims(claims).
-				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
-				setHeaderParam("kid", kid).
-				signWith(SignatureAlgorithm.RS256, keyPair.getPrivate()).compact();
+			setHeaderParam(Header.TYPE, Header.JWT_TYPE).
+			setHeaderParam("kid", kid).
+			signWith(SignatureAlgorithm.RS256, keyPair.getPrivate()).compact();
 
 		return s;
 	}

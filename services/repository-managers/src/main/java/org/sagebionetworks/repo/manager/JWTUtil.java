@@ -40,11 +40,19 @@ public class JWTUtil {
 		}
 	}
 	
-	public static KeyPair getRSAKeyPairFromPEM(String pem, String keyGenerationAlgorithm) {
+	/**
+	 * Given a pem-encoded private key return the key pair (private and public key)
+	 * The translation of the private key into a public key is specific to RSA
+	 * so this will not work for non-RSA keys.
+	 * 
+	 * @param pem
+	 * @return
+	 */
+	public static KeyPair getRSAKeyPairFromPEM(String pem) {
 		try {
 			byte[] content = Base64.decodeBase64(pem);
 			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(content);
-			KeyFactory factory = KeyFactory.getInstance(keyGenerationAlgorithm);
+			KeyFactory factory = KeyFactory.getInstance("RSA");
 			PrivateKey privateKey = factory.generatePrivate(keySpec);
 
 			RSAPrivateCrtKey privk = (RSAPrivateCrtKey)privateKey;
