@@ -2,7 +2,7 @@ package org.sagebionetworks.auth;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
-import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.*;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestParameter;
@@ -130,6 +130,9 @@ public class OpenIDConnectController {
 	}
 	
 	
+	// TODO authorize via client_secret_basic.
+	// TODO request param clientId must match client id in auth header
+	// TODO should the six items be passed as request param's on in a JSON object?
 	/**
 	 * get access code for a given client, scopes, response type(s), and extra claim(s).
 	 * See:
@@ -189,8 +192,19 @@ public class OpenIDConnectController {
 				getOIDCConfiguration();
 	}
 	
-	// TODO JWKS
-	//UrlHelpers.OAUTH_2_JWKS
+	/**
+	 * 
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_JWKS, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonWebKeySet getOIDCJsonWebKeySet() throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().
+				getOIDCJsonWebKeySet();
+	}
+	
 	
 	// TODO userinfo endpoint
 	// TODO Must support both GET and POST

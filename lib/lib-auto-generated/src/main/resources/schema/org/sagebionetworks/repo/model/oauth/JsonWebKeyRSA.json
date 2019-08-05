@@ -1,0 +1,42 @@
+{
+    "description": "JSON Web Key for the RSA algorithm",
+    "implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.oauth.JsonWebKey"
+		}
+	],
+ 	"properties": {
+		"p":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+ 		"q":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+ 		"d":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+ 		"e":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+ 		"qi":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+ 		"dp":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+ 		"dq":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+ 		"n":{
+ 			"type":"string",
+ 			"description":""
+ 		}
+ 	}
+}

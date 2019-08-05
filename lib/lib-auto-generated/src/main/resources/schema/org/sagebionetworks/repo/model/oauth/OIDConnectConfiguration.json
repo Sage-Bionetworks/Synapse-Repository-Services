@@ -95,26 +95,32 @@
 		},
 		"OAuthScope": {
 				"type": "object",
+				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
 		},
 		"OAuthResponseType": {
 				"type": "object",
+				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthResponseType"
 		},
 		"OAuthGrantType": {
 				"type": "object",
+				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthGrantType"
 		},
 		"OIDCSubjectIdentifierType": {
 				"type": "object",
+				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType"
 		},
 		"OIDCSigningAlgorithm": {
 				"type": "object",
+				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
 		},
 		"OIDCClaimName": {
 				"type": "object",
+				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 		}
 	}

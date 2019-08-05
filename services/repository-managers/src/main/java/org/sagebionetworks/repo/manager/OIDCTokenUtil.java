@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
@@ -29,7 +30,7 @@ public class OIDCTokenUtil {
 	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1"; // TODO  Is this redundant with a string provided elsewhere? Should it be passed in?
 
 	// the time window during which the client will consider the returned claims to be valid
-	private static final long OIDC_CLAIMS_EXPIRATION_TIME_SECONDS = 60000000L; // a minute
+	private static final long OIDC_CLAIMS_EXPIRATION_TIME_SECONDS = 60L; // a minute
 
 	private static final List<KeyPair> OIDC_SIGNATURE_KEY_PAIRS;
 
@@ -80,7 +81,7 @@ public class OIDCTokenUtil {
 	}
 	
 	// Note:  Call .toJSONString() on each JWK to get a JSON formatted JSON Web Key
-	public static List<JWK> extractJSONWebKeySet() throws Exception {
+	public static List<JWK> extractJSONWebKeySet() {
 		List<JWK> result = new ArrayList<JWK>();
 		for (KeyPair keyPair : OIDC_SIGNATURE_KEY_PAIRS) {
 			String kid = JWTUtil.computeKeyId(keyPair.getPublic());
@@ -88,6 +89,7 @@ public class OIDCTokenUtil {
 				Curve curve = Curve.forECParameterSpec(((ECPublicKey)keyPair.getPublic()).getParams());
 				JWK jwk = new ECKey.Builder(curve, (ECPublicKey)keyPair.getPublic())
 						.privateKey((ECPrivateKey)keyPair.getPrivate())
+						.algorithm(JWSAlgorithm.ES256)
 						.keyUse(KeyUse.SIGNATURE)
 						.keyID(kid)
 						.build();
@@ -95,6 +97,7 @@ public class OIDCTokenUtil {
 			} else if (keyPair.getPublic() instanceof RSAPublicKey) {
 				JWK jwk = new RSAKey.Builder((RSAPublicKey)keyPair.getPublic())
 						.privateKey((RSAPrivateKey)keyPair.getPrivate())
+						.algorithm(JWSAlgorithm.RS256)
 						.keyUse(KeyUse.SIGNATURE)
 						.keyID(kid)
 						.build();

@@ -52,5 +52,10 @@ public interface OpenIDConnectService {
 	 */
 	public OIDConnectConfiguration getOIDCConfiguration();
 	
+	/**
+	 * Return the public keys used to validate OIDC JSON Web Token signatures
+	 */
+	public JsonWebKeySet getOIDCJsonWebKeySet();
+	
 	public OAuthAuthorizationResponse authorizeClient();
 }

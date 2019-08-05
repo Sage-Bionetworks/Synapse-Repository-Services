@@ -3,11 +3,26 @@
  	"properties": {
 		"client_name":{
 			"type": "string",
-			"description":"The provided name for the OAuth 2.0 client"
+			"description":"Name of the Client to be presented to the End-User."
 		},
 		"redirect_uris": {
+			"type": "array",
+			"description": "Array of Redirection URI values used by the Client. One of these registered Redirection URI values MUST exactly match the redirect_uri parameter value used in each Authorization Request.",
+			"items":{
+				"type": "string"
+			}
+		},
+		"client_uri": {
 			"type": "string",
-			"description": "The URL that Synapse is expected to redirect to after authorizing the request."
+			"description":"URL of the home page of the Client. The value of this field MUST point to a valid Web page."
+		},
+		"policy_uri": {
+			"type": "string",
+			"description":"URL that the Relying Party Client provides to the End-User to read about the how the profile data will be used. The value of this field MUST point to a valid web page."
+		},
+		"tos_uri": {
+			"type": "string",
+			"description":"URL that the Relying Party Client provides to the End-User to read about the Relying Party's terms of service. The value of this field MUST point to a valid web page."
 		},
 		"clientId": {
 			"type": "string",

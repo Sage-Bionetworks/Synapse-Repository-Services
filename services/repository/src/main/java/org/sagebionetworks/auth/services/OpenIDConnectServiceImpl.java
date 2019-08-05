@@ -1,7 +1,13 @@
 package org.sagebionetworks.auth.services;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import org.sagebionetworks.repo.manager.OIDCTokenUtil;
+import org.sagebionetworks.repo.model.oauth.JsonWebKey;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
@@ -13,6 +19,10 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.UrlHelpers;
+
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.RSAKey;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
@@ -69,11 +79,44 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		return result;
 	}
 
-	// TODO: when evaluating the claims object, how do we differentiate between a null value and a missing key?  They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
+	// TODO: when evaluating the claims object, how do we differentiate between a null value and a missing key?
+	// They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	@Override
 	public OAuthAuthorizationResponse authorizeClient() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public JsonWebKeySet getOIDCJsonWebKeySet() {
+		List<JWK> jwks = OIDCTokenUtil.extractJSONWebKeySet();
+		JsonWebKeySet result = new JsonWebKeySet();
+		List<JsonWebKey> keys = new ArrayList<JsonWebKey>();
+		result.setKeys(keys);
+		for (JWK jwk : jwks) {
+			if (JWSAlgorithm.RS256.equals(jwk.getAlgorithm())) {
+				JsonWebKeyRSA rsaKey = new JsonWebKeyRSA();
+				keys.add(rsaKey);
+				// these would be set for all algorithms
+				rsaKey.setKty(jwk.getKeyType().getValue());
+				rsaKey.setUse(jwk.getKeyUse().toString());
+				rsaKey.setKid(jwk.getKeyID());
+				// these are specific to the RSA algorithm
+				RSAKey jwkRsa = (RSAKey)jwk;
+				rsaKey.setD(jwkRsa.getPrivateExponent().toString());
+				rsaKey.setDp(jwkRsa.getFirstFactorCRTExponent().toString());
+				rsaKey.setDq(jwkRsa.getSecondFactorCRTExponent().toString());
+				rsaKey.setE(jwkRsa.getPublicExponent().toString());
+				rsaKey.setN(jwkRsa.getModulus().toString());
+				rsaKey.setP(jwkRsa.getFirstPrimeFactor().toString());
+				rsaKey.setQ(jwkRsa.getSecondPrimeFactor().toString());
+				rsaKey.setQi(jwkRsa.getFirstCRTCoefficient().toString());
+			} else {
+				// in the future we can add mappings for algorithms other than RSA
+				throw new RuntimeException("Unsupported: "+jwk.getAlgorithm());
+			}
+		}
+		return result;
 	}
 
 }
