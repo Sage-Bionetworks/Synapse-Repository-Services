@@ -428,10 +428,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
 			responseHeaderOverrides.put(HttpHeaders.CONTENT_TYPE, contentType);
 		}
-		String fileName = handle.getFileName();
-		if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-			responseHeaderOverrides.put("Content-Disposition", ContentDispositionUtils.getContentDispositionValue(fileName));
-		}
+
 		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET, responseHeaderOverrides).toExternalForm();
 	}
 
