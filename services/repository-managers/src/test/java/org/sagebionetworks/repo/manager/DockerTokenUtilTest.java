@@ -5,13 +5,11 @@ import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.net.util.Base64;
 import org.junit.Test;

@@ -1,13 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
-import java.security.PrivateKey;
+import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.Security;
-import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.JSONObject;
@@ -18,6 +21,7 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -28,25 +32,22 @@ public class OIDCTokenUtil {
 	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1"; // TODO  Is this redundant with a string provided elsewhere? Should it be passed in?
 
 	// the time window during which the client will consider the returned claims to be valid
-	private static final long OIDC_CLAIMS_EXPIRATION_TIME_SECONDS = 24*3600L; // a day
+	private static final long OIDC_CLAIMS_EXPIRATION_TIME_SECONDS = 60L; // a minute
 
-	private static final String OIDC_SIGNATURE_PUBLIC_KEY_ID;
-	private static final PrivateKey OIDC_SIGNATURE_PRIVATE_KEY;
-	private static final PublicKey OIDC_SIGNATURE_PUBLIC_KEY;
+	private static final List<KeyPair> OIDC_SIGNATURE_KEY_PAIRS;
 
-	// OIDC allows for a variety of signature algorithms.  We'd like to help Python clients by using one of these:
-	// https://pyjwt.readthedocs.io/en/latest/algorithms.html
-	public static final String OIDC_SIGNATURE_KEY_GENERATION_ALGORITHM = "EC";
-	
 	static {
 		Security.removeProvider("SunEC");
 		Security.removeProvider("EC");
-		Security.addProvider(new BouncyCastleProvider());	
+		Security.addProvider(new BouncyCastleProvider());
+
 		StackConfiguration stackConfig = StackConfigurationSingleton.singleton();
-		OIDC_SIGNATURE_PRIVATE_KEY = JWTUtil.getPrivateKeyFromPEM(stackConfig.getOIDCSignaturePrivateKey(), OIDC_SIGNATURE_KEY_GENERATION_ALGORITHM);
-		X509Certificate certificate = JWTUtil.getX509CertificateFromPEM(stackConfig.getOIDCSignatureCertificate());
-		OIDC_SIGNATURE_PUBLIC_KEY = certificate.getPublicKey();
-		OIDC_SIGNATURE_PUBLIC_KEY_ID = JWTUtil.computeKeyId(OIDC_SIGNATURE_PUBLIC_KEY);
+
+		OIDC_SIGNATURE_KEY_PAIRS = new ArrayList<KeyPair>();
+		for (String s: stackConfig.getOIDCSignaturePrivateKeys()) {
+			KeyPair keyPair = JWTUtil.getRSAKeyPairFromPEM(s, "RSA");
+			OIDC_SIGNATURE_KEY_PAIRS.add(keyPair);
+		}
 	}
 
 	public static String createOIDCidToken(String user, 
@@ -75,23 +76,41 @@ public class OIDCTokenUtil {
 		if (nonce!=null) claims.put("nonce", nonce);
 		if (auth_time!=null) claims.put("auth_time", auth_time.getTime()/1000L);
 
+		KeyPair keyPair = OIDC_SIGNATURE_KEY_PAIRS.get(0);
+		String kid = JWTUtil.computeKeyId(keyPair.getPublic());
 		String s = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
-				setHeaderParam("kid", OIDC_SIGNATURE_PUBLIC_KEY_ID).
-				signWith(SignatureAlgorithm.ES256, OIDC_SIGNATURE_PRIVATE_KEY).compact();
+				setHeaderParam("kid", kid).
+				signWith(SignatureAlgorithm.RS256, keyPair.getPrivate()).compact();
 
 		return s;
 	}
 	
-	// Note:  Call .toJSONString() on the result to get a JSON formatted JSON Web Key
-	public static JWK extractJSONWebKey() throws Exception {
-		Curve curve = Curve.forECParameterSpec(((ECPublicKey)OIDC_SIGNATURE_PUBLIC_KEY).getParams());
-		JWK jwk = new ECKey.Builder(curve, (ECPublicKey)OIDC_SIGNATURE_PUBLIC_KEY)
-			    .privateKey((ECPrivateKey)OIDC_SIGNATURE_PRIVATE_KEY)
-			    .keyUse(KeyUse.SIGNATURE)
-			    .keyID(OIDC_SIGNATURE_PUBLIC_KEY_ID)
-			    .build();
-		return jwk;
+	// Note:  Call .toJSONString() on each JWK to get a JSON formatted JSON Web Key
+	public static List<JWK> extractJSONWebKeySet() throws Exception {
+		List<JWK> result = new ArrayList<JWK>();
+		for (KeyPair keyPair : OIDC_SIGNATURE_KEY_PAIRS) {
+			String kid = JWTUtil.computeKeyId(keyPair.getPublic());
+			if (keyPair.getPublic() instanceof ECPublicKey) {
+				Curve curve = Curve.forECParameterSpec(((ECPublicKey)keyPair.getPublic()).getParams());
+				JWK jwk = new ECKey.Builder(curve, (ECPublicKey)keyPair.getPublic())
+						.privateKey((ECPrivateKey)keyPair.getPrivate())
+						.keyUse(KeyUse.SIGNATURE)
+						.keyID(kid)
+						.build();
+				result.add(jwk);
+			} else if (keyPair.getPublic() instanceof RSAPublicKey) {
+				JWK jwk = new RSAKey.Builder((RSAPublicKey)keyPair.getPublic())
+						.privateKey((RSAPrivateKey)keyPair.getPrivate())
+						.keyUse(KeyUse.SIGNATURE)
+						.keyID(kid)
+						.build();
+				result.add(jwk);
+			} else {
+				throw new RuntimeException(keyPair.getPublic()+" not supported.");
+			}
+		}
+		return result;
 	}
 
 

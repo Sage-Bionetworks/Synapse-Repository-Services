@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.json.JSONArray;
@@ -13,9 +14,9 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
@@ -68,15 +69,15 @@ public class OIDCTokenUtilTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    JWK jwk = OIDCTokenUtil.extractJSONWebKey();
-	    JWSVerifier verifier = new ECDSAVerifier((ECKey)jwk);
+	    List<JWK> jwks = OIDCTokenUtil.extractJSONWebKeySet();
+	    JWSVerifier verifier = new RSASSAVerifier((RSAKey)jwks.get(0));
 	    assertTrue(signedJWT.verify(verifier));
 	    
 	    // by the way, the key ID in the token header should match that in the JWK
-	    assertEquals(signedJWT.getHeader().getKeyID(), jwk.getKeyID());
+	    assertEquals(signedJWT.getHeader().getKeyID(), jwks.get(0).getKeyID());
 
 		// The alg value SHOULD be the default of RS256 or the algorithm sent by the Client in the id_token_signed_response_alg parameter during Registration.
-	    assertEquals("ES256", signedJWT.getHeader().getAlgorithm().getName()); // TODO need to justify this
+	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm().getName());
 	    
 		// The current time MUST be before the time represented by the exp Claim.
 	    Date exp = claimsSet.getExpirationTime();
@@ -106,7 +107,7 @@ public class OIDCTokenUtilTest {
 	    System.out.println("Token: "+oidcToken);
 	    System.out.println("JWT Payload (claims): "+signedJWT.getPayload());
 	    System.out.println("JWT Header: "+signedJWT.getHeader());
-	    System.out.println("JWK: "+OIDCTokenUtil.extractJSONWebKey());
+	    System.out.println("JWK: "+OIDCTokenUtil.extractJSONWebKeySet());
 	}
 
 }

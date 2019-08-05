@@ -122,7 +122,7 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
 			// KMS can decrypt the value without providing the encryption key.
 			DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
-			return byteBuferToString(decryptResult.getPlaintext());
+			return byteBufferToString(decryptResult.getPlaintext());
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
@@ -134,7 +134,7 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	 * @return
 	 * @throws UnsupportedEncodingException
 	 */
-	static String byteBuferToString(ByteBuffer buffer) throws UnsupportedEncodingException {
+	static String byteBufferToString(ByteBuffer buffer) throws UnsupportedEncodingException {
 		byte[] rawBytes = new byte[buffer.remaining()];
 		buffer.get(rawBytes);
 		return new String(rawBytes, UTF_8);

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
@@ -29,7 +30,7 @@ public class DockerTokenUtil {
 	private static final PrivateKey DOCKER_AUTHORIZATION_PRIVATE_KEY;
 
 	// Eliptic Curve key is required by the JSON Web Token signing library
-	public static final String KEY_GENERATION_ALGORITHM = "EC";
+	private static final String KEY_GENERATION_ALGORITHM = "EC";
 	
 	static {
 		Security.removeProvider("SunEC");

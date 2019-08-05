@@ -2,13 +2,16 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayInputStream;
 import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.net.util.Base64;
@@ -32,6 +35,23 @@ public class JWTUtil {
 			PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(content);
 			KeyFactory factory = KeyFactory.getInstance(keyGenerationAlgorithm);
 			return factory.generatePrivate(privKeySpec);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public static KeyPair getRSAKeyPairFromPEM(String pem, String keyGenerationAlgorithm) {
+		try {
+			byte[] content = Base64.decodeBase64(pem);
+			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(content);
+			KeyFactory factory = KeyFactory.getInstance(keyGenerationAlgorithm);
+			PrivateKey privateKey = factory.generatePrivate(keySpec);
+
+			RSAPrivateCrtKey privk = (RSAPrivateCrtKey)privateKey;
+			RSAPublicKeySpec publicKeySpec = new RSAPublicKeySpec(privk.getModulus(), privk.getPublicExponent());			
+			
+			PublicKey publicKey = factory.generatePublic(publicKeySpec);
+			return new KeyPair(publicKey, privateKey);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

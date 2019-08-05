@@ -200,7 +200,7 @@ public class ConfigurationPropertiesImplTest {
 		DecryptRequest request = decryptRequestCaprtor.getValue();
 		assertNotNull(request);
 		assertNotNull(request.getCiphertextBlob());
-		String cipherString = ConfigurationPropertiesImpl.byteBuferToString(request.getCiphertextBlob());
+		String cipherString = ConfigurationPropertiesImpl.byteBufferToString(request.getCiphertextBlob());
 		assertEquals(encryptedValue, cipherString);
 		verify(mockLog).info("Decrypting property 'toBeDecrypted'...");
 	}
