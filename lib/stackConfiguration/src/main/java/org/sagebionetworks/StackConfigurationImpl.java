@@ -7,9 +7,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.StringJoiner;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.google.inject.Inject;
 
 public class StackConfigurationImpl implements StackConfiguration {
@@ -17,8 +14,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	private final String PROD = "prod";
 	private final String DEV = "dev";
 	private final String HUDSON = "hud";
-
-	private final Logger log = LogManager.getLogger(StackConfiguration.class.getName());
 
 	ConfigurationProperties configuration;
 	

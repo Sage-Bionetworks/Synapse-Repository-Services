@@ -14,6 +14,9 @@
 	<!-- slightly misplaced here, as it is under the controller package, but services use it -->
 	<bean id="objectTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
+		
+	<bean id="jwtTypeSerializer"
+		class="org.sagebionetworks.repo.web.controller.JWTTypeSerializerImpl" />
 
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
 		Controller -->

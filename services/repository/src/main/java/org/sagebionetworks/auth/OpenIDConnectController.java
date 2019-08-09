@@ -1,11 +1,14 @@
 package org.sagebionetworks.auth;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
-import org.sagebionetworks.repo.model.oauth.*;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
-import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestParameter;
+import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
+import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -16,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,6 +38,32 @@ public class OpenIDConnectController {
 	@Autowired
 	private ServiceProvider serviceProvider;
 
+	/**
+	 * 
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
+	public @ResponseBody
+	OIDConnectConfiguration getOIDCConfiguration() throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().
+				getOIDCConfiguration();
+	}
+	
+	/**
+	 * 
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_JWKS, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonWebKeySet getOIDCJsonWebKeySet() throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().
+				getOIDCJsonWebKeySet();
+	}
+	
 	/**
 	 * Create an OAuth 2.0 client.
 	 * 
@@ -129,22 +159,24 @@ public class OpenIDConnectController {
 				deleteOpenIDConnectClient(userId, id);
 	}
 	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUTH_REQUEST_DESCRIPTION, method = RequestMethod.GET)
+	public @ResponseBody
+	OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(
+			@RequestBody OIDCAuthorizationRequest authorizationRequest 
+			) {
+		return serviceProvider.getOpenIDConnectService().getAuthenticationRequestDescription(authorizationRequest);
+	}
 	
-	// TODO authorize via client_secret_basic.
-	// TODO request param clientId must match client id in auth header
-	// TODO should the six items be passed as request param's on in a JSON object?
 	/**
+	 * 
 	 * get access code for a given client, scopes, response type(s), and extra claim(s).
 	 * See:
 	 * https://openid.net/specs/openid-connect-core-1_0.html#Consent
 	 * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-	 * 
-	 * @param scope
-	 * @param claims
-	 * @param response_type
-	 * @param clientId
-	 * @param redirectUri
-	 * @param state
+	 *
+	 * @param userId
+	 * @param authorizationRequest
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -152,60 +184,57 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
 	public @ResponseBody
 	OAuthAuthorizationResponse authorizeClient(
-			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE) String scope,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS) OIDCClaimsRequestParameter claims,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_RESPONSE_TYPE) OAuthResponseType response_type,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_CLIENT_ID) String clientId,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI) String redirectUri,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_STATE) String state 
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) throws NotFoundException {
-		return serviceProvider.getOpenIDConnectService().authorizeClient();
+		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
-	
-	
-	
-	
-	
-	
-	// get session and id tokens
-	// https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
-	// /oauth2/token
-// note the request is to be authenticated via basic auth
-//	public OIDCTokenResponse
-	
-	// TODO revoke a session token
-	
-	// TODO exchange a refresh token for a new refresh token / access token pair
-	
-	
+	// TODO authorize via client_secret_basic
 	/**
 	 * 
+	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
+	 *
+	 * @param grant_type authorization_code or refresh_token
+	 * @param code required if grant_type is authorization_code
+	 * @param redirectUri required if grant_type is authorization_code
+	 * @param refresh_token required if grant_type is refresh_token
+	 * @param scope required if grant_type is refresh_token
+	 * @param claims optional if grant_type is refresh_token
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
+	public @ResponseBody
+	OIDCTokenResponse getTokenResponse(
+			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM) OAuthGrantType grant_type,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM) String code,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM) String redirectUri,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM) String refresh_token,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM) String scope,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM) String claims
+			)  throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(grant_type, code, redirectUri, refresh_token, scope, claims);
+	}
+		
+	// TODO add a token validation filter that validates the access token
+	/**
+	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
+	 * signing algorithm in its userinfo_signed_response_alg field.  
+	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+	 * 
+	 * @param accessTokenHeader
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET, RequestMethod.POST})
 	public @ResponseBody
-	OIDConnectConfiguration getOIDCConfiguration() throws NotFoundException {
-		return serviceProvider.getOpenIDConnectService().
-				getOIDCConfiguration();
+	Object getUserInfo(
+			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken
+			)  throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken);
 	}
-	
-	/**
-	 * 
-	 * @return
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OAUTH_2_JWKS, method = RequestMethod.GET)
-	public @ResponseBody
-	JsonWebKeySet getOIDCJsonWebKeySet() throws NotFoundException {
-		return serviceProvider.getOpenIDConnectService().
-				getOIDCJsonWebKeySet();
-	}
-	
-	
-	// TODO userinfo endpoint
-	// TODO Must support both GET and POST
+
 }

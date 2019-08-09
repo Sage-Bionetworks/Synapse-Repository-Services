@@ -1044,6 +1044,8 @@ public class UrlHelpers {
 	public static final String OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
 	public static final String OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
 	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
+	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
+	
 
 	public static final String AUTH_LOGIN = "/login";
 	

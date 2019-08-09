@@ -4,17 +4,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.securitytools.EncryptionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.model.DecryptRequest;
-import com.amazonaws.services.kms.model.DecryptResult;
 import com.google.inject.Inject;
 
 public class ConfigurationPropertiesImpl implements ConfigurationProperties {
@@ -36,21 +33,23 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	
 	private Properties properties;
 
-	private AWSKMS awsKeyManagerClient;
+	private EncryptionUtils encryptionUtils;
 	
 	private SynapseS3Client s3Client;
 	
 	private PropertyProvider propertyProvider;
 
 	/**
-	 * The only constructor with AWSKMS and property provider.
-	 * @param awsKeyManagerClient
+	 * 
+	 * @param encryptionUtils
+	 * @param s3Client
 	 * @param propertyProvider
+	 * @param logProvider
 	 */
 	@Inject
-	public ConfigurationPropertiesImpl(AWSKMS awsKeyManagerClient, SynapseS3Client s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
+	public ConfigurationPropertiesImpl(EncryptionUtils encryptionUtils, SynapseS3Client s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
 		this.log = logProvider.getLogger(ConfigurationPropertiesImpl.class.getName());
-		this.awsKeyManagerClient = awsKeyManagerClient;
+		this.encryptionUtils = encryptionUtils;
 		this.s3Client = s3Client;
 		this.propertyProvider = propertyProvider;
 		initialize();
@@ -119,25 +118,10 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 		try {
 			// load the Base64 encoded encrypted string from the properties.
 			String encryptedValueBase64 = getProperty(propertyKey);
-			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
-			// KMS can decrypt the value without providing the encryption key.
-			DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
-			return byteBufferToString(decryptResult.getPlaintext());
+			return this.encryptionUtils.decryptStackEncryptedString(encryptedValueBase64);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	/**
-	 * Convert the given ByteBuffer to a UTF-8 string.
-	 * @param buffer
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	static String byteBufferToString(ByteBuffer buffer) throws UnsupportedEncodingException {
-		byte[] rawBytes = new byte[buffer.remaining()];
-		buffer.get(rawBytes);
-		return new String(rawBytes, UTF_8);
 	}
 	
 	/**

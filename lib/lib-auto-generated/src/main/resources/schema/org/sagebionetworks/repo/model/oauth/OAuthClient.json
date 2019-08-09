@@ -31,6 +31,10 @@
 		"clientSecret": {
 			"type": "string",
 			"description": "The shared secret used to exchange an access code for an access token.  Returned only during initial client creation."
+		},
+		"userinfo_signed_response_alg": {
+			"type":"string",
+			"description":"JWS alg algorithm REQUIRED for signing UserInfo Responses. If this is specified, the response will be JWT serialized, and signed using JWS. The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 encoded JSON object using the application/json content-type."
 		}
 	}
 }

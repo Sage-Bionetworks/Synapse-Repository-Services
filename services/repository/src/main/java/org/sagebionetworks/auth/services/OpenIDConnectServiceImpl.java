@@ -1,10 +1,16 @@
 package org.sagebionetworks.auth.services;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -14,45 +20,57 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
+import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
+	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 
 	@Override
 	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
-		// TODO Auto-generated method stub
-		return null;
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oidcManager.createOpenIDConnectClient(userInfo, oauthClient);
 	}
 
 	@Override
 	public OAuthClient getOpenIDConnectClient(Long userId, String id) {
-		// TODO Auto-generated method stub
-		return null;
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oidcManager.getOpenIDConnectClient(userInfo, id);
 	}
 
 	@Override
 	public OAuthClientList listOpenIDConnectClients(Long userId, String nextPageToken) {
-		// TODO Auto-generated method stub
-		return null;
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oidcManager.listOpenIDConnectClients(userInfo, nextPageToken);
 	}
 
 	@Override
 	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
-		// TODO Auto-generated method stub
-		return null;
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oidcManager.updateOpenIDConnectClient(userInfo, oauthClient);
 	}
 
 	@Override
 	public void deleteOpenIDConnectClient(Long userId, String id) {
-		// TODO Auto-generated method stub
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		oidcManager.deleteOpenIDConnectClient(userInfo, id);
 
 	}
 
@@ -64,27 +82,19 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setIssuer(ISSUER);
 		result.setAuthorization_endpoint("https://www.login.synapse.org/authorize"); // TODO this must be the URL of the login app'
 		result.setToken_endpoint(ISSUER+UrlHelpers.OAUTH_2_TOKEN);
-//		result.setRevocation_endpoint(); // TODO
+		// result.setRevocation_endpoint(); // TODO
 		result.setUserinfo_endpoint(ISSUER+UrlHelpers.OAUTH_2_USER_INFO);
 		result.setJwks_uri(ISSUER+UrlHelpers.OAUTH_2_JWKS);
 		result.setRegistration_endpoint(ISSUER+UrlHelpers.OAUTH_2_CLIENT);
 		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
 		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
-		result.setGrant_types_supported(Arrays.asList(OAuthGrantType.values()));
+		result.setGrant_types_supported(Collections.singletonList(OAuthGrantType.authorization_code)); // TODO support refresh_token grant type
 		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
 		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
 		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
 		return result;
-	}
-
-	// TODO: when evaluating the claims object, how do we differentiate between a null value and a missing key?
-	// They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
-	@Override
-	public OAuthAuthorizationResponse authorizeClient() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -118,5 +128,43 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		}
 		return result;
 	}
+
+	@Override
+	public OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(OIDCAuthorizationRequest authorizationRequest) {
+		return oidcManager.getAuthenticationRequestDescription(authorizationRequest);
+	}
+
+	@Override
+	public OAuthAuthorizationResponse authorizeClient(Long userId, OIDCAuthorizationRequest authorizationRequest) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oidcManager.authorizeClient(userInfo, authorizationRequest);
+	}
+
+	@Override
+	public OIDCTokenResponse getTokenResponse(OAuthGrantType grantType, String code, String redirectUri, String refreshToken, String scope, String claims) {
+		if (grantType==OAuthGrantType.authorization_code) {
+			return oidcManager.getAccessToken(code, redirectUri);
+		} else if (grantType==OAuthGrantType.refresh_token) {
+			throw new IllegalArgumentException(OAuthGrantType.refresh_token+" unsupported.");
+		} else {
+			throw new IllegalArgumentException("Unsupported grant type"+grantType);
+		}
+	}
+	
+	private static JWT getAccessJWTFromAccessTokenHeader(String header) {
+		try {
+			return JWTParser.parse(header);
+		} catch (ParseException e) {
+			throw new UnauthenticatedException("Could not interpret access token.", e);
+		}
+	}
+
+	@Override
+	public Object getUserInfo(String accessTokenHeader) {
+		JWT accessToken = getAccessJWTFromAccessTokenHeader(accessTokenHeader);
+		return oidcManager.getUserInfo(accessToken);
+	}
+	
+	
 
 }

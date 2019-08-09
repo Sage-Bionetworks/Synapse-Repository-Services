@@ -1,7 +1,13 @@
 package org.sagebionetworks.auth.services;
 
-import org.sagebionetworks.repo.model.oauth.*;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
+import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
+import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 
 public interface OpenIDConnectService {
@@ -57,5 +63,22 @@ public interface OpenIDConnectService {
 	 */
 	public JsonWebKeySet getOIDCJsonWebKeySet();
 	
-	public OAuthAuthorizationResponse authorizeClient();
+	/**
+	 * 
+	 * @param authorizationRequest
+	 * @return
+	 */
+	public OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(OIDCAuthorizationRequest authorizationRequest);
+	
+	/**
+	 * Authorize OAuth client for the requested scope and return an authorization code
+	 * @param userId
+	 * @param authorizationRequest
+	 * @return authorization code
+	 */
+	public OAuthAuthorizationResponse authorizeClient(Long userId,  OIDCAuthorizationRequest authorizationRequest);
+	
+	public OIDCTokenResponse getTokenResponse(OAuthGrantType grantType, String code, String redirectUri, String refreshToken, String scope, String claims);
+		
+	public Object getUserInfo(String accessToken);
 }

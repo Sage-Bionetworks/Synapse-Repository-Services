@@ -1,0 +1,28 @@
+{
+    "description": "Human readable description / details about an authorization request",
+ 	"properties": {
+		"client_name":{
+			"type": "string",
+			"description":"Name of the Client to be presented to the End-User."
+		},
+		"client_uri": {
+			"type": "string",
+			"description":"URL of the home page of the Client. The value of this field MUST point to a valid Web page."
+		},
+		"policy_uri": {
+			"type": "string",
+			"description":"URL that the Relying Party Client provides to the End-User to read about the how the profile data will be used. The value of this field MUST point to a valid web page."
+		},
+		"tos_uri": {
+			"type": "string",
+			"description":"URL that the Relying Party Client provides to the End-User to read about the Relying Party's terms of service. The value of this field MUST point to a valid web page."
+		},
+		"scope": {
+			"type": "array",
+			"description": "Scopes and claims requested by client",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}
