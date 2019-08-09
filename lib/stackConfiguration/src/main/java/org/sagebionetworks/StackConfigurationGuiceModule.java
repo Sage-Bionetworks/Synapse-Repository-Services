@@ -2,6 +2,8 @@ package org.sagebionetworks;
 
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.EncryptionUtilsImpl;
 
 import com.amazonaws.services.kms.AWSKMS;
 import com.google.inject.Provides;
@@ -18,6 +20,7 @@ public class StackConfigurationGuiceModule extends com.google.inject.AbstractMod
 		bind(PropertyProvider.class).to(PropertyProviderImpl.class);
 		bind(ConfigurationProperties.class).to(ConfigurationPropertiesImpl.class);
 		bind(StackConfiguration.class).to(StackConfigurationImpl.class);
+		bind(EncryptionUtils.class).to(EncryptionUtilsImpl.class);
 	}
 	
 	@Provides

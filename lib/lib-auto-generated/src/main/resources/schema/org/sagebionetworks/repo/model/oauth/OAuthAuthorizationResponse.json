@@ -4,10 +4,6 @@
 		"access_code":{
 			"type": "string",
 			"description":"TODO"
-		},
-		"state":{
-			"type": "string",
-			"description":"TODO"
 		}
 	}
 }

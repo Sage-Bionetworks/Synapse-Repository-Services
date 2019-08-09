@@ -49,7 +49,7 @@ public class OIDCTokenUtil {
 			long now, 
 			String nonce, 
 			Date auth_time,
-			String uuid,
+			String uuidtokenId,
 			JSONObject userClaims) {
 		
 		Claims claims = Jwts.claims();
@@ -64,7 +64,7 @@ public class OIDCTokenUtil {
 			.setExpiration(new Date(now+OIDC_CLAIMS_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))
 			.setIssuedAt(new Date(now))
-			.setId(uuid)
+			.setId(uuidtokenId)
 			.setSubject(user);
 		
 		if (nonce!=null) claims.put("nonce", nonce);
@@ -72,12 +72,17 @@ public class OIDCTokenUtil {
 
 		KeyPair keyPair = OIDC_SIGNATURE_KEY_PAIRS.get(0);
 		String kid = JWTUtil.computeKeyId(keyPair.getPublic());
-		String s = Jwts.builder().setClaims(claims).
+		String result = Jwts.builder().setClaims(claims).
 			setHeaderParam(Header.TYPE, Header.JWT_TYPE).
 			setHeaderParam("kid", kid).
 			signWith(SignatureAlgorithm.RS256, keyPair.getPrivate()).compact();
 
-		return s;
+		return result;
+	}
+	
+	public static String createOIDCaccessToken() {
+		String result = null; // TODO
+		return result;
 	}
 	
 	// Note:  Call .toJSONString() on each JWK to get a JSON formatted JSON Web Key

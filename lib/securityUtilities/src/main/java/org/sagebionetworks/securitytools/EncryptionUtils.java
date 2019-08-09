@@ -10,7 +10,7 @@ public interface EncryptionUtils {
 	 * @param s
 	 * @return
 	 */
-	String encryptStringWithStackKey(String s) throws UnsupportedEncodingException;
+	String encryptStringWithStackKey(String s);
 	
 	/**
 	 * Decrypt a String encoded using the stack's encryption key.
@@ -18,6 +18,6 @@ public interface EncryptionUtils {
 	 * @param s
 	 * @return
 	 */
-	String decryptStackEncryptedString(String s) throws UnsupportedEncodingException;
+	String decryptStackEncryptedString(String s);
 
 }

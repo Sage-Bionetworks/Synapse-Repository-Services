@@ -17,6 +17,28 @@
 		"responseType":{
 			"type":"object",
 			"$ref":"org.sagebionetworks.repo.model.oauth.OAuthResponseType"
+		},
+		"redirectUri": {
+			"type": "string",
+			"description": "URI to which the user agent is to be redirected"
+		},
+		"nonce": {
+			"type": "string",
+			"description": "Optional value used to associate a Client session with an ID Token, and to mitigate replay attacks. The value is passed through unmodified from the Authorization Request to the ID Token."
+		},
+		"userId": {
+			"type": "string",
+			"description": "ID of the user approving this request (set by server)"
+		},
+		"authenticatedAt": {
+			"type": "string",
+			"format": "date-time",
+			"description": "Timestamp marking when approving user was authenticated (set by server)"
+		},
+		"authorizedAt": {
+			"type": "string",
+			"format": "date-time",
+			"description": "Timestamp marking when authorization was approved (set by server)"
 		}
 	}
 }

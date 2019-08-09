@@ -194,7 +194,7 @@ public class ConfigurationPropertiesImplTest {
 		verify(mockEncryptionUtils).decryptStackEncryptedString(decryptRequestCaptor.capture());
 		String request = decryptRequestCaptor.getValue();
 		assertNotNull(request);
-		assertEquals(encryptedValue, request);
+		assertEquals(base64EncodedCipher, request);
 		verify(mockLog).info("Decrypting property 'toBeDecrypted'...");
 	}
 

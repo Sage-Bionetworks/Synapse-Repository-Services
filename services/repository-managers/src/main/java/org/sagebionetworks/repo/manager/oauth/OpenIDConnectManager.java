@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.util.Map;
-
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -69,12 +67,6 @@ public interface OpenIDConnectManager {
 	 */
 	OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(OIDCAuthorizationRequest authorizationRequest);
 	
-	// TODO: when evaluating the claims object, how do we differentiate between a null value and a missing key?
-	// They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
-	//
-	// TODO
-	//  encrypt payload? include short expiration (1 minute?)
-	// payload: scope, claims, clientId, redirect uri, userid (unobfuscated?)
 	/**
 	 * 
 	 * @param userInfo

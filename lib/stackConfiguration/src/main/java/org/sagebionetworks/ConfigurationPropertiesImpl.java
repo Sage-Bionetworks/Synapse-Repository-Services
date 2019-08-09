@@ -115,13 +115,9 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 			return getProperty(propertyKey);
 		}
 		log.info(String.format(DECRYPTING_PROPERTY, propertyKey));
-		try {
-			// load the Base64 encoded encrypted string from the properties.
-			String encryptedValueBase64 = getProperty(propertyKey);
-			return this.encryptionUtils.decryptStackEncryptedString(encryptedValueBase64);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
+		// load the Base64 encoded encrypted string from the properties.
+		String encryptedValueBase64 = getProperty(propertyKey);
+		return this.encryptionUtils.decryptStackEncryptedString(encryptedValueBase64);
 	}
 	
 	/**

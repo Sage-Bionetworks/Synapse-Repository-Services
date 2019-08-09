@@ -22,19 +22,27 @@ public class EncryptionUtilsImpl implements EncryptionUtils {
 	
 
 	@Override
-	public String encryptStringWithStackKey(String s) throws UnsupportedEncodingException {
-		byte[] plaintext = s.getBytes( UTF_8 );
-		EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(
-				new EncryptRequest().withPlaintext(ByteBuffer.wrap(plaintext)));
-		return new String(Base64.getEncoder().encode(encryptResult.getCiphertextBlob()).array(), UTF_8);
+	public String encryptStringWithStackKey(String s) {
+		try {
+			byte[] plaintext = s.getBytes(UTF_8);
+			EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(
+					new EncryptRequest().withPlaintext(ByteBuffer.wrap(plaintext)));
+			return new String(Base64.getEncoder().encode(encryptResult.getCiphertextBlob()).array(), UTF_8);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
-	public String decryptStackEncryptedString(String s) throws UnsupportedEncodingException {
-		byte[] rawEncrypted = Base64.getDecoder().decode(s.getBytes(UTF_8));
-		// KMS can decrypt the value without providing the encryption key.
-		DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
-		return byteBufferToString(decryptResult.getPlaintext());
+	public String decryptStackEncryptedString(String s) {
+		try {
+			byte[] rawEncrypted = Base64.getDecoder().decode(s.getBytes(UTF_8));
+			// KMS can decrypt the value without providing the encryption key.
+			DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
+			return byteBufferToString(decryptResult.getPlaintext());
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
