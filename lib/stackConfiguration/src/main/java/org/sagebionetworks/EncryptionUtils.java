@@ -1,7 +1,5 @@
 package org.sagebionetworks;
 
-import java.io.UnsupportedEncodingException;
-
 public interface EncryptionUtils {
 	
 	/**

@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.json.JSONObject;
 import org.sagebionetworks.EncryptionUtils;
+import org.sagebionetworks.EncryptionUtilsSingleton;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -22,18 +23,13 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
-import com.google.inject.Inject;
 import com.nimbusds.jwt.JWT;
 
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minutes
 	
-	private EncryptionUtils encryptionUtils;
+	private EncryptionUtils encryptionUtils = EncryptionUtilsSingleton.singleton();
 	
-	@Inject
-	public OpenIDConnectManagerImpl(EncryptionUtils encryptionUtils) {
-		this.encryptionUtils=encryptionUtils;
-	}
 
 	@Override
 	public OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
