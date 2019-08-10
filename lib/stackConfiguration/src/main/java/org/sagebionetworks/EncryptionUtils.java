@@ -1,4 +1,4 @@
-package org.sagebionetworks.securitytools;
+package org.sagebionetworks;
 
 import java.io.UnsupportedEncodingException;
 

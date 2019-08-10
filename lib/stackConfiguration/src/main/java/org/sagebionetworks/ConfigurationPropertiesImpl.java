@@ -2,13 +2,10 @@ package org.sagebionetworks;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.securitytools.EncryptionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;

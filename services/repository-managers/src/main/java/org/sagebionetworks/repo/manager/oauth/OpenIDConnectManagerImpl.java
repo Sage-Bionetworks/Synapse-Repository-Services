@@ -7,6 +7,7 @@ import java.util.StringTokenizer;
 import java.util.UUID;
 
 import org.json.JSONObject;
+import org.sagebionetworks.EncryptionUtils;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -20,7 +21,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.securitytools.EncryptionUtils;
 
 import com.google.inject.Inject;
 import com.nimbusds.jwt.JWT;
