@@ -229,9 +229,27 @@ public class OpenIDConnectController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET, RequestMethod.POST})
+	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
-	Object getUserInfo(
+	Object getUserInfoGET(
+			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken
+			)  throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken);
+	}
+
+	/**
+	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
+	 * signing algorithm in its userinfo_signed_response_alg field.  
+	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+	 * 
+	 * @param accessTokenHeader
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
+	public @ResponseBody
+	Object getUserInfoPOST(
 			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken
 			)  throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken);
