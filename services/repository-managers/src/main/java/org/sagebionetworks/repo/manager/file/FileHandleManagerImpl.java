@@ -493,7 +493,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			fileHandle.setContentType(NOT_SET);
 		}
 		// The URL must be a URL
-		ValidateArgument.validUrl(fileHandle.getExternalURL());
+		ValidateArgument.validExternalUrl(fileHandle.getExternalURL());
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());

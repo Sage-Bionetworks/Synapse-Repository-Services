@@ -89,7 +89,7 @@ public class FileMetadataUtils {
 
 	private static void updateDBOFromDTO(DBOFileHandle dbo, ExternalFileHandle fileHandle) {
 		// Validate the URL
-		ValidateArgument.validUrl(fileHandle.getExternalURL());
+		ValidateArgument.validExternalUrl(fileHandle.getExternalURL());
 		dbo.setKey(fileHandle.getExternalURL());
 	}
 
