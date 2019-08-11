@@ -69,8 +69,7 @@ public class EntityBundleController {
 	ServiceProvider serviceProvider;
 	
 	/**
-	 * Get an entity and related data with a single GET. Note that childCount is
-	 * calculated in the QueryController.
+	 * Get an entity and related data with a single GET.
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.
@@ -96,8 +95,7 @@ public class EntityBundleController {
 	}	
 
 	/**
-	 * Get an entity at a specific version and its related data with a single GET. Note that childCount is
-	 * calculated in the QueryController.
+	 * Get an entity at a specific version and its related data with a single GET.
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Set;
 
@@ -55,7 +56,7 @@ public interface NodeManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Node createNewNode(Node newNode, Annotations annos, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
+	public Node createNewNode(Node newNode, Annotations entityPropertyAnnotations, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Delete a node using its id.
@@ -112,32 +113,20 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 */
 	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
-	 * Update a node using the provided node.
-	 * @param userName
-	 * @param updated
-	 * @return 
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 * @throws Exception 
-	 */
-	public Node update(UserInfo userInfo, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
 	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
 	 * @param username
-	 * @param updatedNode
 	 * @param updatedAnnoations
+	 * @param updatedNode
 	 * @param newVersion - Should a new version be created for this update?
-	 * @throws UnauthorizedException 
+	 * @throws UnauthorizedException
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public Node update(UserInfo userInfo, Node updatedNode,  Annotations entityPropertyAnnotations, Annotations userAnnotations, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public Node update(UserInfo userInfo, Node updatedNode, Annotations entityPropertyAnnotations, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
 	 * Update the user annotations of a node.

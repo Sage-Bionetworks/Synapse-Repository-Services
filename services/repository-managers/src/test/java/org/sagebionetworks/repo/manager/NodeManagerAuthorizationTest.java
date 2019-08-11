@@ -146,7 +146,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldMockNode);
 		// Should fail
 		try{
-			nodeManager.update(mockUserInfo, mockNode);
+			nodeManager.update(mockUserInfo, mockNode, null, false);
 			fail("Should have failed");
 		}catch(UnauthorizedException e){
 			assertTrue("The exception message should contain the file handle id: "+e.getMessage(), e.getMessage().contains(fileHandleId));
@@ -181,7 +181,7 @@ public class NodeManagerAuthorizationTest {
 		when(oldMockNode.getParentId()).thenReturn(parentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldMockNode);
 		// Should fail
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// The change should make it to the dao
 		verify(mockNodeDao).updateNode(mockNode);
 	}
@@ -214,7 +214,7 @@ public class NodeManagerAuthorizationTest {
 		when(oldMockNode.getParentId()).thenReturn(parentId);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(oldMockNode);
 		// Should fail
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 		// The change should make it to the dao
 		verify(mockNodeDao).updateNode(mockNode);
 	}
@@ -303,7 +303,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getId()).thenReturn(id);
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.update(mockUserInfo, mockNode);
+		nodeManager.update(mockUserInfo, mockNode, null, false);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -312,7 +312,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getId()).thenReturn(id);
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// Should fail
-		nodeManager.update(mockUserInfo, mockNode, mockEntityPropertyAnnotations, mockUserAnnotations, true);
+		nodeManager.update(mockUserInfo, mockNode, mockEntityPropertyAnnotations, true);
 	}
 	
 	@Test
@@ -329,12 +329,12 @@ public class NodeManagerAuthorizationTest {
 		when(oldMockNode.getParentId()).thenReturn(parentId);
 		when(mockNodeDao.getNode(id)).thenReturn(oldMockNode);
 		// OK!
-		nodeManager.update(mockUserInfo, mockNode, null, null, true);
+		nodeManager.update(mockUserInfo, mockNode, null, true);
 		// can't move due to access restrictions
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationStatus.accessDenied(""));
 		try {
 			// Should fail
-			nodeManager.update(mockUserInfo, mockNode, null, null, true);
+			nodeManager.update(mockUserInfo, mockNode, null, true);
 			fail("Excpected unauthorized exception");
 		} catch (UnauthorizedException e) {
 			// as expected
@@ -360,12 +360,12 @@ public class NodeManagerAuthorizationTest {
 		when(mockNodeDao.getNode(id)).thenReturn(oldMockNode);
 		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationStatus.authorized());
 		// OK!
-		nodeManager.update(mockUserInfo, mockNode, null, null,true);
+		nodeManager.update(mockUserInfo, mockNode, null, true);
 		// can't change alias due to access restrictions
 		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationStatus.accessDenied(""));
 		try {
 			// Should fail
-			nodeManager.update(mockUserInfo, mockNode, null, null, true);
+			nodeManager.update(mockUserInfo, mockNode, null, true);
 			fail("Expected unauthorized exception");
 		} catch (UnauthorizedException e) {
 			// as expected

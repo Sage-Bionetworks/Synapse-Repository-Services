@@ -68,14 +68,6 @@ public class QueryTranslatorTest {
 	}
 	
 	@Test
-	public void testAltOffset() throws Exception{
-		QueryStatement stmt = new QueryStatement("select * from dataset offset 12");
-		assertNotNull(stmt);
-		BasicQuery results = QueryTranslator.createBasicQueryDecrementingOffset(stmt);
-		assertEquals(11, results.getOffset());
-	}
-	
-	@Test
 	public void testLimit() throws Exception{
 		QueryStatement stmt = new QueryStatement("select * from dataset limit 10");
 		assertNotNull(stmt);

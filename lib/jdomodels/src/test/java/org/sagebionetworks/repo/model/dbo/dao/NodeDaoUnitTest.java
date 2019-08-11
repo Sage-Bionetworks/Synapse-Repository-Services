@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -187,4 +188,14 @@ public class NodeDaoUnitTest {
 		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(nodeId, ObjectType.ENTITY);
 	}
 
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testUpdateAnnotations_nullNodeId(){
+		nodeDao.updateAnnotations(null, new Annotations(), "any columname works");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testUpdateAnnotations_nullAnnotations(){
+		nodeDao.updateAnnotations("syn123", null, "any columname works");
+	}
 }

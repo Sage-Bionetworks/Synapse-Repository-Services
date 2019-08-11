@@ -607,7 +607,7 @@ public class AuthorizationManagerImplTest {
 		assertNotNull(activityId);
 		activitiesToDelete.add(activityId);
 		nodeCreatedByTestUser.setActivityId(activityId);
-		nodeManager.update(userInfo, nodeCreatedByTestUser);
+		nodeManager.update(userInfo, nodeCreatedByTestUser, null, false);
 		
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();
@@ -621,7 +621,7 @@ public class AuthorizationManagerImplTest {
 		assertNotNull(activityId);
 		activitiesToDelete.add(activityId);
 		node.setActivityId(activityId);
-		nodeManager.update(adminUser, node);
+		nodeManager.update(adminUser, node, null, false);
 		
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();

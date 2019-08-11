@@ -29,22 +29,4 @@ public class QueryTranslator {
 		return basic;
 	}
 
-	/**
-	 * Create a BasicQuery from a QueryStatement
-	 * decrementing offset to handle statements which erroneously use offset=1 to mean no offset
-	 * @param stmt
-	 * @return
-	 */
-	public static BasicQuery createBasicQueryDecrementingOffset(QueryStatement stmt){
-		BasicQuery basic = new BasicQuery();
-		basic.setFrom(stmt.getTableName());
-		basic.setSort(stmt.getSortField());
-		basic.setAscending(stmt.getSortAcending());
-		basic.setLimit(stmt.getLimit());
-		basic.setOffset(stmt.getOffset()-1);
-		basic.setFilters(stmt.getSearchCondition());
-		basic.setSelect(stmt.getSelect());
-		return basic;
-	}
-
 }

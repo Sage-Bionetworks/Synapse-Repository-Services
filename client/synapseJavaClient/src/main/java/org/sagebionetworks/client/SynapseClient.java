@@ -115,8 +115,6 @@ import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
-import org.sagebionetworks.repo.model.entity.query.EntityQuery;
-import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
@@ -574,9 +572,6 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
-
-	@Deprecated
-	public JSONObject query(String query) throws SynapseException;
 
 	public String putFileToURL(URL url, File file, String contentType)
 			throws SynapseException;
@@ -2028,16 +2023,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
-	
-	/**
-	 * Execute a query to find entities that meet the conditions provided query.
-	 * @param query
-	 * @return
-	 * @throws SynapseException 
-	 */
-	@Deprecated
-	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
-	
+
 	/**
 	 * Creates and returns a new Challenge.  Caller must have CREATE
 	 * permission on the associated Project.

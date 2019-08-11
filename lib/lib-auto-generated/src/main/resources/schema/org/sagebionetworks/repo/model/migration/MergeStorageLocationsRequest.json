@@ -1,8 +1,0 @@
-{
-	"description": "Request to merge duplicate storage locations.",
-	"implements": [
-		{
-			"$ref":"org.sagebionetworks.repo.model.migration.AdminRequest"
-		}
-	]
-}
