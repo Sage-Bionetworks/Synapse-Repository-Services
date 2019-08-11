@@ -81,7 +81,7 @@ public interface OpenIDConnectManager {
 	 * @param redirectUri
 	 * @return
 	 */
-	OIDCTokenResponse getAccessToken(String code, String redirectUri);
+	OIDCTokenResponse getAccessToken(String code, String clientId, String redirectUri);
 	
 	/**
 	 * 

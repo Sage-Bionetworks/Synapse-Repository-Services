@@ -78,7 +78,7 @@ public interface OpenIDConnectService {
 	 */
 	public OAuthAuthorizationResponse authorizeClient(Long userId,  OIDCAuthorizationRequest authorizationRequest);
 	
-	public OIDCTokenResponse getTokenResponse(OAuthGrantType grantType, String code, String redirectUri, String refreshToken, String scope, String claims);
+	public OIDCTokenResponse getTokenResponse(String clientId, OAuthGrantType grantType, String code, String redirectUri, String refreshToken, String scope, String claims);
 		
 	public Object getUserInfo(String accessToken);
 }

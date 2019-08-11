@@ -16,9 +16,9 @@ import org.apache.commons.codec.binary.Base64;
 
 public class EncryptionUtils {
 	
-	private static final String DES_ALGORITHM = "DES";
+	private static final String AES_ALGORITHM = "AES";
 	private static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
-	private static final String CIPHER_TRANSFORMATION = "DES/ECB/PKCS5Padding";
+	private static final String CIPHER_TRANSFORMATION = "AES/ECB/PKCS5Padding";
 
 	private static String encodeSecretKeyAsString(Key key) {
 	    return Base64.encodeBase64URLSafeString(key.getEncoded());
@@ -26,12 +26,12 @@ public class EncryptionUtils {
 	
 	private static SecretKey decodeSecretKeyFromString(String s) throws InvalidKeyException {
 		byte[] bytes = Base64.decodeBase64(s);
-		return new SecretKeySpec(bytes, 0, bytes.length, DES_ALGORITHM); 
+		return new SecretKeySpec(bytes, 0, bytes.length, AES_ALGORITHM); 
 	}
 
 	public static String createSecretKey() {
 		try {
-			SecretKey key = KeyGenerator.getInstance(DES_ALGORITHM).generateKey();
+			SecretKey key = KeyGenerator.getInstance(AES_ALGORITHM).generateKey();
 		    return encodeSecretKeyAsString(key);
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);

@@ -141,9 +141,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public OIDCTokenResponse getTokenResponse(OAuthGrantType grantType, String code, String redirectUri, String refreshToken, String scope, String claims) {
+	public OIDCTokenResponse getTokenResponse(String clientId, OAuthGrantType grantType, String code, String redirectUri, String refreshToken, String scope, String claims) {
 		if (grantType==OAuthGrantType.authorization_code) {
-			return oidcManager.getAccessToken(code, redirectUri);
+			return oidcManager.getAccessToken(clientId, code, redirectUri);
 		} else if (grantType==OAuthGrantType.refresh_token) {
 			throw new IllegalArgumentException(OAuthGrantType.refresh_token+" unsupported.");
 		} else {

@@ -11,8 +11,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.json.JSONObject;
-import org.sagebionetworks.EncryptionUtils;
-import org.sagebionetworks.EncryptionUtilsSingleton;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -28,6 +26,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.nimbusds.jwt.JWT;
@@ -35,9 +34,6 @@ import com.nimbusds.jwt.JWT;
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minutes
 	
-	private EncryptionUtils encryptionUtils = EncryptionUtilsSingleton.singleton();
-	
-
 	@Override
 	public OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
 		// TODO Auto-generated method stub
@@ -178,17 +174,20 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new RuntimeException(e);
 		}
 		String serializedAuthorizationRequest = adapter.toJSONString();
-		String encryptedAuthorizationRequest = encryptionUtils.encryptStringWithStackKey(serializedAuthorizationRequest);
+		String oauthClientEncryptionKey=null;  // TODO
+		String encryptedAuthorizationRequest = EncryptionUtils.encrypt(serializedAuthorizationRequest, oauthClientEncryptionKey);
+				
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
 		return result;
 	}
 
 	@Override
-	public OIDCTokenResponse getAccessToken(String code, String redirectUri) {
+	public OIDCTokenResponse getAccessToken(String code, String clientId, String redirectUri) {
 		String serializedAuthorizationRequest;
+		String oauthClientEncryptionKey=null;  // TODO
 		try {
-			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedString(code);
+			serializedAuthorizationRequest = EncryptionUtils.decrypt(code, oauthClientEncryptionKey);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid authorization code", e);
 		}
@@ -220,13 +219,15 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (scopes.contains(OAuthScope.userid)) {
 			userClaims.put(OAuthScope.userid.name(), authorizationRequest.getUserId());
 		}
-		String user = authorizationRequest.getUserId(); // TODO, obfuscate the user id 
+		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
+		// Pairwise Pseudonymous Identifier (PPID)
+		// TODO https://openid.net/specs/openid-connect-registration-1_0.html#SectorIdentifierValidation
+		String ppid = EncryptionUtils.encrypt(authorizationRequest.getUserId(), oauthClientEncryptionKey);
 		String oauthClientId = authorizationRequest.getClientId();
-		
 		
 		OIDCTokenResponse result = new OIDCTokenResponse();
 		if (scopes.contains(OAuthScope.openid)) {
-			String idToken = OIDCTokenUtil.createOIDCidToken(user, oauthClientId, now, 
+			String idToken = OIDCTokenUtil.createOIDCidToken(ppid, oauthClientId, now, 
 				authorizationRequest.getNonce(), authTime, tokenId, userClaims);
 			result.setId_token(idToken);
 		}

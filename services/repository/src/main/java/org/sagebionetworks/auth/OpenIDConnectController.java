@@ -190,7 +190,7 @@ public class OpenIDConnectController {
 		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
-	// TODO authorize via client_secret_basic
+	// TODO authorize via client_secret_basic, then pass clientId as a request param
 	/**
 	 * 
 	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
@@ -208,6 +208,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(
+			@RequestParam(value = AuthorizationConstants.OAUTH_CLIENT_ID_PARAM) String clientId,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM) OAuthGrantType grant_type,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM) String code,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM) String redirectUri,
@@ -215,7 +216,7 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM) String scope,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM) String claims
 			)  throws NotFoundException {
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(grant_type, code, redirectUri, refresh_token, scope, claims);
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(clientId, grant_type, code, redirectUri, refresh_token, scope, claims);
 	}
 		
 	// TODO add a token validation filter that validates the access token
