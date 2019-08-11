@@ -115,10 +115,6 @@
 			<type>jar</type>
 		</dependency>
 
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-securityUtilities</artifactId>
-		</dependency>
 	</dependencies>
 
 	<properties>

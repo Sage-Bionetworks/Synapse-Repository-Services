@@ -18,7 +18,6 @@ public class StackConfigurationGuiceModule extends com.google.inject.AbstractMod
 		bind(PropertyProvider.class).to(PropertyProviderImpl.class);
 		bind(ConfigurationProperties.class).to(ConfigurationPropertiesImpl.class);
 		bind(StackConfiguration.class).to(StackConfigurationImpl.class);
-		bind(EncryptionUtils.class).to(EncryptionUtilsImpl.class);
 	}
 	
 	@Provides
