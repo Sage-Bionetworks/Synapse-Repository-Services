@@ -10,10 +10,14 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import javax.xml.validation.Schema;
+
+import com.google.common.collect.Maps;
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
 import org.sagebionetworks.javadoc.testclasses.GenericList;
@@ -322,5 +326,33 @@ public class SchemaUtilsTest {
 				"someString", null), model.getFields().get(0));
 		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.BOOLEAN.name() }, new String[] { null }),
 				"someBoolean", null), model.getFields().get(1));
+	}
+
+	//PLFM-5723
+	@Test
+	public void testRecursiveAddTypes_listOfEnums(){
+		//PLFM-5723
+		//create enum object
+		String enumId = "org.sagebionetworks.test.TestEnum";
+		ObjectSchema enumSchema = new ObjectSchema(TYPE.STRING);
+		enumSchema.setId(enumId);
+		enumSchema.setEnum(new EnumValue[]{ new EnumValue("ENUM_VAL1"), new EnumValue("ENUM_VAL2")});
+
+		//create array of enums
+		ObjectSchema arrayOfEnum = new ObjectSchema(TYPE.ARRAY);
+		arrayOfEnum.setItems(enumSchema);
+
+		//create object schema with a list containing enums
+		String schemaToTestId = "org.sagebionetworks.test.TestEnumList";
+		ObjectSchema schemaToTest = new ObjectSchema(TYPE.OBJECT);
+		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myEnumList", arrayOfEnum)));
+
+
+		Map<String, ObjectSchema> resultMap = new HashMap<>();
+		SchemaUtils.recursiveAddTypes(resultMap, schemaToTestId, schemaToTest);
+
+		assertEquals(2, resultMap.size());
+		assertNotNull(resultMap.get(schemaToTestId));
+		assertNotNull(resultMap.get(enumId));
 	}
 }

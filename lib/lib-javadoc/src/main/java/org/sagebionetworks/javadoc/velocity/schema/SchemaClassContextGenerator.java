@@ -1,5 +1,6 @@
 package org.sagebionetworks.javadoc.velocity.schema;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -29,10 +30,8 @@ public class SchemaClassContextGenerator implements ClassContextGenerator{
 		
 		Map<String, List<TypeReference>> knownImplementaions = SchemaUtils.mapImplementationsToIntefaces(schemaMap);
         // Render each schema
-        Iterator<String> it = schemaMap.keySet().iterator();
-        List<ClassContext> results = new LinkedList<ClassContext>();
-        while(it.hasNext()){
-        	String name = it.next();
+        List<ClassContext> results = new ArrayList<>(schemaMap.size());
+        for(String name: schemaMap.keySet()){
         	ObjectSchema schema = schemaMap.get(name);
         	List<TypeReference> implementations = knownImplementaions.get(name);
         	// Translate the schema to a model
