@@ -110,7 +110,8 @@ public class SchemaUtils {
 				}else if(TYPE.ARRAY == sub.getType()){
 					if(sub.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 					ObjectSchema arrayItems = sub.getItems();
-					if (TYPE.OBJECT == arrayItems.getType()) {
+					if (TYPE.OBJECT == arrayItems.getType()
+						/*PLFM-5723*/ || arrayItems.getEnum() != null) {
 						if(arrayItems.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 						recursiveAddTypes(schemaMap, arrayItems.getId(), arrayItems);
 					}

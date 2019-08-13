@@ -3,6 +3,7 @@ package org.sagebionetworks.javadoc.web.services;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,7 +81,7 @@ public class SpringMVCDoclet {
 		ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath"); 
 		ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
 		ve.setProperty("runtime.references.strict", true);
-		List<FileLink> links = new LinkedList<FileLink>();
+		List<FileLink> links = new ArrayList<>(contextList.size());
 		for(ClassContext classContext: contextList){
 			System.out.println(classContext);
 			// The velocity context provides the model data for the view.
