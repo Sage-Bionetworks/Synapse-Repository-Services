@@ -15,9 +15,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.xml.validation.Schema;
-
-import com.google.common.collect.Maps;
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.MethodDoc;
+import com.sun.javadoc.Parameter;
+import com.sun.javadoc.Type;
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
 import org.sagebionetworks.javadoc.testclasses.GenericList;
@@ -29,11 +30,6 @@ import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
-
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.Parameter;
-import com.sun.javadoc.Type;
 
 public class SchemaUtilsTest {
 
@@ -347,8 +343,8 @@ public class SchemaUtilsTest {
 		ObjectSchema schemaToTest = new ObjectSchema(TYPE.OBJECT);
 		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myEnumList", arrayOfEnum)));
 
-
 		Map<String, ObjectSchema> resultMap = new HashMap<>();
+		//method under test
 		SchemaUtils.recursiveAddTypes(resultMap, schemaToTestId, schemaToTest);
 
 		assertEquals(2, resultMap.size());

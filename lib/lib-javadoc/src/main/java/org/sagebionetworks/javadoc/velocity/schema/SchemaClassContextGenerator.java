@@ -2,18 +2,15 @@ package org.sagebionetworks.javadoc.velocity.schema;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.sun.javadoc.RootDoc;
 import org.apache.velocity.context.Context;
 import org.sagebionetworks.javadoc.velocity.ClassContext;
 import org.sagebionetworks.javadoc.velocity.ClassContextGenerator;
 import org.sagebionetworks.javadoc.velocity.ContextFactory;
 import org.sagebionetworks.schema.ObjectSchema;
-
-import com.sun.javadoc.RootDoc;
 
 /**
  * 
