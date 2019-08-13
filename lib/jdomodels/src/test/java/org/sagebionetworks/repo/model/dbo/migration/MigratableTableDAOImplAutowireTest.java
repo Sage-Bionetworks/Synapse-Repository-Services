@@ -7,10 +7,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Field;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.collections.map.SingletonMap;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -18,7 +24,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -26,9 +34,13 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUpload;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
@@ -640,5 +652,89 @@ public class MigratableTableDAOImplAutowireTest {
 		request.setMigrationType(null);
 		// call under test
 		this.migratableTableDAO.calculateBatchChecksums(request);
+	}
+	
+	@Test
+	public void testAllTypes() {
+		List<MigratableDatabaseObject> objectRegister = this.migratableTableDAO.getDatabaseObjectRegister();
+		for(MigratableDatabaseObject object: objectRegister) {
+			// create an object of this type
+			DatabaseObject<?> sample = createSampleObjectForType(object);
+			List<DatabaseObject<?>> batch = new LinkedList<DatabaseObject<?>>();
+			batch.add(sample);
+			this.migratableTableDAO.createOrUpdate(object.getMigratableTableType(), batch);
+		}
+	}
+	
+	public static DatabaseObject<?> createSampleObjectForType(MigratableDatabaseObject object) {
+		try {
+			DatabaseObject<?> sample = (DatabaseObject<?>) object.getDatabaseObjectClass().newInstance();
+			int index = 0;
+			for(Field field: object.getDatabaseObjectClass().getDeclaredFields()) {
+			    if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+			    	field.setAccessible(true);
+			    	Object value = createValue(sample, field, index++);
+			    	field.set(sample, value);
+			    }
+			}
+			return sample;
+		} catch (InstantiationException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public static final Map<Class, Map<String, Object>> SPECIAL_VALUES;
+	static {
+		SPECIAL_VALUES = new HashMap<Class, Map<String,Object>>(2);
+		SPECIAL_VALUES.put(DBOMultipartUpload.class, new SingletonMap("state", MultipartUploadState.UPLOADING.name()));
+		SPECIAL_VALUES.put(DBONode.class, new SingletonMap("type", EntityType.project.name()));
+		SPECIAL_VALUES.put(DBOAccessRequirement.class, new SingletonMap("accessType", ACCESS_TYPE.CREATE.name()));
+	}
+	
+	public static Object createValue(DatabaseObject<?> object, Field field, int index) {
+		System.out.println(field.getName());
+		Object specialValue = getSpecialValue(object.getClass(), field, index);
+		if(specialValue != null) {
+			return specialValue;
+		}else if(String.class.equals(field.getType())){
+			return "a"+index;
+		}else if(Boolean.class.equals(field.getType()) || boolean.class.equals(field.getType())) {
+			if(index % 2 > 0) {
+				return Boolean.FALSE;
+			}else {
+				return Boolean.TRUE;
+			}
+		}else if(Long.class.equals(field.getType()) || long.class.equals(field.getType())) {
+			return new Long(index);
+		}else if(Integer.class.equals(field.getType()) || int.class.equals(field.getType())) {
+			return new Integer(index);
+		}else if(Double.class.equals(field.getType())) {
+			return new Double(3.13*index);
+		}else if(Date.class.equals(field.getType())) {
+			return new Date(1000*index);
+		}else if(Timestamp.class.equals(field.getType())) {
+			return new Timestamp(1000*index);
+		}else if(field.getType().isEnum()) {
+			return field.getType().getEnumConstants()[0];
+		}else if(field.getType().isArray()) {
+			return new byte[0];
+		}
+		return null;
+	}
+	
+	/**
+	 * Lookup special values for classes with enums as strings.
+	 * @param objectClass
+	 * @param field
+	 * @param index
+	 * @return
+	 */
+	public static Object getSpecialValue(Class objectClass, Field field, int index) {
+		Map<String,Object> fieldMap = SPECIAL_VALUES.get(objectClass);
+		if(fieldMap != null) {
+			return fieldMap.get(field.getName());
+		}
+		// no match
+		return null;
 	}
 }
