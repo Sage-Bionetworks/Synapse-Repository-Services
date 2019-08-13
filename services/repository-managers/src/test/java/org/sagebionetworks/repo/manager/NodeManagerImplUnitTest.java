@@ -720,12 +720,8 @@ public class NodeManagerImplUnitTest {
 	// PLFM-4651
 	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNodeNoEtag() throws Exception {
-		String id = "101";
-		Annotations entityPropertyAnnotations = new Annotations();
-		entityPropertyAnnotations.addAnnotation("k", "a");
-		entityPropertyAnnotations.setEtag("etag");
 		when(mockNode.getETag()).thenReturn(null);
-		nodeManager.update(mockUserInfo, mockNode, entityPropertyAnnotations, false);
+		nodeManager.update(mockUserInfo, mockNode, annos, false);
 	}
 
 	@Test

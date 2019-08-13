@@ -44,5 +44,7 @@
 		<property name="startDelay" value="154" />
 		<property name="repeatInterval" value="1000" />
 	</bean>
+	
+	<bean id="storageLocationsCleanup" class="org.sagebionetworks.migration.worker.StorageLocationsCleanup"></bean>
 
 </beans>
