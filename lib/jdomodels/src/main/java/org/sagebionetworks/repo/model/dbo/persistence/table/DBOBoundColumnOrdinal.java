@@ -46,7 +46,7 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 				DBOBoundColumnOrdinal dbo = new DBOBoundColumnOrdinal();
 				dbo.setColumnId(rs.getLong(COL_BOUND_CM_ORD_COLUMN_ID));
 				dbo.setObjectId(rs.getLong(COL_BOUND_CM_ORD_OBJECT_ID));
-				dbo.setObjectId(rs.getLong(COL_BOUND_CM_ORD_OBJECT_ID));
+				dbo.setObjectVersion(rs.getLong(COL_BOUND_CM_ORD_OBJECT_VERSION));
 				dbo.setOrdinal(rs.getLong(COL_BOUND_CM_ORD_ORDINAL));
 				return dbo;
 			}

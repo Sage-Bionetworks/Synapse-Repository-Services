@@ -7,6 +7,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -43,6 +46,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -641,4 +645,43 @@ public class MigratableTableDAOImplAutowireTest {
 		// call under test
 		this.migratableTableDAO.calculateBatchChecksums(request);
 	}
+	
+	/**
+	 * Types that cannot be tested due to the use of objects to blobs.
+	 */
+	public static HashSet<MigrationType> UNTESTABLE_TYPES = Sets.newHashSet(MigrationType.STORAGE_LOCATION,
+			MigrationType.PROJECT_SETTINGS,
+			MigrationType.QUIZ_RESPONSE,
+			MigrationType.VERIFICATION_SUBMISSION);
+	
+	/**
+	 * This is a test that validates the a DBO's FieldColumn[] directly map the DBO's row RowMapper.
+	 * @throws SQLException
+	 */
+	@Test
+	public void testTranslateAllTypes() throws SQLException{
+		for(MigrationType type: MigrationType.values()) {
+			if(UNTESTABLE_TYPES.contains(type)) {
+				System.out.println("Cannot test translation of type: "+type.name());
+				continue;
+			}
+			MigratableDatabaseObject migratableObject = migratableTableDAO.getObjectForType(type);
+			// The sample DBO will have values for all fields defined as FieldColumns.
+			DatabaseObject<?> sample = DBOTestUtils.createSampleObjectForType(migratableObject);
+			// Wrap the sample in a ResultSet proxy.
+			ResultSet resultSetProxy = ResultSetProxy.createProxy(migratableObject.getTableMapping().getFieldColumns(), sample);
+			// Use the ResultSet proxy to create a clone of the sample object.
+			DatabaseObject<?> clone;
+			try {
+				clone = (DatabaseObject<?>) migratableObject.getTableMapping().mapRow(resultSetProxy, 1);
+				// The clone should match the original sample DBO.
+				assertEquals(sample, clone);
+			} catch (Exception e) {
+				e.printStackTrace();
+				fail("Failed to translate: "+type+" message: "+e.getMessage());
+			}
+		}
+	}
+	
+
 }
