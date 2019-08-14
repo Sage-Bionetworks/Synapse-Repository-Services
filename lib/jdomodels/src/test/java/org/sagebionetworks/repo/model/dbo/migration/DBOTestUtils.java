@@ -56,7 +56,7 @@ public class DBOTestUtils {
 		} else if (Integer.class.equals(field.getType()) || int.class.equals(field.getType())) {
 			return new Integer(index);
 		} else if (Double.class.equals(field.getType())) {
-			return new Double(3.13 * index);
+			return new Double(Math.PI * index);
 		} else if (Date.class.equals(field.getType())) {
 			return new Date(1000 * index);
 		} else if (Timestamp.class.equals(field.getType())) {
