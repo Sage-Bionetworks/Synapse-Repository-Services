@@ -1576,6 +1576,7 @@ public class TableModelUtilsTest {
 		ColumnModel oldModel = null;
 		ColumnModel newModel = null;
 		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
+		assertEquals("ColumnChange [oldColumn=null, newColumn=null]", changeOne.toString());
 		System.out.println(changeOne.toString());
 		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
 		assertNotNull(results);
@@ -1587,7 +1588,7 @@ public class TableModelUtilsTest {
 		ColumnModel oldModel = null;
 		ColumnModel newModel = columnOne;
 		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
-		System.out.println(changeOne.toString());
+		assertEquals("ColumnChange [oldColumn=null, newColumn=1]", changeOne.toString());
 		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
 		assertNotNull(results);
 		assertEquals(1, results.size());
@@ -1599,7 +1600,7 @@ public class TableModelUtilsTest {
 		ColumnModel oldModel = columnOne;
 		ColumnModel newModel = null;
 		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
-		System.out.println(changeOne.toString());
+		assertEquals("ColumnChange [oldColumn=1, newColumn=null]", changeOne.toString());
 		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
 		assertNotNull(results);
 		assertEquals(1, results.size());
@@ -1611,6 +1612,7 @@ public class TableModelUtilsTest {
 		ColumnModel oldModel = columnOne;
 		ColumnModel newModel = columnTwo;
 		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
+		assertEquals("ColumnChange [oldColumn=1, newColumn=2]", changeOne.toString());
 		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
 		assertNotNull(results);
 		assertEquals(2, results.size());
