@@ -16,6 +16,9 @@ import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -31,6 +34,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -119,6 +123,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	TableTransactionDao tableTransactionDao;
 	@Autowired
 	NodeManager nodeManager;
+	@Autowired
+	StatisticsEventsCollector statisticsCollector;
 	
 	/**
 	 * Injected via spring
@@ -358,7 +364,16 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			refs.add(ref);
 		}
 		results.setRows(refs);
+		sendFileUploadEvent(user.getId(), delta);
 		return results;
+	}
+	
+	private void sendFileUploadEvent(Long userId, SparseChangeSet delta) {
+		String tableId = delta.getTableId();
+		for (Long fileHandleId : delta.getFileHandleIdsInSparseChangeSet()) {
+			StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_UPLOAD, userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity);
+			statisticsCollector.collectEvent(event);
+		}
 	}
 	
 	/**
@@ -471,7 +486,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param tableId
 	 * @param rowSet
 	 */
-	public void validateFileHandles(UserInfo user, String tableId,
+	void validateFileHandles(UserInfo user, String tableId,
 			SparseChangeSet rowSet) {
 		if(user.isAdmin()){
 			return;

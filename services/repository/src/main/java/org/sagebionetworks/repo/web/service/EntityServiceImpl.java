@@ -9,6 +9,9 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -24,6 +27,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -82,6 +86,8 @@ public class EntityServiceImpl implements EntityService {
 	AllTypesValidator allTypesValidator;
 	@Autowired
 	FileHandleManager fileHandleManager;
+	@Autowired
+	StatisticsEventsCollector statisticsCollector;
 	
 	@Override
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
@@ -236,6 +242,9 @@ public class EntityServiceImpl implements EntityService {
 				}
 			}
 		}
+		if (EntityType.file.equals(type) && entity instanceof FileEntity) {
+			sendFileUploadEvent(userInfo.getId(), (FileEntity) entity);
+		}
 	}
 	
 	/**
@@ -258,6 +267,14 @@ public class EntityServiceImpl implements EntityService {
 				}
 			}
 		}
+		if (EntityType.file.equals(type) && entity instanceof FileEntity && wasNewVersionCreated) {
+			sendFileUploadEvent(userInfo.getId(), (FileEntity) entity);
+		}
+	}
+	
+	private void sendFileUploadEvent(Long userId, FileEntity entity) {
+		StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_UPLOAD, userId, entity.getDataFileHandleId(), entity.getId(), FileHandleAssociateType.FileEntity);
+		statisticsCollector.collectEvent(event);
 	}
 	
 	/**
