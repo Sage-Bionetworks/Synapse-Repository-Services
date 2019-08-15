@@ -109,7 +109,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifer"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
 				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
