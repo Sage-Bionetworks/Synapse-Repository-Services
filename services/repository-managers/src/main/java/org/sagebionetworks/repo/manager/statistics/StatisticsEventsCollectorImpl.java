@@ -4,7 +4,6 @@ import java.util.Collections;
 
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsEvent;
-import org.sagebionetworks.repo.manager.statistics.records.StatisticsEventLogRecord;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsEventLogRecordProvider;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsLogRecordProviderFactory;
 import org.sagebionetworks.util.ValidateArgument;
@@ -31,11 +30,10 @@ public class StatisticsEventsCollectorImpl implements StatisticsEventsCollector 
 
 		StatisticsEventLogRecordProvider<E> provider = logRecordProviderFactory.getLogRecordProvider(event);
 
-		if (provider.sendToStream(event)) {
+		provider.getRecordForEvent(event).ifPresent(record -> {
 			String streamName = provider.getStreamName(event);
-			StatisticsEventLogRecord record = provider.getRecordForEvent(event);
 			firehoseLogger.logBatch(streamName, Collections.singletonList(record));
-		}
+		});
 
 	}
 

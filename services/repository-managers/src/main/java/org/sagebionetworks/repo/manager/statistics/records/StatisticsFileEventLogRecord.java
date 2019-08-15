@@ -136,4 +136,11 @@ public class StatisticsFileEventLogRecord implements StatisticsEventLogRecord {
 				&& Objects.equals(timestamp, other.timestamp) && Objects.equals(userId, other.userId);
 	}
 
+	@Override
+	public String toString() {
+		return "StatisticsFileEventLogRecord [userId=" + userId + ", timestamp=" + timestamp + ", projectId="
+				+ projectId + ", fileHandleId=" + fileHandleId + ", associateType=" + associateType + ", associateId="
+				+ associateId + ", stack=" + stack + ", instance=" + instance + "]";
+	}
+
 }
