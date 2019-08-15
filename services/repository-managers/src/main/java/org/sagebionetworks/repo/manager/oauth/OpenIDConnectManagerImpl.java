@@ -10,8 +10,8 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.apache.commons.codec.digest.HmacUtils;
 import org.json.JSONObject;
+import org.sagebionetworks.EncryptionUtilsSingleton;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
@@ -38,7 +38,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.nimbusds.jwt.JWT;
 
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
-	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minutes
+	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minute
+	
+	private EncryptionUtils encryptionUtils = EncryptionUtilsSingleton.singleton();
 	
 	@Autowired
 	private OAuthClientDao oauthClientDao;
@@ -189,8 +191,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new RuntimeException(e);
 		}
 		String serializedAuthorizationRequest = adapter.toJSONString();
-		String oauthClientEncryptionKey=null;  // TODO
-		String encryptedAuthorizationRequest = EncryptionUtils.encrypt(serializedAuthorizationRequest, oauthClientEncryptionKey);
+		String encryptedAuthorizationRequest = encryptionUtils.encryptStringWithStackKey(serializedAuthorizationRequest);
 				
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
@@ -209,9 +210,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	public OIDCTokenResponse getAccessToken(String code, String clientId, String redirectUri) {
 		String serializedAuthorizationRequest;
-		String oauthClientEncryptionKey=null;  // TODO
 		try {
-			serializedAuthorizationRequest = EncryptionUtils.decrypt(code, oauthClientEncryptionKey);
+			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedString(code);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid authorization code", e);
 		}

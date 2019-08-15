@@ -14,7 +14,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Properties;
 
@@ -27,9 +26,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.securitytools.EncryptionUtils;
 
-import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
@@ -40,7 +38,7 @@ public class ConfigurationPropertiesImplTest {
 	@Mock
 	PropertyProvider mockPropertyProvider;
 	@Mock
-	AWSKMS mockAwsKeyManagerClient;
+	EncryptionUtils mockEncryptionUtils;
 	@Mock
 	SynapseS3Client mockS3Client;
 	@Mock
@@ -51,7 +49,7 @@ public class ConfigurationPropertiesImplTest {
 	S3Object mockS3Object;
 
 	@Captor
-	ArgumentCaptor<DecryptRequest> decryptRequestCaprtor;
+	ArgumentCaptor<String> decryptRequestCaptor;
 
 	ConfigurationPropertiesImpl configuration;
 
@@ -107,10 +105,7 @@ public class ConfigurationPropertiesImplTest {
 		systemProps.setProperty(keyToBeDecrypted, base64EncodedCipher);
 
 		decryptedValue = "The value decrypted";
-		// setup the decrypted result
-		decryptResult = new DecryptResult()
-				.withPlaintext(ByteBuffer.wrap(decryptedValue.getBytes(ConfigurationPropertiesImpl.UTF_8)));
-		when(mockAwsKeyManagerClient.decrypt(any(DecryptRequest.class))).thenReturn(decryptResult);
+		when(mockEncryptionUtils.decryptStackEncryptedString(any(String.class))).thenReturn(decryptedValue);
 		
 		secretsBucket = "aSecretBucket";
 		secretsKey = "aSecretKey";
@@ -125,7 +120,7 @@ public class ConfigurationPropertiesImplTest {
 		setupSecretInputStream();
 		when(mockS3Client.getObject(secretsBucket, secretsKey)).thenReturn(mockS3Object);
 
-		configuration = new ConfigurationPropertiesImpl(mockAwsKeyManagerClient, mockS3Client, mockPropertyProvider, mockLoggerProvider);
+		configuration = new ConfigurationPropertiesImpl(mockEncryptionUtils, mockS3Client, mockPropertyProvider, mockLoggerProvider);
 
 		verify(mockPropertyProvider).getMavenSettingsProperties();
 		verify(mockPropertyProvider).getSystemProperties();
@@ -196,12 +191,10 @@ public class ConfigurationPropertiesImplTest {
 		// call under test
 		String results = configuration.getDecryptedProperty(keyToBeDecrypted);
 		assertEquals(decryptedValue, results);
-		verify(mockAwsKeyManagerClient).decrypt(decryptRequestCaprtor.capture());
-		DecryptRequest request = decryptRequestCaprtor.getValue();
+		verify(mockEncryptionUtils).decryptStackEncryptedString(decryptRequestCaptor.capture());
+		String request = decryptRequestCaptor.getValue();
 		assertNotNull(request);
-		assertNotNull(request.getCiphertextBlob());
-		String cipherString = ConfigurationPropertiesImpl.byteBuferToString(request.getCiphertextBlob());
-		assertEquals(encryptedValue, cipherString);
+		assertEquals(base64EncodedCipher, request);
 		verify(mockLog).info("Decrypting property 'toBeDecrypted'...");
 	}
 
@@ -217,7 +210,7 @@ public class ConfigurationPropertiesImplTest {
 		// the value should not be modified in any way.
 		assertEquals(base64EncodedCipher, results);
 		// the value should not be decrypted
-		verify(mockAwsKeyManagerClient, never()).decrypt(decryptRequestCaprtor.capture());
+		verify(mockEncryptionUtils, never()).decryptStackEncryptedString(decryptRequestCaptor.capture());
 		verify(mockLog).warn("Property: 'org.sagebionetworks.stack.cmk.alias' does not exist so the value of 'toBeDecrypted' will not be decrypted.");
 	}
 	

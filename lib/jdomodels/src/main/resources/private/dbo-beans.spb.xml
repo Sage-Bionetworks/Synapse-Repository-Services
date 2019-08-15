@@ -108,8 +108,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadEntityReference" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
 
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
 				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
@@ -218,8 +218,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
 				
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
