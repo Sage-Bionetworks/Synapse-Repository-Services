@@ -331,12 +331,12 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
-			"name": "OAUTH_CLIENT",
-			"description": "Metadata for an Oauth client"
-		},
-		{
 			"name": "OAUTH_SECTOR_IDENTIFIER",
 			"description": "Parameters for an Oauth/OIDC Sector Identifier"
+		},
+		{
+			"name": "OAUTH_CLIENT",
+			"description": "Metadata for an Oauth client"
 		}
 	]
 }
