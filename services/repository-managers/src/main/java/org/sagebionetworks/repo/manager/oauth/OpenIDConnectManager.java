@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.oauth;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
@@ -20,9 +21,9 @@ public interface OpenIDConnectManager {
 	 * 
 	 * @param userInfo
 	 * @param oauthClient
-	 * @return the client metadata, including the shared  OAuth 'Client Secret'.
+	 * @return the Id and secret of the newly created client
 	 */
-	OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient);
+	OAuthClientIdAndSecret createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient);
 
 	/**
 	 * 

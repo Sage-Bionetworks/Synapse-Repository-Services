@@ -18,7 +18,6 @@ public class EncryptionUtils {
 	
 	private static final String AES_ALGORITHM = "AES";
 	private static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
-	private static final String CIPHER_TRANSFORMATION = "AES/ECB/PKCS5Padding";
 
 	private static String encodeSecretKeyAsString(Key key) {
 	    return Base64.encodeBase64URLSafeString(key.getEncoded());
@@ -29,7 +28,7 @@ public class EncryptionUtils {
 		return new SecretKeySpec(bytes, 0, bytes.length, AES_ALGORITHM); 
 	}
 
-	public static String createSecretKey() {
+	public static String newSecretKey() {
 		try {
 			SecretKey key = KeyGenerator.getInstance(AES_ALGORITHM).generateKey();
 		    return encodeSecretKeyAsString(key);
@@ -40,7 +39,7 @@ public class EncryptionUtils {
 	
 	public static String encrypt(String plaintext, String key) {
 		try {
-			Cipher desCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+			Cipher desCipher = Cipher.getInstance(AES_ALGORITHM);
 			desCipher.init(Cipher.ENCRYPT_MODE, decodeSecretKeyFromString(key));
 			byte[] encryptedBytes = desCipher.doFinal(plaintext.getBytes(UTF_8_CHARSET));
 			return Base64.encodeBase64URLSafeString(encryptedBytes); 
@@ -51,14 +50,12 @@ public class EncryptionUtils {
 
 	public static String decrypt(String encrypted, String key) {
 		try {
-			Cipher desCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+			Cipher desCipher = Cipher.getInstance(AES_ALGORITHM);
 			desCipher.init(Cipher.DECRYPT_MODE, decodeSecretKeyFromString(key));
 			byte[] plaintextBytes = desCipher.doFinal(Base64.decodeBase64(encrypted));
 			return new String(plaintextBytes, UTF_8_CHARSET); 
 		} catch (GeneralSecurityException e) {
 			throw new RuntimeException(e);
-		}		    
-
-	
+		}
 	}
 }

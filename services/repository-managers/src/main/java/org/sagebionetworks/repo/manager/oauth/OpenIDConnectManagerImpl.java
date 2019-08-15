@@ -13,8 +13,10 @@ import java.util.UUID;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -28,16 +30,26 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.nimbusds.jwt.JWT;
 
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minutes
 	
+	@Autowired
+	private OAuthClientDao oauthClientDao;
+	
 	@Override
-	public OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
-		// TODO Auto-generated method stub
-		return null;
+	public OAuthClientIdAndSecret createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
+		// TODO validation
+		String secret = UUID.randomUUID().toString();
+		String id = oauthClientDao.createOAuthClient(oauthClient, secret);
+		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
+		result.setClient_name(oauthClient.getClient_name());
+		result.setClientId(id);
+		result.setClientSecret(secret);
+		return result;
 	}
 
 	@Override

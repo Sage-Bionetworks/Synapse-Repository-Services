@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -44,7 +45,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	private OpenIDConnectManager oidcManager;
 
 	@Override
-	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
+	public OAuthClientIdAndSecret createOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return oidcManager.createOpenIDConnectClient(userInfo, oauthClient);
 	}

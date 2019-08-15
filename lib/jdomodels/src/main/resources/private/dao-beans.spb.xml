@@ -294,6 +294,10 @@
 	<bean id="authReceiptDao"
 		class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceiptDAOImpl" />
 
+	<!--  DAO for managing OAuthClients -->
+	<bean id="oauthClientDao"
+		class="org.sagebionetworks.repo.model.dbo.auth.OAuthClientDaoImpl" />
+
 	<!-- Misc beans -->
 	
 	<!-- A singleton counting semaphore with all method synchronized to serialize lock acquisition on each machine -->

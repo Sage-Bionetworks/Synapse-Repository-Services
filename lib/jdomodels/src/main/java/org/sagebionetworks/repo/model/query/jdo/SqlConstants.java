@@ -910,6 +910,26 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID = 	"CURRENT_SUBMISSION_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG = 						"ETAG";
+	
+	// OAuth related tables, columns etc,
+	public static final String DDL_OAUTH_SECTOR_IDENTIFIER = 							"schema/OAuthSectorIdentifier-ddl.sql";
+	public static final String TABLE_OAUTH_SECTOR_IDENTIFIER = 							"OAUTH_SECTOR_IDENTIFIER";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_ID =							"OAUTH_SECTOR_IDENTIFIER_ID";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_URI = 						"OAUTH_SECTOR_IDENTIFIER_URI";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_SALT = 						"OAUTH_SECTOR_IDENTIFIER_SALT";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY = 				"OAUTH_SECTOR_IDENTIFIER_CREATED_BY";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON = 				"OAUTH_SECTOR_IDENTIFIER_CREATED_ON";
+	
+	public static final String DDL_OAUTH_CLIENT = 										"schema/OAuthClient-ddl.sql";
+	public static final String TABLE_OAUTH_CLIENT = 									"OAUTH_CLIENT";
+	public static final String COL_OAUTH_CLIENT_ID = 									"OAUTH_CLIENT_ID";
+	public static final String COL_OAUTH_CLIENT_SECRET = 								"OAUTH_CLIENT_SECRET";
+	public static final String COL_OAUTH_CLIENT_PROPERTIES = 							"OAUTH_CLIENT_PROPERTIES";
+	public static final String COL_OAUTH_CLIENT_ETAG = 									"OAUTH_CLIENT_ETAG";
+	public static final String COL_OAUTH_CLIENT_CREATED_BY = 							"OAUTH_CLIENT_CREATED_BY";
+	public static final String COL_OAUTH_CLIENT_CREATED_ON = 							"OAUTH_CLIENT_CREATED_ON";
+	public static final String COL_OAUTH_CLIENT_MODIFIED_ON = 							"OAUTH_CLIENT_MODIFIED_ON";
+	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_ID = 					"OAUTH_CLIENT_SECTOR_IDENTIFIER_ID";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
