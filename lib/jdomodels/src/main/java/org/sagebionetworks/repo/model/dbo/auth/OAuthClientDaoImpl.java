@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -70,15 +71,8 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	public static SectorIdentifier sectorIdentifierDboToDto(DBOSectorIdentifier dbo) {
 		SectorIdentifier dto = new SectorIdentifier();
 		dto.setSectorIdentifierUri(dbo.getUri());
-		dto.setSalt(dbo.getSalt());
+		dto.setSecret(dbo.getSecret());
 		return dto;
-	}
-	
-	public static DBOSectorIdentifier sectorIdentifiedDtoToDbo(SectorIdentifier dto) {
-		DBOSectorIdentifier dbo = new DBOSectorIdentifier();
-		dbo.setSalt(dto.getSalt());
-		dbo.setUri(dto.getSectorIdentifierUri());
-		return dbo;
 	}
 	
 	public static OAuthClient clientDboToDto(DBOOAuthClient dbo) {
@@ -108,19 +102,6 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		return dbo;
 	}
 	
-	private Long createSectorIdentifier(SectorIdentifier sectorIdentifier, Long createdBy) {
-		ValidateArgument.required(sectorIdentifier, "Sector Identifier");
-		ValidateArgument.requiredNotEmpty(sectorIdentifier.getSectorIdentifierUri(), "Sector Identifier URI");
-		ValidateArgument.requiredNotEmpty(sectorIdentifier.getSalt(), "Sector Identifier encryption salt");
-		DBOSectorIdentifier dbo = sectorIdentifiedDtoToDbo(sectorIdentifier);
-		dbo.setCreatedBy(createdBy);
-		dbo.setCreatedOn(System.currentTimeMillis());
-		Long id = idGenerator.generateNewId(IdType.OAUTH_SECTOR_IDENTIFIER_ID);
-		dbo.setId(id);
-		basicDao.createNew(dbo);
-		return id;
-	}
-
 	/*
 	 * Given a sector identifier URI, retrieve the ID of the Sector Identifier record
 	 * for that URI or create a new one and return its ID
@@ -130,10 +111,15 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 			DBOSectorIdentifier dbo = jdbcTemplate.queryForObject(SECTOR_IDENTIFIER_SQL_SELECT, DBOSectorIdentifier.class, sectorIdentifierUri);
 			return dbo.getId();
 		} catch (EmptyResultDataAccessException e) {
-			SectorIdentifier sectorIdentifier = new SectorIdentifier();
-			sectorIdentifier.setSalt(UUID.randomUUID().toString()); // TODO is this OK for salt?
-			sectorIdentifier.setSectorIdentifierUri(sectorIdentifierUri);
-			return createSectorIdentifier(sectorIdentifier, createdBy);
+			DBOSectorIdentifier dbo = new DBOSectorIdentifier();
+			dbo.setSecret(HMACUtils.newHMACSHA1Key());
+			dbo.setUri(sectorIdentifierUri);
+			dbo.setCreatedBy(createdBy);
+			dbo.setCreatedOn(System.currentTimeMillis());
+			Long id = idGenerator.generateNewId(IdType.OAUTH_SECTOR_IDENTIFIER_ID);
+			dbo.setId(id);
+			basicDao.createNew(dbo);
+			return id;
 		}
 	}
 

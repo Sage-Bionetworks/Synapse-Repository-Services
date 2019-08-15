@@ -11,10 +11,10 @@ public class SectorIdentifier {
 	private String sectorIdentifierUri;
 	
 	/*
-	 * The 'salt' used when hashing or encrypting the sector identifier and Synapse user id into a 'paired subject id'.  See:
+	 * The 'secret' used when hashing or encrypting the sector identifier and Synapse user id into a 'paired subject id'.  See:
 	 * https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	 */
-	private String salt;
+	private String secret;
 
 	public String getSectorIdentifierUri() {
 		return sectorIdentifierUri;
@@ -24,19 +24,19 @@ public class SectorIdentifier {
 		this.sectorIdentifierUri = sectorIdentifierUri;
 	}
 
-	public String getSalt() {
-		return salt;
+	public String getSecret() {
+		return secret;
 	}
 
-	public void setSalt(String salt) {
-		this.salt = salt;
+	public void setSecret(String secret) {
+		this.secret = secret;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((salt == null) ? 0 : salt.hashCode());
+		result = prime * result + ((secret == null) ? 0 : secret.hashCode());
 		result = prime * result + ((sectorIdentifierUri == null) ? 0 : sectorIdentifierUri.hashCode());
 		return result;
 	}
@@ -50,10 +50,10 @@ public class SectorIdentifier {
 		if (getClass() != obj.getClass())
 			return false;
 		SectorIdentifier other = (SectorIdentifier) obj;
-		if (salt == null) {
-			if (other.salt != null)
+		if (secret == null) {
+			if (other.secret != null)
 				return false;
-		} else if (!salt.equals(other.salt))
+		} else if (!secret.equals(other.secret))
 			return false;
 		if (sectorIdentifierUri == null) {
 			if (other.sectorIdentifierUri != null)
@@ -65,9 +65,9 @@ public class SectorIdentifier {
 
 	@Override
 	public String toString() {
-		return "SectorIdentifier [sectorIdentifierUri=" + sectorIdentifierUri + ", salt=" + salt + "]";
+		return "SectorIdentifier [sectorIdentifierUri=" + sectorIdentifierUri + ", secret=" + secret + "]";
 	}
-	
-	
+
+
 
 }

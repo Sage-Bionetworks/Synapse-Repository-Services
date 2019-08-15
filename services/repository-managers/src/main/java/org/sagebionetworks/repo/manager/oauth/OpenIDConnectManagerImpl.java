@@ -10,10 +10,12 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.commons.codec.digest.HmacUtils;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
@@ -29,6 +31,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -193,6 +196,15 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		result.setAccess_code(encryptedAuthorizationRequest);
 		return result;
 	}
+	
+	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
+	public static String ppid(String userId, SectorIdentifier sectorIdentifier) {
+		StringBuilder hmacPayload = new StringBuilder();
+		hmacPayload.append(sectorIdentifier.getSectorIdentifierUri());
+		hmacPayload.append(userId);
+		byte[] encoded = HMACUtils.generateHMACSHA1SignatureFromBase64EncodedKey(hmacPayload.toString(), sectorIdentifier.getSecret());
+		return new String(encoded);
+	}
 
 	@Override
 	public OIDCTokenResponse getAccessToken(String code, String clientId, String redirectUri) {
@@ -233,8 +245,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
-		// TODO https://openid.net/specs/openid-connect-registration-1_0.html#SectorIdentifierValidation
-		String ppid = EncryptionUtils.encrypt(authorizationRequest.getUserId(), oauthClientEncryptionKey);
+		SectorIdentifier sectorIdentifier = oauthClientDao.getSectorIdentifier(clientId);
+		String ppid = ppid(authorizationRequest.getUserId(), sectorIdentifier);
 		String oauthClientId = authorizationRequest.getClientId();
 		
 		OIDCTokenResponse result = new OIDCTokenResponse();

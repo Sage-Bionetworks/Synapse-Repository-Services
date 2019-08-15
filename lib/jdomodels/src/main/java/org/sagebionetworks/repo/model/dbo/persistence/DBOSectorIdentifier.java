@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SALT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SECRET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_URI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_OAUTH_SECTOR_IDENTIFIER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_SECTOR_IDENTIFIER;
@@ -27,14 +27,14 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
 		new FieldColumn("id", COL_OAUTH_SECTOR_IDENTIFIER_ID, true).withIsBackupId(true), 
 		new FieldColumn("uri", COL_OAUTH_SECTOR_IDENTIFIER_URI), 
-		new FieldColumn("salt", COL_OAUTH_SECTOR_IDENTIFIER_SALT),
+		new FieldColumn("secret", COL_OAUTH_SECTOR_IDENTIFIER_SECRET),
 		new FieldColumn("createdBy", COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY),
 		new FieldColumn("createdOn", COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON),
 	};
 	
 	private Long id;
 	private String uri;
-	private String salt;
+	private String secret;
 	private Long createdBy;
 	private Long createdOn;
 	
@@ -48,7 +48,7 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 				DBOSectorIdentifier dbo = new DBOSectorIdentifier();
 				dbo.setId(rs.getLong(COL_OAUTH_SECTOR_IDENTIFIER_ID));
 				dbo.setUri(rs.getString(COL_OAUTH_SECTOR_IDENTIFIER_URI));
-				dbo.setSalt(rs.getString(COL_OAUTH_SECTOR_IDENTIFIER_SALT));
+				dbo.setSecret(rs.getString(COL_OAUTH_SECTOR_IDENTIFIER_SECRET));
 				dbo.setCreatedOn(rs.getLong(COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON));
 				dbo.setCreatedBy(rs.getLong(COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY));
 				return dbo;
@@ -127,17 +127,6 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 		this.uri = uri;
 	}
 
-
-	public String getSalt() {
-		return salt;
-	}
-
-
-	public void setSalt(String salt) {
-		this.salt = salt;
-	}
-
-
 	public Long getCreatedBy() {
 		return createdBy;
 	}
@@ -158,6 +147,16 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 	}
 
 
+	public String getSecret() {
+		return secret;
+	}
+
+
+	public void setSecret(String secret) {
+		this.secret = secret;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -165,7 +164,7 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((salt == null) ? 0 : salt.hashCode());
+		result = prime * result + ((secret == null) ? 0 : secret.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
@@ -195,10 +194,10 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (salt == null) {
-			if (other.salt != null)
+		if (secret == null) {
+			if (other.secret != null)
 				return false;
-		} else if (!salt.equals(other.salt))
+		} else if (!secret.equals(other.secret))
 			return false;
 		if (uri == null) {
 			if (other.uri != null)
@@ -211,7 +210,7 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 
 	@Override
 	public String toString() {
-		return "DBOSectorIdentifier [id=" + id + ", uri=" + uri + ", salt=" + salt + ", createdBy=" + createdBy
+		return "DBOSectorIdentifier [id=" + id + ", uri=" + uri + ", secret=" + secret + ", createdBy=" + createdBy
 				+ ", createdOn=" + createdOn + "]";
 	}
 
