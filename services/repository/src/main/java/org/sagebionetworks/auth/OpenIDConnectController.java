@@ -1,6 +1,8 @@
 package org.sagebionetworks.auth;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -191,7 +193,6 @@ public class OpenIDConnectController {
 		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
-	// TODO authorize via client_secret_basic, then pass clientId as a request param
 	/**
 	 * 
 	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
@@ -209,7 +210,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(
-			@RequestParam(value = AuthorizationConstants.OAUTH_CLIENT_ID_PARAM) String clientId,
+			@RequestParam(value = AuthorizationConstants.OAUTH_VALIDATED_CLIENT_ID_PARAM) String clientId,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM) OAuthGrantType grant_type,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM) String code,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM) String redirectUri,
@@ -217,6 +218,9 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM) String scope,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM) String claims
 			)  throws NotFoundException {
+		if (StringUtils.isEmpty(clientId)) {
+			throw new UnauthenticatedException("OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.");
+		}
 		return serviceProvider.getOpenIDConnectService().getTokenResponse(clientId, grant_type, code, redirectUri, refresh_token, scope, claims);
 	}
 		

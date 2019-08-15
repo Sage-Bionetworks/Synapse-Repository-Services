@@ -256,6 +256,11 @@
 	</filter>
 
 	<filter>
+		<filter-name>oauthClientAuthFilter</filter-name>
+		<filter-class>org.sagebionetworks.auth.OAuthClientAuthFilter</filter-class>
+	</filter>
+
+	<filter>
 		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
 		<filter-class>org.sagebionetworks.auth.CloudMailInAcceptPlainTextFilter</filter-class>
 	</filter>
@@ -282,6 +287,11 @@
 		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
+		<filter-name>oauthClientAuthFilter</filter-name>
+		<url-pattern>/auth/v1/oauth2/token</url-pattern>
 	</filter-mapping>
 
 

@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,6 +154,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	@Override
 	public OAuthClient getOAuthClient(String clientId) {
+		ValidateArgument.required(clientId, "Client ID");
 		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(clientId);
 		DBOOAuthClient dbo = basicDao.getObjectByPrimaryKey(DBOOAuthClient.class, param);
 		return clientDboToDto(dbo);
@@ -175,7 +177,12 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	
 	@Override
 	public String getOAuthClientSecret(String clientId) {
-		return jdbcTemplate.queryForObject(CLIENT_SECRET_SQL_SELECT, String.class, clientId);
+		ValidateArgument.required(clientId, "Client ID");
+		try {
+			return jdbcTemplate.queryForObject(CLIENT_SECRET_SQL_SELECT, String.class, clientId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(clientId+" was not found", e);
+		}
 	}
 
 	@WriteTransaction
