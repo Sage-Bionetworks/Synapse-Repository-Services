@@ -111,4 +111,37 @@ public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcas
 		return null;
 	}
 
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((changeNumber == null) ? 0 : changeNumber.hashCode());
+		result = prime * result + ((sentOn == null) ? 0 : sentOn.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOBroadcastMessage other = (DBOBroadcastMessage) obj;
+		if (changeNumber == null) {
+			if (other.changeNumber != null)
+				return false;
+		} else if (!changeNumber.equals(other.changeNumber))
+			return false;
+		if (sentOn == null) {
+			if (other.sentOn != null)
+				return false;
+		} else if (!sentOn.equals(other.sentOn))
+			return false;
+		return true;
+	}
+
 }

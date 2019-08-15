@@ -20,6 +20,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -43,6 +44,7 @@ import com.google.common.collect.Sets;
 @RunWith(MockitoJUnitRunner.class)
 public class MigratableTableDAOImplUnitTest {
 
+	@InjectMocks
 	private MigratableTableDAOImpl dao;
 	@Mock
 	private JdbcTemplate mockJdbcTemplate;
@@ -75,9 +77,8 @@ public class MigratableTableDAOImplUnitTest {
 	@SuppressWarnings("rawtypes")
 	@Before
 	public void before(){
-		mockJdbcTemplate = Mockito.mock(JdbcTemplate.class);
 		databaseObjectRegister = new ArrayList<MigratableDatabaseObject>();
-		dao = new MigratableTableDAOImpl(mockJdbcTemplate, databaseObjectRegister);
+		dao.setDatabaseObjectRegister(databaseObjectRegister);
 		
 		when(primaryMapping.getTableName()).thenReturn("primary_table_name");
 		when(primary.getTableMapping()).thenReturn(primaryMapping);
