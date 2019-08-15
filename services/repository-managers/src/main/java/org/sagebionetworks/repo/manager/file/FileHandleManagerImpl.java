@@ -42,6 +42,9 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -196,6 +199,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private StatisticsEventsCollector statisticsCollector;
 
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
@@ -370,7 +376,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		AuthorizationStatus authStatus = authResults.get(0).getStatus();
 		authStatus.checkAuthorizationOrElseThrow();
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
-		return getURLForFileHandle(fileHandle);
+		
+		String url = getURLForFileHandle(fileHandle);
+		
+		sendFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
+		
+		return url;
 	}
 
 	/**
@@ -423,6 +434,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
 		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
+	}
+	
+	private void sendFileDownloadEvent(Long userId, FileHandleAssociation association) {
+		statisticsCollector.collectEvent(new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, association.getFileHandleId(), association.getAssociateObjectId(), association.getAssociateObjectType()));
 	}
 
 	@Override
@@ -1197,8 +1212,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 						}
 						if(request.getIncludePreSignedURLs()) {
 							String url = getURLForFileHandle(handle);
+							
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
+							
+							sendFileDownloadEvent(userInfo.getId(), association);
+							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
 						}

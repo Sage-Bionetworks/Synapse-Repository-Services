@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -64,6 +65,8 @@ public class BulkFileDownloadWorkerTest {
 	FileHandleSupport mockBulkDownloadManager;
 	@Mock
 	ProgressCallback mockProgress;
+	@Mock
+	StatisticsEventsCollector mockStatisticsCollector;
 
 	@InjectMocks
 	BulkFileDownloadWorker worker;
@@ -220,6 +223,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, times(1)).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -276,6 +280,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -332,6 +337,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, times(1)).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -363,6 +369,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -394,6 +401,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -423,6 +431,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -453,6 +462,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -505,6 +515,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, times(1)).collectEvent(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}

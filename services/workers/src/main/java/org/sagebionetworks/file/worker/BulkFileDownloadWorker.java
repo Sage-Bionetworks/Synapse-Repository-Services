@@ -15,6 +15,9 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -64,6 +67,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	UserManager userManger;
 	@Autowired
 	FileHandleSupport fileHandleSupport; 
+	@Autowired
+	StatisticsEventsCollector statisticsCollector;
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message)
@@ -134,6 +139,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 								}));
 				resultFileHandleId = resultHandle.getId();
 			}
+			
+			collectDownloadStatistics(user.getId(), results);
 
 			// All of the parts are ready.
 			BulkFileDownloadResponse response = new BulkFileDownloadResponse();
@@ -253,6 +260,15 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			return zipEntryName;
 		} finally {
 			downloadTemp.delete();
+		}
+	}
+	
+	private void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
+		for (FileDownloadSummary summary : results) {
+			if (FileDownloadStatus.SUCCESS.equals(summary.getStatus())) {
+				StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, summary.getFileHandleId(), summary.getAssociateObjectId(), summary.getAssociateObjectType());
+				statisticsCollector.collectEvent(event);
+			}
 		}
 	}
 
