@@ -108,9 +108,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadEntityReference" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
 
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
-
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
 				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewType" />
@@ -130,6 +127,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
+
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->

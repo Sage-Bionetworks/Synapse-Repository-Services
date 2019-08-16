@@ -1,9 +1,7 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -18,21 +16,8 @@ import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jwt.JWTParser;
-import com.nimbusds.jwt.SignedJWT;
-
 public class OAuthAccessTokenFilter implements Filter {
 
-	/*
-	 * The Json Web Key set is unchanged for the life of the Synapse stack so it's OK to cache a copy in this filter.
-	 */
-    private static List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
-    
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response,
 			FilterChain chain) throws IOException, ServletException {
