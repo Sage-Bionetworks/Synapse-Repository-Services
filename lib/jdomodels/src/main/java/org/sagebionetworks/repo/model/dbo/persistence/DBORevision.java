@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTIES_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
@@ -14,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOTATIONS_V1_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
@@ -22,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -56,6 +59,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 					throw new RuntimeException(e);
 				}
 			}
+
+			//todo: write translation from annotation blob columns to json
+
 			return backup;
 		}
 	};
@@ -76,7 +82,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("annotations", COL_REVISION_ANNOS_BLOB),
 		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),
 		new FieldColumn("userAnnotationsV1", COL_REVISION_USER_ANNOTATIONS_V1_BLOB),
-		new FieldColumn("reference", COL_REVISION_REF_BLOB)
+		new FieldColumn("reference", COL_REVISION_REF_BLOB),
+		new FieldColumn("entityPropertiesJSON", COL_REVISION_ENTITY_PROPERTIES_JSON),
+		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON)
 		};
 
 	@Override
@@ -124,6 +132,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private byte[] entityPropertyAnnotations;
 	private byte[] userAnnotationsV1;
 	private byte[] reference;
+	private String entityPropertiesJSON;
+	private String userAnnotationsJSON;
 	// used for migration only
 
 	public Long getOwner() {
@@ -217,6 +227,22 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		this.userAnnotationsV1 = userAnnotationsV1;
 	}
 
+	public String getEntityPropertiesJSON() {
+		return entityPropertiesJSON;
+	}
+
+	public void setEntityPropertiesJSON(String entityPropertiesJSON) {
+		this.entityPropertiesJSON = entityPropertiesJSON;
+	}
+
+	public String getUserAnnotationsJSON() {
+		return userAnnotationsJSON;
+	}
+
+	public void setUserAnnotationsJSON(String userAnnotationsJSON) {
+		this.userAnnotationsJSON = userAnnotationsJSON;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.NODE_REVISION;
@@ -239,108 +265,61 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
-	
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		DBORevision that = (DBORevision) o;
+		return Objects.equals(owner, that.owner) &&
+				Objects.equals(revisionNumber, that.revisionNumber) &&
+				Objects.equals(activityId, that.activityId) &&
+				Objects.equals(label, that.label) &&
+				Objects.equals(comment, that.comment) &&
+				Objects.equals(modifiedBy, that.modifiedBy) &&
+				Objects.equals(modifiedOn, that.modifiedOn) &&
+				Objects.equals(fileHandleId, that.fileHandleId) &&
+				Arrays.equals(columnModelIds, that.columnModelIds) &&
+				Arrays.equals(scopeIds, that.scopeIds) &&
+				Arrays.equals(annotations, that.annotations) &&
+				Arrays.equals(entityPropertyAnnotations, that.entityPropertyAnnotations) &&
+				Arrays.equals(userAnnotationsV1, that.userAnnotationsV1) &&
+				Arrays.equals(reference, that.reference) &&
+				Objects.equals(entityPropertiesJSON, that.entityPropertiesJSON) &&
+				Objects.equals(userAnnotationsJSON, that.userAnnotationsJSON);
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((activityId == null) ? 0 : activityId.hashCode());
-		result = prime * result + Arrays.hashCode(annotations);
-		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
-		result = prime * result + Arrays.hashCode(userAnnotationsV1);
-		result = prime * result + Arrays.hashCode(columnModelIds);
-		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
-		result = prime * result
-				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
-		result = prime * result + ((label == null) ? 0 : label.hashCode());
-		result = prime * result
-				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result
-				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
-		result = prime * result + Arrays.hashCode(reference);
-		result = prime * result
-				+ ((revisionNumber == null) ? 0 : revisionNumber.hashCode());
-		result = prime * result + Arrays.hashCode(scopeIds);
+		int result = Objects.hash(owner, revisionNumber, activityId, label, comment, modifiedBy, modifiedOn, fileHandleId, entityPropertiesJSON, userAnnotationsJSON);
+		result = 31 * result + Arrays.hashCode(columnModelIds);
+		result = 31 * result + Arrays.hashCode(scopeIds);
+		result = 31 * result + Arrays.hashCode(annotations);
+		result = 31 * result + Arrays.hashCode(entityPropertyAnnotations);
+		result = 31 * result + Arrays.hashCode(userAnnotationsV1);
+		result = 31 * result + Arrays.hashCode(reference);
 		return result;
 	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		DBORevision other = (DBORevision) obj;
-		if (activityId == null) {
-			if (other.activityId != null)
-				return false;
-		} else if (!activityId.equals(other.activityId))
-			return false;
-		if (!Arrays.equals(annotations, other.annotations))
-			return false;
-		if (!Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations))
-			return false;
-		if (!Arrays.equals(userAnnotationsV1, other.userAnnotationsV1))
-			return false;
-		if (!Arrays.equals(columnModelIds, other.columnModelIds))
-			return false;
-		if (comment == null) {
-			if (other.comment != null)
-				return false;
-		} else if (!comment.equals(other.comment))
-			return false;
-		if (fileHandleId == null) {
-			if (other.fileHandleId != null)
-				return false;
-		} else if (!fileHandleId.equals(other.fileHandleId))
-			return false;
-		if (label == null) {
-			if (other.label != null)
-				return false;
-		} else if (!label.equals(other.label))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
-			return false;
-		if (owner == null) {
-			if (other.owner != null)
-				return false;
-		} else if (!owner.equals(other.owner))
-			return false;
-		if (!Arrays.equals(reference, other.reference))
-			return false;
-		if (revisionNumber == null) {
-			if (other.revisionNumber != null)
-				return false;
-		} else if (!revisionNumber.equals(other.revisionNumber))
-			return false;
-		if (!Arrays.equals(scopeIds, other.scopeIds))
-			return false;
-		return true;
-	}
+
 	@Override
 	public String toString() {
-		return "DBORevision [owner=" + owner + ", revisionNumber="
-				+ revisionNumber + ", activityId=" + activityId + ", label="
-				+ label + ", comment=" + comment + ", modifiedBy=" + modifiedBy
-				+ ", modifiedOn=" + modifiedOn + ", fileHandleId="
-				+ fileHandleId + ", columnModelIds="
-				+ Arrays.toString(columnModelIds) + ", scopeIds="
-				+ Arrays.toString(scopeIds) + ", annotations="
-				+ Arrays.toString(annotations) + ", entityPropertyAnnotations="
-				+ Arrays.toString(entityPropertyAnnotations) + ", userAnnotationsV1="
-				+ Arrays.toString(userAnnotationsV1) + ", reference="
-				+ Arrays.toString(reference) + "]";
+		return "DBORevision{" +
+				"owner=" + owner +
+				", revisionNumber=" + revisionNumber +
+				", activityId=" + activityId +
+				", label='" + label + '\'' +
+				", comment='" + comment + '\'' +
+				", modifiedBy=" + modifiedBy +
+				", modifiedOn=" + modifiedOn +
+				", fileHandleId=" + fileHandleId +
+				", columnModelIds=" + Arrays.toString(columnModelIds) +
+				", scopeIds=" + Arrays.toString(scopeIds) +
+				", annotations=" + Arrays.toString(annotations) +
+				", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) +
+				", userAnnotationsV1=" + Arrays.toString(userAnnotationsV1) +
+				", reference=" + Arrays.toString(reference) +
+				", entityPropertiesJSON='" + entityPropertiesJSON + '\'' +
+				", userAnnotationsJSON='" + userAnnotationsJSON + '\'' +
+				'}';
 	}
-	
 }

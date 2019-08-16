@@ -1,5 +1,8 @@
 package org.sagebionetworks.util;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.junit.Test;
 
 public class ValidateArgumentTest {
@@ -67,8 +70,13 @@ public class ValidateArgumentTest {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testRequiredNotEmpty_null(){
-		ValidateArgument.requiredNotEmpty(null, "myField");
+	public void testRequiredNotEmpty_nullString(){
+		ValidateArgument.requiredNotEmpty((String) null, "myField");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testRequiredNotEmpty_nullCollection(){
+		ValidateArgument.requiredNotEmpty((Collection) null, "myField");
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -79,5 +87,15 @@ public class ValidateArgumentTest {
 	@Test
 	public void testRequiredNotEmpty_NonEmptyString(){
 		ValidateArgument.requiredNotEmpty("a", "myField");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testRequiredNotEmpty_emptyCollection(){
+		ValidateArgument.requiredNotEmpty(Collections.emptyList(), "myField");
+	}
+
+	@Test
+	public void testRequiredNotEmpty_NonEmptyCollection(){
+		ValidateArgument.requiredNotEmpty(Collections.singleton("my value"), "myField");
 	}
 }
