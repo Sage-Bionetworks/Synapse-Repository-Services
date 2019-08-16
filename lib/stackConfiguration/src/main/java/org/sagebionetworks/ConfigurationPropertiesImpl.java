@@ -8,7 +8,7 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.StackEncrypter;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
@@ -33,7 +33,7 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	
 	private Properties properties;
 
-	private EncryptionUtils encryptionUtils;
+	private StackEncrypter encryptionUtils;
 	
 	private SynapseS3Client s3Client;
 	
@@ -47,7 +47,7 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	 * @param logProvider
 	 */
 	@Inject
-	public ConfigurationPropertiesImpl(EncryptionUtils encryptionUtils, SynapseS3Client s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
+	public ConfigurationPropertiesImpl(StackEncrypter encryptionUtils, SynapseS3Client s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
 		this.log = logProvider.getLogger(ConfigurationPropertiesImpl.class.getName());
 		this.encryptionUtils = encryptionUtils;
 		this.s3Client = s3Client;

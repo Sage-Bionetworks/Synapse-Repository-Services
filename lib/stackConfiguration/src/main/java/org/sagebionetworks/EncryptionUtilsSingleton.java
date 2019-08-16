@@ -1,6 +1,6 @@
 package org.sagebionetworks;
 
-import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.StackEncrypter;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -11,18 +11,18 @@ import com.google.inject.Injector;
  */
 public class EncryptionUtilsSingleton {
 
-	private static final EncryptionUtils singleton;
+	private static final StackEncrypter singleton;
 	static {
 		// Guice provides dependency injection.
 		Injector injector = Guice.createInjector(new StackConfigurationGuiceModule());
-		singleton = injector.getInstance(EncryptionUtils.class);
+		singleton = injector.getInstance(StackEncrypter.class);
 	}
 	
 	/**
 	 * Singleton access to the dependency injected EncryptionUtils
 	 * @return
 	 */
-	public static EncryptionUtils singleton() {
+	public static StackEncrypter singleton() {
 		return singleton;
 	}
 }

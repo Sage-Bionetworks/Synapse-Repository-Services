@@ -11,12 +11,12 @@ import com.amazonaws.services.kms.model.EncryptRequest;
 import com.amazonaws.services.kms.model.EncryptResult;
 import com.google.inject.Inject;
 
-public class EncryptionUtilsImpl implements EncryptionUtils {
+public class StackEncrypterImpl implements StackEncrypter {
 	public static final String UTF_8 = "UTF-8";
 	private AWSKMS awsKeyManagerClient;
 
 	@Inject
-	public EncryptionUtilsImpl(AWSKMS awsKeyManagerClient) {
+	public StackEncrypterImpl(AWSKMS awsKeyManagerClient) {
 		this.awsKeyManagerClient=awsKeyManagerClient;
 	}
 

@@ -1,21 +1,61 @@
 package org.sagebionetworks.securitytools;
 
-public interface EncryptionUtils {
-	
-	/**
-	 * Encrypt a string using the stack's encryption key.  Encrypted bytes are Base64 encoded.
-	 * Note:  This cannot be used for data that has to persist across stacks/instances.
-	 * @param s
-	 * @return
-	 */
-	String encryptStringWithStackKey(String s);
-	
-	/**
-	 * Decrypt a String encoded using the stack's encryption key.
-	 * Note:  This cannot be used to decrypt data encrypted on another stack/instance.
-	 * @param s
-	 * @return
-	 */
-	String decryptStackEncryptedString(String s);
 
+import java.nio.charset.Charset;
+import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
+
+public class EncryptionUtils {
+	
+	private static final String AES_ALGORITHM = "AES";
+	private static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
+
+	private static String encodeSecretKeyAsString(Key key) {
+	    return Base64.encodeBase64URLSafeString(key.getEncoded());
+	}
+	
+	private static SecretKey decodeSecretKeyFromString(String s) throws InvalidKeyException {
+		byte[] bytes = Base64.decodeBase64(s);
+		return new SecretKeySpec(bytes, 0, bytes.length, AES_ALGORITHM); 
+	}
+
+	public static String newSecretKey() {
+		try {
+			SecretKey key = KeyGenerator.getInstance(AES_ALGORITHM).generateKey();
+		    return encodeSecretKeyAsString(key);
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public static String encrypt(String plaintext, String key) {
+		try {
+			Cipher desCipher = Cipher.getInstance(AES_ALGORITHM);
+			desCipher.init(Cipher.ENCRYPT_MODE, decodeSecretKeyFromString(key));
+			byte[] encryptedBytes = desCipher.doFinal(plaintext.getBytes(UTF_8_CHARSET));
+			return Base64.encodeBase64URLSafeString(encryptedBytes); 
+		} catch (GeneralSecurityException e) {
+			throw new RuntimeException(e);
+		}		    
+	}
+
+	public static String decrypt(String encrypted, String key) {
+		try {
+			Cipher desCipher = Cipher.getInstance(AES_ALGORITHM);
+			desCipher.init(Cipher.DECRYPT_MODE, decodeSecretKeyFromString(key));
+			byte[] plaintextBytes = desCipher.doFinal(Base64.decodeBase64(encrypted));
+			return new String(plaintextBytes, UTF_8_CHARSET); 
+		} catch (GeneralSecurityException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

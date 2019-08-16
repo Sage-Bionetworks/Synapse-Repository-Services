@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -113,7 +113,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 			return dbo.getId();
 		} catch (EmptyResultDataAccessException e) {
 			DBOSectorIdentifier dbo = new DBOSectorIdentifier();
-			dbo.setSecret(HMACUtils.newHMACSHA1Key());
+			dbo.setSecret(EncryptionUtils.newSecretKey()); // TODO this should come from manager
 			dbo.setUri(sectorIdentifierUri);
 			dbo.setCreatedBy(createdBy);
 			dbo.setCreatedOn(System.currentTimeMillis());
@@ -141,6 +141,10 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	public String createOAuthClient(OAuthClient client, String secret) {
 		ValidateArgument.required(client, "OAuth client");
 		ValidateArgument.required(client.getCreatedBy(), "Created By");
+		Date now = new Date(System.currentTimeMillis());
+		client.setCreatedOn(now);
+		client.setModifiedOn(now);
+		client.setEtag(UUID.randomUUID().toString());
 		String id = idGenerator.generateNewId(IdType.OAUTH_CLIENT_ID).toString();
 		client.setClientId(id);
 		client.setEtag(UUID.randomUUID().toString());

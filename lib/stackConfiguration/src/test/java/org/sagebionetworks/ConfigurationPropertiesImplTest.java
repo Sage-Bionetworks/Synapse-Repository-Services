@@ -26,7 +26,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.StackEncrypter;
 
 import com.amazonaws.services.kms.model.DecryptResult;
 import com.amazonaws.services.s3.model.S3Object;
@@ -38,7 +38,7 @@ public class ConfigurationPropertiesImplTest {
 	@Mock
 	PropertyProvider mockPropertyProvider;
 	@Mock
-	EncryptionUtils mockEncryptionUtils;
+	StackEncrypter mockEncryptionUtils;
 	@Mock
 	SynapseS3Client mockS3Client;
 	@Mock

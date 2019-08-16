@@ -141,10 +141,40 @@ public class OIDCTokenUtil {
 		return verified;
 	}
 	
-	public static String createOIDCaccessToken() {
-		String result = null; // TODO
-		return result;
-	}
+		public static String createOIDCaccessToken(
+				String subject, 
+				String oauthClientId,
+				long now, 
+				Date auth_time,
+				String uuidtokenId,
+				JSONObject userClaims) {
+			
+			Claims claims = Jwts.claims();
+			
+			for (Iterator<String> it = userClaims.keys(); it.hasNext();) {
+				String key = it.next();
+				claims.put(key, userClaims.get(key));
+			}
+			
+			claims.setIssuer(ISSUER)
+				.setAudience(oauthClientId)
+				.setExpiration(new Date(now+OIDC_CLAIMS_EXPIRATION_TIME_SECONDS*1000L))
+				.setNotBefore(new Date(now))
+				.setIssuedAt(new Date(now))
+				.setId(uuidtokenId)
+				.setSubject(subject);
+			
+			if (auth_time!=null) claims.put("auth_time", auth_time.getTime()/1000L);
+
+			KeyPair keyPair = OIDC_SIGNATURE_KEY_PAIRS.get(0);
+			String kid = JWTUtil.computeKeyId(keyPair.getPublic());
+			String result = Jwts.builder().setClaims(claims).
+				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
+				setHeaderParam("kid", kid).
+				signWith(SignatureAlgorithm.RS256, keyPair.getPrivate()).compact();
+
+			return result;
+		}
 	
 	public static List<JWK> getJSONWebKeySet() {
 		return JSON_WEB_KEY_SET;
