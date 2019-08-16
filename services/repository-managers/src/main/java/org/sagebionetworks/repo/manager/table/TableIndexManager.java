@@ -99,7 +99,7 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(IdAndVersion tableId, boolean isTableView, List<ColumnModel> currentSchema);
+	public List<ColumnChangeDetails> setIndexSchema(IdAndVersion tableId, boolean isTableView, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
