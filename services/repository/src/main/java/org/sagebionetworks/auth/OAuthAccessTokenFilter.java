@@ -1,7 +1,9 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -12,42 +14,44 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
-public class OAuthClientAuthFilter implements Filter {
-	
-	@Autowired
-	private OAuthClientDao oauthClientDao;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.SignedJWT;
 
+public class OAuthAccessTokenFilter implements Filter {
+
+	/*
+	 * The Json Web Key set is unchanged for the life of the Synapse stack so it's OK to cache a copy in this filter.
+	 */
+    private static List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
+    
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response,
 			FilterChain chain) throws IOException, ServletException {
 
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
 
-		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
+		String bearerToken = httpRequest.getHeader("Bearer");
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 		// strip out clientId request param so that the sender can't 'sneak it past us'
 		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM);
 
-		if (up!=null && StringUtils.isNotEmpty(up.getUserName())) {
-			try {
-				String oauthClientId = up.getUserName();
-				String oauthClientSecret = oauthClientDao.getOAuthClientSecret(oauthClientId);
-				// add in the clientId as a request param
-				if (oauthClientSecret.equals(up.getPassword())) {
-					modParams.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, new String[] {oauthClientId});
-				}
-				// let the request continue, but unauthenticated
-			} catch (NotFoundException e) {
-				// let the request continue, but unauthenticated
-			}
+		boolean verified=false;
+		if (bearerToken!=null) {
+			verified = OIDCTokenUtil.validateToken(bearerToken);
+		}
+		
+		if (verified) {
+			// TODO pass the token along. Should it be as a header or as a request parameter?
 		}
 		
 		HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);

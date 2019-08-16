@@ -13,6 +13,8 @@ import java.util.UUID;
 import org.json.JSONObject;
 import org.sagebionetworks.EncryptionUtilsSingleton;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
@@ -27,6 +29,8 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -45,9 +49,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Autowired
 	private OAuthClientDao oauthClientDao;
 	
+	@WriteTransaction
 	@Override
 	public OAuthClientIdAndSecret createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
-		// TODO validation
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous user may not create an OAuth Client");
+		}
+		// TODO validation, esp. sector identifier!!!
 		String secret = UUID.randomUUID().toString();
 		String id = oauthClientDao.createOAuthClient(oauthClient, secret);
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
@@ -59,26 +67,37 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Override
 	public OAuthClient getOpenIDConnectClient(UserInfo userInfo, String id) {
-		// TODO Auto-generated method stub
-		return null;
+		OAuthClient result = oauthClientDao.getOAuthClient(id);
+		if (!result.getCreatedBy().equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
+			throw new UnauthorizedException("You can only retrieve your own OAuth client(s).");
+		}
+		return result;
 	}
 
 	@Override
 	public OAuthClientList listOpenIDConnectClients(UserInfo userInfo, String nextPageToken) {
-		// TODO Auto-generated method stub
-		return null;
+		return oauthClientDao.listOAuthClients(nextPageToken, userInfo.getId());
 	}
 
+	@WriteTransaction
 	@Override
 	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO validation, esp. sector identifier!!!
+		OAuthClient updated = oauthClientDao.updateOAuthClient(oauthClient);
+		if (!updated.getCreatedBy().equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
+			throw new UnauthorizedException("You can only update your own OAuth client(s).");
+		}
+		return updated;
 	}
 
+	@WriteTransaction
 	@Override
-	public Object deleteOpenIDConnectClient(UserInfo userInfo, String id) {
-		// TODO Auto-generated method stub
-		return null;
+	public void deleteOpenIDConnectClient(UserInfo userInfo, String id) {
+		OAuthClient result = oauthClientDao.getOAuthClient(id);
+		if (!result.getCreatedBy().equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
+			throw new UnauthorizedException("You can only delete your own OAuth client(s).");
+		}
+		oauthClientDao.deleteOAuthClient(id);
 	}
 	
 	/*
@@ -107,7 +126,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	private static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
 		ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
-		if (!client.getClient_uri().contains(authorizationRequest.getRedirectUri())) { // TODO is this the right way to match URLs?
+		if (!client.getClient_uri().contains(authorizationRequest.getRedirectUri())) {
 			throw new IllegalArgumentException("Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
@@ -121,7 +140,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		ValidateArgument.required(authorizationRequest, "Authorization Request");
 		ValidateArgument.requiredNotEmpty(authorizationRequest.getClientId(), "Client ID");
-		OAuthClient client = null; // TODO get client from database
+		OAuthClient client;
+		try {
+			client = oauthClientDao.getOAuthClient(authorizationRequest.getClientId());
+		} catch (NotFoundException e) {
+			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
+		}
 		validateAuthenticationRequest(authorizationRequest, client);
 		OIDCAuthorizationRequestDescription result = new OIDCAuthorizationRequestDescription();
 		result.setClient_name(client.getClient_name());
@@ -173,7 +197,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// 	when evaluating the claims object, how do we differentiate between a null value and a missing key?
 		// 	They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
-		OAuthClient client = null; // TODO get client from database
+		OAuthClient client;
+		try {
+			client = oauthClientDao.getOAuthClient(authorizationRequest.getClientId());
+		} catch (NotFoundException e) {
+			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
+		}
 		validateAuthenticationRequest(authorizationRequest, client);
 		 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
@@ -208,7 +237,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	@Override
-	public OIDCTokenResponse getAccessToken(String code, String clientId, String redirectUri) {
+	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri) {
 		String serializedAuthorizationRequest;
 		try {
 			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedString(code);
@@ -226,7 +255,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// enforce expiration of authorization code
 		long now = System.currentTimeMillis();
 		if (authorizationRequest.getAuthorizedAt().getTime()+AUTHORIZATION_CODE_TIME_LIMIT_MILLIS>System.currentTimeMillis()) {
-			throw new IllegalArgumentException("Authorization code is too old.");
+			throw new IllegalArgumentException("Authorization code has expired.");
 		}
 		
 		// ensure redirect URI matches
@@ -245,7 +274,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
-		SectorIdentifier sectorIdentifier = oauthClientDao.getSectorIdentifier(clientId);
+		SectorIdentifier sectorIdentifier = oauthClientDao.getSectorIdentifier(verifiedClientId);
 		String ppid = ppid(authorizationRequest.getUserId(), sectorIdentifier);
 		String oauthClientId = authorizationRequest.getClientId();
 		
@@ -264,7 +293,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Override
 	public Object getUserInfo(JWT accessToken) {
-		// TODO Auto-generated method stub
+		// TODO get claims from accessToken
+		// TODO how do we decide whether to return JSON or JWT?
+		// TODO 
 		return null;
 	}
 

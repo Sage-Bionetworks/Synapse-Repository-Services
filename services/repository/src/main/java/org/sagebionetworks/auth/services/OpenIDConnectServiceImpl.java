@@ -72,7 +72,6 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	public void deleteOpenIDConnectClient(Long userId, String id) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		oidcManager.deleteOpenIDConnectClient(userInfo, id);
-
 	}
 
 	private static final String ISSUER = "https://repo-prod.prod.sagebase.org"+UrlHelpers.AUTH_PATH; // TODO should this be passed in?
@@ -100,7 +99,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public JsonWebKeySet getOIDCJsonWebKeySet() {
-		List<JWK> jwks = OIDCTokenUtil.extractJSONWebKeySet();
+		List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
 		JsonWebKeySet result = new JsonWebKeySet();
 		List<JsonWebKey> keys = new ArrayList<JsonWebKey>();
 		result.setKeys(keys);
@@ -142,9 +141,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public OIDCTokenResponse getTokenResponse(String clientId, OAuthGrantType grantType, String code, String redirectUri, String refreshToken, String scope, String claims) {
+	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, String authorizationCode, String redirectUri, String refreshToken, String scope, String claims) {
 		if (grantType==OAuthGrantType.authorization_code) {
-			return oidcManager.getAccessToken(clientId, code, redirectUri);
+			return oidcManager.getAccessToken(verifiedClientId, authorizationCode, redirectUri);
 		} else if (grantType==OAuthGrantType.refresh_token) {
 			throw new IllegalArgumentException(OAuthGrantType.refresh_token+" unsupported.");
 		} else {

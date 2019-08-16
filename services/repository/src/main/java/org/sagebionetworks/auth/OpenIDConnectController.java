@@ -193,11 +193,15 @@ public class OpenIDConnectController {
 		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
+	// TODO how to suppress verifiedClientId from showing up in API docs
 	/**
 	 * 
 	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
-	 *
-	 * @param grant_type authorization_code or refresh_token
+	 *  
+	 *  Request must include client ID and Secret in an Authentication header
+	 *  
+	 * @param verifiedClientId id of the OAuth Client, verified via Basic Authentication
+	 * @param grant_type  authorization_code or refresh_token
 	 * @param code required if grant_type is authorization_code
 	 * @param redirectUri required if grant_type is authorization_code
 	 * @param refresh_token required if grant_type is refresh_token
@@ -210,7 +214,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(
-			@RequestParam(value = AuthorizationConstants.OAUTH_VALIDATED_CLIENT_ID_PARAM) String clientId,
+			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM) String verifiedClientId,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM) OAuthGrantType grant_type,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM) String code,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM) String redirectUri,
@@ -218,13 +222,14 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM) String scope,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM) String claims
 			)  throws NotFoundException {
-		if (StringUtils.isEmpty(clientId)) {
+		if (StringUtils.isEmpty(verifiedClientId)) {
 			throw new UnauthenticatedException("OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.");
 		}
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(clientId, grant_type, code, redirectUri, refresh_token, scope, claims);
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims);
 	}
 		
 	// TODO add a token validation filter that validates the access token
+	// TODO I think the content type has to be application/jwt
 	/**
 	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
 	 * signing algorithm in its userinfo_signed_response_alg field.  

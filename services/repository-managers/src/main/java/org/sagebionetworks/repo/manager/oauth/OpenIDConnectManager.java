@@ -57,9 +57,8 @@ public interface OpenIDConnectManager {
 	 * userInfo param must be the creator of the client (or else a Synapse administrator)
 	 * @param userInfo
 	 * @param id
-	 * @return
 	 */
-	Object deleteOpenIDConnectClient(UserInfo userInfo, String id);
+	void deleteOpenIDConnectClient(UserInfo userInfo, String id);
 	
 	/**
 	 * 
@@ -78,11 +77,12 @@ public interface OpenIDConnectManager {
 	
 	/**
 	 * 
-	 * @param code
+	 * @param authorizationCode
+	 * @param verifiedClientId Client ID verified via client authentication
 	 * @param redirectUri
 	 * @return
 	 */
-	OIDCTokenResponse getAccessToken(String code, String clientId, String redirectUri);
+	OIDCTokenResponse getAccessToken(String authorizationCode, String verifiedClientId, String redirectUri);
 	
 	/**
 	 * 

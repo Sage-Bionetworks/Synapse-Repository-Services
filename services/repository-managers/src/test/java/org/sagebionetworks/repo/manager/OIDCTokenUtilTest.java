@@ -69,7 +69,7 @@ public class OIDCTokenUtilTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    List<JWK> jwks = OIDCTokenUtil.extractJSONWebKeySet();
+	    List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
 	    JWSVerifier verifier = new RSASSAVerifier((RSAKey)jwks.get(0));
 	    assertTrue(signedJWT.verify(verifier));
 	    
@@ -107,7 +107,7 @@ public class OIDCTokenUtilTest {
 	    // Elsewhere we take the token and JWK printed below and verify they can be used to check
 	    // the signature using standard Python libraries.
 	    System.out.println("Token: "+oidcToken);
-	    System.out.println("JWK: "+OIDCTokenUtil.extractJSONWebKeySet());
+	    System.out.println("JWK: "+OIDCTokenUtil.getJSONWebKeySet());
 	}
 
 }

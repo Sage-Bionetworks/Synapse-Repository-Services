@@ -256,6 +256,11 @@
 	</filter>
 
 	<filter>
+		<filter-name>oauthAccessTokenFilter</filter-name>
+		<filter-class>org.sagebionetworks.auth.OAuthAccessTokenFilter</filter-class>
+	</filter>
+
+	<filter>
 		<filter-name>oauthClientAuthFilter</filter-name>
 		<filter-class>org.sagebionetworks.auth.OAuthClientAuthFilter</filter-class>
 	</filter>
@@ -294,7 +299,10 @@
 		<url-pattern>/auth/v1/oauth2/token</url-pattern>
 	</filter-mapping>
 
-
+	<filter-mapping>
+		<filter-name>oauthAccessTokenFilter</filter-name>
+		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
+	</filter-mapping>
 
 	<!-- appends a new sessionId cookie to the response if the user did not provide one in their request -->
 	<filter>
