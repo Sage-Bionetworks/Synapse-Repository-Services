@@ -60,7 +60,7 @@ public class DBODoiAssociationDaoImplTest {
 		dbo.setCreatedBy(Long.valueOf(associatedById));
 		dbo.setUpdatedBy(Long.valueOf(associatedById));
 		dbo.setId(123L);
-		dbo.setObjectType(objectType);
+		dbo.setDoiObjectType(objectType);
 		dbo.setObjectVersion(versionNumber);
 		dbo.setObjectId(KeyFactory.stringToKey(objectId));
 	}

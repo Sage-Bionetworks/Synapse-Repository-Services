@@ -45,7 +45,7 @@ public class DoiUtilsTest {
 	@Test
 	public void testConvertToDtoV2NotEntity() {
 		DBODoi dbo = setUpDbo();
-		dbo.setObjectType(ObjectType.WIKI);
+		dbo.setDoiObjectType(ObjectType.WIKI);
 		// Call under test
 		DoiAssociation dto = DoiUtils.convertToDtoV2(dbo);
 		assertEquals(objectId.toString(), dto.getObjectId());
@@ -69,7 +69,7 @@ public class DoiUtilsTest {
 		assertEquals(createdBy, dbo.getCreatedBy());
 		assertEquals(updatedBy, dbo.getUpdatedBy());
 		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
-		assertEquals(objectType.name(), dbo.getObjectType());
+		assertEquals(objectType.name(), dbo.getDoiObjectType());
 		// NOTE the new DTO does not support DoiStatus, so it will always be 'READY' in the DBO
 		assertEquals(DoiStatus.READY.name(), dbo.getDoiStatus());
 		assertEquals(eTag, dbo.getETag());
@@ -171,7 +171,7 @@ public class DoiUtilsTest {
 		dbo.setCreatedBy(createdBy);
 		dbo.setUpdatedBy(updatedBy);
 		dbo.setCreatedOn(createdOn);
-		dbo.setObjectType(objectType);
+		dbo.setDoiObjectType(objectType);
 		dbo.setDoiStatus(doiStatus);
 		dbo.setETag(eTag);
 		dbo.setId(id);

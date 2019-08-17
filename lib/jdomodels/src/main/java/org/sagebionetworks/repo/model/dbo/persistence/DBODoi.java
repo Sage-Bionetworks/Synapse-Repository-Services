@@ -36,7 +36,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			new FieldColumn("eTag", COL_DOI_ETAG).withIsEtag(true),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
 			new FieldColumn("objectId", COL_DOI_OBJECT_ID),
-			new FieldColumn("objectType", COL_DOI_OBJECT_TYPE),
+			new FieldColumn("doiObjectType", COL_DOI_OBJECT_TYPE),
 			new FieldColumn("objectVersion", COL_DOI_OBJECT_VERSION),
 			new FieldColumn("createdBy", COL_DOI_CREATED_BY),
 			new FieldColumn("createdOn", COL_DOI_CREATED_ON),
@@ -54,7 +54,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setETag(rs.getString(COL_DOI_ETAG));
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
-					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
+					dbo.setDoiObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
 					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
@@ -109,10 +109,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public void setObjectId(Long objectId) {
 		this.objectId = objectId;
 	}
-	public String getObjectType() {
+	public String getDoiObjectType() {
 		return doiObjectType.name();
 	}
-	public void setObjectType(ObjectType objectType) {
+	public void setDoiObjectType(ObjectType objectType) {
 		this.doiObjectType = objectType;
 	}
 	public Long getObjectVersion() {

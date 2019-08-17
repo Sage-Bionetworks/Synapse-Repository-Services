@@ -22,7 +22,7 @@ public class DoiUtils {
 		DoiAssociation dto = new DoiAssociation();
 		dto.setAssociationId(dbo.getId().toString());
 		dto.setEtag(dbo.getETag());
-		final ObjectType objectType = ObjectType.valueOf(dbo.getObjectType());
+		final ObjectType objectType = ObjectType.valueOf(dbo.getDoiObjectType());
 		if (ObjectType.ENTITY.equals(objectType)) {
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
 		} else {
@@ -81,7 +81,7 @@ public class DoiUtils {
 		// By convention, a DOI DBO should not be created from a v2 DTO unless the DOI is "Ready"
 		dbo.setDoiStatus(DoiStatus.READY);
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
-		dbo.setObjectType(dto.getObjectType());
+		dbo.setDoiObjectType(dto.getObjectType());
 		if (dto.getObjectVersion() == null) {
 			dbo.setObjectVersion(DBODoi.NULL_OBJECT_VERSION);
 		} else {
