@@ -14,12 +14,9 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
-<<<<<<< HEAD
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
-=======
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
->>>>>>> PLFM-5649
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -113,13 +110,8 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-<<<<<<< HEAD
-	public void deleteVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-
-=======
 	public void deleteVersion(String id, Long versionNumber);
 	
->>>>>>> PLFM-5649
 	/**
 	 * Update user generated annotations that are associated with this node
 	 * @param nodeId
@@ -127,13 +119,8 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-<<<<<<< HEAD
 	void updateUserAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
 
-=======
-	public NamedAnnotations getAnnotations(String id);
-	
->>>>>>> PLFM-5649
 	/**
 	 * Update annotations for the node's additional entity properties
 	 * @param nodeId
@@ -141,10 +128,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-<<<<<<< HEAD
 	void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
-=======
-	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber);
 
 	/**
 	 * Update user annotations.
@@ -196,7 +180,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 */
 	<T extends Entity> T getEntityPropertiesForVersion(String id, Long versionNumber, Class<T> entityClass);
->>>>>>> PLFM-5649
 
 	/**
 	 * Get all of the version numbers for this node.
@@ -205,8 +188,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-<<<<<<< HEAD
-	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException;
+	public List<Long> getVersionNumbers(String id)
 
 	/**
 	 * Get User annotations
@@ -231,10 +213,6 @@ public interface NodeDAO {
 
 	Annotations getEntityPropertyAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
 
-=======
-	public List<Long> getVersionNumbers(String id);
-	
->>>>>>> PLFM-5649
 	/**
 	 * Look at the current eTag without locking or changing anything.
 	 * @param id
@@ -253,18 +231,6 @@ public interface NodeDAO {
 	public void updateNode(Node updatedNode);
 	
 	/**
-<<<<<<< HEAD
-=======
-	 * Update a nodes annotations.
-	 * @param nodeId 
-	 * @param updatedAnnos 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos);
-	
-	/**
->>>>>>> PLFM-5649
 	 * Does a given node exist?
 	 * Note: If a node is in the trash, this will still return true.
 	 * Use {@link #isNodeAvailable()} to find nodes that exist and are not
