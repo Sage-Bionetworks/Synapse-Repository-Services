@@ -6,12 +6,14 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
@@ -30,16 +32,18 @@ public class OIDCTokenUtilTest {
 		String user = "101";
 		String oauthClientId = "client-01234";
 		long now = System.currentTimeMillis();
-		Date auth_time = new Date();
+		long auth_time = (new Date()).getTime()/1000L;
 		String tokenId = UUID.randomUUID().toString();
 		String nonce = UUID.randomUUID().toString();
-		JSONObject userClaims = new JSONObject();
 		JSONArray teamIds = new JSONArray();
 		teamIds.put("9876543");
-		userClaims.put("teams", teamIds);
-		userClaims.put("name", "A User");
-		userClaims.put("email", "user@synapse.org");
-		userClaims.put("org", "University of Example");
+		Map<OIDCClaimName, String> userClaims = new HashMap<OIDCClaimName, String>();
+		userClaims.put(OIDCClaimName.team, teamIds.toString());
+		userClaims.put(OIDCClaimName.given_name, "A User");
+		userClaims.put(OIDCClaimName.email, "user@synapse.org");
+		userClaims.put(OIDCClaimName.company, "University of Example");
+		
+		
 
 		String oidcToken = OIDCTokenUtil.createOIDCIdToken(user, oauthClientId, now, nonce, auth_time, tokenId, userClaims);
 		JWT jwt = JWTParser.parse(oidcToken);
@@ -102,7 +106,7 @@ public class OIDCTokenUtilTest {
 		// If the auth_time Claim was requested, either through a specific request for this Claim or by using the max_age parameter, 
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
-	    assertEquals(auth_time.getTime()/1000L, claimsSet.getLongClaim("auth_time").longValue());
+	    assertEquals(auth_time, claimsSet.getLongClaim("auth_time").longValue());
 	    
 	    // Elsewhere we take the token and JWK printed below and verify they can be used to check
 	    // the signature using standard Python libraries.
