@@ -110,10 +110,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		this.objectId = objectId;
 	}
 	public String getObjectType() {
-		return objectType.name();
+		return doiObjectType.name();
 	}
 	public void setObjectType(ObjectType objectType) {
-		this.objectType = objectType;
+		this.doiObjectType = objectType;
 	}
 	public Long getObjectVersion() {
 		return objectVersion;
@@ -150,7 +150,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public String toString() {
 		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
 				+ doiStatus + ", objectId=" + objectId + ", objectType="
-				+ objectType + ", objectVersion=" + objectVersion
+				+ doiObjectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", updatedBy=" + updatedBy + ", updatedOn=" + updatedOn +"]";
 	}
@@ -165,7 +165,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
-		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
+		result = prime * result + ((doiObjectType == null) ? 0 : doiObjectType.hashCode());
 		result = prime * result + ((objectVersion == null) ? 0 : objectVersion.hashCode());
 		result = prime * result + ((updatedBy == null) ? 0 : updatedBy.hashCode());
 		result = prime * result + ((updatedOn == null) ? 0 : updatedOn.hashCode());
@@ -208,7 +208,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 				return false;
 		} else if (!objectId.equals(other.objectId))
 			return false;
-		if (objectType != other.objectType)
+		if (doiObjectType != other.doiObjectType)
 			return false;
 		if (objectVersion == null) {
 			if (other.objectVersion != null)
@@ -232,7 +232,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private String eTag;
 	private DoiStatus doiStatus;
 	private Long objectId;
-	private ObjectType objectType;
+	private ObjectType doiObjectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
