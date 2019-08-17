@@ -205,7 +205,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		toStore.setClient_uri(updatedClient.getClient_uri());
 		if (!toStore.getEtag().equals(updatedClient.getEtag())) {
 			throw new ConflictingUpdateException(
-					"OAuth Client was updated since you last fetched it.  Rretrieve it again and reapply the update.");
+					"OAuth Client was updated since you last fetched it.  Retrieve it again and reapply the update.");
 		}
 		toStore.setEtag(UUID.randomUUID().toString());
 		toStore.setModifiedOn(new Date());
@@ -214,7 +214,8 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		toStore.setSector_identifier_uri(updatedClient.getSector_identifier_uri()); // the caller must have ensured that the sector id exists
 		toStore.setTos_uri(updatedClient.getTos_uri());
 		toStore.setUserinfo_signed_response_alg(updatedClient.getUserinfo_signed_response_alg());
-		toStore.setValidated(updatedClient.getValidated());
+		// validated can only become true if explicitly set by the caller
+		if (updatedClient.getValidated()!=null) toStore.setValidated(updatedClient.getValidated());
 		
 		// The Sector Identifier might have been changed.  If so, update the Sector Identifier record
 		// accordingly and save the new id for the DBOOAuthClient object

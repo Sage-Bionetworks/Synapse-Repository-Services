@@ -53,6 +53,10 @@
     {
       "name": "team",
       "description": "TODO"
+    },
+    {
+      "name": "userid",
+      "description": "The immutable principal ID referencing the Synapse user."
     }
   ]
 }

@@ -84,7 +84,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			"WHERE tou."+COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"=st."+COL_SESSION_TOKEN_PRINCIPAL_ID+
 			" AND st."+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? "
 			+ "AND st."+COL_SESSION_TOKEN_VALIDATED_ON+" > ?";
-
+	
+	private static final String SELECT_SESSION_VALIDATED_ON_BY_PRINCIPAL_ID = 
+			"SELECT st."+COL_SESSION_TOKEN_VALIDATED_ON+
+			" FROM "+TABLE_SESSION_TOKEN+
+			" WHERE st."+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? ";
 	
 	private static final String NULLIFY_SESSION_TOKEN =
 			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
@@ -192,8 +196,15 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	public Session getSessionTokenIfValid(long principalsId) {
-		return getSessionTokenIfValid(principalsId, new Date());
+	public Session getSessionTokenIfValid(long principalId) {
+		return getSessionTokenIfValid(principalId, new Date());
+	}
+	
+	@Override
+	public Date getSessionValidatedOn(long principalId) {
+		Long validatedOn = jdbcTemplate.queryForObject(SELECT_SESSION_VALIDATED_ON_BY_PRINCIPAL_ID, Long.class, principalId);
+		if (validatedOn==null) return null;
+		return new Date(validatedOn);
 	}
 	
 	@Override

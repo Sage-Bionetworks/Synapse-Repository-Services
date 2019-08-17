@@ -41,7 +41,7 @@ public class OIDCTokenUtilTest {
 		userClaims.put("email", "user@synapse.org");
 		userClaims.put("org", "University of Example");
 
-		String oidcToken = OIDCTokenUtil.createOIDCidToken(user, oauthClientId, now, nonce, auth_time, tokenId, userClaims);
+		String oidcToken = OIDCTokenUtil.createOIDCIdToken(user, oauthClientId, now, nonce, auth_time, tokenId, userClaims);
 		JWT jwt = JWTParser.parse(oidcToken);
 		
 		assertTrue(jwt instanceof SignedJWT);
