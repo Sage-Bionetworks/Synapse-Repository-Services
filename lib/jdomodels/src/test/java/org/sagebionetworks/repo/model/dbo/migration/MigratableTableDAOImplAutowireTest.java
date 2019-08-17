@@ -652,7 +652,8 @@ public class MigratableTableDAOImplAutowireTest {
 	public static HashSet<MigrationType> UNTESTABLE_TYPES = Sets.newHashSet(MigrationType.STORAGE_LOCATION,
 			MigrationType.PROJECT_SETTINGS,
 			MigrationType.QUIZ_RESPONSE,
-			MigrationType.VERIFICATION_SUBMISSION);
+			MigrationType.VERIFICATION_SUBMISSION,
+			MigrationType.DOI);
 	
 	/**
 	 * This is a test that validates the a DBO's FieldColumn[] directly map the DBO's row RowMapper.
