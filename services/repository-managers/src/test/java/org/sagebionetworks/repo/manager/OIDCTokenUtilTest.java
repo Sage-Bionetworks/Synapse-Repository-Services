@@ -39,7 +39,7 @@ public class OIDCTokenUtilTest {
 		teamIds.put("9876543");
 		Map<OIDCClaimName, String> userClaims = new HashMap<OIDCClaimName, String>();
 		userClaims.put(OIDCClaimName.team, teamIds.toString());
-		userClaims.put(OIDCClaimName.given_name, "A User");
+		userClaims.put(OIDCClaimName.given_name, "User");
 		userClaims.put(OIDCClaimName.email, "user@synapse.org");
 		userClaims.put(OIDCClaimName.company, "University of Example");
 		
@@ -106,7 +106,7 @@ public class OIDCTokenUtilTest {
 		// If the auth_time Claim was requested, either through a specific request for this Claim or by using the max_age parameter, 
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
-	    assertEquals(auth_time, claimsSet.getLongClaim("auth_time").longValue());
+	    assertEquals(auth_time, claimsSet.getLongClaim(OIDCClaimName.auth_time.name()).longValue());
 	    
 	    // Elsewhere we take the token and JWK printed below and verify they can be used to check
 	    // the signature using standard Python libraries.

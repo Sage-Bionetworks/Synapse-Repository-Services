@@ -185,18 +185,19 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			switch (scope) {
 			case openid:
 				// required for OIDC requests.  Doesn't add anything to what access is requested
-				continue;
-			case userid:
-				scopeDescription = "Your Synapse user id";
 				break;
 			default:
 				// unrecognized scope values should be ignored https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-				continue;
+				break;
 			}
-			scopeDescriptions.add(scopeDescription);
+			if (StringUtils.isNotEmpty(scopeDescription)) {
+				scopeDescriptions.add(scopeDescription);
+			}
 		}
 		
-		if (authorizationRequest.getClaims()!=null) {
+		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
+		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
+		if (scopes.contains(OAuthScope.openid) && authorizationRequest.getClaims()!=null) {
 			Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaims = 
 					authorizationRequest.getClaims().getId_token();
 			if (idTokenClaims!=null) {
@@ -263,20 +264,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 */
 	public Map<OIDCClaimName,String> getUserInfo(String userId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		Map<OIDCClaimName,String> result = new HashMap<OIDCClaimName,String>();
-		
-		for (OAuthScope scope : scopes) {
-			switch (scope) {
-			case openid:
-				// required for OIDC requests.  Doesn't add particular user info
-				break;
-			case userid:
-				result.put(OIDCClaimName.userid, userId);
-				break;
-			default:
-				// unrecognized scope values should be ignored https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-				break;
-			}
-		}
+		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
+		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
+		if (!scopes.contains(OAuthScope.openid)) return result;
 		
 		UserProfile privateUserProfile = userProfileManager.getUserProfile(userId);
 
@@ -387,6 +377,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		OIDCTokenResponse result = new OIDCTokenResponse();
 		
+		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
+		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,String> userInfo = getUserInfo(authorizationRequest.getUserId(), 

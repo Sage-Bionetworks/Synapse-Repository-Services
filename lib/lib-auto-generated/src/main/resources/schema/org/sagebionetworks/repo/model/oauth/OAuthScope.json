@@ -5,10 +5,6 @@
     {
       "name": "openid",
       "description": "Required scope for OpenID Connect"
-    },
-    {
-      "name": "userid",
-      "description": "Synapse user id"
     }
   ]
 }
