@@ -77,16 +77,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private StackConfiguration stackConfiguration;
-	
-	/**
-	 * For unit testing
-	 */
-	public MigratableTableDAOImpl(JdbcTemplate jdbcTemplate,
-			List<MigratableDatabaseObject> databaseObjectRegister) {
-		super();
-		this.jdbcTemplate = jdbcTemplate;
-		this.databaseObjectRegister = databaseObjectRegister;
-	}
 
 	/**
 	 * Default used by Spring
