@@ -125,7 +125,10 @@ public class MultipartManagerV2ImplAutowireTest {
 			}
 		}
 		if (stackConfiguration.getGoogleCloudEnabled()) {
-			projectSettingsManager.deleteProjectSetting(adminUserInfo, googleCloudStorageLocationSetting.getStorageLocationId().toString());
+			try {
+				projectSettingsManager.deleteProjectSetting(adminUserInfo, googleCloudStorageLocationSetting.getStorageLocationId().toString());
+			} catch (Exception e) {
+			}
 		}
 		multipartManagerV2.truncateAll();
 	}
