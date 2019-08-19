@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.IncorrectResultSetColumnCountException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class OAuthClientDaoImpl implements OAuthClientDao {
@@ -93,6 +94,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		dbo.seteTag(dto.getEtag());
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setSectorIdentifierUri(dto.getSector_identifier());
+		dbo.setName(dto.getClient_name());
 		return dbo;
 	}
 
@@ -116,7 +118,6 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		client.setEtag(UUID.randomUUID().toString());
 		String id = idGenerator.generateNewId(IdType.OAUTH_CLIENT_ID).toString();
 		client.setClientId(id);
-		client.setEtag(UUID.randomUUID().toString());
 		DBOOAuthClient dbo = clientDtoToDbo(client);
 		dbo.setSecret(secret);
 		basicDao.createNew(dbo);
@@ -134,8 +135,9 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	@Override
 	public OAuthClientList listOAuthClients(String nextPageToken, Long userId) {
 		NextPageToken nextPage = new NextPageToken(nextPageToken);
-		List<DBOOAuthClient> dboList = jdbcTemplate.queryForList(CLIENT_SQL_SELECT, DBOOAuthClient.class, 
-				userId, nextPage.getLimitForQuery(), nextPage.getOffset());
+		List<DBOOAuthClient> dboList = jdbcTemplate.query(CLIENT_SQL_SELECT, 
+				new Object[] {userId, nextPage.getLimitForQuery(), nextPage.getOffset()}, 
+				(new DBOOAuthClient()).getTableMapping());
 		OAuthClientList result = new OAuthClientList();
 		result.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(dboList));
 		List<OAuthClient> dtoList = new ArrayList<OAuthClient>();
@@ -178,7 +180,8 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		toStore.setModifiedOn(new Date());
 		toStore.setPolicy_uri(updatedClient.getPolicy_uri());
 		toStore.setRedirect_uris(updatedClient.getRedirect_uris()); // the caller must have validated this info
-		toStore.setSector_identifier_uri(updatedClient.getSector_identifier_uri()); // the caller must have ensured that the sector id exists
+		toStore.setSector_identifier(updatedClient.getSector_identifier());
+		toStore.setSector_identifier_uri(updatedClient.getSector_identifier_uri());
 		toStore.setTos_uri(updatedClient.getTos_uri());
 		toStore.setUserinfo_signed_response_alg(updatedClient.getUserinfo_signed_response_alg());
 		// validated can only become true if explicitly set by the caller

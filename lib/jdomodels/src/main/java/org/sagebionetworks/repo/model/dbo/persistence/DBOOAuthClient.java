@@ -3,7 +3,7 @@
  */
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ID;
@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, DBOOAuthClient> {
 	private Long id;
+	private String name;
 	private Long createdOn;
 	private Long modifiedOn;
 	private Long createdBy;
@@ -41,6 +42,7 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_OAUTH_CLIENT_ID, true).withIsBackupId(true),
+		new FieldColumn("name", COL_OAUTH_CLIENT_NAME),
 		new FieldColumn("createdBy", COL_OAUTH_CLIENT_CREATED_BY),
 		new FieldColumn("createdOn", COL_OAUTH_CLIENT_CREATED_ON),
 		new FieldColumn("modifiedOn", COL_OAUTH_CLIENT_MODIFIED_ON),
@@ -59,6 +61,7 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 				DBOOAuthClient client = new DBOOAuthClient();
 				client.setId(rs.getLong(COL_OAUTH_CLIENT_ID));
 				client.setCreatedOn(rs.getLong(COL_OAUTH_CLIENT_CREATED_ON));
+				client.setName(rs.getString(COL_OAUTH_CLIENT_NAME));
 				client.setCreatedBy(rs.getLong(COL_OAUTH_CLIENT_CREATED_BY));
 				client.setModifiedOn(rs.getLong(COL_OAUTH_CLIENT_MODIFIED_ON));
 				client.setSectorIdentifierUri(rs.getString(COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI));
@@ -137,6 +140,14 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 		this.id = id;
 	}
 
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
 	public Long getCreatedOn() {
 		return createdOn;
 	}
@@ -173,9 +184,9 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 
 	@Override
 	public String toString() {
-		return "DBOOAuthClient [id=" + id + ", createdOn=" + createdOn + ", modifiedOn=" + modifiedOn + ", createdBy="
-				+ createdBy + ", eTag=" + eTag + ", secret=" + secret + ", sectorIdentifierUri=" + sectorIdentifierUri
-				+ ", properties=" + Arrays.toString(properties) + "]";
+		return "DBOOAuthClient [id=" + id + ", name=" + name + ", createdOn=" + createdOn + ", modifiedOn=" + modifiedOn
+				+ ", createdBy=" + createdBy + ", eTag=" + eTag + ", secret=" + secret + ", sectorIdentifierUri="
+				+ sectorIdentifierUri + ", properties=" + Arrays.toString(properties) + "]";
 	}
 
 	@Override
@@ -187,6 +198,7 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
 		result = prime * result + ((secret == null) ? 0 : secret.hashCode());
 		result = prime * result + ((sectorIdentifierUri == null) ? 0 : sectorIdentifierUri.hashCode());
@@ -226,6 +238,11 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 			if (other.modifiedOn != null)
 				return false;
 		} else if (!modifiedOn.equals(other.modifiedOn))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
 			return false;
 		if (!Arrays.equals(properties, other.properties))
 			return false;

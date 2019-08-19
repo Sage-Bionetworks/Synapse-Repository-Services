@@ -923,6 +923,7 @@ public class SqlConstants {
 	public static final String DDL_OAUTH_CLIENT = 										"schema/OAuthClient-ddl.sql";
 	public static final String TABLE_OAUTH_CLIENT = 									"OAUTH_CLIENT";
 	public static final String COL_OAUTH_CLIENT_ID = 									"OAUTH_CLIENT_ID";
+	public static final String COL_OAUTH_CLIENT_NAME = 									"OAUTH_CLIENT_NAME";
 	public static final String COL_OAUTH_CLIENT_SECRET = 								"OAUTH_CLIENT_SECRET";
 	public static final String COL_OAUTH_CLIENT_PROPERTIES = 							"OAUTH_CLIENT_PROPERTIES";
 	public static final String COL_OAUTH_CLIENT_ETAG = 									"OAUTH_CLIENT_ETAG";
