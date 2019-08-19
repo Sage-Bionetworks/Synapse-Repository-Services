@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -18,22 +21,24 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-class OAuthClientDaoImplTest {
+public class OAuthClientDaoImplTest {
 	
 	private static final String SHARED_SECRET ="a secret";
-	
+	private static final String SECTOR_IDENTIFIER = "https://foo.bar";
 	private List<String> idsToDelete;
 	
 	@Autowired
 	private OAuthClientDao oauthClientDao;
 
-	@BeforeEach
-	void setUp() throws Exception {
+	@Before
+	public void setUp() throws Exception {
 		idsToDelete = new ArrayList<String>();
+		assertNotNull(oauthClientDao);
+		oauthClientDao.deleteSectorIdentifer(SECTOR_IDENTIFIER);
 	}
 
-	@AfterEach
-	void tearDown() throws Exception {
+	@After
+	public void tearDown() throws Exception {
 		for (String id: idsToDelete) {
 			try {
 				oauthClientDao.deleteOAuthClient(id);
@@ -45,11 +50,14 @@ class OAuthClientDaoImplTest {
 	
 	private static OAuthClient newOAuthClient() {
 		OAuthClient result = new OAuthClient();
+		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		result.setCreatedBy(userId.toString());
+		result.setSector_identifier(SECTOR_IDENTIFIER);
 		return result;
 	}
 
 	@Test
-	void testCreateOAuthClient() {
+	public void testCreateOAuthClient() {
 		OAuthClient oauthClient = newOAuthClient();
 		String id = oauthClientDao.createOAuthClient(oauthClient, SHARED_SECRET);
 		assertNotNull(id);
@@ -57,7 +65,7 @@ class OAuthClientDaoImplTest {
 	}
 
 	@Test
-	void testGetOAuthClientAndSecret() {
+	public void testGetOAuthClientAndSecret() {
 		OAuthClient oauthClient = newOAuthClient();
 		String id = oauthClientDao.createOAuthClient(oauthClient, SHARED_SECRET);
 		assertNotNull(id);
@@ -69,7 +77,7 @@ class OAuthClientDaoImplTest {
 	}
 	
 	@Test
-	void testDeleteOAuthClient() {
+	public void testDeleteOAuthClient() {
 		OAuthClient oauthClient = newOAuthClient();
 		String id = oauthClientDao.createOAuthClient(oauthClient, SHARED_SECRET);
 		assertNotNull(id);
@@ -86,42 +94,42 @@ class OAuthClientDaoImplTest {
 
 
 	@Test
-	void testClientDboToDto() {
+	public void testClientDboToDto() {
 		//fail("Not yet implemented");
 	}
 
 	@Test
-	void testClientDtoToDbo() {
+	public void testClientDtoToDbo() {
 		//fail("Not yet implemented");
 	}
 
 	@Test
-	void testListOAuthClients() {
+	public void testListOAuthClients() {
 		//fail("Not yet implemented");
 	}
 
 	@Test
-	void testSectorIdentifierDboToDto() {
+	public void testSectorIdentifierDboToDto() {
 		//fail("Not yet implemented");
 	}
 
 	@Test
-	void testGetSectorIdentifier() {
+	public void testGetSectorIdentifier() {
 		// fail("Not yet implemented");
 	}
 
 	@Test
-	void testDeleteSectorIdentifer() {
+	public void testDeleteSectorIdentifer() {
 		// fail("Not yet implemented");
 	}
 
 	@Test
-	void testGetOAuthClientSecret() {
+	public void testGetOAuthClientSecret() {
 		// fail("Not yet implemented");
 	}
 
 	@Test
-	void testUpdateOAuthClient() {
+	public void testUpdateOAuthClient() {
 		// fail("Not yet implemented");
 	}
 

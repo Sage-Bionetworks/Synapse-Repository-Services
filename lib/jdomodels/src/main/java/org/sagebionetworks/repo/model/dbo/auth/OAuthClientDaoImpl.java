@@ -35,6 +35,7 @@ import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.IncorrectResultSetColumnCountException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -58,7 +59,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	
 	private static final String CLIENT_SECRET_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET+
 			" FROM "+TABLE_OAUTH_CLIENT
-			+ "WHERE "+COL_OAUTH_CLIENT_ID+" = ?";
+			+ " WHERE "+COL_OAUTH_CLIENT_ID+" = ?";
 
 	@Autowired
 	private DBOBasicDao basicDao;	
@@ -111,7 +112,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		try {
 			DBOSectorIdentifier dbo = jdbcTemplate.queryForObject(SECTOR_IDENTIFIER_SQL_SELECT, DBOSectorIdentifier.class, sectorIdentifierUri);
 			return dbo.getId();
-		} catch (EmptyResultDataAccessException e) {
+		} catch (EmptyResultDataAccessException | IncorrectResultSetColumnCountException e) {
 			DBOSectorIdentifier dbo = new DBOSectorIdentifier();
 			dbo.setSecret(EncryptionUtils.newSecretKey()); // TODO this should come from manager
 			dbo.setUri(sectorIdentifierUri);
@@ -141,6 +142,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	public String createOAuthClient(OAuthClient client, String secret) {
 		ValidateArgument.required(client, "OAuth client");
 		ValidateArgument.required(client.getCreatedBy(), "Created By");
+		ValidateArgument.required(client.getSector_identifier(), "Sector Identifier");
 		Date now = new Date(System.currentTimeMillis());
 		client.setCreatedOn(now);
 		client.setModifiedOn(now);
