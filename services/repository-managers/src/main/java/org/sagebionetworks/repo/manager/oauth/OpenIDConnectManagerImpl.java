@@ -81,6 +81,17 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		oauthClient.setCreatedBy(userInfo.getId().toString());
 		oauthClient.setValidated(false);
 		String secret = UUID.randomUUID().toString();
+		
+		// find or create SectorIdentifier
+		if (!oauthClientDao.doesSectorIdentifierExistForURI(oauthClient.getSector_identifier())) {
+			SectorIdentifier sectorIdentifier = new SectorIdentifier();
+			sectorIdentifier.setCreatedBy(userInfo.getId());
+			sectorIdentifier.setCreatedOn(System.currentTimeMillis());
+			sectorIdentifier.setSecret(EncryptionUtils.newSecretKey());
+			sectorIdentifier.setSectorIdentifierUri(oauthClient.getSector_identifier());
+			oauthClientDao.createSectorIdentifier(sectorIdentifier);
+		}
+		
 		String id = oauthClientDao.createOAuthClient(oauthClient, secret);
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
 		result.setClient_name(oauthClient.getClient_name());
@@ -250,12 +261,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 	
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
-	public static String ppid(String userId, SectorIdentifier sectorIdentifier) {
-		return EncryptionUtils.encrypt(userId, sectorIdentifier.getSecret());
+	public static String ppid(String userId, String sectorIdentifierSecret) {
+		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
 	}
 	
-	public static String getUserIdFromPPID(String ppid, SectorIdentifier sectorIdentifier) {
-		return EncryptionUtils.decrypt(ppid, sectorIdentifier.getSecret());
+	public static String getUserIdFromPPID(String ppid, String sectorIdentifierSecret) {
+		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
 	
 	/*
@@ -371,8 +382,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
-		SectorIdentifier sectorIdentifier = oauthClientDao.getSectorIdentifier(verifiedClientId);
-		String ppid = ppid(authorizationRequest.getUserId(), sectorIdentifier);
+		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(verifiedClientId);
+		String ppid = ppid(authorizationRequest.getUserId(), sectorIdentifierSecret);
 		String oauthClientId = authorizationRequest.getClientId();
 		
 		OIDCTokenResponse result = new OIDCTokenResponse();
@@ -407,12 +418,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String oauthClientId = accessTokenClaimsSet.getAudience().get(0); 
 			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
 			
-			SectorIdentifier sectorIdentifier = oauthClientDao.getSectorIdentifier(oauthClientId);
+			String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(oauthClientId);
 			String ppid = accessTokenClaimsSet.getSubject();
 			Long authTimeSeconds = accessTokenClaimsSet.getLongClaim(OIDCClaimName.auth_time.name());
 			
 			// userId is used to retrieve the user info
-			String userId = getUserIdFromPPID(ppid, sectorIdentifier);
+			String userId = getUserIdFromPPID(ppid, sectorIdentifierSecret);
 			
 			List<OAuthScope> scopes = OIDCTokenUtil.getScopeFromClaims(accessTokenClaimsSet);
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
@@ -427,7 +438,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			// Note: This leaves ambiguous what to do if the client is registered with a signing algorithm
 			// and then sends a request with Accept: application/json or vice versa (registers with no 
 			// algorithm and then sends a request with Accept: application/jwt).
-			boolean returnJson = StringUtils.isEmpty(oauthClient.getUserinfo_signed_response_alg());
+			boolean returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
 			
 			if (returnJson) {
 				// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse

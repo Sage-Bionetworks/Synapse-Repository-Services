@@ -41,7 +41,8 @@
 			"description": "The sector identified, computed by the server from the redirect_uris and sector_identifier_uri fields as described here: https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg"
 		},
 		"userinfo_signed_response_alg": {
-			"type":"string",
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm",
 			"description": "JWS alg algorithm REQUIRED for signing UserInfo Responses. If this is specified, the response will be JWT serialized, and signed using JWS. The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 encoded JSON object using the application/json content-type."
 		},
 		"createdOn": {

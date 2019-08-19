@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.auth;
 
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface OAuthClientDao {
 	
@@ -48,13 +49,28 @@ public interface OAuthClientDao {
 	 * @param clientId
 	 */
 	public void deleteOAuthClient(String clientId);
+	
+	/**
+	 * Create a Sector Identifier with URI and secret.  The URI must be unique across all Sector Identifiers
+	 * @param sectorIdentifier
+	 * @return the id of the new SectorIdentifer
+	 */
+	public String createSectorIdentifier(SectorIdentifier sectorIdentifier);
+	
+	/**
+	 * Find whether there is a Sector Identifier for the given URI.
+	 * @param uri
+	 * @return true iff there is already a Sector Identifier for the given URI
+	 */
+	public boolean doesSectorIdentifierExistForURI(String uri);
 
 	/**
 	 * 
 	 * @param clientId
-	 * @return the SectorIdentifier for the client
+	 * @return the encryption secret for the SectorIdentifier for the given client client
+	 * @throws NotFoundException if there is no Sector Identifier for the given client ID
 	 */
-	public SectorIdentifier getSectorIdentifier(String clientId);
+	public String getSectorIdentifierSecretForClient(String clientId) throws NotFoundException;
 	
 	/**
 	 * Delete the unique sector identifier having the given URI
