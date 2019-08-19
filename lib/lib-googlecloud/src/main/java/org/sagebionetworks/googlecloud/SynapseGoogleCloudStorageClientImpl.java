@@ -67,11 +67,16 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 	}
 
 	@Override
-	public URL createSignedUrl(String bucket, String key, long expirationInMilliseconds, HttpMethod requestMethod, Map<String, String> overrideHeaders) throws StorageException {
-		if (overrideHeaders == null) overrideHeaders = Collections.emptyMap();
+	public URL createSignedUrl(String bucket, String key, long expirationInMilliseconds, HttpMethod requestMethod) throws StorageException {
+		Storage.SignUrlOption signatureType;
+		if (requestMethod.equals(HttpMethod.PUT)) {
+			signatureType = Storage.SignUrlOption.withV4Signature();
+		} else {
+			signatureType = Storage.SignUrlOption.withV2Signature();
+		}
 		return storage.signUrl(BlobInfo.newBuilder(BlobId.of(bucket, key)).build(),
-				expirationInMilliseconds, TimeUnit.MILLISECONDS, Storage.SignUrlOption.withV4Signature(),
-				Storage.SignUrlOption.httpMethod(requestMethod), Storage.SignUrlOption.withExtHeaders(overrideHeaders));
+				expirationInMilliseconds, TimeUnit.MILLISECONDS, signatureType,
+				Storage.SignUrlOption.httpMethod(requestMethod));
 	}
 
 	@Override

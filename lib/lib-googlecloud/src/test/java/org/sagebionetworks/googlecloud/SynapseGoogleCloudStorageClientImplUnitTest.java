@@ -115,8 +115,7 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	public void createSignedUrl() {
 		long expirationTime = 50L;
 		HttpMethod method = HttpMethod.GET;
-		Map<String, String> overrideHeaders = new HashMap<>();
-		client.createSignedUrl(BUCKET_NAME, OBJECT_KEY, expirationTime, method, overrideHeaders);
+		client.createSignedUrl(BUCKET_NAME, OBJECT_KEY, expirationTime, method);
 
 		verify(mockStorage).signUrl(eq(OBJECT_BLOB_INFO), eq(expirationTime),
 				eq(TimeUnit.MILLISECONDS),

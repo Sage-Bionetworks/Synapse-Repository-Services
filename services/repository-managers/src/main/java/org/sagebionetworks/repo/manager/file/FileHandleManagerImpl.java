@@ -10,6 +10,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -28,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
@@ -423,13 +425,27 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
-		Map<String, String> responseHeaderOverrides = new HashMap<>();
-		String contentType = handle.getContentType();
-		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
-			responseHeaderOverrides.put(HttpHeaders.CONTENT_TYPE, contentType);
-		}
+		String signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
 
-		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET, responseHeaderOverrides).toExternalForm();
+		// We have to override content type and content disposition to match the file handle metadata stored in Synapse
+		try {
+			/*
+			 Currently, we cannot override content-type in Google Cloud... In short:
+			  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
+			  - Google does not allow a null content type (defaults to application/octet-stream)
+			 */
+			String contentType = handle.getContentType();
+			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+				signedUrl += "&response-content-type=" + URLEncoder.encode(contentType, "UTF-8");
+			}
+			String fileName = handle.getFileName();
+			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
+				signedUrl += "&response-content-disposition=" + URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(fileName), "UTF-8");
+			}
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException("Error encoding query string for signed URL", e);
+		}
+		return signedUrl;
 	}
 
 	@Override

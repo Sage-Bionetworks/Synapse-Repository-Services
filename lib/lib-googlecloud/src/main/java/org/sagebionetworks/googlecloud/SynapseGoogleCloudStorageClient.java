@@ -34,7 +34,7 @@ public interface SynapseGoogleCloudStorageClient {
 	 * @param requestMethod the HTTP method that the user of the URL can invoke
 	 * @return a URL providing timed access to the resource for the particular method specified
 	 */
-	URL createSignedUrl(String bucket, String key, long expirationInMinutes, HttpMethod requestMethod, Map<String, String> overrideHeaders);
+	URL createSignedUrl(String bucket, String key, long expirationInMinutes, HttpMethod requestMethod);
 
 	/**
 	 * Upload an object to a Google Cloud Storage bucket

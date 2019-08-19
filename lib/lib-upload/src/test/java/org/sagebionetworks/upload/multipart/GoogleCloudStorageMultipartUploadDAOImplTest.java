@@ -83,20 +83,20 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	public void presignedPutURL() throws MalformedURLException {
 		Map<String, String> expectedHeaders = new HashMap<>();
 		expectedHeaders.put(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE);
-		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT, expectedHeaders)).thenReturn(new URL("http://google.com/"));
+		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
 		assertNotNull(googleMpuDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, CONTENT_TYPE));
-		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT,  expectedHeaders);
+		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 
 	@Test
 	public void presignedPutURLNullContentType() throws MalformedURLException {
-		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT, null)).thenReturn(new URL("http://google.com/"));
+		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
 		assertNotNull(googleMpuDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, null));
-		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT,  null);
+		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 
 	@Test

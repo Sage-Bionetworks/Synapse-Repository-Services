@@ -41,12 +41,7 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 
 	@Override
 	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType) {
-		Map<String, String> overrideHeaders = null;
-		if (contentType != null) {
-			overrideHeaders = new HashMap<>();
-			overrideHeaders.put(HttpHeaders.CONTENT_TYPE, contentType);
-		}
-		return googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT, overrideHeaders);
+		return googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
 	}
 
 	@WriteTransaction
