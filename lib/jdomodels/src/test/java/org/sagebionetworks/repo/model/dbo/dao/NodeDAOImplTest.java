@@ -70,7 +70,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -3874,8 +3873,8 @@ public class NodeDAOImplTest {
 
 		String nodeId = nodeDao.createNewNode(privateCreateNew("testEntityPropertiesRoundTrip")).getId();
 
-		nodeDao.updateEntityProperties(nodeId, dockerRepository);
-		DockerRepository retrieved = nodeDao.getEntityProperties(nodeId, DockerRepository.class);
+		nodeDao.updateAdditionalEntityProperties(nodeId, dockerRepository);
+		DockerRepository retrieved = nodeDao.getAdditionalEntityProperties(nodeId, DockerRepository.class);
 
 		assertEquals(dockerRepository.getRepositoryName(), retrieved.getRepositoryName());
 	}
@@ -3889,7 +3888,7 @@ public class NodeDAOImplTest {
 		String nodeId = node.getId();
 		Long oldNodeVersion = node.getVersionNumber();
 
-		nodeDao.updateEntityProperties(nodeId, oldDockerRepository);
+		nodeDao.updateAdditionalEntityProperties(nodeId, oldDockerRepository);
 
 		Node newNode = nodeDao.getNode(nodeId);
 		newNode.setVersionComment("Comment "+2);
@@ -3897,11 +3896,11 @@ public class NodeDAOImplTest {
 		Long newNodeVersion = nodeDao.createNewVersion(newNode);
 		DockerRepository newDockerRepository = new DockerRepository();
 		newDockerRepository.setRepositoryName("newer name");
-		nodeDao.updateEntityProperties(nodeId, newDockerRepository);
+		nodeDao.updateAdditionalEntityProperties(nodeId, newDockerRepository);
 
 
-		DockerRepository retrievedOldVersion = nodeDao.getEntityPropertiesForVersion(nodeId, oldNodeVersion, DockerRepository.class);
-		DockerRepository retrievedNewVersion = nodeDao.getEntityPropertiesForVersion(nodeId, newNodeVersion, DockerRepository.class);
+		DockerRepository retrievedOldVersion = nodeDao.getAdditionalEntityPropertiesForVersion(nodeId, oldNodeVersion, DockerRepository.class);
+		DockerRepository retrievedNewVersion = nodeDao.getAdditionalEntityPropertiesForVersion(nodeId, newNodeVersion, DockerRepository.class);
 
 		assertNotEquals(retrievedOldVersion.getRepositoryName(), retrievedNewVersion.getRepositoryName());
 

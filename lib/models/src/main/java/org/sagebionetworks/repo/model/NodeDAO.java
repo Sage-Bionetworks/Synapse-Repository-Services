@@ -111,24 +111,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public void deleteVersion(String id, Long versionNumber);
-	
-	/**
-	 * Update user generated annotations that are associated with this node
-	 * @param nodeId
-	 * @param updatedAnnos
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	void updateUserAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
-
-	/**
-	 * Update annotations for the node's additional entity properties
-	 * @param nodeId
-	 * @param updatedAnnos
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Update user annotations.
@@ -160,14 +142,14 @@ public interface NodeDAO {
 	 * @param entity
 	 * @param <T>
 	 */
-	<T extends Entity> void updateEntityProperties(String id, T entity);
+	<T extends Entity> void updateAdditionalEntityProperties(String id, T entity);
 
 	/**
 	 * Get Entity properties that could not be stored as a Node
 	 * @param id
 	 * @param <T>
 	 */
-	<T extends Entity> T getEntityProperties(String id, Class<T> entityClass);
+	<T extends Entity> T getAdditionalEntityProperties(String id, Class<T> entityClass);
 
 	/**
 	 * Get Entity properties for a specific version that could not be stored as a Node
@@ -179,7 +161,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	<T extends Entity> T getEntityPropertiesForVersion(String id, Long versionNumber, Class<T> entityClass);
+	<T extends Entity> T getAdditionalEntityPropertiesForVersion(String id, Long versionNumber, Class<T> entityClass);
 
 	/**
 	 * Get all of the version numbers for this node.
@@ -188,30 +170,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public List<Long> getVersionNumbers(String id)
-
-	/**
-	 * Get User annotations
-	 * @param id
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	Annotations getUserAnnotations(String id) throws NotFoundException, DatastoreException;
-
-	/**
-	 * Get User Annotations for a specific version
-	 * @param id
-	 * @param versionNumber
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	Annotations getUserAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-
-	Annotations getEntityPropertyAnnotations(String id) throws NotFoundException, DatastoreException;
-
-	Annotations getEntityPropertyAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+	public List<Long> getVersionNumbers(String id);
 
 	/**
 	 * Look at the current eTag without locking or changing anything.

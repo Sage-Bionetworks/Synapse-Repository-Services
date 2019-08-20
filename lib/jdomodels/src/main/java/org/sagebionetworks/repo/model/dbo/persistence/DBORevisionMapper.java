@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
@@ -58,7 +57,6 @@ public class DBORevisionMapper implements RowMapper<DBORevision> {
 		rev.setScopeIds(rs.getBytes(COL_REVISION_SCOPE_IDS));
 		
 		if(includeAnnotations){
-			rev.setAnnotations(rs.getBytes(COL_REVISION_ANNOS_BLOB));
 			rev.setUserAnnotationsV1(rs.getBytes(COL_REVISION_USER_ANNOTATIONS_V1_BLOB));
 			rev.setEntityPropertyAnnotations(rs.getBytes(COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB));
 		}

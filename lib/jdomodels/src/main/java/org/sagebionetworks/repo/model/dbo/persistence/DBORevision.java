@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
@@ -79,7 +78,6 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID),
 		new FieldColumn("columnModelIds", COL_REVISION_COLUMN_MODEL_IDS),
 		new FieldColumn("scopeIds", COL_REVISION_SCOPE_IDS),
-		new FieldColumn("annotations", COL_REVISION_ANNOS_BLOB),
 		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),
 		new FieldColumn("userAnnotationsV1", COL_REVISION_USER_ANNOTATIONS_V1_BLOB),
 		new FieldColumn("reference", COL_REVISION_REF_BLOB),
