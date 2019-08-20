@@ -16,7 +16,6 @@ import java.util.Map;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -44,7 +43,6 @@ import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 
 public class OIDCTokenUtil {
-	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1"; // TODO  Is this redundant with a string provided elsewhere? Should it be passed in?
 	private static final String ACCESS = "access";
 	private static final String SCOPE = "scope";
 	private static final String USER_INFO_CLAIMS = "odic_claims";
@@ -127,10 +125,6 @@ public class OIDCTokenUtil {
 			if (System.currentTimeMillis()>signedJWT.getJWTClaimsSet().getExpirationTime().getTime()) {
 				verified=false;
 			}
-			// We check issuer (though the validation of the signature should be enough to know it came from us
-			if (!signedJWT.getJWTClaimsSet().getIssuer().equals(ISSUER)) {
-				verified=false;
-			}
 		} catch (ParseException | JOSEException e) {
 			throw new RuntimeException(e);
 		}
@@ -138,6 +132,7 @@ public class OIDCTokenUtil {
 	}
 	
 	public static String createOIDCIdToken(
+			String issuer,
 			String subject, 
 			String oauthClientId,
 			long now, 
@@ -152,7 +147,7 @@ public class OIDCTokenUtil {
 			claims.put(claimName.name(), userInfo.get(claimName));
 		}
 		
-		claims.setIssuer(ISSUER)
+		claims.setIssuer(issuer)
 			.setAudience(oauthClientId)
 			.setExpiration(new Date(now+OIDC_CLAIMS_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))
@@ -205,6 +200,7 @@ public class OIDCTokenUtil {
 	}
 	
 	public static String createOIDCaccessToken(
+			String issuer,
 			String subject, 
 			String oauthClientId,
 			long now, 
@@ -229,7 +225,7 @@ public class OIDCTokenUtil {
 		scopeAndClaims.put(USER_INFO_CLAIMS, userInfoClaims);
 		claims.put(ACCESS, scopeAndClaims);
 		
-		claims.setIssuer(ISSUER)
+		claims.setIssuer(issuer)
 			.setAudience(oauthClientId)
 			.setExpiration(new Date(now+OIDC_CLAIMS_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))

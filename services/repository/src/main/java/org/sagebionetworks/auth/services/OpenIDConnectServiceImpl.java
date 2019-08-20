@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
@@ -74,18 +76,17 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		oidcManager.deleteOpenIDConnectClient(userInfo, id);
 	}
 
-	private static final String ISSUER = "https://repo-prod.prod.sagebase.org"+UrlHelpers.AUTH_PATH; // TODO should this be passed in?
-	
 	@Override
-	public OIDConnectConfiguration getOIDCConfiguration() {
+	public OIDConnectConfiguration getOIDCConfiguration(String endpoint) {
+		String issuer = endpoint;
 		OIDConnectConfiguration result = new OIDConnectConfiguration();
-		result.setIssuer(ISSUER);
-		result.setAuthorization_endpoint("https://www.login.synapse.org/authorize"); // TODO this must be the URL of the login app'
-		result.setToken_endpoint(ISSUER+UrlHelpers.OAUTH_2_TOKEN);
+		result.setIssuer(issuer);
+		result.setAuthorization_endpoint(StackConfigurationSingleton.singleton().getOAuthAuthorizationEndpoint());
+		result.setToken_endpoint(issuer+UrlHelpers.OAUTH_2_TOKEN);
 		// result.setRevocation_endpoint(); // TODO
-		result.setUserinfo_endpoint(ISSUER+UrlHelpers.OAUTH_2_USER_INFO);
-		result.setJwks_uri(ISSUER+UrlHelpers.OAUTH_2_JWKS);
-		result.setRegistration_endpoint(ISSUER+UrlHelpers.OAUTH_2_CLIENT);
+		result.setUserinfo_endpoint(issuer+UrlHelpers.OAUTH_2_USER_INFO);
+		result.setJwks_uri(issuer+UrlHelpers.OAUTH_2_JWKS);
+		result.setRegistration_endpoint(issuer+UrlHelpers.OAUTH_2_CLIENT);
 		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
 		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
 		result.setGrant_types_supported(Collections.singletonList(OAuthGrantType.authorization_code)); // TODO support refresh_token grant type
@@ -141,9 +142,10 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, String authorizationCode, String redirectUri, String refreshToken, String scope, String claims) {
+	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, 
+			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint) {
 		if (grantType==OAuthGrantType.authorization_code) {
-			return oidcManager.getAccessToken(verifiedClientId, authorizationCode, redirectUri);
+			return oidcManager.getAccessToken(oauthEndpoint, verifiedClientId, authorizationCode, redirectUri);
 		} else if (grantType==OAuthGrantType.refresh_token) {
 			throw new IllegalArgumentException(OAuthGrantType.refresh_token+" unsupported.");
 		} else {
@@ -160,9 +162,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public Object getUserInfo(String accessTokenHeader) {
+	public Object getUserInfo(String accessTokenHeader, String oauthEndpoint) {
 		JWT accessToken = getAccessJWTFromAccessTokenHeader(accessTokenHeader);
-		return oidcManager.getUserInfo(accessToken);
+		return oidcManager.getUserInfo(accessToken, oauthEndpoint);
 	}
 	
 	

@@ -82,7 +82,7 @@ public interface OpenIDConnectManager {
 	 * @param redirectUri
 	 * @return
 	 */
-	OIDCTokenResponse getAccessToken(String authorizationCode, String verifiedClientId, String redirectUri);
+	OIDCTokenResponse getAccessToken(String authorizationCode, String verifiedClientId, String redirectUri, String oauthEndpoint);
 	
 	/**
 	 * 
@@ -93,6 +93,6 @@ public interface OpenIDConnectManager {
 	 * @return either a JWT or a JSON Object, depending on whether the client registered a value for
 	 * userinfo_signed_response_alg
 	 */
-	Object getUserInfo(JWT accessToken);
+	Object getUserInfo(JWT accessToken, String oauthEndpoint);
 
 }

@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 public class OAuthAccessTokenFilter implements Filter {
-
+	
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response,
 			FilterChain chain) throws IOException, ServletException {

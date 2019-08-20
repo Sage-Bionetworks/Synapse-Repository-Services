@@ -350,7 +350,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	@Override
-	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri) {
+	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		String serializedAuthorizationRequest;
 		try {
 			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedString(code);
@@ -394,20 +394,20 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,String> userInfo = getUserInfo(authorizationRequest.getUserId(), 
 					scopes, authorizationRequest.getClaims().getId_token());
-			String idToken = OIDCTokenUtil.createOIDCIdToken(ppid, oauthClientId, now, 
+			String idToken = OIDCTokenUtil.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 				authorizationRequest.getNonce(), authTimeSeconds, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
 		
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = OIDCTokenUtil.createOIDCaccessToken(ppid, oauthClientId, now, 
+		String accessToken = OIDCTokenUtil.createOIDCaccessToken(oauthEndpoint, ppid, oauthClientId, now, 
 				authTimeSeconds, accessTokenId, scopes, authorizationRequest.getClaims().getUserinfo());
 		result.setAccess_token(accessToken);
 		return result;
 	}
 
 	@Override
-	public Object getUserInfo(JWT accessToken) {
+	public Object getUserInfo(JWT accessToken, String oauthEndpoint) {
 		try {
 			JWTClaimsSet accessTokenClaimsSet = accessToken.getJWTClaimsSet();
 			// We set exactly one Audience when creating the token
@@ -446,7 +446,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				return userInfo;
 			} else {
 				long now = System.currentTimeMillis();
-				String jwtIdToken = OIDCTokenUtil.createOIDCIdToken(ppid, oauthClientId, now, null,
+				String jwtIdToken = OIDCTokenUtil.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null,
 						authTimeSeconds, UUID.randomUUID().toString(), userInfo);
 				
 				return jwtIdToken;

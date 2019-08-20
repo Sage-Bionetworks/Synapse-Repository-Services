@@ -788,5 +788,13 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getDecodedGoogleCloudServiceAccountCredentials();
+	
+	/**
+	 * Get the authorization endpoint that Synapse OAuth 2.0 clients will redirect 
+ 	 * the browser to, to prompt the user to authorize that client.
+ 	 * 
+	 * @return
+	 */
+	public String getOAuthAuthorizationEndpoint();
 
 }

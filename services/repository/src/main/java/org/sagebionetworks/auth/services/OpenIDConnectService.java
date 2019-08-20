@@ -57,7 +57,7 @@ public interface OpenIDConnectService {
 	 * 
 	 * @return the OIDC Discovery Document
 	 */
-	public OIDConnectConfiguration getOIDCConfiguration();
+	public OIDConnectConfiguration getOIDCConfiguration(String endpoint);
 	
 	/**
 	 * Return the public keys used to validate OIDC JSON Web Token signatures
@@ -90,7 +90,14 @@ public interface OpenIDConnectService {
 	 * @param claims
 	 * @return
 	 */
-	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, String authorizationCode, String redirectUri, String refreshToken, String scope, String claims);
+	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, String authorizationCode, 
+			String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint);
 		
-	public Object getUserInfo(String accessToken);
+	/**
+	 * 
+	 * @param accessToken
+	 * @param oauthEndpoint
+	 * @return
+	 */
+	public Object getUserInfo(String accessToken, String oauthEndpoint);
 }

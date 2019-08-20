@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * 
@@ -40,6 +41,10 @@ The OpenID Connect (OIDC) services implement OAuth 2.0 with the OpenID identity 
 public class OpenIDConnectController {
 	@Autowired
 	private ServiceProvider serviceProvider;
+	
+	public static String getEndpoint(UriComponentsBuilder uriComponentsBuilder) {
+		return uriComponentsBuilder.fragment(null).replaceQuery(null).path(UrlHelpers.AUTH_PATH).build().toString();	
+	}
 
 	/**
 	 * 
@@ -49,9 +54,9 @@ public class OpenIDConnectController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
 	public @ResponseBody
-	OIDConnectConfiguration getOIDCConfiguration() throws NotFoundException {
+	OIDConnectConfiguration getOIDCConfiguration(UriComponentsBuilder uriComponentsBuilder) throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().
-				getOIDCConfiguration();
+				getOIDCConfiguration(getEndpoint(uriComponentsBuilder));
 	}
 	
 	/**
@@ -220,12 +225,13 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM) String redirectUri,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM) String refresh_token,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM) String scope,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM) String claims
+			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM) String claims,
+			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
 		if (StringUtils.isEmpty(verifiedClientId)) {
 			throw new UnauthenticatedException("OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.");
 		}
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims);
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
 	}
 		
 	// TODO add a token validation filter that validates the access token
@@ -243,9 +249,10 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
 	Object getUserInfoGET(
-			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken
+			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken,
+			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
-		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken);
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
 	}
 
 	/**
@@ -261,9 +268,10 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
 	public @ResponseBody
 	Object getUserInfoPOST(
-			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken
+			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken,
+			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
-		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken);
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
 	}
 
 }
