@@ -1,6 +1,6 @@
 package org.sagebionetworks.kinesis;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -9,13 +9,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
-import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
-import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
-import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
-import com.amazonaws.services.kinesisfirehose.model.Record;
-import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +19,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfiguration;
+
+import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
+import com.amazonaws.services.kinesisfirehose.model.Record;
+import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -44,6 +44,9 @@ class AwsKinesisFirehoseLoggerImplTest {
 
 	@Mock
 	AwsKinesisLogRecord mockRecord2;
+	
+	@Mock
+	PutRecordBatchResult mockRecordResult;
 
 
 	String kinesisStreamSuffix = "myKinesisStream";
@@ -57,6 +60,7 @@ class AwsKinesisFirehoseLoggerImplTest {
 		when(mockRecord1.withStack(stack)).thenReturn(mockRecord1);
 		when(mockRecord2.withStack(stack)).thenReturn(mockRecord2);
 		when(mockStackConfig.getStackInstance()).thenReturn(instance);
+		when(mockKinesisFirehoseClient.putRecordBatch(any())).thenReturn(mockRecordResult);
 	}
 
 
