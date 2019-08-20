@@ -69,10 +69,12 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 	@Override
 	public URL createSignedUrl(String bucket, String key, long expirationInMilliseconds, HttpMethod requestMethod) throws StorageException {
 		Storage.SignUrlOption signatureType;
-		if (requestMethod.equals(HttpMethod.PUT)) {
-			signatureType = Storage.SignUrlOption.withV4Signature();
-		} else {
+		if (requestMethod.equals(HttpMethod.GET)) {
+			// V2 allows us to override content disposition via URL parameter
 			signatureType = Storage.SignUrlOption.withV2Signature();
+		} else {
+			// V4 is more permissive and doesn't require certain HTTP headers on upload (i.e. PUT)
+			signatureType = Storage.SignUrlOption.withV4Signature();
 		}
 		return storage.signUrl(BlobInfo.newBuilder(BlobId.of(bucket, key)).build(),
 				expirationInMilliseconds, TimeUnit.MILLISECONDS, signatureType,

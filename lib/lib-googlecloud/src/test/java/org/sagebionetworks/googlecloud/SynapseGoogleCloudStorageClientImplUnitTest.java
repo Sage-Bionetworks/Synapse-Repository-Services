@@ -112,7 +112,7 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	}
 
 	@Test
-	public void createSignedUrl() {
+	public void createSignedGETUrl() {
 		long expirationTime = 50L;
 		HttpMethod method = HttpMethod.GET;
 		client.createSignedUrl(BUCKET_NAME, OBJECT_KEY, expirationTime, method);
@@ -120,9 +120,22 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 		verify(mockStorage).signUrl(eq(OBJECT_BLOB_INFO), eq(expirationTime),
 				eq(TimeUnit.MILLISECONDS),
 				any(Storage.SignUrlOption.class),
+				any(Storage.SignUrlOption.class));
+	}
+
+	@Test
+	public void createSignedPUTUrl() {
+		// No way to inspect the different sign URL option
+		long expirationTime = 50L;
+		HttpMethod method = HttpMethod.PUT;
+		client.createSignedUrl(BUCKET_NAME, OBJECT_KEY, expirationTime, method);
+
+		verify(mockStorage).signUrl(eq(OBJECT_BLOB_INFO), eq(expirationTime),
+				eq(TimeUnit.MILLISECONDS),
 				any(Storage.SignUrlOption.class),
 				any(Storage.SignUrlOption.class));
 	}
+
 
 	@Test
 	public void composeObjects() {
