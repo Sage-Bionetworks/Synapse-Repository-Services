@@ -57,7 +57,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -318,7 +317,7 @@ public class EntityBundleServiceImplTest {
 	@Test
 	public void testDoiV2NotFound() throws Exception {
 		int mask = EntityBundle.DOI;
-		String entityId = "ID that has no object";
+		String entityId = "syn123";
 		when(mockDoiServiceV2.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenThrow(new NotFoundException());
 		// Call under test
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask);
