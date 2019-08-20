@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -40,7 +41,15 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @return
 	 */
-	public List<ColumnModel> getViewSchema(String tableId);
+	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion);
+	
+	/**
+	 * Get the schema for the table view.
+	 * @param user
+	 * @param id
+	 * @return
+	 */
+	public List<String> getViewSchemaIds(IdAndVersion idAndVersion);
 
 
 	/**
@@ -53,14 +62,6 @@ public interface TableViewManager {
 	 * @return
 	 */
 	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId, List<ColumnChange> changes, List<String> orderedColumnIds);
-	
-	/**
-	 * Get the schema for the table view.
-	 * @param user
-	 * @param id
-	 * @return
-	 */
-	public List<String> getTableSchema(String tableId);
 
 	/**
 	 * Update a single entity in a view using the passed row and schema.

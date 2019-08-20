@@ -52,11 +52,13 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
@@ -244,18 +246,38 @@ public class EntityBundleServiceImplTest {
 	@Test
 	public void testTableData() throws Exception {
 		String entityId = "syn123";
-		PaginatedColumnModels page = new PaginatedColumnModels();
+		IdAndVersion idAndVersion = IdAndVersion.parse(entityId);
 		ColumnModel cm = new ColumnModel();
 		cm.setId("9999");
-		page.setResults(Arrays.asList(cm));
-		when(mockTableService.getColumnModelsForTableEntity(TEST_USER1, entityId)).thenReturn(page);
-		when(mockTableService.getMaxRowsPerPage(page.getResults())).thenReturn(12345L);
+		TableBundle tableBundle = new TableBundle();
+		tableBundle.setColumnModels(Arrays.asList(cm));
+		tableBundle.setMaxRowsPerPage(new Long(12345));
+		when(mockTableService.getTableBundle(idAndVersion)).thenReturn(tableBundle);
 		int mask = EntityBundle.TABLE_DATA;
+		// call under test
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
-		assertNotNull(bundle.getTableBundle());
-		assertEquals(page.getResults(), bundle.getTableBundle().getColumnModels());
-		assertEquals(new Long(12345), bundle.getTableBundle().getMaxRowsPerPage());
+		assertEquals(tableBundle, bundle.getTableBundle());
+		verify(mockTableService).getTableBundle(idAndVersion);
+	}
+	
+	@Test
+	public void testTableDataVersion() throws Exception {
+		String entityId = "syn123";
+		Long versionNumber = 22L;
+		IdAndVersion idAndVersion = IdAndVersion.parse(entityId+"."+versionNumber);
+		ColumnModel cm = new ColumnModel();
+		cm.setId("9999");
+		TableBundle tableBundle = new TableBundle();
+		tableBundle.setColumnModels(Arrays.asList(cm));
+		tableBundle.setMaxRowsPerPage(new Long(12345));
+		when(mockTableService.getTableBundle(idAndVersion)).thenReturn(tableBundle);
+		int mask = EntityBundle.TABLE_DATA;
+		// call under test
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, versionNumber, mask, null);
+		assertNotNull(bundle);
+		assertEquals(tableBundle, bundle.getTableBundle());
+		verify(mockTableService).getTableBundle(idAndVersion);
 	}
 
 	@Test

@@ -13,10 +13,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 
 /**
  * Low-level support for all of the table managers. Contains low-level business
@@ -302,17 +304,6 @@ public interface TableManagerSupport {
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
-	 * Get the current ColumnModel list for a table.
-	 * 
-	 * @param tableId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public List<ColumnModel> getColumnModelsForTable(IdAndVersion tableId)
-			throws DatastoreException, NotFoundException;
-
-	/**
 	 * Touch the table and update the etag, modifiedOn, and modifiedBy.
 	 * This will also lock the table.
 	 * 
@@ -424,5 +415,55 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion);
+
+	/**
+	 * 
+	 * @param inputIdAndVersion
+	 * @return
+	 */
+	List<String> getTableSchemaIds(IdAndVersion inputIdAndVersion);
+	
+	/**
+	 * 
+	 * @param inputIdAndVersion
+	 * @return
+	 */
+	List<ColumnModel> getTableSchema(IdAndVersion inputIdAndVersion);
+
+	/**
+	 * Bind the provided column IDs to the default version of the provided table.
+	 * @param schema
+	 * @param tableId
+	 * @return 
+	 */
+	public List<ColumnModel> bindColumnsToDefaultVersionOfObject(List<String> schema, String tableId);
+	
+	public void bindDefaultColumnsToObjectVersion(IdAndVersion build);
+
+	/**
+	 * Calculate the new column ID 
+	 * @param tableId
+	 * @param changes
+	 * @param orderedColumnIds
+	 * @return
+	 */
+	public List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes,
+			List<String> orderedColumnIds);
+
+	/**
+	 * Populate the change details for the given column models.
+	 * @param changes
+	 * @return
+	 */
+	public List<ColumnChangeDetails> getColumnChangeDetails(List<ColumnChange> changes);
+
+	/**
+	 * Get the columns for the given Ids and validate the resulting schema.
+	 * @param columnIds
+	 * @return
+	 */
+	public List<ColumnModel> getAndValidateColumnModels(List<String> columnIds);
+
+	public void unbindAllColumnsAndOwnerFromObject(String deletedId);
 
 }

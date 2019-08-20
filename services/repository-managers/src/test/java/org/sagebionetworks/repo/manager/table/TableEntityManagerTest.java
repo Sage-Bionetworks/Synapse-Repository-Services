@@ -226,7 +226,7 @@ public class TableEntityManagerTest {
 		refSet.setRows(new LinkedList<RowReference>());
 		refSet.setEtag("etag123");
 		
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
 		// Just call the caller.
@@ -1173,14 +1173,14 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testUpdateTableSchema() throws IOException{
-		when(mockColumModelManager.getColumnIdForTable(idAndVersion)).thenReturn(new LinkedList<>());
+		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(new LinkedList<>());
 		when(mockColumModelManager.bindColumnsToDefaultVersionOfObject(newColumnIds, tableId)).thenReturn(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest, transactionId);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
-		verify(mockColumModelManager).getColumnIdForTable(idAndVersion);
+		verify(mockColumModelManager).getColumnIdsForTable(idAndVersion);
 		verify(mockTableManagerSupport).touchTable(user, tableId);
 		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newColumnIds, schemaChangeRequest.getChanges(), transactionId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
@@ -1190,7 +1190,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testUpdateTableSchemaNoUpdate() throws IOException{
 		List<String> currentSchema = Lists.newArrayList("111","222");
-		when(mockColumModelManager.getColumnIdForTable(idAndVersion)).thenReturn(currentSchema);
+		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(currentSchema);
 		// The new schema matches the current
 		List<String> newSchemaIds = Lists.newArrayList("111","222");
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), null)).thenReturn(newSchemaIds);
@@ -1199,7 +1199,7 @@ public class TableEntityManagerTest {
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
-		verify(mockColumModelManager).getColumnIdForTable(idAndVersion);
+		verify(mockColumModelManager).getColumnIdsForTable(idAndVersion);
 		verify(mockTableManagerSupport, never()).touchTable(any(UserInfo.class), anyString());
 		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), any(List.class), any(List.class), anyLong());
 		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(any(IdAndVersion.class));
@@ -1470,7 +1470,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testGetTableSchemaNoVersion(){
-		when(mockColumModelManager.getColumnIdForTable(idAndVersion)).thenReturn(newColumnIds);
+		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(newColumnIds);
 		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
 		assertEquals(newColumnIds, retrievedSchema);
 		// should only lookup the current version when a a version number is requested.
@@ -1480,27 +1480,27 @@ public class TableEntityManagerTest {
 	@Test
 	public void testGetTableSchemaCurrentVersion(){
 		idAndVersion  = IdAndVersion.parse("syn123.1");
-		when(mockColumModelManager.getColumnIdForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
+		when(mockColumModelManager.getColumnIdsForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
 		// requested version matches the current version.
 		when(mockNodeManager.getCurrentRevisionNumber("123")).thenReturn(1L);
 		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
 		assertEquals(newColumnIds, retrievedSchema);
 		verify(mockNodeManager).getCurrentRevisionNumber(anyString());
 		// version number should not be included for the current version
-		verify(mockColumModelManager).getColumnIdForTable(IdAndVersion.parse("syn123"));
+		verify(mockColumModelManager).getColumnIdsForTable(IdAndVersion.parse("syn123"));
 	}
 	
 	@Test
 	public void testGetTableSchemaPreviousVersion(){
 		idAndVersion  = IdAndVersion.parse("syn123.1");
-		when(mockColumModelManager.getColumnIdForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
+		when(mockColumModelManager.getColumnIdsForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
 		// current version is greater than the requested.
 		when(mockNodeManager.getCurrentRevisionNumber("123")).thenReturn(2L);
 		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
 		assertEquals(newColumnIds, retrievedSchema);
 		verify(mockNodeManager).getCurrentRevisionNumber(anyString());
 		// the requested version number should be when it does match the current
-		verify(mockColumModelManager).getColumnIdForTable(IdAndVersion.parse("syn123.1"));
+		verify(mockColumModelManager).getColumnIdsForTable(IdAndVersion.parse("syn123.1"));
 	}
 	
 	/**
@@ -1587,7 +1587,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testSetTableSchemaWithExclusiveLock() {
 		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdForTable(idAndVersion)).thenReturn(oldSchema);
+		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
 		List<String> newSchema = Lists.newArrayList("2","3");
 		List<ColumnChange> expectedChanges = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
 		// call under test

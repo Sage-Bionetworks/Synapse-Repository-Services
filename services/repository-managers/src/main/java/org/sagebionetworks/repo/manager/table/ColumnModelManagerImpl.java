@@ -175,7 +175,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> getAndValidateColumnModels(List<String> ids)
 			throws DatastoreException, NotFoundException {
 		ValidateArgument.required(ids, "ColumnModel IDs");
-		List<ColumnModel> fromDb =  columnModelDao.getColumnModel(ids);
+		List<ColumnModel> fromDb =  columnModelDao.getColumnModels(ids);
 		Map<String, ColumnModel> resultMap = TableModelUtils.createIdToColumnModelMap(fromDb);
 		// column IDs must be unique.
 		Set<String> visitedIds = new HashSet<>(fromDb.size());
@@ -408,7 +408,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds);
+		List<ColumnModel> models = columnModelDao.getColumnModels(columnIds);
 		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();
@@ -427,13 +427,23 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public List<String> getColumnIdForTable(IdAndVersion idAndVersion) {
+	public List<String> getColumnIdsForTable(IdAndVersion idAndVersion) {
 		return columnModelDao.getColumnModelIdsForObject(idAndVersion);
 	}
 
 	@Override
 	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) {
 		return columnModelDao.getColumnModelsForObject(idAndVersion);
+	}
+
+	@Override
+	public ColumnModel createColumnModel(ColumnModel columnModel) {
+		return columnModelDao.createColumnModel(columnModel);
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModels(List<String> columnIds) {
+		return columnModelDao.getColumnModels(columnIds);
 	}
 	
 }

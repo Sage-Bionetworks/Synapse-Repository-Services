@@ -153,7 +153,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, idAndVersion);
 
 		// 3. Get the table's schema
-		List<ColumnModel> columnModels = tableManagerSupport.getColumnModelsForTable(idAndVersion);
+		List<ColumnModel> columnModels = tableManagerSupport.getTableSchema(idAndVersion);
 		if (columnModels.isEmpty()) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}

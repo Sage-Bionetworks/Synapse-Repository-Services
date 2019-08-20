@@ -8,7 +8,6 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -40,11 +39,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Autowired
 	ViewScopeDao viewScopeDao;
 	@Autowired
-	ColumnModelManager columModelManager;
-	@Autowired
 	TableManagerSupport tableManagerSupport;
-	@Autowired
-	ColumnModelDAO columnModelDao;
 	@Autowired
 	NodeManager nodeManager;
 	
@@ -77,7 +72,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, viewTypeMaks);
 		// Define the schema of this view.
-		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
+		tableManagerSupport.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -89,20 +84,14 @@ public class TableViewManagerImpl implements TableViewManager {
 		return viewScopeDao.findViewScopeIntersectionWithPath(entityPath);
 	}
 
-	@Override
-	public List<ColumnModel> getViewSchema(String tableId) {
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		return tableManagerSupport.getColumnModelsForTable(idAndVersion);
-	}
-
 	@WriteTransaction
 	@Override
 	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId,
 			List<ColumnChange> changes, List<String> orderedColumnIds) {
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
+		List<String> newSchemaIds = tableManagerSupport.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
 		validateViewSchemaSize(newSchemaIds);
-		List<ColumnModel> newSchema = columModelManager.bindColumnsToDefaultVersionOfObject(newSchemaIds, viewId);
+		List<ColumnModel> newSchema = tableManagerSupport.bindColumnsToDefaultVersionOfObject(newSchemaIds, viewId);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
@@ -120,11 +109,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 	}
-	
-	@Override
-	public List<String> getTableSchema(String tableId){
-		return columModelManager.getColumnIdForTable(IdAndVersion.parse(tableId));
-	}
+
 
 	/**
 	 * Update an Entity using data form a view.
@@ -219,5 +204,15 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		return updated;
+	}
+
+	@Override
+	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion) {
+		return tableManagerSupport.getTableSchema(idAndVersion);
+	}
+
+	@Override
+	public List<String> getViewSchemaIds(IdAndVersion idAndVersion) {
+		return tableManagerSupport.getTableSchemaIds(idAndVersion);
 	}
 }

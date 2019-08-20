@@ -29,16 +29,17 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -103,7 +105,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
-	ColumnModelDAO columnModelDao;
+	ColumnModelManager columnModelManager;
 	@Autowired
 	NodeDAO nodeDao;
 	@Autowired
@@ -270,7 +272,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public String getSchemaMD5Hex(IdAndVersion idAndVersion) {
-		List<String> columnIds = columnModelDao.getColumnModelIdsForObject(idAndVersion);
+		List<String> columnIds = columnModelManager.getColumnIdsForTable(idAndVersion);
 		return TableModelUtils.createSchemaMD5Hex(columnIds);
 	}
 	
@@ -478,11 +480,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public List<ColumnModel> getColumnModelsForTable(IdAndVersion idAndVersion) throws DatastoreException, NotFoundException {
-		return columnModelDao.getColumnModelsForObject(idAndVersion);
-	}
-	
-	@Override
 	public ColumnModel getColumnModel(EntityField field){
 		ValidateArgument.required(field, "field");
 		// check the cache.
@@ -490,7 +487,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		if(model == null){
 			// not in the cache so create the column.
 			// this call is idempotent so we won't end up creating multiple ColumnModels with same configuration
-			model = columnModelDao.createColumnModel(field.getColumnModel());
+			model = columnModelManager.createColumnModel(field.getColumnModel());
 			defaultColumnCache.put(field, model);
 		}
 		return model;
@@ -589,6 +586,66 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(tableId, "tableId");
 		return nodeDao.touch(user.getId(), tableId);
+	}
+
+	@Override
+	public List<String> getTableSchemaIds(IdAndVersion inputIdAndVersion) {
+		IdAndVersionBuilder lookupBuilder = IdAndVersion.newBuilder();
+		lookupBuilder.setId(inputIdAndVersion.getId());
+		if(inputIdAndVersion.getVersion().isPresent()) {
+			/*
+			 * The current version of any table is always 'in progress' and does not have a
+			 * schema bound to it. This means the schema for the current version always
+			 * matches the latest schema for the table. Therefore, when a caller explicitly
+			 * requests the schema of the current version, the latest schema is returned.
+			 */
+			long currentVersion = nodeDao.getCurrentRevisionNumber(inputIdAndVersion.getId().toString());
+			long inputVersion = inputIdAndVersion.getVersion().get();
+			if(inputVersion != currentVersion) {
+				// Only use the input version number when it is not the current version.
+				lookupBuilder.setVersion(inputVersion);
+			}
+			
+		}
+		// lookup the schema for the appropriate version.
+		return columnModelManager.getColumnIdsForTable(lookupBuilder.build());
+	}
+
+	@Override
+	public List<ColumnModel> getTableSchema(IdAndVersion inputIdAndVersion) {
+		List<String> columnIds = getTableSchemaIds(inputIdAndVersion);
+		return columnModelManager.getColumnModels(columnIds);
+	}
+
+	@Override
+	public List<ColumnModel> bindColumnsToDefaultVersionOfObject(List<String> schema, String tableId) {
+		return columnModelManager.bindColumnsToDefaultVersionOfObject(schema, tableId);
+	}
+
+	@Override
+	public List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes,
+			List<String> orderedColumnIds) {
+		return columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, orderedColumnIds);
+	}
+
+	@Override
+	public void bindDefaultColumnsToObjectVersion(IdAndVersion idAndVersion) {
+		columnModelManager.bindDefaultColumnsToObjectVersion(idAndVersion);	
+	}
+
+	@Override
+	public List<ColumnChangeDetails> getColumnChangeDetails(List<ColumnChange> changes) {
+		return columnModelManager.getColumnChangeDetails(changes);
+	}
+
+	@Override
+	public List<ColumnModel> getAndValidateColumnModels(List<String> columnIds) {
+		return columnModelManager.getAndValidateColumnModels(columnIds);
+	}
+
+	@Override
+	public void unbindAllColumnsAndOwnerFromObject(String deletedId) {
+		columnModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
 	}
 
 }

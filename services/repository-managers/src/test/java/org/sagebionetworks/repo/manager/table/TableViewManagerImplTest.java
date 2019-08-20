@@ -59,11 +59,7 @@ public class TableViewManagerImplTest {
 	@Mock
 	ViewScopeDao viewScopeDao;
 	@Mock
-	ColumnModelManager columnModelManager;
-	@Mock
 	TableManagerSupport tableManagerSupport;
-	@Mock
-	ColumnModelDAO columnModelDao;
 	@Mock
 	NodeManager mockNodeManager;
 	
@@ -107,12 +103,6 @@ public class TableViewManagerImplTest {
 		viewScope = new ViewScope();
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
-		
-		doAnswer(new Answer<ColumnModel>(){
-			@Override
-			public ColumnModel answer(InvocationOnMock invocation) throws Throwable {
-				return (ColumnModel) invocation.getArguments()[0];
-			}}).when(columnModelDao).createColumnModel(any(ColumnModel.class));
 		
 		when(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
 		
@@ -196,7 +186,7 @@ public class TableViewManagerImplTest {
 		// the size should be validated
 		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verify(tableManagerSupport).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -224,7 +214,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(null, viewId);
+		verify(tableManagerSupport).bindColumnsToDefaultVersionOfObject(null, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -234,7 +224,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
-		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verify(tableManagerSupport).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -293,9 +283,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdBy.getColumnModel(),
 				EntityField.etag.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
+		when(tableManagerSupport.getTableSchema(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(viewId);
+		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		assertEquals(rawSchema, result);
 	}
 	
@@ -306,9 +296,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdOn.getColumnModel(),
 				EntityField.benefactorId.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
+		when(tableManagerSupport.getTableSchema(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(viewId);
+		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
@@ -328,13 +318,13 @@ public class TableViewManagerImplTest {
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
-		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
-		when(columnModelManager.bindColumnsToDefaultVersionOfObject(newColumnIds, viewId)).thenReturn(schema);
+		when(tableManagerSupport.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
+		when(tableManagerSupport.bindColumnsToDefaultVersionOfObject(newColumnIds, viewId)).thenReturn(schema);
 		
 		// call under test
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
 		assertEquals(schema, newSchema);
-		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
+		verify(tableManagerSupport).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -351,7 +341,6 @@ public class TableViewManagerImplTest {
 		List<ColumnChange> changes = Lists.newArrayList(change);
 		ColumnModel model = EntityField.benefactorId.getColumnModel();
 		model.setId(change.getNewColumnId());
-		List<ColumnModel> schema = Lists.newArrayList(model);
 		// the new schema should be over the limit
 		List<String> newSchemaColumnIds = new LinkedList<>();
 		int columnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW+1;
@@ -359,8 +348,7 @@ public class TableViewManagerImplTest {
 			newSchemaColumnIds.add(""+i);
 		}
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
-		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
-		when(columnModelManager.getAndValidateColumnModels(newColumnIds)).thenReturn(schema);
+		when(tableManagerSupport.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
 		
 		try {
 			// call under test
@@ -374,8 +362,8 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testGetTableSchema(){
-		when(columnModelManager.getColumnIdForTable(idAndVersion)).thenReturn(schema);
-		List<String> retrievedSchema = manager.getTableSchema(viewId);
+		when(tableManagerSupport.getTableSchemaIds(idAndVersion)).thenReturn(schema);
+		List<String> retrievedSchema = manager.getViewSchemaIds(idAndVersion);
 		assertEquals(schema, retrievedSchema);
 	}
 	

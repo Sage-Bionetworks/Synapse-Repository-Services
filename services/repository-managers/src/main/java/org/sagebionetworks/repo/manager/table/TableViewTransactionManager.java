@@ -124,7 +124,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		ValidateArgument.required(change.getToAppend(), "AppendableRowSetRequest.toAppend");
 		ValidateArgument.required(change.getEntityId(), "AppendableRowSetRequest.entityId");
 		IdAndVersion idAndVersion = IdAndVersion.parse(change.getEntityId());
-		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(idAndVersion);
+		List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(idAndVersion);
 		if(change.getToAppend() instanceof PartialRowSet){
 			return applyPartialRowSet(progressCallback, user, currentSchema, (PartialRowSet)change.getToAppend());
 		}else if(change.getToAppend() instanceof RowSet){

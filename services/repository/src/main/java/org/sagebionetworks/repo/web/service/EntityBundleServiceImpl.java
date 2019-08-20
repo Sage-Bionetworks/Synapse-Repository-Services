@@ -32,10 +32,14 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableBundle;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -77,6 +81,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 		EntityBundle eb = new EntityBundle();
 		Entity entity = null;
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(entityId, versionNumber);
 		if ((mask & (EntityBundle.ENTITY | EntityBundle.FILE_NAME)) > 0) {
 			if(versionNumber == null) {
 				entity = serviceProvider.getEntityService().getEntity(userId, entityId);
@@ -155,12 +160,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setFileHandles(fileHandles);
 			}
 		}
-		if((mask & EntityBundle.TABLE_DATA) > 0 ){
-			PaginatedColumnModels paginated = serviceProvider.getTableServices().getColumnModelsForTableEntity(userId, entityId);
-			TableBundle tableBundle = new TableBundle();
-			tableBundle.setColumnModels(paginated.getResults());
-			tableBundle.setMaxRowsPerPage(serviceProvider.getTableServices().getMaxRowsPerPage(paginated.getResults()));
-			eb.setTableBundle(tableBundle);
+		if ((mask & EntityBundle.TABLE_DATA) > 0) {
+			// This mask only has meaning for implementations of tables.
+			eb.setTableBundle(serviceProvider.getTableServices().getTableBundle(idAndVersion));
 		}
 		if((mask & EntityBundle.ROOT_WIKI_ID) > 0 ){
 			 try {

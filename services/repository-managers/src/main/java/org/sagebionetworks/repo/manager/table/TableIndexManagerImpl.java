@@ -441,7 +441,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		 * fix for tables with schema changes that were not captured in the table's
 		 * history.
 		 */
-		List<ColumnModel> boundSchema = tableManagerSupport.getColumnModelsForTable(idAndVersion);
+		List<ColumnModel> boundSchema = tableManagerSupport.getTableSchema(idAndVersion);
 		boolean isTableView = false;
 		List<ColumnChangeDetails> changes = setIndexSchema(idAndVersion, isTableView, boundSchema);
 		if(changes != null && !changes.isEmpty()) {

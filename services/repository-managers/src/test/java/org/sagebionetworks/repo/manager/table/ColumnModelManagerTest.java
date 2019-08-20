@@ -113,7 +113,7 @@ public class ColumnModelManagerTest {
 				TableModelTestUtils.createColumn(333L),
 				TableModelTestUtils.createColumn(555L)
 				);
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(newSchema);
+		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(newSchema);
 		
 		underLimitSchemaIds = Lists.newArrayList();
 		underLimitSchema = Lists.newArrayList();
@@ -497,7 +497,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -513,7 +513,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -532,7 +532,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -546,7 +546,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
@@ -561,7 +561,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
@@ -576,7 +576,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		List<ColumnModel> l = columnModelManager.validateSchemaSize(scheamIds);
 		assertNotNull(l);
 	}
@@ -594,7 +594,7 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testUnderDataPerColumnLimit(){
 		String objectId = "syn123";
-		when(mockColumnModelDAO.getColumnModel(underLimitSchemaIds)).thenReturn(underLimitSchema);
+		when(mockColumnModelDAO.getColumnModels(underLimitSchemaIds)).thenReturn(underLimitSchema);
 		//call under test
 		columnModelManager.bindColumnsToDefaultVersionOfObject(underLimitSchemaIds, objectId);
 	}
@@ -605,7 +605,7 @@ public class ColumnModelManagerTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testOverDataPerColumnLimit(){
 		String objectId = "syn123";
-		when(mockColumnModelDAO.getColumnModel(overLimitSchemaIds)).thenReturn(overLimitSchema);
+		when(mockColumnModelDAO.getColumnModels(overLimitSchemaIds)).thenReturn(overLimitSchema);
 		//call under test
 		columnModelManager.bindColumnsToDefaultVersionOfObject(overLimitSchemaIds, objectId);
 	}
@@ -625,7 +625,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		try {
 			//call under test
 			columnModelManager.bindColumnsToDefaultVersionOfObject(scheamIds, objectId);
@@ -640,7 +640,7 @@ public class ColumnModelManagerTest {
 		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
 		List<ColumnModel> columns = TableModelTestUtils.createColumnsForChanges(changes);
 		
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(columns);
+		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(columns);
 		
 		List<ColumnChangeDetails> expected = Lists.newArrayList(
 				new ColumnChangeDetails(null, columns.get(0)),
@@ -673,7 +673,7 @@ public class ColumnModelManagerTest {
 		List<ColumnChange> changes = Lists.newArrayList(change);
 		
 		// return both columns
-		when(mockColumnModelDAO.getColumnModel(colIds)).thenReturn(Lists.newArrayList(oldCol, newCol));
+		when(mockColumnModelDAO.getColumnModels(colIds)).thenReturn(Lists.newArrayList(oldCol, newCol));
 		
 		// Call under test
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
@@ -725,7 +725,7 @@ public class ColumnModelManagerTest {
 			changes.add(change);
 			newSchemaIds.add(cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(overLimitSchema);
+		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(overLimitSchema);
 		try {
 			// call under test.
 			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newSchemaIds);

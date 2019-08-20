@@ -108,8 +108,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Autowired
 	FileHandleDao fileHandleDao;
 	@Autowired
-	ColumnModelManager columModelManager;
-	@Autowired
 	TableManagerSupport tableManagerSupport;
 	@Autowired
 	TransactionTemplate readCommitedTransactionTemplate;
@@ -146,7 +144,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(delta, "RowSet");
-		List<ColumnModel> currentSchema = columModelManager.getColumnModelsForTable(user, tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(idAndVersion);
 		// Validate the request is under the max bytes per requested
 		TableModelUtils.validateRequestSize(currentSchema, delta, maxBytesPerRequest);
 		// For this case we want to capture the resulting RowReferenceSet
@@ -165,7 +164,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
 		Validate.required(partial, "RowsToAppendOrUpdate");
-		List<ColumnModel> currentSchema = columModelManager.getColumnModelsForTable(user, tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(idAndVersion);
 		// Validate the request is under the max bytes per requested
 		TableModelUtils.validateRequestSize(partial, maxBytesPerRequest);
 		TableModelUtils.validatePartialRowSet(partial, currentSchema);
@@ -195,7 +195,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(user, idAndVersion);
 		
-		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(idAndVersion);
+		List<ColumnModel> columns = tableManagerSupport.getTableSchema(idAndVersion);
 		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns, rowsToDelete.getEtag());
 		for(Long rowId: rowsToDelete.getRowIds()){
 			SparseRow row = changeSet.addEmptyRow();
@@ -564,7 +564,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	void setTableSchemaWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema,
 			final String tableId) {
 		// Lookup the current schema for this table
-		List<String> oldSchema = columModelManager.getColumnIdForTable(IdAndVersion.parse(tableId));
+		List<String> oldSchema = tableManagerSupport.getTableSchemaIds(IdAndVersion.parse(tableId));
 		// Calculate the schema change (if there is one).
 		List<ColumnChange> schemaChange = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
 		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
@@ -648,14 +648,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			UserInfo userInfo, TableSchemaChangeRequest changes,
 			TableIndexManager indexManager) {
 		// first determine what the new Schema will be
-		columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
+		tableManagerSupport.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
 		// If the change includes an update then the schema change must be checked against the temp table.
 		boolean includesUpdate = containsColumnUpdate(changes.getChanges());
 		if(includesUpdate){
 			if(indexManager == null){
 				throw new IllegalStateException("A temporary table is needed to validate but was not provided.");
 			}
-			List<ColumnChangeDetails> details = columModelManager.getColumnChangeDetails(changes.getChanges());
+			List<ColumnChangeDetails> details = tableManagerSupport.getColumnChangeDetails(changes.getChanges());
 			IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 			// attempt to apply the schema change to the temp copy of the table.
 			indexManager.alterTempTableSchmea(idAndVersion, details);
@@ -749,15 +749,15 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			UserInfo userInfo, TableSchemaChangeRequest changes, long transactionId) {
 		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 		// First determine if this will be an actual change to the schema.
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		List<String> currentSchemaIds = columModelManager.getColumnIdForTable(idAndVersion);
+		List<String> newSchemaIds = tableManagerSupport.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
+		List<String> currentSchemaIds = tableManagerSupport.getTableSchemaIds(idAndVersion);
 		List<ColumnModel> newSchema = null;
 		if (!currentSchemaIds.equals(newSchemaIds)) {
 			// This will 
 			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), transactionId);
 		}else {
 			// The schema will not change so return the current schema.
-			newSchema = columModelManager.getColumnModelsForObject(idAndVersion);
+			newSchema = tableManagerSupport.getTableSchema(idAndVersion);
 		}
 		
 		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
@@ -778,7 +778,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			List<ColumnChange> changes, long transactionId) {
 		// This is a change.
 		tableManagerSupport.touchTable(userInfo, tableId);
-		List<ColumnModel> newSchema = columModelManager.bindColumnsToDefaultVersionOfObject(newSchemaIds, tableId);
+		List<ColumnModel> newSchema = tableManagerSupport.bindColumnsToDefaultVersionOfObject(newSchemaIds, tableId);
 		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes,
 				transactionId);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
@@ -791,40 +791,15 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId,
 			long versionNumber) throws IOException {
 		List<ColumnChange> changes = tableRowTruthDao.getSchemaChangeForVersion(tableId, versionNumber);
-		return columModelManager.getColumnChangeDetails(changes);
+		return tableManagerSupport.getColumnChangeDetails(changes);
 	}
-
-
-	@Override
-	public List<String> getTableSchema(final IdAndVersion inputIdAndVersion) {
-		IdAndVersionBuilder lookupBuilder = IdAndVersion.newBuilder();
-		lookupBuilder.setId(inputIdAndVersion.getId());
-		if(inputIdAndVersion.getVersion().isPresent()) {
-			/*
-			 * The current version of any table is always 'in progress' and does not have a
-			 * schema bound to it. This means the schema for the current version always
-			 * matches the latest schema for the table. Therefore, when a caller explicitly
-			 * requests the schema of the current version, the latest schema is returned.
-			 */
-			long currentVersion = nodeManager.getCurrentRevisionNumber(inputIdAndVersion.getId().toString());
-			long inputVersion = inputIdAndVersion.getVersion().get();
-			if(inputVersion != currentVersion) {
-				// Only use the input version number when it is not the current version.
-				lookupBuilder.setVersion(inputVersion);
-			}
-			
-		}
-		// lookup the schema for the appropriate version.
-		return columModelManager.getColumnIdForTable(lookupBuilder.build());
-	}
-
 	
 	@Override
 	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException {
 		ValidateArgument.required(change, "TableRowChange");
 		ValidateArgument.required(change.getKeyNew(), "TableRowChange.keyNew");
 		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);
-		List<ColumnModel> schema = columModelManager.getAndValidateColumnModels(dto.getColumnIds());
+		List<ColumnModel> schema = tableManagerSupport.getAndValidateColumnModels(dto.getColumnIds());
 		return new SparseChangeSet(dto, schema);
 	}
 
@@ -849,7 +824,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@WriteTransaction
 	@Override
 	public void deleteTable(String deletedId) {
-		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
+		tableManagerSupport.unbindAllColumnsAndOwnerFromObject(deletedId);
 		tableRowTruthDao.deleteAllRowDataForTable(deletedId);
 		tableTransactionDao.deleteTable(deletedId);
 	}
@@ -953,7 +928,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// bump the parent etag so the change can migrate.
 		tableTransactionDao.updateTransactionEtag(transactionId);
 		// bind the current schema to the version
-		columModelManager.bindDefaultColumnsToObjectVersion(IdAndVersion.newBuilder().setId(tableId).setVersion(version).build());
+		tableManagerSupport.bindDefaultColumnsToObjectVersion(IdAndVersion.newBuilder().setId(tableId).setVersion(version).build());
 	}
 
 
@@ -982,6 +957,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		SnapshotResponse response = new SnapshotResponse();
 		response.setSnapshotVersionNumber(snapshotVersion);
 		return response;
+	}
+
+
+	@Override
+	public List<String> getTableSchema(IdAndVersion idAndVersion) {
+		return tableManagerSupport.getTableSchemaIds(idAndVersion);
 	}
 
 }

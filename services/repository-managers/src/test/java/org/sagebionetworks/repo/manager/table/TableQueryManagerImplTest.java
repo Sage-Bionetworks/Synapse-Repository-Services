@@ -178,7 +178,7 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
 		
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
 			@Override
@@ -690,7 +690,7 @@ public class TableQueryManagerImplTest {
 	@Test 
 	public void testQuerySinglePageEmptySchema() throws Exception {
 		// Return no columns
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
 		query.setIsConsistent(true);
@@ -907,7 +907,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightEmptySchema() throws Exception {
 		// Return no columns
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
 		List<SortItem> sortList= null;
 		// call under test
 		try {
@@ -1069,7 +1069,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testRunQueryDownloadAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
 		// Return no columns
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select * from "+tableId);
 		request.setSort(null);
