@@ -68,14 +68,14 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	}
 	
 	@Override
-	public EntityBundle getEntityBundle(Long userId, String entityId, int mask, HttpServletRequest request)
+	public EntityBundle getEntityBundle(Long userId, String entityId, int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return getEntityBundle(userId, entityId, null, mask, request);
+		return getEntityBundle(userId, entityId, null, mask);
 	}
 
 	@Override
 	public EntityBundle getEntityBundle(Long userId, String entityId,
-			Long versionNumber, int mask, HttpServletRequest request)
+			Long versionNumber, int mask)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException, ParseException {
 
@@ -224,7 +224,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	@WriteTransaction
 	@Override
-	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
 			throw new IllegalArgumentException("Invalid request: no entity to create");
 		}
@@ -252,13 +252,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
 		}
 		
-		return getEntityBundle(userId, entity.getId(), partsMask, request);
+		return getEntityBundle(userId, entity.getId(), partsMask);
 	}
 	
 	@WriteTransaction
 	@Override
 	public EntityBundle updateEntityBundle(Long userId, String entityId,
-			EntityBundleCreate ebc, String activityId, HttpServletRequest request)
+			EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,
 			ACLInheritanceException, ParseException {
@@ -298,7 +298,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
 		}
 		
-		return getEntityBundle(userId, entityId, partsMask, request);
+		return getEntityBundle(userId, entityId, partsMask);
 	}
 	
 }
