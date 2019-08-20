@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -382,7 +383,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getUserProfile());
 		if (!UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, profileId)) {
-			if (result.getIsVerified()) {
+			if (BooleanUtils.isTrue(result.getIsVerified())) {
 				UserProfileManagerUtils.clearPrivateFields(result.getVerificationSubmission());
 			} else {
 				// public doesn't get to see the VerificationSubmission unless it's 'APPROVED'
