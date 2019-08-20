@@ -223,21 +223,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
-	public void testCreateProjectSetting() {
-
-	}
-
-	@Test
-	public void testCreateProjectSettingForNonProject() {
-
-	}
-
-	@Test
-	public void testCreateProjectSettingUnauthorized() {
-
-	}
-
-	@Test
 	public void testCreateExternalS3StorageLocationSetting_HappyCase() throws Exception {
 		when(userProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
 
