@@ -169,8 +169,22 @@ public interface ColumnModelManager {
 	 */
 	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion);
 
+	/**
+	 * Create a new column model.  Column models are immutable and cannot be deleted once they are used.
+	 * @param model
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
 	public ColumnModel createColumnModel(ColumnModel columnModel);
 
+	/**
+	 * Get a a list of ColumnModel from a list of columnModel ID strings
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	public List<ColumnModel> getColumnModels(List<String> columnIds);
 }
 
