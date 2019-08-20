@@ -706,7 +706,7 @@ public class TableEntityManagerTest {
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, times(2)).collectEvent(any(StatisticsFileEvent.class));
 	}
 
 	@Test
