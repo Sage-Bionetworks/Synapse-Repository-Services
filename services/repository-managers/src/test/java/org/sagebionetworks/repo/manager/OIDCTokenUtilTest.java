@@ -45,7 +45,7 @@ public class OIDCTokenUtilTest {
 		
 		
 
-		String oidcToken = OIDCTokenUtil.createOIDCIdToken("https://synapse.org/auth/v1", user, oauthClientId, now, nonce, auth_time, tokenId, userClaims);
+		String oidcToken = OIDCTokenUtil.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", user, oauthClientId, now, nonce, auth_time, tokenId, userClaims);
 		JWT jwt = JWTParser.parse(oidcToken);
 		
 		assertTrue(jwt instanceof SignedJWT);
