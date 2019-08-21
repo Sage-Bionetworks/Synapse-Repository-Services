@@ -34,8 +34,6 @@ public class SqlConstants {
 	public static final String COL_REVISION_ACTIVITY_ID		= "ACTIVITY_ID";
 	public static final String COL_REVISION_LABEL			= "LABEL";
 	public static final String COL_REVISION_COMMENT			= "COMMENT";
-	public static final String COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB = "ENTITY_PROPERTY_ANNOTATIONS";
-	public static final String COL_REVISION_USER_ANNOTATIONS_V1_BLOB = "USER_ANNOTATIONS_V1";
 	public static final String COL_REVISION_USER_ANNOS_JSON	= "USER_ANNOTATIONS";
 	public static final String COL_REVISION_ENTITY_PROPERTIES_JSON = "ENTITY_PROPERTIES";
 	public static final String COL_REVISION_REF_BLOB		= "REFERENCE";

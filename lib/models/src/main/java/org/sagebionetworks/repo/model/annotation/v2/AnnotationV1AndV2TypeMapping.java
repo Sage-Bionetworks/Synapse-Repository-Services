@@ -16,7 +16,7 @@ enum AnnotationV1AndV2TypeMapping {
 				return Double.valueOf(string);
 			} ),
 	LONG(Long.class, AnnotationsV2ValueType.LONG, Object::toString, Long::valueOf),
-	DATE(Date.class, AnnotationsV2ValueType.DATE,
+	DATE(Date.class, AnnotationsV2ValueType.TIMESTAMP_MS,
 			(Date date) -> Long.toString(date.getTime()),
 			(String timestampMillis) -> new Date(Long.parseLong(timestampMillis)));
 

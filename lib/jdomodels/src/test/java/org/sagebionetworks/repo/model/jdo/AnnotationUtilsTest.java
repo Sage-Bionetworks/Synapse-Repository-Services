@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,6 +30,9 @@ import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
@@ -257,77 +261,16 @@ public class AnnotationUtilsTest {
 		Assertions.assertEquals(additionalAnnotations.getStringAnnotations(), deserialziedAdditionalAnnotations.getStringAnnotations());
 	}
 
-	/**
-	 * See PLFM_4222 & PLFM-4184
-	 */
-	@Test
-	public void testGetSingleStringNull(){
-		// call under test.
-		String value = AnnotationUtils.getSingleString(null, 50);
-		Assertions.assertEquals(null, value);
-	}
-
-	/**
-	 * See PLFM_4222 & PLFM-4184
-	 */
-	@Test
-	public void testGetSingleStringEmpty(){
-		List list = new LinkedList<String>();
-		// call under test
-		String value = AnnotationUtils.getSingleString(list, 50);
-		Assertions.assertEquals(null, value);
-	}
-
-	/**
-	 * See PLFM_4222 & PLFM-4184
-	 */
-	@Test
-	public void testGetSingleStringNullValue(){
-		List list = new LinkedList<String>();
-		list.add(null);
-		// call under test
-		String value = AnnotationUtils.getSingleString(list, 50);
-		Assertions.assertEquals(null, value);
-	}
-
-	@Test
-	public void testGetSingleStringString(){
-		List list = new LinkedList<String>();
-		list.add("foo");
-		// call under test
-		String value = AnnotationUtils.getSingleString(list, 50);
-		Assertions.assertEquals("foo", value);
-	}
-
-	@Test
-	public void testGetSingleStringLargeString(){
-		List list = new LinkedList<String>();
-		list.add("123456");
-		int maxSize = 4;
-		// call under test
-		String value = AnnotationUtils.getSingleString(list, maxSize);
-		Assertions.assertEquals("1234", value);
-	}
-
-	@Test
-	public void testGetSingleStringDate(){
-		List list = new LinkedList<Date>();
-		list.add(new Date(888));
-		// call under test
-		String value = AnnotationUtils.getSingleString(list, 50);
-		Assertions.assertEquals("888", value);
-	}
-
 
 	@Test
 	public void testTranslate(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		Annotations annos = new Annotations();
-		annos.addAnnotation("aString", "someString");
-		annos.addAnnotation("aLong", 123L);
-		annos.addAnnotation("aDouble", 1.22);
-		annos.addAnnotation("aDate", new Date(444L));
+		AnnotationsV2 annos = new AnnotationsV2();
+		AnnotationsV2Utils.putAnnotations(annos, "aString", "someString", AnnotationsV2ValueType.STRING);
+		AnnotationsV2Utils.putAnnotations(annos, "aLong", "123", AnnotationsV2ValueType.LONG);
+		AnnotationsV2Utils.putAnnotations(annos, "aDouble", "1.22", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2Utils.putAnnotations(annos, "aDate", "444", AnnotationsV2ValueType.TIMESTAMP_MS);
 
 		List<AnnotationDTO> expected = Lists.newArrayList(
 				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
@@ -349,22 +292,8 @@ public class AnnotationUtilsTest {
 	public void testTranslateEmptyList(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		Annotations annos = new Annotations();
-		annos.getStringAnnotations().put("emptyList", new LinkedList<String>());
-		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
-		assertNotNull(results);
-		Assertions.assertEquals(0, results.size());
-	}
-
-	/**
-	 * See PLFM-4224
-	 */
-	@Test
-	public void testTranslateNullList(){
-		long entityId = 123;
-		int maxAnnotationChars = 6;
-		Annotations annos = new Annotations();
-		annos.getStringAnnotations().put("nullList", null);
+		AnnotationsV2 annos = new AnnotationsV2();
+		AnnotationsV2Utils.putAnnotations(annos, "emptyList", Collections.emptyList(), AnnotationsV2ValueType.STRING);
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
@@ -374,32 +303,11 @@ public class AnnotationUtilsTest {
 	public void testTranslateNullValueInList(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		Annotations annos = new Annotations();
-		annos.getStringAnnotations().put("listWithNullValue", Lists.newArrayList((String)null));
+		AnnotationsV2 annos = new AnnotationsV2();
+		AnnotationsV2Utils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsV2ValueType.STRING);
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
-	}
-
-	/**
-	 * Test for PLFM-4371.
-	 *
-	 * Duplicate keys with two different types.
-	 */
-	@Test
-	public void testTranslateWithDuplicateKeysAdditional(){
-		long entityId = 123;
-		int maxAnnotationChars = 100;
-		Annotations annos = new Annotations();
-		String key = "duplicateKey";
-		annos.addAnnotation(key, "valueOne");
-		annos.addAnnotation(key, 123.1);
-		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
-		assertNotNull(results);
-		// only the double annotation should remain.
-		Assertions.assertEquals(1, results.size());
-		AnnotationDTO dto = results.get(0);
-		Assertions.assertEquals("123.1", dto.getValue());
 	}
 
 	@Test

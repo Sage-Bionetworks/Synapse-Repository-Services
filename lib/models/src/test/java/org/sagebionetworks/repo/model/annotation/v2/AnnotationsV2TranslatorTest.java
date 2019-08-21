@@ -5,15 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.entity.query.Value;
-import org.sagebionetworks.util.ValidateArgument;
 
 class AnnotationsV2TranslatorTest {
 
@@ -56,8 +51,8 @@ class AnnotationsV2TranslatorTest {
 		AnnotationsV2Utils.putAnnotations(annotationsV2, doubleKey1, Arrays.asList("1.2", "2.3"), AnnotationsV2ValueType.DOUBLE);
 		AnnotationsV2Utils.putAnnotations(annotationsV2, doubleKey2, Arrays.asList("3.4", "4.5"), AnnotationsV2ValueType.DOUBLE);
 
-		AnnotationsV2Utils.putAnnotations(annotationsV2, dateKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.DATE);
-		AnnotationsV2Utils.putAnnotations(annotationsV2, dateKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.DATE);
+		AnnotationsV2Utils.putAnnotations(annotationsV2, dateKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2Utils.putAnnotations(annotationsV2, dateKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.TIMESTAMP_MS);
 
 		AnnotationsV2Utils.putAnnotations(annotationsV2, longKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.LONG);
 		AnnotationsV2Utils.putAnnotations(annotationsV2, longKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.LONG);

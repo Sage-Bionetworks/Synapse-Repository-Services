@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,6 +16,10 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 
@@ -81,41 +86,12 @@ public class AnnotationUtils {
 
 
 	/**
-	 * Get a single string value from a list of objects.
-	 * @param values
-	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
-	 * @return
-	 */
-	public static String getSingleString(List values, int maxAnnotationChars){
-		if(values == null){
-			return null;
-		}
-		if(values.isEmpty()){
-			return null;
-		}
-		Object value = values.get(0);
-		if(value == null){
-			return null;
-		}
-		String stringValue = null;
-		if(value instanceof Date){
-			stringValue = ""+((Date)value).getTime();
-		}else{
-			stringValue = value.toString();
-		}
-		if(stringValue.length() > maxAnnotationChars){
-			stringValue = stringValue.substring(0, maxAnnotationChars);
-		}
-		return stringValue;
-	}
-
-	/**
 	 * Translate from NamedAnnotations to a list of AnnotationDTO.
 	 * @param annos
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<AnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
+	public static List<AnnotationDTO> translate(Long entityId, AnnotationsV2 annos, int maxAnnotationChars) {
 		LinkedHashMap<String, AnnotationDTO> map = new LinkedHashMap<>();
 		if(annos != null){
 			// add additional
@@ -130,36 +106,20 @@ public class AnnotationUtils {
 	}
 
 	private static void addAnnotations(Long entityId, int maxAnnotationChars,
-									   LinkedHashMap<String, AnnotationDTO> map, Annotations additional) {
-		for(String key: additional.getStringAnnotations().keySet()){
-			List values = additional.getStringAnnotations().get(key);
-			String value = getSingleString(values, maxAnnotationChars);
+									   LinkedHashMap<String, AnnotationDTO> map, AnnotationsV2 additional) {
+		for(Map.Entry<String, AnnotationsV2Value> entry: additional.getAnnotations().entrySet()){
+			String key = entry.getKey();
+			AnnotationsV2Value annotationsV2Value = entry.getValue();
+
+
+			String value = AnnotationsV2Utils.getSingleValue(annotationsV2Value);
 			if(value != null){
-				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.STRING, value));
-			}
-		}
-		// longs
-		for(String key: additional.getLongAnnotations().keySet()){
-			List values = additional.getLongAnnotations().get(key);
-			String value = getSingleString(values, maxAnnotationChars);
-			if(value != null){
-				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.LONG, value));
-			}
-		}
-		// doubles
-		for(String key: additional.getDoubleAnnotations().keySet()){
-			List values = additional.getDoubleAnnotations().get(key);
-			String value = getSingleString(values, maxAnnotationChars);
-			if(value != null){
-				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, value));
-			}
-		}
-		// dates
-		for(String key: additional.getDateAnnotations().keySet()){
-			List values = additional.getDateAnnotations().get(key);
-			String value = getSingleString(values, maxAnnotationChars);
-			if(value != null){
-				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.DATE, value));
+				//enforce value max character limit
+				if(value.length() > maxAnnotationChars){
+					value = value.substring(0, maxAnnotationChars);
+				}
+
+				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), value));
 			}
 		}
 	}

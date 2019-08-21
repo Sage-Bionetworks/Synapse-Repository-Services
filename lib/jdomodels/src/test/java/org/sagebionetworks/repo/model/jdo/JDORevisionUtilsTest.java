@@ -34,19 +34,14 @@ public class JDORevisionUtilsTest {
 		byte[] blob = new byte[size];
 		rand.nextBytes(blob);
 
-		byte[] userAnnotations = new byte[size];
-		rand.nextBytes(userAnnotations);
-		byte[] entityPropertyAnnotations = new byte[size];
-		rand.nextBytes(entityPropertyAnnotations);
-
 		DBONode owner = new DBONode();
 		owner.setId(12l);
 		DBORevision original = new DBORevision();
 		original.setOwner(owner.getId());
 		original.setRevisionNumber(2L);
 		original.setAnnotations(blob);
-		original.setUserAnnotationsV1(userAnnotations);
-		original.setEntityPropertyAnnotations(entityPropertyAnnotations);
+		original.setUserAnnotationsJSON("{}");
+		original.setEntityPropertiesJSON("{}");
 		original.setLabel("0.3.9");
 		original.setModifiedBy(Long.parseLong(createdById));
 		original.setModifiedOn(3123L);
