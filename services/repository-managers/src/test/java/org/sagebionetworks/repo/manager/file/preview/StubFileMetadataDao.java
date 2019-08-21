@@ -9,6 +9,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -75,7 +76,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key) {
+	public long getNumberOfReferencesToFile(FileHandleMetadataType metadataType, String bucketName, String key) {
 		// TODO Auto-generated method stub
 		return 0;
 	}

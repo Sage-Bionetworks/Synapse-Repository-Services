@@ -14,8 +14,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -181,7 +181,7 @@ public class FileMetadataUtilsTest {
 		dbo.setEtag("etag");
 		dbo.setId(456L);
 		dbo.setKey("key");
-		dbo.setMetadataType(MetadataType.S3);
+		dbo.setMetadataType(FileHandleMetadataType.S3);
 		dbo.setName("name");
 		dbo.setPreviewId(4444L);
 		dbo.setIsPreview(false);
@@ -215,7 +215,7 @@ public class FileMetadataUtilsTest {
 		// Clone from the backup
 		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
 		assertNotNull(clone);
-		assertEquals(MetadataType.S3, clone.getMetadataTypeEnum());
+		assertEquals(FileHandleMetadataType.S3, clone.getMetadataTypeEnum());
 		assertTrue(clone.getIsPreview());
 	}
 

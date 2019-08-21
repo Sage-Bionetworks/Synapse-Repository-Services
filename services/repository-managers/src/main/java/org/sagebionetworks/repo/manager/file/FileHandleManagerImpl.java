@@ -51,9 +51,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -309,7 +309,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				S3FileHandle s3Handle = (S3FileHandle) handle;
 				// at this point, we need to note that multiple S3FileHandles can point to the same bucket/key. We need
 				// to check if this is the last S3FileHandle to point to this S3 object
-				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.S3.toString(), s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
+				if (fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
 					// Delete the file from S3
 					s3Client.deleteObject(s3Handle.getBucketName(), s3Handle.getKey());
 				}
@@ -317,7 +317,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			if (handle instanceof GoogleCloudFileHandle) {
 				GoogleCloudFileHandle googleCloudFileHandle = (GoogleCloudFileHandle) handle;
 				// Make sure no other file handles point to the underlying file before deleting it
-				if (fileHandleDao.getNumberOfReferencesToFile(DBOFileHandle.MetadataType.GOOGLE_CLOUD.toString(), googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey()) <= 1) {
+				if (fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.GOOGLE_CLOUD, googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey()) <= 1) {
 					// Delete the file from Google Cloud
 					googleCloudStorageClient.deleteObject(googleCloudFileHandle.getBucketName(), googleCloudFileHandle.getKey());
 				}
@@ -422,7 +422,27 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
-		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
+		String signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
+
+		// We have to override content type and content disposition to match the file handle metadata stored in Synapse
+		try {
+			/*
+			 Currently, we cannot override content-type in Google Cloud... In short:
+			  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
+			  - Google does not allow a null content type (defaults to application/octet-stream)
+			 */
+			String contentType = handle.getContentType();
+			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+				signedUrl += "&response-content-type=" + URLEncoder.encode(contentType, "UTF-8");
+			}
+			String fileName = handle.getFileName();
+			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
+				signedUrl += "&response-content-disposition=" + URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(fileName), "UTF-8");
+			}
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException("Error encoding query string for signed URL", e);
+		}
+		return signedUrl;
 	}
 
 	@Override

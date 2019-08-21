@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
@@ -304,9 +305,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 
 	@Override
-	public long getNumberOfReferencesToFile(String metadataType, String bucketName, String key) {
+	public long getNumberOfReferencesToFile(FileHandleMetadataType metadataType, String bucketName, String key) {
 		try {
-			return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, metadataType, bucketName, key);
+			return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, metadataType.toString(), bucketName, key);
 		} catch (NullPointerException e) {
 			return 0L;
 		}

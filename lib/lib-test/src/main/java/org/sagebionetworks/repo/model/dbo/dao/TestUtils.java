@@ -61,29 +61,14 @@ public class TestUtils {
 		return meta;
 	}
 
-	/**
-	 * Helper to create a S3FileHandle
-	 *
-	 * @return
-	 */
 	public static GoogleCloudFileHandle createGoogleCloudFileHandle(String createdById, String fileHandleId) {
 		return createGoogleCloudFileHandle(createdById, 123, fileHandleId);
 	}
 
-	/**
-	 * Helper to create a S3FileHandle
-	 *
-	 * @return
-	 */
 	public static GoogleCloudFileHandle createGoogleCloudFileHandle(String createdById, int sizeInBytes, String fileHandleId) {
 		return createGoogleCloudFileHandle(createdById, sizeInBytes, "content type", fileHandleId);
 	}
 
-	/**
-	 * Helper to create a S3FileHandle
-	 *
-	 * @return
-	 */
 	public static GoogleCloudFileHandle createGoogleCloudFileHandle(String createdById, int sizeInBytes, String contentType, String fileHandleId) {
 		GoogleCloudFileHandle meta = new GoogleCloudFileHandle();
 		meta.setBucketName("bucketName");

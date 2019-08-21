@@ -177,10 +177,10 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations)
+	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> storageLocationIds)
 			throws DatastoreException, NotFoundException {
 		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_IDS,
-				Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, locations),
+				Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, storageLocationIds),
 				new RowMapper<UploadDestinationLocation>() {
 					@Override
 					public UploadDestinationLocation mapRow(ResultSet rs, int rowNum) throws SQLException {
