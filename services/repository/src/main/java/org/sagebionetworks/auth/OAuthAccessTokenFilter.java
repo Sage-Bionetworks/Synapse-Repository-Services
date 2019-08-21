@@ -13,7 +13,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
-import org.sagebionetworks.repo.manager.OIDCTokenUtil;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 public class OAuthAccessTokenFilter implements Filter {

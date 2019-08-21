@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -13,7 +13,10 @@ import java.util.UUID;
 
 import org.json.JSONArray;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
@@ -26,26 +29,39 @@ import com.nimbusds.jwt.SignedJWT;
 
 public class OIDCTokenUtilTest {
 
+	private static final String SUBJECT_ID = "101";
+	private static final String CLIENT_ID = "client-01234";
+	private static final long NOW = System.currentTimeMillis();
+	private static final long AUTH_TIME = (new Date()).getTime()/1000L;
+	private static final String TOKEN_ID = UUID.randomUUID().toString();
+	private static final String NONCE = UUID.randomUUID().toString();
+	private static final JSONArray TEAM_IDS = new JSONArray();
+	private static final Map<OIDCClaimName, String> USER_CLAIMS;
+	private static OIDCClaimsRequestDetails ESSENTIAL;
+	private static OIDCClaimsRequestDetails NON_ESSENTIAL;
+
+	static {
+		TEAM_IDS.put("9876543");
+
+		USER_CLAIMS = new HashMap<OIDCClaimName, String>();
+		USER_CLAIMS.put(OIDCClaimName.team, TEAM_IDS.toString());
+		USER_CLAIMS.put(OIDCClaimName.given_name, "User");
+		USER_CLAIMS.put(OIDCClaimName.email, "user@synapse.org");
+		USER_CLAIMS.put(OIDCClaimName.company, "University of Example");
+		
+		ESSENTIAL = new OIDCClaimsRequestDetails();
+		ESSENTIAL.setEssential(true);
+		NON_ESSENTIAL = new OIDCClaimsRequestDetails();
+		NON_ESSENTIAL.setEssential(false);
+	}
+	
 	
 	@Test
 	public void testOIDCTokenGeneration() throws Exception {
-		String user = "101";
-		String oauthClientId = "client-01234";
-		long now = System.currentTimeMillis();
-		long auth_time = (new Date()).getTime()/1000L;
-		String tokenId = UUID.randomUUID().toString();
-		String nonce = UUID.randomUUID().toString();
-		JSONArray teamIds = new JSONArray();
-		teamIds.put("9876543");
-		Map<OIDCClaimName, String> userClaims = new HashMap<OIDCClaimName, String>();
-		userClaims.put(OIDCClaimName.team, teamIds.toString());
-		userClaims.put(OIDCClaimName.given_name, "User");
-		userClaims.put(OIDCClaimName.email, "user@synapse.org");
-		userClaims.put(OIDCClaimName.company, "University of Example");
 		
 		
 
-		String oidcToken = OIDCTokenUtil.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", user, oauthClientId, now, nonce, auth_time, tokenId, userClaims);
+		String oidcToken = OIDCTokenUtil.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 		JWT jwt = JWTParser.parse(oidcToken);
 		
 		assertTrue(jwt instanceof SignedJWT);
@@ -62,7 +78,7 @@ public class OIDCTokenUtilTest {
 	    // the iss (issuer) Claim as an audience. The aud (audience) Claim MAY contain an array with more than one element. The ID 
 	    // Token MUST be rejected if the ID Token does not list the Client as a valid audience, or if it contains additional 
 	    // audiences not trusted by the Client.
-	    assertEquals(Collections.singletonList(oauthClientId), claimsSet.getAudience());
+	    assertEquals(Collections.singletonList(CLIENT_ID), claimsSet.getAudience());
 		// If the ID Token contains multiple audiences, the Client SHOULD verify that an azp Claim is present.
 	    // 	(Note the above verifies that there are NOT multiple audiences.)
 
@@ -97,7 +113,7 @@ public class OIDCTokenUtilTest {
 		// If a nonce value was sent in the Authentication Request, a nonce Claim MUST be present and its value checked to verify 
 	    // that it is the same value as the one that was sent in the Authentication Request. The Client SHOULD check the 
 	    // nonce value for replay attacks. The precise method for detecting replay attacks is Client specific.
-	    assertEquals(nonce, claimsSet.getClaim("nonce"));
+	    assertEquals(NONCE, claimsSet.getClaim("nonce"));
 	    
 		// If the acr Claim was requested, the Client SHOULD check that the asserted Claim Value is appropriate. 
 	    // The meaning and processing of acr Claim Values is out of scope for this specification.
@@ -106,12 +122,42 @@ public class OIDCTokenUtilTest {
 		// If the auth_time Claim was requested, either through a specific request for this Claim or by using the max_age parameter, 
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
-	    assertEquals(auth_time, claimsSet.getLongClaim(OIDCClaimName.auth_time.name()).longValue());
-	    
-	    // Elsewhere we take the token and JWK printed below and verify they can be used to check
-	    // the signature using standard Python libraries.
-	    System.out.println("Token: "+oidcToken);
-	    System.out.println("JWK: "+OIDCTokenUtil.getJSONWebKeySet());
+	    assertEquals(AUTH_TIME, claimsSet.getLongClaim(OIDCClaimName.auth_time.name()).longValue());
+	}
+		private static OIDCClaimsRequestDetails createListClaimsDetails(List<String> l) {
+		OIDCClaimsRequestDetails result = new OIDCClaimsRequestDetails();
+		result.setValues(l);
+		return result;
+	}
+	
+	@Test
+	public void testGetScopeAndClaims() throws Exception {		
+		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
+		OIDCClaimsRequest expectedClaims = new OIDCClaimsRequest();
+		expectedClaims.setEmail(ESSENTIAL);
+		expectedClaims.setGiven_name(NON_ESSENTIAL);
+		expectedClaims.setFamily_name(ESSENTIAL);
+		expectedClaims.setTeam(createListClaimsDetails(Collections.singletonList("101")));
+
+		String accessToken = OIDCTokenUtil.createOIDCaccessToken(
+				"https://repo-prod.prod.sagebase.org/auth/v1",
+				SUBJECT_ID, 
+				CLIENT_ID,
+				NOW, 
+				AUTH_TIME,
+				TOKEN_ID,
+				grantedScopes,
+				expectedClaims);
+		
+		JWT jwt = JWTParser.parse(accessToken);
+		
+		System.out.println(jwt);
+
+		List<OAuthScope> actualScopes = OIDCTokenUtil.getScopeFromClaims(jwt.getJWTClaimsSet());
+		OIDCClaimsRequest actualClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
+		
+		assertEquals(grantedScopes, actualScopes);
+		assertEquals(expectedClaims, actualClaims);
 	}
 
 }

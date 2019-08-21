@@ -18,7 +18,6 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.EncryptionUtilsSingleton;
-import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ListWrapper;

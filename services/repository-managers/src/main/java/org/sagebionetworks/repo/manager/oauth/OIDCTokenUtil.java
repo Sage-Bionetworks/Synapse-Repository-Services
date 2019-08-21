@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.oauth;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -9,16 +9,15 @@ import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.JWTUtil;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -46,7 +45,7 @@ import net.minidev.json.JSONObject;
 public class OIDCTokenUtil {
 	private static final String ACCESS = "access";
 	private static final String SCOPE = "scope";
-	private static final String USER_INFO_CLAIMS = "odic_claims";
+	private static final String USER_INFO_CLAIMS = "oidc_claims";
 	private static final String NONCE = "nonce";
 	
 	// the time window during which the client will consider the returned claims to be valid
@@ -223,7 +222,7 @@ public class OIDCTokenUtil {
 			throw new RuntimeException(e);
 		}
 		
-		scopeAndClaims.put(USER_INFO_CLAIMS, adapter);
+		scopeAndClaims.put(USER_INFO_CLAIMS, adapter.toJSONString());
 		
 		claims.put(ACCESS, scopeAndClaims);
 		

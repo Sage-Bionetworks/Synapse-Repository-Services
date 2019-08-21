@@ -8,8 +8,8 @@ import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.manager.OIDCTokenUtil;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenUtil;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserInfo;
