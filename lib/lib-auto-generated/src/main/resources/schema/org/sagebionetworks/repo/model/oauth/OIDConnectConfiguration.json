@@ -33,7 +33,6 @@
 			"type": "array",
 			"description": "List of the OAuth 2.0 scope values that Synapse supports.",
 			"items":{
-				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
 			}
 		},
@@ -41,7 +40,6 @@
 			"type": "array",
 			"description": "List of the OAuth 2.0 response types that Synapse supports.",
 			"items":{
-				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthResponseType"
 			}
 		},
@@ -49,7 +47,6 @@
 			"type": "array",
 			"description": "List of the OAuth 2.0 grant types that Synapse supports.",
 			"items":{
-				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthGrantType"
 			}
 		},
@@ -57,7 +54,6 @@
 			"type": "array",
 			"description": "List of the subject identified types that Synapse supports.",
 			"items":{
-				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType"
 			}
 		},
@@ -65,7 +61,6 @@
 			"type": "array",
 			"description": "List of the JWS signing algorithms (alg values) supported by Synapse for the ID Token to encode the Claims in a JWT",
 			"items":{
-				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
 			}
 		},
@@ -73,7 +68,6 @@
 			"type": "array",
 			"description": "List of the JWS signing algorithms (alg values) supported by the UserInfo Endpoint to encode the Claims in a JWT",
 			"items":{
-				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
 			}
 		},
@@ -81,7 +75,6 @@
 			"type": "array",
 			"description": "List of the Claim Names of the Claims that the Synapse MAY be able to supply values for.",
 			"items":{
-				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 			}
 		},
@@ -94,32 +87,26 @@
 			"description": "Boolean value specifying whether Synapse supports use of the claims parameter, with true indicating support."
 		},
 		"OAuthScope": {
-				"type": "object",
 				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
 		},
 		"OAuthResponseType": {
-				"type": "object",
 				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthResponseType"
 		},
 		"OAuthGrantType": {
-				"type": "object",
 				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthGrantType"
 		},
 		"OIDCSubjectIdentifierType": {
-				"type": "object",
 				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType"
 		},
 		"OIDCSigningAlgorithm": {
-				"type": "object",
 				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
 		},
 		"OIDCClaimName": {
-				"type": "object",
 				"description": "workaround for PLFM-5723",
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 		}

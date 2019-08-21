@@ -17,6 +17,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -177,24 +178,21 @@ public class OIDCTokenUtil {
 		return result;
 	}
 	
-	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getOIDCClaimsFromClaimSet(JWTClaimsSet claimSet) {
+	public static OIDCClaimsRequest getOIDCClaimsFromClaimSet(JWTClaimsSet claimSet) {
 		JSONObject scopeAndClaims;
 		try {
 			scopeAndClaims = claimSet.getJSONObjectClaim(ACCESS);
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
-		JSONObject userInfoClaims = (JSONObject)scopeAndClaims.get(USER_INFO_CLAIMS);
-		Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
-		for (String claimName : userInfoClaims.keySet()) {
-			OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
-			try {
-				JSONObjectAdapter adapter = new JSONObjectAdapterImpl(userInfoClaims.getAsString(claimName));
-				details.initializeFromJSONObject(adapter);
-			} catch (JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
-			}
-			result.put(OIDCClaimName.valueOf(claimName), details);
+		String userInfoClaimsJsonString = scopeAndClaims.getAsString(USER_INFO_CLAIMS);
+		
+		OIDCClaimsRequest result = new OIDCClaimsRequest();
+		try {
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(userInfoClaimsJsonString);
+			result.initializeFromJSONObject(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 		return result;
 	}
@@ -207,7 +205,7 @@ public class OIDCTokenUtil {
 			Long authTimeSeconds,
 			String tokenId,
 			List<OAuthScope> scopes,
-			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
+			OIDCClaimsRequest oidcClaims) {
 		
 		Claims claims = Jwts.claims();
 		
@@ -217,12 +215,16 @@ public class OIDCTokenUtil {
 			scopeArray.add(scope.name());
 		}
 		scopeAndClaims.put(SCOPE, scopeArray);
-		JSONObject userInfoClaims = new JSONObject();
-		for (OIDCClaimName claimName : oidcClaims.keySet()) {
-			OIDCClaimsRequestDetails claimDetails = oidcClaims.get(claimName);
-			userInfoClaims.put(claimName.name(), claimDetails.toString());
+		
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		try {
+			oidcClaims.writeToJSONObject(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
-		scopeAndClaims.put(USER_INFO_CLAIMS, userInfoClaims);
+		
+		scopeAndClaims.put(USER_INFO_CLAIMS, adapter);
+		
 		claims.put(ACCESS, scopeAndClaims);
 		
 		claims.setIssuer(issuer)

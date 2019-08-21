@@ -2,11 +2,9 @@
 	"description": "https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter",
 	"properties": {
 		"id_token": {
-			"type": "object",
 			"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest"
 		},
 		"userinfo": {
-			"type": "object",
 			"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest"
 		}		
 	}

@@ -10,12 +10,10 @@
 			"description": "space-separated list of scopes"
 		},
 		"claims":{
-			"type":"object",
 			"$ref":"org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestParameter",
 			"description":"Specific claims in addition to the requested scope"
 		},
 		"responseType":{
-			"type":"object",
 			"$ref":"org.sagebionetworks.repo.model.oauth.OAuthResponseType"
 		},
 		"redirectUri": {

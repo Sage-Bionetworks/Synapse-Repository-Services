@@ -51,41 +51,5 @@ public class OpenIDConnectManagerImplTest {
 			// as expected
 		}
 	}
-	
-	@Test
-	public void testDeserializeClaims() throws Exception {
-		OIDCAuthorizationRequest ar = new OIDCAuthorizationRequest();
-		ar.setClientId("100001");
-		ar.setScope("openid");
-		OIDCClaimsRequestParameter rp = new OIDCClaimsRequestParameter();
-		Map<OIDCClaimName, OIDCClaimsRequestDetails> claims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
-		OIDCClaimsRequestDetails teamList = new OIDCClaimsRequestDetails();
-		teamList.setValues(Collections.singletonList("101"));
-		claims.put(OIDCClaimName.team, teamList);
-		OIDCClaimsRequestDetails essential = new OIDCClaimsRequestDetails();
-		essential.setEssential(true);
-		claims.put(OIDCClaimName.given_name, essential);
-		claims.put(OIDCClaimName.family_name, essential);
-		claims.put(OIDCClaimName.email, essential);
-		claims.put(OIDCClaimName.company, essential);
-		rp.setId_token(claims);
-		rp.setUserinfo(claims);
-		ar.setClaims(rp);
-		ar.setResponseType(OAuthResponseType.code);
-		ar.setRedirectUri("foo");
-		
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		try {
-			ar.writeToJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-
-		System.out.println(adapter.toJSONString());
-		
-		String serializedAuthorizationRequest = "{\"clientId\": \"100001\", \"scope\": \"openid\", \"claims\": {\"id_token\": {\"team\": {\"values\": [\"101\"]}, \"given_name\": {\"essential\": \"true\"}, \"family_name\": {\"essential\": \"true\"}, \"email\": {\"essential\": \"true\"}, \"company\": {\"essential\": \"false\"}}, \"userinfo\": {\"team\": {\"values\": [\"101\"]}, \"given_name\": {\"essential\": \"true\"}, \"family_name\": {\"essential\": \"true\"}, \"email\": {\"essential\": \"true\"}, \"company\": {\"essential\": \"false\"}}}, \"responseType\": \"code\", \"redirectUri\": \"https://data.braincommons.org/user/login/synapse/login\", \"nonce\": \"abcdefg\"}";
-		adapter = new JSONObjectAdapterImpl(serializedAuthorizationRequest);
-		ar.initializeFromJSONObject(adapter);
-	}
 
 }

@@ -4,55 +4,55 @@
   "enum": [
     {
       "name": "iss",
-      "description": "TODO"
+      "description": "The OIDC Provider, Synapse."
     },
     {
       "name": "sub",
-      "description": "TODO"
+      "description": "The user whose identity is shared and whose resources are accessed."
     },
     {
       "name": "aud",
-      "description": "TODO"
+      "description": "The ID of the OIDC client application."
     },
     {
       "name": "iat",
-      "description": "TODO"
+      "description": "Issued At timestamp"
     },
     {
       "name": "nbf",
-      "description": "TODO"
+      "description": "Not Before timestamp"
     },
     {
       "name": "exp",
-      "description": "TODO"
+      "description": "Expiration timestamp"
     },
     {
       "name": "auth_time",
-      "description": "TODO"
+      "description": "The timestamp for the event in which the user most recently logged in to Synapse."
     },
     {
       "name": "email",
-      "description": "TODO"
+      "description": "The user's email address."
     },
     {
       "name": "email_verified",
-      "description": "TODO"
+      "description": "The user's email address and a synonym for 'email', since the email is always verified."
     },
     {
       "name": "given_name",
-      "description": "TODO"
+      "description": "The subject's first name."
     },
     {
       "name": "family_name",
-      "description": "TODO"
+      "description": "The subjects last name."
     },
     {
       "name": "company",
-      "description": "TODO"
+      "description": "The subject's company/employer."
     },
     {
       "name": "team",
-      "description": "TODO"
+      "description": "The id(s) of Synapse teams the subject is a member of, taken from a list of IDs presented by the client."
     },
     {
       "name": "userid",
