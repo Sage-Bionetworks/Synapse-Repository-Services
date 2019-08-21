@@ -86,9 +86,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			+ "AND st."+COL_SESSION_TOKEN_VALIDATED_ON+" > ?";
 	
 	private static final String SELECT_SESSION_VALIDATED_ON_BY_PRINCIPAL_ID = 
-			"SELECT st."+COL_SESSION_TOKEN_VALIDATED_ON+
+			"SELECT "+COL_SESSION_TOKEN_VALIDATED_ON+
 			" FROM "+TABLE_SESSION_TOKEN+
-			" WHERE st."+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? ";
+			" WHERE "+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? ";
 	
 	private static final String NULLIFY_SESSION_TOKEN =
 			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
