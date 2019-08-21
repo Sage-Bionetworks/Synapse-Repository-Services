@@ -168,7 +168,7 @@ public class OpenIDConnectController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OAUTH_2_AUTH_REQUEST_DESCRIPTION, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_AUTH_REQUEST_DESCRIPTION, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 

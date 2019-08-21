@@ -160,9 +160,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		CLAIM_DESCRIPTION.put(OIDCClaimName.auth_time, "The time when you last logged in to Synapse.");
 	}
 	
-	private static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
+	public static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
 		ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
-		if (!client.getClient_uri().contains(authorizationRequest.getRedirectUri())) {
+		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
 			throw new IllegalArgumentException("Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
