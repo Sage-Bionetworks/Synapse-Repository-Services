@@ -1029,4 +1029,26 @@ public class TableManagerSupportTest {
 		// the requested version number should be when it does match the current
 		verify(mockColumnModelManager).getColumnIdsForTable(IdAndVersion.parse("syn123.1"));
 	}
+	
+	@Test
+	public void testgetTableSchemaWithVersion() {
+		idAndVersion  = IdAndVersion.parse("syn123.1");
+		List<String> newColumnIds = Lists.newArrayList("111","333");
+		ColumnModel cm = new ColumnModel();
+		cm.setId("111");
+		ColumnModel cm2 = new ColumnModel();
+		cm2.setId("333");
+		List<ColumnModel> columns = Lists.newArrayList(cm);
+		when(mockColumnModelManager.getColumnIdsForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
+		when(mockColumnModelManager.getAndValidateColumnModels(newColumnIds)).thenReturn(columns);
+		// current version is greater than the requested.
+		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(2L);
+		// call under test
+		List<ColumnModel> retrievedSchema = manager.getTableSchema(idAndVersion);
+		assertEquals(columns, retrievedSchema);
+		verify(mockNodeDao).getCurrentRevisionNumber(anyString());
+		// the requested version number should be when it does match the current
+		verify(mockColumnModelManager).getColumnIdsForTable(IdAndVersion.parse("syn123.1"));
+		verify(mockColumnModelManager).getAndValidateColumnModels(newColumnIds);
+	}
 }

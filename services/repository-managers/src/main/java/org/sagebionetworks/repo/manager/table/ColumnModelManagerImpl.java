@@ -440,10 +440,5 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public ColumnModel createColumnModel(ColumnModel columnModel) {
 		return columnModelDao.createColumnModel(columnModel);
 	}
-
-	@Override
-	public List<ColumnModel> getColumnModels(List<String> columnIds) {
-		return columnModelDao.getColumnModels(columnIds);
-	}
 	
 }
