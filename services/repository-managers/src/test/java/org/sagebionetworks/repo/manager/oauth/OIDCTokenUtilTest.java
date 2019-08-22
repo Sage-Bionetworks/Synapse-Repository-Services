@@ -133,12 +133,12 @@ public class OIDCTokenUtilTest {
 	@Test
 	public void testGetScopeAndClaims() throws Exception {		
 		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
-		OIDCClaimsRequest expectedClaims = new OIDCClaimsRequest();
-		expectedClaims.setEmail(ESSENTIAL);
-		expectedClaims.setGiven_name(NON_ESSENTIAL);
-		expectedClaims.setFamily_name(ESSENTIAL);
-		expectedClaims.setTeam(createListClaimsDetails(Collections.singletonList("101")));
-
+		Map<OIDCClaimName,OIDCClaimsRequestDetails> expectedClaims = new HashMap<OIDCClaimName,OIDCClaimsRequestDetails>();
+		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.given_name, NON_ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.family_name, ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.team, createListClaimsDetails(Collections.singletonList("101")));
+		
 		String accessToken = OIDCTokenUtil.createOIDCaccessToken(
 				"https://repo-prod.prod.sagebase.org/auth/v1",
 				SUBJECT_ID, 
@@ -151,10 +151,10 @@ public class OIDCTokenUtilTest {
 		
 		JWT jwt = JWTParser.parse(accessToken);
 		
-		System.out.println(jwt);
+		System.out.println(jwt.getJWTClaimsSet());
 
 		List<OAuthScope> actualScopes = OIDCTokenUtil.getScopeFromClaims(jwt.getJWTClaimsSet());
-		OIDCClaimsRequest actualClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
+		Map<OIDCClaimName,OIDCClaimsRequestDetails> actualClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
 		
 		assertEquals(grantedScopes, actualScopes);
 		assertEquals(expectedClaims, actualClaims);

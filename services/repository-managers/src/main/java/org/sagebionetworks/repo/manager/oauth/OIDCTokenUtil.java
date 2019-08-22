@@ -9,6 +9,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.manager.JWTUtil;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -41,6 +43,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
+import net.minidev.json.parser.JSONParser;
 
 public class OIDCTokenUtil {
 	private static final String ACCESS = "access";
@@ -177,24 +180,29 @@ public class OIDCTokenUtil {
 		return result;
 	}
 	
-	public static OIDCClaimsRequest getOIDCClaimsFromClaimSet(JWTClaimsSet claimSet) {
+	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getOIDCClaimsFromClaimSet(JWTClaimsSet claimSet) {
 		JSONObject scopeAndClaims;
 		try {
 			scopeAndClaims = claimSet.getJSONObjectClaim(ACCESS);
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
-		String userInfoClaimsJsonString = scopeAndClaims.getAsString(USER_INFO_CLAIMS);
-		
-		OIDCClaimsRequest result = new OIDCClaimsRequest();
-		try {
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(userInfoClaimsJsonString);
-			result.initializeFromJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
+		JSONObject userInfoClaims = (JSONObject)scopeAndClaims.get(USER_INFO_CLAIMS);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		for (String claimName : userInfoClaims.keySet()) {
+			OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
+			try {
+				JSONObjectAdapter adapter = new JSONObjectAdapterImpl(userInfoClaims.getAsString(claimName));
+				details.initializeFromJSONObject(adapter);
+			} catch (JSONObjectAdapterException e) {
+				throw new RuntimeException(e);
+			}
+			result.put(OIDCClaimName.valueOf(claimName), details);
 		}
 		return result;
 	}
+	
+	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 	
 	public static String createOIDCaccessToken(
 			String issuer,
@@ -204,7 +212,7 @@ public class OIDCTokenUtil {
 			Long authTimeSeconds,
 			String tokenId,
 			List<OAuthScope> scopes,
-			OIDCClaimsRequest oidcClaims) {
+			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		
 		Claims claims = Jwts.claims();
 		
@@ -215,14 +223,22 @@ public class OIDCTokenUtil {
 		}
 		scopeAndClaims.put(SCOPE, scopeArray);
 		
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		try {
-			oidcClaims.writeToJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
 		
-		scopeAndClaims.put(USER_INFO_CLAIMS, adapter.toJSONString());
+		JSONObject userInfoClaims = new JSONObject();
+		for (OIDCClaimName claimName : oidcClaims.keySet()) {
+			OIDCClaimsRequestDetails claimDetails = oidcClaims.get(claimName);
+			try {
+				JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+				claimDetails.writeToJSONObject(adapter);
+				// JSONObjectAdapter is a JSON Object but we need an instance of net.minidev.json.JSONObject
+				// so we serialize and immediately parse
+				JSONObject claimsDetailsJson = (JSONObject)MINIDEV_JSON_PARSER.parse(adapter.toJSONString());
+				userInfoClaims.put(claimName.name(), claimsDetailsJson);	
+			} catch (net.minidev.json.parser.ParseException | JSONObjectAdapterException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		scopeAndClaims.put(USER_INFO_CLAIMS, userInfoClaims);
 		
 		claims.put(ACCESS, scopeAndClaims);
 		

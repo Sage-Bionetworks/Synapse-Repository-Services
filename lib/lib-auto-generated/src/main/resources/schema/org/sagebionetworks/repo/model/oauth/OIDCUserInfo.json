@@ -1,61 +1,11 @@
 {
 	"description": "https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse",
-	"properties": {
-	    "iss": {
-	      "description": "The OIDC Provider, Synapse.",
-	      "type": "string"
-	    },
-	    "sub": {
-	      "description": "The user whose identity is shared and whose resources are accessed.",
-	      "type": "string"
-	    },
-	    "aud": {
-	      "description": "The ID of the OIDC client application.",
-	      "type": "string"
-	    },
-	    "iat": {
-	      "description": "Issued At timestamp",
-	      "type": "string"
-	    },
-	    "nbf": {
-	      "description": "Not Before timestamp",
-	      "type": "string"
-	    },
-	    "exp": {
-	      "description": "Expiration timestamp",
-	      "type": "string"
-	    },
-	    "auth_time": {
-	      "description": "The timestamp for the event in which the user most recently logged in to Synapse.",
-	      "type": "string"
-	    },
-	    "email": {
-	      "description": "The user's email address.",
-	      "type": "string"
-	    },
-	    "email_verified": {
-	      "description": "The user's email address and a synonym for 'email', since the email is always verified.",
-	      "type": "string"
-	    },
-	    "given_name": {
-	      "description": "The subject's first name.",
-	      "type": "string"
-	    },
-	    "family_name": {
-	      "description": "The subjects last name.",
-	      "type": "string"
-	    },
-	    "company": {
-	      "description": "The subject's company/employer.",
-	      "type": "string"
-	    },
-	    "team": {
-	      "description": "The id(s) of Synapse teams the subject is a member of, taken from a list of IDs presented by the client.",
-	      "type": "string"
-	    },
-	    "userid": {
-	      "description": "The immutable principal ID referencing the Synapse user.",
-	      "type": "string"
-	    }
-    }
+	"type": "map",
+	"key":{
+		"type": "object",
+		"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+	},
+   	"value":{
+		"type": "string"
+	}
 }

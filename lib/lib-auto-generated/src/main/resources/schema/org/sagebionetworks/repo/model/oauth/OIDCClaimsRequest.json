@@ -1,61 +1,11 @@
 {
 	"description": "https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter",
-	"properties": {
-	    "iss": {
-	      "description": "The OIDC Provider, Synapse.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "sub": {
-	      "description": "The user whose identity is shared and whose resources are accessed.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "aud": {
-	      "description": "The ID of the OIDC client application.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "iat": {
-	      "description": "Issued At timestamp",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "nbf": {
-	      "description": "Not Before timestamp",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "exp": {
-	      "description": "Expiration timestamp",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "auth_time": {
-	      "description": "The timestamp for the event in which the user most recently logged in to Synapse.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "email": {
-	      "description": "The user's email address.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "email_verified": {
-	      "description": "The user's email address and a synonym for 'email', since the email is always verified.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "given_name": {
-	      "description": "The subject's first name.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "family_name": {
-	      "description": "The subjects last name.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "company": {
-	      "description": "The subject's company/employer.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "team": {
-	      "description": "The id(s) of Synapse teams the subject is a member of, taken from a list of IDs presented by the client.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    },
-	    "userid": {
-	      "description": "The immutable principal ID referencing the Synapse user.",
-	      "$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
-	    }	
-    }
+	"type": "map",
+	"key":{
+		"type": "object",
+		"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
+	},
+   	"value":{
+		"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails"
+	}
 }

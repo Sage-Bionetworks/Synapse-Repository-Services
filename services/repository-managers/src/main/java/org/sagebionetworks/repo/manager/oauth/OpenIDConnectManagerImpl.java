@@ -211,38 +211,22 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (scopes.contains(OAuthScope.openid) && authorizationRequest.getClaims()!=null) {
-			OIDCClaimsRequest idTokenClaims = 
+			Map<OIDCClaimName,OIDCClaimsRequestDetails>  idTokenClaims = 
 					authorizationRequest.getClaims().getId_token();
 			if (idTokenClaims!=null) {
-				for (String claim : getNonEmptyFields(idTokenClaims)) {
-					scopeDescriptions.add(CLAIM_DESCRIPTION.get(OIDCClaimName.valueOf(claim)));
+				for (OIDCClaimName claim : idTokenClaims.keySet()) {
+					scopeDescriptions.add(CLAIM_DESCRIPTION.get(claim));
 				}
 			}
-			OIDCClaimsRequest userInfoClaims = 
+			Map<OIDCClaimName,OIDCClaimsRequestDetails>  userInfoClaims = 
 					authorizationRequest.getClaims().getUserinfo();
 			if (userInfoClaims!=null) {
-				for (String claim : getNonEmptyFields(userInfoClaims)) {
-					scopeDescriptions.add(CLAIM_DESCRIPTION.get(OIDCClaimName.valueOf(claim)));
+				for (OIDCClaimName claim : idTokenClaims.keySet()) {
+					scopeDescriptions.add(CLAIM_DESCRIPTION.get(claim));
 				}
 			}
 		}
 		result.setScope(new ArrayList<String>(scopeDescriptions));
-		return result;
-	}
-	
-	public static List<String> getNonEmptyFields(JSONEntity entity) {
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		try {
-			entity.writeToJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-		List<String> result = new ArrayList<String>();
-		;
-		for (Iterator<String> it = adapter.keys(); it.hasNext();) {
-			String key = it.next();
-			if (adapter.has(key)) result.add(key);
-		}
 		return result;
 	}
 
@@ -291,7 +275,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
 	 */
-	public Map<OIDCClaimName,String> getUserInfo(String userId, List<OAuthScope> scopes, OIDCClaimsRequest oidcClaims) {
+	public Map<OIDCClaimName,String> getUserInfo(String userId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims) {
 		Map<OIDCClaimName,String> result = new HashMap<OIDCClaimName,String>();
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
@@ -299,35 +283,42 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		UserProfile privateUserProfile = userProfileManager.getUserProfile(userId);
 		
-		if (oidcClaims.getEmail()!=null) {
-			result.put(OIDCClaimName.email, privateUserProfile.getUserName()+"@synapse.org");
-		}
-		if (oidcClaims.getEmail_verified()!=null) {
-			result.put(OIDCClaimName.email_verified, privateUserProfile.getUserName()+"@synapse.org");
-		}
-		if (oidcClaims.getGiven_name()!=null) {
-			result.put(OIDCClaimName.given_name, privateUserProfile.getFirstName());
-		}
-		if (oidcClaims.getFamily_name() !=null) {
-			result.put(OIDCClaimName.family_name, privateUserProfile.getLastName());
-		}
-		if (oidcClaims.getCompany() !=null) {
-			result.put(OIDCClaimName.company, privateUserProfile.getCompany());
-		}
-		if (oidcClaims.getTeam() !=null) {
-			Set<String> requestedTeamIds = new HashSet<String>();
-			OIDCClaimsRequestDetails claimsDetails = oidcClaims.getTeam();
-			if (StringUtils.isNotEmpty(claimsDetails.getValue())) {
-				requestedTeamIds.add(claimsDetails.getValue());
+		for (OIDCClaimName claimName : oidcClaims.keySet()) {
+			OIDCClaimsRequestDetails claimsDetails = oidcClaims.get(claimName);
+			String claimValue = null;
+			switch (claimName) {
+			case email:
+			case email_verified:
+				claimValue = privateUserProfile.getUserName()+"@synapse.org";
+				break;
+			case given_name:
+				claimValue = privateUserProfile.getFirstName();
+				break;
+			case family_name:
+				claimValue = privateUserProfile.getLastName();
+				break;
+			case company:
+				claimValue = privateUserProfile.getCompany();
+				break;
+			case team:
+				Set<String> requestedTeamIds = new HashSet<String>();
+				if (StringUtils.isNotEmpty(claimsDetails.getValue())) {
+					requestedTeamIds.add(claimsDetails.getValue());
+				}
+				if (!claimsDetails.getValues().isEmpty()) {
+					requestedTeamIds.addAll(requestedTeamIds);
+				}
+				Set<String> memberTeamIds = getMemberTeamIds(userId, requestedTeamIds);
+				claimValue = asSerializedJSON(memberTeamIds);
+				break;
+			case userid:
+				claimValue = userId;
+				break;
+			default:
+				continue;
+
 			}
-			if (!claimsDetails.getValues().isEmpty()) {
-				requestedTeamIds.addAll(requestedTeamIds);
-			}
-			Set<String> memberTeamIds = getMemberTeamIds(userId, requestedTeamIds);
-			result.put(OIDCClaimName.team, asSerializedJSON(memberTeamIds));
-		}
-		if (oidcClaims.getUserid() !=null) {
-			result.put(OIDCClaimName.userid, userId);
+			result.put(claimName, claimValue);
 		}
 		return result;
 	}
@@ -438,7 +429,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String userId = getUserIdFromPPID(ppid, sectorIdentifierSecret);
 			
 			List<OAuthScope> scopes = OIDCTokenUtil.getScopeFromClaims(accessTokenClaimsSet);
-			OIDCClaimsRequest oidcClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
+			Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
 			
 			Map<OIDCClaimName,String> userInfo = getUserInfo(userId, scopes, oidcClaims);
 
