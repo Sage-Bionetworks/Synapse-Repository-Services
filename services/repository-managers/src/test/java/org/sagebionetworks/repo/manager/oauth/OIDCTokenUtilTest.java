@@ -15,7 +15,6 @@ import org.json.JSONArray;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
 import com.nimbusds.jose.JWSVerifier;

@@ -9,7 +9,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +54,8 @@ public class OIDCTokenUtil {
 
 	private static final String OIDC_SIGNATURE_KEY_ID;
 	private static final PrivateKey OIDC_SIGNATURE_PRIVATE_KEY;
+	
+	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 	
 	private static List<JWK> JSON_WEB_KEY_SET;
 
@@ -187,21 +188,8 @@ public class OIDCTokenUtil {
 			throw new RuntimeException(e);
 		}
 		JSONObject userInfoClaims = (JSONObject)scopeAndClaims.get(USER_INFO_CLAIMS);
-		Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
-		for (String claimName : userInfoClaims.keySet()) {
-			OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
-			try {
-				JSONObjectAdapter adapter = new JSONObjectAdapterImpl(userInfoClaims.getAsString(claimName));
-				details.initializeFromJSONObject(adapter);
-			} catch (JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
-			}
-			result.put(OIDCClaimName.valueOf(claimName), details);
-		}
-		return result;
+		return ClaimsJsonUtil.getClaimsMapFromJSONObject(userInfoClaims, false);
 	}
-	
-	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 	
 	public static String createOIDCaccessToken(
 			String issuer,

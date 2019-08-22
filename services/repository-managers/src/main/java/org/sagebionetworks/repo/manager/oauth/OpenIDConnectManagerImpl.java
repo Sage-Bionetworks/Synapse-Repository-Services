@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.text.ParseException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,8 +52,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 
+import io.netty.util.internal.StringUtil;
+import net.minidev.json.JSONObject;
+import net.minidev.json.parser.JSONParser;
+
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minute
+
+	// see https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
+	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
+	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
+	
 	
 	private StackEncrypter encryptionUtils = EncryptionUtilsSingleton.singleton();
 	
@@ -73,7 +82,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@WriteTransaction
 	@Override
 	public OAuthClientIdAndSecret createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) { // TODO move to authorizationManager
 			throw new UnauthorizedException("Anonymous user may not create an OAuth Client");
 		}
 		// TODO validation, esp. sector identifier!!!
@@ -168,6 +177,19 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (authorizationRequest.getResponseType()!=OAuthResponseType.code) 
 			throw new IllegalArgumentException("Unsupported response type "+authorizationRequest.getResponseType());
 	}
+	
+	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
+
+	public static Map<OIDCClaimName,OIDCClaimsRequestDetails> getClaimsMapFromClaimsRequestParam(String claims, String claimsField) {
+		JSONObject claimsObject;
+		try {
+			claimsObject = (JSONObject)MINIDEV_JSON_PARSER.parse(claims);
+		} catch (net.minidev.json.parser.ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+		JSONObject idTokenClaims = (JSONObject)claimsObject.get(claimsField);
+		return ClaimsJsonUtil.getClaimsMapFromJSONObject(idTokenClaims, /*ignoreUnknownClaims*/true);
+	}
 
 	@Override
 	public OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(
@@ -207,18 +229,18 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
-		if (scopes.contains(OAuthScope.openid) && authorizationRequest.getClaims()!=null) {
-			Map<OIDCClaimName,OIDCClaimsRequestDetails>  idTokenClaims = 
-					authorizationRequest.getClaims().getId_token();
-			if (idTokenClaims!=null) {
-				for (OIDCClaimName claim : idTokenClaims.keySet()) {
+		if (scopes.contains(OAuthScope.openid) && !StringUtil.isNullOrEmpty(authorizationRequest.getClaims())) {
+			{
+				Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap = 
+						getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY);
+				for (OIDCClaimName claim : idTokenClaimsMap.keySet()) {
 					scopeDescriptions.add(CLAIM_DESCRIPTION.get(claim));
 				}
 			}
-			Map<OIDCClaimName,OIDCClaimsRequestDetails>  userInfoClaims = 
-					authorizationRequest.getClaims().getUserinfo();
-			if (userInfoClaims!=null) {
-				for (OIDCClaimName claim : idTokenClaims.keySet()) {
+			{
+				Map<OIDCClaimName,OIDCClaimsRequestDetails> userInfoClaimsMap = 
+						getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY);
+				for (OIDCClaimName claim : userInfoClaimsMap.keySet()) {
 					scopeDescriptions.add(CLAIM_DESCRIPTION.get(claim));
 				}
 			}
@@ -226,10 +248,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		result.setScope(new ArrayList<String>(scopeDescriptions));
 		return result;
 	}
-
+	
 	@Override
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
 			OIDCAuthorizationRequest authorizationRequest) {
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous users may not provide access to OAuth clients.");
+		}
 
 		// 	when evaluating the claims object, how do we differentiate between a null value and a missing key?
 		// 	They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
@@ -396,15 +421,16 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,String> userInfo = getUserInfo(authorizationRequest.getUserId(), 
-					scopes, authorizationRequest.getClaims().getId_token());
+					scopes, getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
 			String idToken = OIDCTokenUtil.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 				authorizationRequest.getNonce(), authTimeSeconds, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
 		
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = OIDCTokenUtil.createOIDCaccessToken(oauthEndpoint, ppid, oauthClientId, now, 
-				authTimeSeconds, accessTokenId, scopes, authorizationRequest.getClaims().getUserinfo());
+		String accessToken = OIDCTokenUtil.createOIDCaccessToken(oauthEndpoint, ppid, 
+				oauthClientId, now, authTimeSeconds, accessTokenId, scopes, 
+				getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		result.setAccess_token(accessToken);
 		return result;
 	}
@@ -454,7 +480,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				
 				return jwtIdToken;
 			}
-		} catch (ParseException e) {
+		} catch (java.text.ParseException e) {
 			throw new RuntimeException(e);
 		}
 

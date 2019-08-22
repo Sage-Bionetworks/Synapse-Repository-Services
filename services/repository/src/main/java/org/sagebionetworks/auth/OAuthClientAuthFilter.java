@@ -33,7 +33,7 @@ public class OAuthClientAuthFilter implements Filter {
 		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-		// strip out clientId request param so that the sender can't 'sneak it past us'
+		// strip out verifiedOAuthClientId request param so that the sender can't 'sneak it past us'
 		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM);
 
 		if (up!=null && StringUtils.isNotEmpty(up.getUserName())) {
