@@ -13,6 +13,11 @@ package org.sagebionetworks;
  *
  */
 public interface ConfigurationProperties {
+	
+	/**
+	 * returns true iff the properties has the given key
+	 */
+	public boolean hasProperty(String propertyKey);
 
 	/**
 	 * Get a property value for the given property key.

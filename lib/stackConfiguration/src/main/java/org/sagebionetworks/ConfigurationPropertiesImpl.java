@@ -77,6 +77,15 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 			}
 		}
 	}
+	
+	@Override
+	public boolean hasProperty(String propertyKey) {
+		if (propertyKey == null) {
+			throw new IllegalArgumentException(PROPERTY_KEY_CANNOT_BE_NULL);
+		}
+		return properties.containsKey(propertyKey);
+	}
+
 
 	/**
 	 * Load the given property.
@@ -84,6 +93,7 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	 * @throws IllegalArgumentException
 	 *             if the key is null or the resulting value is null.
 	 */
+	@Override
 	public String getProperty(String propertyKey) {
 		if (propertyKey == null) {
 			throw new IllegalArgumentException(PROPERTY_KEY_CANNOT_BE_NULL);

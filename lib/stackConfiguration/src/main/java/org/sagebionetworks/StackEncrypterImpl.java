@@ -32,15 +32,13 @@ public class StackEncrypterImpl implements StackEncrypter {
 		this.log = logProvider.getLogger(StackEncrypterImpl.class.getName());
 	}
 
-	private boolean decryptionEnabled() {
-		String cmkAlias = configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS);
-		return cmkAlias!=null && cmkAlias.length()>0;
+	private boolean encryptionEnabled() {
+		return configuration.hasProperty(PROPERTY_KEY_STACK_CMK_ALIAS);
 	}
-
 
 	@Override
 	public String encryptStringWithStackKey(String plainText) {
-		if(!decryptionEnabled()) {
+		if(!encryptionEnabled()) {
 			return plainText;
 		}
 		try {
@@ -59,7 +57,7 @@ public class StackEncrypterImpl implements StackEncrypter {
 			throw new IllegalArgumentException(PROPERTY_KEY_CANNOT_BE_NULL);
 		}
 		// Properties are only decrypted if a key alias is provided
-		if(!decryptionEnabled()) {
+		if(!encryptionEnabled()) {
 			log.warn(String.format(WILL_NOT_DECRYPT_MESSAGE, PROPERTY_KEY_STACK_CMK_ALIAS, propertyKey));
 			return configuration.getProperty(propertyKey);
 		}
@@ -71,7 +69,7 @@ public class StackEncrypterImpl implements StackEncrypter {
 	
 	@Override
 	public String decryptStackEncryptedString(String encryptedValueBase64) {
-		if(!decryptionEnabled()) {
+		if(!encryptionEnabled()) {
 			return encryptedValueBase64;
 		}
 		try {
