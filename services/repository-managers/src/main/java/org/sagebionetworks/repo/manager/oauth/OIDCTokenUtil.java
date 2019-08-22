@@ -159,7 +159,7 @@ public class OIDCTokenUtil {
 		
 		if (nonce!=null) claims.put(NONCE, nonce);
 		
-		claims.put(OIDCClaimName.auth_time.name(), authTimeSeconds);
+		if (authTimeSeconds!=null) claims.put(OIDCClaimName.auth_time.name(), authTimeSeconds);
 
 		return createSignedJWT(claims);
 	}
@@ -249,7 +249,7 @@ public class OIDCTokenUtil {
 			.setId(tokenId)
 			.setSubject(subject);
 		
-		claims.put(OIDCClaimName.auth_time.name(), authTimeSeconds);
+		if (authTimeSeconds!=null) claims.put(OIDCClaimName.auth_time.name(), authTimeSeconds);
 
 		return createSignedJWT(claims);
 	}

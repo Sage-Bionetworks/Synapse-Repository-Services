@@ -378,7 +378,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
 				
-		long authTimeSeconds = authorizationRequest.getAuthenticatedAt().getTime()/1000L;
+		Long authTimeSeconds = null;
+		if (authorizationRequest.getAuthenticatedAt()!=null) {
+			authTimeSeconds = authorizationRequest.getAuthenticatedAt().getTime()/1000L;
+		}
 		
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
