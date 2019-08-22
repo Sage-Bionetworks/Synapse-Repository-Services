@@ -2,13 +2,10 @@ package org.sagebionetworks;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.securitytools.StackEncrypter;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
@@ -21,19 +18,14 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	public static final String ORG_SAGEBIONETWORKS_SECRETS_BUCKET = "org.sagebionetworks.secrets.bucket";
 	public static final String SECRETS_WERE_NOT_LOADED_FROM_S3 = "Secrets were not loaded from S3.";
 	public static final String LOADED_SECRECTS_S3 = "Loaded %s secrets from: %s/%s";
-	public static final String DECRYPTING_PROPERTY = "Decrypting property '%s'...";
 	public static final String PROPERTY_WITH_KEY_S_DOES_NOT_EXIST = "Property with key: '%s' does not exist.";
 	public static final String PROPERTY_KEY_CANNOT_BE_NULL = "Property key cannot be null";
-	public static final String WILL_NOT_DECRYPT_MESSAGE = "Property: '%s' does not exist so the value of '%s' will not be decrypted.";
 	public static final String UTF_8 = "UTF-8";
-	public static final String PROPERTY_KEY_STACK_CMK_ALIAS = "org.sagebionetworks.stack.cmk.alias";
 	public static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
 
 	private Logger log;
 	
 	private Properties properties;
-
-	private StackEncrypter encryptionUtils;
 	
 	private SynapseS3Client s3Client;
 	
@@ -47,9 +39,8 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 	 * @param logProvider
 	 */
 	@Inject
-	public ConfigurationPropertiesImpl(StackEncrypter encryptionUtils, SynapseS3Client s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
+	public ConfigurationPropertiesImpl(SynapseS3Client s3Client, PropertyProvider propertyProvider, LoggerProvider logProvider) {
 		this.log = logProvider.getLogger(ConfigurationPropertiesImpl.class.getName());
-		this.encryptionUtils = encryptionUtils;
 		this.s3Client = s3Client;
 		this.propertyProvider = propertyProvider;
 		initialize();
@@ -104,22 +95,6 @@ public class ConfigurationPropertiesImpl implements ConfigurationProperties {
 		return propertyValue;
 	}
 
-	@Override
-	public String getDecryptedProperty(String propertyKey) {
-		if(propertyKey == null) {
-			throw new IllegalArgumentException(PROPERTY_KEY_CANNOT_BE_NULL);
-		}
-		// Properties are only decrypted if a key alias is provider
-		if(!this.properties.containsKey(PROPERTY_KEY_STACK_CMK_ALIAS)) {
-			log.warn(String.format(WILL_NOT_DECRYPT_MESSAGE, PROPERTY_KEY_STACK_CMK_ALIAS, propertyKey));
-			return getProperty(propertyKey);
-		}
-		log.info(String.format(DECRYPTING_PROPERTY, propertyKey));
-		// load the Base64 encoded encrypted string from the properties.
-		String encryptedValueBase64 = getProperty(propertyKey);
-		return this.encryptionUtils.decryptStackEncryptedString(encryptedValueBase64);
-	}
-	
 	/**
 	 * Load the secrets from the given S3 bucket and key.
 	 * @param secretBucket

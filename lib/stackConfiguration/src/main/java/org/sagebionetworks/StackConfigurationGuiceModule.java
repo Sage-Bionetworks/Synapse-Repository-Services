@@ -2,8 +2,6 @@ package org.sagebionetworks;
 
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.securitytools.StackEncrypter;
-import org.sagebionetworks.securitytools.StackEncrypterImpl;
 
 import com.amazonaws.services.kms.AWSKMS;
 import com.google.inject.Provides;

@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.EncryptionUtilsSingleton;
+import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ListWrapper;
@@ -45,7 +46,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
-import org.sagebionetworks.securitytools.StackEncrypter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 

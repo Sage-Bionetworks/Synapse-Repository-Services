@@ -24,14 +24,4 @@ public interface ConfigurationProperties {
 	 */
 	public String getProperty(String propertyKey);
 
-	/**
-	 * Get the decrypted (plaintext) value for a given property key.
-	 * 
-	 * @param propertyKey
-	 * @return The property 'org.sagebionetworks.stack.cmk.alias' must be set in
-	 *         order for the decrypted value to be returned. If the property is not
-	 *         set, the unencrypted value of the property will be returned
-	 */
-	public String getDecryptedProperty(String propertyKey);
-
 }

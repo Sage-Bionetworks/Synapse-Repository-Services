@@ -15,16 +15,18 @@ public class StackConfigurationImpl implements StackConfiguration {
 	private final String DEV = "dev";
 	private final String HUDSON = "hud";
 
-	ConfigurationProperties configuration;
+	private ConfigurationProperties configuration;
+	private StackEncrypter stackEncrypter;
 	
 	/**
 	 * The only constructor for 
 	 * @param configuration
 	 */
 	@Inject
-	public StackConfigurationImpl(ConfigurationProperties configuration) {
+	public StackConfigurationImpl(ConfigurationProperties configuration, StackEncrypter stackEncrypter) {
 		super();
 		this.configuration = configuration;
+		this.stackEncrypter = stackEncrypter;
 	}
 
 	/**
@@ -150,7 +152,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	public String getMailPassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.mailPW");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.mailPW");
 	}
 
 	/**
@@ -177,7 +179,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getIdGeneratorDatabasePassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.id.generator.database.password");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.id.generator.database.password");
 	}
 
 	public String getIdGeneratorDatabaseDriver() {
@@ -244,7 +246,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getRepositoryDatabasePassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.repository.database.password");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.repository.database.password");
 	}
 
 	/**
@@ -294,7 +296,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return The API key of the migration admin
 	 */
 	public String getMigrationAdminAPIKey() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.migration.admin.apikey");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.migration.admin.apikey");
 	}
 
 	/**
@@ -453,7 +455,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	public String getGoogleAppsOAuthAccessTokenSecret() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token.secret");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token.secret");
 	}
 
 	/**
@@ -604,14 +606,14 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * Datacite user name.
 	 */
 	public String getDataciteUsername() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.doi.datacite.username");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.doi.datacite.username");
 	}
 
 	/**
 	 * Datacite password.
 	 */
 	public String getDatacitePassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.doi.datacite.password");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.doi.datacite.password");
 	}
 
 	/**
@@ -711,7 +713,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	public String getJiraUserPassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
 	}
 
 	/**
@@ -756,7 +758,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2GoogleClientId() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.id");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.id");
 	}
 
 	/**
@@ -764,7 +766,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2GoogleClientSecret() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.secret");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.secret");
 	}
 
 	/**
@@ -772,7 +774,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientId() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.id");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.id");
 	}
 
 	/**
@@ -780,7 +782,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientSecret() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.secret");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.secret");
 	}
 
 	/**
@@ -952,7 +954,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * services.
 	 */
 	public String getCloudMailInUser() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.user");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.user");
 	}
 
 	/*
@@ -960,7 +962,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * services.
 	 */
 	public String getCloudMailInPassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.password");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.password");
 	}
 
 	public String getDefaultPortalNotificationEndpoint() {
@@ -975,32 +977,32 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * Credentials used by Docker Registry to send events to the repo services.
 	 */
 	public String getDockerRegistryUser() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.docker.registry.user");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docker.registry.user");
 	}
 
 	/*
 	 * Credentials used by Docker Registry to send events to the repo services.
 	 */
 	public String getDockerRegistryPassword() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.docker.registry.password");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docker.registry.password");
 	}
 
 	/**
 	 * Credentials for signing Docker authorization bearer tokens
 	 */
 	public String getDockerAuthorizationPrivateKey() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.docker.authorization.private.key");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docker.authorization.private.key");
 	}
 
 	public String getDockerAuthorizationCertificate() {
-		return configuration.getDecryptedProperty("org.sagebionetworks.docker.authorization.certificate");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docker.authorization.certificate");
 	}
 
 	/**
 	 * Credentials for signing OIDC JSON Web Tokens
 	 */
 	public List<String> getOIDCSignatureRSAPrivateKeys() {
-		String s = configuration.getDecryptedProperty("org.sagebionetworks.oidc.signature.rsa.private.keys");
+		String s = stackEncrypter.getDecryptedProperty("org.sagebionetworks.oidc.signature.rsa.private.keys");
 		s = s.replaceAll("\\s+", "");
 		return Arrays.asList(s.split(","));
 	}
@@ -1149,7 +1151,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 		joiner.add("org.sagebionetworks.hmac.signing.key.version");
 		joiner.add("" + keyVersion);
 		String key = joiner.toString();
-		return configuration.getDecryptedProperty(key);
+		return stackEncrypter.getDecryptedProperty(key);
 	}
 
 	/**
@@ -1172,7 +1174,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 		// The credentials should be passed in with base64 encoding
 		return new String(
 				Base64.getDecoder().decode(
-						configuration.getDecryptedProperty("org.sagebionetworks.google.cloud.key")
+						stackEncrypter.getDecryptedProperty("org.sagebionetworks.google.cloud.key")
 								.getBytes(StandardCharsets.UTF_8)),
 				StandardCharsets.UTF_8);
 	}

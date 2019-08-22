@@ -1,7 +1,5 @@
 package org.sagebionetworks;
 
-import org.sagebionetworks.securitytools.StackEncrypter;
-
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
