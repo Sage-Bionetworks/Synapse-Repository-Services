@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.auth.BasicAuthUtils;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -51,7 +51,7 @@ public class DockerClientAuthFilterTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		filter = new DockerClientAuthFilter();
-		header = BasicAuthUtils.BASIC_PREFIX + Base64.encode(USERNAME+":"+PASSWORD);
+		header = HttpAuthUtil.BASIC_PREFIX + Base64.encode(USERNAME+":"+PASSWORD);
 		ReflectionTestUtils.setField(filter, "authenticationService", mockAuthenticationService);
 	}
 

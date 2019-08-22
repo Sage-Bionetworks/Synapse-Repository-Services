@@ -153,17 +153,17 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		}
 	}
 	
-	private static JWT getAccessJWTFromAccessTokenHeader(String header) {
+	private static JWT getAccessJWTFromAccessTokenParam(String param) {
 		try {
-			return JWTParser.parse(header);
+			return JWTParser.parse(param);
 		} catch (ParseException e) {
 			throw new UnauthenticatedException("Could not interpret access token.", e);
 		}
 	}
 
 	@Override
-	public Object getUserInfo(String accessTokenHeader, String oauthEndpoint) {
-		JWT accessToken = getAccessJWTFromAccessTokenHeader(accessTokenHeader);
+	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
+		JWT accessToken = getAccessJWTFromAccessTokenParam(accessTokenParam);
 		return oidcManager.getUserInfo(accessToken, oauthEndpoint);
 	}
 	

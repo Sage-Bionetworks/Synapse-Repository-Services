@@ -392,7 +392,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		// enforce expiration of authorization code
 		long now = System.currentTimeMillis();
-		if (authorizationRequest.getAuthorizedAt().getTime()+AUTHORIZATION_CODE_TIME_LIMIT_MILLIS>System.currentTimeMillis()) {
+		if (System.currentTimeMillis() > authorizationRequest.getAuthorizedAt().getTime()+AUTHORIZATION_CODE_TIME_LIMIT_MILLIS) {
 			throw new IllegalArgumentException("Authorization code has expired.");
 		}
 		

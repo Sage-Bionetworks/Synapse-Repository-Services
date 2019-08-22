@@ -249,7 +249,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
 	Object getUserInfoGET(
-			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken,
+			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, required=true) String accessToken,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
@@ -268,7 +268,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
 	public @ResponseBody
 	Object getUserInfoPOST(
-			@RequestHeader(value = AuthorizationConstants.OAUTH2_ACCESS_TOKEN_HEADER, required=true) String accessToken,
+			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, required=true) String accessToken,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));

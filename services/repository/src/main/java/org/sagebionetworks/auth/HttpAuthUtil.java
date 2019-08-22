@@ -4,9 +4,11 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.sun.jersey.core.util.Base64;
 
-public class BasicAuthUtils {
+public class HttpAuthUtil {
 
 	public static final String BASIC_PREFIX = "Basic ";
+
+	public static final String BEARER_PREFIX = "Bearer ";
 
 	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
 		String header = httpRequest.getHeader("Authorization");
@@ -21,6 +23,12 @@ public class BasicAuthUtils {
 			return new UserNameAndPassword(name, password);
 		}
 		return null;
+	}
+
+	public static String getBearerToken(HttpServletRequest httpRequest) {
+		String header = httpRequest.getHeader("Authorization");
+		if (header==null || !header.startsWith(BEARER_PREFIX)) return null;
+		return header.substring(BASIC_PREFIX.length());
 	}
 
 }

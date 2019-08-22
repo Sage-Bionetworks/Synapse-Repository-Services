@@ -30,7 +30,7 @@ public class OAuthClientAuthFilter implements Filter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
 
-		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
+		UserNameAndPassword up = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 		
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 		// strip out verifiedOAuthClientId request param so that the sender can't 'sneak it past us'

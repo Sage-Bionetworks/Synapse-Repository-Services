@@ -24,11 +24,11 @@ public class OAuthAccessTokenFilter implements Filter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
 
-		String bearerToken = httpRequest.getHeader("Bearer");
+		String bearerToken = HttpAuthUtil.getBearerToken(httpRequest);
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-		// strip out clientId request param so that the sender can't 'sneak it past us'
-		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM);
+		// strip out access token request param so that the sender can't 'sneak it past us'
+		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN);
 
 		boolean verified=false;
 		if (bearerToken!=null) {
@@ -36,7 +36,7 @@ public class OAuthAccessTokenFilter implements Filter {
 		}
 		
 		if (verified) {
-			// TODO pass the token along. Should it be as a header or as a request parameter?
+			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, new String[] {bearerToken});
 		}
 		
 		HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
