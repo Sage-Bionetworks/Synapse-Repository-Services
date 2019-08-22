@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.manager.oauth;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,12 +10,6 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestParameter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class OpenIDConnectManagerImplTest {
 

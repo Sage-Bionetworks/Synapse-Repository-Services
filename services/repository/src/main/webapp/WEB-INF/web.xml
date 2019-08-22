@@ -258,13 +258,18 @@
 	</filter>
 
 	<filter>
-		<filter-name>oauthAccessTokenFilter</filter-name>
-		<filter-class>org.sagebionetworks.auth.OAuthAccessTokenFilter</filter-class>
+		<filter-name>oauthClientAuthFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
 	</filter>
 
 	<filter>
-		<filter-name>oauthClientAuthFilter</filter-name>
-		<filter-class>org.sagebionetworks.auth.OAuthClientAuthFilter</filter-class>
+		<filter-name>oauthAccessTokenFilter</filter-name>
+		<filter-class>org.sagebionetworks.auth.OAuthAccessTokenFilter</filter-class>
 	</filter>
 
 	<filter>
