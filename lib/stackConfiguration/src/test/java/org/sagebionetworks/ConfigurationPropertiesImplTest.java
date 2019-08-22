@@ -2,10 +2,8 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,16 +11,12 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Base64;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -47,9 +41,6 @@ public class ConfigurationPropertiesImplTest {
 	@Mock
 	S3Object mockS3Object;
 
-	@Captor
-	ArgumentCaptor<String> decryptRequestCaptor;
-
 	ConfigurationPropertiesImpl configuration;
 
 	Properties defaultProps;
@@ -57,12 +48,6 @@ public class ConfigurationPropertiesImplTest {
 	Properties systemProps;
 	Properties secretProps;
 
-	String cmkAlis;
-	String keyToBeDecrypted;
-	String encryptedValue;
-	String base64EncodedCipher;
-	String decryptedValue;
-	
 	String secretsBucket;
 	String secretsKey;
 
@@ -94,16 +79,8 @@ public class ConfigurationPropertiesImplTest {
 		when(mockPropertyProvider.getMavenSettingsProperties()).thenReturn(settingProps);
 		when(mockPropertyProvider.getSystemProperties()).thenReturn(systemProps);
 
-		cmkAlis = "alias/test/foo";
-		systemProps.setProperty(ConfigurationPropertiesImpl.PROPERTY_KEY_STACK_CMK_ALIAS, cmkAlis);
 
-		// setup a base64 encoded cipher.
-		keyToBeDecrypted = "toBeDecrypted";
-		encryptedValue = "This is encrypted";
-		base64EncodedCipher = base64Encode(encryptedValue);
-		systemProps.setProperty(keyToBeDecrypted, base64EncodedCipher);
-
-		decryptedValue = "The value decrypted";
+		String decryptedValue = "The value decrypted";
 		when(mockEncryptionUtils.decryptStackEncryptedString(any(String.class))).thenReturn(decryptedValue);
 		
 		secretsBucket = "aSecretBucket";
@@ -119,7 +96,7 @@ public class ConfigurationPropertiesImplTest {
 		setupSecretInputStream();
 		when(mockS3Client.getObject(secretsBucket, secretsKey)).thenReturn(mockS3Object);
 
-		configuration = new ConfigurationPropertiesImpl(mockEncryptionUtils, mockS3Client, mockPropertyProvider, mockLoggerProvider);
+		configuration = new ConfigurationPropertiesImpl(mockS3Client, mockPropertyProvider, mockLoggerProvider);
 
 		verify(mockPropertyProvider).getMavenSettingsProperties();
 		verify(mockPropertyProvider).getSystemProperties();
@@ -186,59 +163,6 @@ public class ConfigurationPropertiesImplTest {
 	}
 
 	@Test
-	public void testGetDecryptedProperty() throws UnsupportedEncodingException {
-		// call under test
-		String results = configuration.getDecryptedProperty(keyToBeDecrypted);
-		assertEquals(decryptedValue, results);
-		verify(mockEncryptionUtils).decryptStackEncryptedString(decryptRequestCaptor.capture());
-		String request = decryptRequestCaptor.getValue();
-		assertNotNull(request);
-		assertEquals(base64EncodedCipher, request);
-		verify(mockLog).info("Decrypting property 'toBeDecrypted'...");
-	}
-
-	
-	@Test
-	public void testGetDecryptedPropertyNoAlias() throws UnsupportedEncodingException {
-		// Remove the alis
-		systemProps.remove(ConfigurationPropertiesImpl.PROPERTY_KEY_STACK_CMK_ALIAS);
-		configuration.initialize();
-		
-		// call under test
-		String results = configuration.getDecryptedProperty(keyToBeDecrypted);
-		// the value should not be modified in any way.
-		assertEquals(base64EncodedCipher, results);
-		// the value should not be decrypted
-		verify(mockEncryptionUtils, never()).decryptStackEncryptedString(decryptRequestCaptor.capture());
-		verify(mockLog).warn("Property: 'org.sagebionetworks.stack.cmk.alias' does not exist so the value of 'toBeDecrypted' will not be decrypted.");
-	}
-	
-	
-	@Test
-	public void testGetDecryptedPropertyNullKey() throws UnsupportedEncodingException {
-		try {
-			String key = null;
-			// call under test
-			configuration.getDecryptedProperty(key);
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertEquals("Property key cannot be null", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testGetDecryptedPropertyUnknown() throws UnsupportedEncodingException {
-		try {
-			String key = "unknown";
-			// call under test
-			configuration.getDecryptedProperty(key);
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertEquals("Property with key: 'unknown' does not exist.", e.getMessage());
-		}
-	}
-	
-	@Test
 	public void testLoadSecrets() throws IOException {
 		setupSecretInputStream();
 		// call under test
@@ -287,21 +211,5 @@ public class ConfigurationPropertiesImplTest {
 		verify(mockLog).warn(ConfigurationPropertiesImpl.SECRETS_WERE_NOT_LOADED_FROM_S3);
 		verify(mockLog).warn("S3 Object does not exist with bucket: 'aSecretBucket' and key: 'aSecretKey'");
 	}
-	
-	/**
-	 * Helper to create an base 64 encoded string.
-	 * 
-	 * @param input
-	 * @return
-	 */
-	public String base64Encode(String input) {
-		try {
-			byte[] bytes = input.getBytes(ConfigurationPropertiesImpl.UTF_8);
-			bytes = Base64.getEncoder().encode(bytes);
-			return new String(bytes, ConfigurationPropertiesImpl.UTF_8);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
 
-	}
 }
