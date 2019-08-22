@@ -150,8 +150,6 @@ public class OIDCTokenUtilTest {
 				expectedClaims);
 		
 		JWT jwt = JWTParser.parse(accessToken);
-		
-		System.out.println(jwt.getJWTClaimsSet());
 
 		List<OAuthScope> actualScopes = OIDCTokenUtil.getScopeFromClaims(jwt.getJWTClaimsSet());
 		Map<OIDCClaimName,OIDCClaimsRequestDetails> actualClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
