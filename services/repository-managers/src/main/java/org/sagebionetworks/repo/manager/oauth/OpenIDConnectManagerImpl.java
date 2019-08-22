@@ -380,14 +380,14 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		try {
 			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedAndBase64EncodedString(code);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Invalid authorization code", e);
+			throw new IllegalArgumentException("Invalid authorization code: "+code, e);
 		}
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		try {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(serializedAuthorizationRequest);
 			authorizationRequest.initializeFromJSONObject(adapter);
 		} catch (JSONObjectAdapterException e) {
-			throw new IllegalArgumentException("Invalid authorization code", e);
+			throw new IllegalArgumentException("Incorrectly formatted authorization code: "+code, e);
 		}
 		
 		// enforce expiration of authorization code

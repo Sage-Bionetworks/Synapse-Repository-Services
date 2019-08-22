@@ -219,13 +219,13 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(
-			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM) String verifiedClientId,
+			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, required=false) String verifiedClientId,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM) OAuthGrantType grant_type,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM) String code,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM) String redirectUri,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM) String refresh_token,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM) String scope,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM) String claims,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM, required=false) String code,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM, required=false) String redirectUri,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM, required=false) String refresh_token,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM, required=false) String scope,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
 		if (StringUtils.isEmpty(verifiedClientId)) {

@@ -32,12 +32,6 @@ public class OAuthClientAuthFilter implements Filter {
 
 		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
 		
-		if (up==null) {
-			System.out.println("User name and password are missing"); // TODO remove
-		} else {
-			System.out.println("User name: "+up.getUserName()+", password: "+up.getPassword()); // TODO remove
-		}
-
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 		// strip out verifiedOAuthClientId request param so that the sender can't 'sneak it past us'
 		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM);
@@ -49,14 +43,10 @@ public class OAuthClientAuthFilter implements Filter {
 				// add in the clientId as a request param
 				if (oauthClientSecret.equals(up.getPassword())) {
 					modParams.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, new String[] {oauthClientId});
-					System.out.println("Client secret is correct!"); // TODO remove
-				} else {
-					System.out.println("Client secret doesn't match: expected: "+oauthClientSecret+" but received "+up.getPassword()); // TODO remove
 				}
 				// let the request continue, but unauthenticated
 			} catch (NotFoundException e) {
 				// let the request continue, but unauthenticated
-				e.printStackTrace(); // TODO remove
 			}
 		}
 		
