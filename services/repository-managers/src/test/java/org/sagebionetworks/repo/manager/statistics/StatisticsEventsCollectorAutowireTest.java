@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -67,7 +69,13 @@ public class StatisticsEventsCollectorAutowireTest {
 
 	@Autowired
 	private IdGenerator idGenerator;
-
+	
+	@Autowired
+	private StatisticsEventsCollectorClient collectorClient;
+	
+	@Autowired
+	private TransactionSynchronizationProxy transactionSynchronization;
+	
 	@Mock
 	private AwsKinesisFirehoseLogger firehoseLogger;
 
@@ -90,8 +98,12 @@ public class StatisticsEventsCollectorAutowireTest {
 		nodesToDelete = new ArrayList<String>();
 		filehandlesToDelete = new ArrayList<>();
 		creatorUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		// Spies on the transaction synchronization so that we can verify calls on it
+		transactionSynchronization = Mockito.spy(transactionSynchronization);
 		// We mock the firehose logger
-		statsEventsCollector = new StatisticsEventsCollectorImpl(firehoseLogger, logRecordProviderFactory);
+		statsEventsCollector = new StatisticsEventsCollectorImpl(firehoseLogger, logRecordProviderFactory, transactionSynchronization);
+		// Replace the autowired collector with ours so that we do not use firehose
+		collectorClient.setEventsCollector(statsEventsCollector);
 		
 		fileHandle = createFileHandle("Test handle", creatorUserId.toString());
 		project = createProject(creatorUserId);
@@ -228,6 +240,42 @@ public class StatisticsEventsCollectorAutowireTest {
 		statsEventsCollector.collectEvent(event);
 
 		verify(firehoseLogger, never()).logBatch(any(), any());
+	}
+	
+	@Test
+	public void testInvokationWithoutTransaction() {
+		StatisticsFileEvent event = new StatisticsFileEvent(
+				StatisticsFileActionType.FILE_DOWNLOAD,
+				creatorUserId, 
+				fileHandle.getId(), 
+				file.getId(), 
+				FileHandleAssociateType.FileEntity);
+
+		// Call under test
+		collectorClient.collectEventWithoutTransaction(event);
+
+		verify(transactionSynchronization, times(1)).isActualTransactionActive();
+		verify(transactionSynchronization, never()).registerSynchronization(any());
+		verify(firehoseLogger, times(1)).logBatch(any(), any());
+
+	}
+	
+	@Test
+	public void testInvokationWithTransaction() {
+		StatisticsFileEvent event = new StatisticsFileEvent(
+				StatisticsFileActionType.FILE_DOWNLOAD,
+				creatorUserId, 
+				fileHandle.getId(), 
+				file.getId(), 
+				FileHandleAssociateType.FileEntity);
+
+		// Call under test
+		collectorClient.collectEventWithTransaction(event);
+
+		verify(transactionSynchronization, times(1)).isActualTransactionActive();
+		verify(transactionSynchronization, times(1)).registerSynchronization(any());
+		verify(firehoseLogger, times(1)).logBatch(any(), any());
+
 	}
 	
 	private StatisticsFileEventLogRecord convertToRecord(StatisticsFileEvent event) {

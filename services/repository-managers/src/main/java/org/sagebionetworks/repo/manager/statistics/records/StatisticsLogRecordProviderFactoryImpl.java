@@ -28,8 +28,7 @@ public class StatisticsLogRecordProviderFactoryImpl implements StatisticsLogReco
 		StatisticsEventLogRecordProvider<E> provider = (StatisticsEventLogRecordProvider<E>) logRecordProviderMap.get(eventClass);
 		
 		if (provider == null) {
-			throw new UnsupportedOperationException(
-					"Log record provider not found for event of type " + eventClass.getSimpleName());
+			throw new UnsupportedOperationException("Log record provider not found for event of type " + eventClass.getSimpleName());
 		}
 		
 		return provider;

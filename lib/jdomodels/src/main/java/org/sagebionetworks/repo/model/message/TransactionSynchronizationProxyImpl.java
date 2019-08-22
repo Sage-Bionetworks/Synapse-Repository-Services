@@ -13,6 +13,11 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  *
  */
 public class TransactionSynchronizationProxyImpl implements TransactionSynchronizationProxy {
+	
+	@Override
+	public boolean isActualTransactionActive() {
+		return TransactionSynchronizationManager.isActualTransactionActive();
+	}
 
 	@Override
 	public boolean isSynchronizationActive() {
@@ -35,8 +40,7 @@ public class TransactionSynchronizationProxyImpl implements TransactionSynchroni
 	}
 
 	@Override
-	public void registerSynchronization(
-			TransactionSynchronization synchronizationHandler) {
+	public void registerSynchronization(TransactionSynchronization synchronizationHandler) {
 		TransactionSynchronizationManager.registerSynchronization(synchronizationHandler);
 	}
 

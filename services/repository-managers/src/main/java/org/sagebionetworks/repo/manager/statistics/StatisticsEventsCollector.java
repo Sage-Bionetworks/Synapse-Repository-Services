@@ -13,14 +13,16 @@ import org.sagebionetworks.repo.manager.statistics.events.StatisticsEvent;
 public interface StatisticsEventsCollector {
 
 	/**
-	 * Accepts the given {@link StatisticsEvent} in order to collect statistics about the event
+	 * Accepts the given {@link StatisticsEvent} in order to collect statistics about the event. If this call is invoked
+	 * within a transaction if will be called only after the transaction is committed.
 	 * 
 	 * @param event The event to collect statistics about
 	 */
 	<E extends StatisticsEvent> void collectEvent(E event);
-	
+
 	/**
-	 * Accepts the given list of {@link StatisticsEvent}s in order to collect statistics about the batch of events
+	 * Accepts the given list of {@link StatisticsEvent}s in order to collect statistics about the batch of events. If
+	 * this call is invoked within a transaction if will be called only after the transaction is committed.
 	 * 
 	 * @param events A batch of events to collect statistics about
 	 */

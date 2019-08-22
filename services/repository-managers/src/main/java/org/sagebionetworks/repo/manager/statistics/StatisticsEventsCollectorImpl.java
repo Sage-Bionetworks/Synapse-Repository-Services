@@ -11,28 +11,64 @@ import org.sagebionetworks.repo.manager.statistics.events.StatisticsEvent;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsEventLogRecord;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsEventLogRecordProvider;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsLogRecordProviderFactory;
+import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
 
 @Service
 public class StatisticsEventsCollectorImpl implements StatisticsEventsCollector {
+
+	@FunctionalInterface
+	private static interface Action {
+		void proceed();
+	}
 
 	private AwsKinesisFirehoseLogger firehoseLogger;
 
 	private StatisticsLogRecordProviderFactory logRecordProviderFactory;
 
+	private TransactionSynchronizationProxy transactionSynchronization;
+
 	@Autowired
 	public StatisticsEventsCollectorImpl(AwsKinesisFirehoseLogger firehoseLogger,
-			StatisticsLogRecordProviderFactory logRecordProviderFactory) {
+			StatisticsLogRecordProviderFactory logRecordProviderFactory,
+			TransactionSynchronizationProxy transationSynchronization) {
 		this.firehoseLogger = firehoseLogger;
 		this.logRecordProviderFactory = logRecordProviderFactory;
+		this.transactionSynchronization = transationSynchronization;
 	}
 
 	@Override
-	public <E extends StatisticsEvent> void collectEvent(E event) {
+	public <E extends StatisticsEvent> void collectEvent(final E event) {
 		ValidateArgument.required(event, "event");
 
+		afterCommit(() -> log(event));
+	}
+
+	@Override
+	public <E extends StatisticsEvent> void collectEvents(List<E> events) {
+		ValidateArgument.required(events, "events");
+
+		afterCommit(() -> log(events));
+	}
+
+	private void afterCommit(Action action) {
+		
+		if (transactionSynchronization.isActualTransactionActive()) {
+			transactionSynchronization.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					action.proceed();
+				}
+			});
+		} else {
+			action.proceed();
+		}
+	}
+
+	private <E extends StatisticsEvent> void log(E event) {
 		StatisticsEventLogRecordProvider<E> provider = getRecordProvider(event);
 
 		String streamName = provider.getStreamName(event);
@@ -42,10 +78,7 @@ public class StatisticsEventsCollectorImpl implements StatisticsEventsCollector 
 		});
 	}
 
-	@Override
-	public <E extends StatisticsEvent> void collectEvents(List<E> events) {
-		ValidateArgument.required(events, "events");
-
+	private <E extends StatisticsEvent> void log(List<E> events) {
 		Map<String, List<StatisticsEventLogRecord>> recordsMap = getRecordsMap(events);
 
 		recordsMap.forEach((streamName, records) -> {

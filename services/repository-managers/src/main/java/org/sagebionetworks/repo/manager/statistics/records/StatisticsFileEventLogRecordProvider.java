@@ -29,13 +29,15 @@ public class StatisticsFileEventLogRecordProvider implements StatisticsEventLogR
 	
 	private static final Logger LOG = LogManager.getLogger(StatisticsFileEventLogRecordProvider.class);
 
-	private static final Set<FileHandleAssociateType> ACCEPTED = ImmutableSet.of(FileHandleAssociateType.FileEntity,
-			FileHandleAssociateType.TableEntity);
+	private static final Set<FileHandleAssociateType> ACCEPTED = ImmutableSet.of(
+		FileHandleAssociateType.FileEntity,
+		FileHandleAssociateType.TableEntity
+	);
 
 	public static final Map<StatisticsFileActionType, String> ASSOCIATED_STREAMS = ImmutableMap.of(
-			StatisticsFileActionType.FILE_DOWNLOAD, "fileDownloads", 
-			StatisticsFileActionType.FILE_UPLOAD, "fileUploads"
-		);
+		StatisticsFileActionType.FILE_DOWNLOAD, "fileDownloads", 
+		StatisticsFileActionType.FILE_UPLOAD, "fileUploads"
+	);
 	
 	private ProjectResolver projectResolver;
 	

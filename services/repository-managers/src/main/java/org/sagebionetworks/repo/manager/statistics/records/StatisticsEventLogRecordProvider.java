@@ -13,6 +13,9 @@ import org.sagebionetworks.repo.manager.statistics.events.StatisticsEvent;
  */
 public interface StatisticsEventLogRecordProvider<E extends StatisticsEvent> {
 
+	/**
+	 * @return The type of event
+	 */
 	Class<E> getEventClass();
 
 	/**
