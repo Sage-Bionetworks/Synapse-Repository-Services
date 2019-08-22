@@ -50,7 +50,8 @@ public class OIDCTokenUtil {
 	private static final String NONCE = "nonce";
 	
 	// the time window during which the client will consider the returned claims to be valid
-	private static final long OIDC_CLAIMS_EXPIRATION_TIME_SECONDS = 60L; // a minute
+	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 60L; // a minute
+	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 
 	private static final String OIDC_SIGNATURE_KEY_ID;
 	private static final PrivateKey OIDC_SIGNATURE_PRIVATE_KEY;
@@ -152,7 +153,7 @@ public class OIDCTokenUtil {
 		
 		claims.setIssuer(issuer)
 			.setAudience(oauthClientId)
-			.setExpiration(new Date(now+OIDC_CLAIMS_EXPIRATION_TIME_SECONDS*1000L))
+			.setExpiration(new Date(now+ID_TOKEN_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))
 			.setIssuedAt(new Date(now))
 			.setId(tokenId)
@@ -231,7 +232,7 @@ public class OIDCTokenUtil {
 		
 		claims.setIssuer(issuer)
 			.setAudience(oauthClientId)
-			.setExpiration(new Date(now+OIDC_CLAIMS_EXPIRATION_TIME_SECONDS*1000L))
+			.setExpiration(new Date(now+ACCESS_TOKEN_EXPIRATION_TIME_SECONDS*1000L))
 			.setNotBefore(new Date(now))
 			.setIssuedAt(new Date(now))
 			.setId(tokenId)

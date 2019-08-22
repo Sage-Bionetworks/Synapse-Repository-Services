@@ -156,5 +156,20 @@ public class OIDCTokenUtilTest {
 		assertEquals(grantedScopes, actualScopes);
 		assertEquals(expectedClaims, actualClaims);
 	}
+	
+	@Test
+	public void testValidateSignedJWT() throws Exception {
+		String accessToken = 
+		OIDCTokenUtil.createOIDCaccessToken("https://synapse.org",
+				"theuser", 
+				"101",
+				System.currentTimeMillis(), 
+				System.currentTimeMillis(),
+				UUID.randomUUID().toString(),
+				Collections.singletonList(OAuthScope.openid),
+				new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>());
+		
+		assertTrue(OIDCTokenUtil.validateSignedJWT(accessToken));
+	}
 
 }
