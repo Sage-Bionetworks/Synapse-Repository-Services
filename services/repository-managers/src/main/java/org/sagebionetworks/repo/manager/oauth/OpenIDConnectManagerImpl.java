@@ -79,7 +79,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// TODO validation, esp. sector identifier!!!
 		oauthClient.setCreatedBy(userInfo.getId().toString());
 		oauthClient.setValidated(false);
-		String secret = UUID.randomUUID().toString();
+		String secret = UUID.randomUUID().toString(); // TODO is this secret enough?
 		
 		// find or create SectorIdentifier
 		if (!oauthClientDao.doesSectorIdentifierExistForURI(oauthClient.getSector_identifier())) {
@@ -95,7 +95,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
 		result.setClient_name(oauthClient.getClient_name());
 		result.setClientId(id);
-		result.setClientSecret(secret);
+		result.setClientSecret(secret); // TODO store the hash, not the secret itself
 		return result;
 	}
 

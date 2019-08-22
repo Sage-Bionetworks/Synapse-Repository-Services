@@ -202,9 +202,13 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public Date getSessionValidatedOn(long principalId) {
-		Long validatedOn = jdbcTemplate.queryForObject(SELECT_SESSION_VALIDATED_ON_BY_PRINCIPAL_ID, Long.class, principalId);
-		if (validatedOn==null) return null;
-		return new Date(validatedOn);
+		try {
+			Long validatedOn = jdbcTemplate.queryForObject(SELECT_SESSION_VALIDATED_ON_BY_PRINCIPAL_ID, Long.class, principalId);
+			if (validatedOn==null) return null;
+			return new Date(validatedOn);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 	
 	@Override
