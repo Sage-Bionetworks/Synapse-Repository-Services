@@ -49,7 +49,6 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new BasicMigratableTableTranslation<DBORevision>() {
 		@Override
 		public DBORevision createDatabaseObjectFromBackup(DBORevision backup){
-			//TODO: test
 			if (backup.getUserAnnotationsV1() != null){
 				try {
 					Annotations annotationsV1 = AnnotationUtils.decompressedAnnotationsV1(backup.getUserAnnotationsV1());
