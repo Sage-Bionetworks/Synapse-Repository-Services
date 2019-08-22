@@ -400,7 +400,7 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 0L);
 		// save the row set
 		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto(), transactionId);
-		verify(mockStatisticsCollector, times(fileHandes.size())).collectEvent(any(StatisticsFileEvent.class));
+		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
 	}
 	
 	@Test
@@ -706,7 +706,7 @@ public class TableEntityManagerTest {
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockStatisticsCollector, times(2)).collectEvent(any(StatisticsFileEvent.class));
+		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
 	}
 
 	@Test

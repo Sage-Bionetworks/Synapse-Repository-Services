@@ -23,8 +23,7 @@ public class StatisticsLogRecordProviderFactoryImpl implements StatisticsLogReco
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <E extends StatisticsEvent> StatisticsEventLogRecordProvider<E> getLogRecordProvider(E event) {
-		Class<E> eventClass = (Class<E>) event.getClass();
+	public <E extends StatisticsEvent> StatisticsEventLogRecordProvider<E> getLogRecordProvider(Class<E> eventClass) {
 		
 		StatisticsEventLogRecordProvider<E> provider = (StatisticsEventLogRecordProvider<E>) logRecordProviderMap.get(eventClass);
 		
@@ -32,6 +31,7 @@ public class StatisticsLogRecordProviderFactoryImpl implements StatisticsLogReco
 			throw new UnsupportedOperationException(
 					"Log record provider not found for event of type " + eventClass.getSimpleName());
 		}
+		
 		return provider;
 	}
 

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
@@ -364,16 +365,21 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			refs.add(ref);
 		}
 		results.setRows(refs);
-		sendFileUploadEvent(user.getId(), delta);
+		sendFileUploadEvents(user.getId(), delta);
 		return results;
 	}
 	
-	private void sendFileUploadEvent(Long userId, SparseChangeSet delta) {
+	private void sendFileUploadEvents(Long userId, SparseChangeSet delta) {
 		String tableId = delta.getTableId();
-		for (Long fileHandleId : delta.getFileHandleIdsInSparseChangeSet()) {
-			StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_UPLOAD, userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity);
-			statisticsCollector.collectEvent(event);
+		
+		List<StatisticsFileEvent> downloadEvents = delta.getFileHandleIdsInSparseChangeSet().stream().map(fileHandleId -> {
+			return new StatisticsFileEvent(StatisticsFileActionType.FILE_UPLOAD, userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity);
+		}).collect(Collectors.toList());
+		
+		if (!downloadEvents.isEmpty()) {
+			statisticsCollector.collectEvents(downloadEvents);
 		}
+		
 	}
 	
 	/**

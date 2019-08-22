@@ -1189,7 +1189,7 @@ public class FileHandleManagerImplTest {
 		verify(mockS3Client).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
 		
 		// Verifies that download stats are sent
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 		
 		// Verify a download record is created for the success case.
 		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
@@ -1225,7 +1225,7 @@ public class FileHandleManagerImplTest {
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 	}
 
 	@Test
@@ -1250,7 +1250,7 @@ public class FileHandleManagerImplTest {
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 	}
 
 	@Test
@@ -1282,7 +1282,7 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(2)).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 	}
 
 	@Test
@@ -1308,7 +1308,7 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 	}
 
 	@Test
@@ -1331,7 +1331,7 @@ public class FileHandleManagerImplTest {
 		// no downloads should be pushed since no urls were returned.
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 	}
 
 	@Test
@@ -1354,7 +1354,7 @@ public class FileHandleManagerImplTest {
 		// no downloads should be pushed since no urls were returned.
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 	}
 	
 	@Test
@@ -1434,7 +1434,7 @@ public class FileHandleManagerImplTest {
 		// no records pushed
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 	}
 
 
@@ -1470,7 +1470,7 @@ public class FileHandleManagerImplTest {
 
 		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));		
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 	}
 
 	/**

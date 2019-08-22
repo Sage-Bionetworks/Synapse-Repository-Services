@@ -12,9 +12,9 @@ public interface StatisticsLogRecordProviderFactory {
 
 	/** 
 	 * @param <E>   The event type
-	 * @param event The event
+	 * @param eventClass The event class
 	 * @return A {@link StatisticsEventLogRecordProvider} for the given event
 	 */
-	<E extends StatisticsEvent> StatisticsEventLogRecordProvider<E> getLogRecordProvider(E event);
+	<E extends StatisticsEvent> StatisticsEventLogRecordProvider<E> getLogRecordProvider(Class<E> eventClass);
 
 }

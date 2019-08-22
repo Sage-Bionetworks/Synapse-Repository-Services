@@ -43,12 +43,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.google.common.collect.ImmutableList;
+
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class StatisticsEventsCollectorAutowireTest {
 
 	public static final long TEST_FILE_SIZE = 1234567l;
+	
+	private static final String STREAM_UPLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(StatisticsFileActionType.FILE_UPLOAD);
 
+	private static final String STREAM_DOWNLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(StatisticsFileActionType.FILE_DOWNLOAD);
+
+	
 	@Autowired
 	private StatisticsLogRecordProviderFactory logRecordProviderFactory;
 
@@ -117,20 +124,12 @@ public class StatisticsEventsCollectorAutowireTest {
 				fileHandle.getId(), file.getId(),
 				FileHandleAssociateType.FileEntity);
 		
-		String expectedStream = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS
-				.get(StatisticsFileActionType.FILE_DOWNLOAD);
-		
-		StatisticsEventLogRecord expectedRecord = new StatisticsFileEventLogRecord()
-				.withUserId(event.getUserId())
-				.withAssociation(event.getAssociationType(), event.getAssociationId())
-				.withFileHandleId(event.getFileHandleId())
-				.withProjectId(KeyFactory.stringToKey(project.getId()))
-				.withTimestamp(event.getTimestamp());
+		StatisticsEventLogRecord expectedRecord = convertToRecord(event);
 
 		// Call under test
 		statsEventsCollector.collectEvent(event);
 
-		verify(firehoseLogger, times(1)).logBatch(eq(expectedStream), eq(Collections.singletonList(expectedRecord)));
+		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(Collections.singletonList(expectedRecord)));
 
 	}
 
@@ -142,21 +141,79 @@ public class StatisticsEventsCollectorAutowireTest {
 				fileHandle.getId(), file.getId(),
 				FileHandleAssociateType.FileEntity);
 		
-		String expectedStream = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS
-				.get(StatisticsFileActionType.FILE_UPLOAD);
-		
-		StatisticsEventLogRecord expectedRecord = new StatisticsFileEventLogRecord()
-				.withUserId(event.getUserId())
-				.withAssociation(event.getAssociationType(), event.getAssociationId())
-				.withFileHandleId(event.getFileHandleId())
-				.withProjectId(KeyFactory.stringToKey(project.getId()))
-				.withTimestamp(event.getTimestamp());
+		StatisticsEventLogRecord expectedRecord = convertToRecord(event);
 
 		// Call under test
 		statsEventsCollector.collectEvent(event);
 
-		verify(firehoseLogger, times(1)).logBatch(eq(expectedStream), eq(Collections.singletonList(expectedRecord)));
+		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_UPLOAD), eq(Collections.singletonList(expectedRecord)));
 
+	}
+	
+	@Test
+	public void testCollectEvents() {
+		
+		StatisticsFileEvent downloadEvent1 = new StatisticsFileEvent(
+				StatisticsFileActionType.FILE_DOWNLOAD,
+				creatorUserId, 
+				fileHandle.getId(), 
+				file.getId(), 
+				FileHandleAssociateType.FileEntity);
+
+		StatisticsFileEvent downloadEvent2 = new StatisticsFileEvent(
+				StatisticsFileActionType.FILE_DOWNLOAD,
+				creatorUserId, 
+				fileHandle.getId(), 
+				file.getId(), 
+				FileHandleAssociateType.FileEntity);
+
+		List<StatisticsFileEvent> events = ImmutableList.of(downloadEvent1, downloadEvent2);
+
+		List<StatisticsFileEventLogRecord> expectedRecords = ImmutableList.of(
+			convertToRecord(downloadEvent1),
+			convertToRecord(downloadEvent2)
+		);
+		
+		// Call under test
+		statsEventsCollector.collectEvents(events);
+		
+		// Verifies that the logger is invoked only once
+		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(expectedRecords));
+	}
+	
+	@Test
+	public void testCollectEventsWithDifferentStreams() {
+		
+		StatisticsFileEvent downloadEvent = new StatisticsFileEvent(
+				StatisticsFileActionType.FILE_DOWNLOAD,
+				creatorUserId, 
+				fileHandle.getId(), 
+				file.getId(), 
+				FileHandleAssociateType.FileEntity);
+
+		StatisticsFileEvent uploadEvent = new StatisticsFileEvent(
+				StatisticsFileActionType.FILE_UPLOAD,
+				creatorUserId, 
+				fileHandle.getId(), 
+				file.getId(), 
+				FileHandleAssociateType.FileEntity);
+		
+		List<StatisticsFileEvent> events = ImmutableList.of(downloadEvent, uploadEvent);
+
+		List<StatisticsFileEventLogRecord> expectedRecords1 = ImmutableList.of(
+			convertToRecord(downloadEvent)
+		);
+		
+		List<StatisticsFileEventLogRecord> expectedRecords2 = ImmutableList.of(
+			convertToRecord(uploadEvent)
+		);
+		
+		// Call under test
+		statsEventsCollector.collectEvents(events);
+		
+		// Verifies that the logger is invoked once per stream type
+		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(expectedRecords1));
+		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_UPLOAD), eq(expectedRecords2));
 	}
 
 	@Test
@@ -171,6 +228,15 @@ public class StatisticsEventsCollectorAutowireTest {
 		statsEventsCollector.collectEvent(event);
 
 		verify(firehoseLogger, never()).logBatch(any(), any());
+	}
+	
+	private StatisticsFileEventLogRecord convertToRecord(StatisticsFileEvent event) {
+		return new StatisticsFileEventLogRecord()
+				.withUserId(event.getUserId())
+				.withAssociation(event.getAssociationType(), event.getAssociationId())
+				.withFileHandleId(event.getFileHandleId())
+				.withProjectId(KeyFactory.stringToKey(project.getId()))
+				.withTimestamp(event.getTimestamp());
 	}
 	
 	private Node createProject(Long creatorId) {

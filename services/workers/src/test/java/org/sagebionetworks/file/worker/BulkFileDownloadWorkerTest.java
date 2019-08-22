@@ -223,7 +223,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -280,7 +280,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -337,7 +337,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -369,7 +369,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -401,7 +401,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -431,7 +431,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -462,7 +462,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -515,7 +515,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
 		expectedResponse.setUserId(""+user.getId());
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}

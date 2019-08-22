@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
@@ -264,12 +265,17 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	}
 	
 	private void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
-		for (FileDownloadSummary summary : results) {
-			if (FileDownloadStatus.SUCCESS.equals(summary.getStatus())) {
-				StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, summary.getFileHandleId(), summary.getAssociateObjectId(), summary.getAssociateObjectType());
-				statisticsCollector.collectEvent(event);
-			}
+		
+		List<StatisticsFileEvent> downloadEvents = results.stream()
+			// Only collects stats for successful summaries
+			.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
+			.map(summary -> new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, summary.getFileHandleId(), summary.getAssociateObjectId(), summary.getAssociateObjectType()))
+			.collect(Collectors.toList());
+
+		if (!downloadEvents.isEmpty()) {
+			statisticsCollector.collectEvents(downloadEvents);
 		}
+		
 	}
 
 	/**

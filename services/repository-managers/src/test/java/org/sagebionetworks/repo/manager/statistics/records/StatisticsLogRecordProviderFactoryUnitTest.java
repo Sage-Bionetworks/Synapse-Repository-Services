@@ -41,7 +41,7 @@ public class StatisticsLogRecordProviderFactoryUnitTest {
 
 	@Test
 	public void testGetRegisteredProvider() {
-		StatisticsEventLogRecordProvider<StatisticsEventMock> provider = logProviderFactory.getLogRecordProvider(new StatisticsEventMock());
+		StatisticsEventLogRecordProvider<StatisticsEventMock> provider = logProviderFactory.getLogRecordProvider(StatisticsEventMock.class);
 		assertNotNull(provider);
 		assertEquals(StatisticsEventMock.class, provider.getEventClass());
 	}
@@ -49,7 +49,7 @@ public class StatisticsLogRecordProviderFactoryUnitTest {
 	@Test
 	public void testUnregistredProvider() {
 		Assertions.assertThrows(UnsupportedOperationException.class, () -> {
-			logProviderFactory.getLogRecordProvider(mockUnregisteredEvent);
+			logProviderFactory.getLogRecordProvider(mockUnregisteredEvent.getClass());
 		});
 	}
 

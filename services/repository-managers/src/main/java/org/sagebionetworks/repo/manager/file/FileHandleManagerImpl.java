@@ -379,7 +379,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		
 		String url = getURLForFileHandle(fileHandle);
 		
-		sendFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
+		StatisticsFileEvent downloadEvent = buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
+		
+		statisticsCollector.collectEvent(downloadEvent);
 		
 		return url;
 	}
@@ -436,8 +438,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
 	}
 	
-	private void sendFileDownloadEvent(Long userId, FileHandleAssociation association) {
-		statisticsCollector.collectEvent(new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, association.getFileHandleId(), association.getAssociateObjectId(), association.getAssociateObjectType()));
+	private StatisticsFileEvent buildFileDownloadEvent(Long userId, FileHandleAssociation association) {
+		return new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, association.getFileHandleId(), association.getAssociateObjectId(), association.getAssociateObjectType());
 	}
 
 	@Override
@@ -1168,6 +1170,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
 		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
+		List<StatisticsFileEvent> downloadEvents = new LinkedList<>();
+		
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
 			idToFileHandleAssociation.put(fhas.getAssociation().getFileHandleId(), fhas.getAssociation());
@@ -1216,7 +1220,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 							
-							sendFileDownloadEvent(userInfo.getId(), association);
+							StatisticsFileEvent downloadEvent = buildFileDownloadEvent(userInfo.getId(), association);
+							downloadEvents.add(downloadEvent);
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
@@ -1239,6 +1244,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!downloadRecords.isEmpty()){
 			// Push the records to queue
 			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(downloadRecords, FILE_DOWNLOAD_RECORD_TYPE));
+		}
+		if (!downloadEvents.isEmpty()) {
+			statisticsCollector.collectEvents(downloadEvents);
 		}
 		BatchFileResult batch = new BatchFileResult();
 		batch.setRequestedFiles(requestedFiles);
