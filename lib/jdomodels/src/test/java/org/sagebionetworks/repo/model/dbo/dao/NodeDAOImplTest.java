@@ -48,7 +48,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -2753,9 +2752,12 @@ public class NodeDAOImplTest {
 		AnnotationsV2Utils.putAnnotations(userAnnos, "aDouble", "1.22", AnnotationsV2ValueType.DOUBLE);
 		nodeDao.updateUserAnnotations(file.getId(), userAnnos);
 		//Ensure that entity property annotations are not included in the entity replication (PLFM-4601)
-		FileEntity fileEntity = new FileEntity();
-		fileEntity.setId("Defintely not the right ID");
-		nodeDao.updateAdditionalEntityProperties(file.getId(), fileEntity);
+
+		Annotations entityPropertyAnnotations = new Annotations();
+		entityPropertyAnnotations.setId(file.getId());
+		entityPropertyAnnotations.setEtag(file.getETag());
+		entityPropertyAnnotations.addAnnotation("primaryString", "primaryTest");
+		nodeDao.updateEntityPropertyAnnotations(file.getId(), entityPropertyAnnotations);
 
 		int maxAnnotationChars = 10;
 		
@@ -3768,7 +3770,6 @@ public class NodeDAOImplTest {
 		parameterSource.addValue("owner", KeyFactory.stringToKey(id));
 		parameterSource.addValue("revisionNumber", nodeDao.getCurrentRevisionNumber(id));
 		DBORevision nodeRevision = basicDao.getObjectByPrimaryKey(DBORevision.class, parameterSource);
-		assertNull(nodeRevision.getAnnotations());
 
 		// Now retrieve it and we should stil get back an empty NamedAnnotation
 		AnnotationsV2 copy = nodeDao.getUserAnnotations(id);
@@ -3849,44 +3850,43 @@ public class NodeDAOImplTest {
 
 	@Test
 	public void testEntityPropertiesRoundTrip(){
-		DockerRepository dockerRepository = new DockerRepository();
-		dockerRepository.setRepositoryName("repo name");
 
 		String nodeId = nodeDao.createNewNode(privateCreateNew("testEntityPropertiesRoundTrip")).getId();
 
-		nodeDao.updateAdditionalEntityProperties(nodeId, dockerRepository);
-		DockerRepository retrieved = nodeDao.getAdditionalEntityProperties(nodeId, DockerRepository.class);
+		Annotations entityPropertyAnnotations = new Annotations();
+		entityPropertyAnnotations.addAnnotation("primaryString", "primaryTest");
+		nodeDao.updateEntityPropertyAnnotations(nodeId, entityPropertyAnnotations);
+		Annotations retrieved = nodeDao.getEntityPropertyAnnotations(nodeId);
 
-		assertEquals(dockerRepository.getRepositoryName(), retrieved.getRepositoryName());
+		assertEquals(entityPropertyAnnotations.getStringAnnotations(), retrieved.getStringAnnotations());
 	}
 
 	@Test
 	public void testEntityPropertiesForVersion(){
-		DockerRepository oldDockerRepository = new DockerRepository();
-		oldDockerRepository.setRepositoryName("repo name");
+		Annotations oldEntityPropertyAnnotations = new Annotations();
+		oldEntityPropertyAnnotations.addAnnotation("primaryString", "primaryTest");
 
 		Node node = nodeDao.createNewNode(privateCreateNew("testEntityPropertiesRoundTrip"));
 		String nodeId = node.getId();
 		Long oldNodeVersion = node.getVersionNumber();
 
-		nodeDao.updateAdditionalEntityProperties(nodeId, oldDockerRepository);
+		nodeDao.updateEntityPropertyAnnotations(nodeId, oldEntityPropertyAnnotations);
 
 		Node newNode = nodeDao.getNode(nodeId);
 		newNode.setVersionComment("Comment "+2);
 		newNode.setVersionLabel("2");
 		Long newNodeVersion = nodeDao.createNewVersion(newNode);
-		DockerRepository newDockerRepository = new DockerRepository();
-		newDockerRepository.setRepositoryName("newer name");
-		nodeDao.updateAdditionalEntityProperties(nodeId, newDockerRepository);
+		Annotations newEntityPropertiesAnnotations = new Annotations();
+		newEntityPropertiesAnnotations.addAnnotation("primaryString", "NEW VALUE YEAH");
+		nodeDao.updateEntityPropertyAnnotations(nodeId, newEntityPropertiesAnnotations);
 
 
-		DockerRepository retrievedOldVersion = nodeDao.getAdditionalEntityPropertiesForVersion(nodeId, oldNodeVersion, DockerRepository.class);
-		DockerRepository retrievedNewVersion = nodeDao.getAdditionalEntityPropertiesForVersion(nodeId, newNodeVersion, DockerRepository.class);
+		Annotations retrievedOldVersion = nodeDao.getEntityPropertyAnnotationsForVersion(nodeId, oldNodeVersion);
+		Annotations retrievedNewVersion = nodeDao.getEntityPropertyAnnotationsForVersion(nodeId, newNodeVersion);
 
-		assertNotEquals(retrievedOldVersion.getRepositoryName(), retrievedNewVersion.getRepositoryName());
+		assertNotEquals(retrievedOldVersion.getStringAnnotations(), retrievedNewVersion.getStringAnnotations());
 
-		assertEquals(oldDockerRepository.getRepositoryName(), retrievedOldVersion.getRepositoryName());
-		assertEquals(newDockerRepository.getRepositoryName(), retrievedNewVersion.getRepositoryName());
-
+		assertEquals(oldEntityPropertyAnnotations.getStringAnnotations(), retrievedOldVersion.getStringAnnotations());
+		assertEquals(newEntityPropertiesAnnotations.getStringAnnotations(), retrievedNewVersion.getStringAnnotations());
 	}
 }

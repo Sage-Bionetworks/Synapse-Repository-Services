@@ -120,6 +120,24 @@ public interface NodeDAO {
 	void updateUserAnnotations(String id, AnnotationsV2 annotationsV2);
 
 	/**
+	 * Update annotations for the node's additional entity properties
+	 * @param nodeId
+	 * @param updatedAnnos
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Get all of the version numbers for this node.
+	 * @param id
+	 * @return a list of verison numbers
+	 * @throws NotFoundException
+	 * @throws DatastoreException 
+	 */
+	public List<Long> getVersionNumbers(String id);
+
+	/**
 	 * Get user annotations associated with the current version of the entity
 	 * @param id
 	 * @return
@@ -137,40 +155,19 @@ public interface NodeDAO {
 	AnnotationsV2 getUserAnnotationsForVersion(String id, Long versionNumber);
 
 	/**
-	 * Update Entity properties that could not be stored as a Node
-	 * @param id
-	 * @param entity
-	 * @param <T>
-	 */
-	<T extends Entity> void updateAdditionalEntityProperties(String id, T entity);
-
-	/**
 	 * Get Entity properties that could not be stored as a Node
 	 * @param id
-	 * @param <T>
+	 * @return Annotations containing the extra properties for the Entity
 	 */
-	<T extends Entity> T getAdditionalEntityProperties(String id, Class<T> entityClass);
+	Annotations getEntityPropertyAnnotations(String id);
 
 	/**
 	 * Get Entity properties for a specific version that could not be stored as a Node
 	 * @param id
 	 * @param versionNumber
-	 * @param entityClass
-	 * @param <T>
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
+	 * @return Annotations containing the extra properties for the Entity
 	 */
-	<T extends Entity> T getAdditionalEntityPropertiesForVersion(String id, Long versionNumber, Class<T> entityClass);
-
-	/**
-	 * Get all of the version numbers for this node.
-	 * @param id
-	 * @return a list of verison numbers
-	 * @throws NotFoundException
-	 * @throws DatastoreException 
-	 */
-	public List<Long> getVersionNumbers(String id);
+	Annotations getEntityPropertyAnnotationsForVersion(String id, Long versionNumber);
 
 	/**
 	 * Look at the current eTag without locking or changing anything.

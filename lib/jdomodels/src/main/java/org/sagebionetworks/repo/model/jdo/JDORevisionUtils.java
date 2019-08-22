@@ -16,14 +16,13 @@ public class JDORevisionUtils {
 		copy.setOwner(toCopy.getOwner());
 		// Increment the revision number
 		copy.setRevisionNumber(toCopy.getRevisionNumber() + 1);
-		// Make a copy of the annotations byte array
-		if(toCopy.getAnnotations() != null){
-			// Make a copy of the annotations.
-			copy.setAnnotations(Arrays.copyOf(toCopy.getAnnotations(), toCopy.getAnnotations().length));
+
+		if(toCopy.getEntityPropertyAnnotations() != null){
+			copy.setEntityPropertyAnnotations(Arrays.copyOf(toCopy.getEntityPropertyAnnotations(), toCopy.getEntityPropertyAnnotations().length));
 		}
+
 		//TODO: test
 		copy.setUserAnnotationsJSON(toCopy.getUserAnnotationsJSON());
-		copy.setEntityPropertiesJSON(toCopy.getUserAnnotationsJSON());
 		// Make a copy of the references byte array
 		if(toCopy.getReference() != null){
 			// Make a copy of the references.

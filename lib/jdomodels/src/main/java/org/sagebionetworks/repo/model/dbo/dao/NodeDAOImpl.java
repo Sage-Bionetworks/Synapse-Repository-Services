@@ -19,7 +19,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTIES_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
@@ -147,9 +147,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
 	private static final String SQL_UPDATE_USER_ANNOTATIONS = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_USER_ANNOS_JSON
-			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
-
-	private static final String SQL_UPDATE_ENTITY_PROPERTIES = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ENTITY_PROPERTIES_JSON
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
 	private static final String SQL_TOUCH_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_MODIFIED_BY
@@ -315,11 +312,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						+ " ORDER BY "+COL_NODE_ID+" ASC LIMIT :"+BIND_LIMIT;
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
+	private static final String SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R.";
 
+	private static final String SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX = " FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = :"+COL_NODE_ID +" AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + "=";
 	private static final String SELECT_USER_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", R."+COL_REVISION_USER_ANNOS_JSON+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + " = ";
-
-	private static final String SELECT_ADDITIONAL_ENTITY_PROPERTIES_ONLY_PREFIX = "SELECT R."+COL_REVISION_ENTITY_PROPERTIES_JSON+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + " = ";
-
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -694,10 +690,50 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return params;
 	}
 
+	@Override
+	public Annotations getEntityPropertyAnnotations(final String id) {
+		ValidateArgument.requiredNotEmpty(id, "id");
+		return getAnnotations(id, null, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
+	}
+
+	@Override
+	public Annotations getEntityPropertyAnnotationsForVersion(final String id, Long versionNumber){
+		ValidateArgument.requiredNotEmpty(id, "id");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		return getAnnotations(id, versionNumber, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
+	}
+	private Annotations getAnnotations(final String id, Long version, final String annotationsColumnName){
+		final Long idLong = KeyFactory.stringToKey(id);
+
+		StringBuilder sql = new StringBuilder(SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX);
+		sql.append(annotationsColumnName);
+		sql.append(SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX);
+
+		Map<String, Object> parameters = new HashMap<>();
+		parameters.put(COL_NODE_ID, idLong);
+		if(version == null){
+			sql.append("N." + COL_CURRENT_REV);
+		}else {
+			sql.append(":version");
+			parameters.put("version", version);
+		}
+		// Select just the references, not the entire node.
+		try{
+			Annotations annos =  namedParameterJdbcTemplate.queryForObject(sql.toString(), parameters, new AnnotationsRowMapper(annotationsColumnName));
+			// Remove the eTags when version is specified (See PLFM-1420)
+			if(annos != null && version != null){
+				annos.setEtag(NodeConstants.ZERO_E_TAG);
+			}
+			return annos;
+		}catch (EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
+		}
+	}
 
 	/**
 	 * A RowMapper that extracts Annotation from a result set.
-	 * The result set must include (COL_REVISION_USER_ANNOS_JSON OR COL_REVISION_ENTITY_PROPERTIES_JSON), COL_NODE_CREATED_ON, COL_NODE_ID, COL_NODE_CREATED_BY
+	 * The result set must include COL_REVISION_USER_ANNOS_JSON, COL_NODE_CREATED_ON, COL_NODE_ID, COL_NODE_CREATED_BY
 	 *
 	 */
 	private static final RowMapper<AnnotationsV2> ANNOTATIONS_V2_ROW_MAPPER = (ResultSet rs, int roNum) ->{
@@ -720,30 +756,38 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return annos;
 	};
 
-	private static class EntityPropertiesRowMapper<T extends Entity> implements RowMapper<T>{
-		private Class<T> clazz;
+	/**
+	 * A RowMapper that extracts Annotation from a result set.
+	 * The result set must COL_REVISION_ANNOS_BLOB, COL_NODE_ETAG, COL_NODE_CREATED_ON, COL_NODE_ID, COL_NODE_CREATED_BY
+	 *
+	 */
 
-		EntityPropertiesRowMapper(Class<T> clazz){
-			this.clazz = clazz;
+	private static class AnnotationsRowMapper implements RowMapper<Annotations> {
+
+		private String annotationColumnName;
+
+		private AnnotationsRowMapper(String annotationColumnName){
+			this.annotationColumnName = annotationColumnName;
 		}
 
 		@Override
-		public T mapRow(ResultSet rs, int rowNum)	throws SQLException {
-			String jsonString = rs.getString(COL_REVISION_ENTITY_PROPERTIES_JSON);
-			if(jsonString != null){
+		public Annotations mapRow(ResultSet rs, int rowNum) throws SQLException {
+			Annotations annos = null;
+			byte[] bytes = rs.getBytes(annotationColumnName);
+			if(bytes != null){
 				try {
-					return EntityFactory.createEntityFromJSONString(jsonString, clazz);
-				} catch (JSONObjectAdapterException e) {
+					annos = AnnotationUtils.decompressedAnnotationsV1(bytes);
+				} catch (IOException e) {
 					throw new DatastoreException(e);
 				}
 			}else{
-				// If there is no annotations then create a new one.
-				try {
-					return clazz.newInstance();
-				} catch (InstantiationException | IllegalAccessException e) {
-					throw new DatastoreException(e);
-				}
+				// If there is no annotations blob then create a new one.
+				annos = new Annotations();
 			}
+			// Pull out the rest of the data.
+			annos.setEtag(rs.getString(COL_NODE_ETAG));
+			annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+			return annos;
 		}
 	}
 
@@ -854,45 +898,26 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public  <T extends Entity> void updateAdditionalEntityProperties(String id, T entity){
-		ValidateArgument.requiredNotEmpty(id, "id");
+	public void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException {
+		updateAnnotations(nodeId, updatedAnnos, COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
+	}
 
-		final Long nodeIdLong = KeyFactory.stringToKey(id);
-		final Long currRevision = getCurrentRevisionNumber(id);
+	void updateAnnotations(String nodeId, Annotations updatedAnnos, String annotationColumnName) throws NotFoundException, DatastoreException {
+
+		ValidateArgument.required(nodeId, "nodeId");
+		ValidateArgument.required(updatedAnnos, "updatedAnnos");
+
+
+		final Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		final Long currentRevision = getCurrentRevisionNumber(nodeId);
+
+		// now update the annotations from the passed values.
 		try {
 			// Compress the annotations.
-			String annotationAsJSON = EntityFactory.createJSONStringForEntity(entity);
-			this.jdbcTemplate.update(SQL_UPDATE_ENTITY_PROPERTIES, annotationAsJSON, nodeIdLong, currRevision);
-		} catch (JSONObjectAdapterException e) {
+			byte[] newAnnos = AnnotationUtils.compressAnnotationsV1(updatedAnnos);
+			this.jdbcTemplate.update(String.format(SQL_UPDATE_ANNOTATIONS_FORMAT, annotationColumnName), newAnnos, nodeIdLong, currentRevision);
+		} catch (IOException e) {
 			throw new DatastoreException(e);
-		}
-	}
-
-	@Override
-	public <T extends Entity> T getAdditionalEntityProperties(String id, Class<T> entityClass){
-		ValidateArgument.requiredNotEmpty(id, "id");
-		// Select just the references, not the entire node.
-		try{
-			return jdbcTemplate.queryForObject(SELECT_ADDITIONAL_ENTITY_PROPERTIES_ONLY_PREFIX + "N." + COL_CURRENT_REV, new EntityPropertiesRowMapper<T>(entityClass),
-					KeyFactory.stringToKey(id));
-		}catch (EmptyResultDataAccessException e){
-			// Occurs if there are no results
-			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
-		}
-	}
-
-	@Override
-	public <T extends Entity> T getAdditionalEntityPropertiesForVersion(final String id, Long versionNumber, Class<T> entityClass){
-		ValidateArgument.requiredNotEmpty(id, "id");
-		ValidateArgument.required(versionNumber, "versionNumber");
-		// Select just the references, not the entire node.
-		try{
-			return jdbcTemplate.queryForObject(
-					SELECT_ADDITIONAL_ENTITY_PROPERTIES_ONLY_PREFIX + "?",
-					new EntityPropertiesRowMapper<T>(entityClass), KeyFactory.stringToKey(id), versionNumber);
-		}catch (EmptyResultDataAccessException e){
-			// Occurs if there are no results
-			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
 		}
 	}
 	
@@ -1690,7 +1715,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if (rs.wasNull()) {
 					dto.setIsInSynapseStorage(null);
 				}
-				//TODO: replace with V2
 				String userAnnoJson = rs.getString(COL_REVISION_USER_ANNOS_JSON);
 				if(userAnnoJson != null){
 					try {
