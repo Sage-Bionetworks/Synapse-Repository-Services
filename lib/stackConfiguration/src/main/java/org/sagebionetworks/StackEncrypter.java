@@ -8,7 +8,7 @@ public interface StackEncrypter {
 	 * @param s
 	 * @return
 	 */
-	String encryptStringWithStackKey(String s);
+	String encryptAndBase64EncodeStringWithStackKey(String s);
 	
 	/**
 	 * Decrypt a String encoded using the stack's encryption key.
@@ -16,7 +16,7 @@ public interface StackEncrypter {
 	 * @param s
 	 * @return
 	 */
-	String decryptStackEncryptedString(String s);
+	String decryptStackEncryptedAndBase64EncodedString(String s);
 
 	/**
 	 * Get the decrypted (plaintext) value for a given property key.

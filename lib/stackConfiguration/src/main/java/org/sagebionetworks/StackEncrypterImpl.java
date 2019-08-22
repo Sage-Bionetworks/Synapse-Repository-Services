@@ -1,6 +1,6 @@
 package org.sagebionetworks;
 
-import static org.sagebionetworks.ConfigurationPropertiesImpl.PROPERTY_KEY_CANNOT_BE_NULL;
+import static org.sagebionetworks.ConfigurationPropertiesImpl.*;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -37,11 +37,11 @@ public class StackEncrypterImpl implements StackEncrypter {
 	}
 
 	@Override
-	public String encryptStringWithStackKey(String plainText) {
-		if(!encryptionEnabled()) {
-			return plainText;
-		}
+	public String encryptAndBase64EncodeStringWithStackKey(String plainText) {
 		try {
+			if(!encryptionEnabled()) {
+				return new String(Base64.getEncoder().encode(plainText.getBytes(UTF_8)), UTF_8);
+			}
 			byte[] plainTextBytes = plainText.getBytes( UTF_8 );
 			EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(
 					new EncryptRequest().withPlaintext(ByteBuffer.wrap(plainTextBytes)));
@@ -56,24 +56,28 @@ public class StackEncrypterImpl implements StackEncrypter {
 		if(propertyKey == null) {
 			throw new IllegalArgumentException(PROPERTY_KEY_CANNOT_BE_NULL);
 		}
+		String propertyValue = configuration.getProperty(propertyKey);
+		if (propertyValue == null) {
+			throw new IllegalArgumentException(String.format(PROPERTY_WITH_KEY_S_DOES_NOT_EXIST, propertyKey));
+		}
 		// Properties are only decrypted if a key alias is provided
 		if(!encryptionEnabled()) {
 			log.warn(String.format(WILL_NOT_DECRYPT_MESSAGE, PROPERTY_KEY_STACK_CMK_ALIAS, propertyKey));
-			return configuration.getProperty(propertyKey);
+			return propertyValue;
 		}
 		log.info(String.format(DECRYPTING_PROPERTY, propertyKey));
 		// load the Base64 encoded encrypted string from the properties.
 		String encryptedValueBase64 = configuration.getProperty(propertyKey);
-		return decryptStackEncryptedString(encryptedValueBase64);
+		return decryptStackEncryptedAndBase64EncodedString(encryptedValueBase64);
 	}
 	
 	@Override
-	public String decryptStackEncryptedString(String encryptedValueBase64) {
-		if(!encryptionEnabled()) {
-			return encryptedValueBase64;
-		}
+	public String decryptStackEncryptedAndBase64EncodedString(String encryptedValueBase64) {
 		try {
 			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
+			if(!encryptionEnabled()) {
+				return new String(rawEncrypted, UTF_8);
+			}
 			// KMS can decrypt the value without providing the encryption key.
 			DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
 			return byteBufferToString(decryptResult.getPlaintext());

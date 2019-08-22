@@ -252,7 +252,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new RuntimeException(e);
 		}
 		String serializedAuthorizationRequest = adapter.toJSONString();
-		String encryptedAuthorizationRequest = encryptionUtils.encryptStringWithStackKey(serializedAuthorizationRequest);
+		String encryptedAuthorizationRequest = encryptionUtils.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
 				
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
@@ -353,7 +353,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		String serializedAuthorizationRequest;
 		try {
-			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedString(code);
+			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedAndBase64EncodedString(code);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid authorization code", e);
 		}

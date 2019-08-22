@@ -81,7 +81,7 @@ public class ConfigurationPropertiesImplTest {
 
 
 		String decryptedValue = "The value decrypted";
-		when(mockEncryptionUtils.decryptStackEncryptedString(any(String.class))).thenReturn(decryptedValue);
+		when(mockEncryptionUtils.decryptStackEncryptedAndBase64EncodedString(any(String.class))).thenReturn(decryptedValue);
 		
 		secretsBucket = "aSecretBucket";
 		secretsKey = "aSecretKey";

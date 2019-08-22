@@ -3,16 +3,19 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.junit.Test;
+
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.Base64;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -21,10 +24,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
+import com.amazonaws.services.kms.model.DecryptResult;
 
 
 @RunWith(MockitoJUnitRunner.class)
-class StackEncrypterImplTest {
+public class StackEncrypterImplTest {
 
 	private StackEncrypterImpl stackEncrypterImpl;
 
@@ -40,7 +44,6 @@ class StackEncrypterImplTest {
 	@Captor
 	private ArgumentCaptor<DecryptRequest> decryptRequestCaptor;
 
-	private String cmkAlias;
 	private String keyToBeDecrypted;
 	private String encryptedValue;
 	private String base64EncodedCipher;
@@ -50,16 +53,20 @@ class StackEncrypterImplTest {
 
 	@Before
 	public void setUp() {
-		stackEncrypterImpl = new StackEncrypterImpl(mockConfigurationProperties, mockAWSKMS, mockLoggerProvider);
-		cmkAlias = "alias/test/foo";
+		when(mockLoggerProvider.getLogger(anyString())).thenReturn(mockLog);
 
-		keyToBeDecrypted = "toBeDecrypted";
+		stackEncrypterImpl = new StackEncrypterImpl(mockConfigurationProperties, mockAWSKMS, mockLoggerProvider);
+
+		keyToBeDecrypted = "keyToBeDecrypted";
 		encryptedValue = "This is encrypted";
 		base64EncodedCipher = base64Encode(encryptedValue);
 		
-		when(mockLoggerProvider.getLogger(anyString())).thenReturn(mockLog);
-
-		when(mockConfigurationProperties.getProperty(StackEncrypterImpl.PROPERTY_KEY_STACK_CMK_ALIAS)).thenReturn(cmkAlias);
+		when(mockConfigurationProperties.hasProperty(StackEncrypterImpl.PROPERTY_KEY_STACK_CMK_ALIAS)).thenReturn(true);
+		when(mockConfigurationProperties.getProperty(keyToBeDecrypted)).thenReturn(base64EncodedCipher);
+		
+		DecryptResult decryptResult = new DecryptResult();
+		decryptResult.setPlaintext(ByteBuffer.wrap(encryptedValue.getBytes()));
+		when(mockAWSKMS.decrypt(any(DecryptRequest.class))).thenReturn(decryptResult);
 	}
 	
 	
@@ -67,27 +74,28 @@ class StackEncrypterImplTest {
 	public void testGetDecryptedProperty() throws UnsupportedEncodingException {
 		// call under test
 		String results = stackEncrypterImpl.getDecryptedProperty(keyToBeDecrypted);
-		assertEquals(decryptedValue, results);
+		assertEquals(encryptedValue, results);
 		verify(mockAWSKMS).decrypt(decryptRequestCaptor.capture());
 		DecryptRequest request = decryptRequestCaptor.getValue();
 		assertNotNull(request);
 		assertEquals(encryptedValue, new String(request.getCiphertextBlob().array()));
-		verify(mockLog).info("Decrypting property 'toBeDecrypted'...");
+		verify(mockLog).info("Decrypting property 'keyToBeDecrypted'...");
 	}
 
 	
 	@Test
 	public void testGetDecryptedPropertyNoAlias() throws UnsupportedEncodingException {
 		// Remove the alias
-		when(mockConfigurationProperties.getProperty(StackEncrypterImpl.PROPERTY_KEY_STACK_CMK_ALIAS)).thenReturn(null);
+		when(mockConfigurationProperties.hasProperty(StackEncrypterImpl.PROPERTY_KEY_STACK_CMK_ALIAS)).thenReturn(false);
+		when(mockConfigurationProperties.getProperty(keyToBeDecrypted)).thenReturn(encryptedValue);
 		
 		// call under test
 		String results = stackEncrypterImpl.getDecryptedProperty(keyToBeDecrypted);
 		// the value should not be modified in any way.
-		assertEquals(base64EncodedCipher, results);
+		assertEquals(encryptedValue, results);
 		// the value should not be decrypted
 		verify(mockAWSKMS, never()).decrypt(decryptRequestCaptor.capture());
-		verify(mockLog).warn("Property: 'org.sagebionetworks.stack.cmk.alias' does not exist so the value of 'toBeDecrypted' will not be decrypted.");
+		verify(mockLog).warn("Property: 'org.sagebionetworks.stack.cmk.alias' does not exist so the value of 'keyToBeDecrypted' will not be decrypted.");
 	}
 	
 	
