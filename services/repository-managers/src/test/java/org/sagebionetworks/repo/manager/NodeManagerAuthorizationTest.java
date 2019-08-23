@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -50,7 +51,7 @@ public class NodeManagerAuthorizationTest {
 	@Mock
 	private Node mockNode;
 	@Mock
-	private Annotations mockUserAnnotations;
+	private AnnotationsV2 mockUserAnnotations;
 	@Mock
 	private Annotations mockEntityPropertyAnnotations;
 	@Mock

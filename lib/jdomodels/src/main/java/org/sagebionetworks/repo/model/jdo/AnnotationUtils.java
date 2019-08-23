@@ -14,7 +14,6 @@ import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -22,8 +21,12 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class AnnotationUtils {
+	//TODO: sync with AnnotationV2Utils
+
+	private static final long MAX_ANNOTATION_KEYS = 100L;
 
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
@@ -32,35 +35,8 @@ public class AnnotationUtils {
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.omitField(Annotations.class, "id")
 			.omitField(Annotations.class, "etag")
-			.omitField(NamedAnnotations.class, "id")
-			.omitField(NamedAnnotations.class, "etag")
-			.allowTypes(NamedAnnotations.class, Annotations.class)
 			.alias("annotations", Annotations.class)
-			.alias("name-space", NamedAnnotations.class)
 			.build();
-
-
-	/**
-	 * Convert the passed annotations to a compressed (zip) byte array
-	 * @param dto
-	 * @return compressed annotations
-	 * @throws IOException
-	 */
-	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
-		return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto == null || dto.isEmpty() ? null : dto);
-	}
-
-	/**
-	 * Read the compressed (zip) byte array into the Annotations.
-	 * @param zippedBytes
-	 * @return the resurrected Annotations
-	 * @throws IOException
-	 */
-	public static NamedAnnotations decompressedAnnotations(byte[] zippedBytes) throws IOException{
-		Object o = JDOSecondaryPropertyUtils.decompressObject(X_STREAM, zippedBytes);
-		if (o==null) return new NamedAnnotations();
-		return (NamedAnnotations) o;
-	}
 
 	/**
 	 * Convert the passed annotations to a compressed (zip) byte array
@@ -130,7 +106,7 @@ public class AnnotationUtils {
 	 * @param key
 	 * @throws InvalidModelException
 	 */
-	public static String checkKeyName(String key, Set<String> names) throws InvalidModelException {
+	public static void checkKeyName(String key) throws InvalidModelException {
 		if (key == null)
 			throw new InvalidModelException("Annotation names cannot be null");
 		key = key.trim();
@@ -144,59 +120,40 @@ public class AnnotationUtils {
 							+ key
 							+ "'. Annotation names may only contain; letters, numbers, '_' and '.'");
 		}
-		if(!names.add(key)){
-			throw new IllegalArgumentException("Duplicate annotation name: '"+key+"'");
+	}
+
+	static void checkValue(String key, AnnotationsV2Value annotationsV2Value){
+		//TODO: test
+		List<String> valueList = annotationsV2Value.getValue();
+		if(valueList == null){
+			throw new IllegalArgumentException("value for key: " + key + " can not be null");
 		}
-		return key;
+
+		AnnotationsV2ValueType type = annotationsV2Value.getType();
+
+		for(String value: valueList){
+		//TODO: maybe use AnnotationV1AndV2TypeMapping or make new validator classes
+		}
 	}
 
 	/**
 	 * Check all of the annotation names.
-	 * @param updated
+	 * @param annotation
 	 * @throws InvalidModelException
 	 */
-	public static void validateAnnotations(Annotations updated)	throws InvalidModelException {
-		if (updated == null)
-			throw new IllegalArgumentException("Annotations cannot be null");
-		HashSet<String> uniqueNames = new HashSet<String>();
+	public static void validateAnnotations(AnnotationsV2 annotation)	throws InvalidModelException {
+		//TODO: test
+		ValidateArgument.required(annotation, "annotation");
+		ValidateArgument.requiredNotEmpty(annotation.getEtag(), "etag");
 
 		// Validate the strings
-		if (updated.getStringAnnotations() != null) {
-			Iterator<String> it = updated.getStringAnnotations().keySet().iterator();
-			while (it.hasNext()) {
-				checkKeyName(it.next(), uniqueNames);
+		if (annotation.getAnnotations() != null) {
+			if(annotation.getAnnotations().size() > MAX_ANNOTATION_KEYS){
+				throw new IllegalArgumentException("Exceeded maximum number of annotation keys: " + MAX_ANNOTATION_KEYS);
 			}
-		}
-		// Validate the longs
-		if (updated.getLongAnnotations() != null) {
-			Iterator<String> it = updated.getLongAnnotations().keySet()
-					.iterator();
-			while (it.hasNext()) {
-				checkKeyName(it.next(), uniqueNames);
-			}
-		}
-		// Validate the dates
-		if (updated.getDateAnnotations() != null) {
-			Iterator<String> it = updated.getDateAnnotations().keySet()
-					.iterator();
-			while (it.hasNext()) {
-				checkKeyName(it.next(), uniqueNames);
-			}
-		}
-		// Validate the Doubles
-		if (updated.getDoubleAnnotations() != null) {
-			Iterator<String> it = updated.getDoubleAnnotations().keySet()
-					.iterator();
-			while (it.hasNext()) {
-				checkKeyName(it.next(), uniqueNames);
-			}
-		}
-		// Validate the Doubles
-		if (updated.getBlobAnnotations() != null) {
-			Iterator<String> it = updated.getBlobAnnotations().keySet()
-					.iterator();
-			while (it.hasNext()) {
-				checkKeyName(it.next(), uniqueNames);
+
+			for (Map.Entry<String, AnnotationsV2Value> entry: annotation.getAnnotations().entrySet()) {
+				checkKeyName(entry.getKey());
 			}
 		}
 

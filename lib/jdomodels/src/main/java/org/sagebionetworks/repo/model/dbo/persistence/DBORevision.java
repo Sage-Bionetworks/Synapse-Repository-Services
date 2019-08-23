@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;

@@ -37,6 +37,8 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -91,6 +93,7 @@ public class TableViewManagerImplTest {
 	SparseRowDto row;
 	
 	Annotations annotations;
+	AnnotationsV2 annotationsV2;
 
 	@Before
 	public void before(){
@@ -146,7 +149,9 @@ public class TableViewManagerImplTest {
 			}}).when(tableManagerSupport).getColumnModels(any());
 		
 		annotations = new Annotations();
-		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotations);
+		//TODO: replace translator code
+		annotationsV2= new AnnotationsV2();
+		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
 
 		anno1 = new ColumnModel();
 		anno1.setColumnType(ColumnType.STRING);
@@ -408,7 +413,8 @@ public class TableViewManagerImplTest {
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		// the resulting annotations must be valid.
-		AnnotationUtils.validateAnnotations(annos);
+		//TODO: replace translator code
+		AnnotationUtils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
 		assertTrue(updated);
 		assertEquals("aString",annos.getSingleValue(anno1.getName()));
 		assertEquals(new Long(123),annos.getSingleValue(anno2.getName()));
@@ -431,7 +437,8 @@ public class TableViewManagerImplTest {
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		// the resulting annotations must be valid.
-		AnnotationUtils.validateAnnotations(annos);
+		//TODO: replace translator code
+		AnnotationUtils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
 		assertTrue(updated);
 		/*
 		 * Copy the annotations by writing to XML.
@@ -500,7 +507,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
-		verify(mockNodeManager).updateUserAnnotations(userInfo, "syn111", annotations);
+		verify(mockNodeManager).updateUserAnnotations(userInfo, "syn111", annotationsV2);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -523,7 +530,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
 	}
 	
 	@Test
@@ -532,7 +539,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
 	}
 	
 	@Test
@@ -542,7 +549,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
 	}
 	
 	@Test

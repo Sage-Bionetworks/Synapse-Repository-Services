@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -409,7 +411,7 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public Annotations getUserAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public AnnotationsV2 getUserAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
@@ -417,7 +419,7 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public Annotations getUserAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+	public AnnotationsV2 getUserAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
@@ -442,14 +444,14 @@ public class NodeManagerImpl implements NodeManager {
 
 	@WriteTransaction
 	@Override
-	public Annotations updateUserAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public AnnotationsV2 updateUserAnnotations(UserInfo userInfo, String nodeId, AnnotationsV2 updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		// This is no longer called from a create PLFM-325
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		// Validate that the annotations
-		validateAnnotations(updated);
+		AnnotationUtils.validateAnnotations(updated);
 		// Lock the node and check the etag.
 		lockAndCheckEtag(nodeId, updated.getEtag());
 		// update etag, modifedOn, and modifiedBy
@@ -458,19 +460,6 @@ public class NodeManagerImpl implements NodeManager {
 
 		nodeDao.updateUserAnnotations(nodeId, updated);
 		return getUserAnnotations(userInfo, nodeId);
-	}
-	
-	/**
-	 * Validate the passed annotations.  Once a name is used for a type it cannot be used for another type.
-	 * @param updated
-	 * @throws DatastoreException 
-	 * @throws InvalidModelException 
-	 */
-	public void validateAnnotations(Annotations updated) throws DatastoreException, InvalidModelException{
-		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
-		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
-		// Validate the annotation names
-		AnnotationUtils.validateAnnotations(updated);
 	}
 
 	@Override
@@ -509,7 +498,6 @@ public class NodeManagerImpl implements NodeManager {
 		// The eTag really has no meaning yet because nobody has access to this id until we return.
 		entityPropertyAnnotations.setEtag(newNode.getETag());
 		entityPropertyAnnotations.setId(newNode.getId());
-		validateAnnotations(entityPropertyAnnotations);
 		// Since we just created this node we do not need to lock.
 		nodeDao.updateEntityPropertyAnnotations(newNode.getId(), entityPropertyAnnotations);
 		return newNode;

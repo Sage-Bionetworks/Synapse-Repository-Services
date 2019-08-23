@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
@@ -210,14 +209,14 @@ public class NodeTranslationUtilsTest {
 		Node node = NodeTranslationUtils.createFromEntity(link);
 		// Set the type for this object
 		node.setNodeType(EntityType.link);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		// Now add all of the annotations and references from the entity
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos);
 		assertNotNull(node.getReference());
 		assertEquals(ref, node.getReference());
 		// Make sure we can make the round trip
 		Link newLink = new Link();
-		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos);
 		NodeTranslationUtils.updateObjectFromNode(newLink, node);
 		assertNotNull(newLink.getLinksTo());
 		assertEquals("123", newLink.getLinksTo().getTargetId());
@@ -232,10 +231,9 @@ public class NodeTranslationUtilsTest {
 		ExampleEntity example = new ExampleEntity();
 		example.setSingleInteger(123l);
 		Node node = NodeTranslationUtils.createFromEntity(example);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations primaryAnnos = new Annotations();
 		// Now add all of the annotations and references from the entity
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations());
-		Annotations primaryAnnos = annos.getPrimaryAnnotations();
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, primaryAnnos);
 		// First make sure it is set correctly.
 		assertNotNull(primaryAnnos.getSingleValue("singleInteger"));
 		Long value = (Long) primaryAnnos.getSingleValue("singleInteger");
@@ -243,7 +241,7 @@ public class NodeTranslationUtilsTest {
 		
 		// Now the second update we want to clear it out.
 		example.setSingleInteger(null);
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, primaryAnnos);
 		// The value should now be cleared out.
 		assertEquals(null, primaryAnnos.getSingleValue("singleInteger"));
 
