@@ -22,14 +22,11 @@ public class AnnotationsV2Translator {
 			AnnotationsV2Value annotationsV2Value = valueEntry.getValue();
 			AnnotationV1AndV2TypeMapping typeMapping = AnnotationV1AndV2TypeMapping.forValueType(annotationsV2Value.getType());
 
-			//skip empty
-			if(annotationsV2Value.getValue().isEmpty()){
-				continue;
-			}
-
 			List<Object> convertedValues = annotationsV2Value.getValue().stream()
 					.map(typeMapping.convertToAnnotationV1Function())
 					.collect(Collectors.toList());
+
+			//TODO: this does not add mapping for empty lists. do we want empty list support?
 			annotationsV1.addAnnotation(annotationKey, convertedValues);
 		}
 

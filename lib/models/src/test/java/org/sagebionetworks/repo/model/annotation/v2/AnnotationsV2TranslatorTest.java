@@ -119,4 +119,17 @@ class AnnotationsV2TranslatorTest {
 		assertEquals(annotationsV2, translated);
 	}
 
+	@Test
+	public void testToAnnotationsV2_V1WithAnEmptyMap(){
+		//set list for stringkey1 to empty
+		annotationsV1.setStringAnnotations(Collections.emptyMap());
+		//method under test
+		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+
+		//should stringKey and stringKey2 should no longer exist because the string annotations were empty
+		annotationsV2.getAnnotations().remove(stringKey1);
+		annotationsV2.getAnnotations().remove(stringKey2);
+		assertEquals(annotationsV2, translated);
+	}
+
 }

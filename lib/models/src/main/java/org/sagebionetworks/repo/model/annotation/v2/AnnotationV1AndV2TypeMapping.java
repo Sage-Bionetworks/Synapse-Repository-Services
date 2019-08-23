@@ -3,24 +3,16 @@ package org.sagebionetworks.repo.model.annotation.v2;
 import java.util.Date;
 import java.util.function.Function;
 
-//TODO: test mapping functions
 enum AnnotationV1AndV2TypeMapping {
 
 	STRING(String.class, AnnotationsV2ValueType.STRING, Function.identity(), Function.identity()),
-	DOUBLE(Double.class, AnnotationsV2ValueType.DOUBLE,
-			Object::toString,
-			(String string) ->{
-				if(string.toLowerCase().equals("nan")){
-					string = "NaN";
-				}
-				return Double.valueOf(string);
-			} ),
+	DOUBLE(Double.class, AnnotationsV2ValueType.DOUBLE, Object::toString, AnnotationV1AndV2TypeMapping::convertStringToDouble),
 	LONG(Long.class, AnnotationsV2ValueType.LONG, Object::toString, Long::valueOf),
 	DATE(Date.class, AnnotationsV2ValueType.TIMESTAMP_MS,
 			(Date date) -> Long.toString(date.getTime()),
 			(String timestampMillis) -> new Date(Long.parseLong(timestampMillis)));
 
-	final Class<?> javaClass;
+	private final Class<?> javaClass;
 	private final AnnotationsV2ValueType valueType;
 	private final Function<?, String> toAnnotationV2Function;
 	private final Function<String, ?> toAnnotationV1Function;
@@ -31,6 +23,13 @@ enum AnnotationV1AndV2TypeMapping {
 		this.valueType = valueType;
 		this.toAnnotationV2Function = toAnnotationV2Function;
 		this.toAnnotationV1Function = toAnnotationV1Function;
+	}
+
+	static Double convertStringToDouble(String string) {
+		if ("nan".equals(string.toLowerCase())) {
+			string = "NaN";
+		}
+		return Double.valueOf(string);
 	}
 
 
