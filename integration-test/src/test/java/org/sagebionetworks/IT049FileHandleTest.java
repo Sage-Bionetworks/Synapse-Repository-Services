@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -31,6 +32,8 @@ import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudClientFactory;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
@@ -44,6 +47,7 @@ import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -52,6 +56,7 @@ import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -79,8 +84,15 @@ public class IT049FileHandleTest {
 	private File imageFile;
 	private Project project;
 
+	// Hard-coded dev test bucket
+	private String googleCloudBucket = "dev.test.gcp-storage.sagebase.org";
+
+	private static StackConfiguration config;
+	private static SynapseGoogleCloudStorageClient googleCloudStorageClient;
+
 	@BeforeClass
 	public static void beforeClass() throws Exception {
+		config = StackConfigurationSingleton.singleton();
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
@@ -90,6 +102,10 @@ public class IT049FileHandleTest {
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+
+		if (config.getGoogleCloudEnabled()) {
+			googleCloudStorageClient = SynapseGoogleCloudClientFactory.createGoogleCloudStorageClient();
+		}
 	}
 	
 	@Before
@@ -527,5 +543,41 @@ public class IT049FileHandleTest {
 		statusAgain = synapse.startMultipartUpload(request, forceRestart);
 		assertNotNull(statusAgain);
 		assertFalse(startStatus.getUploadId().equals(statusAgain.getUploadId()));
+	}
+
+	@Test
+	public void testMultipartUploadV2ToGoogleCloud() throws FileNotFoundException, SynapseException, IOException{
+		// Only run this test if Google Cloud is enabled.
+		Assume.assumeTrue(config.getGoogleCloudEnabled());
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+
+		// Upload the owner.txt to Google Cloud so we can create the storage location
+		String baseKey = "IT049FileHandleTest-" + UUID.randomUUID().toString();
+
+		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+
+		// upload the little image using multi-part upload
+		ExternalGoogleCloudStorageLocationSetting storageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
+		storageLocationSetting.setBucket(googleCloudBucket);
+		storageLocationSetting.setBaseKey(baseKey);
+		storageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
+		storageLocationSetting = synapse.createStorageLocationSetting(storageLocationSetting);
+
+		Boolean generatePreview = false;
+		Boolean forceRestart = null;
+		GoogleCloudFileHandle result = (GoogleCloudFileHandle) synapse.multipartUpload(this.imageFile, storageLocationSetting.getStorageLocationId(), generatePreview, forceRestart);
+		assertNotNull(result);
+		toDelete.add(result);
+		assertNotNull(result.getFileName());
+		assertEquals(expectedMD5, result.getContentMd5());
+	}
+
+
+	private static void uploadOwnerTxtToGoogleCloud(String bucket, String baseKey, String username) throws IOException {
+		// The Google Cloud service account must have write access to the bucket for this call to succeed
+		googleCloudStorageClient.putObject(bucket, baseKey + "owner.txt", new ByteArrayInputStream(username.getBytes(StandardCharsets.UTF_8)));
+
 	}
 }
