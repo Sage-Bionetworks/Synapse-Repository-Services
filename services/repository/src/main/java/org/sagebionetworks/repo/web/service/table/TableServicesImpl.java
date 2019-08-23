@@ -271,8 +271,7 @@ public class TableServicesImpl implements TableServices {
 	@Override
 	public TableBundle getTableBundle(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
-		List<String> tableSchemaIds = tableEntityManager.getTableSchema(idAndVersion);
-		List<ColumnModel> tableSchema = columnModelManager.getAndValidateColumnModels(tableSchemaIds);
+		List<ColumnModel> tableSchema = columnModelManager.getColumnModelsForObject(idAndVersion);
 		TableBundle bundle = new TableBundle();
 		bundle.setColumnModels(tableSchema);
 		bundle.setMaxRowsPerPage(tableQueryManager.getMaxRowsPerPage(tableSchema));
