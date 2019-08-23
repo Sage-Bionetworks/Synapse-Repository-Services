@@ -139,15 +139,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
-	public void testGetBySettingIdNullProjectSettings() {
-		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(null);
-
-		// Call under test
-		assertThrows(NotFoundException.class, () -> projectSettingsManagerImpl.getProjectSetting(userInfo, PROJECT_SETTINGS_ID));
-		verify(mockProjectSettingDao).get(PROJECT_SETTINGS_ID);
-	}
-
-	@Test
 	public void testGetBySettingIdUnauthorized() {
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied("User doesn't have READ access on the project"));
@@ -477,66 +468,4 @@ public class ProjectSettingsManagerImplUnitTest {
 		assertTrue(e.getMessage().contains("The username " + USER_NAME + "-incorrect found under"));
 		verify(mockBufferedReader).close();
 	}
-
-	private class TestProjectSettingStub implements ProjectSetting {
-		@Override
-		public String getConcreteType() {
-			return null;
-		}
-
-		@Override
-		public void setConcreteType(String concreteType) {
-
-		}
-
-		@Override
-		public String getId() {
-			return null;
-		}
-
-		@Override
-		public void setId(String id) {
-
-		}
-
-		@Override
-		public String getProjectId() {
-			return null;
-		}
-
-		@Override
-		public void setProjectId(String projectId) {
-
-		}
-
-		@Override
-		public ProjectSettingsType getSettingsType() {
-			return null;
-		}
-
-		@Override
-		public void setSettingsType(ProjectSettingsType settingsType) {
-
-		}
-
-		@Override
-		public String getEtag() {
-			return null;
-		}
-
-		@Override
-		public void setEtag(String etag) {
-
-		}
-
-		@Override
-		public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
-			return null;
-		}
-
-		@Override
-		public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
-			return null;
-		}
-	};
 }
