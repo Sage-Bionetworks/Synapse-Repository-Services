@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Date;
@@ -80,7 +80,7 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setSettingsType(ProjectSettingsType.upload);
 
 		// there should not be a settings to begin with
-		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
+		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 
 		// Create it
@@ -116,7 +116,7 @@ public class DBOProjectSettingsDAOImplTest {
 		// Delete it
 		projectSettingsDao.delete(id);
 
-		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
+		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 	}
 
