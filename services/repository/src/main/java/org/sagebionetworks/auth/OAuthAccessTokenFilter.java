@@ -25,6 +25,8 @@ public class OAuthAccessTokenFilter implements Filter {
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
 
 		String bearerToken = HttpAuthUtil.getBearerToken(httpRequest);
+		
+		System.out.println("In OAuthAccessTokenFilter.  bearerToken: "+bearerToken); // TODO remove
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 		// strip out access token request param so that the sender can't 'sneak it past us'
@@ -33,6 +35,7 @@ public class OAuthAccessTokenFilter implements Filter {
 		boolean verified=false;
 		if (bearerToken!=null) {
 			verified = OIDCTokenUtil.validateSignedJWT(bearerToken);
+			System.out.println("In OAuthAccessTokenFilter.  verified="+verified); // TODO remove
 		}
 		
 		if (verified) {
