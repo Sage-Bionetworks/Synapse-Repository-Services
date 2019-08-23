@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,9 +35,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -52,9 +52,6 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TableViewManagerImplTest {
@@ -93,7 +90,7 @@ public class TableViewManagerImplTest {
 	ColumnModel dateColumn;
 	SparseRowDto row;
 	
-	NamedAnnotations namedAnnotations;
+	Annotations annotations;
 
 	@Before
 	public void before(){
@@ -148,8 +145,8 @@ public class TableViewManagerImplTest {
 				return results;
 			}}).when(tableManagerSupport).getColumnModels(any());
 		
-		namedAnnotations = new NamedAnnotations();
-		when(mockNodeManager.getAnnotations(any(UserInfo.class), anyString())).thenReturn(namedAnnotations);
+		annotations = new Annotations();
+		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotations);
 
 		anno1 = new ColumnModel();
 		anno1.setColumnType(ColumnType.STRING);
@@ -296,9 +293,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdBy.getColumnModel(),
 				EntityField.etag.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
+		when(columnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(viewId);
+		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		assertEquals(rawSchema, result);
 	}
 	
@@ -309,9 +306,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdOn.getColumnModel(),
 				EntityField.benefactorId.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
+		when(columnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(viewId);
+		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
@@ -377,7 +374,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testGetTableSchema(){
-		when(columnModelManager.getColumnIdForTable(idAndVersion)).thenReturn(schema);
+		when(columnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(schema);
 		List<String> retrievedSchema = manager.getTableSchema(viewId);
 		assertEquals(schema, retrievedSchema);
 	}
@@ -503,7 +500,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
-		verify(mockNodeManager).updateAnnotations(userInfo, "syn111", namedAnnotations.getAdditionalAnnotations(), AnnotationNameSpace.ADDITIONAL);
+		verify(mockNodeManager).updateUserAnnotations(userInfo, "syn111", annotations);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -526,7 +523,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
 	}
 	
 	@Test
@@ -535,7 +532,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
 	}
 	
 	@Test
@@ -545,7 +542,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
 	}
 	
 	@Test

@@ -6,9 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -92,9 +90,13 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	@Override
-	public List<ColumnModel> getViewSchema(String tableId) {
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion) {
 		return columModelManager.getColumnModelsForObject(idAndVersion);
+	}
+	
+	@Override
+	public List<String> getViewSchemaIds(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnIdsForTable(idAndVersion);
 	}
 
 	@WriteTransaction
@@ -166,13 +168,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		// Get the current annotations for this entity.
-		NamedAnnotations annotations = nodeManager.getAnnotations(user, entityId);
-		Annotations additional = annotations.getAdditionalAnnotations();
-		additional.setEtag(etag);
-		boolean updated = updateAnnotationsFromValues(additional, tableSchema, values);
+		Annotations userAnnotations = nodeManager.getUserAnnotations(user, entityId);
+		userAnnotations.setEtag(etag);
+		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values);
 		if(updated){
 			// save the changes.
-			nodeManager.updateAnnotations(user, entityId, additional, AnnotationNameSpace.ADDITIONAL);
+			nodeManager.updateUserAnnotations(user, entityId, userAnnotations);
 		}
 	}
 	

@@ -13,12 +13,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 
 /**
  * Low-level support for all of the table managers. Contains low-level business
@@ -415,5 +413,12 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion);
+
+	/**
+	 * Get the schema for the given id and version combination.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion);
 
 }

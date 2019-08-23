@@ -588,4 +588,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return nodeDao.touch(user.getId(), tableId);
 	}
 
+	@Override
+	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion) {
+		return columnModelManager.getColumnModelsForObject(idAndVersion);
+	}
+
 }
