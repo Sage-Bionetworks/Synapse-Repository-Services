@@ -32,10 +32,10 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.IncorrectResultSetColumnCountException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class OAuthClientDaoImpl implements OAuthClientDao {
@@ -120,7 +120,11 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		client.setClientId(id);
 		DBOOAuthClient dbo = clientDtoToDbo(client);
 		dbo.setSecret(secret);
-		basicDao.createNew(dbo);
+		try {
+			basicDao.createNew(dbo);
+		} catch (DuplicateKeyException e) {
+			throw new IllegalArgumentException("A client already exists with the name "+client.getClient_name(), e);
+		}
 		return id;
 	}
 

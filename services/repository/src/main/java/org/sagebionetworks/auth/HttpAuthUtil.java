@@ -6,12 +6,12 @@ import com.sun.jersey.core.util.Base64;
 
 public class HttpAuthUtil {
 
-	public static final String BASIC_PREFIX = "Basic ";
-
-	public static final String BEARER_PREFIX = "Bearer ";
+	private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	private static final String BASIC_PREFIX = "Basic ";
+	private static final String BEARER_PREFIX = "Bearer ";
 
 	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
-		String header = httpRequest.getHeader("Authorization");
+		String header = httpRequest.getHeader(AUTHORIZATION_HEADER_NAME);
 		if (header==null || !header.startsWith(BASIC_PREFIX)) return null;
 
 		String base64EncodedCredentials = header.substring(BASIC_PREFIX.length());
@@ -26,7 +26,7 @@ public class HttpAuthUtil {
 	}
 
 	public static String getBearerToken(HttpServletRequest httpRequest) {
-		String header = httpRequest.getHeader("Authorization");
+		String header = httpRequest.getHeader(AUTHORIZATION_HEADER_NAME);
 		if (header==null || !header.startsWith(BEARER_PREFIX)) return null;
 		return header.substring(BASIC_PREFIX.length());
 	}

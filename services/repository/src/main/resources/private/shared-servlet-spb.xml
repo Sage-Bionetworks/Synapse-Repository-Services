@@ -37,7 +37,7 @@
 		<property name="messageConverters">
 			<list>
 				<ref bean="objectTypeSerializer" />
-				<ref bean="jwtTypeSerializer" />
+				<!-- ref bean="jwtTypeSerializer" /-->
 			</list>
 		</property>
 	</bean>

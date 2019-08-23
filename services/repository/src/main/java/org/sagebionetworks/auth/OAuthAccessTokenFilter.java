@@ -11,6 +11,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenUtil;
@@ -26,8 +27,6 @@ public class OAuthAccessTokenFilter implements Filter {
 
 		String bearerToken = HttpAuthUtil.getBearerToken(httpRequest);
 		
-		System.out.println("In OAuthAccessTokenFilter.  bearerToken: "+bearerToken); // TODO remove
-
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 		// strip out access token request param so that the sender can't 'sneak it past us'
 		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN);
@@ -35,15 +34,16 @@ public class OAuthAccessTokenFilter implements Filter {
 		boolean verified=false;
 		if (bearerToken!=null) {
 			verified = OIDCTokenUtil.validateSignedJWT(bearerToken);
-			System.out.println("In OAuthAccessTokenFilter.  verified="+verified); // TODO remove
 		}
 		
 		if (verified) {
 			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, new String[] {bearerToken});
+			HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
+			chain.doFilter(modRqst, response);
+		} else {
+			HttpServletResponse httpResponse = (HttpServletResponse)response;
+			httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "{\"reason\":\"Missing or invalid access token\"}");
 		}
-		
-		HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
-		chain.doFilter(modRqst, response);
 	}
 
 	@Override
