@@ -37,9 +37,10 @@ import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
@@ -48,8 +49,6 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.cloud.storage.Blob;
@@ -69,6 +68,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	private static final String NODE_ID = "3524";
 
 	private static final String USER_NAME = "user-name";
+	private static final String USER_EMAIL = "testuser@my.info.net";
 	private static final Long USER_ID = 101L;
 	private static final String bucketName = "bucket.name";
 
@@ -77,9 +77,6 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Mock
 	private AuthorizationManager authorizationManager;
-
-	@Mock
-	private UserProfileManager userProfileManager;
 
 	@Mock
 	private SynapseS3Client synapseS3Client;
@@ -102,7 +99,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Mock
 	private BufferedReader mockBufferedReader;
 
-	private UserProfile userProfile;
+	List<PrincipalAlias> principalAliases;
 	private UploadDestinationListSetting uploadDestinationListSetting;
 	private ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
 	private ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting;
@@ -110,9 +107,20 @@ public class ProjectSettingsManagerImplUnitTest {
 	@BeforeEach
 	public void before() {
 		userInfo = new UserInfo(false, USER_ID);
-		userProfile = new UserProfile();
-		userProfile.setUserName(USER_NAME);
-		userProfile.setEmails(Arrays.asList("personal-email@mysite.net", "institutional-email@institution.edu"));
+
+		PrincipalAlias username = new PrincipalAlias();
+		username.setPrincipalId(USER_ID);
+		username.setType(AliasType.USER_NAME);
+		username.setAlias(USER_NAME);
+		PrincipalAlias email1 = new PrincipalAlias();
+		email1.setPrincipalId(USER_ID);
+		email1.setType(AliasType.USER_EMAIL);
+		email1.setAlias(USER_EMAIL);
+		PrincipalAlias email2 = new PrincipalAlias();
+		email2.setPrincipalId(USER_ID);
+		email2.setType(AliasType.USER_EMAIL);
+		email2.setAlias("institutional-email@institution.edu");
+		principalAliases = Arrays.asList(username, email1, email2);
 
 		uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(PROJECT_ID);
@@ -193,17 +201,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
-	public void getProjectSettingForNodeWrongInstanceType() {
-		EntityHeader projectHeader = new EntityHeader();
-		projectHeader.setId(PROJECT_ID);
-		when(mockNodeManager.getNodePathAsAdmin(NODE_ID)).thenReturn(Collections.singletonList(projectHeader));
-		when(mockProjectSettingDao.get(eq(Collections.singletonList(Long.valueOf(PROJECT_ID))), eq(ProjectSettingsType.upload))).thenReturn(new TestProjectSettingStub());
-
-		// Call under test
-		assertThrows(DatastoreException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class));
-	}
-
-	@Test
 	public void getUploadDestinationLocations() {
 		List<Long> ids = Collections.singletonList(123L);
 		List<UploadDestinationLocation> expected = Collections.singletonList(new UploadDestinationLocation());
@@ -216,7 +213,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void testCreateExternalS3StorageLocationSetting_HappyCase() throws Exception {
-		when(userProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
+		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 
 		S3Object s3Object = new S3Object();
 		s3Object.setObjectContent(new ByteArrayInputStream(USER_NAME.getBytes()));
@@ -264,7 +261,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void testCreateExternalGoogleCloudStorageLocationSetting() throws Exception {
-		when(userProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
+		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 		when(synapseGoogleCloudStorageClient.bucketExists(bucketName)).thenReturn(true);
 		when(synapseGoogleCloudStorageClient.getObject(bucketName, "owner.txt")).thenReturn(mock(Blob.class));
 		when(synapseGoogleCloudStorageClient.getObjectContent(bucketName, "owner.txt")).thenReturn(IOUtils.toInputStream(USER_NAME, StandardCharsets.UTF_8));
@@ -278,7 +275,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void testCreateExternalGoogleCloudStorageLocationSetting_UnsharedBucket() {
-		when(userProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
+		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 		when(synapseGoogleCloudStorageClient.bucketExists(any())).thenThrow(new StorageException(403,
 				"someaccount@gserviceaccount.com does not have storage.buckets.get access to somebucket"));
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
@@ -292,7 +289,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void testCreateExternalGoogleCloudStorageLocationSetting_NonExistentBucket() {
-		when(userProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
+		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 		when(synapseGoogleCloudStorageClient.bucketExists("notabucket")).thenReturn(false);
 		externalGoogleCloudStorageLocationSetting.setBucket("notabucket");
 
@@ -405,43 +402,38 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void inspectUsername() throws IOException {
 		when(mockBufferedReader.readLine()).thenReturn(USER_NAME);
-		List<String> expectedAliases = Lists.newArrayList(USER_NAME, "some-email@a.com");
 
 		// Call under test
-		projectSettingsManagerImpl.inspectUsername(mockBufferedReader, expectedAliases, bucketName, ProjectSettingsManager.OWNER_MARKER);
+		projectSettingsManagerImpl.inspectUsername(mockBufferedReader, principalAliases, bucketName, ProjectSettingsManager.OWNER_MARKER);
 		verify(mockBufferedReader).close();
 	}
 
 	@Test
 	public void inspectUsernameWithEmailAddress() throws IOException {
-		String email = "some-email@a.com";
-		when(mockBufferedReader.readLine()).thenReturn(email);
-		List<String> expectedAliases = Lists.newArrayList(USER_NAME, email);
+		when(mockBufferedReader.readLine()).thenReturn(USER_EMAIL);
 
 		// Call under test
-		projectSettingsManagerImpl.inspectUsername(mockBufferedReader, expectedAliases, bucketName, ProjectSettingsManager.OWNER_MARKER);
+		projectSettingsManagerImpl.inspectUsername(mockBufferedReader, principalAliases, bucketName, ProjectSettingsManager.OWNER_MARKER);
 		verify(mockBufferedReader).close();
 	}
 
 	@Test
 	public void inspectUsernameIOException() throws IOException {
 		when(mockBufferedReader.readLine()).thenThrow(new IOException());
-		List<String> expectedAliases = Lists.newArrayList(USER_NAME, "some-email@a.com");
 
 		// Call under test
 		assertThrows(IllegalArgumentException.class, () ->
-				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, expectedAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
+				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, principalAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
 		verify(mockBufferedReader).close();
 	}
 
 	@Test
 	public void inspectUsernameNullUsername() throws IOException {
 		when(mockBufferedReader.readLine()).thenReturn(null);
-		List<String> expectedAliases = Lists.newArrayList(USER_NAME, "some-email@a.com");
 
 		// Call under test
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
-				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, expectedAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
+				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, principalAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
 		assertTrue(e.getMessage().contains("No username found"));
 		verify(mockBufferedReader).close();
 	}
@@ -449,11 +441,10 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void inspectUsernameBlankUsername() throws IOException {
 		when(mockBufferedReader.readLine()).thenReturn("");
-		List<String> expectedAliases = Lists.newArrayList(USER_NAME, "some-email@a.com");
 
 		// Call under test
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
-				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, expectedAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
+				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, principalAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
 		assertTrue(e.getMessage().contains("No username found"));
 		verify(mockBufferedReader).close();
 	}
@@ -461,10 +452,9 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void inspectUsernameUnexpected() throws IOException {
 		when(mockBufferedReader.readLine()).thenReturn(USER_NAME + "-incorrect");
-		List<String> expectedAliases = Lists.newArrayList(USER_NAME, "some-email@a.com");
 		// Call under test
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
-				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, expectedAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
+				projectSettingsManagerImpl.inspectUsername(mockBufferedReader, principalAliases, bucketName, ProjectSettingsManager.OWNER_MARKER));
 		assertTrue(e.getMessage().contains("The username " + USER_NAME + "-incorrect found under"));
 		verify(mockBufferedReader).close();
 	}
