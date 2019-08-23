@@ -1477,32 +1477,6 @@ public class TableEntityManagerTest {
 		verify(mockNodeManager, never()).getCurrentRevisionNumber(anyString());
 	}
 	
-	@Test
-	public void testGetTableSchemaCurrentVersion(){
-		idAndVersion  = IdAndVersion.parse("syn123.1");
-		when(mockColumModelManager.getColumnIdsForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
-		// requested version matches the current version.
-		when(mockNodeManager.getCurrentRevisionNumber("123")).thenReturn(1L);
-		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
-		assertEquals(newColumnIds, retrievedSchema);
-		verify(mockNodeManager).getCurrentRevisionNumber(anyString());
-		// version number should not be included for the current version
-		verify(mockColumModelManager).getColumnIdsForTable(IdAndVersion.parse("syn123"));
-	}
-	
-	@Test
-	public void testGetTableSchemaPreviousVersion(){
-		idAndVersion  = IdAndVersion.parse("syn123.1");
-		when(mockColumModelManager.getColumnIdsForTable(any(IdAndVersion.class))).thenReturn(newColumnIds);
-		// current version is greater than the requested.
-		when(mockNodeManager.getCurrentRevisionNumber("123")).thenReturn(2L);
-		List<String> retrievedSchema = manager.getTableSchema(idAndVersion);
-		assertEquals(newColumnIds, retrievedSchema);
-		verify(mockNodeManager).getCurrentRevisionNumber(anyString());
-		// the requested version number should be when it does match the current
-		verify(mockColumModelManager).getColumnIdsForTable(IdAndVersion.parse("syn123.1"));
-	}
-	
 	/**
 	 * Create test details for given column changes.
 	 * 

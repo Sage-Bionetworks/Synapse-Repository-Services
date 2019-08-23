@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,7 +33,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -53,13 +53,20 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 @RunWith(MockitoJUnitRunner.class)
 public class TableViewManagerImplTest {
 
 	@Mock
 	ViewScopeDao viewScopeDao;
 	@Mock
+	ColumnModelManager columnModelManager;
+	@Mock
 	TableManagerSupport tableManagerSupport;
+	@Mock
+	ColumnModelDAO columnModelDao;
 	@Mock
 	NodeManager mockNodeManager;
 	
@@ -86,7 +93,7 @@ public class TableViewManagerImplTest {
 	ColumnModel dateColumn;
 	SparseRowDto row;
 	
-	Annotations annotations;
+	NamedAnnotations namedAnnotations;
 
 	@Before
 	public void before(){
@@ -103,6 +110,12 @@ public class TableViewManagerImplTest {
 		viewScope = new ViewScope();
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
+		
+		doAnswer(new Answer<ColumnModel>(){
+			@Override
+			public ColumnModel answer(InvocationOnMock invocation) throws Throwable {
+				return (ColumnModel) invocation.getArguments()[0];
+			}}).when(columnModelDao).createColumnModel(any(ColumnModel.class));
 		
 		when(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
 		
@@ -135,8 +148,8 @@ public class TableViewManagerImplTest {
 				return results;
 			}}).when(tableManagerSupport).getColumnModels(any());
 		
-		annotations = new Annotations();
-		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotations);
+		namedAnnotations = new NamedAnnotations();
+		when(mockNodeManager.getAnnotations(any(UserInfo.class), anyString())).thenReturn(namedAnnotations);
 
 		anno1 = new ColumnModel();
 		anno1.setColumnType(ColumnType.STRING);
@@ -186,7 +199,7 @@ public class TableViewManagerImplTest {
 		// the size should be validated
 		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(tableManagerSupport).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -214,7 +227,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(tableManagerSupport).bindColumnsToDefaultVersionOfObject(null, viewId);
+		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(null, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -224,7 +237,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
-		verify(tableManagerSupport).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -283,9 +296,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdBy.getColumnModel(),
 				EntityField.etag.getColumnModel()
 				);
-		when(tableManagerSupport.getTableSchema(idAndVersion)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
+		List<ColumnModel> result = manager.getViewSchema(viewId);
 		assertEquals(rawSchema, result);
 	}
 	
@@ -296,9 +309,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdOn.getColumnModel(),
 				EntityField.benefactorId.getColumnModel()
 				);
-		when(tableManagerSupport.getTableSchema(idAndVersion)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
+		List<ColumnModel> result = manager.getViewSchema(viewId);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
@@ -318,13 +331,13 @@ public class TableViewManagerImplTest {
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
-		when(tableManagerSupport.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
-		when(tableManagerSupport.bindColumnsToDefaultVersionOfObject(newColumnIds, viewId)).thenReturn(schema);
+		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
+		when(columnModelManager.bindColumnsToDefaultVersionOfObject(newColumnIds, viewId)).thenReturn(schema);
 		
 		// call under test
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
 		assertEquals(schema, newSchema);
-		verify(tableManagerSupport).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
+		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -341,6 +354,7 @@ public class TableViewManagerImplTest {
 		List<ColumnChange> changes = Lists.newArrayList(change);
 		ColumnModel model = EntityField.benefactorId.getColumnModel();
 		model.setId(change.getNewColumnId());
+		List<ColumnModel> schema = Lists.newArrayList(model);
 		// the new schema should be over the limit
 		List<String> newSchemaColumnIds = new LinkedList<>();
 		int columnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW+1;
@@ -348,7 +362,8 @@ public class TableViewManagerImplTest {
 			newSchemaColumnIds.add(""+i);
 		}
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
-		when(tableManagerSupport.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
+		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
+		when(columnModelManager.getAndValidateColumnModels(newColumnIds)).thenReturn(schema);
 		
 		try {
 			// call under test
@@ -362,8 +377,8 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testGetTableSchema(){
-		when(tableManagerSupport.getTableSchemaIds(idAndVersion)).thenReturn(schema);
-		List<String> retrievedSchema = manager.getViewSchemaIds(idAndVersion);
+		when(columnModelManager.getColumnIdForTable(idAndVersion)).thenReturn(schema);
+		List<String> retrievedSchema = manager.getTableSchema(viewId);
 		assertEquals(schema, retrievedSchema);
 	}
 	
@@ -488,7 +503,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
-		verify(mockNodeManager).updateUserAnnotations(userInfo, "syn111", annotations);
+		verify(mockNodeManager).updateAnnotations(userInfo, "syn111", namedAnnotations.getAdditionalAnnotations(), AnnotationNameSpace.ADDITIONAL);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -511,7 +526,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
+		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
 	}
 	
 	@Test
@@ -520,7 +535,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
+		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
 	}
 	
 	@Test
@@ -530,7 +545,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
+		verify(mockNodeManager, never()).updateAnnotations(any(UserInfo.class), anyString(), any(Annotations.class), any(AnnotationNameSpace.class));
 	}
 	
 	@Test
