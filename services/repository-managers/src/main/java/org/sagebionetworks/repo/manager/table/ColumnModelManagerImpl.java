@@ -434,13 +434,13 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	/**
 	 * The schema for the current version for any table/view only exists in the
 	 * database with a null version number. Therefore, calls to get the schema of
-	 * the current version are transformed to a representation with a a null
+	 * the current version are transformed to a representation with a null
 	 * version.
 	 * 
 	 * @param inputIdAndVersion
 	 * @return
 	 */
-	IdAndVersion transformIdAndVersion(IdAndVersion inputIdAndVersion) {
+	IdAndVersion removeVersionAsNeeded(IdAndVersion inputIdAndVersion) {
 		IdAndVersionBuilder resultBuilder = IdAndVersion.newBuilder();
 		resultBuilder.setId(inputIdAndVersion.getId());
 		if (inputIdAndVersion.getVersion().isPresent()) {
@@ -462,12 +462,12 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 	@Override
 	public List<String> getColumnIdsForTable(IdAndVersion idAndVersion) {
-		return columnModelDao.getColumnModelIdsForObject(transformIdAndVersion(idAndVersion));
+		return columnModelDao.getColumnModelIdsForObject(removeVersionAsNeeded(idAndVersion));
 	}
 
 	@Override
 	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) {
-		return columnModelDao.getColumnModelsForObject(transformIdAndVersion(idAndVersion));
+		return columnModelDao.getColumnModelsForObject(removeVersionAsNeeded(idAndVersion));
 	}
 
 	@Override

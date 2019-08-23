@@ -70,7 +70,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableCSVAppenderWorkerIntegrationTest {
 
-	public static final int MAX_WAIT_MS = 1000 * 60*1000;
+	public static final int MAX_WAIT_MS = 1000 * 60;
 	
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
