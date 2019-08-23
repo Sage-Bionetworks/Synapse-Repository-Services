@@ -85,30 +85,6 @@
 		"claims_parameter_supported": {
 			"type": "boolean",
 			"description": "Boolean value specifying whether Synapse supports use of the claims parameter, with true indicating support."
-		},
-		"OAuthScope": {
-				"description": "workaround for PLFM-5723",
-				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
-		},
-		"OAuthResponseType": {
-				"description": "workaround for PLFM-5723",
-				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthResponseType"
-		},
-		"OAuthGrantType": {
-				"description": "workaround for PLFM-5723",
-				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthGrantType"
-		},
-		"OIDCSubjectIdentifierType": {
-				"description": "workaround for PLFM-5723",
-				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType"
-		},
-		"OIDCSigningAlgorithm": {
-				"description": "workaround for PLFM-5723",
-				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
-		},
-		"OIDCClaimName": {
-				"description": "workaround for PLFM-5723",
-				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCClaimName"
 		}
 	}
 }
