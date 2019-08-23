@@ -3,11 +3,14 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -16,6 +19,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -31,6 +35,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
@@ -60,10 +65,16 @@ public class MultipartManagerV2ImplAutowireTest {
 	private FileHandleDao fileHandleDao;
 
 	@Autowired
-	public UserManager userManager;
+	private UserManager userManager;
 
 	@Autowired
-	public ProjectSettingsManager projectSettingsManager;
+	private ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	private PrincipalAliasDAO principalAliasDao;
+
+	@Autowired
+	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Value("${dev-googlecloud-bucket}")
 	private String googleCloudBucket;
@@ -107,8 +118,13 @@ public class MultipartManagerV2ImplAutowireTest {
 		request.setContentMD5Hex(fileMD5Hex);
 
 		if (stackConfiguration.getGoogleCloudEnabled()) {
+			// Create the owner.txt on the bucket
+			String baseKey = "MultipartManagerV2AutowiredTest-" + UUID.randomUUID().toString();
+			googleCloudStorageClient.putObject(googleCloudBucket, baseKey + "owner.txt", new ByteArrayInputStream(principalAliasDao.getUserName(adminUserInfo.getId()).getBytes(StandardCharsets.UTF_8)));
+
 			googleCloudStorageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
 			googleCloudStorageLocationSetting.setBucket(googleCloudBucket);
+			googleCloudStorageLocationSetting.setBaseKey(baseKey);
 			googleCloudStorageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
 			googleCloudStorageLocationSetting = projectSettingsManager.createStorageLocationSetting(adminUserInfo, googleCloudStorageLocationSetting);
 		}
