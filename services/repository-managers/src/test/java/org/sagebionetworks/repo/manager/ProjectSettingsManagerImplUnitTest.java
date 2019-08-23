@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -160,10 +161,10 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void getSettingByProjectAndType() {
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		when(mockProjectSettingDao.get(PROJECT_ID, ProjectSettingsType.upload)).thenReturn(uploadDestinationListSetting);
+		when(mockProjectSettingDao.get(PROJECT_ID, ProjectSettingsType.upload)).thenReturn(Optional.of(uploadDestinationListSetting));
 
 		// Call under test
-		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingByProjectAndType(userInfo, PROJECT_ID, ProjectSettingsType.upload);
+		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingByProjectAndType(userInfo, PROJECT_ID, ProjectSettingsType.upload).get();
 		verify(authorizationManager).canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockProjectSettingDao).get(PROJECT_ID, ProjectSettingsType.upload);
 		assertSame(uploadDestinationListSetting, actual);

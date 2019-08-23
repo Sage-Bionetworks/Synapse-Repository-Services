@@ -89,7 +89,7 @@ public class DBOProjectSettingsDAOImplTest {
 		assertNotNull(id);
 
 		// Fetch it
-		ProjectSetting clone = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
+		ProjectSetting clone = projectSettingsDao.get(projectId, ProjectSettingsType.upload).get();
 		assertNotNull(clone);
 		assertEquals(setting, clone);
 
@@ -179,7 +179,7 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setLocations(Lists.newArrayList(l1, l2));
 		projectSettingsDao.create(setting);
 
-		ProjectSetting projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
+		ProjectSetting projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.upload).get();
 		assertEquals(l1, ((UploadDestinationListSetting) projectSetting).getLocations().get(0));
 		assertEquals(l2, ((UploadDestinationListSetting) projectSetting).getLocations().get(1));
 	}
