@@ -42,7 +42,9 @@ public class OAuthAccessTokenFilter implements Filter {
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;
-			httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "{\"reason\":\"Missing or invalid access token\"}");
+			httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			httpResponse.setContentType("application/json");
+			httpResponse.getOutputStream().println("{\"reason\":\"Missing or invalid access token\"}");
 		}
 	}
 

@@ -7,8 +7,8 @@ import com.sun.jersey.core.util.Base64;
 public class HttpAuthUtil {
 
 	private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
-	private static final String BASIC_PREFIX = "Basic ";
-	private static final String BEARER_PREFIX = "Bearer ";
+	public static final String BASIC_PREFIX = "Basic ";
+	public static final String BEARER_PREFIX = "Bearer ";
 
 	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
 		String header = httpRequest.getHeader(AUTHORIZATION_HEADER_NAME);

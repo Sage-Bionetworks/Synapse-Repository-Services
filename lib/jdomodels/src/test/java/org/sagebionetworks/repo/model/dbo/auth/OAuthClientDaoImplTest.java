@@ -224,7 +224,7 @@ public class OAuthClientDaoImplTest {
 			oauthClientDao.createOAuthClient(oauthClient, OAUTH_CLIENT_SHARED_SECRET);
 			fail("name uniqueness is not enforced");
 		} catch (IllegalArgumentException e) {
-			// as expected
+			assertEquals("OAuth client already exists with name "+oauthClient.getClient_name(), e.getMessage());
 		}
 	}
 

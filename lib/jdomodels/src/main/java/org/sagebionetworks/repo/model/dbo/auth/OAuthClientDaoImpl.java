@@ -122,8 +122,11 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		dbo.setSecret(secret);
 		try {
 			basicDao.createNew(dbo);
-		} catch (DuplicateKeyException e) {
-			throw new IllegalArgumentException("A client already exists with the name "+client.getClient_name(), e);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw new IllegalArgumentException("OAuth client already exists with name "+dbo.getName(), e);
+			}
+			throw e;
 		}
 		return id;
 	}
