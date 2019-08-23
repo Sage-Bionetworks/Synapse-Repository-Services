@@ -7,13 +7,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -31,6 +34,7 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
@@ -123,7 +127,7 @@ public class IT049FileHandleTest {
 		assertTrue(imageFile.exists());
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
 
-		S3FileHandle handle = synapse.multipartUpload(imageFile, null, true, false);
+		CloudProviderFileHandleInterface handle = synapse.multipartUpload(imageFile, null, true, false);
 		toDelete.add(handle);
 		System.out.println(handle);
 		assertEquals("image/png", handle.getContentType());
@@ -482,11 +486,11 @@ public class IT049FileHandleTest {
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
-		// upload the little image using mutli-part upload
+		// upload the little image using multi-part upload
 		Long storageLocationId = null;
 		Boolean generatePreview = false;
 		Boolean forceRestart = null;
-		S3FileHandle result = synapse.multipartUpload(this.imageFile, storageLocationId, generatePreview, forceRestart);
+		CloudProviderFileHandleInterface result = synapse.multipartUpload(this.imageFile, storageLocationId, generatePreview, forceRestart);
 		assertNotNull(result);
 		toDelete.add(result);
 		assertNotNull(result.getFileName());
