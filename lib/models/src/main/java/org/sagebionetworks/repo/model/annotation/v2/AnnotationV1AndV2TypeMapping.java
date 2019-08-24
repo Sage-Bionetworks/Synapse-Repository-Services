@@ -25,6 +25,8 @@ enum AnnotationV1AndV2TypeMapping {
 		this.toAnnotationV1Function = toAnnotationV1Function;
 	}
 
+	//todo: handle +inf -inf and nan
+	//TODO: delete use double parser instead
 	static Double convertStringToDouble(String string) {
 		if ("nan".equals(string.toLowerCase())) {
 			string = "NaN";

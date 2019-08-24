@@ -132,7 +132,7 @@ public class AnnotationUtils {
 		AnnotationsV2ValueType type = annotationsV2Value.getType();
 
 		for(String value: valueList){
-		//TODO: maybe use AnnotationV1AndV2TypeMapping or make new validator classes
+
 		}
 	}
 
