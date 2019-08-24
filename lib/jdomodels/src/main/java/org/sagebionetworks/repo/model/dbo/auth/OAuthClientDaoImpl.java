@@ -39,20 +39,18 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.IncorrectResultSetColumnCountException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	private static final String SECTOR_IDENTIFIER_SQL_SELECT = "SELECT COUNT(*) FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER			
 			+" WHERE "+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = ?";
-	;
 
 	private static final String CLIENT_SQL_SELECT = "SELECT * FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
 			COL_OAUTH_CLIENT_CREATED_BY+" = ? LIMIT ? OFFSET ?";
 	
 	private static final String CLIENT_CREATOR_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_CREATED_BY+" FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
-			COL_OAUTH_CLIENT_CREATED_BY+" = ?";
+			COL_OAUTH_CLIENT_ID+" = ?";
 
 	private static final String CLIENT_SECRET_HASH_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET_HASH+
 			" FROM "+TABLE_OAUTH_CLIENT
@@ -87,6 +85,19 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOAuthClient
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.allowTypes(OAuthClient.class)
+			.omitField(OAuthClient.class, "clientId")
+			.omitField(OAuthClient.class, "createdBy")
+			.omitField(OAuthClient.class, "createdOn")
+			.omitField(OAuthClient.class, "etag")
+			.omitField(OAuthClient.class, "modifiedOn")
+			.omitField(OAuthClient.class, "sector_identifier")
+			.omitField(OAuthClient.class, "client_name")
+			.omitField(OAuthClient.class, "validated")
+			.build();
+
 	// Note, this drop the 'secretHash' fields, which is not part of the DTO
 	public static OAuthClient clientDboToDto(DBOOAuthClient dbo) {
 		OAuthClient dto;
@@ -105,19 +116,6 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		dto.setValidated(dbo.getVerified());
 		return dto;
 	}
-
-	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOAuthClient
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
-			.allowTypes(OAuthClient.class)
-			.omitField(OAuthClient.class, "clientId")
-			.omitField(OAuthClient.class, "createdBy")
-			.omitField(OAuthClient.class, "createdOn")
-			.omitField(OAuthClient.class, "etag")
-			.omitField(OAuthClient.class, "modifiedOn")
-			.omitField(OAuthClient.class, "sector_identifier")
-			.omitField(OAuthClient.class, "client_name")
-			.omitField(OAuthClient.class, "validated")
-			.build();
 
 	// Note, the returned value has no 'secretHash' field, which is managed separately
 	public static DBOOAuthClient clientDtoToDbo(OAuthClient dto) {
@@ -217,12 +215,10 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	@Override
 	public byte[] getSecretSalt(String clientId) {
-		try {
-			String secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, clientId);
-			return PBKDF2Utils.extractSalt(secretHash);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("OAuth client (" + clientId + ") does not exist");
-		}
+		String secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, clientId);
+		if (secretHash==null) throw new NotFoundException("OAuth client (" + clientId + ") does not exist");
+		return PBKDF2Utils.extractSalt(secretHash);
+
 	}
 
 	@WriteTransaction

@@ -21,13 +21,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -47,6 +50,8 @@ public class OAuthClientDaoImplTest {
 	private static final String TOS_URI = "https://client.uri.com/termsOfService.html";
 	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://client.com/redir");
 	private static final String SECTOR_IDENTIFIER_URI = "https://client.uri.com/path/to/json/file";
+	
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 	
 	private List<String> idsToDelete;
 	
@@ -128,7 +133,53 @@ public class OAuthClientDaoImplTest {
 	}
 	
 	@Test
-	public void testClientDtoToDbo() {
+	public void testClientDtoToDbo() throws Exception {
+		OAuthClient dto = newDTO();
+		Long clientId=101L;
+		dto.setClientId(clientId.toString());
+		String etag = "999";
+		dto.setEtag(etag);
+		dto.setCreatedOn(new Date());
+		dto.setModifiedOn(new Date());
+		
+		// method under test
+		DBOOAuthClient dbo = OAuthClientDaoImpl.clientDtoToDbo(dto);
+		
+		// make sure the DBO fields are getting populated
+		assertEquals(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), dbo.getCreatedBy());
+		assertTrue(System.currentTimeMillis()-dbo.getCreatedOn()<60000L);
+		assertTrue(System.currentTimeMillis()-dbo.getModifiedOn()<60000L);
+		assertEquals(etag, dbo.geteTag());
+		assertEquals(clientId, dbo.getId());
+		assertEquals(CLIENT_NAME, dbo.getName());
+		assertEquals(SECTOR_IDENTIFIER, dbo.getSectorIdentifierUri());
+		assertNull(dbo.getSecretHash()); // the secret is not set
+		assertFalse(dbo.getVerified());
+		assertNotNull(dbo.getProperties());
+		
+		// when we serialize the DTO to put in the properties, we should only serialize
+		// those fields which do not have their own representation in the DBO
+		OAuthClient deser = (OAuthClient)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getProperties());
+		// these should be omitted from serialization
+		assertNull(deser.getClient_name());
+		assertNull(deser.getClientId());
+		assertNull(deser.getCreatedBy());
+		assertNull(deser.getCreatedOn());
+		assertNull(deser.getEtag());
+		assertNull(deser.getModifiedOn());
+		assertNull(deser.getSector_identifier());
+		assertNull(deser.getValidated());
+		// these should have been serialized
+		assertEquals(dto.getClient_uri(), deser.getClient_uri());
+		assertEquals(dto.getPolicy_uri(), deser.getPolicy_uri());
+		assertEquals(dto.getSector_identifier_uri(), deser.getSector_identifier_uri());
+		assertEquals(dto.getTos_uri(), deser.getTos_uri());
+		assertEquals(dto.getUserinfo_signed_response_alg(), deser.getUserinfo_signed_response_alg());
+		assertEquals(dto.getRedirect_uris(), deser.getRedirect_uris());
+	}
+	
+	@Test
+	public void testClientDboToDto() throws Exception {
 		OAuthClient dto = newDTO();
 		Long clientId=101L;
 		dto.setClientId(clientId.toString());
@@ -137,26 +188,24 @@ public class OAuthClientDaoImplTest {
 		dto.setCreatedOn(new Date());
 		dto.setModifiedOn(new Date());
 		DBOOAuthClient dbo = OAuthClientDaoImpl.clientDtoToDbo(dto);
-		// elsewhere we test the round trip, DTO->DBO->DTO.  Here we just want to make sure the DBO fields 
-		// are getting populated
-		assertEquals(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), dbo.getCreatedBy());
-		assertTrue(System.currentTimeMillis()-dbo.getCreatedOn()<60000L);
-		assertTrue(System.currentTimeMillis()-dbo.getModifiedOn()<60000L);
-		assertEquals(etag, dbo.geteTag());
-		assertEquals(clientId, dbo.getId());
-		assertEquals(CLIENT_NAME, dbo.getName());
-		assertNotNull(dbo.getProperties());
-		assertEquals(SECTOR_IDENTIFIER, dbo.getSectorIdentifierUri());
+		
+		// method under test
+		OAuthClient roundtrip = OAuthClientDaoImpl.clientDboToDto(dbo);
+		
+		assertEquals(dto, roundtrip);
 	}
 	
 	@Test
 	public void testCreateOAuthClient() {
-		createSectorIdentifierAndClient();
+		String id = createSectorIdentifierAndClient();
+		assertNotNull(id);
 	}
 
 	@Test
 	public void testGetOAuthClient() {
 		String clientId = createSectorIdentifierAndClient();
+		
+		// method under test
 		OAuthClient retrieved = oauthClientDao.getOAuthClient(clientId);
 		assertEquals(CLIENT_NAME, retrieved.getClient_name());
 		assertEquals(CLIENT_URI, retrieved.getClient_uri());
@@ -172,6 +221,67 @@ public class OAuthClientDaoImplTest {
 		assertEquals(TOS_URI, retrieved.getTos_uri());
 		assertEquals(OIDCSigningAlgorithm.RS256, retrieved.getUserinfo_signed_response_alg());
 		assertFalse(retrieved.getValidated());
+	}
+	
+	@Test
+	public void testGetOAuthClientCreator() {
+		String clientId = createSectorIdentifierAndClient();
+		
+		// method under test
+		String creator = oauthClientDao.getOAuthClientCreator(clientId);
+		
+		assertEquals(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString(), creator);
+		
+		try {
+			oauthClientDao.getOAuthClientCreator("0");
+		} catch (NotFoundException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testSetVerified() {
+		String clientId = createSectorIdentifierAndClient();
+		assertFalse(oauthClientDao.getOAuthClient(clientId).getValidated());
+		
+		// method under test
+		oauthClientDao.setOAuthClientVerified(clientId);
+		
+		assertTrue(oauthClientDao.getOAuthClient(clientId).getValidated());
+		
+		try {
+			// method under test
+			oauthClientDao.setOAuthClientVerified("0");
+		} catch (NotFoundException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testSecretHash() {
+		String clientId = createSectorIdentifierAndClient();
+		
+		try {
+			// method under test
+			oauthClientDao.getSecretSalt(clientId);
+		} catch (NotFoundException e) {
+			// as expected
+		}
+		
+		String secret = "some secret";
+		String secretHash = PBKDF2Utils.hashPassword(secret, null);
+
+		// method under test
+		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash);
+		
+		// method under test
+		byte[] salt = oauthClientDao.getSecretSalt(clientId);
+		assertEquals(secretHash, PBKDF2Utils.hashPassword(secret, salt));
+		
+		// method under test
+		assertTrue(oauthClientDao.checkOAuthClientSecretHash(clientId, secretHash));
+		assertFalse(oauthClientDao.checkOAuthClientSecretHash(clientId, "invalid secret hash"));
+		assertFalse(oauthClientDao.checkOAuthClientSecretHash("0", secretHash));
 	}
 	
 	@Test
@@ -309,6 +419,22 @@ public class OAuthClientDaoImplTest {
 		assertEquals(newSIURI, updated.getSector_identifier_uri());
 		assertEquals(newTOS, updated.getTos_uri());
 		assertNull(updated.getUserinfo_signed_response_alg());
+		assertFalse(updated.getValidated()); // we tried to set it to true, but cannot
+	}
+	
+	@Test
+	public void testInvalidateClient() throws Exception {
+		String id = createSectorIdentifierAndClient();
+		oauthClientDao.setOAuthClientVerified(id);
+		
+		OAuthClient clientToUpdate = oauthClientDao.getOAuthClient(id);
+		assertTrue(clientToUpdate.getValidated());
+		
+		clientToUpdate.setValidated(false);
+		// method under test
+		OAuthClient updated = oauthClientDao.updateOAuthClient(clientToUpdate);
+
+		// though we can't set false-> true in an update, we CAN set true->false
 		assertFalse(updated.getValidated());
 	}
 
