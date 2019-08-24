@@ -250,6 +250,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		// validated can only be set to false
 		if (updatedClient.getValidated()==false) toStore.setValidated(false);
 		DBOOAuthClient dbo = clientDtoToDbo(toStore);
+		dbo.setSecretHash(origDbo.getSecretHash());
 		basicDao.update(dbo);
 		return toStore;
 	}

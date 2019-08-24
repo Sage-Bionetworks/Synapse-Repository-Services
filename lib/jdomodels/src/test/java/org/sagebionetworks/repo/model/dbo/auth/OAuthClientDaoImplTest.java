@@ -39,7 +39,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class OAuthClientDaoImplTest {
 	
-	private static final String OAUTH_CLIENT_SHARED_SECRET ="oauth client shared secret";
 	private static final String SECTOR_IDENTIFIER_ENCRYPTION_SECRET ="sector identifier secret";
 	private static final String CLIENT_NAME = "Third paty app";
 	private static final String SECTOR_IDENTIFIER = "https://foo.bar";
@@ -240,14 +239,17 @@ public class OAuthClientDaoImplTest {
 	}
 	
 	@Test
-	public void testSetVerified() {
+	public void testVerifyOAuthClient() {
 		String clientId = createSectorIdentifierAndClient();
-		assertFalse(oauthClientDao.getOAuthClient(clientId).getValidated());
+		OAuthClient client = oauthClientDao.getOAuthClient(clientId);
+		assertFalse(client.getValidated());
 		
 		// method under test
 		oauthClientDao.setOAuthClientVerified(clientId);
 		
-		assertTrue(oauthClientDao.getOAuthClient(clientId).getValidated());
+		OAuthClient updatedClient = oauthClientDao.getOAuthClient(clientId);
+		assertTrue(updatedClient.getValidated());
+		assertNotEquals(client.getEtag(), updatedClient.getEtag());
 		
 		try {
 			// method under test
@@ -261,6 +263,9 @@ public class OAuthClientDaoImplTest {
 	public void testSecretHash() {
 		String clientId = createSectorIdentifierAndClient();
 		
+		// let's note the etag
+		String originalEtag = oauthClientDao.getOAuthClient(clientId).getEtag();
+		
 		try {
 			// method under test
 			oauthClientDao.getSecretSalt(clientId);
@@ -273,6 +278,9 @@ public class OAuthClientDaoImplTest {
 
 		// method under test
 		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash);
+		
+		// etag should have changed
+		assertNotEquals(originalEtag, oauthClientDao.getOAuthClient(clientId).getEtag());
 		
 		// method under test
 		byte[] salt = oauthClientDao.getSecretSalt(clientId);
@@ -420,6 +428,26 @@ public class OAuthClientDaoImplTest {
 		assertEquals(newTOS, updated.getTos_uri());
 		assertNull(updated.getUserinfo_signed_response_alg());
 		assertFalse(updated.getValidated()); // we tried to set it to true, but cannot
+	}
+	
+	@Test
+	public void testUpdateIndependentOfSecretAndVerified() throws Exception {
+		String id = createSectorIdentifierAndClient();
+		// we should be able to set the secret hash and set the client as verified
+		// without that information being compromised by other metadata updates
+		String secretHash = "hash";
+		oauthClientDao.setOAuthClientSecretHash(id, secretHash);
+		
+		oauthClientDao.setOAuthClientVerified(id);
+		
+		OAuthClient clientToUpdate = oauthClientDao.getOAuthClient(id);
+		
+		// method under test
+		oauthClientDao.updateOAuthClient(clientToUpdate);
+		
+		// the information should not be changed
+		assertTrue(oauthClientDao.checkOAuthClientSecretHash(id, secretHash));
+		assertTrue(oauthClientDao.getOAuthClient(id).getValidated());
 	}
 	
 	@Test
