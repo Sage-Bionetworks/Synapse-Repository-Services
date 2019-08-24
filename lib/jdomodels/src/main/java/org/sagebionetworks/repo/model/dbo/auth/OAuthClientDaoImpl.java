@@ -100,7 +100,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 			.omitField(OAuthClient.class, "modifiedOn")
 			.omitField(OAuthClient.class, "sector_identifier")
 			.omitField(OAuthClient.class, "client_name")
-			.omitField(OAuthClient.class, "validated")
+			.omitField(OAuthClient.class, "verified")
 			.build();
 
 	// Note, this drop the 'secretHash' fields, which is not part of the DTO
@@ -137,7 +137,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.seteTag(dto.getEtag());
 		dbo.setSectorIdentifierUri(dto.getSector_identifier());
-		dbo.setVerified(dto.getVerified());
+		dbo.setVerified(BooleanUtils.isTrue(dto.getVerified()));
 		return dbo;
 	}
 
@@ -153,7 +153,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		ValidateArgument.required(client, "OAuth client");
 		ValidateArgument.required(client.getCreatedBy(), "Created By");
 		ValidateArgument.required(client.getSector_identifier(), "Sector Identifier");
-		ValidateArgument.required(client.getVerified(), "Is Validated");
+		ValidateArgument.required(client.getVerified(), "Is Verified");
 		
 		Date now = new Date(System.currentTimeMillis());
 		client.setCreatedOn(now);
