@@ -7,10 +7,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CL
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_IS_VERIFIED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_PROPERTIES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECRET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECRET_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_OAUTH_CLIENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_CLIENT;
@@ -37,9 +38,10 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 	private Long modifiedOn;
 	private Long createdBy;
 	private String eTag;
-	private String secret;
+	private String secretHash;
 	private String sectorIdentifierUri;
 	private byte[] properties;
+	private boolean verified;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_OAUTH_CLIENT_ID, true).withIsBackupId(true),
@@ -50,7 +52,8 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 		new FieldColumn("sectorIdentifierUri", COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI),
 		new FieldColumn("properties", COL_OAUTH_CLIENT_PROPERTIES),
 		new FieldColumn("eTag", COL_OAUTH_CLIENT_ETAG).withIsEtag(true),
-		new FieldColumn("secret", COL_OAUTH_CLIENT_SECRET),
+		new FieldColumn("secretHash", COL_OAUTH_CLIENT_SECRET_HASH),
+		new FieldColumn("verified", COL_OAUTH_CLIENT_IS_VERIFIED),
 		};
 
 	@Override
@@ -66,12 +69,10 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 				client.setCreatedBy(rs.getLong(COL_OAUTH_CLIENT_CREATED_BY));
 				client.setModifiedOn(rs.getLong(COL_OAUTH_CLIENT_MODIFIED_ON));
 				client.setSectorIdentifierUri(rs.getString(COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI));
-				java.sql.Blob blob = rs.getBlob(COL_OAUTH_CLIENT_PROPERTIES);
-				if(blob != null){
-					client.setProperties(blob.getBytes(1, (int) blob.length()));
-				}
+				client.setProperties(rs.getBytes(COL_OAUTH_CLIENT_PROPERTIES));
 				client.seteTag(rs.getString(COL_OAUTH_CLIENT_ETAG));
-				client.setSecret(rs.getString(COL_OAUTH_CLIENT_SECRET));
+				client.setSecretHash(rs.getString(COL_OAUTH_CLIENT_SECRET_HASH));
+				client.setVerified(rs.getBoolean(COL_OAUTH_CLIENT_IS_VERIFIED));
 				return client;
 			}
 
@@ -97,97 +98,113 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 		};
 	}
 
-	/**
-	 * @return the properties
-	 */
-	public byte[] getProperties() {
-		return properties;
-	}
 
-
-	/**
-	 * @param properties the properties to set
-	 */
-	public void setProperties(byte[] properties) {
-		this.properties = properties;
-	}
-
-	/**
-	 * @return the eTag
-	 */
-	public String geteTag() {
-		return eTag;
-	}
-
-
-	/**
-	 * @param eTag the eTag to set
-	 */
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
-	}
-
-	/**
-	 * @return the  id
-	 */
 	public Long getId() {
 		return id;
 	}
 
-	/**
-	 * @param id the id to set
-	 */
+
 	public void setId(Long id) {
 		this.id = id;
 	}
+
 
 	public String getName() {
 		return name;
 	}
 
+
 	public void setName(String name) {
 		this.name = name;
 	}
+
 
 	public Long getCreatedOn() {
 		return createdOn;
 	}
 
+
 	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 
+
+	public Long getModifiedOn() {
+		return modifiedOn;
+	}
+
+
+	public void setModifiedOn(Long modifiedOn) {
+		this.modifiedOn = modifiedOn;
+	}
+
+
 	public Long getCreatedBy() {
 		return createdBy;
 	}
+
 
 	public void setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
 	}
 
 
+	public String geteTag() {
+		return eTag;
+	}
+
+
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
+
+
+	public String getSecretHash() {
+		return secretHash;
+	}
+
+
+	public void setSecretHash(String secretHash) {
+		this.secretHash = secretHash;
+	}
+
 
 	public String getSectorIdentifierUri() {
 		return sectorIdentifierUri;
 	}
 
+
 	public void setSectorIdentifierUri(String sectorIdentifierUri) {
 		this.sectorIdentifierUri = sectorIdentifierUri;
 	}
 
-	public String getSecret() {
-		return secret;
+
+	public byte[] getProperties() {
+		return properties;
 	}
 
-	public void setSecret(String secret) {
-		this.secret = secret;
+
+	public void setProperties(byte[] properties) {
+		this.properties = properties;
 	}
+
+
+	public boolean getVerified() {
+		return verified;
+	}
+
+
+	public void setVerified(boolean verified) {
+		this.verified = verified;
+	}
+
 
 	@Override
 	public String toString() {
 		return "DBOOAuthClient [id=" + id + ", name=" + name + ", createdOn=" + createdOn + ", modifiedOn=" + modifiedOn
-				+ ", createdBy=" + createdBy + ", eTag=" + eTag + ", secret=" + secret + ", sectorIdentifierUri="
-				+ sectorIdentifierUri + ", properties=" + Arrays.toString(properties) + "]";
+				+ ", createdBy=" + createdBy + ", eTag=" + eTag + ", secretHash=" + secretHash
+				+ ", sectorIdentifierUri=" + sectorIdentifierUri + ", properties=" + Arrays.toString(properties)
+				+ ", isVerified=" + verified + "]";
 	}
 
 	@Override
@@ -198,10 +215,11 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (verified ? 1231 : 1237);
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
-		result = prime * result + ((secret == null) ? 0 : secret.hashCode());
+		result = prime * result + ((secretHash == null) ? 0 : secretHash.hashCode());
 		result = prime * result + ((sectorIdentifierUri == null) ? 0 : sectorIdentifierUri.hashCode());
 		return result;
 	}
@@ -235,6 +253,8 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (verified != other.verified)
+			return false;
 		if (modifiedOn == null) {
 			if (other.modifiedOn != null)
 				return false;
@@ -247,10 +267,10 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 			return false;
 		if (!Arrays.equals(properties, other.properties))
 			return false;
-		if (secret == null) {
-			if (other.secret != null)
+		if (secretHash == null) {
+			if (other.secretHash != null)
 				return false;
-		} else if (!secret.equals(other.secret))
+		} else if (!secretHash.equals(other.secretHash))
 			return false;
 		if (sectorIdentifierUri == null) {
 			if (other.sectorIdentifierUri != null)
@@ -258,14 +278,6 @@ public class DBOOAuthClient implements MigratableDatabaseObject<DBOOAuthClient, 
 		} else if (!sectorIdentifierUri.equals(other.sectorIdentifierUri))
 			return false;
 		return true;
-	}
-
-	public Long getModifiedOn() {
-		return modifiedOn;
-	}
-
-	public void setModifiedOn(Long modifiedOn) {
-		this.modifiedOn = modifiedOn;
 	}
 
 	@Override

@@ -11,12 +11,14 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class OAuthClientAuthFilter implements Filter {
@@ -33,25 +35,34 @@ public class OAuthClientAuthFilter implements Filter {
 		UserNameAndPassword up = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 		
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-		// strip out verifiedOAuthClientId request param so that the sender can't 'sneak it past us'
 		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM);
+		boolean validCredentials=false;
 
 		if (up!=null && StringUtils.isNotEmpty(up.getUserName())) {
 			try {
 				String oauthClientId = up.getUserName();
-				String oauthClientSecret = oauthClientDao.getOAuthClientSecret(oauthClientId);
-				// add in the clientId as a request param
-				if (oauthClientSecret.equals(up.getPassword())) {
+				byte[] secretSalt = oauthClientDao.getSecretSalt(oauthClientId);
+				String hash = PBKDF2Utils.hashPassword(up.getPassword(), secretSalt);
+				validCredentials = oauthClientDao.checkOAuthClientSecretHash(oauthClientId, hash);
+				if (validCredentials) {
+					// add in the clientId as a request param
 					modParams.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, new String[] {oauthClientId});
 				}
-				// let the request continue, but unauthenticated
 			} catch (NotFoundException e) {
-				// let the request continue, but unauthenticated
+				validCredentials=false;
 			}
 		}
 		
-		HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
-		chain.doFilter(modRqst, response);
+		if (validCredentials) {
+			HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
+			chain.doFilter(modRqst, response);
+		} else {
+			HttpServletResponse httpResponse = (HttpServletResponse)response;
+			httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			httpResponse.setContentType("application/json");
+			httpResponse.getOutputStream().println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials.\"}");
+			
+		}
 	}
 
 	@Override

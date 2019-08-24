@@ -47,11 +47,17 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	private OpenIDConnectManager oidcManager;
 
 	@Override
-	public OAuthClientIdAndSecret createOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
+	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return oidcManager.createOpenIDConnectClient(userInfo, oauthClient);
 	}
 
+	@Override
+	public OAuthClientIdAndSecret createOAuthClientSecret(Long userId, String clientId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oidcManager.createClientSecret(userInfo, clientId);
+	}
+	
 	@Override
 	public OAuthClient getOpenIDConnectClient(Long userId, String id) {
 		UserInfo userInfo = userManager.getUserInfo(userId);

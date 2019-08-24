@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECRET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_IS_VERIFIED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECRET_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SECRET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_URI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_CLIENT;
@@ -30,12 +32,14 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.IncorrectResultSetColumnCountException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class OAuthClientDaoImpl implements OAuthClientDao {
@@ -46,19 +50,33 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	private static final String CLIENT_SQL_SELECT = "SELECT * FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
 			COL_OAUTH_CLIENT_CREATED_BY+" = ? LIMIT ? OFFSET ?";
+	
+	private static final String CLIENT_CREATOR_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_CREATED_BY+" FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
+			COL_OAUTH_CLIENT_CREATED_BY+" = ?";
 
-	private static final String CLIENT_SECRET_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET+
+	private static final String CLIENT_SECRET_HASH_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET_HASH+
 			" FROM "+TABLE_OAUTH_CLIENT
 			+ " WHERE "+COL_OAUTH_CLIENT_ID+" = ?";
 
+	private static final String CLIENT_AND_SECRET_HASH_COUNT_SQL_SELECT = "SELECT COUNT(*) "+
+			" FROM "+TABLE_OAUTH_CLIENT
+			+ " WHERE "+COL_OAUTH_CLIENT_ID+" = ? AND "+COL_OAUTH_CLIENT_SECRET_HASH+" = ?";
+
 	private static final String SECTOR_IDENTIFIER_SELECT_FOR_CLIENT_SQL = "SELECT s."+COL_OAUTH_SECTOR_IDENTIFIER_SECRET+
-			" FROM "+TABLE_OAUTH_CLIENT+" c, "+TABLE_OAUTH_SECTOR_IDENTIFIER+" s "
-			+" WHERE "+
+			" FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER+" s INNER JOIN "+TABLE_OAUTH_CLIENT+" c ON "+
 			"c."+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = s."+COL_OAUTH_SECTOR_IDENTIFIER_URI+
-			" AND c."+COL_OAUTH_CLIENT_ID+" = ?";
+			" WHERE c."+COL_OAUTH_CLIENT_ID+" = ?";
 
 	private static final String SECTOR_IDENTIFIER_SQL_DELETE = "DELETE FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER
 			+" WHERE "+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = ?";
+
+	private String SET_CLIENT_VERIFIED_SQL = "UPDATE "+TABLE_OAUTH_CLIENT+
+			" SET "+COL_OAUTH_CLIENT_IS_VERIFIED+"= ?, "+
+			COL_OAUTH_CLIENT_ETAG+"= ? WHERE "+ COL_OAUTH_CLIENT_ID+"= ?";
+
+	private String SET_CLIENT_SECRET_HASH = "UPDATE "+TABLE_OAUTH_CLIENT+
+			" SET "+COL_OAUTH_CLIENT_SECRET_HASH+"= ?, "+
+			COL_OAUTH_CLIENT_ETAG+"= ? WHERE "+ COL_OAUTH_CLIENT_ID+"= ?";
 
 	@Autowired
 	private DBOBasicDao basicDao;	
@@ -69,6 +87,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	// Note, this drop the 'secretHash' fields, which is not part of the DTO
 	public static OAuthClient clientDboToDto(DBOOAuthClient dbo) {
 		OAuthClient dto;
 		try {
@@ -76,11 +95,31 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+		dto.setClientId(dbo.getId().toString());
+		dto.setClient_name(dbo.getName());
+		dto.setCreatedBy(dbo.getCreatedBy().toString());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
+		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
+		dto.setEtag(dbo.geteTag());
+		dto.setSector_identifier(dbo.getSectorIdentifierUri());
+		dto.setValidated(dbo.getVerified());
 		return dto;
 	}
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(OAuthClient.class).build();
+	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOAuthClient
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.allowTypes(OAuthClient.class)
+			.omitField(OAuthClient.class, "clientId")
+			.omitField(OAuthClient.class, "createdBy")
+			.omitField(OAuthClient.class, "createdOn")
+			.omitField(OAuthClient.class, "etag")
+			.omitField(OAuthClient.class, "modifiedOn")
+			.omitField(OAuthClient.class, "sector_identifier")
+			.omitField(OAuthClient.class, "client_name")
+			.omitField(OAuthClient.class, "validated")
+			.build();
 
+	// Note, the returned value has no 'secretHash' field, which is managed separately
 	public static DBOOAuthClient clientDtoToDbo(OAuthClient dto) {
 		DBOOAuthClient dbo = new DBOOAuthClient();
 		try {
@@ -88,13 +127,14 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		if (dto.getClientId()!=null) dbo.setId(Long.parseLong(dto.getClientId()));
+		dbo.setId(Long.parseLong(dto.getClientId()));
+		dbo.setName(dto.getClient_name());
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
-		dbo.seteTag(dto.getEtag());
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
+		dbo.seteTag(dto.getEtag());
 		dbo.setSectorIdentifierUri(dto.getSector_identifier());
-		dbo.setName(dto.getClient_name());
+		dbo.setVerified(dto.getValidated());
 		return dbo;
 	}
 
@@ -106,7 +146,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	@WriteTransaction
 	@Override
-	public String createOAuthClient(OAuthClient client, String secret) {
+	public OAuthClient createOAuthClient(OAuthClient client) {
 		ValidateArgument.required(client, "OAuth client");
 		ValidateArgument.required(client.getCreatedBy(), "Created By");
 		ValidateArgument.required(client.getSector_identifier(), "Sector Identifier");
@@ -119,7 +159,6 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		String id = idGenerator.generateNewId(IdType.OAUTH_CLIENT_ID).toString();
 		client.setClientId(id);
 		DBOOAuthClient dbo = clientDtoToDbo(client);
-		dbo.setSecret(secret);
 		try {
 			basicDao.createNew(dbo);
 		} catch (IllegalArgumentException e) {
@@ -128,7 +167,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 			}
 			throw e;
 		}
-		return id;
+		return client;
 	}
 
 	@Override
@@ -137,6 +176,20 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(clientId);
 		DBOOAuthClient dbo = basicDao.getObjectByPrimaryKey(DBOOAuthClient.class, param);
 		return clientDboToDto(dbo);
+	}
+	
+	/**
+	 * 
+	 * @param clientId
+	 * @return
+	 */
+	@Override
+	public String getOAuthClientCreator(String clientId) {
+		try {
+			return jdbcTemplate.queryForObject(CLIENT_CREATOR_SQL_SELECT, String.class, clientId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("OAuth client (" + clientId + ") does not exist");
+		}
 	}
 
 	@Override
@@ -156,12 +209,19 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	}
 
 	@Override
-	public String getOAuthClientSecret(String clientId) {
+	public boolean checkOAuthClientSecretHash(String clientId, String secretHash) {
 		ValidateArgument.required(clientId, "Client ID");
+		ValidateArgument.required(secretHash, "Secret Hash");
+		return jdbcTemplate.queryForObject(CLIENT_AND_SECRET_HASH_COUNT_SQL_SELECT, Integer.class, clientId, secretHash)>0;
+	}
+
+	@Override
+	public byte[] getSecretSalt(String clientId) {
 		try {
-			return jdbcTemplate.queryForObject(CLIENT_SECRET_SQL_SELECT, String.class, clientId);
+			String secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, clientId);
+			return PBKDF2Utils.extractSalt(secretHash);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(clientId+" was not found", e);
+			throw new NotFoundException("OAuth client (" + clientId + ") does not exist");
 		}
 	}
 
@@ -176,7 +236,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		OAuthClient toStore = clientDboToDto(origDbo);
 
 		// now update 'toStore' with info from updatedClient
-		// we *never* change: clientID, clientSecret, createdBy, createdOn
+		// we *never* change: clientID, createdBy, createdOn
 		toStore.setClient_name(updatedClient.getClient_name());
 		toStore.setClient_uri(updatedClient.getClient_uri());
 		if (!toStore.getEtag().equals(updatedClient.getEtag())) {
@@ -191,10 +251,9 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		toStore.setSector_identifier_uri(updatedClient.getSector_identifier_uri());
 		toStore.setTos_uri(updatedClient.getTos_uri());
 		toStore.setUserinfo_signed_response_alg(updatedClient.getUserinfo_signed_response_alg());
-		// validated can only become true if explicitly set by the caller
-		if (updatedClient.getValidated()!=null) toStore.setValidated(updatedClient.getValidated());
+		// validated can only be set to false
+		if (updatedClient.getValidated()==false) toStore.setValidated(false);
 		DBOOAuthClient dbo = clientDtoToDbo(toStore);
-		dbo.setSecret(origDbo.getSecret());
 		basicDao.update(dbo);
 		return toStore;
 	}
@@ -232,6 +291,18 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	public boolean doesSectorIdentifierExistForURI(String sectorIdentifierUri) {
 		long count = jdbcTemplate.queryForObject(SECTOR_IDENTIFIER_SQL_SELECT, Long.class, sectorIdentifierUri);
 		return count>0;
+	}
+	
+	@Override
+	public void setOAuthClientVerified(String clientId) {
+		String newEtag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SET_CLIENT_VERIFIED_SQL, true, newEtag, clientId);	
+	}
+
+	@Override
+	public void setOAuthClientSecretHash(String clientId, String secretHash) {
+		String newEtag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SET_CLIENT_SECRET_HASH, secretHash, newEtag, clientId);	
 	}
 
 }

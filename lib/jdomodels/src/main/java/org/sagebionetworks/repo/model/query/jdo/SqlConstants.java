@@ -924,13 +924,14 @@ public class SqlConstants {
 	public static final String TABLE_OAUTH_CLIENT = 									"OAUTH_CLIENT";
 	public static final String COL_OAUTH_CLIENT_ID = 									"OAUTH_CLIENT_ID";
 	public static final String COL_OAUTH_CLIENT_NAME = 									"OAUTH_CLIENT_NAME";
-	public static final String COL_OAUTH_CLIENT_SECRET = 								"OAUTH_CLIENT_SECRET";
+	public static final String COL_OAUTH_CLIENT_SECRET_HASH = 							"OAUTH_CLIENT_SECRET_HASH";
 	public static final String COL_OAUTH_CLIENT_PROPERTIES = 							"OAUTH_CLIENT_PROPERTIES";
 	public static final String COL_OAUTH_CLIENT_ETAG = 									"OAUTH_CLIENT_ETAG";
 	public static final String COL_OAUTH_CLIENT_CREATED_BY = 							"OAUTH_CLIENT_CREATED_BY";
 	public static final String COL_OAUTH_CLIENT_CREATED_ON = 							"OAUTH_CLIENT_CREATED_ON";
 	public static final String COL_OAUTH_CLIENT_MODIFIED_ON = 							"OAUTH_CLIENT_MODIFIED_ON";
 	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI = 				"OAUTH_SECTOR_IDENTIFIER_URI";
+	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"OAUTH_CLIENT_IS_VERIFIED";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

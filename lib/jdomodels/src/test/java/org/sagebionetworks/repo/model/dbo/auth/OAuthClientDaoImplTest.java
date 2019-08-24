@@ -121,10 +121,10 @@ public class OAuthClientDaoImplTest {
 		SectorIdentifier sectorIdentifier = newSectorIdentifier();
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);
 		OAuthClient oauthClient = newDTO();
-		String id = oauthClientDao.createOAuthClient(oauthClient, OAUTH_CLIENT_SHARED_SECRET);
-		assertNotNull(id);
-		idsToDelete.add(id);
-		return id;
+		oauthClient = oauthClientDao.createOAuthClient(oauthClient);
+		assertNotNull(oauthClient.getClientId());
+		idsToDelete.add(oauthClient.getClientId());
+		return oauthClient.getClientId();
 	}
 	
 	@Test
@@ -155,7 +155,7 @@ public class OAuthClientDaoImplTest {
 	}
 
 	@Test
-	public void testGetOAuthClientAndSecret() {
+	public void testGetOAuthClient() {
 		String clientId = createSectorIdentifierAndClient();
 		OAuthClient retrieved = oauthClientDao.getOAuthClient(clientId);
 		assertEquals(CLIENT_NAME, retrieved.getClient_name());
@@ -172,9 +172,6 @@ public class OAuthClientDaoImplTest {
 		assertEquals(TOS_URI, retrieved.getTos_uri());
 		assertEquals(OIDCSigningAlgorithm.RS256, retrieved.getUserinfo_signed_response_alg());
 		assertFalse(retrieved.getValidated());
-		
-		String s = oauthClientDao.getOAuthClientSecret(clientId);
-		assertEquals(OAUTH_CLIENT_SHARED_SECRET, s);
 	}
 	
 	@Test
@@ -221,7 +218,7 @@ public class OAuthClientDaoImplTest {
 		createSectorIdentifierAndClient();
 		OAuthClient oauthClient = newDTO();
 		try {
-			oauthClientDao.createOAuthClient(oauthClient, OAUTH_CLIENT_SHARED_SECRET);
+			oauthClientDao.createOAuthClient(oauthClient);
 			fail("name uniqueness is not enforced");
 		} catch (IllegalArgumentException e) {
 			assertEquals("OAuth client already exists with name "+oauthClient.getClient_name(), e.getMessage());
@@ -239,7 +236,7 @@ public class OAuthClientDaoImplTest {
 			String clientName = "ANOTHER CLIENT "+i;
 			expectedClientNames.add(clientName);
 			OAuthClient oauthClient = newDTO(userId2, clientName);
-			String id = oauthClientDao.createOAuthClient(oauthClient, OAUTH_CLIENT_SHARED_SECRET);
+			String id = oauthClientDao.createOAuthClient(oauthClient).getClientId();
 			assertNotNull(id);
 			idsToDelete.add(id);
 		}
@@ -312,7 +309,7 @@ public class OAuthClientDaoImplTest {
 		assertEquals(newSIURI, updated.getSector_identifier_uri());
 		assertEquals(newTOS, updated.getTos_uri());
 		assertNull(updated.getUserinfo_signed_response_alg());
-		assertTrue(updated.getValidated());
+		assertFalse(updated.getValidated());
 	}
 
 }

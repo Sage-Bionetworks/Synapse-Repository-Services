@@ -9,10 +9,9 @@ public interface OAuthClientDao {
 	/**
 	 * 
 	 * @param client the metadata for the OAuth Client
-	 * @param secret the shared secret used to authenticate the client
 	 * @return the id of the newly created OAuth client
 	 */
-	public String createOAuthClient(OAuthClient client, String secret);
+	public OAuthClient createOAuthClient(OAuthClient client);
 	
 	/**
 	 * 
@@ -30,14 +29,7 @@ public interface OAuthClientDao {
 	public OAuthClientList listOAuthClients(String nextPageToken, Long createdBy);
 	
 	/**
-	 * 
-	 * @param clientId
-	 * @return the shared secret for the given clientId
-	 */
-	public String getOAuthClientSecret(String clientId);
-	
-	/**
-	 * Update the indiecated OAuth Client
+	 * Update the indicated OAuth Client
 	 * clientID, clientSecret, createdBy, createdOn are never changed
 	 * @param client
 	 * @return the updated object
@@ -45,10 +37,44 @@ public interface OAuthClientDao {
 	public OAuthClient updateOAuthClient(OAuthClient client);
 	
 	/**
+	 * 
+	 * @param clientId
+	 * @return
+	 */
+	public String getOAuthClientCreator(String clientId);
+	
+	/**
 	 * Delete the indicated OAuth Client
 	 * @param clientId
 	 */
 	public void deleteOAuthClient(String clientId);
+	
+	/**
+	 * 
+	 * @param clientId
+	 */
+	public void setOAuthClientVerified(String clientId);
+	
+	/**
+	 * Store the salted hash of the client secret.
+	 * @param clientId
+	 * @param secretHash
+	 */
+	public void setOAuthClientSecretHash(String clientId, String secretHash);
+	
+	/**
+	 * 
+	 * @param clientId
+	 * @return
+	 */
+	public byte[] getSecretSalt(String clientId);
+	
+	/**
+	 * 
+	 * @param clientId
+	 * @return true iff the provided password hash is correct
+	 */
+	public boolean checkOAuthClientSecretHash(String clientId, String secretHash);
 	
 	/**
 	 * Create a Sector Identifier with URI and secret.  The URI must be unique across all Sector Identifiers

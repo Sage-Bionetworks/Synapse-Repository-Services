@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -9,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
@@ -46,6 +49,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -63,8 +67,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
 	
-	
-	private StackEncrypter encryptionUtils = EncryptionUtilsSingleton.singleton();
+	private StackEncrypter stackEncrypter = EncryptionUtilsSingleton.singleton();
 	
 	@Autowired
 	private OAuthClientDao oauthClientDao;
@@ -81,31 +84,26 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	@WriteTransaction
 	@Override
-	public OAuthClientIdAndSecret createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
+	public OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) { // TODO move to authorizationManager
 			throw new UnauthorizedException("Anonymous user may not create an OAuth Client");
 		}
 		// TODO validation, esp. sector identifier!!!
 		oauthClient.setCreatedBy(userInfo.getId().toString());
 		oauthClient.setValidated(false);
-		String secret = UUID.randomUUID().toString(); // TODO is this secret enough?
-		
 		// find or create SectorIdentifier
 		if (!oauthClientDao.doesSectorIdentifierExistForURI(oauthClient.getSector_identifier())) {
 			SectorIdentifier sectorIdentifier = new SectorIdentifier();
 			sectorIdentifier.setCreatedBy(userInfo.getId());
 			sectorIdentifier.setCreatedOn(System.currentTimeMillis());
-			sectorIdentifier.setSecret(EncryptionUtils.newSecretKey());
+			String sectorIdentifierSecret = EncryptionUtils.newSecretKey();
+			String encryptedSISecret = stackEncrypter.encryptAndBase64EncodeStringWithStackKey(sectorIdentifierSecret);
+			sectorIdentifier.setSecret(encryptedSISecret);
 			sectorIdentifier.setSectorIdentifierUri(oauthClient.getSector_identifier());
 			oauthClientDao.createSectorIdentifier(sectorIdentifier);
 		}
 		
-		String id = oauthClientDao.createOAuthClient(oauthClient, secret);
-		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
-		result.setClient_name(oauthClient.getClient_name());
-		result.setClientId(id);
-		result.setClientSecret(secret); // TODO store the hash, not the secret itself
-		return result;
+		return oauthClientDao.createOAuthClient(oauthClient);
 	}
 
 	@Override
@@ -137,13 +135,36 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@WriteTransaction
 	@Override
 	public void deleteOpenIDConnectClient(UserInfo userInfo, String id) {
-		OAuthClient result = oauthClientDao.getOAuthClient(id);
-		if (!result.getCreatedBy().equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
+		String creator = oauthClientDao.getOAuthClientCreator(id);
+		if (!creator.equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
 			throw new UnauthorizedException("You can only delete your own OAuth client(s).");
 		}
 		oauthClientDao.deleteOAuthClient(id);
 	}
 	
+	private static final Random RANDOM = new SecureRandom();
+	
+	public static String generateOAuthClientSecret() {
+		byte[] randomBytes = new byte[32];
+		RANDOM.nextBytes(randomBytes);
+		return Base64.getUrlEncoder().encodeToString(randomBytes);
+	}
+
+	@WriteTransaction
+	@Override
+	public OAuthClientIdAndSecret createClientSecret(UserInfo userInfo, String clientId) {
+		String creator = oauthClientDao.getOAuthClientCreator(clientId);
+		if (!creator.equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
+			throw new UnauthorizedException("You can only generate credentials for your own OAuth client(s).");
+		}		
+		String secret = generateOAuthClientSecret();
+		String secretHash = PBKDF2Utils.hashPassword(secret, null);
+		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash);
+		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
+		result.setClientId(clientId);
+		result.setClientSecret(secret);
+		return result;
+	}
 	/*
 	 * The scope parameter in an OAuth authorization request is a space-delimted list of scope values.
 	 */
@@ -209,6 +230,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		result.setClient_uri(client.getClient_uri());
 		result.setPolicy_uri(client.getPolicy_uri());
 		result.setTos_uri(client.getTos_uri());
+		result.setIs_verified(client.getValidated());
+		result.setRedirect_uri(authorizationRequest.getRedirectUri());
 
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
 		Set<String> scopeDescriptions = new TreeSet<String>();
@@ -277,7 +300,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new RuntimeException(e);
 		}
 		String serializedAuthorizationRequest = adapter.toJSONString();
-		String encryptedAuthorizationRequest = encryptionUtils.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
+		String encryptedAuthorizationRequest = stackEncrypter.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
 				
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
@@ -285,11 +308,15 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 	
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
-	public static String ppid(String userId, String sectorIdentifierSecret) {
+	public String ppid(String userId, String clientId) {
+		String encryptedSISecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
+		String sectorIdentifierSecret = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(encryptedSISecret);
 		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
 	}
 	
-	public static String getUserIdFromPPID(String ppid, String sectorIdentifierSecret) {
+	public  String getUserIdFromPPID(String ppid, String clientId) {
+		String encryptedSISecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
+		String sectorIdentifierSecret = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(encryptedSISecret);
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
 	
@@ -378,7 +405,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		String serializedAuthorizationRequest;
 		try {
-			serializedAuthorizationRequest = encryptionUtils.decryptStackEncryptedAndBase64EncodedString(code);
+			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid authorization code: "+code, e);
 		}
@@ -410,8 +437,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
-		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(verifiedClientId);
-		String ppid = ppid(authorizationRequest.getUserId(), sectorIdentifierSecret);
+		String ppid = ppid(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
 		
 		OIDCTokenResponse result = new OIDCTokenResponse();
@@ -447,12 +473,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String oauthClientId = accessTokenClaimsSet.getAudience().get(0); 
 			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
 			
-			String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(oauthClientId);
 			String ppid = accessTokenClaimsSet.getSubject();
 			Long authTimeSeconds = accessTokenClaimsSet.getLongClaim(OIDCClaimName.auth_time.name());
 			
 			// userId is used to retrieve the user info
-			String userId = getUserIdFromPPID(ppid, sectorIdentifierSecret);
+			String userId = getUserIdFromPPID(ppid, oauthClientId);
 			
 			List<OAuthScope> scopes = OIDCTokenUtil.getScopeFromClaims(accessTokenClaimsSet);
 			Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);

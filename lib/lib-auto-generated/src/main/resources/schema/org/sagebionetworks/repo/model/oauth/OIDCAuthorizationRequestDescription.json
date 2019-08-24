@@ -9,6 +9,10 @@
 			"type": "string",
 			"description":"URL of the home page of the Client. The value of this field MUST point to a valid Web page."
 		},
+		"redirect_uri": {
+			"type": "string",
+			"description":"URL to which the user-agent is to be redirected after consent is given."
+		},
 		"policy_uri": {
 			"type": "string",
 			"description":"URL that the Relying Party Client provides to the End-User to read about the how the profile data will be used. The value of this field MUST point to a valid web page."
@@ -23,6 +27,10 @@
 			"items": {
 				"type": "string"
 			}
+		},
+		"is_verified": {
+			"type": boolean,
+			"description": "true only after the client verifies its control of the domain(s) of the registered redirect URL(s)."
 		}
 	}
 }

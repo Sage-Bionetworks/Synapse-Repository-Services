@@ -19,7 +19,15 @@ public interface OpenIDConnectService {
 	 * @param oauthClient
 	 * @return
 	 */
-	public OAuthClientIdAndSecret createOpenIDConnectClient(Long userId, OAuthClient oauthClient);
+	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient);
+	
+	/**
+	 * 
+	 * @param userid
+	 * @param clientId
+	 * @return
+	 */
+	public OAuthClientIdAndSecret createOAuthClientSecret(Long userId, String clientId);
 	
 	/**
 	 * 

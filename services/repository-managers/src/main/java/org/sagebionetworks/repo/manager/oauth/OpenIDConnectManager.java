@@ -23,7 +23,7 @@ public interface OpenIDConnectManager {
 	 * @param oauthClient
 	 * @return the Id and secret of the newly created client
 	 */
-	OAuthClientIdAndSecret createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient);
+	OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient);
 
 	/**
 	 * 
@@ -59,6 +59,15 @@ public interface OpenIDConnectManager {
 	 * @param id
 	 */
 	void deleteOpenIDConnectClient(UserInfo userInfo, String id);
+	
+	
+	/**
+	 * Generate and return the secret for the given client.
+	 * Note:  Only the hash of the secret is stored.
+	 * @param clientId
+	 * @return The new secret
+	 */
+	OAuthClientIdAndSecret createClientSecret(UserInfo userInfo, String clientId);
 	
 	/**
 	 * 

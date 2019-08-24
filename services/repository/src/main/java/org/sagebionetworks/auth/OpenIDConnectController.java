@@ -22,7 +22,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -83,12 +82,22 @@ public class OpenIDConnectController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.POST)
 	public @ResponseBody
-	OAuthClientIdAndSecret createOpenIDConnectClient(
+	OAuthClient createOpenIDConnectClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OAuthClient oauthClient
 			) throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().
 				createOpenIDConnectClient(userId, oauthClient);
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_SECRET, method = RequestMethod.POST)
+	public @ResponseBody 
+	OAuthClientIdAndSecret createOAuthClientSecret(
+		@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+		@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String clientId) {
+		return serviceProvider.getOpenIDConnectService().
+				createOAuthClientSecret(userId, clientId);
 	}
 	
 	/**
