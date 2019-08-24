@@ -99,6 +99,24 @@ class AnnotationsV2TranslatorTest {
 		assertEquals(annotationsV1, translated);
 	}
 
+	//TODO: finish modifying
+	@Test
+	public void testToAnnotationsV1_doubleInf(){
+		//replace stringKey1 's value with an empty list
+		String infKey = "nanKey";
+		annotationsV2 = new AnnotationsV2();
+		AnnotationsV2Utils.putAnnotations(annotationsV2, infKey, Arrays.asList("inf","INF", "iNf", "-Inf"), AnnotationsV2ValueType.DOUBLE);
+
+		//method under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+
+		//expected value should not have stringkey1 value;
+		annotationsV1 = new Annotations();
+		annotationsV1.addAnnotation(infKey, Arrays.asList(Double.NaN, Double.NaN, Double.NaN, Double.NaN));
+
+		assertEquals(annotationsV1, translated);
+	}
+
 	@Test
 	public void testToAnnotationsV2(){
 		//method under test
